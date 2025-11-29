@@ -367,7 +367,7 @@ include 'includes/header.php';
         </div>
     </div>
 
-    <!-- 세 번째 섹션: 110만명이 선택한 통신사 -->
+    <!-- 세 번째 섹션: 최대할인 인터넷 상품 -->
     <div class="exclusive-section bg-gray-200">
         <div class="content-layout">
             <section class="exclusive-plan-section">
@@ -541,72 +541,12 @@ include 'includes/header.php';
                     </div>
                 </div>
                 <div class="section-footer">
-                    <a href="/plans?mobilePlanOperatorIdList=14&sorting=recommend_v2&page=0&from=home" class="more-btn">
+                    <a href="plans.php?mobilePlanOperatorIdList=14&sorting=recommend_v2&page=0&from=home" class="more-btn">
                         <span>인터넷 상품 더보기</span>
                         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path fill-rule="evenodd" clip-rule="evenodd" d="M8.15146 20.8485C7.68283 20.3799 7.68283 19.6201 8.15146 19.1515L15.3029 12L8.15146 4.84852C7.68283 4.37989 7.68283 3.6201 8.15146 3.15147C8.62009 2.68284 9.37989 2.68284 9.84852 3.15147L17.8485 11.1515C18.3171 11.6201 18.3171 12.3799 17.8485 12.8485L9.84852 20.8485C9.37989 21.3172 8.62009 21.3172 8.15146 20.8485Z" fill="#868E96"></path>
                         </svg>
                     </a>
-                </div>
-            </section>
-        </div>
-    </div>
-
-    <!-- 네 번째 섹션: 테마별 요금제 -->
-    <div class="theme-section">
-        <div class="content-layout">
-            <section class="theme-plan-section">
-                <header class="section-header">
-                    <h2>테마별 요금제</h2>
-                </header>
-                <div class="theme-swiper-wrapper">
-                    <div class="theme-swiper" id="themeSwiper">
-                        <div class="theme-slide">
-                            <a href="/plans/themes/life-time-discount" class="theme-card">
-                                <img src="https://assets.moyoplan.com/image/home/cash.png" alt="평생 할인" width="48" height="48">
-                                <div class="theme-content">
-                                    <h3>평생 할인</h3>
-                                    <p>평생 이 가격 그대로!</p>
-                                </div>
-                            </a>
-                        </div>
-                        <div class="theme-slide">
-                            <a href="/plans/themes/twenty-four-discount" class="theme-card">
-                                <img src="https://assets.moyoplan.com/image/home/discount-date.png" alt="24개월 할인" width="48" height="48">
-                                <div class="theme-content">
-                                    <h3>24개월 할인</h3>
-                                    <p>2년 동안 저렴해요</p>
-                                </div>
-                            </a>
-                        </div>
-                        <div class="theme-slide">
-                            <a href="/plans/themes/tethering" class="theme-card">
-                                <img src="https://assets.moyoplan.com/image/home/wifi.png" alt="핫스팟 전용" width="48" height="48">
-                                <div class="theme-content">
-                                    <h3>핫스팟 전용</h3>
-                                    <p>데이터 맘껏 공유해요</p>
-                                </div>
-                            </a>
-                        </div>
-                        <div class="theme-slide">
-                            <a href="/plans/themes/high-quality-video" class="theme-card">
-                                <img src="https://assets.moyoplan.com/image/home/youtube.png" alt="고화질 동영상" width="48" height="48">
-                                <div class="theme-content">
-                                    <h3>고화질 동영상</h3>
-                                    <p>데이터 걱정 없어요</p>
-                                </div>
-                            </a>
-                        </div>
-                        <div class="theme-slide">
-                            <a href="/plans/themes/5g" class="theme-card">
-                                <img src="https://assets.moyoplan.com/image/home/5g.png" alt="5G 요금제" width="48" height="48">
-                                <div class="theme-content">
-                                    <h3>5G 요금제</h3>
-                                    <p>5G를 반값으로!</p>
-                                </div>
-                            </a>
-                        </div>
-                    </div>
                 </div>
             </section>
         </div>

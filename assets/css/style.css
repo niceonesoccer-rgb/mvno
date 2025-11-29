@@ -244,7 +244,8 @@ button {
     
     /* 모바일: 데이터 요금제 카드 경계선 강화 */
     .data-plan-card {
-        border: 2px solid var(--color-gray-400);
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        border-radius: 12px;
         box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.08);
     }
     
@@ -438,8 +439,8 @@ button {
 .ranking-card {
     display: block;
     background-color: var(--color-white);
-    border: 1px solid var(--color-gray-200);
-    border-radius: 8px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 12px;
     overflow: hidden;
     box-shadow: var(--shadow-sm);
     transition: all 0.3s ease;
@@ -496,8 +497,8 @@ button {
 .data-plan-card {
     display: block;
     background-color: var(--color-white);
-    border: 1.5px solid var(--color-gray-300);
-    border-radius: 8px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 12px;
     padding: var(--spacing-md);
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
     transition: all 0.3s ease;
@@ -654,8 +655,8 @@ button {
 
 .phone-deal-card {
     background-color: var(--color-white);
-    border: 1px solid var(--color-gray-200);
-    border-radius: 16px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 12px;
     padding: var(--spacing-lg);
     box-shadow: var(--shadow-sm);
     transition: box-shadow 0.2s;
@@ -928,11 +929,41 @@ button {
     scroll-snap-align: start;
 }
 
+/* 모바일 요금제 섹션은 그리드 레이아웃으로 표시 */
+#mobilePlanSwiper {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--spacing-md);
+    overflow-x: visible !important;
+    scroll-snap-type: none !important;
+    padding: var(--spacing-md) 0;
+    width: 100%;
+}
+
+#mobilePlanSwiper .exclusive-slide {
+    flex: none !important;
+    width: 100%;
+    max-width: 100%;
+}
+
+/* 데스크톱에서 더 많은 열 표시 */
+@media (min-width: 1200px) {
+    #mobilePlanSwiper {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (min-width: 1600px) {
+    #mobilePlanSwiper {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
 .plan-card {
     display: block;
     background-color: var(--color-white);
-    border: 1px solid var(--color-gray-200);
-    border-radius: 8px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 12px;
     box-shadow: var(--shadow-sm);
     transition: box-shadow 0.2s;
     height: 100%;
@@ -1027,6 +1058,131 @@ button {
     font-size: var(--font-size-lg);
     font-weight: 700;
     color: var(--color-indigo-500);
+}
+
+/* 모바일 요금제 카드 커스텀 스타일 */
+.mobile-plan-card {
+    gap: var(--spacing-md);
+}
+
+.mobile-plan-header {
+    margin-bottom: var(--spacing-xs);
+}
+
+.mobile-plan-provider {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.mobile-plan-provider-name {
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    color: var(--color-gray-700);
+}
+
+.mobile-plan-rating {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    font-size: var(--font-size-xs);
+    color: var(--color-gray-600);
+    font-weight: 500;
+}
+
+.mobile-plan-rating svg {
+    width: 14px;
+    height: 14px;
+}
+
+.mobile-plan-title {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--color-gray-800);
+    line-height: 1.4;
+    margin-bottom: var(--spacing-xs);
+}
+
+.mobile-plan-data {
+    font-size: var(--font-size-base);
+    font-weight: 700;
+    color: var(--color-gray-900);
+    margin-bottom: var(--spacing-sm);
+}
+
+.mobile-plan-features {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-xs);
+    font-size: var(--font-size-xs);
+    color: var(--color-gray-600);
+    margin-bottom: var(--spacing-md);
+}
+
+.mobile-plan-features span {
+    padding: 2px 6px;
+    background-color: var(--color-gray-100);
+    border-radius: 4px;
+    font-weight: 500;
+}
+
+.mobile-plan-price {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-bottom: var(--spacing-sm);
+}
+
+.mobile-plan-price-main {
+    font-size: var(--font-size-xl);
+    font-weight: 700;
+    color: var(--color-indigo-500);
+}
+
+.mobile-plan-price-after {
+    font-size: var(--font-size-xs);
+    color: var(--color-gray-500);
+    font-weight: 500;
+}
+
+.mobile-plan-selection {
+    font-size: var(--font-size-xs);
+    color: var(--color-gray-500);
+    margin-bottom: var(--spacing-sm);
+}
+
+.mobile-plan-gifts {
+    margin-top: auto;
+    padding-top: var(--spacing-sm);
+    border-top: 1px solid var(--color-gray-200);
+}
+
+.mobile-plan-gifts-text {
+    display: block;
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    color: var(--color-gray-700);
+    margin-bottom: var(--spacing-xs);
+}
+
+.mobile-plan-gifts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.mobile-plan-gifts-list span {
+    font-size: var(--font-size-xs);
+    color: var(--color-gray-600);
+    padding-left: var(--spacing-xs);
+    position: relative;
+}
+
+.mobile-plan-gifts-list span::before {
+    content: '•';
+    position: absolute;
+    left: 0;
+    color: var(--color-gray-400);
 }
 
 .plan-card-content header h4 {
@@ -1475,5 +1631,1085 @@ a:focus,
 button:focus {
     outline: 2px solid var(--color-primary);
     outline-offset: 2px;
+}
+
+/* ============================================
+   요금제 필터 섹션
+   ============================================ */
+.plans-filter-section {
+    position: sticky;
+    top: 60px; /* 헤더 높이만큼 아래에 고정 */
+    width: 100%;
+    background-color: var(--color-white);
+    z-index: 999; /* 헤더(z-index: 1000)보다 낮게 설정 */
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.plans-filter-inner {
+    width: 100%;
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 12px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    position: relative;
+}
+
+@media (min-width: 992px) {
+    .plans-filter-inner {
+        max-width: 960px;
+        padding: 12px 0;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+    }
+}
+
+/* 데스크톱 검색 바 */
+.plans-search-wrapper-desktop {
+    display: none;
+}
+
+/* 모바일 검색 바 */
+.plans-search-wrapper-mobile {
+    display: block;
+}
+
+.plans-filter-group {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-start;
+}
+
+@media (min-width: 992px) {
+    .plans-filter-group {
+        order: 1;
+    }
+    
+    .plans-data-filter-btn {
+        order: 0;
+        max-width: 300px;
+    }
+}
+
+/* 데이터 필터 버튼 */
+.plans-data-filter-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    border: 1px solid var(--color-gray-300);
+    min-height: 40px;
+    width: 100%;
+    max-width: 620px;
+    padding: 10px 20px;
+    border-radius: 2px;
+    background-color: var(--color-white);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.plans-data-filter-btn:hover {
+    border-color: var(--color-gray-400);
+}
+
+.plans-data-filter-btn svg {
+    flex-shrink: 0;
+}
+
+.plans-filter-label {
+    font-size: var(--font-size-sm);
+    color: var(--color-gray-500);
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.plans-filter-value {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: var(--font-size-base);
+    color: var(--color-gray-600);
+    font-weight: 700;
+    flex: 1;
+    min-width: 0;
+}
+
+.plans-filter-arrow {
+    display: flex;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+.plans-filter-arrow svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* 필터 및 정렬 버튼 */
+.plans-filter-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 12px;
+    border: 1px solid var(--color-gray-300);
+    border-radius: 2px;
+    min-height: 40px;
+    min-width: fit-content;
+    background-color: var(--color-white);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.plans-filter-btn:hover {
+    border-color: var(--color-gray-400);
+}
+
+.plans-filter-btn svg {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+}
+
+.plans-filter-text {
+    font-size: var(--font-size-sm);
+    color: var(--color-gray-600);
+    font-weight: 700;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1 1 0%;
+    min-width: 0;
+}
+
+.plans-sort-wrapper {
+    position: relative;
+}
+
+.plans-filter-divider {
+    width: 100%;
+    border: none;
+    height: 1px;
+    background-color: #f1f3f5;
+    margin: 0;
+}
+
+.plans-list-section {
+    padding: var(--spacing-xl) 0;
+}
+
+/* 모바일: 필터가 항상 상단에 고정되도록 설정 */
+@media (max-width: 767px) {
+    .plans-filter-section {
+        position: -webkit-sticky; /* Safari 호환성 */
+        position: sticky;
+        top: 0; /* 스크롤 시 상단에 고정 */
+        z-index: 998; /* 헤더(z-index: 999)보다 낮게 설정하여 헤더 아래에 위치 */
+        width: 100%;
+        background-color: var(--color-white);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+        /* sticky가 제대로 작동하도록 보장 */
+        will-change: transform;
+    }
+}
+
+/* 태블릿 이상 스타일 */
+@media (min-width: 768px) {
+    .plans-filter-section {
+        top: 60px; /* PC에서 헤더 아래에 고정 */
+    }
+}
+
+/* ============================================
+   요금제 목록 메인 레이아웃
+   ============================================ */
+.plans-main-layout {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.plans-left-section {
+    width: 100%;
+}
+
+.plans-sidebar {
+    display: none;
+}
+
+/* 테마별 요금제 섹션 */
+.theme-plans-list-section {
+    padding: var(--spacing-lg) var(--spacing-md);
+    border-bottom: 1px solid var(--color-gray-200);
+}
+
+.theme-plans-list-header {
+    margin-bottom: var(--spacing-md);
+}
+
+.theme-plans-title {
+    font-size: var(--font-size-lg);
+    font-weight: 700;
+    color: var(--color-gray-700);
+    margin: 0;
+}
+
+/* 배너 그리드 (16:9 배너 2개) */
+.plans-banner-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+}
+
+.plans-banner-item {
+    display: block;
+    width: 100%;
+    text-decoration: none;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--color-gray-200);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.plans-banner-item:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.plans-banner-wrapper {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+}
+
+.plans-banner-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+/* 테마별 요금제 스크롤 */
+.theme-plans-scroll {
+    position: relative;
+    display: flex;
+    gap: var(--spacing-md);
+    justify-content: space-between;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding: var(--spacing-md) 0;
+    margin-bottom: var(--spacing-md);
+}
+
+.theme-plans-scroll::-webkit-scrollbar {
+    display: none;
+}
+
+.theme-plan-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    cursor: pointer;
+    white-space: nowrap;
+    text-align: center;
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.2s;
+}
+
+.theme-plan-item:hover .theme-plan-icon {
+    background-color: var(--hover-bg) !important;
+}
+
+.theme-plan-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    transition: background-color 0.2s;
+    margin-bottom: 8px;
+}
+
+.theme-plan-icon img,
+.theme-plan-icon svg {
+    width: 24px;
+    height: 24px;
+}
+
+.theme-plan-label {
+    font-size: var(--font-size-xs);
+    color: var(--color-gray-600);
+    font-weight: 500;
+}
+
+/* 검색 바 */
+.plans-search-wrapper-mobile {
+    margin-bottom: var(--spacing-md);
+}
+
+.plans-search-form {
+    display: flex;
+    align-items: center;
+    border: 1px solid var(--color-gray-300);
+    border-radius: 4px;
+    background-color: var(--color-white);
+    overflow: hidden;
+}
+
+.plans-search-input {
+    flex: 1;
+    padding: 10px 16px;
+    border: none;
+    outline: none;
+    font-size: var(--font-size-sm);
+    color: var(--color-gray-700);
+}
+
+.plans-search-input::placeholder {
+    color: var(--color-gray-400);
+}
+
+.plans-search-btn {
+    padding: 10px 16px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-gray-500);
+    transition: color 0.2s;
+}
+
+.plans-search-btn:hover {
+    color: var(--color-gray-700);
+}
+
+/* 검색 결과 개수 */
+.plans-results-count {
+    margin-bottom: var(--spacing-md);
+    font-size: var(--font-size-sm);
+    color: var(--color-gray-600);
+    font-weight: 500;
+}
+
+/* 요금제 목록 컨테이너 */
+.plans-list-container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+/* 요금제 상세 카드 */
+.plan-detail-card {
+    background-color: var(--color-white);
+    border: 1px solid var(--color-gray-200);
+    border-radius: 8px;
+    padding: var(--spacing-lg);
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow 0.2s;
+    position: relative;
+}
+
+.plan-detail-card:hover {
+    box-shadow: var(--shadow-md);
+}
+
+.plan-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: var(--spacing-md);
+}
+
+.plan-provider-info {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+.plan-provider-logo {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+}
+
+.plan-rating {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    font-size: var(--font-size-xs);
+    color: var(--color-gray-600);
+    font-weight: 600;
+}
+
+.plan-card-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.plan-badge {
+    background-color: #3B82F6;
+    color: var(--color-white);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+}
+
+.plan-favorite-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-gray-400);
+    transition: color 0.2s;
+}
+
+.plan-favorite-btn:hover {
+    color: var(--color-red-500);
+}
+
+.plan-title {
+    font-size: var(--font-size-lg);
+    font-weight: 700;
+    color: var(--color-black);
+    margin-bottom: var(--spacing-md);
+    line-height: 1.4;
+}
+
+.plan-main-info {
+    margin-bottom: var(--spacing-sm);
+}
+
+.plan-data-info {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.plan-data-text {
+    font-size: var(--font-size-lg);
+    font-weight: 700;
+    color: var(--color-black);
+}
+
+.plan-info-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-gray-400);
+}
+
+.plan-features-list {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    font-size: var(--font-size-sm);
+    color: var(--color-gray-600);
+    margin-bottom: var(--spacing-md);
+    flex-wrap: wrap;
+}
+
+.feature-divider {
+    color: var(--color-gray-300);
+}
+
+.plan-price-section {
+    margin-bottom: var(--spacing-md);
+}
+
+.plan-current-price {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: var(--spacing-xs);
+}
+
+.plan-price-text {
+    font-size: var(--font-size-xl);
+    font-weight: 700;
+    color: var(--color-black);
+}
+
+.plan-price-after {
+    font-size: var(--font-size-sm);
+    color: var(--color-gray-500);
+}
+
+.plan-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-sm);
+    padding-top: var(--spacing-md);
+    border-top: 1px solid var(--color-gray-200);
+}
+
+.plan-gifts {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+.plan-gift-icons {
+    display: flex;
+    gap: 4px;
+}
+
+.plan-gift-icons img {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+}
+
+.plan-gifts-text {
+    font-size: var(--font-size-xs);
+    color: var(--color-gray-600);
+}
+
+.plan-selection-count {
+    font-size: var(--font-size-xs);
+    color: var(--color-gray-500);
+}
+
+.plan-expand-btn {
+    display: flex;
+    justify-content: center;
+    padding-top: var(--spacing-sm);
+    cursor: pointer;
+    color: var(--color-gray-400);
+}
+
+/* 요금제 카드 기본 스타일 */
+.basic-plan-card {
+    background-color: var(--color-white);
+    border: 1px solid var(--color-gray-200);
+    border-radius: 12px;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.3s ease;
+    overflow: hidden;
+}
+
+.basic-plan-card:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.08);
+    transform: translateY(-2px);
+}
+
+.plan-card-divider {
+    display: block;
+    width: 100%;
+    border: none;
+    height: 16px;
+    background-color: var(--color-gray-100);
+    margin: 0;
+}
+
+@media (min-width: 1024px) {
+    .plan-card-divider {
+        display: none;
+    }
+}
+
+.plan-card-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+}
+
+.plan-card-main-content {
+    padding: var(--spacing-lg);
+}
+
+.plan-card-header-body-frame {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--spacing-md) * 0.5);
+}
+
+.plan-card-top-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.plan-provider-rating-group {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.plan-provider-logo-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+}
+
+.plan-provider-logo-img {
+    height: 20px;
+    width: auto;
+}
+
+.plan-provider-logo-text {
+    font-size: 0.875rem; /* 14px */
+    font-weight: 500;
+    color: var(--color-gray-700);
+}
+
+.plan-rating-group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.plan-rating-text {
+    font-size: 0.75rem; /* 12px */
+    font-weight: 500;
+    color: var(--color-gray-500);
+}
+
+.plan-badge-favorite-group {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.plan-badge-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+
+.plan-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: var(--spacing-sm);
+    margin-bottom: calc(var(--spacing-md) * 0.25);
+}
+
+.plan-title-text {
+    font-size: 1.0625rem; /* 17px */
+    font-weight: 500;
+    color: var(--color-gray-500);
+    flex: 1;
+}
+
+.plan-favorite-btn-inline {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    flex-shrink: 0;
+    margin: -12px -12px -12px 0;
+}
+
+.plan-info-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.plan-data-row {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+.plan-data-main {
+    font-size: 1.3125rem; /* 21px */
+    font-weight: 700;
+    color: var(--color-gray-700);
+}
+
+.plan-info-icon-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.plan-features-row {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    flex-wrap: wrap;
+}
+
+.plan-feature-item {
+    font-size: 1.0625rem; /* 17px */
+    font-weight: 500;
+    color: var(--color-gray-500);
+}
+
+.plan-feature-divider {
+    width: 1px;
+    height: 10px;
+    background-color: var(--color-gray-300);
+}
+
+.plan-price-row {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: var(--spacing-md);
+}
+
+.plan-price-left {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+}
+
+.plan-price-main-row {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+.plan-price-main {
+    font-size: 1.3125rem; /* 21px */
+    font-weight: 700;
+    color: #4F46E5; /* indigo-600 */
+}
+
+.plan-price-after {
+    font-size: 1.0625rem; /* 17px */
+    font-weight: 500;
+    color: var(--color-gray-500);
+}
+
+.plan-price-right {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+}
+
+.plan-selection-count {
+    font-size: 0.9375rem; /* 15px */
+    font-weight: 500;
+    color: var(--color-gray-400);
+}
+
+/* 아코디언 스타일 */
+.plan-accordion-box {
+    border-top: 1px solid var(--color-gray-200);
+    background-color: var(--color-white);
+    overflow: hidden;
+    border-radius: 0;
+}
+
+.plan-accordion {
+    overflow: hidden;
+}
+
+.plan-accordion-trigger {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-md);
+    background: none;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+    transition: background-color 0.2s;
+}
+
+.plan-accordion-trigger:hover {
+    background-color: var(--color-gray-100);
+}
+
+.plan-accordion-trigger[aria-expanded="true"] .plan-accordion-arrow {
+    transform: rotate(180deg);
+}
+
+.plan-accordion-trigger[aria-expanded="true"] {
+    background-color: var(--color-gray-100);
+}
+
+.plan-accordion-trigger:focus {
+    outline: none;
+}
+
+.plan-gifts-accordion-content {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.plan-gift-icons-overlap {
+    display: flex;
+    align-items: center;
+    gap: 0;
+}
+
+.plan-gift-icon-overlap {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 2px solid var(--color-white);
+    object-fit: cover;
+}
+
+.plan-gift-icon-overlap:not(:first-child) {
+    margin-left: -10px;
+}
+
+.plan-gifts-text-accordion {
+    font-size: 1.0625rem; /* 17px */
+    font-weight: 500;
+    color: var(--color-gray-500);
+}
+
+.plan-accordion-arrow {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    transition: transform 0.2s;
+}
+
+.plan-accordion-content {
+    padding: 0 var(--spacing-md) var(--spacing-md);
+    background-color: var(--color-white);
+    display: none;
+    transition: all 0.2s ease;
+}
+
+.plan-accordion-content[style*="display: block"] {
+    display: block !important;
+}
+
+.plan-gifts-detail-list {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--spacing-sm) * 0.35);
+}
+
+.plan-gift-detail-item {
+    padding: calc(var(--spacing-sm) * 0.35) 0;
+}
+
+.plan-gift-detail-text {
+    font-size: 1.0625rem; /* 17px */
+    font-weight: 500;
+    color: var(--color-gray-600);
+    line-height: 1.2;
+}
+
+/* 데스크톱에서 요금제 카드 스타일 조정 */
+@media (min-width: 992px) {
+    .plan-data-main {
+        font-size: 1.4375rem; /* 23px */
+    }
+    
+    .plan-price-main {
+        font-size: 1.4375rem; /* 23px */
+    }
+    
+    .plan-provider-logo-img {
+        height: 24px;
+    }
+}
+
+/* 사이드바 */
+.plans-sidebar {
+    width: 100%;
+}
+
+.sidebar-content {
+    background-color: transparent;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+@media (min-width: 992px) {
+    .sidebar-content {
+        padding-top: 0;
+    }
+}
+
+@media (max-width: 991px) {
+    .sidebar-content {
+        padding: var(--spacing-xl) var(--spacing-md) 0;
+        max-width: 640px;
+        margin: 0 auto;
+    }
+}
+
+.sidebar-title {
+    font-size: 1.125rem; /* 18px */
+    font-weight: 700; /* bold */
+    color: var(--color-gray-600);
+    margin-bottom: 16px;
+    display: block;
+}
+
+.recent-plans-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+}
+
+.recent-plan-card {
+    display: flex;
+    flex-direction: column;
+    background-color: var(--color-white);
+    border: 1px solid var(--color-gray-200);
+    border-radius: 8px;
+    padding: var(--spacing-md);
+    text-decoration: none;
+    color: inherit;
+    transition: box-shadow 0.2s;
+    word-break: keep-all;
+    box-shadow: var(--shadow-sm);
+}
+
+.recent-plan-card:hover {
+    box-shadow: var(--shadow-md);
+}
+
+.recent-plan-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.recent-plan-name {
+    font-size: 1rem; /* 16px */
+    font-weight: 500; /* medium */
+    color: var(--color-gray-500);
+    margin-bottom: 0;
+    display: block;
+}
+
+.recent-plan-price {
+    font-size: 1.125rem; /* 18px */
+    font-weight: 700;
+    color: var(--color-gray-600);
+    margin-top: 0;
+    display: block;
+}
+
+.sidebar-recommendation {
+    margin-bottom: var(--spacing-md);
+    padding: 0;
+    background-color: transparent;
+    border-radius: 0;
+}
+
+.sidebar-recommendation p {
+    font-size: 0.875rem; /* 14px */
+    font-weight: 500; /* medium */
+    color: var(--color-gray-500);
+    line-height: 1.5;
+    margin: 0;
+    text-align: center;
+}
+
+.sidebar-more-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: var(--spacing-md);
+    background-color: #E0E7FF;
+    color: #4F46E5;
+    border-radius: 8px;
+    font-size: 0.875rem; /* 14px */
+    font-weight: 700; /* bold */
+    text-decoration: none;
+    transition: background-color 0.2s;
+}
+
+.sidebar-more-btn span {
+    font-size: 0.875rem; /* 14px */
+    font-weight: 700; /* bold */
+}
+
+.sidebar-more-btn:hover {
+    background-color: #C7D2FE;
+}
+
+/* 데스크톱 레이아웃 */
+@media (min-width: 992px) {
+    .plans-main-layout {
+        flex-direction: row;
+        gap: var(--spacing-xl);
+        padding: var(--spacing-xl) 0;
+    }
+
+    .plans-left-section {
+        width: 620px;
+        flex-shrink: 0;
+    }
+
+    .plans-sidebar {
+        display: block;
+        width: 320px;
+        flex-shrink: 0;
+    }
+
+    .theme-plans-list-section {
+        padding: var(--spacing-xl) 0;
+        border-bottom: none;
+    }
+
+    .theme-plans-title {
+        font-size: var(--font-size-xl);
+    }
+
+    .plans-banner-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--spacing-md);
+    }
+
+    .theme-plan-icon {
+        width: 64px;
+        height: 64px;
+    }
+
+    .theme-plan-label {
+        font-size: var(--font-size-sm);
+    }
+
+    .plans-search-wrapper-mobile {
+        display: none;
+    }
+
+    .plans-search-wrapper-desktop {
+        display: block;
+        order: 2;
+        width: 300px;
+        flex-shrink: 0;
+    }
 }
 
