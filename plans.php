@@ -1054,7 +1054,7 @@ include 'includes/header.php';
             <!-- 오른쪽 사이드바: 나에게 맞는 요금제 -->
             <aside class="plans-sidebar">
                 <div class="sidebar-content">
-                    <span class="sidebar-title">나에게 맞는 요금제</span>
+                    <span class="sidebar-title">나가 본 요금제</span>
                     
                     <div class="recent-plans-list">
                         <a href="/plans/29238" class="recent-plan-card">

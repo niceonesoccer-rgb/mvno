@@ -102,6 +102,8 @@ button {
     top: 0;
     z-index: 1000;
     width: 100%;
+    min-height: 60px;
+    box-sizing: border-box;
 }
 
 .sticky-nav {
@@ -119,7 +121,9 @@ button {
     align-items: center;
     justify-content: space-between;
     height: 60px;
+    min-height: 60px;
     position: relative;
+    box-sizing: border-box;
 }
 
 .header-center-text {
@@ -137,12 +141,14 @@ button {
 /* 모바일: 메뉴를 하단에 고정 */
 @media (max-width: 767px) {
     .header {
-        border-bottom: none;
+        border-bottom: 1px solid transparent;
         position: sticky;
         top: 0;
         z-index: 999;
         transition: transform 0.3s ease-in-out;
         transform: translateY(0);
+        min-height: 60px;
+        box-sizing: border-box;
     }
     
     /* 모바일에서 스크롤 다운 시 헤더 전체 숨기기 */
@@ -211,6 +217,15 @@ button {
         border-radius: 8px;
         white-space: nowrap; /* 텍스트 줄바꿈 방지 */
         min-width: 0; /* flex item이 축소될 수 있도록 */
+        outline: none;
+        box-sizing: border-box;
+        border: 1px solid transparent;
+    }
+    
+    .nav-link:focus,
+    .nav-link:focus-visible {
+        outline: none !important;
+        border: 1px solid transparent !important;
     }
     
     .nav-link span {
@@ -234,6 +249,7 @@ button {
         opacity: 0.6;
         color: var(--color-gray-500);
         background-color: rgba(99, 102, 241, 0.1);
+        border: 1px solid transparent;
     }
     
     /* 모바일 하단 메뉴에서 이벤트 숨기기 */
@@ -328,9 +344,18 @@ button {
     font-size: var(--font-size-sm);
     font-weight: 500;
     color: var(--color-gray-500);
-    transition: color 0.2s;
+    transition: all 0.2s;
     position: relative;
     white-space: nowrap;
+    border-radius: 6px;
+    outline: none;
+    box-sizing: border-box;
+    border: 1px solid transparent;
+}
+
+.nav-link:focus {
+    outline: none;
+    border: 1px solid transparent;
 }
 
 .nav-link:hover {
@@ -340,6 +365,8 @@ button {
 .nav-link.active {
     color: var(--color-gray-500);
     font-weight: 500;
+    background-color: rgba(99, 102, 241, 0.08);
+    border: 1px solid transparent;
 }
 
 .red-dot {
@@ -1646,6 +1673,13 @@ button:focus {
     outline-offset: 2px;
 }
 
+/* 네비게이션 링크는 포커스 아웃라인 제거 */
+.nav-link:focus,
+.nav-link:focus-visible {
+    outline: none !important;
+    border: none !important;
+}
+
 /* ============================================
    요금제 필터 섹션
    ============================================ */
@@ -1915,7 +1949,7 @@ button:focus {
     padding: var(--spacing-lg) var(--spacing-md);
     border-bottom: 1px solid var(--color-gray-200);
     /* 필터 섹션이 sticky로 고정될 때 상단 콘텐츠가 가려지지 않도록 여백 추가 */
-    padding-top: calc(var(--spacing-lg) + 10px);
+    padding-top: var(--spacing-md);
 }
 
 .theme-plans-list-header {
@@ -2631,10 +2665,21 @@ button:focus {
     /* 데스크톱: 사이드바가 스크롤 시 따라 움직이도록 sticky */
     .plans-sidebar {
         position: sticky;
+<<<<<<< HEAD
         top: 140px; /* 헤더 아래에 배치 */
         align-self: flex-start;
         max-height: calc(100vh - 140px); /* 뷰포트 높이에서 top 값만큼 제외 */
         overflow-y: auto; /* 콘텐츠가 길 경우 스크롤 가능 */
+=======
+        top: calc(60px + var(--filter-section-height, 64px) + 1px + 10px);
+        align-self: flex-start;
+        max-height: calc(100vh - 60px - var(--filter-section-height, 64px) - 1px - 10px - 4px);
+        overflow-y: auto;
+        /* 스크롤 위치를 항상 맨 위에서 시작하도록 */
+        scroll-behavior: auto;
+        /* 스크롤이 맨 위에 있도록 초기화 */
+        scroll-snap-type: y proximity;
+>>>>>>> a0361c0 (작업: 11300858)
     }
     
 }
@@ -2771,7 +2816,7 @@ button:focus {
     }
 
     .theme-plans-list-section {
-        padding: var(--spacing-xl) 0;
+        padding: var(--spacing-lg) 0;
         border-bottom: none;
     }
 

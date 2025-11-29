@@ -2,6 +2,7 @@
 // 현재 페이지 설정 (헤더에서 활성 링크 표시용)
 $current_page = 'esim';
 
+<<<<<<< HEAD
 // 국가/지역 정보 매핑
 $countries = [
     'japan' => ['name' => '일본', 'image' => 'japan.svg', 'badge' => '무제한'],
@@ -128,11 +129,14 @@ $external_images = [
 $selected_country = isset($_GET['country']) ? $_GET['country'] : null;
 $selected_region = isset($_GET['region']) ? $_GET['region'] : null;
 
+=======
+>>>>>>> a0361c0 (작업: 11300858)
 // 헤더 포함
 include 'includes/header.php';
 ?>
 
 <main class="main-content">
+<<<<<<< HEAD
     <div class="content-layout">
         <?php if ($selected_country && isset($countries[$selected_country])): ?>
             <!-- 국가 상세 페이지 -->
@@ -203,10 +207,343 @@ include 'includes/header.php';
                             <button type="button" role="tab" aria-selected="false" class="esim-tab-item" data-tab="continent">
                                 <span class="esim-tab-text">다국가</span>
                             </button>
+=======
+    <div class="mx-auto max-w-6xl p-5 text-txt-01">
+        <article class="mt-5 flex items-center justify-between">
+            <h1 class="text-18 md:text-30">해외eSIM</h1>
+        </article>
+        
+        <!-- 탭 메뉴 -->
+        <div class="c-tabmenu-link-wrap mt-8">
+            <div class="c-tabmenu-list">
+                <ul class="tab-list">
+                    <li class="tab-item is-active">
+                        <button role="tab" aria-selected="true" tabindex="0" class="tab-button" data-tab="popular">인기국가</button>
+                    </li>
+                    <li class="tab-item">
+                        <button role="tab" aria-selected="false" tabindex="-1" class="tab-button" data-tab="multi">다국가</button>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- 인기국가 목록 -->
+        <section id="popular-tab" class="country-list-section mt-8 tab-content active">
+            <div class="container">
+                <div class="tab grid gap-12 flex-wrap flex-justify-center">
+                <div class="item flex flex-column flex-align-center point-cursor">
+                    <div class="flex flex-column flex-align-center point-cursor product-flag-item">
+                        <img width="48" height="48" alt="flag" class="flag" src="https://asset.usimsa.com/images/country/179d30e5-6a69-ee11-bbf0-28187860d6d3.svg">
+                        <div class="badge">무제한</div>
+                        <div class="flex flex-justify-center">
+                            <span class="product_name">일본</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="item flex flex-column flex-align-center point-cursor">
+                    <div class="flex flex-column flex-align-center point-cursor product-flag-item">
+                        <img width="48" height="48" alt="flag" class="flag" src="https://asset.usimsa.com/images/country/1b9d30e5-6a69-ee11-bbf0-28187860d6d3.svg">
+                        <div class="badge">무제한</div>
+                        <div class="flex flex-justify-center">
+                            <span class="product_name">중국</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="item flex flex-column flex-align-center point-cursor">
+                    <div class="flex flex-column flex-align-center point-cursor product-flag-item">
+                        <img width="48" height="48" alt="flag" class="flag" src="https://asset.usimsa.com/images/country/189d30e5-6a69-ee11-bbf0-28187860d6d3.svg">
+                        <div class="badge">무제한</div>
+                        <div class="flex flex-justify-center">
+                            <span class="product_name">대만</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="item flex flex-column flex-align-center point-cursor">
+                    <div class="flex flex-column flex-align-center point-cursor product-flag-item">
+                        <img width="48" height="48" alt="flag" class="flag" src="https://asset.usimsa.com/images/country/1f9d30e5-6a69-ee11-bbf0-28187860d6d3.svg">
+                        <div class="badge">무제한</div>
+                        <div class="flex flex-justify-center">
+                            <span class="product_name">필리핀</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="item flex flex-column flex-align-center point-cursor">
+                    <div class="flex flex-column flex-align-center point-cursor product-flag-item">
+                        <img width="48" height="48" alt="flag" class="flag" src="https://asset.usimsa.com/images/country/199d30e5-6a69-ee11-bbf0-28187860d6d3.svg">
+                        <div class="badge">무제한</div>
+                        <div class="flex flex-justify-center">
+                            <span class="product_name">태국</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="item flex flex-column flex-align-center point-cursor">
+                    <div class="flex flex-column flex-align-center point-cursor product-flag-item">
+                        <img width="48" height="48" alt="flag" class="flag" src="https://asset.usimsa.com/images/country/1a9d30e5-6a69-ee11-bbf0-28187860d6d3.svg">
+                        <div class="badge">무제한</div>
+                        <div class="flex flex-justify-center">
+                            <span class="product_name">베트남</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="item flex flex-column flex-align-center point-cursor">
+                    <div class="flex flex-column flex-align-center point-cursor product-flag-item">
+                        <img width="48" height="48" alt="flag" class="flag" src="https://asset.usimsa.com/images/country/1e9d30e5-6a69-ee11-bbf0-28187860d6d3.svg">
+                        <div class="badge">무제한</div>
+                        <div class="flex flex-justify-center">
+                            <span class="product_name">말레이시아</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="item flex flex-column flex-align-center point-cursor">
+                    <div class="flex flex-column flex-align-center point-cursor product-flag-item">
+                        <img width="48" height="48" alt="flag" class="flag" src="https://asset.usimsa.com/images/country/1d9d30e5-6a69-ee11-bbf0-28187860d6d3.svg">
+                        <div class="badge">무제한</div>
+                        <div class="flex flex-justify-center">
+                            <span class="product_name">싱가포르</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="item flex flex-column flex-align-center point-cursor">
+                    <div class="flex flex-column flex-align-center point-cursor product-flag-item">
+                        <img width="48" height="48" alt="flag" class="flag" src="https://asset.usimsa.com/images/country/1c9d30e5-6a69-ee11-bbf0-28187860d6d3.svg">
+                        <div class="badge">무제한</div>
+                        <div class="flex flex-justify-center">
+                            <span class="product_name">미국</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="item flex flex-column flex-align-center point-cursor">
+                    <div class="flex flex-column flex-align-center point-cursor product-flag-item">
+                        <img width="48" height="48" alt="flag" class="flag" src="https://asset.usimsa.com/images/country/2a9d30e5-6a69-ee11-bbf0-28187860d6d3.svg">
+                        <div class="badge">무제한</div>
+                        <div class="flex flex-justify-center">
+                            <span class="product_name">호주</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="item flex flex-column flex-align-center point-cursor">
+                    <div class="flex flex-column flex-align-center point-cursor product-flag-item">
+                        <img width="48" height="48" alt="flag" class="flag" src="https://asset.usimsa.com/images/country/239d30e5-6a69-ee11-bbf0-28187860d6d3.svg">
+                        <div class="badge">무제한</div>
+                        <div class="flex flex-justify-center">
+                            <span class="product_name">인도네시아</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="item flex flex-column flex-align-center point-cursor">
+                    <div class="flex flex-column flex-align-center point-cursor product-flag-item">
+                        <img width="48" height="48" alt="flag" class="flag" src="https://asset.usimsa.com/images/country/289d30e5-6a69-ee11-bbf0-28187860d6d3.svg">
+                        <div class="flex flex-justify-center">
+                            <span class="product_name">아랍에미리트</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="item flex flex-column flex-align-center point-cursor">
+                    <div class="flex flex-column flex-align-center point-cursor product-flag-item">
+                        <img width="48" height="48" alt="flag" class="flag" src="https://asset.usimsa.com/images/country/219d30e5-6a69-ee11-bbf0-28187860d6d3.svg">
+                        <div class="flex flex-justify-center">
+                            <span class="product_name">홍콩</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="item flex flex-column flex-align-center point-cursor">
+                    <div class="flex flex-column flex-align-center point-cursor product-flag-item">
+                        <img width="48" height="48" alt="flag" class="flag" src="https://asset.usimsa.com/images/country/209d30e5-6a69-ee11-bbf0-28187860d6d3.svg">
+                        <div class="flex flex-justify-center">
+                            <span class="product_name">괌</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="item flex flex-column flex-align-center point-cursor">
+                    <div class="flex flex-column flex-align-center point-cursor product-flag-item">
+                        <img width="48" height="48" alt="flag" class="flag" src="https://asset.usimsa.com/images/country/b3578299-836e-ee11-bbf0-28187860d6d3.svg">
+                        <div class="flex flex-justify-center">
+                            <span class="product_name">캐나다</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="item flex flex-column flex-align-center point-cursor">
+                    <div class="flex flex-column flex-align-center point-cursor product-flag-item">
+                        <img width="48" height="48" alt="flag" class="flag" src="https://asset.usimsa.com/images/country/bd578299-836e-ee11-bbf0-28187860d6d3.svg">
+                        <div class="badge">무제한</div>
+                        <div class="flex flex-justify-center">
+                            <span class="product_name">캄보디아</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="item flex flex-column flex-align-center point-cursor">
+                    <div class="flex flex-column flex-align-center point-cursor product-flag-item">
+                        <img width="48" height="48" alt="flag" class="flag" src="https://asset.usimsa.com/images/country/299d30e5-6a69-ee11-bbf0-28187860d6d3.svg">
+                        <div class="flex flex-justify-center">
+                            <span class="product_name">이탈리아</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="item flex flex-column flex-align-center point-cursor">
+                    <div class="flex flex-column flex-align-center point-cursor product-flag-item">
+                        <img width="48" height="48" alt="flag" class="flag" src="https://asset.usimsa.com/images/country/229d30e5-6a69-ee11-bbf0-28187860d6d3.svg">
+                        <div class="flex flex-justify-center">
+                            <span class="product_name">마카오</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="item flex flex-column flex-align-center point-cursor">
+                    <div class="flex flex-column flex-align-center point-cursor product-flag-item">
+                        <img width="48" height="48" alt="flag" class="flag" src="https://asset.usimsa.com/images/country/269d30e5-6a69-ee11-bbf0-28187860d6d3.svg">
+                        <div class="flex flex-justify-center">
+                            <span class="product_name">프랑스</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="item flex flex-column flex-align-center point-cursor">
+                    <div class="flex flex-column flex-align-center point-cursor product-flag-item">
+                        <img width="48" height="48" alt="flag" class="flag" src="https://asset.usimsa.com/images/country/b4578299-836e-ee11-bbf0-28187860d6d3.svg">
+                        <div class="flex flex-justify-center">
+                            <span class="product_name">스페인</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="item flex flex-column flex-align-center point-cursor">
+                    <div class="flex flex-column flex-align-center point-cursor product-flag-item">
+                        <img width="48" height="48" alt="flag" class="flag" src="https://asset.usimsa.com/images/country/d68aecfe-93db-ee11-85f9-002248f774ee.svg">
+                        <div class="flex flex-justify-center">
+                            <span class="product_name">튀르키예(터키)</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="item flex flex-column flex-align-center point-cursor">
+                    <div class="flex flex-column flex-align-center point-cursor product-flag-item">
+                        <img width="48" height="48" alt="flag" class="flag" src="https://asset.usimsa.com/images/country/279d30e5-6a69-ee11-bbf0-28187860d6d3.svg">
+                        <div class="flex flex-justify-center">
+                            <span class="product_name">영국</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="item flex flex-column flex-align-center point-cursor">
+                    <div class="flex flex-column flex-align-center point-cursor product-flag-item">
+                        <img width="48" height="48" alt="flag" class="flag" src="https://asset.usimsa.com/images/country/259d30e5-6a69-ee11-bbf0-28187860d6d3.svg">
+                        <div class="flex flex-justify-center">
+                            <span class="product_name">독일</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="item flex flex-column flex-align-center point-cursor">
+                    <div class="flex flex-column flex-align-center point-cursor product-flag-item">
+                        <img width="48" height="48" alt="flag" class="flag" src="https://asset.usimsa.com/images/country/bb578299-836e-ee11-bbf0-28187860d6d3.svg">
+                        <div class="flex flex-justify-center">
+                            <span class="product_name">카타르</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="item flex flex-column flex-align-center point-cursor">
+                    <div class="flex flex-column flex-align-center point-cursor product-flag-item">
+                        <img width="48" height="48" alt="flag" class="flag" src="https://asset.usimsa.com/images/country/b5578299-836e-ee11-bbf0-28187860d6d3.svg">
+                        <div class="flex flex-justify-center">
+                            <span class="product_name">포르투갈</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="item flex flex-column flex-align-center point-cursor">
+                    <div class="flex flex-column flex-align-center point-cursor product-flag-item">
+                        <img width="48" height="48" alt="flag" class="flag" src="https://asset.usimsa.com/images/country/bf578299-836e-ee11-bbf0-28187860d6d3.svg">
+                        <div class="flex flex-justify-center">
+                            <span class="product_name">인도</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="item flex flex-column flex-align-center point-cursor">
+                    <div class="flex flex-column flex-align-center point-cursor product-flag-item">
+                        <img width="48" height="48" alt="flag" class="flag" src="https://asset.usimsa.com/images/country/be578299-836e-ee11-bbf0-28187860d6d3.svg">
+                        <div class="flex flex-justify-center">
+                            <span class="product_name">멕시코</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="item flex flex-column flex-align-center point-cursor">
+                    <div class="flex flex-column flex-align-center point-cursor product-flag-item">
+                        <img width="48" height="48" alt="flag" class="flag" src="https://asset.usimsa.com/images/country/b83e155f-8bae-ee11-be9e-002248f7dbdd.svg">
+                        <div class="flex flex-justify-center">
+                            <span class="product_name">라오스</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="item flex flex-column flex-align-center point-cursor">
+                    <div class="flex flex-column flex-align-center point-cursor product-flag-item">
+                        <img width="48" height="48" alt="flag" class="flag" src="https://asset.usimsa.com/images/country/249d30e5-6a69-ee11-bbf0-28187860d6d3.svg">
+                        <div class="badge">무제한</div>
+                        <div class="flex flex-justify-center">
+                            <span class="product_name">대한민국</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="item flex flex-column flex-align-center point-cursor">
+                    <div class="flex flex-column flex-align-center point-cursor product-flag-item">
+                        <img width="48" height="48" alt="flag" class="flag" src="https://asset.usimsa.com/images/country/b8578299-836e-ee11-bbf0-28187860d6d3.svg">
+                        <div class="flex flex-justify-center">
+                            <span class="product_name">덴마크</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="item flex flex-column flex-align-center point-cursor">
+                    <div class="flex flex-column flex-align-center point-cursor product-flag-item">
+                        <img width="48" height="48" alt="flag" class="flag" src="https://asset.usimsa.com/images/country/1aa267d1-99aa-ee11-be9e-002248f7dbdd.svg">
+                        <div class="flex flex-justify-center">
+                            <span class="product_name">몰디브</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="item flex flex-column flex-align-center point-cursor">
+                    <div class="flex flex-column flex-align-center point-cursor product-flag-item">
+                        <img width="48" height="48" alt="flag" class="flag" src="https://asset.usimsa.com/images/country/b7578299-836e-ee11-bbf0-28187860d6d3.svg">
+                        <div class="flex flex-justify-center">
+                            <span class="product_name">스웨덴</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="item flex flex-column flex-align-center point-cursor">
+                    <div class="flex flex-column flex-align-center point-cursor product-flag-item">
+                        <img width="48" height="48" alt="flag" class="flag" src="https://asset.usimsa.com/images/country/b9578299-836e-ee11-bbf0-28187860d6d3.svg">
+                        <div class="flex flex-justify-center">
+                            <span class="product_name">오스트리아</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="item flex flex-column flex-align-center point-cursor">
+                    <div class="flex flex-column flex-align-center point-cursor product-flag-item">
+                        <img width="48" height="48" alt="flag" class="flag" src="https://asset.usimsa.com/images/country/a2472a10-7bdb-ee11-85f9-002248f774ee.svg">
+                        <div class="badge">무제한</div>
+                        <div class="flex flex-justify-center">
+                            <span class="product_name">뉴질랜드</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="item flex flex-column flex-align-center point-cursor">
+                    <div class="flex flex-column flex-align-center point-cursor product-flag-item">
+                        <img width="48" height="48" alt="flag" class="flag" src="https://asset.usimsa.com/images/country/b6578299-836e-ee11-bbf0-28187860d6d3.svg">
+                        <div class="flex flex-justify-center">
+                            <span class="product_name">아일랜드</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="item flex flex-column flex-align-center point-cursor">
+                    <div class="flex flex-column flex-align-center point-cursor product-flag-item">
+                        <img width="48" height="48" alt="flag" class="flag" src="https://asset.usimsa.com/images/country/b2578299-836e-ee11-bbf0-28187860d6d3.svg">
+                        <div class="flex flex-justify-center">
+                            <span class="product_name">몽골</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="item flex flex-column flex-align-center point-cursor">
+                    <div class="flex flex-column flex-align-center point-cursor product-flag-item">
+                        <img width="48" height="48" alt="flag" class="flag" src="https://asset.usimsa.com/images/country/D732E6AD-D4F4-EF11-90CB-6045BD4556A6.svg">
+                        <div class="flex flex-justify-center">
+                            <span class="product_name">카자흐스탄</span>
+>>>>>>> a0361c0 (작업: 11300858)
                         </div>
                     </div>
                 </div>
             </div>
+<<<<<<< HEAD
 
             <!-- 컨테이너 -->
             <div class="esim-container">
@@ -647,15 +984,144 @@ include 'includes/header.php';
                                 </div>
                             </div>
                         </a>
+=======
+        </section>
+        
+        <!-- 다국가 목록 -->
+        <section id="multi-tab" class="country-list-section mt-8 tab-content">
+            <div class="container">
+                <div class="tab grid gap-12 flex-wrap flex-justify-center">
+                    <div class="item flex flex-column flex-align-center point-cursor">
+                        <div class="flex flex-column flex-align-center point-cursor product-flag-item">
+                            <img width="48" height="48" alt="flag" class="flag" src="https://asset.usimsa.com/crm/country/ABBB2654-909A-F011-B3CD-002248F7DF6B-1758892918652.svg">
+                            <div class="flex flex-justify-center">
+                                <span class="product_name">글로벌<br>151개국</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="item flex flex-column flex-align-center point-cursor">
+                        <div class="flex flex-column flex-align-center point-cursor product-flag-item">
+                            <img width="48" height="48" alt="flag" class="flag" src="https://asset.usimsa.com/images/country/b4c9012b-7f69-ee11-bbf0-28187860d6d3.svg">
+                            <div class="badge">무제한</div>
+                            <div class="flex flex-justify-center">
+                                <span class="product_name">유럽<br>42개국</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="item flex flex-column flex-align-center point-cursor">
+                        <div class="flex flex-column flex-align-center point-cursor product-flag-item">
+                            <img width="48" height="48" alt="flag" class="flag" src="https://asset.usimsa.com/images/country/4086995C-1709-F011-AAA7-002248F7D829.svg">
+                            <div class="badge">무제한</div>
+                            <div class="flex flex-justify-center">
+                                <span class="product_name">유럽<br>36개국</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="item flex flex-column flex-align-center point-cursor">
+                        <div class="flex flex-column flex-align-center point-cursor product-flag-item">
+                            <img width="48" height="48" alt="flag" class="flag" src="https://asset.usimsa.com/images/country/b3c9012b-7f69-ee11-bbf0-28187860d6d3.svg">
+                            <div class="badge">무제한</div>
+                            <div class="flex flex-justify-center">
+                                <span class="product_name">유럽<br>33개국</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="item flex flex-column flex-align-center point-cursor">
+                        <div class="flex flex-column flex-align-center point-cursor product-flag-item">
+                            <img width="48" height="48" alt="flag" class="flag" src="https://asset.usimsa.com/images/country/b1c9012b-7f69-ee11-bbf0-28187860d6d3.svg">
+                            <div class="badge">무제한</div>
+                            <div class="flex flex-justify-center">
+                                <span class="product_name">홍콩/<br>마카오</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="item flex flex-column flex-align-center point-cursor">
+                        <div class="flex flex-column flex-align-center point-cursor product-flag-item">
+                            <img width="48" height="48" alt="flag" class="flag" src="https://asset.usimsa.com/images/country/352ADA47-CA02-F011-AAA7-002248F7D829.svg">
+                            <div class="badge">무제한</div>
+                            <div class="flex flex-justify-center">
+                                <span class="product_name">중국/<br>홍콩/<br>마카오</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="item flex flex-column flex-align-center point-cursor">
+                        <div class="flex flex-column flex-align-center point-cursor product-flag-item">
+                            <img width="48" height="48" alt="flag" class="flag" src="https://asset.usimsa.com/images/country/afc9012b-7f69-ee11-bbf0-28187860d6d3.svg">
+                            <div class="flex flex-justify-center">
+                                <span class="product_name">동남아<br>3개국</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="item flex flex-column flex-align-center point-cursor">
+                        <div class="flex flex-column flex-align-center point-cursor product-flag-item">
+                            <img width="48" height="48" alt="flag" class="flag" src="https://asset.usimsa.com/images/country/b0c9012b-7f69-ee11-bbf0-28187860d6d3.svg">
+                            <div class="flex flex-justify-center">
+                                <span class="product_name">미국/<br>캐나다</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="item flex flex-column flex-align-center point-cursor">
+                        <div class="flex flex-column flex-align-center point-cursor product-flag-item">
+                            <img width="48" height="48" alt="flag" class="flag" src="https://asset.usimsa.com/images/country/b2c9012b-7f69-ee11-bbf0-28187860d6d3.svg">
+                            <div class="badge">무제한</div>
+                            <div class="flex flex-justify-center">
+                                <span class="product_name">호주/<br>뉴질랜드</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="item flex flex-column flex-align-center point-cursor">
+                        <div class="flex flex-column flex-align-center point-cursor product-flag-item">
+                            <img width="48" height="48" alt="flag" class="flag" src="https://asset.usimsa.com/images/country/afc9012b-7f69-ee11-bbf0-28187860d6d3.svg">
+                            <div class="flex flex-justify-center">
+                                <span class="product_name">아시아<br>13개국</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="item flex flex-column flex-align-center point-cursor">
+                        <div class="flex flex-column flex-align-center point-cursor product-flag-item">
+                            <img width="48" height="48" alt="flag" class="flag" src="https://asset.usimsa.com/images/country/b6c9012b-7f69-ee11-bbf0-28187860d6d3.svg">
+                            <div class="flex flex-justify-center">
+                                <span class="product_name">괌/사이판</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="item flex flex-column flex-align-center point-cursor">
+                        <div class="flex flex-column flex-align-center point-cursor product-flag-item">
+                            <img width="48" height="48" alt="flag" class="flag" src="https://asset.usimsa.com/images/country/b0c9012b-7f69-ee11-bbf0-28187860d6d3.svg">
+                            <div class="flex flex-justify-center">
+                                <span class="product_name">북중미<br>3개국</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="item flex flex-column flex-align-center point-cursor">
+                        <div class="flex flex-column flex-align-center point-cursor product-flag-item">
+                            <img width="48" height="48" alt="flag" class="flag" src="https://asset.usimsa.com/images/country/afc9012b-7f69-ee11-bbf0-28187860d6d3.svg">
+                            <div class="flex flex-justify-center">
+                                <span class="product_name">동남아<br>8개국</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="item flex flex-column flex-align-center point-cursor">
+                        <div class="flex flex-column flex-align-center point-cursor product-flag-item">
+                            <img width="48" height="48" alt="flag" class="flag" src="https://asset.usimsa.com/images/country/9788CAF5-48C3-EF11-88CF-002248F770DC.png">
+                            <div class="flex flex-justify-center">
+                                <span class="product_name">남미<br>11개국</span>
+                            </div>
+                        </div>
+>>>>>>> a0361c0 (작업: 11300858)
                     </div>
                 </div>
             </div>
         </section>
+<<<<<<< HEAD
         <?php endif; ?>
+=======
+>>>>>>> a0361c0 (작업: 11300858)
     </div>
 </main>
 
 <style>
+<<<<<<< HEAD
 /* 해외이심 페이지 스타일 */
 .esim-section {
     padding: var(--spacing-lg) var(--spacing-md);
@@ -788,12 +1254,176 @@ include 'includes/header.php';
     align-items: center;
     width: 100%;
     gap: var(--spacing-xs);
+=======
+/* 기본 유틸리티 */
+.mx-auto {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.max-w-6xl {
+    max-width: 72rem;
+}
+
+.p-5 {
+    padding: 1.25rem;
+}
+
+.text-txt-01 {
+    color: #1a1a1a;
+}
+
+.mt-5 {
+    margin-top: 1.25rem;
+}
+
+.mt-8 {
+    margin-top: 2rem;
+}
+
+.flex {
+    display: flex;
+}
+
+.flex-wrap {
+    flex-wrap: wrap;
+}
+
+.flex-column {
+    flex-direction: column;
+}
+
+.flex-align-center {
+    align-items: center;
+}
+
+.flex-justify-center {
+    justify-content: center;
+}
+
+.items-center {
+    align-items: center;
+}
+
+.justify-between {
+    justify-content: space-between;
+}
+
+.gap-12 {
+    gap: 3rem;
+}
+
+.text-18 {
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+}
+
+.grid {
+    display: grid;
+}
+
+.point-cursor {
+    cursor: pointer;
+}
+
+/* 탭 메뉴 스타일 */
+.c-tabmenu-link-wrap {
+    margin-bottom: 2rem;
+}
+
+.tab-list {
+    display: flex;
+    gap: 0.5rem;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    flex-wrap: wrap;
+}
+
+.tab-item {
+    margin: 0;
+}
+
+.tab-button {
+    padding: 0.5rem 1.25rem;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 9999px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #6b7280;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    outline: none;
+}
+
+.tab-button:focus {
+    outline: none;
+    box-shadow: none;
+}
+
+.tab-button:active {
+    outline: none;
+    box-shadow: none;
+}
+
+.tab-button:hover {
+    background-color: #f3f4f6;
+    color: #374151;
+}
+
+.tab-item.is-active .tab-button {
+    color: #ec4899;
+    font-weight: 600;
+    border: 1px solid #ec4899;
+}
+
+/* 탭 콘텐츠 */
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* 국가 목록 스타일 */
+.country-list-section {
+    padding: 1rem 0;
+}
+
+.container {
+    width: 100%;
+}
+
+.tab {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 1.5rem;
+    padding: 1rem 0;
+}
+
+.item {
+    min-width: 0;
+}
+
+.product-flag-item {
+    width: 100%;
+    padding: 1rem;
+    transition: all 0.2s ease;
+}
+
+.product-flag-item:hover {
+    transform: translateY(-2px);
+>>>>>>> a0361c0 (작업: 11300858)
 }
 
 .flag {
     width: 48px;
     height: 48px;
     object-fit: contain;
+<<<<<<< HEAD
     border-radius: 4px;
 }
 
@@ -832,12 +1462,84 @@ include 'includes/header.php';
     .country-grid {
         grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
         gap: var(--spacing-sm);
+=======
+    margin-bottom: 0.5rem;
+}
+
+.badge {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #6366f1;
+    margin-bottom: 0.25rem;
+}
+
+.product_name {
+    font-size: 0.875rem;
+    color: #1a1a1a;
+    text-align: center;
+    line-height: 1.4;
+    white-space: pre-line;
+}
+
+@media (min-width: 768px) {
+    .md\:text-30 {
+        font-size: 1.875rem;
+        line-height: 2.25rem;
+    }
+    
+    .tab {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 2rem;
+    }
+}
+
+@media (min-width: 1024px) {
+    .tab {
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        gap: 3rem;
+    }
+}
+
+@media (max-width: 767px) {
+    .p-5 {
+        padding: 1rem;
+    }
+    
+    .tab-list {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+    
+    .tab-list::-webkit-scrollbar {
+        display: none;
+    }
+    
+    .tab-item {
+        flex-shrink: 0;
+    }
+    
+    .tab-button {
+        padding: 0.625rem 1rem;
+        font-size: 0.8125rem;
+    }
+    
+    .tab {
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        gap: 1rem;
+    }
+    
+    .product-flag-item {
+        padding: 0.75rem;
+>>>>>>> a0361c0 (작업: 11300858)
     }
     
     .flag {
         width: 40px;
         height: 40px;
     }
+<<<<<<< HEAD
     
     .product_name {
         font-size: var(--font-size-xs);
@@ -854,10 +1556,13 @@ include 'includes/header.php';
     .esim-tab-text {
         font-size: var(--font-size-xs);
     }
+=======
+>>>>>>> a0361c0 (작업: 11300858)
 }
 </style>
 
 <script>
+<<<<<<< HEAD
 // 탭 전환 기능
 document.addEventListener('DOMContentLoaded', function() {
     const tabItems = document.querySelectorAll('.esim-tab-item');
@@ -905,15 +1610,71 @@ document.addEventListener('DOMContentLoaded', function() {
             const targetPane = document.getElementById('tab-' + targetTab);
             if (targetPane) {
                 targetPane.classList.add('active');
+=======
+// 국가 상세 페이지 열기 함수
+function openCountryDetail(countryName, flagImage) {
+    const url = 'esim-detail.php?country=' + encodeURIComponent(countryName) + '&flag=' + encodeURIComponent(flagImage);
+    window.open(url, '_blank', 'width=800,height=900,scrollbars=yes');
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const tabButtons = document.querySelectorAll('.tab-button');
+    const tabItems = document.querySelectorAll('.tab-item');
+    const tabContents = document.querySelectorAll('.tab-content');
+    
+    // 탭 전환
+    tabButtons.forEach((button, index) => {
+        button.addEventListener('click', function() {
+            const targetTab = this.getAttribute('data-tab');
+            
+            // 모든 탭에서 is-active 클래스 제거
+            tabItems.forEach(item => {
+                item.classList.remove('is-active');
+            });
+            
+            // 클릭한 탭에 is-active 클래스 추가
+            tabItems[index].classList.add('is-active');
+            
+            // aria-selected 속성 업데이트
+            tabButtons.forEach((btn, i) => {
+                btn.setAttribute('aria-selected', i === index ? 'true' : 'false');
+                btn.setAttribute('tabindex', i === index ? '0' : '-1');
+            });
+            
+            // 모든 탭 콘텐츠에서 active 클래스 제거
+            tabContents.forEach(content => content.classList.remove('active'));
+            
+            // 해당하는 탭 콘텐츠에 active 클래스 추가
+            const targetContent = document.getElementById(targetTab + '-tab');
+            if (targetContent) {
+                targetContent.classList.add('active');
+>>>>>>> a0361c0 (작업: 11300858)
             }
         });
     });
     
+<<<<<<< HEAD
     // 윈도우 리사이즈 시 인디케이터 위치 재계산
     window.addEventListener('resize', function() {
         const activeTab = document.querySelector('.esim-tab-item.active');
         if (activeTab) {
             updateIndicator(activeTab);
+=======
+    // 국가 항목 클릭 이벤트 (이벤트 위임)
+    document.querySelectorAll('.product-flag-item').forEach(item => {
+        const productNameEl = item.querySelector('.product_name');
+        if (productNameEl) {
+            const countryName = productNameEl.textContent.trim();
+            const flagImg = item.querySelector('.flag');
+            const flagSrc = flagImg ? flagImg.src : '';
+            const flagId = flagSrc.match(/\/([^\/]+)\.svg$/);
+            const flagImage = flagId ? flagId[1] : '';
+            
+            item.addEventListener('click', function(e) {
+                e.preventDefault();
+                openCountryDetail(countryName, flagImage);
+            });
+>>>>>>> a0361c0 (작업: 11300858)
         }
     });
 });

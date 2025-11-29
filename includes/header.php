@@ -75,11 +75,15 @@
                                 <path d="M5 4C5 2.89543 5.89543 2 7 2H17C18.1046 2 19 2.89543 19 4V20C19 21.1046 18.1046 22 17 22H7C5.89543 22 5 21.1046 5 20V4Z" stroke="currentColor" stroke-width="2"/>
                                 <path d="M12 18H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                             </svg>
+<<<<<<< HEAD
                             <span>핸드폰</span>
+=======
+                            <span>휴대폰</span>
+>>>>>>> a0361c0 (작업: 11300858)
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link <?php echo (isset($current_page) && $current_page == 'internets') ? 'active' : ''; ?>" href="/internets">
+                        <a class="nav-link <?php echo (isset($current_page) && $current_page == 'internets') ? 'active' : ''; ?>" href="internets.php">
                             <svg class="nav-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <!-- 지구 본체 -->
                                 <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/>
@@ -114,7 +118,7 @@
                         </a>
                     </li>
                     <li class="nav-item nav-item-desktop-only">
-                        <a class="nav-link <?php echo (isset($current_page) && $current_page == 'event') ? 'active' : ''; ?>" href="/event">이벤트</a>
+                        <a class="nav-link <?php echo (isset($current_page) && $current_page == 'event') ? 'active' : ''; ?>" href="event.php">이벤트</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link <?php echo (isset($current_page) && $current_page == 'mypage') ? 'active' : ''; ?>" href="/mypage">
