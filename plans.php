@@ -2,6 +2,11 @@
 // 현재 페이지 설정 (헤더에서 활성 링크 표시용)
 $current_page = 'plans';
 
+// 모니터링 시스템 (선택사항 - 주석 해제하여 사용)
+// require_once 'includes/monitor.php';
+// $monitor = new ConnectionMonitor();
+// $monitor->logConnection();
+
 // 헤더 포함
 include 'includes/header.php';
 ?>
@@ -10,54 +15,32 @@ include 'includes/header.php';
     <!-- 필터 섹션 (스크롤 시 상단 고정) -->
     <div class="plans-filter-section">
         <div class="plans-filter-inner">
-            <!-- 데스크톱 검색 바 -->
-            <div class="plans-search-wrapper-desktop">
-                <form class="plans-search-form" action="plans.php" method="get">
-                    <input type="text" name="search" class="plans-search-input" placeholder="요금제 이름 또는 통신사 등" value="<?php echo isset($_GET['search']) ? htmlspecialchars($_GET['search']) : ''; ?>">
-                    <button type="submit" class="plans-search-btn" aria-label="검색">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M11 19C15.4183 19 19 15.4183 19 11C19 6.58172 15.4183 3 11 3C6.58172 3 3 6.58172 3 11C3 15.4183 6.58172 19 11 19Z" stroke="#6B7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                            <path d="M21 21L16.65 16.65" stroke="#6B7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                    </button>
-                </form>
-            </div>
-            
-            <!-- 데이터 필터 버튼 -->
-            <button class="plans-data-filter-btn">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 16 16" fill="none">
-                    <path d="M11.9333 2C11.5652 2 11.2667 2.29848 11.2667 2.66667V13.3333C11.2667 13.7015 11.5652 14 11.9333 14H12.3333C12.7015 14 13 13.7015 13 13.3333V2.66667C13 2.29848 12.7015 2 12.3333 2H11.9333Z" fill="#7086FB"></path>
-                    <path d="M7.1333 6.66667C7.1333 6.29848 7.43178 6 7.79997 6H8.19997C8.56816 6 8.86663 6.29848 8.86663 6.66667V13.3333C8.86663 13.7015 8.56816 14 8.19997 14H7.79997C7.43178 14 7.1333 13.7015 7.1333 13.3333V6.66667Z" fill="#7086FB"></path>
-                    <path d="M3 9.33333C3 8.96514 3.29848 8.66667 3.66667 8.66667H4.06667C4.43486 8.66667 4.73333 8.96514 4.73333 9.33333V13.3333C4.73333 13.7015 4.43486 14 4.06667 14H3.66667C3.29848 14 3 13.7015 3 13.3333V9.33333Z" fill="#7086FB"></path>
-                </svg>
-                <span class="plans-filter-label">월 데이터</span>
-                <div class="plans-filter-value">모든 용량</div>
-                <div class="plans-filter-arrow">
-                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path fill-rule="evenodd" clip-rule="evenodd" d="M3.15146 8.15147C3.62009 7.68284 4.37989 7.68284 4.84852 8.15147L12 15.3029L19.1515 8.15147C19.6201 7.68284 20.3799 7.68284 20.8485 8.15147C21.3171 8.6201 21.3171 9.3799 20.8485 9.84853L12.8485 17.8485C12.3799 18.3172 11.6201 18.3172 11.1515 17.8485L3.15146 9.84853C2.68283 9.3799 2.68283 8.6201 3.15146 8.15147Z" fill="#868E96"></path>
-                    </svg>
-                </div>
-            </button>
 
             <!-- 필터 및 정렬 버튼 그룹 -->
             <div class="plans-filter-group">
-                <!-- 필터 버튼 -->
-                <button class="plans-filter-btn">
-                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path fill-rule="evenodd" clip-rule="evenodd" d="M14.5 11.5C16.0487 11.5 17.3625 10.4941 17.8237 9.09999H19.9C20.5075 9.09999 21 8.60751 21 7.99999C21 7.39248 20.5075 6.89999 19.9 6.89999H17.8236C17.3625 5.50589 16.0487 4.5 14.5 4.5C12.9513 4.5 11.6375 5.50589 11.1764 6.89999H4.1C3.49249 6.89999 3 7.39248 3 7.99999C3 8.60751 3.49249 9.09999 4.1 9.09999H11.1763C11.6375 10.4941 12.9513 11.5 14.5 11.5ZM14.5 9.5C15.3284 9.5 16 8.82843 16 8C16 7.17157 15.3284 6.5 14.5 6.5C13.6716 6.5 13 7.17157 13 8C13 8.82843 13.6716 9.5 14.5 9.5Z" fill="#3F4750"></path>
-                        <path fill-rule="evenodd" clip-rule="evenodd" d="M3 16C3 15.3925 3.49249 14.9 4.1 14.9H6.17635C6.6375 13.5059 7.95128 12.5 9.5 12.5C11.0487 12.5 12.3625 13.5059 12.8236 14.9H19.9C20.5075 14.9 21 15.3925 21 16C21 16.6075 20.5075 17.1 19.9 17.1H12.8237C12.3625 18.4941 11.0487 19.5 9.5 19.5C7.95128 19.5 6.6375 18.4941 6.17635 17.1H4.1C3.49249 17.1 3 16.6075 3 16ZM11 16C11 16.8284 10.3284 17.5 9.5 17.5C8.67157 17.5 8 16.8284 8 16C8 15.1716 8.67157 14.5 9.5 14.5C10.3284 14.5 11 15.1716 11 16Z" fill="#3F4750"></path>
-                    </svg>
-                    <span class="plans-filter-text">필터</span>
-                </button>
-
-                <!-- 정렬 버튼 -->
-                <div class="plans-sort-wrapper">
+                <!-- 첫 번째 행: 필터 + 인터넷 결합 + 해시태그 버튼들 -->
+                <div class="plans-filter-row">
                     <button class="plans-filter-btn">
                         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M12.3485 2.35147C11.8799 1.88284 11.1201 1.88284 10.6515 2.35147L5.65146 7.35147C5.18283 7.8201 5.18283 8.5799 5.65146 9.04853C6.12009 9.51716 6.87989 9.51716 7.34852 9.04853L11.5 4.89706L15.6515 9.04853C16.1201 9.51716 16.8799 9.51716 17.3485 9.04853C17.8171 8.5799 17.8171 7.8201 17.3485 7.35147L12.3485 2.35147Z" fill="#3F4750"></path>
-                            <path d="M7.34852 14.9514C6.87989 14.4828 6.12009 14.4828 5.65146 14.9514C5.18283 15.4201 5.18283 16.1799 5.65146 16.6485L10.6515 21.6485C11.1201 22.1171 11.8799 22.1171 12.3485 21.6485L17.3485 16.6485C17.8171 16.1799 17.8171 15.4201 17.3485 14.9514C16.8799 14.4828 16.1201 14.4828 15.6515 14.9514L11.5 19.1029L7.34852 14.9514Z" fill="#3F4750"></path>
+                            <path fill-rule="evenodd" clip-rule="evenodd" d="M14.5 11.5C16.0487 11.5 17.3625 10.4941 17.8237 9.09999H19.9C20.5075 9.09999 21 8.60751 21 7.99999C21 7.39248 20.5075 6.89999 19.9 6.89999H17.8236C17.3625 5.50589 16.0487 4.5 14.5 4.5C12.9513 4.5 11.6375 5.50589 11.1764 6.89999H4.1C3.49249 6.89999 3 7.39248 3 7.99999C3 8.60751 3.49249 9.09999 4.1 9.09999H11.1763C11.6375 10.4941 12.9513 11.5 14.5 11.5ZM14.5 9.5C15.3284 9.5 16 8.82843 16 8C16 7.17157 15.3284 6.5 14.5 6.5C13.6716 6.5 13 7.17157 13 8C13 8.82843 13.6716 9.5 14.5 9.5Z" fill="#3F4750"></path>
+                            <path fill-rule="evenodd" clip-rule="evenodd" d="M3 16C3 15.3925 3.49249 14.9 4.1 14.9H6.17635C6.6375 13.5059 7.95128 12.5 9.5 12.5C11.0487 12.5 12.3625 13.5059 12.8236 14.9H19.9C20.5075 14.9 21 15.3925 21 16C21 16.6075 20.5075 17.1 19.9 17.1H12.8237C12.3625 18.4941 11.0487 19.5 9.5 19.5C7.95128 19.5 6.6375 18.4941 6.17635 17.1H4.1C3.49249 17.1 3 16.6075 3 16ZM11 16C11 16.8284 10.3284 17.5 9.5 17.5C8.67157 17.5 8 16.8284 8 16C8 15.1716 8.67157 14.5 9.5 14.5C10.3284 14.5 11 15.1716 11 16Z" fill="#3F4750"></path>
                         </svg>
-                        <span class="plans-filter-text">추천순</span>
+                        <span class="plans-filter-text">필터</span>
+                    </button>
+                    <button class="plans-filter-btn">
+                        <span class="plans-filter-text">인터넷 결합</span>
+                    </button>
+                    <button class="plans-filter-btn">
+                        <span class="plans-filter-text">#베스트 요금제</span>
+                    </button>
+                    <button class="plans-filter-btn">
+                        <span class="plans-filter-text">#만원 미만</span>
+                    </button>
+                    <button class="plans-filter-btn">
+                        <span class="plans-filter-text">#장기 할인</span>
+                    </button>
+                    <button class="plans-filter-btn">
+                        <span class="plans-filter-text">#100원</span>
                     </button>
                 </div>
             </div>
@@ -72,18 +55,6 @@ include 'includes/header.php';
             <div class="plans-left-section">
                 <!-- 테마별 요금제 섹션 -->
                 <section class="theme-plans-list-section">
-                    <!-- 모바일 검색 바 -->
-                    <div class="plans-search-wrapper-mobile">
-                        <form class="plans-search-form" action="plans.php" method="get">
-                            <input type="text" name="search" class="plans-search-input" placeholder="요금제 이름 또는 통신사 등" value="<?php echo isset($_GET['search']) ? htmlspecialchars($_GET['search']) : ''; ?>">
-                            <button type="submit" class="plans-search-btn" aria-label="검색">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M11 19C15.4183 19 19 15.4183 19 11C19 6.58172 15.4183 3 11 3C6.58172 3 3 6.58172 3 11C3 15.4183 6.58172 19 11 19Z" stroke="#6B7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                    <path d="M21 21L16.65 16.65" stroke="#6B7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                </svg>
-                            </button>
-                        </form>
-                    </div>
 
                     <!-- 검색 결과 개수 -->
                     <div class="plans-results-count">
@@ -1048,6 +1019,36 @@ include 'includes/header.php';
                         </article>
                     </div>
                 </section>
+
+                <!-- 페이지네이션 -->
+                <div class="pagination-wrapper" data-sentry-component="LinkPagination" data-sentry-source-file="LinkPagination.tsx">
+                    <ul class="pagination-list">
+                        <li>
+                            <a class="pagination-btn pagination-nav" href="plans.php?page=10" aria-label="이전 페이지">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" data-sentry-element="svg" data-sentry-component="ChevronLeftIcon" data-sentry-source-file="ChevronLeftIcon.tsx">
+                                    <path d="M10.5303 3.53033C10.8232 3.23744 10.8232 2.76256 10.5303 2.46967C10.2374 2.17678 9.76256 2.17678 9.46967 2.46967L10.5303 3.53033ZM5 8L4.46967 7.46967C4.17678 7.76256 4.17678 8.23744 4.46967 8.53033L5 8ZM9.46967 13.5303C9.76256 13.8232 10.2374 13.8232 10.5303 13.5303C10.8232 13.2374 10.8232 12.7626 10.5303 12.4697L9.46967 13.5303ZM9.46967 2.46967L4.46967 7.46967L5.53033 8.53033L10.5303 3.53033L9.46967 2.46967ZM4.46967 8.53033L9.46967 13.5303L10.5303 12.4697L5.53033 7.46967L4.46967 8.53033Z" data-sentry-element="path" data-sentry-source-file="ChevronLeftIcon.tsx"></path>
+                                </svg>
+                            </a>
+                        </li>
+                        <li><a class="pagination-btn pagination-page active" href="plans.php?page=11">11</a></li>
+                        <li><a class="pagination-btn pagination-page" href="plans.php?page=12">12</a></li>
+                        <li><a class="pagination-btn pagination-page" href="plans.php?page=13">13</a></li>
+                        <li><a class="pagination-btn pagination-page" href="plans.php?page=14">14</a></li>
+                        <li><a class="pagination-btn pagination-page" href="plans.php?page=15">15</a></li>
+                        <li><a class="pagination-btn pagination-page" href="plans.php?page=16">16</a></li>
+                        <li><a class="pagination-btn pagination-page" href="plans.php?page=17">17</a></li>
+                        <li><a class="pagination-btn pagination-page" href="plans.php?page=18">18</a></li>
+                        <li><a class="pagination-btn pagination-page" href="plans.php?page=19">19</a></li>
+                        <li><a class="pagination-btn pagination-page" href="plans.php?page=20">20</a></li>
+                        <li>
+                            <a class="pagination-btn pagination-nav" href="plans.php?page=21" aria-label="다음 페이지">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" data-sentry-element="svg" data-sentry-component="ChevronRightIcon" data-sentry-source-file="ChevronRightIcon.tsx">
+                                    <path d="M5.46967 12.4697C5.17678 12.7626 5.17678 13.2374 5.46967 13.5303C5.76256 13.8232 6.23744 13.8232 6.53033 13.5303L5.46967 12.4697ZM11 8L11.5303 8.53033C11.8232 8.23744 11.8232 7.76256 11.5303 7.46967L11 8ZM6.53033 2.46967C6.23744 2.17678 5.76256 2.17678 5.46967 2.46967C5.17678 2.76256 5.17678 3.23744 5.46967 3.53033L6.53033 2.46967ZM6.53033 13.5303L11.5303 8.53033L10.4697 7.46967L5.46967 12.4697L6.53033 13.5303ZM11.5303 7.46967L6.53033 2.46967L5.46967 3.53033L10.4697 8.53033L11.5303 7.46967Z" data-sentry-element="path" data-sentry-source-file="ChevronRightIcon.tsx"></path>
+                                </svg>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
             </div>
 
             <!-- 오른쪽 사이드바: 나에게 맞는 요금제 -->
@@ -1089,4 +1090,5 @@ include 'includes/footer.php';
 ?>
 
 <script src="assets/js/plan-accordion.js" defer></script>
+<script src="assets/js/sidebar-scroll.js" defer></script>
 

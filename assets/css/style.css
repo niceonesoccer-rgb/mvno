@@ -183,13 +183,17 @@ button {
         justify-content: space-around;
         width: 100%;
         gap: 0;
-        padding: 0 var(--spacing-md);
+        padding: 0 var(--spacing-sm);
+        flex-wrap: nowrap; /* 한 줄에 강제 표시 */
+        overflow-x: auto; /* 필요시 스크롤 */
     }
     
     .nav-item {
-        flex: 1;
+        flex: 1 1 auto;
         display: flex;
         justify-content: center;
+        min-width: 0; /* flex item이 축소될 수 있도록 */
+        flex-shrink: 1; /* 필요시 축소 허용 */
     }
     
     .nav-link {
@@ -197,7 +201,7 @@ button {
         flex-direction: column;
         align-items: center;
         gap: 4px;
-        padding: var(--spacing-xs) var(--spacing-sm);
+        padding: var(--spacing-xs) 4px; /* 좌우 패딩 줄임 */
         font-size: 7px;
         width: 100%;
         text-align: center;
@@ -205,6 +209,15 @@ button {
         color: var(--color-gray-500);
         transition: all 0.2s ease;
         border-radius: 8px;
+        white-space: nowrap; /* 텍스트 줄바꿈 방지 */
+        min-width: 0; /* flex item이 축소될 수 있도록 */
+    }
+    
+    .nav-link span {
+        white-space: nowrap; /* 텍스트 줄바꿈 방지 */
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
     }
     
     .nav-link .nav-icon {
@@ -1643,6 +1656,7 @@ button:focus {
     background-color: var(--color-white);
     z-index: 999; /* 헤더(z-index: 1000)보다 낮게 설정 */
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    margin-top: 0;
 }
 
 .plans-filter-inner {
@@ -1678,8 +1692,15 @@ button:focus {
 
 .plans-filter-group {
     display: flex;
+    flex-direction: column;
     gap: 8px;
     justify-content: flex-start;
+}
+
+.plans-filter-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
 }
 
 @media (min-width: 992px) {
@@ -1753,16 +1774,38 @@ button:focus {
     gap: 4px;
     padding: 8px 12px;
     border: 1px solid var(--color-gray-300);
-    border-radius: 2px;
+    border-radius: 20px;
     min-height: 40px;
     min-width: fit-content;
     background-color: var(--color-white);
     cursor: pointer;
     transition: all 0.2s;
+    outline: none;
+}
+
+.plans-filter-btn:focus {
+    outline: none;
+    border-color: var(--color-gray-300);
 }
 
 .plans-filter-btn:hover {
     border-color: var(--color-gray-400);
+}
+
+.plans-filter-btn.active,
+.plans-filter-btn.selected {
+    border-color: var(--color-gray-300);
+    background-color: var(--color-gray-500);
+}
+
+.plans-filter-btn.active .plans-filter-text,
+.plans-filter-btn.selected .plans-filter-text {
+    color: var(--color-white);
+}
+
+.plans-filter-btn.active svg,
+.plans-filter-btn.selected svg {
+    fill: var(--color-white);
 }
 
 .plans-filter-btn svg {
@@ -1773,7 +1816,7 @@ button:focus {
 
 .plans-filter-text {
     font-size: var(--font-size-sm);
-    color: var(--color-gray-600);
+    color: var(--color-gray-400);
     font-weight: 700;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1811,12 +1854,26 @@ button:focus {
         /* sticky가 제대로 작동하도록 보장 */
         will-change: transform;
     }
+    
+    /* 필터 섹션이 sticky로 고정될 때 상단 콘텐츠가 가려지지 않도록 여백 추가 */
+    .theme-plans-list-section {
+        scroll-margin-top: 70px; /* 필터 섹션 높이만큼 여백 */
+    }
 }
 
 /* 태블릿 이상 스타일 */
 @media (min-width: 768px) {
     .plans-filter-section {
         top: 60px; /* PC에서 헤더 아래에 고정 */
+    }
+    
+    /* 필터 섹션이 sticky로 고정될 때 상단 콘텐츠가 가려지지 않도록 여백 추가 */
+    .plans-main-layout {
+        padding-top: 0;
+    }
+    
+    .theme-plans-list-section {
+        scroll-margin-top: 80px; /* 필터 섹션 높이만큼 여백 */
     }
 }
 
@@ -1840,10 +1897,25 @@ button:focus {
     display: none;
 }
 
+/* 모바일: 사이드바 표시 및 페이지네이션 아래로 이동 */
+@media (max-width: 991px) {
+    .plans-sidebar {
+        display: block;
+        width: 100%;
+        order: 2; /* 페이지네이션 아래로 이동 */
+    }
+    
+    .plans-left-section {
+        order: 1; /* 요금제 목록이 먼저 */
+    }
+}
+
 /* 테마별 요금제 섹션 */
 .theme-plans-list-section {
     padding: var(--spacing-lg) var(--spacing-md);
     border-bottom: 1px solid var(--color-gray-200);
+    /* 필터 섹션이 sticky로 고정될 때 상단 콘텐츠가 가려지지 않도록 여백 추가 */
+    padding-top: calc(var(--spacing-lg) + 10px);
 }
 
 .theme-plans-list-header {
@@ -2555,6 +2627,24 @@ button:focus {
     .sidebar-content {
         padding-top: 0;
     }
+    
+    /* 데스크톱: 사이드바가 스크롤 시 따라 움직이도록 sticky */
+    .plans-sidebar {
+        position: sticky;
+        top: 20px;
+        align-self: flex-start;
+        max-height: calc(100vh - 40px);
+        overflow-y: auto;
+        /* 스크롤 위치를 항상 맨 위에서 시작하도록 */
+        scroll-behavior: auto;
+        /* 스크롤이 맨 위에 있도록 초기화 */
+        scroll-snap-type: y proximity;
+    }
+    
+    /* 사이드바 콘텐츠의 첫 번째 요소가 스크롤 스냅 포인트가 되도록 */
+    .sidebar-content {
+        scroll-snap-align: start;
+    }
 }
 
 @media (max-width: 991px) {
@@ -2562,6 +2652,8 @@ button:focus {
         padding: var(--spacing-xl) var(--spacing-md) 0;
         max-width: 640px;
         margin: 0 auto;
+        /* 모바일: 하단 네비게이션 바 아래로 이동 */
+        margin-bottom: 80px;
     }
 }
 
@@ -2710,6 +2802,99 @@ button:focus {
         order: 2;
         width: 300px;
         flex-shrink: 0;
+    }
+}
+
+/* ============================================
+   페이지네이션 스타일
+   ============================================ */
+.pagination-wrapper {
+    display: flex;
+    justify-content: center;
+    margin: 40px 0;
+    padding: 20px 0;
+    width: 100%;
+}
+
+.pagination-list {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    flex-wrap: wrap;
+}
+
+.pagination-list li {
+    display: inline-block;
+    margin: 0;
+    padding: 0;
+}
+
+.pagination-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 4px;
+    text-decoration: none;
+    color: #6b7280;
+    font-size: 16px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    background-color: transparent;
+}
+
+.pagination-btn:hover {
+    background-color: #f3f4f6;
+    color: #374151;
+}
+
+.pagination-btn.active {
+    background-color: #6366f1;
+    color: white;
+}
+
+.pagination-btn.active:hover {
+    background-color: #4f46e5;
+    color: white;
+}
+
+.pagination-nav {
+    color: #6b7280;
+}
+
+.pagination-nav:hover {
+    background-color: #f3f4f6;
+}
+
+.pagination-btn svg {
+    width: 16px;
+    height: 16px;
+    display: block;
+    fill: currentColor;
+}
+
+/* 모바일 반응형 */
+@media (max-width: 768px) {
+    .pagination-wrapper {
+        margin: 30px 0;
+        padding: 15px 0;
+    }
+    
+    .pagination-list {
+        gap: 2px;
+        flex-wrap: nowrap;
+    }
+    
+    .pagination-btn {
+        width: 32px;
+        height: 32px;
+        font-size: 13px;
     }
 }
 
