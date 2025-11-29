@@ -1071,10 +1071,6 @@ include 'includes/header.php';
                         </a>
                     </div>
 
-                    <div class="sidebar-recommendation">
-                        <p>위 요금제와 비슷한 요금제를 추천해드려요</p>
-                    </div>
-
                     <a href="/mypage/recently-plan-view" class="sidebar-more-btn">
                         <span>요금제 더보기</span>
                     </a>

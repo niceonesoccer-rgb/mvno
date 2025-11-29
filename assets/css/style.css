@@ -2631,20 +2631,12 @@ button:focus {
     /* 데스크톱: 사이드바가 스크롤 시 따라 움직이도록 sticky */
     .plans-sidebar {
         position: sticky;
-        top: 20px;
+        top: 140px; /* 헤더 아래에 배치 */
         align-self: flex-start;
-        max-height: calc(100vh - 40px);
-        overflow-y: auto;
-        /* 스크롤 위치를 항상 맨 위에서 시작하도록 */
-        scroll-behavior: auto;
-        /* 스크롤이 맨 위에 있도록 초기화 */
-        scroll-snap-type: y proximity;
+        max-height: calc(100vh - 140px); /* 뷰포트 높이에서 top 값만큼 제외 */
+        overflow-y: auto; /* 콘텐츠가 길 경우 스크롤 가능 */
     }
     
-    /* 사이드바 콘텐츠의 첫 번째 요소가 스크롤 스냅 포인트가 되도록 */
-    .sidebar-content {
-        scroll-snap-align: start;
-    }
 }
 
 @media (max-width: 991px) {
@@ -2661,8 +2653,9 @@ button:focus {
     font-size: 1.125rem; /* 18px */
     font-weight: 700; /* bold */
     color: var(--color-gray-600);
-    margin-bottom: 16px;
+    margin-bottom: 4px; /* 제목과 카드 사이 간격 */
     display: block;
+    text-align: center; /* 가운데 정렬 */
 }
 
 .recent-plans-list {
@@ -2688,6 +2681,13 @@ button:focus {
 
 .recent-plan-card:hover {
     box-shadow: var(--shadow-md);
+}
+
+.recent-plan-card:focus,
+.recent-plan-card:active,
+.recent-plan-card:focus-visible {
+    outline: none; /* 클릭 시 파란색 테두리 제거 */
+    border-color: var(--color-gray-200); /* 기존 테두리 색상 유지 */
 }
 
 .recent-plan-info {
@@ -2895,6 +2895,548 @@ button:focus {
         width: 32px;
         height: 32px;
         font-size: 13px;
+    }
+}
+
+/* ============================================
+   자급제 메뉴 섹션
+   ============================================ */
+.self-pay-menu-section {
+    padding: var(--spacing-xl) 0;
+    background-color: var(--color-white);
+}
+
+.self-pay-menu-container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xl);
+}
+
+/* 오늘의 특가 섹션 */
+.today-deal-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+    padding: var(--spacing-md) 0;
+}
+
+.today-deal-section .section-title {
+    font-size: var(--font-size-xl);
+    font-weight: 700;
+    color: var(--color-gray-700);
+    margin: 0;
+}
+
+@media (min-width: 1024px) {
+    .today-deal-section .section-title {
+        font-size: 24px;
+    }
+}
+
+.today-deal-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.deal-item {
+    cursor: pointer;
+    list-style: none;
+}
+
+.deal-item-content {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    width: 100%;
+}
+
+@media (min-width: 1024px) {
+    .deal-item-content {
+        gap: var(--spacing-lg);
+    }
+}
+
+.deal-rank {
+    font-size: var(--font-size-lg);
+    font-weight: 700;
+    color: var(--color-indigo-600);
+    flex-shrink: 0;
+}
+
+@media (min-width: 1024px) {
+    .deal-rank {
+        font-size: 22px;
+    }
+}
+
+.deal-image-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 64px;
+    height: 64px;
+    background-color: var(--color-gray-200);
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+
+@media (min-width: 1024px) {
+    .deal-image-wrapper {
+        width: 120px;
+        height: 120px;
+        border-radius: 6px;
+    }
+}
+
+.deal-image {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.deal-info {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-sm);
+}
+
+@media (min-width: 1024px) {
+    .deal-info {
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: flex-start;
+        gap: var(--spacing-xs);
+    }
+}
+
+.deal-details {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    gap: var(--spacing-xs);
+}
+
+.deal-name {
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    color: var(--color-gray-600);
+}
+
+@media (min-width: 1024px) {
+    .deal-name {
+        font-size: var(--font-size-base);
+    }
+}
+
+.deal-price {
+    font-size: var(--font-size-lg);
+    font-weight: 700;
+    color: var(--color-gray-700);
+}
+
+@media (min-width: 1024px) {
+    .deal-price {
+        font-size: 22px;
+    }
+}
+
+.deal-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    background-color: rgba(250, 82, 82, 0.1);
+    color: var(--color-red-500);
+    border-radius: 4px;
+    font-size: var(--font-size-sm);
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.deal-badge::before {
+    content: '';
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M4.00003 7C3.59557 7 3.23093 7.24364 3.07615 7.61732C2.92137 7.99099 3.00692 8.42111 3.29292 8.70711L11.2929 18.7071C11.6834 19.0976 12.3166 19.0976 12.7071 18.7071L20.7071 8.70711C20.9931 8.42111 21.0787 7.99099 20.9239 7.61732C20.7691 7.24364 20.4045 7 20 7H4.00003Z' fill='%23FA5252'/%3E%3C/svg%3E");
+    background-size: contain;
+    background-repeat: no-repeat;
+}
+
+.deal-button {
+    padding: 8px 16px;
+    background-color: var(--color-white);
+    border: 1px solid var(--color-gray-300);
+    border-radius: 6px;
+    font-size: var(--font-size-sm);
+    font-weight: 700;
+    color: var(--color-gray-700);
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.deal-button:hover {
+    background-color: var(--color-gray-50);
+    border-color: var(--color-gray-400);
+}
+
+.view-all-button {
+    display: block;
+    text-decoration: none;
+}
+
+.view-all-btn {
+    width: 100%;
+    padding: 12px;
+    background-color: var(--color-gray-900);
+    border: none;
+    border-radius: 6px;
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    color: var(--color-white);
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.view-all-btn:hover {
+    background-color: var(--color-gray-800);
+}
+
+/* 가격 비교 섹션 */
+.price-compare-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+}
+
+.compare-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-md);
+}
+
+.compare-title-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    flex: 1;
+}
+
+.phone-select-button {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+}
+
+.phone-name {
+    font-size: var(--font-size-xl);
+    font-weight: 700;
+    color: var(--color-gray-700);
+}
+
+@media (min-width: 1024px) {
+    .phone-name {
+        font-size: 24px;
+    }
+}
+
+.dropdown-icon {
+    width: 20px;
+    height: 20px;
+    transition: transform 0.2s;
+}
+
+@media (min-width: 1024px) {
+    .dropdown-icon {
+        width: 24px;
+        height: 24px;
+    }
+}
+
+.phone-select-button:hover .dropdown-icon {
+    transform: rotate(180deg);
+}
+
+.compare-subtitle {
+    font-size: var(--font-size-xl);
+    font-weight: 700;
+    color: var(--color-gray-700);
+}
+
+@media (min-width: 1024px) {
+    .compare-subtitle {
+        font-size: 24px;
+    }
+}
+
+.phone-image-preview {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 64px;
+    height: 64px;
+    min-width: 64px;
+    min-height: 64px;
+    background-color: var(--color-gray-200);
+    border-radius: 4px;
+    padding: 4px;
+}
+
+@media (min-width: 1024px) {
+    .phone-image-preview {
+        width: 120px;
+        height: 120px;
+        min-width: 120px;
+        min-height: 120px;
+        border-radius: 6px;
+    }
+}
+
+.preview-image {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.storage-tabs {
+    position: relative;
+    display: inline-flex;
+    background-color: var(--color-gray-200);
+    border-radius: 10px;
+    padding: 4px;
+}
+
+.tab-indicator {
+    position: absolute;
+    top: 4px;
+    bottom: 4px;
+    left: 4px;
+    width: 50%;
+    background-color: var(--color-white);
+    border-radius: 4px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease-in-out;
+}
+
+.storage-tab {
+    position: relative;
+    z-index: 10;
+    flex: 1;
+    height: 40px;
+    background: none;
+    border: none;
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    color: var(--color-gray-500);
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.storage-tab.active {
+    color: var(--color-gray-700);
+}
+
+.compare-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.compare-item {
+    list-style: none;
+}
+
+.compare-item-button,
+.compare-item-link {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    text-decoration: none;
+    color: inherit;
+}
+
+.compare-item-content {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-lg);
+    padding: var(--spacing-sm) 0;
+}
+
+.compare-avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.compare-avatar-indigo {
+    background-color: rgba(81, 106, 236, 0.1);
+}
+
+.compare-avatar-violet {
+    background-color: rgba(206, 186, 245, 0.3);
+}
+
+.compare-avatar-red {
+    background-color: rgba(250, 82, 82, 0.1);
+}
+
+.compare-avatar svg {
+    width: 24px;
+    height: 24px;
+}
+
+.compare-item-name {
+    flex: 1;
+    font-size: var(--font-size-lg);
+    font-weight: 500;
+    color: var(--color-gray-600);
+}
+
+.compare-item-subtitle {
+    font-size: var(--font-size-base);
+    font-weight: 500;
+    color: var(--color-gray-500);
+}
+
+.compare-item-price {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--color-gray-700);
+}
+
+.compare-arrow {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+}
+
+.compare-divider {
+    width: 100%;
+    border: none;
+    height: 1px;
+    background-color: var(--color-gray-100);
+    margin: 0;
+}
+
+.compare-disclaimer {
+    margin-top: var(--spacing-lg);
+    font-size: var(--font-size-xs);
+    font-weight: 500;
+    color: var(--color-gray-400);
+    text-align: center;
+}
+
+/* 배너 네비게이션 */
+.banner-navigation {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.banner-nav-card {
+    overflow: hidden;
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--color-gray-200);
+}
+
+.banner-nav-link {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+}
+
+.banner-nav-content {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-lg) var(--spacing-md);
+    position: relative;
+    border-radius: 16px;
+}
+
+.banner-nav-icon {
+    display: inline-block;
+    width: 48px;
+    height: 48px;
+    pointer-events: none;
+}
+
+.banner-icon-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.banner-nav-text {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    gap: var(--spacing-xs);
+}
+
+.banner-nav-title {
+    font-size: var(--font-size-base);
+    font-weight: 700;
+    color: var(--color-gray-900);
+}
+
+.banner-nav-desc {
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    color: var(--color-gray-500);
+}
+
+/* 데스크톱 반응형 */
+@media (min-width: 1024px) {
+    .self-pay-menu-container {
+        padding: 0;
+    }
+
+    .today-deal-section {
+        margin-top: var(--spacing-lg);
+    }
+
+    .compare-header {
+        margin-top: var(--spacing-lg);
+    }
+}
+
+/* 모바일 반응형 */
+@media (max-width: 767px) {
+    .self-pay-menu-section {
+        padding: var(--spacing-md) 0 var(--spacing-xl);
+    }
+
+    .self-pay-menu-container {
+        padding: 0 var(--spacing-md);
+    }
+
+    .today-deal-section {
+        margin-top: var(--spacing-md);
     }
 }
 

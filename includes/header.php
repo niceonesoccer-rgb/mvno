@@ -70,12 +70,12 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link <?php echo (isset($current_page) && $current_page == 'phones') ? 'active' : ''; ?>" href="/phones">
+                        <a class="nav-link <?php echo (isset($current_page) && $current_page == 'phones') ? 'active' : ''; ?>" href="phones.php">
                             <svg class="nav-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M5 4C5 2.89543 5.89543 2 7 2H17C18.1046 2 19 2.89543 19 4V20C19 21.1046 18.1046 22 17 22H7C5.89543 22 5 21.1046 5 20V4Z" stroke="currentColor" stroke-width="2"/>
                                 <path d="M12 18H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                             </svg>
-                            <span>자급제</span>
+                            <span>핸드폰</span>
                         </a>
                     </li>
                     <li class="nav-item">
@@ -94,7 +94,7 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link <?php echo (isset($current_page) && $current_page == 'esim') ? 'active' : ''; ?>" href="/esim">
+                        <a class="nav-link <?php echo (isset($current_page) && $current_page == 'esim') ? 'active' : ''; ?>" href="esim.php">
                             <svg class="nav-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <!-- 유심칩 본체 (왼쪽 상단 모서리 잘림) -->
                                 <path d="M6 4H18C19.1046 4 20 4.89543 20 6V18C20 19.1046 19.1046 20 18 20H6C4.89543 20 4 19.1046 4 18V6C4 4.89543 4.89543 4 6 4Z" stroke="currentColor" stroke-width="2"/>
