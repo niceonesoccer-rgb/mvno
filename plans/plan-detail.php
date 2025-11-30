@@ -53,11 +53,6 @@ include '../includes/header.php';
                         <div class="plan-info-section">
                             <div class="plan-data-row">
                                 <span class="plan-data-main">월 100GB + 5Mbps</span>
-                                <button class="plan-info-icon-btn" aria-label="정보">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <path fill-rule="evenodd" clip-rule="evenodd" d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22ZM11.9631 6.3C11.0676 6.3 10.232 6.51466 9.57985 6.96603C8.92366 7.42021 8.46483 8.10662 8.31938 9.02129C8.3164 9.03998 8.31437 9.05917 8.31312 9.07865C8.30448 9.13807 8.3 9.19884 8.3 9.26065C8.3 9.95296 8.86123 10.5142 9.55354 10.5142C10.1005 10.5142 10.5657 10.1638 10.7369 9.67526L10.7387 9.67011C10.7638 9.59745 10.7824 9.52176 10.7938 9.44373L10.8058 9.38928L10.8081 9.37877L10.8083 9.37769C10.8271 9.29121 10.841 9.22917 10.8574 9.18386C11.0275 8.71526 11.4653 8.45953 11.9483 8.45361C12.5783 8.46102 13.0472 8.87279 13.0411 9.48507L13.0411 9.48924C13.0473 10.0572 12.6402 10.4644 12.0041 10.8789C11.5992 11.1321 11.2517 11.4001 10.9961 11.7995C10.74 12.1996 10.5884 12.7121 10.5357 13.435C10.5347 13.4494 10.5345 13.4636 10.5352 13.4775C10.5343 13.496 10.5339 13.5146 10.5339 13.5333C10.5339 14.1879 11.0645 14.7186 11.7191 14.7186C12.2745 14.7186 12.7406 14.3366 12.8692 13.8211H12.8775L12.8898 13.7197C12.8941 13.6924 12.8975 13.6647 12.8999 13.6367C12.9441 13.2837 13.0501 13.0231 13.2199 12.8024C13.394 12.5762 13.6445 12.3796 13.997 12.1706L13.9983 12.1699C14.5009 11.8667 14.928 11.5082 15.229 11.0562C15.5318 10.6015 15.7 10.0628 15.7 9.41276C15.7 8.43645 15.308 7.64987 14.6337 7.1118C13.9643 6.57764 13.0321 6.3 11.9631 6.3ZM11.7579 18.0998C11.0263 18.0998 10.4347 17.516 10.4503 16.7921C10.4347 16.0761 11.0263 15.4923 11.7579 15.5001C12.4507 15.4923 13.05 16.0761 13.05 16.7921C13.05 17.516 12.4507 18.0998 11.7579 18.0998Z" fill="#DEE2E6"/>
-                                    </svg>
-                                </button>
                                 <span class="plan-selection-count">29,448명이 선택</span>
                             </div>
                         </div>
@@ -113,16 +108,11 @@ include '../includes/header.php';
             <div class="plan-apply-content">
                 <div class="plan-price-info">
                     <div class="plan-price-main">
-                        <button class="plan-price-info-btn" aria-label="가격 정보">
-                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path fill-rule="evenodd" clip-rule="evenodd" d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22ZM11.9631 6.3C11.0676 6.3 10.232 6.51466 9.57985 6.96603C8.92366 7.42021 8.46483 8.10662 8.31938 9.02129C8.3164 9.03998 8.31437 9.05917 8.31312 9.07865C8.30448 9.13807 8.3 9.19884 8.3 9.26065C8.3 9.95296 8.86123 10.5142 9.55354 10.5142C10.1005 10.5142 10.5657 10.1638 10.7369 9.67526L10.7387 9.67011C10.7638 9.59745 10.7824 9.52176 10.7938 9.44373L10.8058 9.38928L10.8081 9.37877L10.8083 9.37769C10.8271 9.29121 10.841 9.22917 10.8574 9.18386C11.0275 8.71526 11.4653 8.45953 11.9483 8.45361C12.5783 8.46102 13.0472 8.87279 13.0411 9.48507L13.0411 9.48924C13.0473 10.0572 12.6402 10.4644 12.0041 10.8789C11.5992 11.1321 11.2517 11.4001 10.9961 11.7995C10.74 12.1996 10.5884 12.7121 10.5357 13.435C10.5347 13.4494 10.5345 13.4636 10.5352 13.4775C10.5343 13.496 10.5339 13.5146 10.5339 13.5333C10.5339 14.1879 11.0645 14.7186 11.7191 14.7186C12.2745 14.7186 12.7406 14.3366 12.8692 13.8211H12.8775L12.8898 13.7197C12.8941 13.6924 12.8975 13.6647 12.8999 13.6367C12.9441 13.2837 13.0501 13.0231 13.2199 12.8024C13.394 12.5762 13.6445 12.3796 13.997 12.1706L13.9983 12.1699C14.5009 11.8667 14.928 11.5082 15.229 11.0562C15.5318 10.6015 15.7 10.0628 15.7 9.41276C15.7 8.43645 15.308 7.64987 14.6337 7.1118C13.9643 6.57764 13.0321 6.3 11.9631 6.3ZM11.7579 18.0998C11.0263 18.0998 10.4347 17.516 10.4503 16.7921C10.4347 16.0761 11.0263 15.4923 11.7579 15.5001C12.4507 15.4923 13.05 16.0761 13.05 16.7921C13.05 17.516 12.4507 18.0998 11.7579 18.0998Z" fill="#DEE2E6"/>
-                            </svg>
-                        </button>
                         <span class="plan-price-amount">월 17,000원</span>
                     </div>
                     <span class="plan-price-note">7개월 이후 42,900원</span>
                 </div>
-                <button class="plan-apply-btn">신청하기</button>
+                <button class="plan-apply-btn" id="planApplyBtn">신청하기</button>
             </div>
         </div>
     </section>
@@ -140,7 +130,7 @@ include '../includes/header.php';
                         <div class="plan-detail-item">
                             <div class="plan-detail-label">요금제 이름</div>
                             <div class="plan-detail-value">
-                                [모요핫딜] 11월한정 LTE 100GB+밀리+Data쿠폰60GB
+                                11월한정 LTE 100GB+밀리+Data쿠폰60GB
                             </div>
                         </div>
                         <div class="plan-detail-item">
@@ -229,8 +219,8 @@ include '../includes/header.php';
     <!-- 초과 요금 섹션 -->
     <section class="plan-exceed-rate-section">
         <div class="content-layout">
-            <h2 class="section-title">기본 제공 초과 시</h2>
-            <div class="plan-info-card plan-info-card-no-bg">
+            <div class="plan-info-card">
+                <h3 class="plan-info-card-title">기본 제공 초과 시</h3>
                 <div class="plan-info-card-content">
                     <div class="plan-detail-grid">
                         <div class="plan-detail-item">
@@ -244,33 +234,23 @@ include '../includes/header.php';
                             <div class="plan-detail-value">1.98원/초</div>
                         </div>
                         <div class="plan-detail-item">
-                            <div class="plan-detail-label">영상 통화</div>
+                            <div class="plan-detail-label">부가/영상통화</div>
                             <div class="plan-detail-value">3.3원/초</div>
                         </div>
                         <div class="plan-detail-item">
-                            <div class="plan-detail-label">짧은 문자</div>
+                            <div class="plan-detail-label">단문메시지(SMS)</div>
                             <div class="plan-detail-value">22원/개</div>
                         </div>
                         <div class="plan-detail-item">
-                            <div class="plan-detail-label">긴 문자</div>
+                            <div class="plan-detail-label">장문 텍스트형(MMS)</div>
                             <div class="plan-detail-value">44원/개</div>
-                        </div>
-                        <div class="plan-detail-item">
-                            <div class="plan-detail-label">엄청 긴 문자</div>
-                            <div class="plan-detail-value">44원/개</div>
-                        </div>
-                        <div class="plan-detail-item">
-                            <div class="plan-detail-label">사진 포함 문자</div>
-                            <div class="plan-detail-value">220원/개</div>
-                        </div>
-                        <div class="plan-detail-item">
-                            <div class="plan-detail-label">영상 포함 문자</div>
-                            <div class="plan-detail-value">440원/개</div>
                         </div>
                     </div>
                 </div>
             </div>
-            <p class="plan-exceed-note">통화 또는 문자 제공량이 무제한이더라도 과도한 사용이 있을 경우 사용량 제한이 있을 수 있어요.</p>
+            <div class="plan-exceed-rate-notice">
+                문자메시지 기본제공 혜택을 약관에 정한 기준보다 많이 사용하거나 스팸, 광고 목적으로 이용한 것이 확인되면 추가 요금을 내야 하거나 서비스 이용이 정지될 수 있어요.
+            </div>
         </div>
     </section>
 
@@ -279,9 +259,9 @@ include '../includes/header.php';
         <div class="content-layout">
             <div class="plan-review-header">
                 <a href="/mvnos/쉐이크모바일?from=요금제상세" class="plan-review-mvno-link">
-                    <img src="https://assets.moyoplan.com/logo/%E1%84%89%E1%85%B0%E1%84%8B%E1%85%B5%E1%84%8F%E1%85%B3%E1%84%86%E1%85%A9%E1%84%87%E1%85%A1%E1%84%8B%E1%85%B5%E1%86%AF.svg" alt="쉐이크모바일" class="plan-review-logo">
+                    <span class="plan-review-logo-text">쉐이크모바일</span>
                 </a>
-                <h2 class="section-title">통신사 리뷰</h2>
+                <h2 class="section-title">리뷰</h2>
             </div>
             
             <div class="plan-review-summary">
@@ -294,24 +274,15 @@ include '../includes/header.php';
                 </div>
                 <div class="plan-review-categories">
                     <div class="plan-review-category">
-                        <span class="plan-review-category-label">고객센터</span>
+                        <span class="plan-review-category-label">친절해요</span>
                         <span class="plan-review-category-score">4.2</span>
                         <div class="plan-review-stars">
                             <span>★★★★☆</span>
                         </div>
                     </div>
-                    <div class="plan-review-divider"></div>
                     <div class="plan-review-category">
-                        <span class="plan-review-category-label">개통 과정</span>
+                        <span class="plan-review-category-label">개통 빨라요</span>
                         <span class="plan-review-category-score">4.5</span>
-                        <div class="plan-review-stars">
-                            <span>★★★★☆</span>
-                        </div>
-                    </div>
-                    <div class="plan-review-divider"></div>
-                    <div class="plan-review-category">
-                        <span class="plan-review-category-label">개통 후 만족도</span>
-                        <span class="plan-review-category-score">4.1</span>
                         <div class="plan-review-stars">
                             <span>★★★★☆</span>
                         </div>
@@ -351,10 +322,111 @@ include '../includes/header.php';
                     <p class="plan-review-content">고객센터 개통 전화없이 모요 통해서 개통신청하고 편의점 바로유심 사서 끼우면 바로 개통됨..타 알뜰폰 통신사보다 개통과정, 통신속도,데이터량 불편함없이 사용함..쉐이크모바일 강추</p>
                 </div>
             </div>
-            <button class="plan-review-more-btn">더보기</button>
+            <button class="plan-review-more-btn" id="planReviewMoreBtn">더보기</button>
         </div>
     </section>
 </main>
+
+<!-- 리뷰 모달 -->
+<div class="review-modal" id="reviewModal">
+    <div class="review-modal-overlay" id="reviewModalOverlay"></div>
+    <div class="review-modal-content">
+        <div class="review-modal-header">
+            <h3 class="review-modal-title">쉐이크모바일</h3>
+            <button class="review-modal-close" aria-label="닫기" id="reviewModalClose">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M18 6L6 18M6 6L18 18" stroke="#868E96" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+        </div>
+        <div class="review-modal-body">
+            <div class="review-modal-summary">
+                <div class="review-modal-rating-main">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M13.1479 3.1366C12.7138 2.12977 11.2862 2.12977 10.8521 3.1366L8.75804 7.99389L3.48632 8.48228C2.3937 8.58351 1.9524 9.94276 2.77717 10.6665L6.75371 14.156L5.58995 19.3138C5.34855 20.3837 6.50365 21.2235 7.44697 20.664L12 17.9635L16.553 20.664C17.4963 21.2235 18.6514 20.3837 18.4101 19.3138L17.2463 14.156L21.2228 10.6665C22.0476 9.94276 21.6063 8.58351 20.5137 8.48228L15.242 7.99389L13.1479 3.1366Z" fill="#FAB005"/>
+                    </svg>
+                    <span class="review-modal-rating-score">4.3</span>
+                    <span class="review-modal-count">11,541개</span>
+                </div>
+                <div class="review-modal-categories">
+                    <div class="review-modal-category">
+                        <span class="review-modal-category-label">고객센터</span>
+                        <span class="review-modal-category-score">4.2</span>
+                        <div class="review-modal-stars">
+                            <span>★★★★☆</span>
+                        </div>
+                    </div>
+                    <div class="review-modal-category">
+                        <span class="review-modal-category-label">개통 과정</span>
+                        <span class="review-modal-category-score">4.5</span>
+                        <div class="review-modal-stars">
+                            <span>★★★★☆</span>
+                        </div>
+                    </div>
+                    <div class="review-modal-category">
+                        <span class="review-modal-category-label">개통 후 만족도</span>
+                        <span class="review-modal-category-score">4.1</span>
+                        <div class="review-modal-stars">
+                            <span>★★★★☆</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="review-modal-total">
+                    <span>총 11,539개</span>
+                </div>
+                <div class="review-modal-sort">
+                    <button class="review-modal-sort-btn">높은 평점순▼</button>
+                </div>
+            </div>
+            <div class="review-modal-list">
+                <div class="review-modal-item">
+                    <div class="review-modal-item-header">
+                        <span class="review-modal-author">전*한</span>
+                        <div class="review-modal-stars">
+                            <span>★★★★★</span>
+                        </div>
+                        <span class="review-modal-date">24일 전</span>
+                    </div>
+                    <p class="review-modal-item-content">개통이 다른 회사 보다 빠르고 좋습니다. 요금제 너무 좋아서 계속 사용할 예정 입니다. 친구, 가족 들에게 소개해주고 같이 사용 하는 중입니다. 강력 추천 합니다.</p>
+                    <div class="review-modal-tags">
+                        <span class="review-modal-tag">KT망</span>
+                        <span class="review-modal-tag">개통까지 1일</span>
+                        <span class="review-modal-tag">유심 미보유</span>
+                    </div>
+                </div>
+                <div class="review-modal-item">
+                    <div class="review-modal-item-header">
+                        <span class="review-modal-author">오*열</span>
+                        <div class="review-modal-stars">
+                            <span>★★★★★</span>
+                        </div>
+                        <span class="review-modal-date">29일 전</span>
+                    </div>
+                    <p class="review-modal-item-content">번호 이동이나 이동 후 개통도 휴일임에도 신청서 작성하고 쓰고 있던 esim으로 안내 문자에 따라 바로 즉시 개통할 수 있어 편리했습니다. (KT알뜰A → KT알뜰B)</p>
+                    <div class="review-modal-tags">
+                        <span class="review-modal-tag">KT망</span>
+                        <span class="review-modal-tag">유심 미보유</span>
+                    </div>
+                </div>
+                <div class="review-modal-item">
+                    <div class="review-modal-item-header">
+                        <span class="review-modal-author">최*연</span>
+                        <div class="review-modal-stars">
+                            <span>★★★★★</span>
+                        </div>
+                        <span class="review-modal-date">41일 전</span>
+                    </div>
+                    <p class="review-modal-item-content">고객센터 개통 전화없이 모요 통해서 개통신청하고 편의점 바로유심 사서 끼우면 바로 개통됨..타 알뜰폰 통신사보다 개통과정, 통신속도,데이터량 불편함없이 사용함..쉐이크모바일 강추</p>
+                    <div class="review-modal-tags">
+                        <span class="review-modal-tag">KT망</span>
+                        <span class="review-modal-tag">유심 보유</span>
+                    </div>
+                </div>
+            </div>
+            <button class="review-modal-more-btn">리뷰 더보기</button>
+        </div>
+    </div>
+</div>
 
 <!-- 공유 모달 -->
 <div class="share-modal" id="shareModal">
@@ -402,6 +474,78 @@ include '../includes/header.php';
                 </div>
                 <span class="share-modal-label">링크 복사</span>
             </button>
+        </div>
+    </div>
+</div>
+
+<!-- 신청하기 모달 -->
+<div class="apply-modal" id="applyModal">
+    <div class="apply-modal-overlay" id="applyModalOverlay"></div>
+    <div class="apply-modal-content">
+        <div class="apply-modal-header">
+            <button class="apply-modal-back" aria-label="뒤로 가기" id="applyModalBack" style="display: none;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M15 18L9 12L15 6" stroke="#868E96" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+            <h3 class="apply-modal-title">고객 유형을 선택해주세요</h3>
+            <button class="apply-modal-close" aria-label="닫기" id="applyModalClose">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M18 6L6 18M6 6L18 18" stroke="#868E96" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+        </div>
+        <div class="apply-modal-body" id="applyModalBody">
+            <!-- 1단계: 고객 유형 선택 -->
+            <div class="apply-modal-step" id="step1">
+                <div class="customer-type-list">
+                    <button class="customer-type-item customer-type-item-active" data-type="general">
+                        <span class="customer-type-label">일반 (만 19세 이상)</span>
+                    </button>
+                    <button class="customer-type-item customer-type-item-disabled" data-type="minor" disabled>
+                        <span class="customer-type-label">미성년자 (만 19세 미만)</span>
+                        <span class="customer-type-badge">가입 불가</span>
+                    </button>
+                    <button class="customer-type-item customer-type-item-disabled" data-type="foreigner" disabled>
+                        <span class="customer-type-label">외국인</span>
+                        <span class="customer-type-badge">가입 불가</span>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 2단계: 가입 방법 선택 -->
+            <div class="apply-modal-step" id="step2" style="display: none;">
+                <div class="plan-order-section">
+                    <div class="plan-order-section-title">어떤 방법으로 요금제 가입을 진행할까요?</div>
+                    <div class="plan-order-section-subtitle">고고모바일 통신사로 가입을 진행합니다</div>
+                    <div class="plan-order-checkbox-group">
+                        <div class="plan-order-checkbox-item">
+                            <input type="checkbox" id="numberPort" name="joinMethod" value="port" class="plan-order-checkbox-input">
+                            <label for="numberPort" class="plan-order-checkbox-label">
+                                <div class="plan-order-checkbox-content">
+                                    <div class="plan-order-checkbox-title">번호 이동</div>
+                                    <div class="plan-order-checkbox-description">지금 쓰는 번호 그대로 사용할래요</div>
+                                </div>
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="plan-order-checkbox-icon">
+                                    <path fill-rule="evenodd" d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10zm5.207-11.793a1 1 0 00-1.414-1.414L11 13.586l-2.793-2.793a1 1 0 00-1.414 1.414l3.5 3.5a1 1 0 001.414 0l5.5-5.5z" clip-rule="evenodd"></path>
+                                </svg>
+                            </label>
+                        </div>
+                        <div class="plan-order-checkbox-item">
+                            <input type="checkbox" id="newJoin" name="joinMethod" value="new" class="plan-order-checkbox-input">
+                            <label for="newJoin" class="plan-order-checkbox-label">
+                                <div class="plan-order-checkbox-content">
+                                    <div class="plan-order-checkbox-title">신규 가입</div>
+                                    <div class="plan-order-checkbox-description">새로운 번호로 가입할래요</div>
+                                </div>
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="plan-order-checkbox-icon">
+                                    <path fill-rule="evenodd" d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10zm5.207-11.793a1 1 0 00-1.414-1.414L11 13.586l-2.793-2.793a1 1 0 00-1.414 1.414l3.5 3.5a1 1 0 001.414 0l5.5-5.5z" clip-rule="evenodd"></path>
+                                </svg>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -530,6 +674,249 @@ document.addEventListener('DOMContentLoaded', function() {
         
         document.body.removeChild(textArea);
     }
+
+    // 신청하기 모달 기능
+    const applyBtn = document.getElementById('planApplyBtn');
+    const applyModal = document.getElementById('applyModal');
+    const applyModalOverlay = document.getElementById('applyModalOverlay');
+    const applyModalClose = document.getElementById('applyModalClose');
+    const applyModalBody = document.getElementById('applyModalBody');
+
+    // 스크롤 위치 저장 변수
+    let scrollPosition = 0;
+
+    // 모달 열기 함수
+    function openApplyModal() {
+        if (!applyModal) {
+            console.error('모달을 찾을 수 없습니다.');
+            return;
+        }
+        
+        // 현재 스크롤 위치 저장
+        scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
+        
+        // body 스크롤 방지
+        document.body.style.overflow = 'hidden';
+        document.body.style.position = 'fixed';
+        document.body.style.top = `-${scrollPosition}px`;
+        document.body.style.width = '100%';
+        
+        // html 요소도 스크롤 방지 (일부 브라우저용)
+        document.documentElement.style.overflow = 'hidden';
+        
+        // 모달 열기
+        applyModal.classList.add('apply-modal-active');
+    }
+    
+    // 모달 단계 관리
+    let currentStep = 1;
+    
+    // 단계 표시 함수
+    const applyModalBack = document.getElementById('applyModalBack');
+    
+    function showStep(stepNumber) {
+        const step1 = document.getElementById('step1');
+        const step2 = document.getElementById('step2');
+        const modalTitle = document.querySelector('.apply-modal-title');
+        
+        if (stepNumber === 1) {
+            step1.style.display = 'block';
+            step2.style.display = 'none';
+            if (modalTitle) modalTitle.textContent = '고객 유형을 선택해주세요';
+            if (applyModalBack) applyModalBack.style.display = 'none';
+            currentStep = 1;
+        } else if (stepNumber === 2) {
+            step1.style.display = 'none';
+            step2.style.display = 'block';
+            if (modalTitle) modalTitle.textContent = '어떤 방법으로 요금제 가입을 진행할까요?';
+            if (applyModalBack) applyModalBack.style.display = 'flex';
+            currentStep = 2;
+        }
+    }
+    
+    // 뒤로 가기 버튼 이벤트
+    if (applyModalBack) {
+        applyModalBack.addEventListener('click', function() {
+            if (currentStep === 2) {
+                showStep(1);
+            }
+        });
+    }
+    
+    // 고객 유형 선택 이벤트
+    const customerTypeItems = document.querySelectorAll('.customer-type-item');
+    customerTypeItems.forEach(item => {
+        item.addEventListener('click', function() {
+            if (!this.disabled && !this.classList.contains('customer-type-item-disabled')) {
+                // 모든 항목에서 active 클래스 제거
+                customerTypeItems.forEach(i => i.classList.remove('customer-type-item-active'));
+                // 클릭한 항목에 active 클래스 추가
+                this.classList.add('customer-type-item-active');
+                
+                const customerType = this.getAttribute('data-type');
+                console.log('선택된 고객 유형:', customerType);
+                
+                // 다음 단계로 진행 (약간의 딜레이로 부드러운 전환)
+                setTimeout(() => {
+                    showStep(2);
+                }, 300);
+            }
+        });
+    });
+    
+    // 가입 방법 선택 이벤트 (라디오 버튼처럼 동작)
+    const joinMethodInputs = document.querySelectorAll('input[name="joinMethod"]');
+    joinMethodInputs.forEach(input => {
+        input.addEventListener('change', function() {
+            // 다른 체크박스 해제 (라디오 버튼처럼 동작)
+            joinMethodInputs.forEach(inp => {
+                if (inp !== this) {
+                    inp.checked = false;
+                    inp.closest('.plan-order-checkbox-item').classList.remove('plan-order-checkbox-checked');
+                }
+            });
+            
+            // 선택된 항목에 체크 스타일 적용
+            if (this.checked) {
+                this.closest('.plan-order-checkbox-item').classList.add('plan-order-checkbox-checked');
+                console.log('선택된 가입 방법:', this.value);
+                // 여기에 다음 단계로 진행하는 로직 추가 가능
+            } else {
+                this.closest('.plan-order-checkbox-item').classList.remove('plan-order-checkbox-checked');
+            }
+        });
+    });
+
+    // 신청하기 버튼 클릭 이벤트
+    if (applyBtn) {
+        console.log('신청하기 버튼 찾음:', applyBtn);
+        
+        // onclick 속성으로 직접 할당
+        applyBtn.onclick = function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            console.log('신청하기 버튼 클릭됨 (onclick)');
+            openApplyModal();
+            return false;
+        };
+        
+        // addEventListener도 추가
+        applyBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            console.log('신청하기 버튼 클릭됨 (addEventListener)');
+            openApplyModal();
+            return false;
+        }, true);
+        
+        // 테스트: 버튼이 클릭 가능한지 확인
+        console.log('버튼 스타일:', window.getComputedStyle(applyBtn));
+        console.log('버튼 pointer-events:', window.getComputedStyle(applyBtn).pointerEvents);
+    } else {
+        console.error('신청하기 버튼을 찾을 수 없습니다.');
+        // 대체 방법: 클래스로 찾기
+        const applyBtnByClass = document.querySelector('.plan-apply-btn');
+        if (applyBtnByClass) {
+            console.log('클래스로 버튼 찾음:', applyBtnByClass);
+            applyBtnByClass.onclick = function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('신청하기 버튼 클릭됨 (클래스로 찾은 버튼)');
+                openApplyModal();
+                return false;
+            };
+        }
+    }
+
+    // 모달 닫기
+    function closeApplyModal() {
+        applyModal.classList.remove('apply-modal-active');
+        
+        // body 스크롤 복원
+        document.body.style.overflow = '';
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.width = '';
+        
+        // html 요소 스크롤 복원
+        document.documentElement.style.overflow = '';
+        
+        // 저장된 스크롤 위치로 복원
+        window.scrollTo(0, scrollPosition);
+        
+        // 모달 상태 초기화
+        showStep(1);
+        joinMethodInputs.forEach(inp => {
+            inp.checked = false;
+            inp.closest('.plan-order-checkbox-item')?.classList.remove('plan-order-checkbox-checked');
+        });
+    }
+
+    if (applyModalOverlay) {
+        applyModalOverlay.addEventListener('click', closeApplyModal);
+        // 터치 스크롤 방지
+        applyModalOverlay.addEventListener('touchmove', function(e) {
+            e.preventDefault();
+        }, { passive: false });
+    }
+    
+    // 모달이 열려있을 때 배경 스크롤 방지
+    if (applyModal) {
+        applyModal.addEventListener('touchmove', function(e) {
+            // 모달 콘텐츠 내부가 아닌 경우에만 preventDefault
+            if (e.target === applyModal || e.target === applyModalOverlay) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+    }
+
+    if (applyModalClose) {
+        applyModalClose.addEventListener('click', closeApplyModal);
+    }
+
+    // ESC 키로 모달 닫기
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && applyModal.classList.contains('apply-modal-active')) {
+            closeApplyModal();
+        }
+    });
+
+    // 리뷰 더보기 모달 기능
+    const reviewMoreBtn = document.getElementById('planReviewMoreBtn');
+    const reviewModal = document.getElementById('reviewModal');
+    const reviewModalOverlay = document.getElementById('reviewModalOverlay');
+    const reviewModalClose = document.getElementById('reviewModalClose');
+
+    // 리뷰 더보기 버튼 클릭 시 모달 열기
+    if (reviewMoreBtn) {
+        reviewMoreBtn.addEventListener('click', function() {
+            reviewModal.classList.add('review-modal-active');
+            document.body.style.overflow = 'hidden';
+        });
+    }
+
+    // 리뷰 모달 닫기
+    function closeReviewModal() {
+        reviewModal.classList.remove('review-modal-active');
+        document.body.style.overflow = '';
+    }
+
+    if (reviewModalOverlay) {
+        reviewModalOverlay.addEventListener('click', closeReviewModal);
+    }
+
+    if (reviewModalClose) {
+        reviewModalClose.addEventListener('click', closeReviewModal);
+    }
+
+    // ESC 키로 리뷰 모달 닫기
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && reviewModal.classList.contains('review-modal-active')) {
+            closeReviewModal();
+        }
+    });
 });
 </script>
 
