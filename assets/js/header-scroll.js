@@ -19,14 +19,15 @@
     // 모바일/데스크톱 체크 및 nav 이동 처리
     function handleMobileNav() {
         const isMobile = window.innerWidth <= 767;
+        const isMainPage = window.IS_MAIN_PAGE !== false; // 기본값 true (변수가 없으면 true로 간주)
         
-        if (isMobile && !navMoved) {
-            // 모바일: nav를 body로 이동하여 하단에 고정
+        if (isMobile && !navMoved && isMainPage) {
+            // 모바일 + 메인 페이지: nav를 body로 이동하여 하단에 고정
             nav.classList.add('mobile-bottom-nav');
             body.appendChild(nav);
             navMoved = true;
-        } else if (!isMobile && navMoved) {
-            // 데스크톱: nav를 원래 위치로 복원
+        } else if ((!isMobile || !isMainPage) && navMoved) {
+            // 데스크톱이거나 서브페이지: nav를 원래 위치로 복원
             nav.classList.remove('mobile-bottom-nav');
             navWrapper.appendChild(nav);
             navMoved = false;

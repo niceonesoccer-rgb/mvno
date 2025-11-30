@@ -1,6 +1,8 @@
 <?php
 // 현재 페이지 설정
 $current_page = 'plans';
+// 메인 페이지 여부 (하단 메뉴 및 푸터 표시용)
+$is_main_page = false;
 
 // 요금제 ID 가져오기
 $plan_id = isset($_GET['id']) ? intval($_GET['id']) : 32627;

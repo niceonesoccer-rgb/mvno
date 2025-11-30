@@ -1,3 +1,112 @@
+<?php
+/**
+ * 메인 페이지 여부 자동 판단 (하단 메뉴 및 푸터 표시 제어용)
+ * 
+ * 사용법:
+ * 1. 수동 설정: 각 페이지에서 $is_main_page = true/false 설정
+ * 2. 자동 판단: 설정하지 않으면 파일명과 URL 기반으로 자동 판단
+ * 3. 쿼리 파라미터 우선: 쿼리 파라미터가 있으면 무조건 서브페이지로 처리 (수동 설정보다 우선)
+ */
+
+// 쿼리 파라미터가 서브페이지인지 먼저 확인 (수동 설정보다 우선)
+$query_string = isset($_SERVER['QUERY_STRING']) ? $_SERVER['QUERY_STRING'] : '';
+$has_query_params = !empty($query_string);
+
+// 서브페이지로 판단할 쿼리 파라미터 목록
+$sub_page_params = [
+    'country',     // esim.php?country=china
+    'region',      // esim.php?country=china&region=beijing
+    'city',        // esim.php?country=china&region=beijing&city=shanghai
+    'id',          // plans.php?id=123
+    'detail',      // plans.php?detail=123
+    'view',        // plans.php?view=123
+    'edit',        // plans.php?edit=123
+    'category',    // plans.php?category=premium
+    'type',        // plans.php?type=lte
+    'provider',    // plans.php?provider=kt
+];
+
+$is_sub_page_by_query = false;
+if ($has_query_params) {
+    // 서브페이지 파라미터 목록에 있는지 확인
+    foreach ($sub_page_params as $param) {
+        if (isset($_GET[$param])) {
+            $is_sub_page_by_query = true;
+            break;
+        }
+    }
+    
+    // 서브페이지 파라미터가 아니지만 쿼리가 있는 경우도 체크
+    if (!$is_sub_page_by_query && !empty($_GET)) {
+        $excluded_params = ['page', 'sort', 'filter', 'search', 'tab'];
+        foreach (array_keys($_GET) as $key) {
+            if (!in_array($key, $excluded_params)) {
+                $is_sub_page_by_query = true;
+                break;
+            }
+        }
+    }
+}
+
+// 쿼리 파라미터가 서브페이지면 무조건 서브페이지로 처리 (수동 설정 무시)
+if ($is_sub_page_by_query) {
+    $is_main_page = false;
+}
+// 수동 설정이 없으면 자동 판단
+else if (!isset($is_main_page)) {
+    // 현재 실행 중인 스크립트 파일 경로
+    $current_script = $_SERVER['SCRIPT_NAME'];
+    $current_file = basename($current_script);
+    $current_path = dirname($current_script);
+    
+    // 메인 페이지 파일명 목록
+    $main_page_files = [
+        'index.php',
+        'plans.php',
+        'phones.php',
+        'internets.php',
+        'esim.php',
+        'event.php',
+        'mypage.php'
+    ];
+    
+    // 서브페이지 패턴 (파일명에 포함되면 서브페이지로 판단)
+    $sub_page_patterns = [
+        'detail',      // plan-detail.php, phone-detail.php 등
+        '-detail',     // 하이픈 포함 detail
+        '_detail',     // 언더스코어 포함 detail
+        'view',        // view.php 등
+        'edit',        // edit.php 등
+        'create',      // create.php 등
+        'form',        // form.php 등
+    ];
+    
+    // 1. 파일명이 메인 페이지 목록에 있는지 확인
+    if (in_array($current_file, $main_page_files)) {
+        $is_main_page = true;
+    }
+    // 2. 파일명에 서브페이지 패턴이 포함되어 있는지 확인
+    else {
+        $is_sub_page = false;
+        foreach ($sub_page_patterns as $pattern) {
+            if (stripos($current_file, $pattern) !== false) {
+                $is_sub_page = true;
+                break;
+            }
+        }
+        $is_main_page = !$is_sub_page;
+    }
+    
+    // 3. URL 경로 기반 추가 판단 (서브 디렉토리 체크)
+    $path_parts = explode('/', trim($current_path, '/'));
+    if (count($path_parts) > 1) {
+        // 서브 디렉토리가 있고, 파일명이 메인 페이지가 아니면 서브페이지로 간주
+        if (!in_array($current_file, $main_page_files)) {
+            $is_main_page = false;
+        }
+    }
+}
+?>
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -5,6 +114,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>알뜰폰 요금제 모요(MOYO), 모두의 요금제</title>
     <link rel="stylesheet" href="/MVNO/assets/css/style.css">
+    <script>
+        // 메인 페이지 여부 (하단 메뉴 및 푸터 표시 제어용)
+        window.IS_MAIN_PAGE = <?php echo (isset($is_main_page) && $is_main_page) ? 'true' : 'false'; ?>;
+    </script>
     <script src="/MVNO/assets/js/header-scroll.js" defer></script>
     <script src="/MVNO/assets/js/phone-deal-scroll.js" defer></script>
     <script src="/MVNO/assets/js/nav-click-fix.js" defer></script>

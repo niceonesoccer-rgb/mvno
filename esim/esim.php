@@ -1,6 +1,8 @@
 <?php
 // 현재 페이지 설정 (헤더에서 활성 링크 표시용)
 $current_page = 'esim';
+// 메인 페이지 여부 (하단 메뉴 및 푸터 표시용)
+$is_main_page = true;
 
 // 국가/지역 정보 매핑
 $countries = [

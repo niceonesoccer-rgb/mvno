@@ -1,6 +1,8 @@
 <?php
 // 현재 페이지 설정 (헤더에서 활성 링크 표시용)
 $current_page = 'plans';
+// 메인 페이지 여부 (하단 메뉴 및 푸터 표시용)
+$is_main_page = true;
 
 // 모니터링 시스템 (선택사항 - 주석 해제하여 사용)
 // require_once 'includes/monitor.php';

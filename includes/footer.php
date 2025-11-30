@@ -1,3 +1,4 @@
+<?php if (isset($is_main_page) && $is_main_page): ?>
     <footer class="footer">
         <div class="footer-body">
             <!-- 브랜드 로고 -->
@@ -53,6 +54,7 @@
             </div>
         </div>
     </footer>
+<?php endif; ?>
 </body>
 </html>
 
