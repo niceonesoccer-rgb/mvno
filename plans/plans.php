@@ -8,7 +8,7 @@ $current_page = 'plans';
 // $monitor->logConnection();
 
 // 헤더 포함
-include 'includes/header.php';
+include '../includes/header.php';
 ?>
 
 <main class="main-content">
@@ -1082,7 +1082,7 @@ include 'includes/header.php';
 
 <?php
 // 푸터 포함
-include 'includes/footer.php';
+include '../includes/footer.php';
 ?>
 
 <script src="assets/js/plan-accordion.js" defer></script>

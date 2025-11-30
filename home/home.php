@@ -15,8 +15,8 @@ include 'includes/header.php';
                 <!-- 메인 배너 -->
                 <section class="banner-section">
                     <div class="banner-wrapper">
-                        <a href="/MVNO/event/event.php" class="banner-link">
-                            <img src="images/upload/event/2025/10/20251031_192001398_teGIZDiB.png" alt="메인 배너" class="banner-image">
+                        <a href="../event/" class="banner-link">
+                            <img src="../images/upload/event/2025/10/20251031_192001398_teGIZDiB.png" alt="메인 배너" class="banner-image">
                         </a>
                     </div>
                 </section>
@@ -24,11 +24,11 @@ include 'includes/header.php';
                 <!-- 모요 요금제 랭킹 -->
                 <section class="ranking-section">
                     <div class="ranking-list">
-                        <a href="/MVNO/plans/plans.php" class="ranking-card">
-                            <img src="images/upload/event/2025/10/20251030_140511806_lTyhMVjG.jpg" alt="배너" class="ranking-banner">
+                        <a href="../plans/" class="ranking-card">
+                            <img src="../images/upload/event/2025/10/20251030_140511806_lTyhMVjG.jpg" alt="배너" class="ranking-banner">
                         </a>
-                        <a href="/MVNO/plans/plans.php" class="ranking-card">
-                            <img src="images/upload/event/2025/10/20251031_122332004_kjuEtCoq.jpg" alt="배너" class="ranking-banner">
+                        <a href="../plans/" class="ranking-card">
+                            <img src="../images/upload/event/2025/10/20251031_122332004_kjuEtCoq.jpg" alt="배너" class="ranking-banner">
                         </a>
                     </div>
                 </section>
@@ -359,7 +359,7 @@ include 'includes/header.php';
                     <div class="swiper-gradient next-gradient"></div>
                 </div>
                 <div class="phone-deal-footer">
-                    <a href="/MVNO/phones/phones.php?from=home" class="more-btn">
+                    <a href="../phones/?from=home" class="more-btn">
                         <span>자급제폰 더보기 &gt;</span>
                     </a>
                 </div>
@@ -541,7 +541,7 @@ include 'includes/header.php';
                     </div>
                 </div>
                 <div class="section-footer">
-                    <a href="/MVNO/plans/plans.php?mobilePlanOperatorIdList=14&sorting=recommend_v2&page=0&from=home" class="more-btn">
+                    <a href="../plans/?mobilePlanOperatorIdList=14&sorting=recommend_v2&page=0&from=home" class="more-btn">
                         <span>인터넷 상품 더보기</span>
                         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path fill-rule="evenodd" clip-rule="evenodd" d="M8.15146 20.8485C7.68283 20.3799 7.68283 19.6201 8.15146 19.1515L15.3029 12L8.15146 4.84852C7.68283 4.37989 7.68283 3.6201 8.15146 3.15147C8.62009 2.68284 9.37989 2.68284 9.84852 3.15147L17.8485 11.1515C18.3171 11.6201 18.3171 12.3799 17.8485 12.8485L9.84852 20.8485C9.37989 21.3172 8.62009 21.3172 8.15146 20.8485Z" fill="#868E96"></path>

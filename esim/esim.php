@@ -129,7 +129,7 @@ $selected_country = isset($_GET['country']) ? $_GET['country'] : null;
 $selected_region = isset($_GET['region']) ? $_GET['region'] : null;
 
 // 헤더 포함
-include 'includes/header.php';
+include '../includes/header.php';
 ?>
 
 <main class="main-content">
@@ -139,7 +139,7 @@ include 'includes/header.php';
             <?php $country = $countries[$selected_country]; ?>
             <section class="esim-detail-section">
                 <div class="esim-detail-header">
-                    <a href="/MVNO/esim.php" class="back-link">
+                    <a href="/MVNO/esim/esim.php" class="back-link">
                         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="24" height="24">
                             <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
@@ -165,7 +165,7 @@ include 'includes/header.php';
             <?php $region = $regions[$selected_region]; ?>
             <section class="esim-detail-section">
                 <div class="esim-detail-header">
-                    <a href="/MVNO/esim.php" class="back-link">
+                    <a href="/MVNO/esim/esim.php" class="back-link">
                         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="24" height="24">
                             <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
@@ -213,7 +213,7 @@ include 'includes/header.php';
                 <!-- 인기국가 탭 -->
                 <div id="tab-popular" class="esim-tab-pane active">
                     <div class="country-grid">
-                        <a href="/MVNO/esim.php?country=japan" class="country-item">
+                        <a href="/MVNO/esim/esim.php?country=japan" class="country-item">
                             <div class="product-flag-item">
                                 <img src="<?php echo getCountryImageUrl('japan.svg', $external_images['japan.svg']); ?>" alt="일본" class="flag" width="48" height="48">
                                 <div class="badge">무제한</div>
@@ -222,7 +222,7 @@ include 'includes/header.php';
                                 </div>
                             </div>
                         </a>
-                        <a href="/MVNO/esim.php?country=china" class="country-item">
+                        <a href="/MVNO/esim/esim.php?country=china" class="country-item">
                             <div class="product-flag-item">
                                 <img src="<?php echo getCountryImageUrl('china.svg', $external_images['china.svg']); ?>" alt="중국" class="flag" width="48" height="48">
                                 <div class="badge">무제한</div>
@@ -231,7 +231,7 @@ include 'includes/header.php';
                                 </div>
                             </div>
                         </a>
-                        <a href="/MVNO/esim.php?country=taiwan" class="country-item">
+                        <a href="/MVNO/esim/esim.php?country=taiwan" class="country-item">
                             <div class="product-flag-item">
                                 <img src="<?php echo getCountryImageUrl('taiwan.svg', $external_images['taiwan.svg']); ?>" alt="대만" class="flag" width="48" height="48">
                                 <div class="badge">무제한</div>
@@ -240,7 +240,7 @@ include 'includes/header.php';
                                 </div>
                             </div>
                         </a>
-                        <a href="/MVNO/esim.php?country=philippines" class="country-item">
+                        <a href="/MVNO/esim/esim.php?country=philippines" class="country-item">
                             <div class="product-flag-item">
                                 <img src="<?php echo getCountryImageUrl('philippines.svg', $external_images['philippines.svg']); ?>" alt="필리핀" class="flag" width="48" height="48">
                                 <div class="badge">무제한</div>
@@ -249,7 +249,7 @@ include 'includes/header.php';
                                 </div>
                             </div>
                         </a>
-                        <a href="/MVNO/esim.php?country=thailand" class="country-item">
+                        <a href="/MVNO/esim/esim.php?country=thailand" class="country-item">
                             <div class="product-flag-item">
                                 <img src="<?php echo getCountryImageUrl('thailand.svg', $external_images['thailand.svg']); ?>" alt="태국" class="flag" width="48" height="48">
                                 <div class="badge">무제한</div>
@@ -258,7 +258,7 @@ include 'includes/header.php';
                                 </div>
                             </div>
                         </a>
-                        <a href="/MVNO/esim.php?country=vietnam" class="country-item">
+                        <a href="/MVNO/esim/esim.php?country=vietnam" class="country-item">
                             <div class="product-flag-item">
                                 <img src="<?php echo getCountryImageUrl('vietnam.svg', $external_images['vietnam.svg']); ?>" alt="베트남" class="flag" width="48" height="48">
                                 <div class="badge">무제한</div>
@@ -267,7 +267,7 @@ include 'includes/header.php';
                                 </div>
                             </div>
                         </a>
-                        <a href="/MVNO/esim.php?country=malaysia" class="country-item">
+                        <a href="/MVNO/esim/esim.php?country=malaysia" class="country-item">
                             <div class="product-flag-item">
                                 <img src="<?php echo getCountryImageUrl('malaysia.svg', $external_images['malaysia.svg']); ?>" alt="말레이시아" class="flag" width="48" height="48">
                                 <div class="badge">무제한</div>
@@ -276,7 +276,7 @@ include 'includes/header.php';
                                 </div>
                             </div>
                         </a>
-                        <a href="/MVNO/esim.php?country=singapore" class="country-item">
+                        <a href="/MVNO/esim/esim.php?country=singapore" class="country-item">
                             <div class="product-flag-item">
                                 <img src="<?php echo getCountryImageUrl('singapore.svg', $external_images['singapore.svg']); ?>" alt="싱가포르" class="flag" width="48" height="48">
                                 <div class="badge">무제한</div>
@@ -285,7 +285,7 @@ include 'includes/header.php';
                                 </div>
                             </div>
                         </a>
-                        <a href="/MVNO/esim.php?country=usa" class="country-item">
+                        <a href="/MVNO/esim/esim.php?country=usa" class="country-item">
                             <div class="product-flag-item">
                                 <img src="<?php echo getCountryImageUrl('usa.svg', $external_images['usa.svg']); ?>" alt="미국" class="flag" width="48" height="48">
                                 <div class="badge">무제한</div>
@@ -294,7 +294,7 @@ include 'includes/header.php';
                                 </div>
                             </div>
                         </a>
-                        <a href="/MVNO/esim.php?country=australia" class="country-item">
+                        <a href="/MVNO/esim/esim.php?country=australia" class="country-item">
                             <div class="product-flag-item">
                                 <img src="<?php echo getCountryImageUrl('australia.svg', $external_images['australia.svg']); ?>" alt="호주" class="flag" width="48" height="48">
                                 <div class="badge">무제한</div>
@@ -303,7 +303,7 @@ include 'includes/header.php';
                                 </div>
                             </div>
                         </a>
-                        <a href="/MVNO/esim.php?country=indonesia" class="country-item">
+                        <a href="/MVNO/esim/esim.php?country=indonesia" class="country-item">
                             <div class="product-flag-item">
                                 <img src="<?php echo getCountryImageUrl('indonesia.svg', $external_images['indonesia.svg']); ?>" alt="인도네시아" class="flag" width="48" height="48">
                                 <div class="badge">무제한</div>
@@ -312,7 +312,7 @@ include 'includes/header.php';
                                 </div>
                             </div>
                         </a>
-                        <a href="/MVNO/esim.php?country=uae" class="country-item">
+                        <a href="/MVNO/esim/esim.php?country=uae" class="country-item">
                             <div class="product-flag-item">
                                 <img src="<?php echo getCountryImageUrl('uae.svg', $external_images['uae.svg']); ?>" alt="아랍에미리트" class="flag" width="48" height="48">
                                 <div class="product-name-wrapper">
@@ -320,7 +320,7 @@ include 'includes/header.php';
                                 </div>
                             </div>
                         </a>
-                        <a href="/MVNO/esim.php?country=hongkong" class="country-item">
+                        <a href="/MVNO/esim/esim.php?country=hongkong" class="country-item">
                             <div class="product-flag-item">
                                 <img src="<?php echo getCountryImageUrl('hongkong.svg', $external_images['hongkong.svg']); ?>" alt="홍콩" class="flag" width="48" height="48">
                                 <div class="product-name-wrapper">
@@ -328,7 +328,7 @@ include 'includes/header.php';
                                 </div>
                             </div>
                         </a>
-                        <a href="/MVNO/esim.php?country=guam" class="country-item">
+                        <a href="/MVNO/esim/esim.php?country=guam" class="country-item">
                             <div class="product-flag-item">
                                 <img src="<?php echo getCountryImageUrl('guam.svg', $external_images['guam.svg']); ?>" alt="괌" class="flag" width="48" height="48">
                                 <div class="product-name-wrapper">
@@ -336,7 +336,7 @@ include 'includes/header.php';
                                 </div>
                             </div>
                         </a>
-                        <a href="/MVNO/esim.php?country=canada" class="country-item">
+                        <a href="/MVNO/esim/esim.php?country=canada" class="country-item">
                             <div class="product-flag-item">
                                 <img src="<?php echo getCountryImageUrl('canada.svg', $external_images['canada.svg']); ?>" alt="캐나다" class="flag" width="48" height="48">
                                 <div class="product-name-wrapper">
@@ -344,7 +344,7 @@ include 'includes/header.php';
                                 </div>
                             </div>
                         </a>
-                        <a href="/MVNO/esim.php?country=cambodia" class="country-item">
+                        <a href="/MVNO/esim/esim.php?country=cambodia" class="country-item">
                             <div class="product-flag-item">
                                 <img src="<?php echo getCountryImageUrl('cambodia.svg', $external_images['cambodia.svg']); ?>" alt="캄보디아" class="flag" width="48" height="48">
                                 <div class="badge">무제한</div>
@@ -353,7 +353,7 @@ include 'includes/header.php';
                                 </div>
                             </div>
                         </a>
-                        <a href="/MVNO/esim.php?country=italy" class="country-item">
+                        <a href="/MVNO/esim/esim.php?country=italy" class="country-item">
                             <div class="product-flag-item">
                                 <img src="<?php echo getCountryImageUrl('italy.svg', $external_images['italy.svg']); ?>" alt="이탈리아" class="flag" width="48" height="48">
                                 <div class="product-name-wrapper">
@@ -361,7 +361,7 @@ include 'includes/header.php';
                                 </div>
                             </div>
                         </a>
-                        <a href="/MVNO/esim.php?country=macau" class="country-item">
+                        <a href="/MVNO/esim/esim.php?country=macau" class="country-item">
                             <div class="product-flag-item">
                                 <img src="<?php echo getCountryImageUrl('macau.svg', $external_images['macau.svg']); ?>" alt="마카오" class="flag" width="48" height="48">
                                 <div class="product-name-wrapper">
@@ -369,7 +369,7 @@ include 'includes/header.php';
                                 </div>
                             </div>
                         </a>
-                        <a href="/MVNO/esim.php?country=france" class="country-item">
+                        <a href="/MVNO/esim/esim.php?country=france" class="country-item">
                             <div class="product-flag-item">
                                 <img src="<?php echo getCountryImageUrl('france.svg', $external_images['france.svg']); ?>" alt="프랑스" class="flag" width="48" height="48">
                                 <div class="product-name-wrapper">
@@ -377,7 +377,7 @@ include 'includes/header.php';
                                 </div>
                             </div>
                         </a>
-                        <a href="/MVNO/esim.php?country=spain" class="country-item">
+                        <a href="/MVNO/esim/esim.php?country=spain" class="country-item">
                             <div class="product-flag-item">
                                 <img src="<?php echo getCountryImageUrl('spain.svg', $external_images['spain.svg']); ?>" alt="스페인" class="flag" width="48" height="48">
                                 <div class="product-name-wrapper">
@@ -385,7 +385,7 @@ include 'includes/header.php';
                                 </div>
                             </div>
                         </a>
-                        <a href="/MVNO/esim.php?country=turkey" class="country-item">
+                        <a href="/MVNO/esim/esim.php?country=turkey" class="country-item">
                             <div class="product-flag-item">
                                 <img src="<?php echo getCountryImageUrl('turkey.svg', $external_images['turkey.svg']); ?>" alt="튀르키예(터키)" class="flag" width="48" height="48">
                                 <div class="product-name-wrapper">
@@ -393,7 +393,7 @@ include 'includes/header.php';
                                 </div>
                             </div>
                         </a>
-                        <a href="/MVNO/esim.php?country=uk" class="country-item">
+                        <a href="/MVNO/esim/esim.php?country=uk" class="country-item">
                             <div class="product-flag-item">
                                 <img src="<?php echo getCountryImageUrl('uk.svg', $external_images['uk.svg']); ?>" alt="영국" class="flag" width="48" height="48">
                                 <div class="product-name-wrapper">
@@ -401,7 +401,7 @@ include 'includes/header.php';
                                 </div>
                             </div>
                         </a>
-                        <a href="/MVNO/esim.php?country=germany" class="country-item">
+                        <a href="/MVNO/esim/esim.php?country=germany" class="country-item">
                             <div class="product-flag-item">
                                 <img src="<?php echo getCountryImageUrl('germany.svg', $external_images['germany.svg']); ?>" alt="독일" class="flag" width="48" height="48">
                                 <div class="product-name-wrapper">
@@ -409,7 +409,7 @@ include 'includes/header.php';
                                 </div>
                             </div>
                         </a>
-                        <a href="/MVNO/esim.php?country=qatar" class="country-item">
+                        <a href="/MVNO/esim/esim.php?country=qatar" class="country-item">
                             <div class="product-flag-item">
                                 <img src="<?php echo getCountryImageUrl('qatar.svg', $external_images['qatar.svg']); ?>" alt="카타르" class="flag" width="48" height="48">
                                 <div class="product-name-wrapper">
@@ -417,7 +417,7 @@ include 'includes/header.php';
                                 </div>
                             </div>
                         </a>
-                        <a href="/MVNO/esim.php?country=portugal" class="country-item">
+                        <a href="/MVNO/esim/esim.php?country=portugal" class="country-item">
                             <div class="product-flag-item">
                                 <img src="<?php echo getCountryImageUrl('portugal.svg', $external_images['portugal.svg']); ?>" alt="포르투갈" class="flag" width="48" height="48">
                                 <div class="product-name-wrapper">
@@ -425,7 +425,7 @@ include 'includes/header.php';
                                 </div>
                             </div>
                         </a>
-                        <a href="/MVNO/esim.php?country=india" class="country-item">
+                        <a href="/MVNO/esim/esim.php?country=india" class="country-item">
                             <div class="product-flag-item">
                                 <img src="<?php echo getCountryImageUrl('india.svg', $external_images['india.svg']); ?>" alt="인도" class="flag" width="48" height="48">
                                 <div class="product-name-wrapper">
@@ -433,7 +433,7 @@ include 'includes/header.php';
                                 </div>
                             </div>
                         </a>
-                        <a href="/MVNO/esim.php?country=mexico" class="country-item">
+                        <a href="/MVNO/esim/esim.php?country=mexico" class="country-item">
                             <div class="product-flag-item">
                                 <img src="<?php echo getCountryImageUrl('mexico.svg', $external_images['mexico.svg']); ?>" alt="멕시코" class="flag" width="48" height="48">
                                 <div class="product-name-wrapper">
@@ -441,7 +441,7 @@ include 'includes/header.php';
                                 </div>
                             </div>
                         </a>
-                        <a href="/MVNO/esim.php?country=laos" class="country-item">
+                        <a href="/MVNO/esim/esim.php?country=laos" class="country-item">
                             <div class="product-flag-item">
                                 <img src="<?php echo getCountryImageUrl('laos.svg', $external_images['laos.svg']); ?>" alt="라오스" class="flag" width="48" height="48">
                                 <div class="product-name-wrapper">
@@ -449,7 +449,7 @@ include 'includes/header.php';
                                 </div>
                             </div>
                         </a>
-                        <a href="/MVNO/esim.php?country=southkorea" class="country-item">
+                        <a href="/MVNO/esim/esim.php?country=southkorea" class="country-item">
                             <div class="product-flag-item">
                                 <img src="<?php echo getCountryImageUrl('southkorea.svg', $external_images['southkorea.svg']); ?>" alt="대한민국" class="flag" width="48" height="48">
                                 <div class="badge">무제한</div>
@@ -458,7 +458,7 @@ include 'includes/header.php';
                                 </div>
                             </div>
                         </a>
-                        <a href="/MVNO/esim.php?country=denmark" class="country-item">
+                        <a href="/MVNO/esim/esim.php?country=denmark" class="country-item">
                             <div class="product-flag-item">
                                 <img src="<?php echo getCountryImageUrl('denmark.svg', $external_images['denmark.svg']); ?>" alt="덴마크" class="flag" width="48" height="48">
                                 <div class="product-name-wrapper">
@@ -466,7 +466,7 @@ include 'includes/header.php';
                                 </div>
                             </div>
                         </a>
-                        <a href="/MVNO/esim.php?country=maldives" class="country-item">
+                        <a href="/MVNO/esim/esim.php?country=maldives" class="country-item">
                             <div class="product-flag-item">
                                 <img src="<?php echo getCountryImageUrl('maldives.svg', $external_images['maldives.svg']); ?>" alt="몰디브" class="flag" width="48" height="48">
                                 <div class="product-name-wrapper">
@@ -474,7 +474,7 @@ include 'includes/header.php';
                                 </div>
                             </div>
                         </a>
-                        <a href="/MVNO/esim.php?country=sweden" class="country-item">
+                        <a href="/MVNO/esim/esim.php?country=sweden" class="country-item">
                             <div class="product-flag-item">
                                 <img src="<?php echo getCountryImageUrl('sweden.svg', $external_images['sweden.svg']); ?>" alt="스웨덴" class="flag" width="48" height="48">
                                 <div class="product-name-wrapper">
@@ -482,7 +482,7 @@ include 'includes/header.php';
                                 </div>
                             </div>
                         </a>
-                        <a href="/MVNO/esim.php?country=austria" class="country-item">
+                        <a href="/MVNO/esim/esim.php?country=austria" class="country-item">
                             <div class="product-flag-item">
                                 <img src="<?php echo getCountryImageUrl('austria.svg', $external_images['austria.svg']); ?>" alt="오스트리아" class="flag" width="48" height="48">
                                 <div class="product-name-wrapper">
@@ -490,7 +490,7 @@ include 'includes/header.php';
                                 </div>
                             </div>
                         </a>
-                        <a href="/MVNO/esim.php?country=newzealand" class="country-item">
+                        <a href="/MVNO/esim/esim.php?country=newzealand" class="country-item">
                             <div class="product-flag-item">
                                 <img src="<?php echo getCountryImageUrl('newzealand.svg', $external_images['newzealand.svg']); ?>" alt="뉴질랜드" class="flag" width="48" height="48">
                                 <div class="badge">무제한</div>
@@ -499,7 +499,7 @@ include 'includes/header.php';
                                 </div>
                             </div>
                         </a>
-                        <a href="/MVNO/esim.php?country=ireland" class="country-item">
+                        <a href="/MVNO/esim/esim.php?country=ireland" class="country-item">
                             <div class="product-flag-item">
                                 <img src="<?php echo getCountryImageUrl('ireland.svg', $external_images['ireland.svg']); ?>" alt="아일랜드" class="flag" width="48" height="48">
                                 <div class="product-name-wrapper">
@@ -507,7 +507,7 @@ include 'includes/header.php';
                                 </div>
                             </div>
                         </a>
-                        <a href="/MVNO/esim.php?country=mongolia" class="country-item">
+                        <a href="/MVNO/esim/esim.php?country=mongolia" class="country-item">
                             <div class="product-flag-item">
                                 <img src="<?php echo getCountryImageUrl('mongolia.svg', $external_images['mongolia.svg']); ?>" alt="몽골" class="flag" width="48" height="48">
                                 <div class="product-name-wrapper">
@@ -515,7 +515,7 @@ include 'includes/header.php';
                                 </div>
                             </div>
                         </a>
-                        <a href="/MVNO/esim.php?country=kazakhstan" class="country-item">
+                        <a href="/MVNO/esim/esim.php?country=kazakhstan" class="country-item">
                             <div class="product-flag-item">
                                 <img src="<?php echo getCountryImageUrl('kazakhstan.svg', $external_images['kazakhstan.svg']); ?>" alt="카자흐스탄" class="flag" width="48" height="48">
                                 <div class="product-name-wrapper">
@@ -529,7 +529,7 @@ include 'includes/header.php';
                 <!-- 다국가 탭 -->
                 <div id="tab-continent" class="esim-tab-pane">
                     <div class="country-grid">
-                        <a href="/MVNO/esim.php?region=global-151" class="country-item">
+                        <a href="/MVNO/esim/esim.php?region=global-151" class="country-item">
                             <div class="product-flag-item">
                                 <img src="<?php echo getCountryImageUrl('global-151.svg', $external_images['global-151.svg']); ?>" alt="글로벌 151개국" class="flag" width="48" height="48">
                                 <div class="product-name-wrapper">
@@ -537,7 +537,7 @@ include 'includes/header.php';
                                 </div>
                             </div>
                         </a>
-                        <a href="/MVNO/esim.php?region=europe-42" class="country-item">
+                        <a href="/MVNO/esim/esim.php?region=europe-42" class="country-item">
                             <div class="product-flag-item">
                                 <img src="<?php echo getCountryImageUrl('europe-42.svg', $external_images['europe-42.svg']); ?>" alt="유럽 42개국" class="flag" width="48" height="48">
                                 <div class="badge">무제한</div>
@@ -546,7 +546,7 @@ include 'includes/header.php';
                                 </div>
                             </div>
                         </a>
-                        <a href="/MVNO/esim.php?region=europe-36" class="country-item">
+                        <a href="/MVNO/esim/esim.php?region=europe-36" class="country-item">
                             <div class="product-flag-item">
                                 <img src="<?php echo getCountryImageUrl('europe-36.svg', $external_images['europe-36.svg']); ?>" alt="유럽 36개국" class="flag" width="48" height="48">
                                 <div class="badge">무제한</div>
@@ -555,7 +555,7 @@ include 'includes/header.php';
                                 </div>
                             </div>
                         </a>
-                        <a href="/MVNO/esim.php?region=europe-33" class="country-item">
+                        <a href="/MVNO/esim/esim.php?region=europe-33" class="country-item">
                             <div class="product-flag-item">
                                 <img src="<?php echo getCountryImageUrl('europe-33.svg', $external_images['europe-33.svg']); ?>" alt="유럽 33개국" class="flag" width="48" height="48">
                                 <div class="badge">무제한</div>
@@ -564,7 +564,7 @@ include 'includes/header.php';
                                 </div>
                             </div>
                         </a>
-                        <a href="/MVNO/esim.php?region=hongkong-macau" class="country-item">
+                        <a href="/MVNO/esim/esim.php?region=hongkong-macau" class="country-item">
                             <div class="product-flag-item">
                                 <img src="<?php echo getCountryImageUrl('hongkong-macau.svg', $external_images['hongkong-macau.svg']); ?>" alt="홍콩/마카오" class="flag" width="48" height="48">
                                 <div class="badge">무제한</div>
@@ -573,7 +573,7 @@ include 'includes/header.php';
                                 </div>
                             </div>
                         </a>
-                        <a href="/MVNO/esim.php?region=china-hongkong-macau" class="country-item">
+                        <a href="/MVNO/esim/esim.php?region=china-hongkong-macau" class="country-item">
                             <div class="product-flag-item">
                                 <img src="<?php echo getCountryImageUrl('china-hongkong-macau.svg', $external_images['china-hongkong-macau.svg']); ?>" alt="중국/홍콩/마카오" class="flag" width="48" height="48">
                                 <div class="badge">무제한</div>
@@ -582,7 +582,7 @@ include 'includes/header.php';
                                 </div>
                             </div>
                         </a>
-                        <a href="/MVNO/esim.php?region=southeast-asia-3" class="country-item">
+                        <a href="/MVNO/esim/esim.php?region=southeast-asia-3" class="country-item">
                             <div class="product-flag-item">
                                 <img src="<?php echo getCountryImageUrl('southeast-asia-3.svg', $external_images['southeast-asia-3.svg']); ?>" alt="동남아 3개국" class="flag" width="48" height="48">
                                 <div class="product-name-wrapper">
@@ -590,7 +590,7 @@ include 'includes/header.php';
                                 </div>
                             </div>
                         </a>
-                        <a href="/MVNO/esim.php?region=usa-canada" class="country-item">
+                        <a href="/MVNO/esim/esim.php?region=usa-canada" class="country-item">
                             <div class="product-flag-item">
                                 <img src="<?php echo getCountryImageUrl('usa-canada.svg', $external_images['usa-canada.svg']); ?>" alt="미국/캐나다" class="flag" width="48" height="48">
                                 <div class="product-name-wrapper">
@@ -598,7 +598,7 @@ include 'includes/header.php';
                                 </div>
                             </div>
                         </a>
-                        <a href="/MVNO/esim.php?region=australia-newzealand" class="country-item">
+                        <a href="/MVNO/esim/esim.php?region=australia-newzealand" class="country-item">
                             <div class="product-flag-item">
                                 <img src="<?php echo getCountryImageUrl('australia-newzealand.svg', $external_images['australia-newzealand.svg']); ?>" alt="호주/뉴질랜드" class="flag" width="48" height="48">
                                 <div class="badge">무제한</div>
@@ -607,7 +607,7 @@ include 'includes/header.php';
                                 </div>
                             </div>
                         </a>
-                        <a href="/MVNO/esim.php?region=asia-13" class="country-item">
+                        <a href="/MVNO/esim/esim.php?region=asia-13" class="country-item">
                             <div class="product-flag-item">
                                 <img src="<?php echo getCountryImageUrl('asia-13.svg', $external_images['asia-13.svg']); ?>" alt="아시아 13개국" class="flag" width="48" height="48">
                                 <div class="product-name-wrapper">
@@ -615,7 +615,7 @@ include 'includes/header.php';
                                 </div>
                             </div>
                         </a>
-                        <a href="/MVNO/esim.php?region=guam-saipan" class="country-item">
+                        <a href="/MVNO/esim/esim.php?region=guam-saipan" class="country-item">
                             <div class="product-flag-item">
                                 <img src="<?php echo getCountryImageUrl('guam-saipan.svg', $external_images['guam-saipan.svg']); ?>" alt="괌/사이판" class="flag" width="48" height="48">
                                 <div class="product-name-wrapper">
@@ -623,7 +623,7 @@ include 'includes/header.php';
                                 </div>
                             </div>
                         </a>
-                        <a href="/MVNO/esim.php?region=north-central-america-3" class="country-item">
+                        <a href="/MVNO/esim/esim.php?region=north-central-america-3" class="country-item">
                             <div class="product-flag-item">
                                 <img src="<?php echo getCountryImageUrl('north-central-america-3.svg', $external_images['north-central-america-3.svg']); ?>" alt="북중미 3개국" class="flag" width="48" height="48">
                                 <div class="product-name-wrapper">
@@ -631,7 +631,7 @@ include 'includes/header.php';
                                 </div>
                             </div>
                         </a>
-                        <a href="/MVNO/esim.php?region=southeast-asia-8" class="country-item">
+                        <a href="/MVNO/esim/esim.php?region=southeast-asia-8" class="country-item">
                             <div class="product-flag-item">
                                 <img src="<?php echo getCountryImageUrl('southeast-asia-8.svg', $external_images['southeast-asia-8.svg']); ?>" alt="동남아 8개국" class="flag" width="48" height="48">
                                 <div class="product-name-wrapper">
@@ -639,7 +639,7 @@ include 'includes/header.php';
                                 </div>
                             </div>
                         </a>
-                        <a href="/MVNO/esim.php?region=south-america-11" class="country-item">
+                        <a href="/MVNO/esim/esim.php?region=south-america-11" class="country-item">
                             <div class="product-flag-item">
                                 <img src="<?php echo getCountryImageUrl('south-america-11.png', $external_images['south-america-11.png']); ?>" alt="남미 11개국" class="flag" width="48" height="48">
                                 <div class="product-name-wrapper">
@@ -921,5 +921,5 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <?php
 // 푸터 포함
-include 'includes/footer.php';
+include '../includes/footer.php';
 ?>

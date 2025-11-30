@@ -3,7 +3,7 @@
 $current_page = 'event';
 
 // 헤더 포함
-include 'includes/header.php';
+include '../includes/header.php';
 ?>
 
 <main class="main-content">
@@ -454,6 +454,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <?php
 // 푸터 포함
-include 'includes/footer.php';
+include '../includes/footer.php';
 ?>
 

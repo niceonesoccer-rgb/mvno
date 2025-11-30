@@ -11,6 +11,8 @@ html {
     font-size: 16px;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    scroll-behavior: auto; /* 부드러운 스크롤 비활성화 */
+    overflow-x: hidden; /* 가로 스크롤 방지 */
 }
 
 body {
@@ -18,6 +20,8 @@ body {
     line-height: 1.6;
     color: #212529;
     background-color: #ffffff;
+    overflow-x: hidden; /* 가로 스크롤 방지 */
+    position: relative; /* 레이아웃 고정 */
 }
 
 img {
@@ -104,6 +108,9 @@ button {
     width: 100%;
     min-height: 60px;
     box-sizing: border-box;
+    transform: translateZ(0); /* 하드웨어 가속으로 레이아웃 고정 */
+    backface-visibility: hidden; /* 렌더링 최적화 */
+    will-change: auto; /* 성능 최적화 */
 }
 
 .sticky-nav {
@@ -124,6 +131,11 @@ button {
     min-height: 60px;
     position: relative;
     box-sizing: border-box;
+    transform: translateZ(0); /* 하드웨어 가속으로 레이아웃 고정 */
+    backface-visibility: hidden; /* 렌더링 최적화 */
+    will-change: auto; /* 성능 최적화 */
+    overflow: hidden !important; /* 스크롤 완전 방지 */
+    scroll-behavior: auto !important; /* 부드러운 스크롤 비활성화 */
 }
 
 .header-center-text {
@@ -178,66 +190,107 @@ button {
         border-top: 1px solid var(--color-gray-200) !important;
         box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1) !important;
         z-index: 1001 !important;
-        padding: var(--spacing-sm) 0 !important;
+        padding: 4px 0 !important;
         justify-content: center !important;
+        align-items: center !important;
         margin: 0 !important;
+        transform: translateZ(0) !important; /* 하드웨어 가속으로 레이아웃 고정 */
+        will-change: auto !important; /* 성능 최적화 */
+        box-sizing: border-box !important;
+        height: auto !important;
+        min-height: auto !important;
+        max-height: none !important;
+    }
+    
+    body > .nav.mobile-bottom-nav > .nav-list {
+        width: 100% !important;
+        max-width: 100% !important;
+        display: flex !important;
+        flex-wrap: nowrap !important;
     }
     
     .nav-list {
-        display: flex;
+        display: flex !important;
         align-items: center;
         justify-content: space-around;
-        width: 100%;
-        gap: 0;
-        padding: 0 var(--spacing-sm);
-        flex-wrap: nowrap; /* 한 줄에 강제 표시 */
-        overflow-x: auto; /* 필요시 스크롤 */
+        width: 100% !important;
+        gap: 0 !important;
+        padding: 0 2px !important;
+        flex-wrap: nowrap !important; /* 한 줄에 강제 표시 */
+        overflow-x: hidden !important; /* 스크롤 방지 */
+        overflow-y: hidden !important; /* 세로 스크롤도 방지 */
+        -webkit-overflow-scrolling: touch;
+        position: relative; /* 레이아웃 고정 */
+        transform: translateZ(0); /* 하드웨어 가속 */
+        backface-visibility: hidden; /* 렌더링 최적화 */
+        box-sizing: border-box;
     }
     
     .nav-item {
-        flex: 1 1 auto;
-        display: flex;
+        flex: 1 1 0 !important;
+        display: flex !important;
         justify-content: center;
-        min-width: 0; /* flex item이 축소될 수 있도록 */
-        flex-shrink: 1; /* 필요시 축소 허용 */
+        align-items: center;
+        min-width: 0 !important; /* flex item이 축소될 수 있도록 */
+        flex-shrink: 1 !important; /* 필요시 축소 허용 */
+        flex-grow: 1 !important;
+        max-width: 100% !important;
+        position: relative; /* 레이아웃 고정 */
+        transform: translateZ(0); /* 하드웨어 가속 */
+        box-sizing: border-box;
     }
     
     .nav-link {
-        display: flex;
+        display: flex !important;
         flex-direction: column;
         align-items: center;
-        gap: 4px;
-        padding: var(--spacing-xs) 4px; /* 좌우 패딩 줄임 */
-        font-size: 7px;
-        width: 100%;
+        gap: 2px !important;
+        padding: 4px 2px !important; /* 패딩 최소화 */
+        font-size: 10px !important;
+        width: 100% !important;
+        max-width: 100% !important;
         text-align: center;
         opacity: 0.6;
         color: var(--color-gray-500);
-        transition: all 0.2s ease;
+        transition: opacity 0.2s ease, background-color 0.2s ease;
         border-radius: 8px;
-        white-space: nowrap; /* 텍스트 줄바꿈 방지 */
-        min-width: 0; /* flex item이 축소될 수 있도록 */
+        white-space: nowrap !important; /* 텍스트 줄바꿈 방지 */
+        min-width: 0 !important; /* flex item이 축소될 수 있도록 */
         outline: none;
         box-sizing: border-box;
         border: 1px solid transparent;
+        transform: translateZ(0) translateX(0) translateY(0) !important; /* 모든 방향 움직임 방지 */
+        touch-action: manipulation; /* 더블탭 줌 방지 및 터치 최적화 */
+        user-select: none; /* 텍스트 선택 방지 */
+        -webkit-tap-highlight-color: transparent; /* 클릭 하이라이트 제거 */
+        position: relative; /* 레이아웃 고정 */
+        backface-visibility: hidden; /* 렌더링 최적화 */
+        overflow: hidden;
     }
     
+    .nav-link:active,
     .nav-link:focus,
     .nav-link:focus-visible {
+        transform: translateZ(0) translateX(0) translateY(0) !important; /* 클릭 시 움직임 완전 방지 */
+        position: relative !important; /* 레이아웃 시프트 방지 */
         outline: none !important;
         border: 1px solid transparent !important;
     }
     
     .nav-link span {
-        white-space: nowrap; /* 텍스트 줄바꿈 방지 */
-        overflow: hidden;
-        text-overflow: ellipsis;
-        max-width: 100%;
+        white-space: nowrap !important; /* 텍스트 줄바꿈 방지 */
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        max-width: 100% !important;
+        font-size: 10px !important;
+        line-height: 1.2 !important;
+        display: block;
     }
     
     .nav-link .nav-icon {
-        width: 20px;
-        height: 20px;
+        width: 18px !important;
+        height: 18px !important;
+        flex-shrink: 0;
     }
     
     .nav-link:hover {
@@ -325,6 +378,12 @@ button {
     display: flex;
     justify-content: center;
     position: relative;
+    transform: translateZ(0); /* 하드웨어 가속으로 레이아웃 고정 */
+    backface-visibility: hidden; /* 렌더링 최적화 */
+    will-change: auto; /* 성능 최적화 */
+    overflow: hidden !important; /* 스크롤 완전 방지 */
+    min-width: 0; /* flex item 축소 방지 */
+    scroll-behavior: auto !important; /* 부드러운 스크롤 비활성화 */
 }
 
 .nav-list {
@@ -332,11 +391,20 @@ button {
     align-items: center;
     gap: var(--spacing-md);
     flex-wrap: wrap;
+    position: relative; /* 레이아웃 고정 */
+    transform: translateZ(0); /* 하드웨어 가속 */
+    backface-visibility: hidden; /* 렌더링 최적화 */
+    overflow: hidden; /* 스크롤 방지 */
+    will-change: auto; /* 성능 최적화 */
+    width: 100%; /* 너비 고정 */
+    max-width: 100%; /* 최대 너비 제한 */
 }
 
 .nav-item {
     display: flex;
     align-items: center;
+    position: relative; /* 레이아웃 고정 */
+    transform: translateZ(0); /* 하드웨어 가속 */
 }
 
 .nav-link {
@@ -344,22 +412,36 @@ button {
     font-size: var(--font-size-sm);
     font-weight: 500;
     color: var(--color-gray-500);
-    transition: all 0.2s;
+    transition: opacity 0.2s, background-color 0.2s, color 0.2s;
     position: relative;
     white-space: nowrap;
     border-radius: 6px;
     outline: none;
     box-sizing: border-box;
     border: 1px solid transparent;
+    transform: translateZ(0) translateX(0) translateY(0) !important; /* 모든 방향 움직임 방지 */
+    touch-action: manipulation; /* 더블탭 줌 방지 및 터치 최적화 */
+    user-select: none; /* 텍스트 선택 방지 */
+    -webkit-tap-highlight-color: transparent; /* 클릭 하이라이트 제거 */
+    backface-visibility: hidden; /* 렌더링 최적화 */
+    will-change: auto; /* 성능 최적화 */
+    display: inline-block; /* 인라인 블록으로 변경하여 레이아웃 안정화 */
+    vertical-align: middle; /* 수직 정렬 */
 }
 
-.nav-link:focus {
-    outline: none;
-    border: 1px solid transparent;
+.nav-link:active,
+.nav-link:focus,
+.nav-link:focus-visible {
+    transform: translateZ(0) translateX(0) translateY(0) !important; /* 클릭 시 움직임 완전 방지 */
+    position: relative !important; /* 레이아웃 시프트 방지 */
+    outline: none !important;
+    border: 1px solid transparent !important;
 }
 
 .nav-link:hover {
     color: var(--color-gray-500);
+    transform: translateZ(0) translateX(0) translateY(0) !important; /* hover 시에도 움직임 방지 */
+    position: relative !important; /* 레이아웃 고정 */
 }
 
 .nav-link.active {
@@ -367,6 +449,8 @@ button {
     font-weight: 500;
     background-color: rgba(99, 102, 241, 0.08);
     border: 1px solid transparent;
+    transform: translateZ(0) translateX(0) translateY(0) !important; /* active 시에도 움직임 방지 */
+    position: relative !important; /* 레이아웃 고정 */
 }
 
 .red-dot {
@@ -1537,15 +1621,23 @@ button {
         border-top: none;
         box-shadow: none;
         padding: 0;
+        transform: translateZ(0) !important; /* 하드웨어 가속으로 레이아웃 고정 */
+        backface-visibility: hidden !important; /* 렌더링 최적화 */
     }
     
     .nav-list {
         gap: var(--spacing-md);
         padding: 0;
+        transform: translateZ(0) !important; /* 하드웨어 가속 */
+        backface-visibility: hidden !important; /* 렌더링 최적화 */
+        overflow: hidden !important; /* 스크롤 방지 */
+        position: relative !important; /* 레이아웃 고정 */
     }
     
     .nav-item {
         flex: none;
+        transform: translateZ(0) !important; /* 하드웨어 가속 */
+        position: relative !important; /* 레이아웃 고정 */
     }
     
     .nav-link {
@@ -1553,6 +1645,8 @@ button {
         font-size: var(--font-size-sm);
         padding: var(--spacing-sm) var(--spacing-sm);
         opacity: 1;
+        transform: translateZ(0) translateX(0) translateY(0) !important; /* 모든 방향 움직임 방지 */
+        position: relative !important; /* 레이아웃 고정 */
     }
     
     .nav-link .nav-icon {
@@ -1621,6 +1715,41 @@ button {
    반응형 디자인 (데스크톱: 992px 이상)
    ============================================ */
 @media (min-width: 992px) {
+    /* PC 버전: 상단 메뉴 고정 */
+    .header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 1000;
+    }
+    
+    /* 헤더가 고정되어 있으므로 본문에 상단 여백 추가 */
+    body {
+        padding-top: 60px;
+    }
+    
+    /* PC 버전: 필터 섹션을 헤더 바로 아래에 항상 고정 */
+    .plans-filter-section {
+        position: fixed !important;
+        top: 60px !important; /* 헤더 높이만큼 아래에 고정 */
+        left: 0;
+        right: 0;
+        z-index: 999; /* 헤더(z-index: 1000)보다 낮게 설정 */
+    }
+    
+    /* 필터의 sticky/fixed 클래스는 PC에서 무시 */
+    .plans-filter-section.filter-sticky,
+    .plans-filter-section.filter-fixed {
+        position: fixed !important;
+        top: 60px !important;
+    }
+    
+    /* 필터가 고정되어 있으므로 본문에 여백 추가 (헤더 60px + 필터 약 70px) */
+    .plans-main-layout {
+        padding-top: 130px; /* 헤더 + 필터 섹션 높이만큼 여백 추가 */
+    }
+    
     .content-layout {
         padding: 0 var(--spacing-xl);
     }
@@ -1684,13 +1813,27 @@ button:focus {
    요금제 필터 섹션
    ============================================ */
 .plans-filter-section {
-    position: sticky;
-    top: 60px; /* 헤더 높이만큼 아래에 고정 */
+    position: relative; /* 초기에는 일반 위치 */
     width: 100%;
     background-color: var(--color-white);
     z-index: 999; /* 헤더(z-index: 1000)보다 낮게 설정 */
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     margin-top: 0;
+    transition: all 0.3s ease-in-out;
+}
+
+/* 필터가 sticky로 전환될 때 (스크롤 시작) */
+.plans-filter-section.filter-sticky {
+    position: sticky;
+    top: 60px; /* 헤더 높이만큼 아래에 고정 */
+}
+
+/* 필터가 화면에서 사라져서 상단에 고정될 때 */
+.plans-filter-section.filter-fixed {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
 }
 
 .plans-filter-inner {
@@ -1710,7 +1853,7 @@ button:focus {
         padding: 12px 0;
         flex-direction: row;
         align-items: center;
-        justify-content: space-between;
+        justify-content: center;
     }
 }
 
@@ -1728,13 +1871,21 @@ button:focus {
     display: flex;
     flex-direction: column;
     gap: 8px;
-    justify-content: flex-start;
+    justify-content: center;
+    align-items: center;
 }
 
 .plans-filter-row {
     display: flex;
     gap: 8px;
     flex-wrap: wrap;
+    justify-content: center;
+}
+
+@media (min-width: 992px) {
+    .plans-filter-row {
+        justify-content: center;
+    }
 }
 
 @media (min-width: 992px) {
@@ -1828,21 +1979,33 @@ button:focus {
 
 .plans-filter-btn.active,
 .plans-filter-btn.selected {
-    border-color: var(--color-gray-300);
-    background-color: var(--color-gray-500);
+    border-color: #ec4899;
+    background-color: transparent;
+}
+
+.plans-filter-btn.active:hover,
+.plans-filter-btn.selected:hover {
+    border-color: #ec4899;
 }
 
 .plans-filter-btn.active .plans-filter-text,
 .plans-filter-btn.selected .plans-filter-text {
-    color: var(--color-white);
+    color: #ec4899;
+    font-weight: 600;
 }
 
-.plans-filter-btn.active svg,
-.plans-filter-btn.selected svg {
-    fill: var(--color-white);
+.plans-filter-btn.active svg path,
+.plans-filter-btn.selected svg path {
+    fill: #ec4899 !important;
 }
 
 .plans-filter-btn svg {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+}
+
+.plans-filter-btn img {
     width: 16px;
     height: 16px;
     flex-shrink: 0;
@@ -1878,15 +2041,24 @@ button:focus {
 /* 모바일: 필터가 항상 상단에 고정되도록 설정 */
 @media (max-width: 767px) {
     .plans-filter-section {
-        position: -webkit-sticky; /* Safari 호환성 */
-        position: sticky;
-        top: 0; /* 스크롤 시 상단에 고정 */
-        z-index: 998; /* 헤더(z-index: 999)보다 낮게 설정하여 헤더 아래에 위치 */
+        position: relative; /* 초기에는 일반 위치 */
         width: 100%;
         background-color: var(--color-white);
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
-        /* sticky가 제대로 작동하도록 보장 */
-        will-change: transform;
+        transition: all 0.3s ease-in-out;
+    }
+    
+    .plans-filter-section.filter-sticky {
+        position: -webkit-sticky; /* Safari 호환성 */
+        position: sticky;
+        top: 0; /* 스크롤 시 상단에 고정 */
+    }
+    
+    .plans-filter-section.filter-fixed {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
     }
     
     /* 필터 섹션이 sticky로 고정될 때 상단 콘텐츠가 가려지지 않도록 여백 추가 */
@@ -1897,7 +2069,7 @@ button:focus {
 
 /* 태블릿 이상 스타일 */
 @media (min-width: 768px) {
-    .plans-filter-section {
+    .plans-filter-section.filter-sticky {
         top: 60px; /* PC에서 헤더 아래에 고정 */
     }
     
@@ -1948,8 +2120,14 @@ button:focus {
 .theme-plans-list-section {
     padding: var(--spacing-lg) var(--spacing-md);
     border-bottom: 1px solid var(--color-gray-200);
-    /* 필터 섹션이 sticky로 고정될 때 상단 콘텐츠가 가려지지 않도록 여백 추가 */
-    padding-top: var(--spacing-md);
+    /* 필터 아래에 위치하도록 기본 여백 추가 */
+    padding-top: 50px; /* 필터 높이만큼 기본 여백 */
+    transition: padding-top 0.3s ease-in-out;
+}
+
+/* 필터가 sticky나 fixed일 때 섹션 첫 부분에 추가 여백 */
+.theme-plans-list-section.filter-active {
+    padding-top: 20px; /* 필터가 sticky일 때 추가 여백 */
 }
 
 .theme-plans-list-header {
@@ -2106,6 +2284,13 @@ button:focus {
     font-size: var(--font-size-sm);
     color: var(--color-gray-600);
     font-weight: 500;
+    padding-top: 0;
+    transition: padding-top 0.3s ease-in-out;
+}
+
+/* 필터가 sticky나 fixed일 때 결과 개수 섹션에 여백 추가 */
+.plans-results-count.filter-active {
+    padding-top: 100px; /* 필터 높이만큼 여백 추가 */
 }
 
 /* 요금제 목록 컨테이너 */
@@ -2645,6 +2830,14 @@ button:focus {
 /* 사이드바 */
 .plans-sidebar {
     width: 100%;
+    /* 필터 아래에 위치하도록 기본 여백 추가 */
+    padding-top: 50px; /* 필터 높이만큼 기본 여백 */
+    transition: padding-top 0.3s ease-in-out;
+}
+
+/* 필터가 sticky나 fixed일 때 사이드바에 추가 여백 */
+.plans-sidebar.filter-active {
+    padding-top: 20px; /* 필터가 sticky일 때 추가 여백 */
 }
 
 .sidebar-content {
@@ -2664,22 +2857,21 @@ button:focus {
     
     /* 데스크톱: 사이드바가 스크롤 시 따라 움직이도록 sticky */
     .plans-sidebar {
+        position: -webkit-sticky; /* Safari 호환성 */
         position: sticky;
-<<<<<<< HEAD
-        top: 140px; /* 헤더 아래에 배치 */
+        top: 80px; /* 헤더(60px) + 필터 여유공간(20px) */
         align-self: flex-start;
-        max-height: calc(100vh - 140px); /* 뷰포트 높이에서 top 값만큼 제외 */
-        overflow-y: auto; /* 콘텐츠가 길 경우 스크롤 가능 */
-=======
-        top: calc(60px + var(--filter-section-height, 64px) + 1px + 10px);
-        align-self: flex-start;
-        max-height: calc(100vh - 60px - var(--filter-section-height, 64px) - 1px - 10px - 4px);
+        max-height: calc(100vh - 80px);
         overflow-y: auto;
-        /* 스크롤 위치를 항상 맨 위에서 시작하도록 */
+        overflow-x: visible;
         scroll-behavior: auto;
-        /* 스크롤이 맨 위에 있도록 초기화 */
-        scroll-snap-type: y proximity;
->>>>>>> a0361c0 (작업: 11300858)
+        z-index: 10;
+        will-change: transform; /* 성능 최적화 */
+    }
+    
+    /* 필터가 sticky일 때 사이드바 위치 조정 */
+    .plans-sidebar.filter-active {
+        top: 80px;
     }
     
 }
@@ -2802,6 +2994,7 @@ button:focus {
         flex-direction: row;
         gap: var(--spacing-xl);
         padding: var(--spacing-xl) 0;
+        align-items: flex-start; /* sticky 작동을 위해 필요 */
     }
 
     .plans-left-section {
@@ -2817,7 +3010,13 @@ button:focus {
 
     .theme-plans-list-section {
         padding: var(--spacing-lg) 0;
+        padding-top: 50px; /* 필터 아래에 위치하도록 여백 추가 */
         border-bottom: none;
+    }
+    
+    /* 필터가 sticky일 때 추가 여백 */
+    .theme-plans-list-section.filter-active {
+        padding-top: 20px;
     }
 
     .theme-plans-title {

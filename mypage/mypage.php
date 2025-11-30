@@ -3,17 +3,14 @@
 $current_page = 'mypage';
 
 // 헤더 포함
-include 'includes/header.php';
+include '../includes/header.php';
 ?>
 
 <main class="main-content">
     <div style="width: 460px; margin: 0 auto; padding: 20px;" class="mypage-container">
         <!-- 사용자 인사말 헤더 -->
         <div style="margin-bottom: 24px; padding: 20px 0;">
-            <a href="/mypage/my-info" style="display: flex; align-items: center; justify-content: space-between; text-decoration: none; color: inherit;">
-                <h2 style="font-size: 24px; font-weight: bold; margin: 0;">YMB님 안녕하세요</h2>
-                <img src="https://assets-legacy.moyoplan.com/img/icons/rightArrow.svg" alt=">" style="width: 20px; height: 20px;">
-            </a>
+            <h2 style="font-size: 24px; font-weight: bold; margin: 0;">YMB님 안녕하세요</h2>
         </div>
 
         <!-- 내가 찜한 요금제 섹션 -->
@@ -25,7 +22,7 @@ include 'includes/header.php';
                     </svg>
                     <p style="font-size: 18px; font-weight: bold; margin: 0;">찜한 요금제</p>
                 </div>
-                <a href="/MVNO/wishlist.php" style="font-size: 14px; color: #6366f1; text-decoration: none;">3개 더보기</a>
+                <a href="/MVNO/mypage/wishlist.php" style="font-size: 14px; color: #6366f1; text-decoration: none;">3개 더보기</a>
             </div>
             <article class="basic-plan-card">
                 <a href="/MVNO/plans/32627" class="plan-card-link">
@@ -145,7 +142,12 @@ include 'includes/header.php';
             <ul style="list-style: none; padding: 0; margin: 0;">
                 <li style="border-bottom: 1px solid #e5e7eb;">
                     <a href="/mypage/orders" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; text-decoration: none; color: inherit;">
-                        <span style="font-size: 16px;">📋 &nbsp;&nbsp; 신청한 요금제</span>
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink: 0;">
+                                <path d="M9 5H7C5.89543 5 5 5.89543 5 7V19C5 20.1046 5.89543 21 7 21H17C18.1046 21 19 20.1046 19 19V7C19 5.89543 18.1046 5 17 5H15M9 5C9 6.10457 9.89543 7 11 7H13C14.1046 7 15 6.10457 15 5M9 5C9 3.89543 9.89543 3 11 3H13C14.1046 3 15 3.89543 15 5M9 12H15M9 16H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            <span style="font-size: 16px;">신청한 요금제</span>
+                        </div>
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <span style="font-size: 14px; color: #6b7280;">0개</span>
                             <img alt=">" src="https://assets-legacy.moyoplan.com/img/icons/rightArrow.svg" style="width: 16px; height: 16px;">
@@ -154,19 +156,59 @@ include 'includes/header.php';
                 </li>
                 <li style="border-bottom: 1px solid #e5e7eb;">
                     <a href="/mypage/phone-applies" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; text-decoration: none; color: inherit;">
-                        <span style="font-size: 16px;">📱 &nbsp;&nbsp; 휴대폰 신청 내역</span>
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink: 0;">
+                                <path d="M5 4C5 2.89543 5.89543 2 7 2H17C18.1046 2 19 2.89543 19 4V20C19 21.1046 18.1046 22 17 22H7C5.89543 22 5 21.1046 5 20V4Z" stroke="currentColor" stroke-width="2"/>
+                                <path d="M12 18H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            </svg>
+                            <span style="font-size: 16px;">휴대폰 신청 내역</span>
+                        </div>
+                        <img alt=">" src="https://assets-legacy.moyoplan.com/img/icons/rightArrow.svg" style="width: 16px; height: 16px;">
+                    </a>
+                </li>
+                <li style="border-bottom: 1px solid #e5e7eb;">
+                    <a href="/mypage/esim-applies" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; text-decoration: none; color: inherit;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink: 0;">
+                                <path d="M6 4H18C19.1046 4 20 4.89543 20 6V18C20 19.1046 19.1046 20 18 20H6C4.89543 20 4 19.1046 4 18V6C4 4.89543 4.89543 4 6 4Z" stroke="currentColor" stroke-width="2"/>
+                                <path d="M4 6V10H8V6C8 4.89543 7.10457 4 6 4C4.89543 4 4 4.89543 4 6Z" fill="currentColor"/>
+                                <rect x="10" y="8" width="1.5" height="1.5" rx="0.25" fill="currentColor"/>
+                                <rect x="12.5" y="8" width="1.5" height="1.5" rx="0.25" fill="currentColor"/>
+                                <rect x="15" y="8" width="1.5" height="1.5" rx="0.25" fill="currentColor"/>
+                                <rect x="10" y="10.5" width="1.5" height="1.5" rx="0.25" fill="currentColor"/>
+                                <rect x="12.5" y="10.5" width="1.5" height="1.5" rx="0.25" fill="currentColor"/>
+                                <rect x="15" y="10.5" width="1.5" height="1.5" rx="0.25" fill="currentColor"/>
+                                <rect x="10" y="13" width="1.5" height="1.5" rx="0.25" fill="currentColor"/>
+                                <rect x="12.5" y="13" width="1.5" height="1.5" rx="0.25" fill="currentColor"/>
+                                <rect x="15" y="13" width="1.5" height="1.5" rx="0.25" fill="currentColor"/>
+                            </svg>
+                            <span style="font-size: 16px;">유심신청내역</span>
+                        </div>
                         <img alt=">" src="https://assets-legacy.moyoplan.com/img/icons/rightArrow.svg" style="width: 16px; height: 16px;">
                     </a>
                 </li>
                 <li style="border-bottom: 1px solid #e5e7eb;">
                     <a href="/mypage/payment" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; text-decoration: none; color: inherit;">
-                        <span style="font-size: 16px;">💵  &nbsp;&nbsp; 내 결제내역</span>
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink: 0;">
+                                <path d="M3 10C3 6.22876 3 4.34315 4.17157 3.17157C5.34315 2.34315 7.22876 2.34315 11 2.34315H13C16.7712 2.34315 18.6569 2.34315 19.8284 3.17157C21 4.34315 21 6.22876 21 10V14C21 17.7712 21 19.6569 19.8284 20.8284C18.6569 22 16.7712 22 13 22H11C7.22876 22 5.34315 22 4.17157 20.8284C3 19.6569 3 17.7712 3 14V10Z" stroke="currentColor" stroke-width="2"/>
+                                <path d="M7 12H17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                <path d="M7 16H12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            </svg>
+                            <span style="font-size: 16px;">내 결제내역</span>
+                        </div>
                         <img alt=">" src="https://assets-legacy.moyoplan.com/img/icons/rightArrow.svg" style="width: 16px; height: 16px;">
                     </a>
                 </li>
                 <li style="border-bottom: 1px solid #e5e7eb;">
-                    <a href="/mypage/alarm-setting" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; text-decoration: none; color: inherit;">
-                        <span style="font-size: 16px;">🔔 &nbsp;&nbsp; 알림 설정</span>
+                    <a href="/MVNO/mypage/alarm-setting.php" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; text-decoration: none; color: inherit;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink: 0;">
+                                <path d="M18 8C18 6.4087 17.3679 4.88258 16.2426 3.75736C15.1174 2.63214 13.5913 2 12 2C10.4087 2 8.88258 2.63214 7.75736 3.75736C6.63214 4.88258 6 6.4087 6 8C6 15 3 17 3 17H21C21 17 18 15 18 8Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M13.73 21C13.5542 21.3031 13.3019 21.5547 12.9982 21.7295C12.6946 21.9044 12.3504 21.9965 12 21.9965C11.6496 21.9965 11.3054 21.9044 11.0018 21.7295C10.6982 21.5547 10.4458 21.3031 10.27 21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            <span style="font-size: 16px;">알림 설정</span>
+                        </div>
                         <img alt=">" src="https://assets-legacy.moyoplan.com/img/icons/rightArrow.svg" style="width: 16px; height: 16px;">
                     </a>
                 </li>
@@ -179,13 +221,26 @@ include 'includes/header.php';
             <ul style="list-style: none; padding: 0; margin: 0;">
                 <li style="border-bottom: 1px solid #e5e7eb;">
                     <a href="/notice" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; text-decoration: none; color: inherit;">
-                        <span style="font-size: 16px;">📢 &nbsp;&nbsp; 공지 사항</span>
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink: 0;">
+                                <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            <span style="font-size: 16px;">공지 사항</span>
+                        </div>
                         <img alt=">" src="https://assets-legacy.moyoplan.com/img/icons/rightArrow.svg" style="width: 16px; height: 16px;">
                     </a>
                 </li>
                 <li style="border-bottom: 1px solid #e5e7eb;">
                     <a href="/community/questions" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; text-decoration: none; color: inherit;">
-                        <span style="font-size: 16px;">🔎 &nbsp;&nbsp; 질문과 답변</span>
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink: 0;">
+                                <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/>
+                                <path d="M21 21L16.65 16.65" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            <span style="font-size: 16px;">질문과 답변</span>
+                        </div>
                         <img alt=">" src="https://assets-legacy.moyoplan.com/img/icons/rightArrow.svg" style="width: 16px; height: 16px;">
                     </a>
                 </li>
@@ -197,9 +252,15 @@ include 'includes/header.php';
             </div>
             <ul style="list-style: none; padding: 0; margin: 0;">
                 <li>
-                    <a href="/mypage/account-management" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; text-decoration: none; color: inherit;">
-                        <span style="font-size: 16px;">👤 &nbsp;&nbsp; 계정 설정</span>
-                        <div></div>
+                    <a href="/MVNO/mypage/account-management.php" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; text-decoration: none; color: inherit;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink: 0;">
+                                <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M12 11C14.2091 11 16 9.20914 16 7C16 4.79086 14.2091 3 12 3C9.79086 3 8 4.79086 8 7C8 9.20914 9.79086 11 12 11Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            <span style="font-size: 16px;">계정 설정</span>
+                        </div>
+                        <img alt=">" src="https://assets-legacy.moyoplan.com/img/icons/rightArrow.svg" style="width: 16px; height: 16px;">
                     </a>
                 </li>
             </ul>
@@ -207,9 +268,9 @@ include 'includes/header.php';
     </div>
 </main>
 
-<script src="assets/js/plan-accordion.js" defer></script>
+<script src="../assets/js/plan-accordion.js" defer></script>
 
 <?php
 // 푸터 포함
-include 'includes/footer.php';
+include '../includes/footer.php';
 ?>
