@@ -4043,6 +4043,16 @@ button:focus {
     }
 }
 
+.plan-detail-info-section {
+    padding: 16px 0 !important;
+}
+
+@media (min-width: 992px) {
+    .plan-detail-info-section {
+        padding: 40px 0 !important;
+    }
+}
+
 .plan-summary-grid {
     display: flex;
     gap: 12px;
@@ -4057,6 +4067,24 @@ button:focus {
         gap: 24px;
         padding: 20px 48px;
     }
+}
+
+/* 카드 내부의 summary grid 스타일 조정 */
+.plan-info-card .plan-summary-grid {
+    margin-bottom: 0;
+}
+
+/* 카드 내부의 detail grid 스타일 조정 */
+.plan-info-card .plan-detail-grid {
+    margin-top: 0;
+}
+
+.plan-info-card .plan-detail-item {
+    border-bottom: 1px solid var(--color-gray-200);
+}
+
+.plan-info-card .plan-detail-item:last-child {
+    border-bottom: none;
 }
 
 .plan-summary-item {
@@ -4220,6 +4248,88 @@ button:focus {
     font-size: 14px;
     font-weight: 500;
     color: var(--color-gray-400);
+}
+
+/* 요금제 정보 카드 스타일 */
+.plan-info-card {
+    background-color: var(--color-white);
+    border: 1px solid var(--color-gray-200);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+    box-shadow: var(--shadow-sm);
+}
+
+@media (min-width: 992px) {
+    .plan-info-card {
+        padding: 24px;
+        margin-bottom: 20px;
+    }
+}
+
+.plan-info-card-no-bg {
+    background-color: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+}
+
+.plan-info-card-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--color-gray-700);
+    margin: 0 0 16px 0;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--color-gray-200);
+}
+
+@media (min-width: 992px) {
+    .plan-info-card-title {
+        font-size: 18px;
+        margin-bottom: 20px;
+    }
+}
+
+.plan-info-card-content {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+@media (min-width: 992px) {
+    .plan-info-card-content {
+        gap: 20px;
+    }
+}
+
+/* 부가 서비스 카드 내부 스타일 조정 */
+.plan-info-card .plan-supported-list {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+}
+
+@media (min-width: 768px) {
+    .plan-info-card .plan-supported-list {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (min-width: 992px) {
+    .plan-info-card .plan-supported-list {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+.plan-info-card .plan-supported-item {
+    padding: 12px;
+    background-color: var(--color-gray-100);
+    border-radius: 8px;
+    transition: background-color 0.2s ease;
+}
+
+.plan-info-card .plan-supported-item:hover {
+    background-color: var(--color-gray-200);
 }
 
 /* 초과 요금 섹션 */

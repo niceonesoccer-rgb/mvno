@@ -127,135 +127,102 @@ include '../includes/header.php';
         </div>
     </section>
 
-    <!-- 요금제 상세 정보 섹션 -->
+    <!-- 요금제 상세 정보 섹션 (통합) -->
     <section class="plan-detail-info-section">
         <div class="content-layout">
             <h2 class="section-title">요금제 상세 정보</h2>
             
-            <!-- 통화/문자/통신망/통신기술 요약 -->
-            <div class="plan-summary-grid">
-                <div class="plan-summary-item">
-                    <div class="plan-summary-label">통화</div>
-                    <div class="plan-summary-value">무제한</div>
-                </div>
-                <div class="plan-summary-item">
-                    <div class="plan-summary-label">문자</div>
-                    <div class="plan-summary-value">무제한</div>
-                </div>
-                <div class="plan-summary-item">
-                    <div class="plan-summary-label">통신망</div>
-                    <div class="plan-summary-value">KT망</div>
-                </div>
-                <div class="plan-summary-item">
-                    <div class="plan-summary-label">통신 기술</div>
-                    <div class="plan-summary-value">LTE</div>
+            <!-- 기본 정보 카드 -->
+            <div class="plan-info-card">
+                <h3 class="plan-info-card-title">기본 정보</h3>
+                <div class="plan-info-card-content">
+                    <div class="plan-detail-grid">
+                        <div class="plan-detail-item">
+                            <div class="plan-detail-label">요금제 이름</div>
+                            <div class="plan-detail-value">
+                                [모요핫딜] 11월한정 LTE 100GB+밀리+Data쿠폰60GB
+                            </div>
+                        </div>
+                        <div class="plan-detail-item">
+                            <div class="plan-detail-label">통신사 약정</div>
+                            <div class="plan-detail-value">없음</div>
+                        </div>
+                        <div class="plan-detail-item">
+                            <div class="plan-detail-label">통신망</div>
+                            <div class="plan-detail-value">KT망</div>
+                        </div>
+                        <div class="plan-detail-item">
+                            <div class="plan-detail-label">통신 기술</div>
+                            <div class="plan-detail-value">LTE</div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <!-- 상세 정보 그리드 -->
-            <div class="plan-detail-grid">
-                <div class="plan-detail-item">
-                    <div class="plan-detail-label">요금제 이름</div>
-                    <div class="plan-detail-value">
-                        <a href="/mvnos/쉐이크모바일?from=요금제상세">쉐이크모바일</a> | [모요핫딜] 11월한정 LTE 100GB+밀리+Data쿠폰60GB
+            <!-- 데이터 정보 카드 -->
+            <div class="plan-info-card">
+                <h3 class="plan-info-card-title">데이터 정보</h3>
+                <div class="plan-info-card-content">
+                    <div class="plan-detail-grid">
+                        <div class="plan-detail-item">
+                            <div class="plan-detail-label">통화</div>
+                            <div class="plan-detail-value">무제한</div>
+                        </div>
+                        <div class="plan-detail-item">
+                            <div class="plan-detail-label">문자</div>
+                            <div class="plan-detail-value">무제한</div>
+                        </div>
+                        <div class="plan-detail-item">
+                            <div class="plan-detail-label">데이터 제공량</div>
+                            <div class="plan-detail-value">월 100GB</div>
+                        </div>
+                        <div class="plan-detail-item">
+                            <div class="plan-detail-label">데이터 소진시</div>
+                            <div class="plan-detail-value">
+                                5mbps 속도로 무제한
+                            </div>
+                        </div>
+                        <div class="plan-detail-item">
+                            <div class="plan-detail-label">부가통화</div>
+                            <div class="plan-detail-value">300분</div>
+                        </div>
+                        <div class="plan-detail-item">
+                            <div class="plan-detail-label">번호이동 수수료</div>
+                            <div class="plan-detail-value">없음</div>
+                        </div>
+                        <div class="plan-detail-item">
+                            <div class="plan-detail-label">모바일 핫스팟</div>
+                            <div class="plan-detail-value">데이터 제공량 내</div>
+                        </div>
+                        <div class="plan-detail-item">
+                            <div class="plan-detail-label">데이터 쉐어링</div>
+                            <div class="plan-detail-value">데이터 제공량 내</div>
+                        </div>
                     </div>
-                </div>
-                <div class="plan-detail-item">
-                    <div class="plan-detail-label">통신사 약정</div>
-                    <div class="plan-detail-value">없음</div>
-                </div>
-                <div class="plan-detail-item">
-                    <div class="plan-detail-label">데이터 제공량</div>
-                    <div class="plan-detail-value">월 100GB</div>
-                </div>
-                <div class="plan-detail-item">
-                    <div class="plan-detail-label">데이터 소진시</div>
-                    <div class="plan-detail-value">
-                        5mbps 속도로 무제한
-                        <button class="info-tooltip-btn" aria-label="정보">
-                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path fill-rule="evenodd" clip-rule="evenodd" d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22ZM11.9631 6.3C11.0676 6.3 10.232 6.51466 9.57985 6.96603C8.92366 7.42021 8.46483 8.10662 8.31938 9.02129C8.3164 9.03998 8.31437 9.05917 8.31312 9.07865C8.30448 9.13807 8.3 9.19884 8.3 9.26065C8.3 9.95296 8.86123 10.5142 9.55354 10.5142C10.1005 10.5142 10.5657 10.1638 10.7369 9.67526L10.7387 9.67011C10.7638 9.59745 10.7824 9.52176 10.7938 9.44373L10.8058 9.38928L10.8081 9.37877L10.8083 9.37769C10.8271 9.29121 10.841 9.22917 10.8574 9.18386C11.0275 8.71526 11.4653 8.45953 11.9483 8.45361C12.5783 8.46102 13.0472 8.87279 13.0411 9.48507L13.0411 9.48924C13.0473 10.0572 12.6402 10.4644 12.0041 10.8789C11.5992 11.1321 11.2517 11.4001 10.9961 11.7995C10.74 12.1996 10.5884 12.7121 10.5357 13.435C10.5347 13.4494 10.5345 13.4636 10.5352 13.4775C10.5343 13.496 10.5339 13.5146 10.5339 13.5333C10.5339 14.1879 11.0645 14.7186 11.7191 14.7186C12.2745 14.7186 12.7406 14.3366 12.8692 13.8211H12.8775L12.8898 13.7197C12.8941 13.6924 12.8975 13.6647 12.8999 13.6367C12.9441 13.2837 13.0501 13.0231 13.2199 12.8024C13.394 12.5762 13.6445 12.3796 13.997 12.1706L13.9983 12.1699C14.5009 11.8667 14.928 11.5082 15.229 11.0562C15.5318 10.6015 15.7 10.0628 15.7 9.41276C15.7 8.43645 15.308 7.64987 14.6337 7.1118C13.9643 6.57764 13.0321 6.3 11.9631 6.3ZM11.7579 18.0998C11.0263 18.0998 10.4347 17.516 10.4503 16.7921C10.4347 16.0761 11.0263 15.4923 11.7579 15.5001C12.4507 15.4923 13.05 16.0761 13.05 16.7921C13.05 17.516 12.4507 18.0998 11.7579 18.0998Z" fill="#ADB5BD"/>
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-                <div class="plan-detail-item">
-                    <div class="plan-detail-label">부가통화</div>
-                    <div class="plan-detail-value">300분</div>
-                </div>
-                <div class="plan-detail-item">
-                    <div class="plan-detail-label">번호이동 수수료</div>
-                    <div class="plan-detail-value">없음</div>
-                </div>
-                <div class="plan-detail-item">
-                    <div class="plan-detail-label">일반 유심</div>
-                    <div class="plan-detail-value">배송가능 (6,600원)</div>
-                </div>
-                <div class="plan-detail-item">
-                    <div class="plan-detail-label">NFC 유심</div>
-                    <div class="plan-detail-value">배송불가</div>
-                </div>
-                <div class="plan-detail-item">
-                    <div class="plan-detail-label">eSIM</div>
-                    <div class="plan-detail-value">개통가능 (2,750원)</div>
                 </div>
             </div>
-        </div>
-    </section>
 
-    <!-- 지원/미지원 기능 섹션 -->
-    <section class="plan-supported-section">
-        <div class="content-layout">
-            <div class="plan-supported-grid">
-                <div class="plan-supported-box">
-                    <h3 class="plan-supported-title">지원</h3>
-                    <div class="plan-supported-list">
-                        <div class="plan-supported-item">
-                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path fill-rule="evenodd" clip-rule="evenodd" d="M1 12C1 5.92487 5.92487 1 12 1C18.0751 1 23 5.92487 23 12C23 18.0751 18.0751 23 12 23C5.92487 23 1 18.0751 1 12ZM8.80178 3.58482C7.04248 4.25383 5.54727 5.45868 4.51555 7H7.62598C7.91954 5.7997 8.31335 4.65175 8.80178 3.58482ZM11.3524 3.02294C10.6508 4.19229 10.0898 5.54003 9.69156 7H14.3085C13.9103 5.54003 13.3492 4.19229 12.6476 3.02294C12.4337 3.00773 12.2178 3 12 3C11.7822 3 11.5663 3.00773 11.3524 3.02294ZM7.2369 9H3.51212C3.18046 9.93834 3 10.9481 3 12C3 13.0519 3.18046 14.0617 3.51212 15H7.2369C7.09376 14.0225 7.01392 13.0225 7.00009 12.0137C7.00004 12.0099 7.00001 12.0061 7 12.0024C6.99999 11.997 7.00002 11.9916 7.00009 11.9863C7.01392 10.9775 7.09376 9.97751 7.2369 9ZM9.26031 15C9.10336 14.0273 9.01477 13.0218 9.0001 12C9.01477 10.9782 9.10336 9.97268 9.26031 9H14.7397C14.8967 9.97268 14.9853 10.9782 14.9999 12C14.9853 13.0218 14.8967 14.0273 14.7397 15H9.26031ZM7.62598 17H4.51555C5.54728 18.5413 7.04248 19.7462 8.80178 20.4152C8.31336 19.3483 7.91954 18.2003 7.62598 17ZM11.3524 20.9771C10.6508 19.8077 10.0898 18.46 9.69156 17H14.3085C13.9103 18.46 13.3492 19.8077 12.6476 20.9771C12.4337 20.9923 12.2178 21 12 21C11.7822 21 11.5663 20.9923 11.3524 20.9771ZM16.9999 12.0137C16.9861 13.0225 16.9063 14.0225 16.7631 15H20.4879C20.8195 14.0617 21 13.0519 21 12C21 10.9481 20.8195 9.93834 20.4879 9H16.7631C16.9063 9.97751 16.9861 10.9775 16.9999 11.9863C17.0001 11.9954 17.0001 12.0046 16.9999 12.0137ZM16.374 17C16.0805 18.2003 15.6867 19.3482 15.1982 20.4152C16.9575 19.7462 18.4527 18.5413 19.4845 17H16.374ZM15.1983 3.58484C15.6867 4.65175 16.0805 5.79971 16.374 7H19.4845C18.4527 5.45869 16.9575 4.25384 15.1983 3.58484Z" fill="#3F4750"/>
-                            </svg>
-                            <span>인터넷 결합</span>
+            <!-- 유심 정보 카드 -->
+            <div class="plan-info-card">
+                <h3 class="plan-info-card-title">유심 정보</h3>
+                <div class="plan-info-card-content">
+                    <div class="plan-detail-grid">
+                        <div class="plan-detail-item">
+                            <div class="plan-detail-label">일반 유심</div>
+                            <div class="plan-detail-value">배송가능 (6,600원)</div>
                         </div>
-                        <div class="plan-supported-item">
-                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M6.34285 6.34701C6.73332 5.95643 6.73322 5.32327 6.34264 4.9328C5.95206 4.54234 5.31889 4.54243 4.92843 4.93301C3.05336 6.80865 2 9.35222 2 12.0044C2 14.6565 3.05336 17.2001 4.92843 19.0757C5.31889 19.4663 5.95206 19.4664 6.34264 19.0759C6.73322 18.6855 6.73332 18.0523 6.34285 17.6617C4.84273 16.1612 4 14.1262 4 12.0044C4 9.88255 4.84273 7.8476 6.34285 6.34701Z" fill="#3F4750"/>
-                                <path d="M19.0716 4.93301C18.6811 4.54243 18.0479 4.54234 17.6574 4.9328C17.2668 5.32327 17.2667 5.95643 17.6571 6.34701C19.1573 7.8476 20 9.88255 20 12.0044C20 14.1262 19.1573 16.1612 17.6571 17.6617C17.2667 18.0523 17.2668 18.6855 17.6574 19.0759C18.0479 19.4664 18.6811 19.4663 19.0716 19.0757C20.9466 17.2001 22 14.6565 22 12.0044C22 9.35222 20.9466 6.80865 19.0716 4.93301Z" fill="#3F4750"/>
-                                <path d="M8.8899 8.88606C9.28064 8.49575 9.28099 7.86259 8.89069 7.47184C8.50038 7.0811 7.86721 7.08075 7.47647 7.47106C6.88132 8.06555 6.40917 8.77153 6.08704 9.54861C5.76491 10.3257 5.5991 11.1587 5.5991 11.9999C5.5991 12.8411 5.76491 13.674 6.08704 14.4511C6.40917 15.2282 6.88132 15.9342 7.47647 16.5287C7.86721 16.919 8.50038 16.9186 8.89069 16.5279C9.28099 16.1372 9.28064 15.504 8.8899 15.1137C8.4807 14.7049 8.15607 14.2195 7.93459 13.6853C7.7131 13.151 7.5991 12.5783 7.5991 11.9999C7.5991 11.4215 7.7131 10.8488 7.93459 10.3145C8.15607 9.7802 8.4807 9.29481 8.8899 8.88606Z" fill="#3F4750"/>
-                                <path d="M16.5235 7.48006C16.1328 7.08975 15.4996 7.0901 15.1093 7.48085C14.719 7.87159 14.7194 8.50475 15.1101 8.89506C15.5193 9.30381 15.8439 9.7892 16.0654 10.3235C16.2869 10.8578 16.4009 11.4305 16.4009 12.0089C16.4009 12.5873 16.2869 13.16 16.0654 13.6943C15.8439 14.2285 15.5193 14.7139 15.1101 15.1227C14.7194 15.513 14.719 16.1462 15.1093 16.5369C15.4996 16.9276 16.1328 16.928 16.5235 16.5377C17.1187 15.9432 17.5908 15.2372 17.913 14.4601C18.2351 13.683 18.4009 12.8501 18.4009 12.0089C18.4009 11.1677 18.2351 10.3347 17.913 9.55761C17.5908 8.78053 17.1187 8.07455 16.5235 7.48006Z" fill="#3F4750"/>
-                                <path d="M14 12C14 13.1046 13.1046 14 12 14C10.8954 14 10 13.1046 10 12C10 10.8954 10.8954 10 12 10C13.1046 10 14 10.8954 14 12Z" fill="#3F4750"/>
-                            </svg>
-                            <span>모바일 핫스팟</span>
-                            <span class="plan-supported-note">데이터 제공량 내 이용 가능</span>
+                        <div class="plan-detail-item">
+                            <div class="plan-detail-label">NFC 유심</div>
+                            <div class="plan-detail-value">배송불가</div>
                         </div>
-                        <div class="plan-supported-item">
-                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path fill-rule="evenodd" clip-rule="evenodd" d="M8.7089 8.79154C8.59377 8.308 8.10845 8.00934 7.62491 8.12447C7.14137 8.2396 6.84272 8.72492 6.95785 9.20846L7.17012 10.1H7.00001C6.50295 10.1 6.10001 10.5029 6.10001 11C6.10001 11.4971 6.50295 11.9 7.00001 11.9H7.59869L8.528 15.8031C8.68111 16.4462 9.25568 16.9 9.91671 16.9C10.5777 16.9 11.1523 16.4462 11.3054 15.8031L12 12.8857L12.6947 15.8031C12.8478 16.4462 13.4223 16.9 14.0834 16.9C14.7444 16.9 15.319 16.4462 15.4721 15.8031L16.4014 11.9H17C17.4971 11.9 17.9 11.4971 17.9 11C17.9 10.5029 17.4971 10.1 17 10.1H16.83L17.0422 9.20846C17.1574 8.72492 16.8587 8.2396 16.3752 8.12447C15.8916 8.00934 15.4063 8.308 15.2912 8.79154L14.9796 10.1H13.1871L12.8756 8.79154C12.779 8.38612 12.4168 8.1 12 8.1C11.5833 8.1 11.221 8.38612 11.1245 8.79154L10.813 10.1H9.02043L8.7089 8.79154ZM13.6157 11.9L14.0834 13.8643L14.5511 11.9H13.6157ZM9.91671 13.8643L9.44901 11.9H10.3844L9.91671 13.8643Z" fill="#3F4750"/>
-                                <path fill-rule="evenodd" clip-rule="evenodd" d="M22 12C22 17.5228 17.5228 22 12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12ZM19.8 12C19.8 16.3078 16.3078 19.8 12 19.8C7.69218 19.8 4.2 16.3078 4.2 12C4.2 7.69218 7.69218 4.2 12 4.2C16.3078 4.2 19.8 7.69218 19.8 12Z" fill="#3F4750"/>
-                            </svg>
-                            <span>소액 결제</span>
+                        <div class="plan-detail-item">
+                            <div class="plan-detail-label">eSIM</div>
+                            <div class="plan-detail-value">개통가능 (2,750원)</div>
                         </div>
-                        <div class="plan-supported-item">
-                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path fill-rule="evenodd" clip-rule="evenodd" d="M7.21522 3.72321C6.25091 2.75891 4.68747 2.75895 3.72321 3.72321C2.75895 4.68747 2.75891 6.25091 3.72321 7.21522L6.79428 10.2863L4.91428 18.4328C4.79135 18.966 4.95161 19.5252 5.33869 19.9123L5.96134 20.5349C6.6917 21.2653 7.91404 21.1148 8.44547 20.2291L11.5548 15.0468L13.0987 16.5907L12.9241 19.2095C12.8171 20.8168 14.8962 21.5442 15.8137 20.2187L17.6158 17.6158L20.2188 15.8137C21.5443 14.8961 20.8165 12.8171 19.2094 12.9241L16.5907 13.0987L15.0468 11.5548L20.2291 8.44543C21.1149 7.91396 21.2652 6.69167 20.5349 5.96134L19.9123 5.3387C19.5251 4.95153 18.9656 4.79149 18.4326 4.91433L10.2863 6.79429L7.21522 3.72321ZM5.13743 5.13743C5.32066 4.95419 5.61777 4.95419 5.801 5.13743L9.03366 8.37009C9.42081 8.75723 9.98008 8.91748 10.5133 8.79445L18.6596 6.9145L18.7473 7.00215L13.565 10.1116C12.6792 10.643 12.5289 11.8653 13.2592 12.5957L15.3088 14.6452C15.6325 14.9689 16.0803 15.1372 16.5372 15.1067L17.853 15.019L16.4158 16.014C16.2588 16.1226 16.1226 16.2588 16.014 16.4158L15.019 17.853L15.1067 16.5372C15.1372 16.0803 14.9689 15.6325 14.6452 15.3088L12.5957 13.2592C11.8653 12.5289 10.643 12.6793 10.1115 13.5651L7.00216 18.7473L6.9145 18.6596L8.79447 10.5133C8.91749 9.98001 8.75722 9.4208 8.37009 9.03367L5.13743 5.801C4.95419 5.61777 4.95419 5.32066 5.13743 5.13743Z" fill="#3F4750"/>
-                            </svg>
-                            <span>해외 로밍 부가서비스</span>
-                            <span class="plan-supported-note">신청은 통신사에 문의</span>
-                        </div>
-                        <div class="plan-supported-item">
-                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path fill-rule="evenodd" clip-rule="evenodd" d="M14 6.49999C14 4.56701 15.567 2.99999 17.5 2.99999C19.433 2.99999 21 4.56701 21 6.49999C21 8.43297 19.433 9.99999 17.5 9.99999C16.5593 9.99999 15.7053 9.62888 15.0764 9.02508L9.97037 11.5425C9.98992 11.6922 10 11.8449 10 12C10 12.0961 9.99613 12.1913 9.98852 12.2855L15.205 14.8574C15.8194 14.3233 16.6219 14 17.5 14C19.433 14 21 15.567 21 17.5C21 19.433 19.433 21 17.5 21C15.567 21 14 19.433 14 17.5C14 17.2884 14.0188 17.0811 14.0548 16.8798L9.04041 14.4076C8.40257 15.0804 7.50028 15.5 6.5 15.5C4.56702 15.5 3 13.933 3 12C3 10.0669 4.56702 8.49999 6.5 8.49999C7.43869 8.49999 8.29107 8.86952 8.91961 9.47104L14.0289 6.95198C14.0098 6.80401 14 6.65315 14 6.49999ZM17.5 5.27026C16.8208 5.27026 16.2703 5.82082 16.2703 6.49999C16.2703 7.17916 16.8208 7.72972 17.5 7.72972C18.1792 7.72972 18.7297 7.17916 18.7297 6.49999C18.7297 5.82082 18.1792 5.27026 17.5 5.27026ZM17.5 16.2703C16.8208 16.2703 16.2703 16.8208 16.2703 17.5C16.2703 18.1792 16.8208 18.7297 17.5 18.7297C18.1792 18.7297 18.7297 18.1792 18.7297 17.5C18.7297 16.8208 18.1792 16.2703 17.5 16.2703ZM5.27027 12C5.27027 11.3208 5.82083 10.7703 6.5 10.7703C7.17917 10.7703 7.72973 11.3208 7.72973 12C7.72973 12.6792 7.17917 13.2297 6.5 13.2297C5.82083 13.2297 5.27027 12.6792 5.27027 12Z" fill="#3F4750"/>
-                            </svg>
-                            <span>데이터 쉐어링</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="plan-supported-box">
-                    <h3 class="plan-supported-title">미지원</h3>
-                    <div class="plan-supported-list">
-                        <span class="plan-supported-empty">없음</span>
                     </div>
                 </div>
             </div>
+
         </div>
     </section>
 
@@ -263,45 +230,44 @@ include '../includes/header.php';
     <section class="plan-exceed-rate-section">
         <div class="content-layout">
             <h2 class="section-title">기본 제공 초과 시</h2>
-            <div class="plan-exceed-table">
-                <div class="plan-exceed-row">
-                    <div class="plan-exceed-header">데이터</div>
-                    <div class="plan-exceed-value">
-                        <span>22.53원/MB</span>
-                        <button class="info-tooltip-btn" aria-label="정보">
-                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path fill-rule="evenodd" clip-rule="evenodd" d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22ZM11.9631 6.3C11.0676 6.3 10.232 6.51466 9.57985 6.96603C8.92366 7.42021 8.46483 8.10662 8.31938 9.02129C8.3164 9.03998 8.31437 9.05917 8.31312 9.07865C8.30448 9.13807 8.3 9.19884 8.3 9.26065C8.3 9.95296 8.86123 10.5142 9.55354 10.5142C10.1005 10.5142 10.5657 10.1638 10.7369 9.67526L10.7387 9.67011C10.7638 9.59745 10.7824 9.52176 10.7938 9.44373L10.8058 9.38928L10.8081 9.37877L10.8083 9.37769C10.8271 9.29121 10.841 9.22917 10.8574 9.18386C11.0275 8.71526 11.4653 8.45953 11.9483 8.45361C12.5783 8.46102 13.0472 8.87279 13.0411 9.48507L13.0411 9.48924C13.0473 10.0572 12.6402 10.4644 12.0041 10.8789C11.5992 11.1321 11.2517 11.4001 10.9961 11.7995C10.74 12.1996 10.5884 12.7121 10.5357 13.435C10.5347 13.4494 10.5345 13.4636 10.5352 13.4775C10.5343 13.496 10.5339 13.5146 10.5339 13.5333C10.5339 14.1879 11.0645 14.7186 11.7191 14.7186C12.2745 14.7186 12.7406 14.3366 12.8692 13.8211H12.8775L12.8898 13.7197C12.8941 13.6924 12.8975 13.6647 12.8999 13.6367C12.9441 13.2837 13.0501 13.0231 13.2199 12.8024C13.394 12.5762 13.6445 12.3796 13.997 12.1706L13.9983 12.1699C14.5009 11.8667 14.928 11.5082 15.229 11.0562C15.5318 10.6015 15.7 10.0628 15.7 9.41276C15.7 8.43645 15.308 7.64987 14.6337 7.1118C13.9643 6.57764 13.0321 6.3 11.9631 6.3ZM11.7579 18.0998C11.0263 18.0998 10.4347 17.516 10.4503 16.7921C10.4347 16.0761 11.0263 15.4923 11.7579 15.5001C12.4507 15.4923 13.05 16.0761 13.05 16.7921C13.05 17.516 12.4507 18.0998 11.7579 18.0998Z" fill="#ADB5BD"/>
-                            </svg>
-                        </button>
+            <div class="plan-info-card plan-info-card-no-bg">
+                <div class="plan-info-card-content">
+                    <div class="plan-detail-grid">
+                        <div class="plan-detail-item">
+                            <div class="plan-detail-label">데이터</div>
+                            <div class="plan-detail-value">
+                                22.53원/MB
+                            </div>
+                        </div>
+                        <div class="plan-detail-item">
+                            <div class="plan-detail-label">음성 통화</div>
+                            <div class="plan-detail-value">1.98원/초</div>
+                        </div>
+                        <div class="plan-detail-item">
+                            <div class="plan-detail-label">영상 통화</div>
+                            <div class="plan-detail-value">3.3원/초</div>
+                        </div>
+                        <div class="plan-detail-item">
+                            <div class="plan-detail-label">짧은 문자</div>
+                            <div class="plan-detail-value">22원/개</div>
+                        </div>
+                        <div class="plan-detail-item">
+                            <div class="plan-detail-label">긴 문자</div>
+                            <div class="plan-detail-value">44원/개</div>
+                        </div>
+                        <div class="plan-detail-item">
+                            <div class="plan-detail-label">엄청 긴 문자</div>
+                            <div class="plan-detail-value">44원/개</div>
+                        </div>
+                        <div class="plan-detail-item">
+                            <div class="plan-detail-label">사진 포함 문자</div>
+                            <div class="plan-detail-value">220원/개</div>
+                        </div>
+                        <div class="plan-detail-item">
+                            <div class="plan-detail-label">영상 포함 문자</div>
+                            <div class="plan-detail-value">440원/개</div>
+                        </div>
                     </div>
-                </div>
-                <div class="plan-exceed-row">
-                    <div class="plan-exceed-header">음성 통화</div>
-                    <div class="plan-exceed-value">1.98원/초</div>
-                </div>
-                <div class="plan-exceed-row">
-                    <div class="plan-exceed-header">영상 통화</div>
-                    <div class="plan-exceed-value">3.3원/초</div>
-                </div>
-                <div class="plan-exceed-row">
-                    <div class="plan-exceed-header">짧은 문자</div>
-                    <div class="plan-exceed-value">22원/개</div>
-                </div>
-                <div class="plan-exceed-row">
-                    <div class="plan-exceed-header">긴 문자</div>
-                    <div class="plan-exceed-value">44원/개</div>
-                </div>
-                <div class="plan-exceed-row">
-                    <div class="plan-exceed-header">엄청 긴 문자</div>
-                    <div class="plan-exceed-value">44원/개</div>
-                </div>
-                <div class="plan-exceed-row">
-                    <div class="plan-exceed-header">사진 포함 문자</div>
-                    <div class="plan-exceed-value">220원/개</div>
-                </div>
-                <div class="plan-exceed-row">
-                    <div class="plan-exceed-header">영상 포함 문자</div>
-                    <div class="plan-exceed-value">440원/개</div>
                 </div>
             </div>
             <p class="plan-exceed-note">통화 또는 문자 제공량이 무제한이더라도 과도한 사용이 있을 경우 사용량 제한이 있을 수 있어요.</p>
