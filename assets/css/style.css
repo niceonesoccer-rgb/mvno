@@ -310,6 +310,12 @@ button {
         display: none !important;
     }
     
+    /* 모바일에서만 찜 메뉴 표시 */
+    body > .nav.mobile-bottom-nav .nav-item.nav-item-mobile-only,
+    .nav-item.nav-item-mobile-only {
+        display: flex !important;
+    }
+    
     /* 하단 메뉴를 위한 본문 여백 추가 (항상 고정되어 있으므로 여백 유지) */
     .main-content {
         padding-bottom: 80px;
@@ -485,6 +491,7 @@ button {
     min-width: var(--min-width);
     margin: 0 auto;
     padding: 0 var(--spacing-md);
+    overflow: visible; /* sticky 작동을 위해 필요 */
 }
 
 /* 첫 번째 섹션: 배너 + 데이터 요금제 + 랭킹 */
@@ -1658,6 +1665,14 @@ button {
         display: flex !important;
     }
     
+    /* 데스크톱에서 찜 메뉴 숨기기 */
+    .nav-wrapper .nav .nav-item.nav-item-mobile-only,
+    .nav .nav-item.nav-item-mobile-only,
+    .nav-item.nav-item-mobile-only {
+        display: none !important;
+        visibility: hidden !important;
+    }
+    
     /* 본문 하단 여백 제거 */
     .main-content {
         padding-bottom: 0;
@@ -2580,7 +2595,28 @@ button:focus {
 .plan-badge-favorite-group {
     display: flex;
     align-items: center;
-    gap: var(--spacing-sm);
+    gap: 36px;
+}
+
+.plan-share-btn-inline {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    transition: opacity 0.2s;
+}
+
+.plan-share-btn-inline:hover {
+    opacity: 0.7;
+}
+
+.plan-share-btn-inline:active {
+    opacity: 0.5;
 }
 
 .plan-badge-btn {
@@ -2626,6 +2662,11 @@ button:focus {
     display: flex;
     align-items: center;
     gap: var(--spacing-xs);
+    justify-content: space-between;
+}
+
+.plan-data-row .plan-selection-count {
+    margin-left: auto;
 }
 
 .plan-data-main {
@@ -2859,9 +2900,9 @@ button:focus {
     .plans-sidebar {
         position: -webkit-sticky; /* Safari 호환성 */
         position: sticky;
-        top: 80px; /* 헤더(60px) + 필터 여유공간(20px) */
+        top: calc(60px + var(--filter-height, 65px)); /* 헤더(60px) + 필터 높이 (기본값 65px) */
         align-self: flex-start;
-        max-height: calc(100vh - 80px);
+        max-height: calc(100vh - 60px - var(--filter-height, 65px));
         overflow-y: auto;
         overflow-x: visible;
         scroll-behavior: auto;
@@ -2871,7 +2912,14 @@ button:focus {
     
     /* 필터가 sticky일 때 사이드바 위치 조정 */
     .plans-sidebar.filter-active {
-        top: 80px;
+        top: calc(60px + var(--filter-height, 65px)); /* 헤더(60px) + 필터 높이 */
+        max-height: calc(100vh - 60px - var(--filter-height, 65px));
+    }
+    
+    /* 필터가 fixed일 때 사이드바 위치 조정 */
+    .plans-sidebar.filter-fixed {
+        top: var(--filter-height, 65px); /* 필터 높이만 (필터가 top: 0에 고정됨) */
+        max-height: calc(100vh - var(--filter-height, 65px));
     }
     
 }
@@ -2995,6 +3043,7 @@ button:focus {
         gap: var(--spacing-xl);
         padding: var(--spacing-xl) 0;
         align-items: flex-start; /* sticky 작동을 위해 필요 */
+        overflow: visible; /* sticky 작동을 위해 필요 */
     }
 
     .plans-left-section {
@@ -3681,6 +3730,1129 @@ button:focus {
 
     .today-deal-section {
         margin-top: var(--spacing-md);
+    }
+}
+
+/* ============================================
+   요금제 상세 페이지
+   ============================================ */
+.plan-detail-page {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 0;
+}
+
+.plan-detail-page > section {
+    padding: 24px 20px;
+    border-top: 1px solid var(--color-gray-200);
+    margin-top: 40px;
+}
+
+.plan-detail-header-section {
+    padding-top: 40px;
+    padding-bottom: 40px;
+    margin-bottom: 0;
+}
+
+@media (min-width: 992px) {
+    .plan-detail-page {
+        max-width: 640px;
+        padding: 0;
+    }
+    
+    .plan-detail-page > section {
+        padding: 40px 0;
+        margin-top: 40px;
+    }
+    
+    .plan-detail-header-section {
+        padding-top: 40px;
+        padding-bottom: 40px;
+    }
+}
+
+/* 기본 정보 섹션 */
+.plan-detail-basic-info {
+    padding-top: 24px !important;
+}
+
+.plan-detail-header {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.plan-detail-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.plan-detail-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--color-black);
+    margin: 0;
+}
+
+@media (min-width: 992px) {
+    .plan-detail-title {
+        font-size: 28px;
+    }
+}
+
+.plan-detail-actions {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding-left: 8px;
+}
+
+@media (min-width: 992px) {
+    .plan-detail-actions {
+        padding-left: 16px;
+    }
+}
+
+.plan-detail-favorite-btn,
+.plan-detail-share-btn {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+}
+
+.plan-detail-favorite-btn svg,
+.plan-detail-share-btn svg {
+    width: 24px;
+    height: 24px;
+}
+
+.plan-detail-subtitle {
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--color-gray-500);
+    margin: 0;
+}
+
+@media (min-width: 992px) {
+    .plan-detail-subtitle {
+        font-size: 18px;
+    }
+}
+
+.plan-detail-features {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+@media (min-width: 992px) {
+    .plan-detail-features {
+        gap: 16px;
+    }
+}
+
+.plan-feature-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--color-gray-500);
+}
+
+@media (min-width: 992px) {
+    .plan-feature-item {
+        font-size: 18px;
+    }
+}
+
+.plan-feature-item svg {
+    width: 16px;
+    height: 16px;
+}
+
+@media (min-width: 992px) {
+    .plan-feature-item svg {
+        width: 20px;
+        height: 20px;
+    }
+}
+
+.plan-feature-divider {
+    width: 1px;
+    height: 16px;
+    background-color: var(--color-gray-300);
+}
+
+.plan-detail-selected-count {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--color-gray-500);
+}
+
+@media (min-width: 992px) {
+    .plan-detail-selected-count {
+        font-size: 16px;
+    }
+}
+
+/* 신청하기 섹션 */
+.plan-detail-apply-section {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 50;
+    border-top: 1px solid var(--color-gray-200);
+    background-color: var(--color-white);
+    padding: 16px 20px !important;
+    margin-top: 40px;
+}
+
+@media (min-width: 992px) {
+    .plan-detail-apply-section {
+        position: relative;
+        padding: 40px 0 !important;
+        border-top: none;
+        margin-top: 40px;
+    }
+}
+
+.plan-apply-content {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+@media (min-width: 992px) {
+    .plan-apply-content {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: flex-end;
+    }
+}
+
+.plan-price-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+}
+
+@media (min-width: 992px) {
+    .plan-price-info {
+        align-items: flex-end;
+    }
+}
+
+.plan-price-main {
+    display: flex;
+    flex-direction: row-reverse;
+    align-items: center;
+    gap: 2px;
+}
+
+@media (min-width: 992px) {
+    .plan-price-main {
+        flex-direction: row;
+    }
+}
+
+.plan-price-info-btn {
+    height: 40px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+}
+
+.plan-price-info-btn svg {
+    width: 20px;
+    height: 20px;
+}
+
+@media (min-width: 992px) {
+    .plan-price-info-btn svg {
+        width: 24px;
+        height: 24px;
+    }
+}
+
+.plan-price-amount {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--color-indigo-600);
+}
+
+@media (min-width: 992px) {
+    .plan-price-amount {
+        font-size: 24px;
+    }
+}
+
+.plan-price-note {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--color-gray-500);
+}
+
+.plan-apply-btn {
+    width: 100%;
+    padding: 16px;
+    background-color: var(--color-indigo-500);
+    color: var(--color-white);
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.plan-apply-btn:hover {
+    background-color: var(--color-indigo-600);
+}
+
+@media (min-width: 992px) {
+    .plan-apply-btn {
+        width: auto;
+        min-width: 200px;
+    }
+}
+
+/* 요금제 상세 정보 섹션 */
+.section-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--color-gray-600);
+    margin: 0 0 16px 0;
+}
+
+@media (min-width: 992px) {
+    .section-title {
+        font-size: 20px;
+    }
+}
+
+.plan-summary-grid {
+    display: flex;
+    gap: 12px;
+    padding: 16px 8px;
+    background-color: var(--color-gray-100);
+    border-radius: 12px;
+    margin-bottom: 16px;
+}
+
+@media (min-width: 992px) {
+    .plan-summary-grid {
+        gap: 24px;
+        padding: 20px 48px;
+    }
+}
+
+.plan-summary-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+}
+
+.plan-summary-label {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--color-gray-500);
+    margin-bottom: 4px;
+}
+
+.plan-summary-value {
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--color-gray-600);
+}
+
+.plan-detail-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0;
+}
+
+@media (min-width: 992px) {
+    .plan-detail-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 0 48px;
+    }
+}
+
+.plan-detail-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px 0;
+}
+
+.plan-detail-label {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--color-gray-600);
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.plan-detail-value {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--color-indigo-600);
+    text-align: right;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.plan-detail-value a {
+    color: var(--color-indigo-600);
+    text-decoration: underline;
+}
+
+.info-tooltip-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
+}
+
+.info-tooltip-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* 지원/미지원 섹션 */
+.plan-supported-section {
+    padding-bottom: 16px !important;
+}
+
+@media (min-width: 992px) {
+    .plan-supported-section {
+        padding-bottom: 40px !important;
+    }
+}
+
+.plan-supported-grid {
+    display: flex;
+    gap: 8px;
+}
+
+@media (min-width: 992px) {
+    .plan-supported-grid {
+        gap: 32px;
+    }
+}
+
+.plan-supported-box {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 16px;
+    background-color: var(--color-gray-100);
+    border-radius: 8px;
+}
+
+@media (min-width: 992px) {
+    .plan-supported-box {
+        padding: 20px;
+    }
+}
+
+.plan-supported-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--color-gray-600);
+    margin: 0;
+}
+
+.plan-supported-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.plan-supported-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.plan-supported-item svg {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+}
+
+.plan-supported-item span:first-of-type {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--color-gray-600);
+}
+
+.plan-supported-note {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--color-indigo-500);
+}
+
+.plan-supported-empty {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--color-gray-400);
+}
+
+/* 초과 요금 섹션 */
+.plan-exceed-rate-section {
+    padding: 16px 0 !important;
+}
+
+@media (min-width: 992px) {
+    .plan-exceed-rate-section {
+        padding: 40px 0 !important;
+    }
+}
+
+.plan-exceed-table {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px 0;
+    padding: 16px 0;
+}
+
+.plan-exceed-row {
+    display: flex;
+    flex-direction: column;
+    min-width: 100px;
+}
+
+.plan-exceed-header {
+    padding: 8px 16px;
+    background-color: var(--color-gray-100);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--color-gray-600);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 32px;
+}
+
+.plan-exceed-value {
+    padding: 8px 16px;
+    background-color: var(--color-white);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--color-gray-700);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 32px;
+}
+
+.plan-exceed-note {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--color-gray-500);
+    margin: 0;
+    margin-top: 16px;
+}
+
+/* 통신사 리뷰 섹션 */
+.plan-review-section {
+    padding: 40px 0 !important;
+}
+
+@media (min-width: 992px) {
+    .plan-review-section {
+        padding: 40px 0 !important;
+    }
+}
+
+.plan-review-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.plan-review-mvno-link {
+    display: flex;
+    align-items: center;
+}
+
+.plan-review-logo {
+    height: 24px;
+}
+
+@media (min-width: 992px) {
+    .plan-review-logo {
+        height: 32px;
+    }
+}
+
+.plan-review-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 8px 0;
+}
+
+@media (min-width: 992px) {
+    .plan-review-summary {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: flex-start;
+    }
+}
+
+.plan-review-rating {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.plan-review-rating svg {
+    width: 20px;
+    height: 20px;
+}
+
+@media (min-width: 992px) {
+    .plan-review-rating svg {
+        width: 24px;
+        height: 24px;
+    }
+}
+
+.plan-review-rating-score {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--color-black);
+}
+
+@media (min-width: 992px) {
+    .plan-review-rating-score {
+        font-size: 32px;
+    }
+}
+
+.plan-review-count {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--color-gray-500);
+}
+
+@media (min-width: 992px) {
+    .plan-review-count {
+        font-size: 16px;
+    }
+}
+
+.plan-review-categories {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+@media (min-width: 992px) {
+    .plan-review-categories {
+        flex-direction: row;
+        padding-bottom: 8px;
+    }
+}
+
+.plan-review-category {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.plan-review-category-label {
+    width: 80px;
+    white-space: nowrap;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--color-gray-500);
+}
+
+@media (min-width: 992px) {
+    .plan-review-category-label {
+        width: auto;
+    }
+}
+
+.plan-review-category-score {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--color-gray-600);
+}
+
+@media (min-width: 992px) {
+    .plan-review-category-score {
+        font-size: 16px;
+    }
+}
+
+.plan-review-stars {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    font-size: 16px;
+    color: #FCC419;
+}
+
+.plan-review-divider {
+    width: 1px;
+    height: 8px;
+    background-color: var(--color-gray-300);
+    margin: 0 4px;
+}
+
+@media (min-width: 992px) {
+    .plan-review-divider {
+        margin: 0 4px;
+    }
+}
+
+.plan-review-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+.plan-review-item {
+    padding: 16px;
+    background-color: var(--color-gray-100);
+    border: 1px solid var(--color-gray-200);
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+@media (min-width: 992px) {
+    .plan-review-item {
+        padding: 24px;
+    }
+}
+
+.plan-review-item-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.plan-review-author {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--color-gray-500);
+}
+
+.plan-review-date {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--color-gray-400);
+    margin-left: auto;
+}
+
+.plan-review-content {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--color-gray-600);
+    margin: 0;
+    white-space: pre-line;
+}
+
+.plan-review-more-btn {
+    width: 100%;
+    padding: 14px;
+    background-color: transparent;
+    color: var(--color-indigo-600);
+    border: 1px solid var(--color-indigo-600);
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    margin-top: 16px;
+}
+
+@media (min-width: 992px) {
+    .plan-review-more-btn {
+        width: auto;
+        min-width: 120px;
+        font-size: 16px;
+        padding: 16px;
+    }
+}
+
+/* 사은품 섹션 */
+.plan-gift-section {
+    padding: 20px 0 !important;
+}
+
+@media (min-width: 992px) {
+    .plan-gift-section {
+        padding: 40px 0 !important;
+    }
+}
+
+.plan-gift-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+@media (min-width: 992px) {
+    .plan-gift-list {
+        gap: 16px;
+    }
+}
+
+.plan-gift-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 24px 20px;
+    background-color: var(--color-white);
+    border: 1px solid var(--color-gray-200);
+    border-radius: 16px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    text-decoration: none;
+    transition: box-shadow 0.2s;
+}
+
+@media (min-width: 992px) {
+    .plan-gift-item {
+        gap: 20px;
+    }
+}
+
+.plan-gift-item:hover {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.plan-gift-icon {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+}
+
+.plan-gift-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.plan-gift-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--color-gray-600);
+    margin: 0;
+}
+
+.plan-gift-desc {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--color-gray-500);
+    margin: 0;
+}
+
+.plan-gift-item svg {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+}
+
+/* 개통 절차 섹션 */
+.plan-activation-section {
+    padding: 24px 0 !important;
+}
+
+@media (min-width: 992px) {
+    .plan-activation-section {
+        padding: 40px 0 !important;
+    }
+}
+
+.plan-activation-tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--color-gray-200);
+    margin: 0 -20px 24px -20px;
+    padding: 0 20px;
+}
+
+@media (min-width: 992px) {
+    .plan-activation-tabs {
+        margin: 0 0 24px 0;
+        padding: 0;
+    }
+}
+
+.plan-activation-tab {
+    flex: 1;
+    padding: 12px;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--color-gray-500);
+    cursor: pointer;
+    transition: all 0.3s;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.plan-activation-tab.active {
+    color: var(--color-black);
+    border-bottom-color: var(--color-gray-700);
+}
+
+.plan-activation-content {
+    display: block;
+}
+
+.plan-activation-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+@media (min-width: 992px) {
+    .plan-activation-steps {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 24px;
+    }
+}
+
+.plan-activation-step {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.plan-activation-step-image {
+    width: 100%;
+    aspect-ratio: 300/168;
+    border-radius: 12px;
+    object-fit: cover;
+}
+
+@media (min-width: 992px) {
+    .plan-activation-step-image {
+        width: 360px;
+    }
+}
+
+.plan-activation-step-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.plan-activation-step-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--color-black);
+    margin: 0;
+}
+
+.plan-activation-step-desc {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--color-gray-500);
+    margin: 0;
+}
+
+/* 모바일 하단 여백 */
+@media (max-width: 991px) {
+    .plan-detail-page {
+        padding-bottom: 96px;
+    }
+}
+
+/* 공유 모달 */
+.share-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+    pointer-events: none;
+}
+
+.share-modal.share-modal-active {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+.share-modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(2px);
+}
+
+.share-modal-content {
+    position: relative;
+    background-color: var(--color-white);
+    border-radius: 16px;
+    padding: 24px;
+    width: 90%;
+    max-width: 400px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    transform: scale(0.9) translateY(20px);
+    transition: transform 0.3s ease;
+    z-index: 1;
+}
+
+.share-modal.share-modal-active .share-modal-content {
+    transform: scale(1) translateY(0);
+}
+
+.share-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--color-gray-200);
+}
+
+.share-modal-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--color-black);
+    margin: 0;
+}
+
+.share-modal-close {
+    background: none;
+    border: none;
+    padding: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    transition: background-color 0.2s;
+}
+
+.share-modal-close:hover {
+    background-color: var(--color-gray-100);
+}
+
+.share-modal-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+}
+
+.share-modal-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 20px;
+    border-radius: 12px;
+    background-color: var(--color-gray-50);
+    text-decoration: none;
+    color: var(--color-black);
+    transition: all 0.2s;
+    cursor: pointer;
+    border: 1px solid transparent;
+}
+
+.share-modal-item:hover {
+    background-color: var(--color-gray-100);
+    border-color: var(--color-gray-200);
+    transform: translateY(-2px);
+}
+
+.share-modal-item:active {
+    transform: translateY(0);
+}
+
+.share-modal-icon {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    background-color: var(--color-white);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.share-icon-kakao {
+    background-color: #FEE500;
+}
+
+.share-icon-facebook {
+    background-color: #1877F2;
+}
+
+.share-icon-twitter {
+    background-color: #1DA1F2;
+}
+
+.share-icon-link {
+    background-color: var(--color-white);
+}
+
+.share-modal-label {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--color-gray-700);
+    text-align: center;
+}
+
+@media (min-width: 992px) {
+    .share-modal-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+    
+    .share-modal-content {
+        padding: 32px;
     }
 }
 

@@ -64,7 +64,7 @@ include '../includes/header.php';
                     <!-- 요금제 카드 -->
                     <div class="plans-list-container">
                         <article class="basic-plan-card">
-                            <a href="/plans/32627" class="plan-card-link">
+                            <a href="/MVNO/plans/plan-detail.php?id=32627" class="plan-card-link">
                                 <div class="plan-card-main-content">
                                     <div class="plan-card-header-body-frame">
                                         <!-- 헤더: 로고, 평점, 배지, 찜 -->
@@ -89,7 +89,7 @@ include '../includes/header.php';
 
                                         <!-- 제목과 찜 버튼 -->
                                         <div class="plan-title-row">
-                                            <span class="plan-title-text">[모요핫딜] 11월한정 LTE 100GB+밀리+Data쿠폰60GB</span>
+                                            <span class="plan-title-text"> 11월한정 LTE 100GB+밀리+Data쿠폰60GB</span>
                                         </div>
 
                                         <!-- 데이터 정보와 기능 -->
@@ -177,7 +177,7 @@ include '../includes/header.php';
 
                         <!-- 두 번째 요금제 카드 -->
                         <article class="basic-plan-card">
-                            <a href="/plans/32632" class="plan-card-link">
+                            <a href="/MVNO/plans/plan-detail.php?id=32632" class="plan-card-link">
                                 <div class="plan-card-main-content">
                                     <div class="plan-card-header-body-frame">
                                         <!-- 헤더: 로고, 평점, 배지, 찜 -->
@@ -202,7 +202,7 @@ include '../includes/header.php';
 
                                         <!-- 제목과 찜 버튼 -->
                                         <div class="plan-title-row">
-                                            <span class="plan-title-text">[모요핫딜] LTE무제한 100GB+5M(CU20%할인)_11월</span>
+                                            <span class="plan-title-text"> LTE무제한 100GB+5M(CU20%할인)_11월</span>
                                         </div>
 
                                         <!-- 데이터 정보와 기능 -->
@@ -297,7 +297,7 @@ include '../includes/header.php';
 
                         <!-- 세 번째 요금제 카드 -->
                         <article class="basic-plan-card">
-                            <a href="/plans/29290" class="plan-card-link">
+                            <a href="/MVNO/plans/plan-detail.php?id=29290" class="plan-card-link">
                                 <div class="plan-card-main-content">
                                     <div class="plan-card-header-body-frame">
                                         <!-- 헤더: 로고, 평점, 배지, 찜 -->
@@ -322,7 +322,7 @@ include '../includes/header.php';
 
                                         <!-- 제목과 찜 버튼 -->
                                         <div class="plan-title-row">
-                                            <span class="plan-title-text">[모요핫딜] 이야기 완전 무제한 100GB+</span>
+                                            <span class="plan-title-text"> 이야기 완전 무제한 100GB+</span>
                                         </div>
 
                                         <!-- 데이터 정보와 기능 -->
@@ -401,7 +401,7 @@ include '../includes/header.php';
 
                         <!-- 네 번째 요금제 카드: 핀다이렉트 -->
                         <article class="basic-plan-card">
-                            <a href="/plans/32628" class="plan-card-link">
+                            <a href="/MVNO/plans/plan-detail.php?id=32628" class="plan-card-link">
                                 <div class="plan-card-main-content">
                                     <div class="plan-card-header-body-frame">
                                         <div class="plan-card-top-header">
@@ -424,7 +424,7 @@ include '../includes/header.php';
                                         </div>
 
                                         <div class="plan-title-row">
-                                            <span class="plan-title-text">[모요핫딜] [S] 핀다이렉트Z _2511</span>
+                                            <span class="plan-title-text"> [S] 핀다이렉트Z _2511</span>
                                         </div>
 
                                         <div class="plan-info-section">
@@ -500,7 +500,7 @@ include '../includes/header.php';
 
                         <!-- 다섯 번째 요금제 카드: 고고모바일 -->
                         <article class="basic-plan-card">
-                            <a href="/plans/32629" class="plan-card-link">
+                            <a href="/MVNO/plans/plan-detail.php?id=32629" class="plan-card-link">
                                 <div class="plan-card-main-content">
                                     <div class="plan-card-header-body-frame">
                                         <div class="plan-card-top-header">
@@ -523,7 +523,7 @@ include '../includes/header.php';
                                         </div>
 
                                         <div class="plan-title-row">
-                                            <span class="plan-title-text">[모요핫딜] 무제한 11GB+3M(밀리의서재 Free)_11월</span>
+                                            <span class="plan-title-text"> 무제한 11GB+3M(밀리의서재 Free)_11월</span>
                                         </div>
 
                                         <div class="plan-info-section">
@@ -615,7 +615,7 @@ include '../includes/header.php';
 
                         <!-- 여섯 번째 요금제 카드: 찬스모바일 -->
                         <article class="basic-plan-card">
-                            <a href="/plans/32630" class="plan-card-link">
+                            <a href="/MVNO/plans/plan-detail.php?id=32630" class="plan-card-link">
                                 <div class="plan-card-main-content">
                                     <div class="plan-card-header-body-frame">
                                         <div class="plan-card-top-header">
@@ -638,7 +638,7 @@ include '../includes/header.php';
                                         </div>
 
                                         <div class="plan-title-row">
-                                            <span class="plan-title-text">[모요핫딜]음성기본 11GB+일 2GB+</span>
+                                            <span class="plan-title-text">음성기본 11GB+일 2GB+</span>
                                         </div>
 
                                         <div class="plan-info-section">
@@ -714,7 +714,7 @@ include '../includes/header.php';
 
                         <!-- 일곱 번째 요금제 카드: 이야기모바일 -->
                         <article class="basic-plan-card">
-                            <a href="/plans/32631" class="plan-card-link">
+                            <a href="/MVNO/plans/plan-detail.php?id=32631" class="plan-card-link">
                                 <div class="plan-card-main-content">
                                     <div class="plan-card-header-body-frame">
                                         <div class="plan-card-top-header">
@@ -737,7 +737,7 @@ include '../includes/header.php';
                                         </div>
 
                                         <div class="plan-title-row">
-                                            <span class="plan-title-text">[모요핫딜] 이야기 완전 무제한 11GB+</span>
+                                            <span class="plan-title-text"> 이야기 완전 무제한 11GB+</span>
                                         </div>
 
                                         <div class="plan-info-section">
@@ -813,7 +813,7 @@ include '../includes/header.php';
 
                         <!-- 여덟 번째 요금제 카드: 핀다이렉트 -->
                         <article class="basic-plan-card">
-                            <a href="/plans/32632" class="plan-card-link">
+                            <a href="/MVNO/plans/plan-detail.php?id=32632" class="plan-card-link">
                                 <div class="plan-card-main-content">
                                     <div class="plan-card-header-body-frame">
                                         <div class="plan-card-top-header">
@@ -836,7 +836,7 @@ include '../includes/header.php';
                                         </div>
 
                                         <div class="plan-title-row">
-                                            <span class="plan-title-text">[모요핫딜] [K] 핀다이렉트Z 7GB+(네이버페이) _2511</span>
+                                            <span class="plan-title-text"> [K] 핀다이렉트Z 7GB+(네이버페이) _2511</span>
                                         </div>
 
                                         <div class="plan-info-section">
@@ -924,7 +924,7 @@ include '../includes/header.php';
 
                         <!-- 아홉 번째 요금제 카드: 찬스모바일 -->
                         <article class="basic-plan-card">
-                            <a href="/plans/32633" class="plan-card-link">
+                            <a href="/MVNO/plans/plan-detail.php?id=32633" class="plan-card-link">
                                 <div class="plan-card-main-content">
                                     <div class="plan-card-header-body-frame">
                                         <div class="plan-card-top-header">
@@ -947,7 +947,7 @@ include '../includes/header.php';
                                         </div>
 
                                         <div class="plan-title-row">
-                                            <span class="plan-title-text">[모요핫딜]100분 15GB+</span>
+                                            <span class="plan-title-text">100분 15GB+</span>
                                         </div>
 
                                         <div class="plan-info-section">
@@ -1054,18 +1054,18 @@ include '../includes/header.php';
             <!-- 오른쪽 사이드바: 나에게 맞는 요금제 -->
             <aside class="plans-sidebar">
                 <div class="sidebar-content">
-                    <span class="sidebar-title">나가 본 요금제</span>
+                    <span class="sidebar-title">최근 본 요금제</span>
                     
                     <div class="recent-plans-list">
-                        <a href="/plans/29238" class="recent-plan-card">
+                        <a href="/MVNO/plans/plan-detail.php?id=29238" class="recent-plan-card">
                             <span class="recent-plan-name">알찬 음성기본 7GB+</span>
                             <span class="recent-plan-price">월 8,000원</span>
                         </a>
-                        <a href="/plans/29237" class="recent-plan-card">
+                        <a href="/MVNO/plans/plan-detail.php?id=29237" class="recent-plan-card">
                             <span class="recent-plan-name">알찬 100분 15GB+3Mbps</span>
                             <span class="recent-plan-price">월 14,000원</span>
                         </a>
-                        <a href="/plans/31480" class="recent-plan-card">
+                        <a href="/MVNO/plans/plan-detail.php?id=31480" class="recent-plan-card">
                             <span class="recent-plan-name">[모요only] 음성기본7GB+</span>
                             <span class="recent-plan-price">월 8,000원</span>
                         </a>
@@ -1103,6 +1103,66 @@ include '../includes/footer.php';
     let isFilterSticky = false;
     let isFilterFixed = false;
     let filterOriginalTop = 0;
+    let filterHeight = 0;
+    
+    // 필터 높이 계산
+    function calculateFilterHeight() {
+        if (filterSection) {
+            filterHeight = filterSection.offsetHeight;
+        }
+    }
+    
+    // 초기 필터 높이 계산 및 사이드바에 적용
+    calculateFilterHeight();
+    if (sidebar && filterHeight > 0) {
+        sidebar.style.setProperty('--filter-height', filterHeight + 'px');
+    }
+    
+    // 사이드바 sticky 위치 고정 함수
+    function updateSidebarPosition() {
+        if (!sidebar) return;
+        
+        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        const headerHeight = 60;
+        let sidebarTop = headerHeight + filterHeight;
+        
+        // 필터가 fixed일 때
+        if (filterSection.classList.contains('filter-fixed')) {
+            sidebarTop = filterHeight;
+        }
+        // 필터가 sticky일 때
+        else if (filterSection.classList.contains('filter-sticky')) {
+            sidebarTop = headerHeight + filterHeight;
+        }
+        // 필터가 일반 상태일 때
+        else {
+            const filterRect = filterSection.getBoundingClientRect();
+            if (filterRect.top <= headerHeight) {
+                sidebarTop = headerHeight + filterHeight;
+            } else {
+                sidebarTop = headerHeight;
+            }
+        }
+        
+        sidebar.style.top = sidebarTop + 'px';
+        sidebar.style.maxHeight = `calc(100vh - ${sidebarTop}px)`;
+    }
+    
+    // 리사이즈 시 필터 높이 재계산
+    let resizeTimer;
+    window.addEventListener('resize', function() {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(function() {
+            calculateFilterHeight();
+            if (sidebar && filterHeight > 0) {
+                sidebar.style.setProperty('--filter-height', filterHeight + 'px');
+            }
+            updateSidebarPosition();
+        }, 100);
+    });
+    
+    // 초기 위치 설정
+    updateSidebarPosition();
     
     function handleScroll() {
         const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
@@ -1116,26 +1176,45 @@ include '../includes/footer.php';
         
         // 스크롤이 시작되면 sticky 모드로 전환
         if (scrollTop > 10 && !isFilterSticky) {
+            calculateFilterHeight(); // 필터 높이 재계산
             filterSection.classList.add('filter-sticky');
             if (resultsCount) resultsCount.classList.add('filter-active');
-            if (sidebar) sidebar.classList.add('filter-active');
+            if (sidebar) {
+                sidebar.classList.add('filter-active');
+                sidebar.style.setProperty('--filter-height', filterHeight + 'px');
+            }
             if (themeSection) themeSection.classList.add('filter-active');
             isFilterSticky = true;
+            updateSidebarPosition();
         }
         
         // 필터가 화면 상단 밖으로 나갔는지 확인 (위로 스크롤해서 사라짐)
         if (filterTop < 0 && isFilterSticky && !isFilterFixed) {
             // 필터가 사라졌으므로 상단에 고정
+            calculateFilterHeight(); // 필터 높이 재계산
             filterSection.classList.remove('filter-sticky');
             filterSection.classList.add('filter-fixed');
+            if (sidebar) {
+                sidebar.classList.remove('filter-active');
+                sidebar.classList.add('filter-fixed');
+                sidebar.style.setProperty('--filter-height', filterHeight + 'px');
+            }
             isFilterFixed = true;
+            updateSidebarPosition();
         } 
         // 스크롤이 다시 위로 올라가서 필터의 원래 위치 근처에 도달했는지 확인
         else if (scrollTop < filterOriginalTop - 50 && isFilterFixed) {
             // 필터를 sticky 모드로 복원
+            calculateFilterHeight(); // 필터 높이 재계산
             filterSection.classList.remove('filter-fixed');
             filterSection.classList.add('filter-sticky');
+            if (sidebar) {
+                sidebar.classList.remove('filter-fixed');
+                sidebar.classList.add('filter-active');
+                sidebar.style.setProperty('--filter-height', filterHeight + 'px');
+            }
             isFilterFixed = false;
+            updateSidebarPosition();
         }
         // 스크롤이 맨 위로 돌아갔을 때
         else if (scrollTop <= 10 && isFilterSticky) {
@@ -1143,17 +1222,34 @@ include '../includes/footer.php';
             filterSection.classList.remove('filter-sticky');
             filterSection.classList.remove('filter-fixed');
             if (resultsCount) resultsCount.classList.remove('filter-active');
-            if (sidebar) sidebar.classList.remove('filter-active');
+            if (sidebar) {
+                sidebar.classList.remove('filter-active');
+                sidebar.classList.remove('filter-fixed');
+            }
             if (themeSection) themeSection.classList.remove('filter-active');
             isFilterSticky = false;
             isFilterFixed = false;
+            updateSidebarPosition();
         }
         
         lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
     }
     
+    // 스크롤 이벤트 최적화 (requestAnimationFrame 사용)
+    let ticking = false;
+    function onScroll() {
+        if (!ticking) {
+            window.requestAnimationFrame(function() {
+                handleScroll();
+                updateSidebarPosition();
+                ticking = false;
+            });
+            ticking = true;
+        }
+    }
+    
     // 스크롤 이벤트 리스너
-    window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('scroll', onScroll, { passive: true });
     
     // 초기 실행
     handleScroll();
