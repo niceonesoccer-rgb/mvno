@@ -56,6 +56,7 @@ button {
     --color-indigo-300: #a5b4fc;
     --color-indigo-400: #818cf8;
     --color-indigo-500: #6366f1;
+    --color-indigo-600: #4f46e5;
     --color-gray-100: #f3f4f6;
     --color-gray-200: #e5e7eb;
     --color-gray-300: #d1d5db;
@@ -2102,7 +2103,7 @@ button:focus {
    요금제 목록 메인 레이아웃
    ============================================ */
 .plans-main-layout {
-    max-width: 960px;
+    max-width: 720px;
     margin: 0 auto;
     padding: 0;
     display: flex;
@@ -2112,23 +2113,6 @@ button:focus {
 
 .plans-left-section {
     width: 100%;
-}
-
-.plans-sidebar {
-    display: none;
-}
-
-/* 모바일: 사이드바 표시 및 페이지네이션 아래로 이동 */
-@media (max-width: 991px) {
-    .plans-sidebar {
-        display: block;
-        width: 100%;
-        order: 2; /* 페이지네이션 아래로 이동 */
-    }
-    
-    .plans-left-section {
-        order: 1; /* 요금제 목록이 먼저 */
-    }
 }
 
 /* 테마별 요금제 섹션 */
@@ -2300,6 +2284,7 @@ button:focus {
     color: var(--color-gray-600);
     font-weight: 500;
     padding-top: 0;
+    margin-left: calc(var(--spacing-lg) - var(--spacing-md));
     transition: padding-top 0.3s ease-in-out;
 }
 
@@ -2540,6 +2525,13 @@ button:focus {
     display: block;
 }
 
+.plan-card-link:focus,
+.plan-card-link:active,
+.plan-card-link:focus-visible {
+    outline: none;
+    border: none;
+}
+
 .plan-card-main-content {
     padding: var(--spacing-lg);
 }
@@ -2578,6 +2570,10 @@ button:focus {
     font-size: 0.875rem; /* 14px */
     font-weight: 500;
     color: var(--color-gray-700);
+    text-align: left;
+    padding-left: 0;
+    margin-left: 0;
+    display: inline-block;
 }
 
 .plan-rating-group {
@@ -2868,193 +2864,17 @@ button:focus {
     }
 }
 
-/* 사이드바 */
-.plans-sidebar {
-    width: 100%;
-    /* 필터 아래에 위치하도록 기본 여백 추가 */
-    padding-top: 50px; /* 필터 높이만큼 기본 여백 */
-    transition: padding-top 0.3s ease-in-out;
-}
-
-/* 필터가 sticky나 fixed일 때 사이드바에 추가 여백 */
-.plans-sidebar.filter-active {
-    padding-top: 20px; /* 필터가 sticky일 때 추가 여백 */
-}
-
-.sidebar-content {
-    background-color: transparent;
-    border: none;
-    border-radius: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-}
-
-@media (min-width: 992px) {
-    .sidebar-content {
-        padding-top: 0;
-    }
-    
-    /* 데스크톱: 사이드바가 스크롤 시 따라 움직이도록 sticky */
-    .plans-sidebar {
-        position: -webkit-sticky; /* Safari 호환성 */
-        position: sticky;
-        top: calc(60px + var(--filter-height, 65px)); /* 헤더(60px) + 필터 높이 (기본값 65px) */
-        align-self: flex-start;
-        max-height: calc(100vh - 60px - var(--filter-height, 65px));
-        overflow-y: auto;
-        overflow-x: visible;
-        scroll-behavior: auto;
-        z-index: 10;
-        will-change: transform; /* 성능 최적화 */
-    }
-    
-    /* 필터가 sticky일 때 사이드바 위치 조정 */
-    .plans-sidebar.filter-active {
-        top: calc(60px + var(--filter-height, 65px)); /* 헤더(60px) + 필터 높이 */
-        max-height: calc(100vh - 60px - var(--filter-height, 65px));
-    }
-    
-    /* 필터가 fixed일 때 사이드바 위치 조정 */
-    .plans-sidebar.filter-fixed {
-        top: var(--filter-height, 65px); /* 필터 높이만 (필터가 top: 0에 고정됨) */
-        max-height: calc(100vh - var(--filter-height, 65px));
-    }
-    
-}
-
-@media (max-width: 991px) {
-    .sidebar-content {
-        padding: var(--spacing-xl) var(--spacing-md) 0;
-        max-width: 640px;
-        margin: 0 auto;
-        /* 모바일: 하단 네비게이션 바 아래로 이동 */
-        margin-bottom: 80px;
-    }
-}
-
-.sidebar-title {
-    font-size: 1.125rem; /* 18px */
-    font-weight: 700; /* bold */
-    color: var(--color-gray-600);
-    margin-bottom: 4px; /* 제목과 카드 사이 간격 */
-    display: block;
-    text-align: center; /* 가운데 정렬 */
-}
-
-.recent-plans-list {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-md);
-    margin-bottom: var(--spacing-md);
-}
-
-.recent-plan-card {
-    display: flex;
-    flex-direction: column;
-    background-color: var(--color-white);
-    border: 1px solid var(--color-gray-200);
-    border-radius: 8px;
-    padding: var(--spacing-md);
-    text-decoration: none;
-    color: inherit;
-    transition: box-shadow 0.2s;
-    word-break: keep-all;
-    box-shadow: var(--shadow-sm);
-}
-
-.recent-plan-card:hover {
-    box-shadow: var(--shadow-md);
-}
-
-.recent-plan-card:focus,
-.recent-plan-card:active,
-.recent-plan-card:focus-visible {
-    outline: none; /* 클릭 시 파란색 테두리 제거 */
-    border-color: var(--color-gray-200); /* 기존 테두리 색상 유지 */
-}
-
-.recent-plan-info {
-    display: flex;
-    flex-direction: column;
-}
-
-.recent-plan-name {
-    font-size: 1rem; /* 16px */
-    font-weight: 500; /* medium */
-    color: var(--color-gray-500);
-    margin-bottom: 0;
-    display: block;
-}
-
-.recent-plan-price {
-    font-size: 1.125rem; /* 18px */
-    font-weight: 700;
-    color: var(--color-gray-600);
-    margin-top: 0;
-    display: block;
-}
-
-.sidebar-recommendation {
-    margin-bottom: var(--spacing-md);
-    padding: 0;
-    background-color: transparent;
-    border-radius: 0;
-}
-
-.sidebar-recommendation p {
-    font-size: 0.875rem; /* 14px */
-    font-weight: 500; /* medium */
-    color: var(--color-gray-500);
-    line-height: 1.5;
-    margin: 0;
-    text-align: center;
-}
-
-.sidebar-more-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    padding: var(--spacing-md);
-    background-color: #E0E7FF;
-    color: #4F46E5;
-    border-radius: 8px;
-    font-size: 0.875rem; /* 14px */
-    font-weight: 700; /* bold */
-    text-decoration: none;
-    transition: background-color 0.2s;
-}
-
-.sidebar-more-btn span {
-    font-size: 0.875rem; /* 14px */
-    font-weight: 700; /* bold */
-}
-
-.sidebar-more-btn:hover {
-    background-color: #C7D2FE;
-}
 
 /* 데스크톱 레이아웃 */
 @media (min-width: 992px) {
     .plans-main-layout {
-        flex-direction: row;
-        gap: var(--spacing-xl);
         padding: var(--spacing-xl) 0;
-        align-items: flex-start; /* sticky 작동을 위해 필요 */
-        overflow: visible; /* sticky 작동을 위해 필요 */
     }
 
     .plans-left-section {
-        width: 620px;
-        flex-shrink: 0;
-    }
-
-    .plans-sidebar {
-        display: block;
-        width: 320px;
-        flex-shrink: 0;
+        width: 100%;
+        max-width: 720px;
+        margin: 0 auto;
     }
 
     .theme-plans-list-section {
@@ -3992,7 +3812,7 @@ button:focus {
 
 @media (min-width: 992px) {
     .plan-price-info {
-        align-items: flex-end;
+        align-items: flex-start;
     }
 }
 
@@ -4079,6 +3899,7 @@ button:focus {
     display: block !important;
     transform: none !important;
     flex-shrink: 0;
+    outline: none;
 }
 
 @media (max-width: 767px) {
@@ -4092,12 +3913,30 @@ button:focus {
 
 .plan-apply-btn:hover {
     background-color: var(--color-indigo-600);
+    color: var(--color-white);
     opacity: 1 !important;
     visibility: visible !important;
     z-index: 1003 !important;
     display: block !important;
     transform: none !important;
     position: relative !important;
+}
+
+.plan-apply-btn:active {
+    background-color: var(--color-indigo-600);
+    color: var(--color-white);
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+.plan-apply-btn:focus {
+    outline: none;
+    border: none;
+}
+
+.plan-apply-btn:focus-visible {
+    outline: none;
+    border: none;
 }
 
 @media (min-width: 992px) {
@@ -4608,7 +4447,7 @@ button:focus {
     color: var(--color-gray-500);
     width: 100%;
     flex-basis: 100%;
-    text-align: center;
+    text-align: left;
 }
 
 @media (min-width: 992px) {
@@ -4616,7 +4455,7 @@ button:focus {
         font-size: 16px;
         width: 100%;
         flex-basis: 100%;
-        text-align: center;
+        text-align: left;
     }
 }
 
@@ -4624,6 +4463,8 @@ button:focus {
     display: flex;
     flex-direction: column;
     gap: 8px;
+    align-self: center;
+    justify-content: center;
 }
 
 @media (min-width: 992px) {
@@ -4633,6 +4474,8 @@ button:focus {
         padding-bottom: 8px;
         flex-wrap: wrap;
         max-width: 100%;
+        align-self: center;
+        justify-content: center;
     }
 }
 
@@ -4700,13 +4543,40 @@ button:focus {
     }
 }
 
+.plan-review-count-section {
+    width: 100%;
+    margin-top: 16px;
+    margin-bottom: 16px;
+    text-align: left;
+    padding-left: 16px;
+}
+
+@media (min-width: 992px) {
+    .plan-review-count-section {
+        padding-left: 24px;
+    }
+}
+
+.plan-review-count-section .plan-review-count {
+    font-size: 14px;
+    color: var(--color-gray-500);
+    text-align: left;
+}
+
+@media (min-width: 992px) {
+    .plan-review-count-section .plan-review-count {
+        font-size: 16px;
+        text-align: left;
+    }
+}
+
 .plan-review-list {
     width: 100%;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 8px;
-    margin-top: 16px;
+    margin-top: 0;
 }
 
 .plan-review-item {
@@ -4756,31 +4626,39 @@ button:focus {
 .plan-review-more-btn {
     width: 100%;
     padding: 14px;
-    background-color: transparent;
-    color: var(--color-indigo-600);
-    border: 1px solid var(--color-indigo-600);
+    background-color: var(--color-white);
+    color: var(--color-gray-700);
+    border: none;
     border-radius: 8px;
     font-size: 14px;
     font-weight: 500;
     cursor: pointer;
     margin-top: 16px;
-    box-shadow: 0 2px 4px rgba(99, 102, 241, 0.2);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
     transition: box-shadow 0.2s, transform 0.2s;
+    outline: none;
 }
 
 .plan-review-more-btn:hover {
-    box-shadow: 0 4px 8px rgba(99, 102, 241, 0.3);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.1);
     transform: translateY(-1px);
+}
+
+.plan-review-more-btn:focus {
+    outline: none;
+    border: none;
+}
+
+.plan-review-more-btn:active {
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.08);
+    transform: translateY(0);
 }
 
 @media (min-width: 992px) {
     .plan-review-more-btn {
-        width: auto;
-        min-width: 120px;
+        width: 100%;
         font-size: 16px;
         padding: 16px;
-        margin-left: auto;
-        margin-right: auto;
         display: block;
     }
 }
@@ -5003,8 +4881,7 @@ button:focus {
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(2px);
+    background-color: rgba(0, 0, 0, 0.1);
 }
 
 .share-modal-content {
@@ -5020,6 +4897,9 @@ button:focus {
     transform: scale(0.9) translateY(20px);
     transition: transform 0.3s ease;
     z-index: 1;
+    -webkit-font-smoothing: subpixel-antialiased;
+    -moz-osx-font-smoothing: auto;
+    text-rendering: optimizeSpeed;
 }
 
 .share-modal.share-modal-active .share-modal-content {
@@ -5073,18 +4953,20 @@ button:focus {
     gap: 12px;
     padding: 20px;
     border-radius: 12px;
-    background-color: var(--color-gray-50);
+    background-color: var(--color-white);
     text-decoration: none;
     color: var(--color-black);
     transition: all 0.2s;
     cursor: pointer;
-    border: 1px solid transparent;
+    border: 1px solid var(--color-gray-200);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .share-modal-item:hover {
-    background-color: var(--color-gray-100);
-    border-color: var(--color-gray-200);
+    background-color: var(--color-white);
+    border-color: var(--color-gray-300);
     transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
 }
 
 .share-modal-item:active {
@@ -5164,8 +5046,7 @@ button:focus {
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(2px);
+    background-color: rgba(0, 0, 0, 0.1);
 }
 
 .apply-modal-content {
@@ -5183,6 +5064,9 @@ button:focus {
     display: flex;
     flex-direction: column;
     margin-top: auto;
+    -webkit-font-smoothing: subpixel-antialiased;
+    -moz-osx-font-smoothing: auto;
+    text-rendering: optimizeSpeed;
 }
 
 .apply-modal.apply-modal-active .apply-modal-content {
@@ -5213,10 +5097,19 @@ button:focus {
     transition: background-color 0.2s;
     position: absolute;
     left: 24px;
+    outline: none;
 }
 
 .apply-modal-back:hover {
     background-color: var(--color-gray-100);
+}
+
+.apply-modal-back:focus {
+    outline: none;
+}
+
+.apply-modal-back:active {
+    outline: none;
 }
 
 .apply-modal-title {
@@ -5241,17 +5134,26 @@ button:focus {
     height: 32px;
     border-radius: 8px;
     transition: background-color 0.2s;
+    outline: none;
 }
 
 .apply-modal-close:hover {
     background-color: var(--color-gray-100);
 }
 
+.apply-modal-close:focus {
+    outline: none;
+}
+
+.apply-modal-close:active {
+    outline: none;
+}
+
 .apply-modal-body {
     flex: 1;
     overflow-y: auto;
     position: relative;
-    padding: 20px 24px;
+    padding: 6px 24px 20px 24px;
 }
 
 .apply-modal-body iframe {
@@ -5284,23 +5186,30 @@ button:focus {
     font-size: 16px;
     font-weight: 500;
     color: var(--color-gray-700);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .customer-type-item:hover:not(.customer-type-item-disabled) {
-    border-color: var(--color-indigo-500);
-    background-color: var(--color-gray-50);
+    background-color: var(--color-white);
+    border-color: var(--color-gray-300);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
 }
 
 .customer-type-item-active {
-    border-color: var(--color-indigo-500);
-    background-color: var(--color-indigo-50);
-    color: var(--color-indigo-700);
+    background-color: var(--color-white);
+    border-color: var(--color-gray-300);
+    color: var(--color-gray-700);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
 }
 
 .customer-type-item-disabled {
     opacity: 0.6;
     cursor: not-allowed;
-    background-color: var(--color-gray-100);
+    background-color: var(--color-white);
+    border: 1px solid var(--color-gray-200);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .customer-type-label {
@@ -5364,16 +5273,21 @@ button:focus {
     border-radius: 12px;
     cursor: pointer;
     transition: all 0.2s;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .plan-order-checkbox-label:hover {
-    border-color: var(--color-indigo-500);
-    background-color: var(--color-gray-50);
+    background-color: var(--color-white);
+    border-color: var(--color-gray-300);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
 }
 
 .plan-order-checkbox-item.plan-order-checkbox-checked .plan-order-checkbox-label {
-    border-color: var(--color-indigo-500);
-    background-color: var(--color-indigo-50);
+    background-color: var(--color-white);
+    border-color: var(--color-gray-300);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
 }
 
 .plan-order-checkbox-content {
@@ -5403,11 +5317,187 @@ button:focus {
 }
 
 .plan-order-checkbox-item.plan-order-checkbox-checked .plan-order-checkbox-icon {
-    color: var(--color-indigo-500);
+    color: var(--color-gray-700);
 }
 
 .plan-order-checkbox-input:checked + .plan-order-checkbox-label .plan-order-checkbox-icon {
+    color: var(--color-gray-700);
+}
+
+/* 신청 확인 섹션 */
+.plan-apply-confirm-section {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 12px 20px 40px 20px;
+}
+
+.plan-apply-confirm-method {
+    font-size: 18px;
+    font-weight: 600;
     color: var(--color-indigo-500);
+    margin-bottom: 16px;
+}
+
+.plan-apply-confirm-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--color-black);
+    margin-bottom: 24px;
+}
+
+.plan-apply-confirm-description {
+    width: 100%;
+    margin-bottom: 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.plan-apply-confirm-notice {
+    font-size: 16px;
+    color: var(--color-gray-600);
+    text-align: center;
+    padding: 16px 20px;
+    margin-top: 16px;
+}
+
+.plan-apply-confirm-intro {
+    font-size: 16px;
+    color: var(--color-gray-600);
+    line-height: 1.6;
+    padding: 20px;
+    text-align: center;
+    border: 1px solid var(--color-gray-200);
+    border-radius: 12px;
+    background-color: var(--color-white);
+    margin-bottom: 0;
+}
+
+.plan-apply-confirm-intro-sub {
+    display: block;
+    font-size: 16px;
+    color: var(--color-gray-500);
+    line-height: 1.6;
+    margin-top: 8px;
+}
+
+.plan-apply-confirm-list {
+    display: grid;
+    grid-template-columns: 1fr 3fr 1fr;
+    gap: 0;
+    width: 100%;
+    border: 1px solid var(--color-gray-200);
+    border-top: none;
+    border-radius: 0 0 12px 12px;
+    overflow: hidden;
+}
+
+.plan-apply-confirm-item {
+    font-size: 16px;
+    color: var(--color-gray-600);
+    line-height: 1.6;
+    text-align: left;
+    padding: 20px;
+    border: none;
+    background-color: var(--color-white);
+    min-height: 100px;
+    display: flex;
+    align-items: flex-start;
+}
+
+.plan-apply-confirm-item-empty {
+    visibility: hidden;
+}
+
+.plan-apply-confirm-item-center {
+    grid-column: 2;
+    padding-left: 40px;
+}
+
+.plan-apply-confirm-item-list {
+    display: flex;
+    flex-direction: row;
+    gap: 24px;
+    align-items: center;
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+    width: 100%;
+}
+
+.plan-apply-confirm-item-list > div {
+    font-size: 16px;
+    color: var(--color-gray-600);
+    line-height: 1.6;
+    text-align: left;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.plan-apply-confirm-item-center {
+    grid-column: 2;
+}
+
+.plan-apply-confirm-btn {
+    width: 100%;
+    max-width: 400px;
+    padding: 16px 24px;
+    background-color: var(--color-indigo-500);
+    color: var(--color-white);
+    border: none;
+    border-radius: 12px;
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+    margin-top: -30px;
+}
+
+.plan-apply-confirm-btn:hover {
+    background-color: var(--color-indigo-600);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+    transform: translateY(-2px);
+}
+
+.plan-apply-confirm-btn:active {
+    transform: translateY(0);
+}
+
+/* 모바일: 모달 빈 공간 줄이기 */
+@media (max-width: 991px) {
+    .apply-modal-content {
+        max-height: 70vh;
+    }
+    
+    .plan-apply-confirm-section {
+        padding: 8px 16px 24px 16px;
+    }
+    
+    .plan-apply-confirm-intro {
+        padding: 16px;
+    }
+    
+    .plan-apply-confirm-item {
+        padding: 16px;
+        min-height: 80px;
+    }
+    
+    .plan-apply-confirm-notice {
+        padding: 12px 16px;
+        margin-top: 12px;
+    }
+    
+    .plan-apply-confirm-description {
+        margin-bottom: 24px;
+    }
+    
+    .plan-apply-confirm-btn {
+        margin-top: -20px;
+    }
 }
 
 @media (min-width: 992px) {
@@ -5462,8 +5552,7 @@ button:focus {
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(2px);
+    background-color: rgba(0, 0, 0, 0.1);
 }
 
 .review-modal-content {
@@ -5480,6 +5569,9 @@ button:focus {
     z-index: 1;
     display: flex;
     flex-direction: column;
+    -webkit-font-smoothing: subpixel-antialiased;
+    -moz-osx-font-smoothing: auto;
+    text-rendering: optimizeSpeed;
 }
 
 .review-modal.review-modal-active .review-modal-content {
@@ -5527,13 +5619,33 @@ button:focus {
 
 .review-modal-summary {
     margin-bottom: 24px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 16px 24px;
 }
 
 .review-modal-rating-main {
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-bottom: 16px;
+    margin-bottom: 0;
+    flex-shrink: 0;
+    order: 1;
+}
+
+.review-modal-categories {
+    order: 2;
+    flex: 1;
+    min-width: 200px;
+}
+
+.review-modal-sort {
+    order: 3;
+    width: 100%;
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
 }
 
 .review-modal-rating-main svg {
@@ -5548,15 +5660,16 @@ button:focus {
 }
 
 .review-modal-count {
-    font-size: 14px;
-    color: var(--color-gray-500);
+    display: none;
 }
 
 .review-modal-categories {
     display: flex;
     flex-direction: column;
     gap: 12px;
-    margin-bottom: 16px;
+    margin-bottom: 0;
+    flex: 1;
+    align-items: flex-end;
 }
 
 .review-modal-category {
@@ -5586,11 +5699,11 @@ button:focus {
 .review-modal-total {
     font-size: 14px;
     color: var(--color-gray-500);
-    margin-bottom: 16px;
+    margin-bottom: 0;
 }
 
 .review-modal-sort {
-    margin-bottom: 24px;
+    margin-bottom: 0;
 }
 
 .review-modal-sort-btn {
@@ -5662,20 +5775,32 @@ button:focus {
 .review-modal-more-btn {
     width: 100%;
     padding: 14px;
-    background-color: transparent;
-    color: var(--color-indigo-600);
-    border: 1px solid var(--color-indigo-600);
+    background-color: var(--color-white);
+    color: var(--color-gray-700);
+    border: none;
     border-radius: 8px;
     font-size: 14px;
     font-weight: 500;
     cursor: pointer;
-    box-shadow: 0 2px 4px rgba(99, 102, 241, 0.2);
+    margin-top: 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
     transition: box-shadow 0.2s, transform 0.2s;
+    outline: none;
 }
 
 .review-modal-more-btn:hover {
-    box-shadow: 0 4px 8px rgba(99, 102, 241, 0.3);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.1);
     transform: translateY(-1px);
+}
+
+.review-modal-more-btn:focus {
+    outline: none;
+    border: none;
+}
+
+.review-modal-more-btn:active {
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.08);
+    transform: translateY(0);
 }
 
 @media (min-width: 992px) {
@@ -5690,5 +5815,25 @@ button:focus {
     .review-modal-body {
         padding: 32px;
     }
+    
+    .review-modal-more-btn {
+        width: 100%;
+        font-size: 16px;
+        padding: 16px;
+    }
+}
+
+/* Wishlist 페이지 PC 버전 너비 조정 */
+@media (min-width: 992px) {
+    .wishlist-page.content-layout {
+        max-width: 735px; /* 기존 980px의 75% (25% 감소) */
+    }
+}
+
+/* Mypage 메뉴 링크 focus 스타일 */
+.mypage-container ul li a:focus {
+    outline: 2px solid #3b82f6;
+    outline-offset: -2px;
+    border-radius: 4px;
 }
 

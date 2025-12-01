@@ -53,7 +53,7 @@ include '../includes/header.php';
                         <div class="plan-info-section">
                             <div class="plan-data-row">
                                 <span class="plan-data-main">월 100GB + 5Mbps</span>
-                                <span class="plan-selection-count">29,448명이 선택</span>
+                                <span class="plan-selection-count">29,448명이 신청</span>
                             </div>
                         </div>
                     </div>
@@ -270,7 +270,6 @@ include '../includes/header.php';
                         <path d="M13.1479 3.1366C12.7138 2.12977 11.2862 2.12977 10.8521 3.1366L8.75804 7.99389L3.48632 8.48228C2.3937 8.58351 1.9524 9.94276 2.77717 10.6665L6.75371 14.156L5.58995 19.3138C5.34855 20.3837 6.50365 21.2235 7.44697 20.664L12 17.9635L16.553 20.664C17.4963 21.2235 18.6514 20.3837 18.4101 19.3138L17.2463 14.156L21.2228 10.6665C22.0476 9.94276 21.6063 8.58351 20.5137 8.48228L15.242 7.99389L13.1479 3.1366Z" fill="#FAB005"/>
                     </svg>
                     <span class="plan-review-rating-score">4.3</span>
-                    <span class="plan-review-count">11,533개</span>
                 </div>
                 <div class="plan-review-categories">
                     <div class="plan-review-category">
@@ -288,6 +287,10 @@ include '../includes/header.php';
                         </div>
                     </div>
                 </div>
+            </div>
+
+            <div class="plan-review-count-section">
+                <span class="plan-review-count">11,533개</span>
             </div>
 
             <div class="plan-review-list">
@@ -322,7 +325,7 @@ include '../includes/header.php';
                     <p class="plan-review-content">고객센터 개통 전화없이 모요 통해서 개통신청하고 편의점 바로유심 사서 끼우면 바로 개통됨..타 알뜰폰 통신사보다 개통과정, 통신속도,데이터량 불편함없이 사용함..쉐이크모바일 강추</p>
                 </div>
             </div>
-            <button class="plan-review-more-btn" id="planReviewMoreBtn">더보기</button>
+            <button class="plan-review-more-btn" id="planReviewMoreBtn">리뷰 더보기</button>
         </div>
     </section>
 </main>
@@ -346,36 +349,25 @@ include '../includes/header.php';
                         <path d="M13.1479 3.1366C12.7138 2.12977 11.2862 2.12977 10.8521 3.1366L8.75804 7.99389L3.48632 8.48228C2.3937 8.58351 1.9524 9.94276 2.77717 10.6665L6.75371 14.156L5.58995 19.3138C5.34855 20.3837 6.50365 21.2235 7.44697 20.664L12 17.9635L16.553 20.664C17.4963 21.2235 18.6514 20.3837 18.4101 19.3138L17.2463 14.156L21.2228 10.6665C22.0476 9.94276 21.6063 8.58351 20.5137 8.48228L15.242 7.99389L13.1479 3.1366Z" fill="#FAB005"/>
                     </svg>
                     <span class="review-modal-rating-score">4.3</span>
-                    <span class="review-modal-count">11,541개</span>
                 </div>
                 <div class="review-modal-categories">
                     <div class="review-modal-category">
-                        <span class="review-modal-category-label">고객센터</span>
+                        <span class="review-modal-category-label">친절해요</span>
                         <span class="review-modal-category-score">4.2</span>
                         <div class="review-modal-stars">
                             <span>★★★★☆</span>
                         </div>
                     </div>
                     <div class="review-modal-category">
-                        <span class="review-modal-category-label">개통 과정</span>
+                        <span class="review-modal-category-label">개통 빨라요</span>
                         <span class="review-modal-category-score">4.5</span>
                         <div class="review-modal-stars">
                             <span>★★★★☆</span>
                         </div>
                     </div>
-                    <div class="review-modal-category">
-                        <span class="review-modal-category-label">개통 후 만족도</span>
-                        <span class="review-modal-category-score">4.1</span>
-                        <div class="review-modal-stars">
-                            <span>★★★★☆</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="review-modal-total">
-                    <span>총 11,539개</span>
                 </div>
                 <div class="review-modal-sort">
-                    <button class="review-modal-sort-btn">높은 평점순▼</button>
+                    <span class="review-modal-total">총 11,539개</span>
                 </div>
             </div>
             <div class="review-modal-list">
@@ -488,7 +480,7 @@ include '../includes/header.php';
                     <path d="M15 18L9 12L15 6" stroke="#868E96" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
             </button>
-            <h3 class="apply-modal-title">고객 유형을 선택해주세요</h3>
+            <h3 class="apply-modal-title">가입유형</h3>
             <button class="apply-modal-close" aria-label="닫기" id="applyModalClose">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M18 6L6 18M6 6L18 18" stroke="#868E96" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -496,28 +488,9 @@ include '../includes/header.php';
             </button>
         </div>
         <div class="apply-modal-body" id="applyModalBody">
-            <!-- 1단계: 고객 유형 선택 -->
-            <div class="apply-modal-step" id="step1">
-                <div class="customer-type-list">
-                    <button class="customer-type-item customer-type-item-active" data-type="general">
-                        <span class="customer-type-label">일반 (만 19세 이상)</span>
-                    </button>
-                    <button class="customer-type-item customer-type-item-disabled" data-type="minor" disabled>
-                        <span class="customer-type-label">미성년자 (만 19세 미만)</span>
-                        <span class="customer-type-badge">가입 불가</span>
-                    </button>
-                    <button class="customer-type-item customer-type-item-disabled" data-type="foreigner" disabled>
-                        <span class="customer-type-label">외국인</span>
-                        <span class="customer-type-badge">가입 불가</span>
-                    </button>
-                </div>
-            </div>
-            
             <!-- 2단계: 가입 방법 선택 -->
-            <div class="apply-modal-step" id="step2" style="display: none;">
+            <div class="apply-modal-step" id="step2">
                 <div class="plan-order-section">
-                    <div class="plan-order-section-title">어떤 방법으로 요금제 가입을 진행할까요?</div>
-                    <div class="plan-order-section-subtitle">고고모바일 통신사로 가입을 진행합니다</div>
                     <div class="plan-order-checkbox-group">
                         <div class="plan-order-checkbox-item">
                             <input type="checkbox" id="numberPort" name="joinMethod" value="port" class="plan-order-checkbox-input">
@@ -526,9 +499,6 @@ include '../includes/header.php';
                                     <div class="plan-order-checkbox-title">번호 이동</div>
                                     <div class="plan-order-checkbox-description">지금 쓰는 번호 그대로 사용할래요</div>
                                 </div>
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="plan-order-checkbox-icon">
-                                    <path fill-rule="evenodd" d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10zm5.207-11.793a1 1 0 00-1.414-1.414L11 13.586l-2.793-2.793a1 1 0 00-1.414 1.414l3.5 3.5a1 1 0 001.414 0l5.5-5.5z" clip-rule="evenodd"></path>
-                                </svg>
                             </label>
                         </div>
                         <div class="plan-order-checkbox-item">
@@ -538,12 +508,33 @@ include '../includes/header.php';
                                     <div class="plan-order-checkbox-title">신규 가입</div>
                                     <div class="plan-order-checkbox-description">새로운 번호로 가입할래요</div>
                                 </div>
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="plan-order-checkbox-icon">
-                                    <path fill-rule="evenodd" d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10zm5.207-11.793a1 1 0 00-1.414-1.414L11 13.586l-2.793-2.793a1 1 0 00-1.414 1.414l3.5 3.5a1 1 0 001.414 0l5.5-5.5z" clip-rule="evenodd"></path>
-                                </svg>
                             </label>
                         </div>
                     </div>
+                </div>
+            </div>
+            
+            <!-- 3단계: 신청 안내 -->
+            <div class="apply-modal-step" id="step3" style="display: none;">
+                <div class="plan-apply-confirm-section">
+                    <div class="plan-apply-confirm-description">
+                        <div class="plan-apply-confirm-intro">
+                            모유에서 다음 정보가 알림톡으로 발송됩니다:<br>
+                            <span class="plan-apply-confirm-intro-sub">알림 정보 설정은 마이페이지에서 수정가능하세요.</span>
+                        </div>
+                        <div class="plan-apply-confirm-list">
+                            <div class="plan-apply-confirm-item plan-apply-confirm-item-empty"></div>
+                            <div class="plan-apply-confirm-item plan-apply-confirm-item-center">
+                                • 신청정보<br>
+                                • 약정기간 종료 안내<br>
+                                • 프로모션 종료 안내<br>
+                                • 기타 상품관련 안내
+                            </div>
+                            <div class="plan-apply-confirm-item plan-apply-confirm-item-empty"></div>
+                        </div>
+                        <div class="plan-apply-confirm-notice">쉐이크모바일 연계 통신사로 가입을 진행합니다</div>
+                    </div>
+                    <button class="plan-apply-confirm-btn" id="planApplyConfirmBtn">신청하기</button>
                 </div>
             </div>
         </div>
@@ -706,63 +697,56 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // 모달 열기
         applyModal.classList.add('apply-modal-active');
+        
+        // 신청 안내 모달(3단계) 바로 표시 (가입유형 선택 건너뛰기)
+        showStep(3);
     }
     
     // 모달 단계 관리
-    let currentStep = 1;
+    let currentStep = 3;
     
     // 단계 표시 함수
     const applyModalBack = document.getElementById('applyModalBack');
     
-    function showStep(stepNumber) {
-        const step1 = document.getElementById('step1');
+    function showStep(stepNumber, selectedMethod) {
         const step2 = document.getElementById('step2');
+        const step3 = document.getElementById('step3');
         const modalTitle = document.querySelector('.apply-modal-title');
+        const confirmMethod = document.getElementById('planApplyConfirmMethod');
         
-        if (stepNumber === 1) {
-            step1.style.display = 'block';
-            step2.style.display = 'none';
-            if (modalTitle) modalTitle.textContent = '고객 유형을 선택해주세요';
-            if (applyModalBack) applyModalBack.style.display = 'none';
-            currentStep = 1;
-        } else if (stepNumber === 2) {
-            step1.style.display = 'none';
-            step2.style.display = 'block';
-            if (modalTitle) modalTitle.textContent = '어떤 방법으로 요금제 가입을 진행할까요?';
+        if (stepNumber === 2) {
+            if (step2) step2.style.display = 'block';
+            if (step3) step3.style.display = 'none';
+            if (modalTitle) modalTitle.textContent = '가입유형';
             if (applyModalBack) applyModalBack.style.display = 'flex';
             currentStep = 2;
+        } else if (stepNumber === 3) {
+            if (step2) step2.style.display = 'none';
+            if (step3) step3.style.display = 'block';
+            // 모달 제목 기본값: 통신사 가입신청
+            if (modalTitle) {
+                modalTitle.textContent = '통신사 가입신청';
+            }
+            // 뒤로 가기 버튼 숨김 (첫 번째 모달이므로)
+            if (applyModalBack) applyModalBack.style.display = 'none';
+            // 버튼 텍스트 기본값: 신청하기
+            const confirmBtn = document.getElementById('planApplyConfirmBtn');
+            if (confirmBtn) {
+                confirmBtn.textContent = '신청하기';
+            }
+            currentStep = 3;
         }
     }
     
     // 뒤로 가기 버튼 이벤트
     if (applyModalBack) {
         applyModalBack.addEventListener('click', function() {
-            if (currentStep === 2) {
-                showStep(1);
+            // step3에서 뒤로 가기 시 모달 닫기
+            if (currentStep === 3) {
+                closeApplyModal();
             }
         });
     }
-    
-    // 고객 유형 선택 이벤트
-    const customerTypeItems = document.querySelectorAll('.customer-type-item');
-    customerTypeItems.forEach(item => {
-        item.addEventListener('click', function() {
-            if (!this.disabled && !this.classList.contains('customer-type-item-disabled')) {
-                // 모든 항목에서 active 클래스 제거
-                customerTypeItems.forEach(i => i.classList.remove('customer-type-item-active'));
-                // 클릭한 항목에 active 클래스 추가
-                this.classList.add('customer-type-item-active');
-                
-                const customerType = this.getAttribute('data-type');
-                console.log('선택된 고객 유형:', customerType);
-                
-                // 다음 단계로 진행 (약간의 딜레이로 부드러운 전환)
-                setTimeout(() => {
-                    showStep(2);
-                }, 300);
-            }
-        });
-    });
     
     // 가입 방법 선택 이벤트 (라디오 버튼처럼 동작)
     const joinMethodInputs = document.querySelectorAll('input[name="joinMethod"]');
@@ -780,7 +764,14 @@ document.addEventListener('DOMContentLoaded', function() {
             if (this.checked) {
                 this.closest('.plan-order-checkbox-item').classList.add('plan-order-checkbox-checked');
                 console.log('선택된 가입 방법:', this.value);
-                // 여기에 다음 단계로 진행하는 로직 추가 가능
+                
+                // 선택된 가입 방법 텍스트 가져오기
+                const selectedMethod = this.value === 'port' ? '번호 이동' : '신규 가입';
+                
+                // 다음 단계로 진행
+                setTimeout(() => {
+                    showStep(3, selectedMethod);
+                }, 300);
             } else {
                 this.closest('.plan-order-checkbox-item').classList.remove('plan-order-checkbox-checked');
             }
@@ -847,10 +838,25 @@ document.addEventListener('DOMContentLoaded', function() {
         window.scrollTo(0, scrollPosition);
         
         // 모달 상태 초기화
-        showStep(1);
-        joinMethodInputs.forEach(inp => {
-            inp.checked = false;
-            inp.closest('.plan-order-checkbox-item')?.classList.remove('plan-order-checkbox-checked');
+        showStep(3);
+    }
+    
+    // step3 신청하기 버튼 이벤트
+    const planApplyConfirmBtn = document.getElementById('planApplyConfirmBtn');
+    if (planApplyConfirmBtn) {
+        planApplyConfirmBtn.addEventListener('click', function() {
+            // 모달 즉시 닫기
+            applyModal.classList.remove('apply-modal-active');
+            document.body.style.overflow = '';
+            document.body.style.position = '';
+            document.body.style.top = '';
+            document.body.style.width = '';
+            document.documentElement.style.overflow = '';
+            window.scrollTo(0, scrollPosition);
+            showStep(3);
+            
+            // 상품 등록 시 설정된 URL로 새 창에서 이동 (현재는 naver)
+            window.open('https://www.naver.com', '_blank');
         });
     }
 

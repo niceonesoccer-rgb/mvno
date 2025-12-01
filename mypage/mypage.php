@@ -24,10 +24,10 @@ include '../includes/header.php';
                     </svg>
                     <p style="font-size: 18px; font-weight: bold; margin: 0;">찜한 요금제</p>
                 </div>
-                <a href="/MVNO/mypage/wishlist.php" style="font-size: 14px; color: #6366f1; text-decoration: none;">3개 더보기</a>
+                <a href="/MVNO/mypage/wishlist.php" style="font-size: 14px; color: #6366f1; text-decoration: none;">13개 더보기</a>
             </div>
             <article class="basic-plan-card">
-                <a href="/MVNO/plans/32627" class="plan-card-link">
+                <a href="/MVNO/plans/plan-detail.php?id=32627" class="plan-card-link">
                     <div class="plan-card-main-content">
                         <div class="plan-card-header-body-frame">
                             <!-- 헤더: 로고, 평점, 배지, 찜 -->
@@ -90,7 +90,7 @@ include '../includes/header.php';
                                     <span class="plan-price-after">7개월 이후 42,900원</span>
                                 </div>
                                 <div class="plan-price-right">
-                                    <span class="plan-selection-count">29,448명이 선택</span>
+                                    <span class="plan-selection-count">29,448명이 신청</span>
                                 </div>
                             </div>
                         </div>
@@ -143,15 +143,15 @@ include '../includes/header.php';
         <div style="margin-bottom: 32px;">
             <ul style="list-style: none; padding: 0; margin: 0;">
                 <li style="border-bottom: 1px solid #e5e7eb;">
-                    <a href="/mypage/orders" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; text-decoration: none; color: inherit;">
+                    <a href="/MVNO/mypage/orders.php" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; text-decoration: none; color: inherit;">
                         <div style="display: flex; align-items: center; gap: 12px;">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink: 0;">
                                 <path d="M9 5H7C5.89543 5 5 5.89543 5 7V19C5 20.1046 5.89543 21 7 21H17C18.1046 21 19 20.1046 19 19V7C19 5.89543 18.1046 5 17 5H15M9 5C9 6.10457 9.89543 7 11 7H13C14.1046 7 15 6.10457 15 5M9 5C9 3.89543 9.89543 3 11 3H13C14.1046 3 15 3.89543 15 5M9 12H15M9 16H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                             </svg>
-                            <span style="font-size: 16px;">신청한 요금제</span>
+                            <span style="font-size: 16px;">요금제 신청내역</span>
                         </div>
                         <div style="display: flex; align-items: center; gap: 8px;">
-                            <span style="font-size: 14px; color: #6b7280;">0개</span>
+                            <span style="font-size: 14px; color: #6b7280;">15개</span>
                             <img alt=">" src="https://assets-legacy.moyoplan.com/img/icons/rightArrow.svg" style="width: 16px; height: 16px;">
                         </div>
                     </a>
@@ -163,7 +163,7 @@ include '../includes/header.php';
                                 <path d="M5 4C5 2.89543 5.89543 2 7 2H17C18.1046 2 19 2.89543 19 4V20C19 21.1046 18.1046 22 17 22H7C5.89543 22 5 21.1046 5 20V4Z" stroke="currentColor" stroke-width="2"/>
                                 <path d="M12 18H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                             </svg>
-                            <span style="font-size: 16px;">휴대폰 신청 내역</span>
+                            <span style="font-size: 16px;">자급제 주문내역</span>
                         </div>
                         <img alt=">" src="https://assets-legacy.moyoplan.com/img/icons/rightArrow.svg" style="width: 16px; height: 16px;">
                     </a>
@@ -184,7 +184,7 @@ include '../includes/header.php';
                                 <rect x="12.5" y="13" width="1.5" height="1.5" rx="0.25" fill="currentColor"/>
                                 <rect x="15" y="13" width="1.5" height="1.5" rx="0.25" fill="currentColor"/>
                             </svg>
-                            <span style="font-size: 16px;">유심신청내역</span>
+                            <span style="font-size: 16px;">해외eSIM 주문내역</span>
                         </div>
                         <img alt=">" src="https://assets-legacy.moyoplan.com/img/icons/rightArrow.svg" style="width: 16px; height: 16px;">
                     </a>
@@ -217,9 +217,6 @@ include '../includes/header.php';
             </ul>
 
             <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 16px 0;">
-            <div style="margin: 16px 0 8px 0;">
-                <p style="font-size: 12px; color: #9ca3af; margin: 0;">기타</p>
-            </div>
             <ul style="list-style: none; padding: 0; margin: 0;">
                 <li style="border-bottom: 1px solid #e5e7eb;">
                     <a href="/notice" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; text-decoration: none; color: inherit;">
@@ -249,9 +246,6 @@ include '../includes/header.php';
             </ul>
 
             <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 16px 0;">
-            <div style="margin: 16px 0 8px 0;">
-                <p style="font-size: 12px; color: #9ca3af; margin: 0;">계정</p>
-            </div>
             <ul style="list-style: none; padding: 0; margin: 0;">
                 <li>
                     <a href="/MVNO/mypage/account-management.php" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; text-decoration: none; color: inherit;">

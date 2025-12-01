@@ -24,14 +24,11 @@ include '../includes/header.php';
         <div style="background-color: #ffffff; border-radius: 8px; padding: 20px; margin-bottom: 16px;">
             <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;">
                 <div style="display: flex; align-items: flex-start; gap: 16px; flex: 1;">
-                    <!-- 선물 상자 아이콘 -->
-                    <div style="flex-shrink: 0; width: 40px; height: 40px; background-color: #e0e7ff; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                    <!-- 알림 아이콘 -->
+                    <div style="flex-shrink: 0; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M20 7H4C3.44772 7 3 7.44772 3 8V19C3 20.1046 3.89543 21 5 21H19C20.1046 21 21 20.1046 21 19V8C21 7.44772 20.5523 7 20 7Z" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                            <path d="M16 21V11C16 10.4477 15.5523 10 15 10H9C8.44772 10 8 10.4477 8 11V21" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                            <path d="M12 7V3C12 2.44772 12.4477 2 13 2H15C15.5523 2 16 2.44772 16 3V7" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                            <path d="M8 7V3C8 2.44772 8.44772 2 9 2H11C11.5523 2 12 2.44772 12 3V7" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                            <path d="M12 14V17" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="#6b7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="#6b7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
                     </div>
                     
