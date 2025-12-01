@@ -9,113 +9,43 @@ $plan_id = isset($_GET['id']) ? intval($_GET['id']) : 32627;
 
 // 헤더 포함
 include '../includes/header.php';
+
+// 요금제 데이터 가져오기
+require_once '../includes/data/plan-data.php';
+$plan = getPlanDetailData($plan_id);
+if (!$plan) {
+    // 데이터가 없으면 기본값 사용
+    $plan = [
+        'id' => $plan_id,
+        'provider' => '쉐이크모바일',
+        'rating' => '4.3',
+        'title' => '11월한정 LTE 100GB+밀리+Data쿠폰60GB',
+        'data_main' => '월 100GB + 5Mbps',
+        'features' => ['통화 무제한', '문자 무제한', 'KT망', 'LTE'],
+        'price_main' => '월 17,000원',
+        'price_after' => '7개월 이후 42,900원',
+        'selection_count' => '29,448명이 신청',
+        'gifts' => [
+            'SOLO결합(+20GB)',
+            '밀리의서재 평생 무료 구독권',
+            '데이터쿠폰 20GB',
+            '[11월 한정]네이버페이 10,000원',
+            '3대 마트 상품권 2만원'
+        ],
+        'gift_icons' => [
+            ['src' => 'https://assets.moyoplan.com/image/mvno-gifts/badge/emart.svg', 'alt' => '이마트 상품권'],
+            ['src' => 'https://assets.moyoplan.com/image/mvno-gifts/badge/naverpay.svg', 'alt' => '네이버페이'],
+            ['src' => 'https://assets.moyoplan.com/image/mvno-gifts/badge/ticket.svg', 'alt' => '데이터쿠폰 20GB'],
+            ['src' => 'https://assets.moyoplan.com/image/mvno-gifts/badge/millie.svg', 'alt' => '밀리의 서재'],
+            ['src' => 'https://assets.moyoplan.com/image/mvno-gifts/badge/subscription.svg', 'alt' => 'SOLO결합(+20GB)']
+        ]
+    ];
+}
 ?>
 
 <main class="main-content plan-detail-page">
-    <!-- 기본 정보 섹션 -->
-    <div class="content-layout plan-detail-header-section">
-        <article class="basic-plan-card">
-            <div class="plan-card-link">
-                <div class="plan-card-main-content">
-                    <div class="plan-card-header-body-frame">
-                        <!-- 헤더: 로고, 평점, 배지, 찜 -->
-                        <div class="plan-card-top-header">
-                            <div class="plan-provider-rating-group">
-                                <span class="plan-provider-logo-text">쉐이크모바일</span>
-                                <div class="plan-rating-group">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M13.1479 3.1366C12.7138 2.12977 11.2862 2.12977 10.8521 3.1366L8.75804 7.99389L3.48632 8.48228C2.3937 8.58351 1.9524 9.94276 2.77717 10.6665L6.75371 14.156L5.58995 19.3138C5.34855 20.3837 6.50365 21.2235 7.44697 20.664L12 17.9635L16.553 20.664C17.4963 21.2235 18.6514 20.3837 18.4101 19.3138L17.2463 14.156L21.2228 10.6665C22.0476 9.94276 21.6063 8.58351 20.5137 8.48228L15.242 7.99389L13.1479 3.1366Z" fill="#FCC419"/>
-                                    </svg>
-                                    <span class="plan-rating-text">4.3</span>
-                                </div>
-                            </div>
-                            <div class="plan-badge-favorite-group">
-                                <button class="plan-favorite-btn-inline" aria-label="찜하기">
-                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M21 9.54803C21 10.8797 20.4656 12.1588 19.5112 13.105C17.3144 15.2837 15.1837 17.5556 12.9048 19.6553C12.3824 20.1296 11.5538 20.1123 11.0539 19.6166L4.48838 13.105C2.50387 11.1368 2.50387 7.95928 4.48838 5.99107C6.49239 4.00353 9.75714 4.00353 11.7611 5.99107L11.9998 6.22775L12.2383 5.99121C13.1992 5.03776 14.5078 4.5 15.8748 4.5C17.2418 4.5 18.5503 5.03771 19.5112 5.99107C20.4657 6.93733 21 8.21636 21 9.54803Z" fill="#FA5252"/>
-                                    </svg>
-                                </button>
-                                <button class="plan-share-btn-inline" aria-label="공유하기" id="planShareBtn">
-                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M11.2028 3.30311C11.6574 2.89896 12.3426 2.89896 12.7972 3.30311L17.2972 7.30311C17.7926 7.74341 17.8372 8.5019 17.3969 8.99724C16.9566 9.49258 16.1981 9.53719 15.7028 9.09689L13.2 6.8722V13.8C13.2 14.4627 12.6627 15 12 15C11.3372 15 10.8 14.4627 10.8 13.8V6.87222L8.29724 9.09689C7.8019 9.53719 7.04341 9.49258 6.60311 8.99724C6.16281 8.5019 6.20742 7.74341 6.70276 7.30311L11.2028 3.30311Z" fill="#868E96"/>
-                                        <path d="M4.2 13C4.86274 13 5.4 13.5373 5.4 14.2V18.1083C5.4 18.184 5.43249 18.2896 5.5575 18.3981C5.68495 18.5087 5.89077 18.6 6.15 18.6H17.85C18.1093 18.6 18.3151 18.5087 18.4425 18.3981C18.5675 18.2897 18.6 18.184 18.6 18.1083V14.2C18.6 13.5373 19.1373 13 19.8 13C20.4627 13 21 13.5373 21 14.2V18.1083C21 19.8598 19.4239 21 17.85 21H6.15C4.5761 21 3 19.8598 3 18.1083V14.2C3 13.5373 3.53726 13 4.2 13Z" fill="#868E96"/>
-                                    </svg>
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- 제목과 찜 버튼 -->
-                        <div class="plan-title-row">
-                            <span class="plan-title-text">11월한정 LTE 100GB+밀리+Data쿠폰60GB</span>
-                        </div>
-
-                        <!-- 데이터 정보와 기능 -->
-                        <div class="plan-info-section">
-                            <div class="plan-data-row">
-                                <span class="plan-data-main">월 100GB + 5Mbps</span>
-                                <span class="plan-selection-count">29,448명이 신청</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- 아코디언: 사은품 -->
-            <div class="plan-accordion-box">
-                <div class="plan-accordion">
-                    <button type="button" class="plan-accordion-trigger" aria-expanded="false">
-                        <div class="plan-gifts-accordion-content">
-                            <div class="plan-gift-icons-overlap">
-                                <img src="https://assets.moyoplan.com/image/mvno-gifts/badge/emart.svg" alt="이마트 상품권" width="24" height="24" class="plan-gift-icon-overlap">
-                                <img src="https://assets.moyoplan.com/image/mvno-gifts/badge/naverpay.svg" alt="네이버페이" width="24" height="24" class="plan-gift-icon-overlap">
-                                <img src="https://assets.moyoplan.com/image/mvno-gifts/badge/ticket.svg" alt="데이터쿠폰 20GB" width="24" height="24" class="plan-gift-icon-overlap">
-                                <img src="https://assets.moyoplan.com/image/mvno-gifts/badge/millie.svg" alt="밀리의 서재" width="24" height="24" class="plan-gift-icon-overlap">
-                                <img src="https://assets.moyoplan.com/image/mvno-gifts/badge/subscription.svg" alt="SOLO결합(+20GB)" width="24" height="24" class="plan-gift-icon-overlap">
-                            </div>
-                            <span class="plan-gifts-text-accordion">사은품 최대 5개</span>
-                        </div>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="plan-accordion-arrow">
-                            <path fill-rule="evenodd" clip-rule="evenodd" d="M3.15146 8.15147C3.62009 7.68284 4.37989 7.68284 4.84852 8.15147L12 15.3029L19.1515 8.15147C19.6201 7.68284 20.3799 7.68284 20.8485 8.15147C21.3171 8.6201 21.3171 9.3799 20.8485 9.84853L12.8485 17.8485C12.3799 18.3172 11.6201 18.3172 11.1515 17.8485L3.15146 9.84853C2.68283 9.3799 2.68283 8.6201 3.15146 8.15147Z" fill="#868E96"/>
-                        </svg>
-                    </button>
-                    <div class="plan-accordion-content" style="display: none;">
-                        <div class="plan-gifts-detail-list">
-                            <div class="plan-gift-detail-item">
-                                <span class="plan-gift-detail-text">SOLO결합(+20GB)</span>
-                            </div>
-                            <div class="plan-gift-detail-item">
-                                <span class="plan-gift-detail-text">밀리의서재 평생 무료 구독권</span>
-                            </div>
-                            <div class="plan-gift-detail-item">
-                                <span class="plan-gift-detail-text">데이터쿠폰 20GB</span>
-                            </div>
-                            <div class="plan-gift-detail-item">
-                                <span class="plan-gift-detail-text">[11월 한정]네이버페이 10,000원</span>
-                            </div>
-                            <div class="plan-gift-detail-item">
-                                <span class="plan-gift-detail-text">3대 마트 상품권 2만원</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </article>
-    </div>
-
-    <!-- 신청하기 섹션 (하단 고정) -->
-    <section class="plan-detail-apply-section">
-        <div class="content-layout">
-            <div class="plan-apply-content">
-                <div class="plan-price-info">
-                    <div class="plan-price-main">
-                        <span class="plan-price-amount">월 17,000원</span>
-                    </div>
-                    <span class="plan-price-note">7개월 이후 42,900원</span>
-                </div>
-                <button class="plan-apply-btn" id="planApplyBtn">신청하기</button>
-            </div>
-        </div>
-    </section>
+    <!-- 요금제 상세 레이아웃 (모듈 사용) -->
+    <?php include '../includes/layouts/plan-detail-layout.php'; ?>
 
     <!-- 요금제 상세 정보 섹션 (통합) -->
     <section class="plan-detail-info-section">
@@ -255,7 +185,7 @@ include '../includes/header.php';
     </section>
 
     <!-- 통신사 리뷰 섹션 -->
-    <section class="plan-review-section">
+    <section class="plan-review-section" id="planReviewSection">
         <div class="content-layout">
             <div class="plan-review-header">
                 <a href="/mvnos/쉐이크모바일?from=요금제상세" class="plan-review-mvno-link">
@@ -324,6 +254,206 @@ include '../includes/header.php';
                     </div>
                     <p class="plan-review-content">고객센터 개통 전화없이 모요 통해서 개통신청하고 편의점 바로유심 사서 끼우면 바로 개통됨..타 알뜰폰 통신사보다 개통과정, 통신속도,데이터량 불편함없이 사용함..쉐이크모바일 강추</p>
                 </div>
+                <div class="plan-review-item">
+                    <div class="plan-review-item-header">
+                        <span class="plan-review-author">김*수</span>
+                        <div class="plan-review-stars">
+                            <span>★★★★★</span>
+                        </div>
+                        <span class="plan-review-date">52일 전</span>
+                    </div>
+                    <p class="plan-review-content">데이터 속도도 빠르고 가격도 합리적이에요. 특히 100GB 제공량이 넉넉해서 매달 데이터 걱정 없이 사용하고 있습니다. 주변 사람들한테도 추천했어요.</p>
+                </div>
+                <div class="plan-review-item">
+                    <div class="plan-review-item-header">
+                        <span class="plan-review-author">이*민</span>
+                        <div class="plan-review-stars">
+                            <span>★★★★☆</span>
+                        </div>
+                        <span class="plan-review-date">58일 전</span>
+                    </div>
+                    <p class="plan-review-content">번호이동 과정이 생각보다 간단했어요. 고객센터 상담도 친절하고 개통도 빠르게 진행되었습니다. 다만 초기 설정할 때 조금 헷갈렸지만 지금은 잘 사용 중입니다.</p>
+                </div>
+                <div class="plan-review-item">
+                    <div class="plan-review-item-header">
+                        <span class="plan-review-author">박*준</span>
+                        <div class="plan-review-stars">
+                            <span>★★★★★</span>
+                        </div>
+                        <span class="plan-review-date">65일 전</span>
+                    </div>
+                    <p class="plan-review-content">eSIM으로 개통했는데 정말 편리했어요. 유심 카드 교체 없이 바로 사용할 수 있어서 좋았습니다. 통화 품질도 깨끗하고 데이터 속도도 만족스러워요.</p>
+                </div>
+                <div class="plan-review-item">
+                    <div class="plan-review-item-header">
+                        <span class="plan-review-author">정*호</span>
+                        <div class="plan-review-stars">
+                            <span>★★★★★</span>
+                        </div>
+                        <span class="plan-review-date">72일 전</span>
+                    </div>
+                    <p class="plan-review-content">기존 통신사보다 월 요금이 훨씬 저렴한데 데이터 제공량은 더 많아서 만족합니다. 사은품도 받고 가격도 좋고 일석이조네요. 강력 추천합니다!</p>
+                </div>
+                <div class="plan-review-item">
+                    <div class="plan-review-item-header">
+                        <span class="plan-review-author">강*영</span>
+                        <div class="plan-review-stars">
+                            <span>★★★★☆</span>
+                        </div>
+                        <span class="plan-review-date">78일 전</span>
+                    </div>
+                    <p class="plan-review-content">처음 알뜰폰 사용인데 걱정했지만 생각보다 괜찮아요. 통신 품질도 나쁘지 않고 가격 대비 만족도가 높습니다. 다만 앱이 조금 불편한 점이 있어요.</p>
+                </div>
+                <div class="plan-review-item">
+                    <div class="plan-review-item-header">
+                        <span class="plan-review-author">윤*서</span>
+                        <div class="plan-review-stars">
+                            <span>★★★★★</span>
+                        </div>
+                        <span class="plan-review-date">85일 전</span>
+                    </div>
+                    <p class="plan-review-content">밀리의 서재 무료 구독권 받아서 너무 좋아요! 요금제도 저렴하고 부가 서비스까지 받을 수 있어서 정말 만족합니다. 친구들한테도 자랑했어요.</p>
+                </div>
+                <div class="plan-review-item">
+                    <div class="plan-review-item-header">
+                        <span class="plan-review-author">장*우</span>
+                        <div class="plan-review-stars">
+                            <span>★★★★★</span>
+                        </div>
+                        <span class="plan-review-date">91일 전</span>
+                    </div>
+                    <p class="plan-review-content">KT망이라서 통신 품질이 안정적이에요. 지하철이나 건물 안에서도 끊김 없이 잘 사용하고 있습니다. 데이터 소진 후에도 5Mbps로 계속 사용할 수 있어서 좋아요.</p>
+                </div>
+                <div class="plan-review-item">
+                    <div class="plan-review-item-header">
+                        <span class="plan-review-author">임*진</span>
+                        <div class="plan-review-stars">
+                            <span>★★★★☆</span>
+                        </div>
+                        <span class="plan-review-date">98일 전</span>
+                    </div>
+                    <p class="plan-review-content">신규 가입으로 진행했는데 번호도 마음에 들고 개통도 빠르게 되었어요. 고객센터 응대도 친절하고 전체적으로 만족합니다. 다만 약정 기간이 있으면 더 좋을 것 같아요.</p>
+                </div>
+                <div class="plan-review-item">
+                    <div class="plan-review-item-header">
+                        <span class="plan-review-author">한*지</span>
+                        <div class="plan-review-stars">
+                            <span>★★★★★</span>
+                        </div>
+                        <span class="plan-review-date">105일 전</span>
+                    </div>
+                    <p class="plan-review-content">데이터 쿠폰 60GB까지 받아서 총 160GB나 사용할 수 있어요! 유튜브, 넷플릭스 마음껏 보고 다니는데도 부족함이 없습니다. 정말 추천해요.</p>
+                </div>
+                <div class="plan-review-item">
+                    <div class="plan-review-item-header">
+                        <span class="plan-review-author">송*현</span>
+                        <div class="plan-review-stars">
+                            <span>★★★★★</span>
+                        </div>
+                        <span class="plan-review-date">112일 전</span>
+                    </div>
+                    <p class="plan-review-content">모요 사이트에서 비교하고 신청했는데 정말 편리했어요. 여러 통신사 요금제를 한눈에 비교할 수 있어서 좋았습니다. 쉐이크모바일 선택한 거 후회 없어요.</p>
+                </div>
+                <div class="plan-review-item">
+                    <div class="plan-review-item-header">
+                        <span class="plan-review-author">조*혁</span>
+                        <div class="plan-review-stars">
+                            <span>★★★★☆</span>
+                        </div>
+                        <span class="plan-review-date">119일 전</span>
+                    </div>
+                    <p class="plan-review-content">번호이동 수수료가 없어서 좋았어요. 다른 통신사는 수수료 받는데 여기는 없어서 부담이 적었습니다. 통화 품질도 깨끗하고 만족합니다.</p>
+                </div>
+                <div class="plan-review-item">
+                    <div class="plan-review-item-header">
+                        <span class="plan-review-author">배*수</span>
+                        <div class="plan-review-stars">
+                            <span>★★★★★</span>
+                        </div>
+                        <span class="plan-review-date">126일 전</span>
+                    </div>
+                    <p class="plan-review-content">휴일에도 개통이 가능해서 정말 편리했어요. 주말에 신청했는데 월요일 오전에 바로 개통되었습니다. 고객센터도 친절하게 안내해주셨어요.</p>
+                </div>
+                <div class="plan-review-item">
+                    <div class="plan-review-item-header">
+                        <span class="plan-review-author">신*아</span>
+                        <div class="plan-review-stars">
+                            <span>★★★★★</span>
+                        </div>
+                        <span class="plan-review-date">133일 전</span>
+                    </div>
+                    <p class="plan-review-content">네이버페이 1만원 상품권 받아서 기분 좋았어요. 요금제도 저렴하고 사은품도 받고 일석이조입니다. 가족들도 모두 여기로 바꿨어요.</p>
+                </div>
+                <div class="plan-review-item">
+                    <div class="plan-review-item-header">
+                        <span class="plan-review-author">오*성</span>
+                        <div class="plan-review-stars">
+                            <span>★★★★☆</span>
+                        </div>
+                        <span class="plan-review-date">140일 전</span>
+                    </div>
+                    <p class="plan-review-content">유심 배송도 빠르고 개통도 신속하게 진행되었어요. 처음 사용해보는 알뜰폰이라 걱정했는데 생각보다 괜찮습니다. 다만 앱 UI가 조금 아쉬워요.</p>
+                </div>
+                <div class="plan-review-item">
+                    <div class="plan-review-item-header">
+                        <span class="plan-review-author">류*호</span>
+                        <div class="plan-review-stars">
+                            <span>★★★★★</span>
+                        </div>
+                        <span class="plan-review-date">147일 전</span>
+                    </div>
+                    <p class="plan-review-content">데이터 제공량이 넉넉해서 매달 걱정 없이 사용하고 있어요. 핫스팟도 데이터 제공량 내에서 사용 가능해서 노트북 연결해서도 잘 쓰고 있습니다.</p>
+                </div>
+                <div class="plan-review-item">
+                    <div class="plan-review-item-header">
+                        <span class="plan-review-author">문*희</span>
+                        <div class="plan-review-stars">
+                            <span>★★★★★</span>
+                        </div>
+                        <span class="plan-review-date">154일 전</span>
+                    </div>
+                    <p class="plan-review-content">SOLO 결합으로 추가 20GB 받아서 총 120GB 사용 중이에요! 데이터 걱정 전혀 없이 사용하고 있습니다. 가격 대비 정말 최고의 요금제인 것 같아요.</p>
+                </div>
+                <div class="plan-review-item">
+                    <div class="plan-review-item-header">
+                        <span class="plan-review-author">양*준</span>
+                        <div class="plan-review-stars">
+                            <span>★★★★☆</span>
+                        </div>
+                        <span class="plan-review-date">161일 전</span>
+                    </div>
+                    <p class="plan-review-content">고객센터 상담이 친절하고 전문적이에요. 문의사항도 빠르게 해결해주시고 개통 과정도 원활하게 진행되었습니다. 전체적으로 만족합니다.</p>
+                </div>
+                <div class="plan-review-item">
+                    <div class="plan-review-item-header">
+                        <span class="plan-review-author">홍*영</span>
+                        <div class="plan-review-stars">
+                            <span>★★★★★</span>
+                        </div>
+                        <span class="plan-review-date">168일 전</span>
+                    </div>
+                    <p class="plan-review-content">이마트 상품권 2만원 받아서 기분 좋았어요! 요금제도 저렴하고 사은품도 다양하게 받을 수 있어서 정말 만족합니다. 주변 사람들한테도 추천했어요.</p>
+                </div>
+                <div class="plan-review-item">
+                    <div class="plan-review-item-header">
+                        <span class="plan-review-author">서*우</span>
+                        <div class="plan-review-stars">
+                            <span>★★★★★</span>
+                        </div>
+                        <span class="plan-review-date">175일 전</span>
+                    </div>
+                    <p class="plan-review-content">기존 통신사에서 번호이동 했는데 전혀 문제없이 잘 사용하고 있어요. 통신 품질도 동일하고 가격은 훨씬 저렴해서 만족합니다. 계속 사용할 예정이에요.</p>
+                </div>
+                <div class="plan-review-item">
+                    <div class="plan-review-item-header">
+                        <span class="plan-review-author">노*진</span>
+                        <div class="plan-review-stars">
+                            <span>★★★★☆</span>
+                        </div>
+                        <span class="plan-review-date">182일 전</span>
+                    </div>
+                    <p class="plan-review-content">데이터 속도가 안정적이에요. 지하철이나 지하에서도 끊김 없이 잘 사용하고 있습니다. 가격 대비 품질이 정말 좋은 것 같아요. 추천합니다!</p>
+                </div>
             </div>
             <button class="plan-review-more-btn" id="planReviewMoreBtn">리뷰 더보기</button>
         </div>
@@ -366,8 +496,17 @@ include '../includes/header.php';
                         </div>
                     </div>
                 </div>
-                <div class="review-modal-sort">
+            </div>
+            <div class="review-modal-sort">
+                <div class="review-modal-sort-wrapper">
                     <span class="review-modal-total">총 11,539개</span>
+                    <div class="review-modal-sort-select-wrapper">
+                        <select class="review-modal-sort-select" id="reviewSortSelect" aria-label="리뷰 정렬 방식 선택">
+                            <option value="SCORE_DESC">높은 평점순</option>
+                            <option value="SCORE_ASC">낮은 평점순</option>
+                            <option value="CREATED_DESC">최신순</option>
+                        </select>
+                    </div>
                 </div>
             </div>
             <div class="review-modal-list">
@@ -412,6 +551,306 @@ include '../includes/header.php';
                     <div class="review-modal-tags">
                         <span class="review-modal-tag">KT망</span>
                         <span class="review-modal-tag">유심 보유</span>
+                    </div>
+                </div>
+                <div class="review-modal-item">
+                    <div class="review-modal-item-header">
+                        <span class="review-modal-author">김*수</span>
+                        <div class="review-modal-stars">
+                            <span>★★★★★</span>
+                        </div>
+                        <span class="review-modal-date">52일 전</span>
+                    </div>
+                    <p class="review-modal-item-content">데이터 속도도 빠르고 가격도 합리적이에요. 특히 100GB 제공량이 넉넉해서 매달 데이터 걱정 없이 사용하고 있습니다. 주변 사람들한테도 추천했어요.</p>
+                    <div class="review-modal-tags">
+                        <span class="review-modal-tag">KT망</span>
+                        <span class="review-modal-tag">개통까지 1일</span>
+                        <span class="review-modal-tag">유심 보유</span>
+                    </div>
+                </div>
+                <div class="review-modal-item">
+                    <div class="review-modal-item-header">
+                        <span class="review-modal-author">이*민</span>
+                        <div class="review-modal-stars">
+                            <span>★★★★☆</span>
+                        </div>
+                        <span class="review-modal-date">58일 전</span>
+                    </div>
+                    <p class="review-modal-item-content">번호이동 과정이 생각보다 간단했어요. 고객센터 상담도 친절하고 개통도 빠르게 진행되었습니다. 다만 초기 설정할 때 조금 헷갈렸지만 지금은 잘 사용 중입니다.</p>
+                    <div class="review-modal-tags">
+                        <span class="review-modal-tag">KT망</span>
+                        <span class="review-modal-tag">개통까지 2일</span>
+                        <span class="review-modal-tag">유심 미보유</span>
+                    </div>
+                </div>
+                <div class="review-modal-item">
+                    <div class="review-modal-item-header">
+                        <span class="review-modal-author">박*준</span>
+                        <div class="review-modal-stars">
+                            <span>★★★★★</span>
+                        </div>
+                        <span class="review-modal-date">65일 전</span>
+                    </div>
+                    <p class="review-modal-item-content">eSIM으로 개통했는데 정말 편리했어요. 유심 카드 교체 없이 바로 사용할 수 있어서 좋았습니다. 통화 품질도 깨끗하고 데이터 속도도 만족스러워요.</p>
+                    <div class="review-modal-tags">
+                        <span class="review-modal-tag">KT망</span>
+                        <span class="review-modal-tag">개통까지 1일</span>
+                        <span class="review-modal-tag">유심 미보유</span>
+                    </div>
+                </div>
+                <div class="review-modal-item">
+                    <div class="review-modal-item-header">
+                        <span class="review-modal-author">정*호</span>
+                        <div class="review-modal-stars">
+                            <span>★★★★★</span>
+                        </div>
+                        <span class="review-modal-date">72일 전</span>
+                    </div>
+                    <p class="review-modal-item-content">기존 통신사보다 월 요금이 훨씬 저렴한데 데이터 제공량은 더 많아서 만족합니다. 사은품도 받고 가격도 좋고 일석이조네요. 강력 추천합니다!</p>
+                    <div class="review-modal-tags">
+                        <span class="review-modal-tag">KT망</span>
+                        <span class="review-modal-tag">개통까지 1일</span>
+                        <span class="review-modal-tag">유심 보유</span>
+                    </div>
+                </div>
+                <div class="review-modal-item">
+                    <div class="review-modal-item-header">
+                        <span class="review-modal-author">강*영</span>
+                        <div class="review-modal-stars">
+                            <span>★★★★☆</span>
+                        </div>
+                        <span class="review-modal-date">78일 전</span>
+                    </div>
+                    <p class="review-modal-item-content">처음 알뜰폰 사용인데 걱정했지만 생각보다 괜찮아요. 통신 품질도 나쁘지 않고 가격 대비 만족도가 높습니다. 다만 앱이 조금 불편한 점이 있어요.</p>
+                    <div class="review-modal-tags">
+                        <span class="review-modal-tag">KT망</span>
+                        <span class="review-modal-tag">개통까지 2일</span>
+                        <span class="review-modal-tag">유심 미보유</span>
+                    </div>
+                </div>
+                <div class="review-modal-item">
+                    <div class="review-modal-item-header">
+                        <span class="review-modal-author">윤*서</span>
+                        <div class="review-modal-stars">
+                            <span>★★★★★</span>
+                        </div>
+                        <span class="review-modal-date">85일 전</span>
+                    </div>
+                    <p class="review-modal-item-content">밀리의 서재 무료 구독권 받아서 너무 좋아요! 요금제도 저렴하고 부가 서비스까지 받을 수 있어서 정말 만족합니다. 친구들한테도 자랑했어요.</p>
+                    <div class="review-modal-tags">
+                        <span class="review-modal-tag">KT망</span>
+                        <span class="review-modal-tag">개통까지 1일</span>
+                        <span class="review-modal-tag">유심 보유</span>
+                    </div>
+                </div>
+                <div class="review-modal-item">
+                    <div class="review-modal-item-header">
+                        <span class="review-modal-author">장*우</span>
+                        <div class="review-modal-stars">
+                            <span>★★★★★</span>
+                        </div>
+                        <span class="review-modal-date">91일 전</span>
+                    </div>
+                    <p class="review-modal-item-content">KT망이라서 통신 품질이 안정적이에요. 지하철이나 건물 안에서도 끊김 없이 잘 사용하고 있습니다. 데이터 소진 후에도 5Mbps로 계속 사용할 수 있어서 좋아요.</p>
+                    <div class="review-modal-tags">
+                        <span class="review-modal-tag">KT망</span>
+                        <span class="review-modal-tag">개통까지 1일</span>
+                        <span class="review-modal-tag">유심 미보유</span>
+                    </div>
+                </div>
+                <div class="review-modal-item">
+                    <div class="review-modal-item-header">
+                        <span class="review-modal-author">임*진</span>
+                        <div class="review-modal-stars">
+                            <span>★★★★☆</span>
+                        </div>
+                        <span class="review-modal-date">98일 전</span>
+                    </div>
+                    <p class="review-modal-item-content">신규 가입으로 진행했는데 번호도 마음에 들고 개통도 빠르게 되었어요. 고객센터 응대도 친절하고 전체적으로 만족합니다. 다만 약정 기간이 있으면 더 좋을 것 같아요.</p>
+                    <div class="review-modal-tags">
+                        <span class="review-modal-tag">KT망</span>
+                        <span class="review-modal-tag">개통까지 1일</span>
+                        <span class="review-modal-tag">유심 미보유</span>
+                    </div>
+                </div>
+                <div class="review-modal-item">
+                    <div class="review-modal-item-header">
+                        <span class="review-modal-author">한*지</span>
+                        <div class="review-modal-stars">
+                            <span>★★★★★</span>
+                        </div>
+                        <span class="review-modal-date">105일 전</span>
+                    </div>
+                    <p class="review-modal-item-content">데이터 쿠폰 60GB까지 받아서 총 160GB나 사용할 수 있어요! 유튜브, 넷플릭스 마음껏 보고 다니는데도 부족함이 없습니다. 정말 추천해요.</p>
+                    <div class="review-modal-tags">
+                        <span class="review-modal-tag">KT망</span>
+                        <span class="review-modal-tag">개통까지 1일</span>
+                        <span class="review-modal-tag">유심 보유</span>
+                    </div>
+                </div>
+                <div class="review-modal-item">
+                    <div class="review-modal-item-header">
+                        <span class="review-modal-author">송*현</span>
+                        <div class="review-modal-stars">
+                            <span>★★★★★</span>
+                        </div>
+                        <span class="review-modal-date">112일 전</span>
+                    </div>
+                    <p class="review-modal-item-content">모요 사이트에서 비교하고 신청했는데 정말 편리했어요. 여러 통신사 요금제를 한눈에 비교할 수 있어서 좋았습니다. 쉐이크모바일 선택한 거 후회 없어요.</p>
+                    <div class="review-modal-tags">
+                        <span class="review-modal-tag">KT망</span>
+                        <span class="review-modal-tag">개통까지 1일</span>
+                        <span class="review-modal-tag">유심 미보유</span>
+                    </div>
+                </div>
+                <div class="review-modal-item">
+                    <div class="review-modal-item-header">
+                        <span class="review-modal-author">조*혁</span>
+                        <div class="review-modal-stars">
+                            <span>★★★★☆</span>
+                        </div>
+                        <span class="review-modal-date">119일 전</span>
+                    </div>
+                    <p class="review-modal-item-content">번호이동 수수료가 없어서 좋았어요. 다른 통신사는 수수료 받는데 여기는 없어서 부담이 적었습니다. 통화 품질도 깨끗하고 만족합니다.</p>
+                    <div class="review-modal-tags">
+                        <span class="review-modal-tag">KT망</span>
+                        <span class="review-modal-tag">개통까지 2일</span>
+                        <span class="review-modal-tag">유심 보유</span>
+                    </div>
+                </div>
+                <div class="review-modal-item">
+                    <div class="review-modal-item-header">
+                        <span class="review-modal-author">배*수</span>
+                        <div class="review-modal-stars">
+                            <span>★★★★★</span>
+                        </div>
+                        <span class="review-modal-date">126일 전</span>
+                    </div>
+                    <p class="review-modal-item-content">휴일에도 개통이 가능해서 정말 편리했어요. 주말에 신청했는데 월요일 오전에 바로 개통되었습니다. 고객센터도 친절하게 안내해주셨어요.</p>
+                    <div class="review-modal-tags">
+                        <span class="review-modal-tag">KT망</span>
+                        <span class="review-modal-tag">개통까지 1일</span>
+                        <span class="review-modal-tag">유심 미보유</span>
+                    </div>
+                </div>
+                <div class="review-modal-item">
+                    <div class="review-modal-item-header">
+                        <span class="review-modal-author">신*아</span>
+                        <div class="review-modal-stars">
+                            <span>★★★★★</span>
+                        </div>
+                        <span class="review-modal-date">133일 전</span>
+                    </div>
+                    <p class="review-modal-item-content">네이버페이 1만원 상품권 받아서 기분 좋았어요. 요금제도 저렴하고 사은품도 받고 일석이조입니다. 가족들도 모두 여기로 바꿨어요.</p>
+                    <div class="review-modal-tags">
+                        <span class="review-modal-tag">KT망</span>
+                        <span class="review-modal-tag">개통까지 1일</span>
+                        <span class="review-modal-tag">유심 보유</span>
+                    </div>
+                </div>
+                <div class="review-modal-item">
+                    <div class="review-modal-item-header">
+                        <span class="review-modal-author">오*성</span>
+                        <div class="review-modal-stars">
+                            <span>★★★★☆</span>
+                        </div>
+                        <span class="review-modal-date">140일 전</span>
+                    </div>
+                    <p class="review-modal-item-content">유심 배송도 빠르고 개통도 신속하게 진행되었어요. 처음 사용해보는 알뜰폰이라 걱정했는데 생각보다 괜찮습니다. 다만 앱 UI가 조금 아쉬워요.</p>
+                    <div class="review-modal-tags">
+                        <span class="review-modal-tag">KT망</span>
+                        <span class="review-modal-tag">개통까지 2일</span>
+                        <span class="review-modal-tag">유심 미보유</span>
+                    </div>
+                </div>
+                <div class="review-modal-item">
+                    <div class="review-modal-item-header">
+                        <span class="review-modal-author">류*호</span>
+                        <div class="review-modal-stars">
+                            <span>★★★★★</span>
+                        </div>
+                        <span class="review-modal-date">147일 전</span>
+                    </div>
+                    <p class="review-modal-item-content">데이터 제공량이 넉넉해서 매달 걱정 없이 사용하고 있어요. 핫스팟도 데이터 제공량 내에서 사용 가능해서 노트북 연결해서도 잘 쓰고 있습니다.</p>
+                    <div class="review-modal-tags">
+                        <span class="review-modal-tag">KT망</span>
+                        <span class="review-modal-tag">개통까지 1일</span>
+                        <span class="review-modal-tag">유심 보유</span>
+                    </div>
+                </div>
+                <div class="review-modal-item">
+                    <div class="review-modal-item-header">
+                        <span class="review-modal-author">문*희</span>
+                        <div class="review-modal-stars">
+                            <span>★★★★★</span>
+                        </div>
+                        <span class="review-modal-date">154일 전</span>
+                    </div>
+                    <p class="review-modal-item-content">SOLO 결합으로 추가 20GB 받아서 총 120GB 사용 중이에요! 데이터 걱정 전혀 없이 사용하고 있습니다. 가격 대비 정말 최고의 요금제인 것 같아요.</p>
+                    <div class="review-modal-tags">
+                        <span class="review-modal-tag">KT망</span>
+                        <span class="review-modal-tag">개통까지 1일</span>
+                        <span class="review-modal-tag">유심 미보유</span>
+                    </div>
+                </div>
+                <div class="review-modal-item">
+                    <div class="review-modal-item-header">
+                        <span class="review-modal-author">양*준</span>
+                        <div class="review-modal-stars">
+                            <span>★★★★☆</span>
+                        </div>
+                        <span class="review-modal-date">161일 전</span>
+                    </div>
+                    <p class="review-modal-item-content">고객센터 상담이 친절하고 전문적이에요. 문의사항도 빠르게 해결해주시고 개통 과정도 원활하게 진행되었습니다. 전체적으로 만족합니다.</p>
+                    <div class="review-modal-tags">
+                        <span class="review-modal-tag">KT망</span>
+                        <span class="review-modal-tag">개통까지 1일</span>
+                        <span class="review-modal-tag">유심 보유</span>
+                    </div>
+                </div>
+                <div class="review-modal-item">
+                    <div class="review-modal-item-header">
+                        <span class="review-modal-author">홍*영</span>
+                        <div class="review-modal-stars">
+                            <span>★★★★★</span>
+                        </div>
+                        <span class="review-modal-date">168일 전</span>
+                    </div>
+                    <p class="review-modal-item-content">이마트 상품권 2만원 받아서 기분 좋았어요! 요금제도 저렴하고 사은품도 다양하게 받을 수 있어서 정말 만족합니다. 주변 사람들한테도 추천했어요.</p>
+                    <div class="review-modal-tags">
+                        <span class="review-modal-tag">KT망</span>
+                        <span class="review-modal-tag">개통까지 1일</span>
+                        <span class="review-modal-tag">유심 미보유</span>
+                    </div>
+                </div>
+                <div class="review-modal-item">
+                    <div class="review-modal-item-header">
+                        <span class="review-modal-author">서*우</span>
+                        <div class="review-modal-stars">
+                            <span>★★★★★</span>
+                        </div>
+                        <span class="review-modal-date">175일 전</span>
+                    </div>
+                    <p class="review-modal-item-content">기존 통신사에서 번호이동 했는데 전혀 문제없이 잘 사용하고 있어요. 통신 품질도 동일하고 가격은 훨씬 저렴해서 만족합니다. 계속 사용할 예정이에요.</p>
+                    <div class="review-modal-tags">
+                        <span class="review-modal-tag">KT망</span>
+                        <span class="review-modal-tag">개통까지 2일</span>
+                        <span class="review-modal-tag">유심 보유</span>
+                    </div>
+                </div>
+                <div class="review-modal-item">
+                    <div class="review-modal-item-header">
+                        <span class="review-modal-author">노*진</span>
+                        <div class="review-modal-stars">
+                            <span>★★★★☆</span>
+                        </div>
+                        <span class="review-modal-date">182일 전</span>
+                    </div>
+                    <p class="review-modal-item-content">데이터 속도가 안정적이에요. 지하철이나 지하에서도 끊김 없이 잘 사용하고 있습니다. 가격 대비 품질이 정말 좋은 것 같아요. 추천합니다!</p>
+                    <div class="review-modal-tags">
+                        <span class="review-modal-tag">KT망</span>
+                        <span class="review-modal-tag">개통까지 1일</span>
+                        <span class="review-modal-tag">유심 미보유</span>
                     </div>
                 </div>
             </div>
@@ -578,11 +1017,80 @@ document.addEventListener('DOMContentLoaded', function() {
     const planTitle = document.querySelector('.plan-title-text')?.textContent || '요금제 상세';
     const shareText = `${planTitle} - 모요`;
 
-    // 공유 버튼 클릭 시 모달 열기
+    // 링크 복사 함수
+    function copyToClipboard(text) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            return navigator.clipboard.writeText(text).then(function() {
+                return true;
+            }).catch(function() {
+                return fallbackCopyTextToClipboard(text);
+            });
+        } else {
+            return fallbackCopyTextToClipboard(text);
+        }
+    }
+    
+    // 토스트 메시지 표시 함수
+    function showToastMessage(message) {
+        // 기존 토스트가 있으면 제거
+        const existingToast = document.querySelector('.toast-message');
+        if (existingToast) {
+            existingToast.remove();
+        }
+        
+        // 공유하기 버튼 위치 가져오기
+        const shareButton = document.getElementById('planShareBtn');
+        let topPosition = '50%';
+        // 좌우 중앙으로 고정
+        const leftPosition = '50%';
+        
+        if (shareButton) {
+            const rect = shareButton.getBoundingClientRect();
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            // 공유하기 버튼의 중간 높이 위치
+            topPosition = (rect.top + scrollTop + rect.height / 2) + 'px';
+        }
+        
+        // 토스트 메시지 생성
+        const toast = document.createElement('div');
+        toast.className = 'toast-message';
+        toast.textContent = message;
+        toast.style.top = topPosition;
+        toast.style.left = leftPosition;
+        document.body.appendChild(toast);
+        
+        // 강제로 리플로우 발생시켜 초기 상태 적용
+        void toast.offsetHeight;
+        
+        // 애니메이션을 위해 약간의 지연 후 visible 클래스 추가
+        requestAnimationFrame(function() {
+            requestAnimationFrame(function() {
+                toast.classList.add('toast-message-visible');
+            });
+        });
+        
+        // 1초 후 자동으로 사라지게
+        setTimeout(function() {
+            toast.classList.remove('toast-message-visible');
+            setTimeout(function() {
+                if (toast.parentNode) {
+                    toast.remove();
+                }
+            }, 300);
+        }, 1000);
+    }
+    
+    // 공유 버튼 클릭 시 바로 링크 복사
     if (shareBtn) {
-        shareBtn.addEventListener('click', function() {
-            shareModal.classList.add('share-modal-active');
-            document.body.style.overflow = 'hidden';
+        shareBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            copyToClipboard(currentUrl).then(function(success) {
+                if (success) {
+                    showToastMessage('공유링크를 복사했어요');
+                } else {
+                    showToastMessage('링크 복사에 실패했습니다');
+                }
+            });
         });
     }
 
@@ -642,28 +1150,29 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 클립보드 복사 fallback 함수
     function fallbackCopyTextToClipboard(text) {
-        const textArea = document.createElement('textarea');
-        textArea.value = text;
-        textArea.style.position = 'fixed';
-        textArea.style.left = '-999999px';
-        textArea.style.top = '-999999px';
-        document.body.appendChild(textArea);
-        textArea.focus();
-        textArea.select();
-        
-        try {
-            const successful = document.execCommand('copy');
-            if (successful) {
-                alert('링크가 복사되었습니다.');
-                closeModal();
-            } else {
-                alert('링크 복사에 실패했습니다. 수동으로 복사해주세요.');
+        return new Promise(function(resolve) {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-999999px';
+            textArea.style.top = '-999999px';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    resolve(true);
+                } else {
+                    resolve(false);
+                }
+            } catch (err) {
+                resolve(false);
             }
-        } catch (err) {
-            alert('링크 복사에 실패했습니다. 수동으로 복사해주세요.');
-        }
-        
-        document.body.removeChild(textArea);
+            
+            document.body.removeChild(textArea);
+        });
     }
 
     // 신청하기 모달 기능
@@ -889,37 +1398,157 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // 리뷰 더보기 모달 기능
-    const reviewMoreBtn = document.getElementById('planReviewMoreBtn');
-    const reviewModal = document.getElementById('reviewModal');
-    const reviewModalOverlay = document.getElementById('reviewModalOverlay');
-    const reviewModalClose = document.getElementById('reviewModalClose');
-
-    // 리뷰 더보기 버튼 클릭 시 모달 열기
-    if (reviewMoreBtn) {
-        reviewMoreBtn.addEventListener('click', function() {
-            reviewModal.classList.add('review-modal-active');
-            document.body.style.overflow = 'hidden';
+    // 메인 페이지 리뷰: 처음 5개만 표시
+    const planReviewList = document.querySelector('.plan-review-list');
+    if (planReviewList) {
+        const reviewItems = planReviewList.querySelectorAll('.plan-review-item');
+        const totalReviews = reviewItems.length;
+        
+        // 초기 설정: 5개 이후 리뷰 숨기기
+        reviewItems.forEach((item, index) => {
+            if (index >= 5) {
+                item.style.display = 'none';
+            }
         });
     }
 
-    // 리뷰 모달 닫기
-    function closeReviewModal() {
-        reviewModal.classList.remove('review-modal-active');
-        document.body.style.overflow = '';
+    // 리뷰 모달 기능
+    const reviewModal = document.getElementById('reviewModal');
+    const reviewModalOverlay = document.getElementById('reviewModalOverlay');
+    const reviewModalClose = document.getElementById('reviewModalClose');
+    const reviewModalMoreBtn = document.querySelector('.review-modal-more-btn');
+    const reviewModalList = document.querySelector('.review-modal-list');
+    const planReviewMoreBtn = document.getElementById('planReviewMoreBtn');
+    
+    // 모달 열기 함수
+    function openReviewModal() {
+        if (reviewModal) {
+            reviewModal.classList.add('review-modal-active');
+            document.body.classList.add('review-modal-open');
+            document.body.style.overflow = 'hidden';
+            document.documentElement.style.overflow = 'hidden';
+        }
     }
-
+    
+    // 모달 닫기 함수
+    function closeReviewModal() {
+        if (reviewModal) {
+            reviewModal.classList.remove('review-modal-active');
+            document.body.classList.remove('review-modal-open');
+            document.body.style.overflow = '';
+            document.documentElement.style.overflow = '';
+        }
+    }
+    
+    // 리뷰 아이템 클릭 시 모달 열기
+    if (planReviewList) {
+        const reviewItems = planReviewList.querySelectorAll('.plan-review-item');
+        reviewItems.forEach(item => {
+            item.style.cursor = 'pointer';
+            item.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                openReviewModal();
+            });
+        });
+    }
+    
+    // 더보기 버튼 클릭 시 모달 열기
+    if (planReviewMoreBtn) {
+        planReviewMoreBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            openReviewModal();
+        });
+    }
+    
+    // 모달 내부 더보기 기능: 처음 5개, 이후 10개씩 표시
+    if (reviewModalList && reviewModalMoreBtn) {
+        const modalReviewItems = reviewModalList.querySelectorAll('.review-modal-item');
+        const totalModalReviews = modalReviewItems.length;
+        let visibleModalCount = 5; // 처음 5개만 표시
+        
+        // 초기 설정: 5개 이후 리뷰 숨기기
+        function initializeModalReviews() {
+            visibleModalCount = 5; // 모달 열 때마다 5개로 초기화
+            modalReviewItems.forEach((item, index) => {
+                if (index >= visibleModalCount) {
+                    item.style.display = 'none';
+                } else {
+                    item.style.display = 'block';
+                }
+            });
+            
+            // 모든 리뷰가 이미 표시되어 있으면 버튼 숨기기
+            if (totalModalReviews <= visibleModalCount) {
+                reviewModalMoreBtn.style.display = 'none';
+            } else {
+                reviewModalMoreBtn.style.display = 'block';
+            }
+        }
+        
+        // 초기 설정 실행
+        initializeModalReviews();
+        
+        // 모달이 열릴 때마다 초기화 (MutationObserver 또는 이벤트 리스너 사용)
+        if (reviewModal) {
+            // 모달이 열릴 때를 감지하기 위해 클래스 변경 감지
+            const observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                        if (reviewModal.classList.contains('review-modal-active')) {
+                            initializeModalReviews(); // 모달 열 때마다 5개로 초기화
+                        }
+                    }
+                });
+            });
+            observer.observe(reviewModal, { attributes: true });
+        }
+        
+        // 모달 내부 더보기 버튼 클릭 이벤트
+        reviewModalMoreBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            visibleModalCount += 10; // 10개씩 추가
+            
+            // 리뷰 표시
+            modalReviewItems.forEach((item, index) => {
+                if (index < visibleModalCount) {
+                    item.style.display = 'block';
+                }
+            });
+            
+            // 모든 리뷰가 표시되면 버튼 숨기기
+            if (visibleModalCount >= totalModalReviews) {
+                reviewModalMoreBtn.style.display = 'none';
+            }
+        });
+    }
+    
+    // 리뷰 정렬 선택 기능
+    const reviewSortSelect = document.getElementById('reviewSortSelect');
+    
+    if (reviewSortSelect) {
+        // 정렬 선택 변경 시
+        reviewSortSelect.addEventListener('change', function(e) {
+            // 여기에 정렬 로직 추가 가능
+            // 예: 리뷰를 선택된 정렬 방식에 따라 정렬
+            console.log('정렬 방식 변경:', this.value);
+        });
+    }
+    
+    // 모달 닫기 이벤트
     if (reviewModalOverlay) {
         reviewModalOverlay.addEventListener('click', closeReviewModal);
     }
-
+    
     if (reviewModalClose) {
         reviewModalClose.addEventListener('click', closeReviewModal);
     }
-
-    // ESC 키로 리뷰 모달 닫기
+    
+    // ESC 키로 모달 닫기
     document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' && reviewModal.classList.contains('review-modal-active')) {
+        if (e.key === 'Escape' && reviewModal && reviewModal.classList.contains('review-modal-active')) {
             closeReviewModal();
         }
     });
@@ -927,4 +1556,5 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <?php include '../includes/footer.php'; ?>
+<script src="/MVNO/assets/js/favorite-heart.js" defer></script>
 
