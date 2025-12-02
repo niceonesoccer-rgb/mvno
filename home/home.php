@@ -359,7 +359,7 @@ include 'includes/header.php';
                     <div class="swiper-gradient next-gradient"></div>
                 </div>
                 <div class="phone-deal-footer">
-                    <a href="../phones/?from=home" class="more-btn">
+                    <a href="../mno/mno.php?from=home" class="more-btn">
                         <span>자급제폰 더보기 &gt;</span>
                     </a>
                 </div>

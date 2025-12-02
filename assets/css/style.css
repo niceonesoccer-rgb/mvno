@@ -2010,6 +2010,129 @@ button:focus {
     font-weight: 600;
 }
 
+/* 통신사폰 전용 필터 스타일 (알뜰폰과 독립적) */
+.mno-filter-section {
+    position: relative; /* 초기에는 일반 위치 */
+    width: 100%;
+    background-color: var(--color-white);
+    z-index: 999; /* 헤더(z-index: 1000)보다 낮게 설정 */
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    margin-top: 0;
+    transition: all 0.3s ease-in-out;
+}
+
+/* 필터가 sticky로 전환될 때 (스크롤 시작) */
+.mno-filter-section.filter-sticky {
+    position: sticky;
+    top: 60px; /* 헤더 높이만큼 아래에 고정 */
+}
+
+/* 필터가 화면에서 사라져서 상단에 고정될 때 */
+.mno-filter-section.filter-fixed {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+}
+
+.mno-filter-inner {
+    width: 100%;
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 12px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    position: relative;
+}
+
+@media (min-width: 992px) {
+    .mno-filter-inner {
+        max-width: 960px;
+        padding: 12px 0;
+        flex-direction: row;
+        align-items: center;
+        justify-content: center;
+    }
+}
+
+.mno-filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    justify-content: center;
+    align-items: center;
+}
+
+.mno-filter-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+@media (min-width: 992px) {
+    .mno-filter-row {
+        justify-content: center;
+    }
+}
+
+/* 통신사폰 필터 버튼 */
+.mno-filter-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 12px;
+    border: 1px solid var(--color-gray-300);
+    border-radius: 20px;
+    min-height: 40px;
+    min-width: fit-content;
+    background-color: var(--color-white);
+    cursor: pointer;
+    transition: all 0.2s;
+    outline: none;
+}
+
+.mno-filter-btn:focus {
+    outline: none;
+    border-color: var(--color-gray-300);
+}
+
+.mno-filter-btn:hover {
+    border-color: var(--color-gray-400);
+}
+
+.mno-filter-btn.active,
+.mno-filter-btn.selected {
+    border-color: #ec4899;
+    background-color: transparent;
+}
+
+.mno-filter-btn.active:hover,
+.mno-filter-btn.selected:hover {
+    border-color: #ec4899;
+}
+
+.mno-filter-btn.active .mno-filter-text,
+.mno-filter-btn.selected .mno-filter-text {
+    color: #ec4899;
+    font-weight: 600;
+}
+
+.mno-filter-text {
+    font-size: var(--font-size-sm);
+    color: var(--color-gray-600);
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.mno-filter-divider {
+    border: none;
+    border-top: 1px solid var(--color-gray-200);
+    margin: 0;
+    width: 100%;
+}
+
 .plans-filter-btn.active svg path,
 .plans-filter-btn.selected svg path {
     fill: #ec4899 !important;
@@ -2103,6 +2226,15 @@ button:focus {
         border-left: none;
         border-right: none;
     }
+    
+    /* 화면 밖으로 나가지 않도록 */
+    body {
+        overflow-x: hidden;
+    }
+    
+    .plans-main-layout {
+        overflow-x: hidden;
+    }
 }
 
 /* 태블릿 이상 스타일 */
@@ -2119,6 +2251,37 @@ button:focus {
     .theme-plans-list-section {
         scroll-margin-top: 80px; /* 필터 섹션 높이만큼 여백 */
     }
+    
+    /* plans 페이지에서 좌우 여백 제거 */
+    .content-layout:has(.plans-main-layout) {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+        max-width: 100% !important;
+    }
+    
+    .theme-plans-list-section {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+    
+    .plans-list-container {
+        padding-left: 0;
+        padding-right: 0;
+    }
+    
+    .basic-plan-card {
+        border-left: none;
+        border-right: none;
+    }
+    
+    /* 화면 밖으로 나가지 않도록 */
+    body {
+        overflow-x: hidden;
+    }
+    
+    .plans-main-layout {
+        overflow-x: hidden;
+    }
 }
 
 /* ============================================
@@ -2131,15 +2294,21 @@ button:focus {
     display: flex;
     flex-direction: column;
     gap: 0;
+    width: 100%;
+    box-sizing: border-box;
+    overflow-x: hidden;
 }
 
 .plans-left-section {
     width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow-x: hidden;
 }
 
 /* 테마별 요금제 섹션 */
 .theme-plans-list-section {
-    padding: var(--spacing-lg) var(--spacing-md);
+    padding: var(--spacing-lg) 0;
     border-bottom: 1px solid var(--color-gray-200);
     /* 필터 아래에 위치하도록 기본 여백 추가 */
     padding-top: 50px; /* 필터 높이만큼 기본 여백 */
@@ -2320,6 +2489,10 @@ button:focus {
     display: flex;
     flex-direction: column;
     gap: var(--spacing-md);
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow-x: hidden;
 }
 
 /* 요금제 상세 카드 */
@@ -2519,6 +2692,9 @@ button:focus {
     box-shadow: var(--shadow-sm);
     transition: all 0.3s ease;
     overflow: hidden;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
 }
 
 .basic-plan-card:hover {
@@ -2666,10 +2842,66 @@ button:focus {
 }
 
 .plan-title-text {
-    font-size: 1.0625rem; /* 17px */
+    font-size: 1.0625rem; /* 17px - 알뜰폰 전용 */
     font-weight: 500;
     color: var(--color-gray-500);
     flex: 1;
+}
+
+.plan-title-separator {
+    color: var(--color-gray-500);
+    margin: 0 0.5rem; /* | 앞뒤로 한 칸씩 더 띄우기 */
+}
+
+/* 통신사폰 전용 스타일 (알뜰폰과 독립적) */
+.phone-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: var(--spacing-sm);
+    margin-bottom: calc(var(--spacing-md) * 0.25);
+}
+
+.phone-title-text {
+    font-size: 1.3125rem; /* 21px */
+    font-weight: 700;
+    color: var(--color-gray-700);
+    flex: 1;
+}
+
+.phone-title-separator {
+    color: var(--color-gray-400); /* 더 연한 회색 */
+    margin: 0 0.5rem; /* | 앞뒤로 한 칸씩 더 띄우기 */
+}
+
+.phone-info-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.phone-data-row {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    justify-content: space-between;
+}
+
+.phone-data-main {
+    font-size: 1.0625rem; /* 17px */
+    font-weight: 500;
+    color: var(--color-gray-500);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem; /* 통신사와 요금제명 사이 간격 */
+}
+
+.phone-provider-name {
+    font-weight: 600;
+}
+
+.phone-name-text {
+    font-weight: 500;
 }
 
 .plan-favorite-btn-inline {
@@ -2680,6 +2912,12 @@ button:focus {
     flex-shrink: 0;
     margin: -12px -12px -12px 0;
     outline: none;
+}
+
+.plan-favorite-btn-inline svg,
+.favorite-icon-svg {
+    width: 28.8px;
+    height: 28.8px;
 }
 
 .plan-favorite-btn-inline:focus {
@@ -2710,7 +2948,7 @@ button:focus {
 }
 
 .plan-data-main {
-    font-size: 1.3125rem; /* 21px */
+    font-size: 1.3125rem; /* 21px - 알뜰폰 전용 */
     font-weight: 700;
     color: var(--color-gray-700);
 }
@@ -2728,8 +2966,10 @@ button:focus {
 .plan-features-row {
     display: flex;
     align-items: center;
+    justify-content: center; /* 가운데 정렬 */
     gap: var(--spacing-md);
     flex-wrap: wrap;
+    width: 100%; /* 전체 너비 사용 */
 }
 
 .plan-feature-item {
@@ -2742,6 +2982,71 @@ button:focus {
     width: 1px;
     height: 10px;
     background-color: var(--color-gray-300);
+}
+
+/* 통신사폰 지원금 정보 스타일 */
+.mno-support-amount-section {
+    display: flex;
+    gap: var(--spacing-lg); /* 카드 사이 간격 더 넓게 */
+    flex-wrap: wrap;
+    justify-content: center; /* 가운데 정렬 */
+    margin-top: var(--spacing-xs);
+}
+
+.mno-support-card {
+    flex: 0 1 auto; /* 자동 크기 조정, 늘어나지 않도록 */
+    min-width: 240px; /* 최소 너비 더 크게 증가 */
+    background-color: var(--color-gray-50);
+    border: 1px solid var(--color-gray-200);
+    border-radius: 10px; /* 모서리 더 둥글게 */
+    padding: var(--spacing-md) var(--spacing-lg); /* 좌우 패딩 더 크게 */
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); /* 미묘한 그림자 효과 */
+}
+
+.mno-support-card-title {
+    font-size: 1.0625rem; /* 17px - 기기명/용량/출고가와 동일한 크기 */
+    font-weight: 600;
+    color: var(--color-gray-600);
+    margin-bottom: var(--spacing-sm); /* 제목과 내용 사이 간격 증가 */
+    text-align: center;
+    padding-bottom: var(--spacing-xs);
+    border-bottom: 1px solid var(--color-gray-200); /* 제목 아래 구분선 추가 */
+}
+
+.mno-support-card-content {
+    display: flex;
+    flex-direction: row;
+    gap: var(--spacing-md); /* 아이템 사이 간격 증가 */
+    justify-content: space-around;
+    padding-top: var(--spacing-xs); /* 내용 상단 여백 추가 */
+}
+
+.mno-support-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px; /* 라벨과 값 사이 간격 증가 */
+    flex: 1;
+}
+
+.mno-support-label {
+    font-size: 1.0625rem; /* 17px - 기기명/용량/출고가와 동일한 크기 */
+    color: var(--color-gray-500);
+    font-weight: 500;
+}
+
+.mno-support-value {
+    font-size: 1.0625rem; /* 17px - 기기명/용량/출고가와 동일한 크기 */
+    font-weight: 700;
+    color: var(--color-gray-700);
+}
+
+.mno-support-value-negative {
+    color: var(--color-red-500); /* 음수: 빨간색 */
+}
+
+.mno-support-value-positive {
+    color: #3b82f6; /* 양수: 파란색 */
 }
 
 .plan-price-row {
@@ -2832,6 +3137,49 @@ button:focus {
     display: flex;
     align-items: center;
     gap: var(--spacing-sm);
+}
+
+.plan-gifts-indicator-dots {
+    display: flex;
+    align-items: center;
+    gap: 0; /* 간격 제거 */
+}
+
+.plan-gift-indicator-dot {
+    width: 1.5rem; /* 24px - 더 크게 */
+    height: 1.5rem; /* 24px */
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    position: relative;
+    background-color: transparent !important; /* 배경색 제거 */
+    border: none; /* 테두리 제거 */
+    margin-left: -6px; /* 덜 겹치도록 왼쪽으로 이동 */
+}
+
+.plan-gift-indicator-dot:first-child {
+    margin-left: 0; /* 첫 번째 원은 이동하지 않음 */
+    z-index: 1; /* 가장 뒤에 표시 */
+}
+
+.plan-gift-indicator-dot:nth-child(2) {
+    z-index: 2; /* 두 번째 */
+}
+
+.plan-gift-indicator-dot:nth-child(3) {
+    z-index: 3; /* 세 번째 (가장 앞에 표시) */
+}
+
+.plan-gift-indicator-text {
+    font-size: 1.0625rem; /* 17px - 텍스트 크기와 동일하게 */
+    font-weight: 600;
+    color: var(--color-gray-700); /* 회색 텍스트 */
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .plan-gift-icons-overlap {
@@ -3692,7 +4040,11 @@ button:focus {
     padding: 0;
 }
 
-.plan-detail-favorite-btn svg,
+.plan-detail-favorite-btn svg {
+    width: 28.8px;
+    height: 28.8px;
+}
+
 .plan-detail-share-btn svg {
     width: 24px;
     height: 24px;
@@ -4369,7 +4721,7 @@ button:focus {
     margin-top: 16px;
 }
 
-/* 통신사 리뷰 섹션 */
+/* 통신사 리뷰 섹션 (알뜰폰) */
 .plan-review-section {
     padding: 40px 0 !important;
 }
@@ -4378,6 +4730,24 @@ button:focus {
     .plan-review-section {
         padding: 40px 0 !important;
     }
+}
+
+/* 통신사폰 리뷰 섹션 (독립적으로 분리) */
+.phone-review-section {
+    padding: 40px 0 !important;
+}
+
+@media (min-width: 992px) {
+    .phone-review-section {
+        padding: 40px 0 !important;
+    }
+}
+
+.phone-review-section .content-layout {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
 }
 
 .plan-review-section .content-layout {
@@ -4407,6 +4777,13 @@ button:focus {
     display: flex;
     align-items: center;
     text-decoration: none;
+}
+
+.plan-review-provider-text {
+    font-size: var(--font-size-base);
+    font-weight: 500;
+    color: var(--color-gray-500);
+    margin-left: 0.25rem;
 }
 
 .plan-review-logo-text {
@@ -5599,6 +5976,170 @@ button:focus {
     
     .apply-modal-header {
         padding: 24px 32px;
+    }
+}
+
+/* 통신사폰 신청하기 모달 (알뜰폰과 독립적) */
+.phone-apply-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10000;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+    pointer-events: none;
+}
+
+.phone-apply-modal.phone-apply-modal-active {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+.phone-apply-modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.1);
+    backdrop-filter: none;
+}
+
+.phone-apply-modal-content {
+    position: relative;
+    background-color: var(--color-white);
+    border-radius: 20px 20px 0 0;
+    width: 100%;
+    max-width: 640px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    transform: translateY(100%);
+    transition: transform 0.3s ease;
+    z-index: 10001;
+    overflow: hidden;
+}
+
+.phone-apply-modal.phone-apply-modal-active .phone-apply-modal-content {
+    transform: translateY(0);
+}
+
+.phone-apply-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px;
+    border-bottom: 1px solid var(--color-gray-200);
+    flex-shrink: 0;
+}
+
+.phone-apply-modal-back {
+    background: none;
+    border: none;
+    padding: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    transition: background-color 0.2s;
+    outline: none;
+}
+
+.phone-apply-modal-back:hover {
+    background-color: var(--color-gray-100);
+}
+
+.phone-apply-modal-back:focus {
+    outline: 2px solid var(--color-indigo-500);
+    outline-offset: 2px;
+}
+
+.phone-apply-modal-back:active {
+    background-color: var(--color-gray-200);
+}
+
+.phone-apply-modal-title {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--color-gray-700);
+    margin: 0;
+    flex: 1;
+    text-align: center;
+}
+
+.phone-apply-modal-close {
+    background: none;
+    border: none;
+    padding: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    transition: background-color 0.2s;
+    outline: none;
+    margin-left: auto;
+}
+
+.phone-apply-modal-close:hover {
+    background-color: var(--color-gray-100);
+}
+
+.phone-apply-modal-close:focus {
+    outline: 2px solid var(--color-indigo-500);
+    outline-offset: 2px;
+}
+
+.phone-apply-modal-close:active {
+    background-color: var(--color-gray-200);
+}
+
+.phone-apply-modal-body {
+    padding: 20px;
+    overflow-y: auto;
+    flex: 1;
+    min-height: 0;
+}
+
+.phone-apply-modal-body iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    min-height: 400px;
+}
+
+/* 모바일: 모달 빈 공간 줄이기 */
+@media (max-width: 767px) {
+    .phone-apply-modal-content {
+        max-height: 95vh;
+    }
+    
+    .phone-apply-modal-body {
+        padding: 16px;
+    }
+    
+    .phone-apply-modal {
+        align-items: flex-end;
+    }
+    
+    .phone-apply-modal-content {
+        border-radius: 20px 20px 0 0;
+    }
+    
+    .phone-apply-modal.phone-apply-modal-active .phone-apply-modal-content {
+        transform: translateY(0);
+    }
+    
+    .phone-apply-modal-header {
+        padding: 16px;
     }
 }
 

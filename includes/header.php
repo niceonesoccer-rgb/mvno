@@ -62,8 +62,8 @@ else if (!isset($is_main_page)) {
     // 메인 페이지 파일명 목록
     $main_page_files = [
         'index.php',
-        'plans.php',
-        'phones.php',
+        'mvno.php',
+        'mno.php',
         'internets.php',
         'esim.php',
         'event.php',
@@ -175,21 +175,21 @@ else if (!isset($is_main_page)) {
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link <?php echo (isset($current_page) && $current_page == 'plans') ? 'active' : ''; ?>" href="/MVNO/plans/plans.php">
+                        <a class="nav-link <?php echo (isset($current_page) && ($current_page == 'plans' || $current_page == 'mvno')) ? 'active' : ''; ?>" href="/MVNO/mvno/mvno.php">
                             <svg class="nav-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M2 12C2 8.22876 2 6.34315 3.17157 5.17157C4.34315 4 6.22876 4 10 4H14C17.7712 4 19.6569 4 20.8284 5.17157C22 6.34315 22 8.22876 22 12C22 15.7712 22 17.6569 20.8284 18.8284C19.6569 20 17.7712 20 14 20H10C6.22876 20 4.34315 20 3.17157 18.8284C2 17.6569 2 15.7712 2 12Z" stroke="currentColor" stroke-width="2"/>
                                 <path d="M7 8H17M7 12H17M7 16H12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                             </svg>
-                            <span>요금제</span>
+                            <span>알뜰폰</span>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link <?php echo (isset($current_page) && $current_page == 'phones') ? 'active' : ''; ?>" href="/MVNO/phones/phones.php">
+                        <a class="nav-link <?php echo (isset($current_page) && $current_page == 'mno') ? 'active' : ''; ?>" href="/MVNO/mno/mno.php">
                             <svg class="nav-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M5 4C5 2.89543 5.89543 2 7 2H17C18.1046 2 19 2.89543 19 4V20C19 21.1046 18.1046 22 17 22H7C5.89543 22 5 21.1046 5 20V4Z" stroke="currentColor" stroke-width="2"/>
                                 <path d="M12 18H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                             </svg>
-                            <span>휴대폰</span>
+                            <span>통신사폰</span>
                         </a>
                     </li>
                     <li class="nav-item">

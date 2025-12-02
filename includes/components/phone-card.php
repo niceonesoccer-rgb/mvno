@@ -1,30 +1,30 @@
 <?php
 /**
- * 요금제 카드 전체 컴포넌트
+ * 통신사폰 카드 전체 컴포넌트
  * 
- * @param array $plan 요금제 데이터
+ * @param array $phone 통신사폰 데이터
  * @param string $layout_type 'list' 또는 'detail'
  * @param string $card_wrapper_class 추가 클래스명
  */
-if (!isset($plan)) {
-    $plan = [];
+if (!isset($phone)) {
+    $phone = [];
 }
 $layout_type = $layout_type ?? 'list';
 $card_wrapper_class = $card_wrapper_class ?? '';
-$plan_id = $plan['id'] ?? 0;
-$is_link = ($layout_type === 'list' && $plan_id > 0);
+$phone_id = $phone['id'] ?? 0;
+$is_link = ($layout_type === 'list' && $phone_id > 0);
 ?>
 
 <article class="basic-plan-card <?php echo htmlspecialchars($card_wrapper_class); ?>">
     <?php if ($is_link): ?>
-    <a href="/MVNO/mvno/mvno-plan-detail.php?id=<?php echo $plan_id; ?>" class="plan-card-link">
+    <a href="/MVNO/mno/mno-phone-detail.php?id=<?php echo $phone_id; ?>" class="plan-card-link">
     <?php else: ?>
     <div class="plan-card-link">
     <?php endif; ?>
         <div class="plan-card-main-content">
             <div class="plan-card-header-body-frame">
-                <?php include __DIR__ . '/plan-card-header.php'; ?>
-                <?php include __DIR__ . '/plan-card-body.php'; ?>
+                <?php include __DIR__ . '/phone-card-header.php'; ?>
+                <?php include __DIR__ . '/phone-card-body.php'; ?>
             </div>
         </div>
     <?php if ($is_link): ?>
@@ -33,6 +33,6 @@ $is_link = ($layout_type === 'list' && $plan_id > 0);
     </div>
     <?php endif; ?>
     
-    <?php include __DIR__ . '/plan-card-footer.php'; ?>
+    <?php include __DIR__ . '/phone-card-footer.php'; ?>
 </article>
 

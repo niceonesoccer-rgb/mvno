@@ -52,17 +52,17 @@ $giftIcons = [
                         <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
                 </a>
-                <h2 style="font-size: 24px; font-weight: bold; margin: 0;">신청한 요금제</h2>
+                <h2 style="font-size: 24px; font-weight: bold; margin: 0;">신청한 알뜰폰</h2>
             </div>
         </div>
 
-        <!-- 신청한 요금제 목록 -->
+        <!-- 신청한 알뜰폰 목록 -->
         <div style="margin-bottom: 32px;" id="plansContainer">
             <?php foreach ($plans as $index => $plan): ?>
                 <div class="plan-item" data-index="<?php echo $index; ?>" style="<?php echo $index >= 10 ? 'display: none;' : ''; ?> position: relative; margin-bottom: 36px;">
                     <span style="position: absolute; top: -24px; right: 0; font-size: 12px; color: #868E96; white-space: nowrap; z-index: 1; background-color: #ffffff; padding: 2px 4px;">신청일: <?php echo htmlspecialchars($plan['order_date'] . ' ' . $plan['order_time']); ?></span>
                 <article class="basic-plan-card" style="margin-bottom: 0;">
-                    <a href="/MVNO/plans/plan-detail.php?id=<?php echo $plan['id']; ?>" class="plan-card-link">
+                    <a href="/MVNO/mvno/mvno-plan-detail.php?id=<?php echo $plan['id']; ?>" class="plan-card-link">
                         <div class="plan-card-main-content">
                             <div class="plan-card-header-body-frame">
                                 <!-- 헤더: 로고, 평점, 배지, 찜 -->

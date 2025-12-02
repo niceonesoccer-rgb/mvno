@@ -6,10 +6,6 @@ $is_main_page = true;
 
 // 헤더 포함
 include '../includes/header.php';
-
-// 요금제 데이터 가져오기
-require_once '../includes/data/plan-data.php';
-$plans = getPlansData(1); // 마이페이지는 1개만 표시
 ?>
 
 <main class="main-content">
@@ -21,95 +17,48 @@ $plans = getPlansData(1); // 마이페이지는 1개만 표시
 
         <!-- 내가 찜한 요금제 섹션 -->
         <div style="margin-bottom: 32px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink: 0;">
-                        <path d="M21 9.54803C21 10.8797 20.4656 12.1588 19.5112 13.105C17.3144 15.2837 15.1837 17.5556 12.9048 19.6553C12.3824 20.1296 11.5538 20.1123 11.0539 19.6166L4.48838 13.105C2.50387 11.1368 2.50387 7.95928 4.48838 5.99107C6.49239 4.00353 9.75714 4.00353 11.7611 5.99107L11.9998 6.22775L12.2383 5.99121C13.1992 5.03776 14.5078 4.5 15.8748 4.5C17.2418 4.5 18.5503 5.03771 19.5112 5.99107C20.4657 6.93733 21 8.21636 21 9.54803Z" fill="#FA5252"/>
-                    </svg>
-                    <p style="font-size: 18px; font-weight: bold; margin: 0;">찜한 요금제</p>
-                </div>
-                <a href="/MVNO/mypage/wishlist.php" style="font-size: 14px; color: #6366f1; text-decoration: none;">13개 더보기</a>
-            </div>
-            <!-- 요금제 카드 (모듈 사용) -->
-            <?php
-            if (!empty($plans)) {
-                $plan = $plans[0];
-                $plan['title'] = '[모요핫딜] ' . $plan['title'];
-                $plan['selection_count'] = '29,448명이 신청';
-                $layout_type = 'list';
-                $card_wrapper_class = '';
-                include '../includes/components/plan-card.php';
-            }
-            ?>
-            
-            <!-- 기존 하드코딩된 카드 (모듈로 대체 예정) -->
-            <!--
-            <article class="basic-plan-card">
-                <a href="/MVNO/plans/plan-detail.php?id=32627" class="plan-card-link">
-                    <div class="plan-card-main-content">
-                        <div class="plan-card-header-body-frame">
-                            <!-- 헤더: 로고, 평점, 배지, 찜 -->
-                            <!--
-                            <div class="plan-card-top-header">
-                                ...
-                            </div>
-                            ...
-                        </div>
-                    </div>
-                </a>
-                
-                <!-- 아코디언: 사은품 -->
-                <div class="plan-accordion-box">
-                    <div class="plan-accordion">
-                        <button type="button" class="plan-accordion-trigger" aria-expanded="false">
-                            <div class="plan-gifts-accordion-content">
-                                <div class="plan-gift-icons-overlap">
-                                    <img src="https://assets.moyoplan.com/image/mvno-gifts/badge/emart.svg" alt="이마트 상품권" width="24" height="24" class="plan-gift-icon-overlap">
-                                    <img src="https://assets.moyoplan.com/image/mvno-gifts/badge/naverpay.svg" alt="네이버페이" width="24" height="24" class="plan-gift-icon-overlap">
-                                    <img src="https://assets.moyoplan.com/image/mvno-gifts/badge/ticket.svg" alt="데이터쿠폰 20GB" width="24" height="24" class="plan-gift-icon-overlap">
-                                    <img src="https://assets.moyoplan.com/image/mvno-gifts/badge/millie.svg" alt="밀리의 서재" width="24" height="24" class="plan-gift-icon-overlap">
-                                    <img src="https://assets.moyoplan.com/image/mvno-gifts/badge/subscription.svg" alt="SOLO결합(+20GB)" width="24" height="24" class="plan-gift-icon-overlap">
-                                </div>
-                                <span class="plan-gifts-text-accordion">사은품 최대 5개</span>
-                            </div>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="plan-accordion-arrow">
-                                <path fill-rule="evenodd" clip-rule="evenodd" d="M3.15146 8.15147C3.62009 7.68284 4.37989 7.68284 4.84852 8.15147L12 15.3029L19.1515 8.15147C19.6201 7.68284 20.3799 7.68284 20.8485 8.15147C21.3171 8.6201 21.3171 9.3799 20.8485 9.84853L12.8485 17.8485C12.3799 18.3172 11.6201 18.3172 11.1515 17.8485L3.15146 9.84853C2.68283 9.3799 2.68283 8.6201 3.15146 8.15147Z" fill="#868E96"></path>
+            <ul style="list-style: none; padding: 0; margin: 0;">
+                <li style="border-bottom: 1px solid #e5e7eb;">
+                    <a href="/MVNO/mypage/wishlist.php?type=mvno" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; text-decoration: none; color: inherit;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink: 0;">
+                                <path d="M21 9.54803C21 10.8797 20.4656 12.1588 19.5112 13.105C17.3144 15.2837 15.1837 17.5556 12.9048 19.6553C12.3824 20.1296 11.5538 20.1123 11.0539 19.6166L4.48838 13.105C2.50387 11.1368 2.50387 7.95928 4.48838 5.99107C6.49239 4.00353 9.75714 4.00353 11.7611 5.99107L11.9998 6.22775L12.2383 5.99121C13.1992 5.03776 14.5078 4.5 15.8748 4.5C17.2418 4.5 18.5503 5.03771 19.5112 5.99107C20.4657 6.93733 21 8.21636 21 9.54803Z" fill="#FA5252"/>
                             </svg>
-                        </button>
-                        <div class="plan-accordion-content" style="display: none;">
-                            <div class="plan-gifts-detail-list">
-                                <div class="plan-gift-detail-item">
-                                    <span class="plan-gift-detail-text">이마트 상품권</span>
-                                </div>
-                                <div class="plan-gift-detail-item">
-                                    <span class="plan-gift-detail-text">네이버페이</span>
-                                </div>
-                                <div class="plan-gift-detail-item">
-                                    <span class="plan-gift-detail-text">데이터쿠폰 20GB</span>
-                                </div>
-                                <div class="plan-gift-detail-item">
-                                    <span class="plan-gift-detail-text">밀리의 서재</span>
-                                </div>
-                                <div class="plan-gift-detail-item">
-                                    <span class="plan-gift-detail-text">SOLO결합(+20GB)</span>
-                                </div>
-                            </div>
+                            <span style="font-size: 16px;">찜한 알뜰폰 요금제</span>
                         </div>
-                    </div>
-                </div>
-            </article>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 14px; color: #6b7280;">8개</span>
+                            <img alt=">" src="https://assets-legacy.moyoplan.com/img/icons/rightArrow.svg" style="width: 16px; height: 16px;">
+                        </div>
+                    </a>
+                </li>
+                <li style="border-bottom: 1px solid #e5e7eb;">
+                    <a href="/MVNO/mypage/wishlist.php?type=mno" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; text-decoration: none; color: inherit;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink: 0;">
+                                <path d="M21 9.54803C21 10.8797 20.4656 12.1588 19.5112 13.105C17.3144 15.2837 15.1837 17.5556 12.9048 19.6553C12.3824 20.1296 11.5538 20.1123 11.0539 19.6166L4.48838 13.105C2.50387 11.1368 2.50387 7.95928 4.48838 5.99107C6.49239 4.00353 9.75714 4.00353 11.7611 5.99107L11.9998 6.22775L12.2383 5.99121C13.1992 5.03776 14.5078 4.5 15.8748 4.5C17.2418 4.5 18.5503 5.03771 19.5112 5.99107C20.4657 6.93733 21 8.21636 21 9.54803Z" fill="#FA5252"/>
+                            </svg>
+                            <span style="font-size: 16px;">찜한 통신사폰 요금제</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 14px; color: #6b7280;">5개</span>
+                            <img alt=">" src="https://assets-legacy.moyoplan.com/img/icons/rightArrow.svg" style="width: 16px; height: 16px;">
+                        </div>
+                    </a>
+                </li>
+            </ul>
         </div>
 
         <!-- 하단 메뉴 리스트 -->
         <div style="margin-bottom: 32px;">
             <ul style="list-style: none; padding: 0; margin: 0;">
                 <li style="border-bottom: 1px solid #e5e7eb;">
-                    <a href="/MVNO/mypage/orders.php" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; text-decoration: none; color: inherit;">
+                    <a href="/MVNO/mypage/mvno-order.php" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; text-decoration: none; color: inherit;">
                         <div style="display: flex; align-items: center; gap: 12px;">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink: 0;">
                                 <path d="M9 5H7C5.89543 5 5 5.89543 5 7V19C5 20.1046 5.89543 21 7 21H17C18.1046 21 19 20.1046 19 19V7C19 5.89543 18.1046 5 17 5H15M9 5C9 6.10457 9.89543 7 11 7H13C14.1046 7 15 6.10457 15 5M9 5C9 3.89543 9.89543 3 11 3H13C14.1046 3 15 3.89543 15 5M9 12H15M9 16H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                             </svg>
-                            <span style="font-size: 16px;">요금제 신청내역</span>
+                            <span style="font-size: 16px;">알뜰폰 신청내역</span>
                         </div>
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <span style="font-size: 14px; color: #6b7280;">15개</span>
@@ -118,13 +67,13 @@ $plans = getPlansData(1); // 마이페이지는 1개만 표시
                     </a>
                 </li>
                 <li style="border-bottom: 1px solid #e5e7eb;">
-                    <a href="/mypage/phone-applies" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; text-decoration: none; color: inherit;">
+                    <a href="/MVNO/mypage/mno-order.php" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; text-decoration: none; color: inherit;">
                         <div style="display: flex; align-items: center; gap: 12px;">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink: 0;">
                                 <path d="M5 4C5 2.89543 5.89543 2 7 2H17C18.1046 2 19 2.89543 19 4V20C19 21.1046 18.1046 22 17 22H7C5.89543 22 5 21.1046 5 20V4Z" stroke="currentColor" stroke-width="2"/>
                                 <path d="M12 18H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                             </svg>
-                            <span style="font-size: 16px;">자급제 주문내역</span>
+                            <span style="font-size: 16px;">통신사폰 신청내역</span>
                         </div>
                         <img alt=">" src="https://assets-legacy.moyoplan.com/img/icons/rightArrow.svg" style="width: 16px; height: 16px;">
                     </a>

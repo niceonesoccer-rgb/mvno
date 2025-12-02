@@ -1,6 +1,6 @@
 <?php
 // 현재 페이지 설정
-$current_page = 'plans';
+$current_page = 'mvno';
 // 메인 페이지 여부 (하단 메뉴 및 푸터 표시용)
 $is_main_page = false;
 
@@ -50,7 +50,7 @@ if (!$plan) {
     <!-- 요금제 상세 정보 섹션 (통합) -->
     <section class="plan-detail-info-section">
         <div class="content-layout">
-            <h2 class="section-title">요금제 상세 정보</h2>
+            <h2 class="section-title">상세정보</h2>
             
             <!-- 기본 정보 카드 -->
             <div class="plan-info-card">

@@ -1,13 +1,13 @@
 <?php
 /**
- * 요금제 목록 레이아웃
- * mvno.php, mypage.php, wishlist.php, mvno-order.php에서 사용
+ * 통신사폰 목록 레이아웃
+ * mno.php, mno-order.php에서 사용
  * 
- * @param array $plans 요금제 배열
+ * @param array $phones 통신사폰 배열
  * @param string $section_title 섹션 제목 (선택사항)
  */
-if (!isset($plans)) {
-    $plans = [];
+if (!isset($phones)) {
+    $phones = [];
 }
 $section_title = $section_title ?? '';
 $layout_type = 'list';
@@ -20,11 +20,11 @@ $layout_type = 'list';
 <?php endif; ?>
 
 <div class="plans-list-container">
-    <?php foreach ($plans as $plan): ?>
+    <?php foreach ($phones as $phone): ?>
         <?php
         // 각 카드에 필요한 변수 설정
         $card_wrapper_class = '';
-        include __DIR__ . '/../components/plan-card.php';
+        include __DIR__ . '/../components/phone-card.php';
         ?>
         
         <!-- 카드 구분선 (모바일용) -->
