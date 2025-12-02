@@ -8,7 +8,6 @@ if (!isset($plan)) {
     $plan = [];
 }
 $gifts = $plan['gifts'] ?? [];
-$gift_icons = $plan['gift_icons'] ?? [];
 $gift_count = count($gifts);
 // 관리자 페이지에서 설정한 색상 (나중에 DB에서 가져올 예정)
 $gift_colors = $plan['gift_colors'] ?? ['#6366F1', '#8B5CF6', '#EC4899']; // 기본값
@@ -21,17 +20,7 @@ $gift_text_color = $plan['gift_text_color'] ?? '#FFFFFF'; // 기본값: 흰색
     <div class="plan-accordion">
         <button type="button" class="plan-accordion-trigger" aria-expanded="false">
             <div class="plan-gifts-accordion-content">
-                <?php if (!empty($gift_icons)): ?>
-                <div class="plan-gift-icons-overlap">
-                    <?php foreach ($gift_icons as $icon): ?>
-                        <img src="<?php echo htmlspecialchars($icon['src']); ?>" 
-                             alt="<?php echo htmlspecialchars($icon['alt']); ?>" 
-                             width="24" height="24" 
-                             class="plan-gift-icon-overlap">
-                    <?php endforeach; ?>
-                </div>
-                <?php else: ?>
-                <!-- 각 항목의 첫 글자를 원 안에 표시 -->
+                <!-- 각 항목의 첫 글자를 원 안에 표시 (통신사폰과 동일한 방식) -->
                 <div class="plan-gifts-indicator-dots">
                     <?php 
                     // 각 항목의 첫 글자를 원 안에 표시
@@ -45,7 +34,6 @@ $gift_text_color = $plan['gift_text_color'] ?? '#FFFFFF'; // 기본값: 흰색
                         </span>
                     <?php endfor; ?>
                 </div>
-                <?php endif; ?>
                 <span class="plan-gifts-text-accordion">사은품 최대 <?php echo $gift_count; ?>개</span>
             </div>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="plan-accordion-arrow">

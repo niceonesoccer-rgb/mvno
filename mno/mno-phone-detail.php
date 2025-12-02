@@ -81,7 +81,13 @@ if (!$phone) {
                     <div class="plan-detail-grid">
                         <div class="plan-detail-item">
                             <div class="plan-detail-label">요금제명</div>
-                            <div class="plan-detail-value"><?php echo htmlspecialchars($phone['plan_name']); ?></div>
+                            <div class="plan-detail-value"><?php 
+                            // 요금제명에서 통신사명 제거 (통신사 + 요금제명 구조)
+                            $plan_name_display = $phone['plan_name'];
+                            $provider = $phone['provider'] ?? '';
+                            $plan_name_display = trim(str_replace($provider, '', $plan_name_display));
+                            echo htmlspecialchars($plan_name_display); 
+                            ?></div>
                         </div>
                         <div class="plan-detail-item">
                             <div class="plan-detail-label">월 요금</div>

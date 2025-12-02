@@ -13,11 +13,12 @@ $layout_type = $layout_type ?? 'list';
 $card_wrapper_class = $card_wrapper_class ?? '';
 $plan_id = $plan['id'] ?? 0;
 $is_link = ($layout_type === 'list' && $plan_id > 0);
+$link_url = $plan['link_url'] ?? '/MVNO/mvno/mvno-plan-detail.php?id=' . $plan_id;
 ?>
 
 <article class="basic-plan-card <?php echo htmlspecialchars($card_wrapper_class); ?>">
     <?php if ($is_link): ?>
-    <a href="/MVNO/mvno/mvno-plan-detail.php?id=<?php echo $plan_id; ?>" class="plan-card-link">
+    <a href="<?php echo htmlspecialchars($link_url); ?>" class="plan-card-link">
     <?php else: ?>
     <div class="plan-card-link">
     <?php endif; ?>

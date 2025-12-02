@@ -2966,7 +2966,7 @@ button:focus {
 .plan-features-row {
     display: flex;
     align-items: center;
-    justify-content: center; /* 가운데 정렬 */
+    justify-content: flex-start; /* 왼쪽 정렬 */
     gap: var(--spacing-md);
     flex-wrap: wrap;
     width: 100%; /* 전체 너비 사용 */
@@ -6690,5 +6690,1122 @@ button:focus {
     outline: 2px solid #3b82f6;
     outline-offset: -2px;
     border-radius: 4px;
+}
+
+/* ============================================
+   통신사폰 주문 카드 레이아웃 (독립 스타일)
+   mno-order.php 전용 - 다른 카드와 분리
+   ============================================ */
+
+/* 통신사폰 주문 카드 리스트 컨테이너 */
+.mno-order-list-container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+    width: 100%;
+}
+
+/* 통신사폰 주문 카드 */
+.mno-order-card {
+    background-color: var(--color-white);
+    border: 1px solid var(--color-gray-200);
+    border-radius: 12px;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.3s ease;
+    overflow: hidden;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+}
+
+.mno-order-card:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.08);
+    transform: none;
+}
+
+.mno-order-card-divider {
+    display: none;
+    width: 100%;
+    border: none;
+    height: 0;
+    margin: 0;
+}
+
+@media (min-width: 1024px) {
+    .mno-order-card-divider {
+        display: none;
+    }
+}
+
+.mno-order-card-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+}
+
+.mno-order-card-link:focus,
+.mno-order-card-link:active,
+.mno-order-card-link:focus-visible {
+    outline: none;
+    border: none;
+}
+
+.mno-order-card-main-content {
+    padding: var(--spacing-lg);
+}
+
+.mno-order-card-header-body-frame {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--spacing-md) * 0.5);
+}
+
+.mno-order-card-top-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.mno-order-provider-rating-group {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.mno-order-provider-logo-text {
+    font-size: 0.875rem; /* 14px */
+    font-weight: 500;
+    color: var(--color-gray-700);
+    text-align: left;
+    padding-left: 0;
+    margin-left: 0;
+    display: inline-block;
+}
+
+.mno-order-rating-group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.mno-order-rating-text {
+    font-size: 0.75rem; /* 12px */
+    font-weight: 500;
+    color: var(--color-gray-500);
+}
+
+.mno-order-badge-favorite-group {
+    display: flex;
+    align-items: center;
+    gap: 36px;
+}
+
+.mno-order-favorite-btn-inline {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28.8px;
+    height: 28.8px;
+    transition: opacity 0.2s;
+    outline: none;
+}
+
+.mno-order-favorite-btn-inline:focus {
+    outline: none;
+    box-shadow: none;
+}
+
+.mno-order-favorite-btn-inline:focus-visible {
+    outline: none;
+    box-shadow: none;
+}
+
+.mno-order-favorite-btn-inline:hover {
+    opacity: 0.7;
+}
+
+.mno-order-favorite-btn-inline:active {
+    opacity: 0.5;
+}
+
+.mno-order-share-btn-inline {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    transition: opacity 0.2s;
+    outline: none;
+}
+
+.mno-order-share-btn-inline:focus {
+    outline: none;
+    box-shadow: none;
+}
+
+.mno-order-share-btn-inline:focus-visible {
+    outline: none;
+    box-shadow: none;
+}
+
+.mno-order-share-btn-inline:hover {
+    opacity: 0.7;
+}
+
+.mno-order-share-btn-inline:active {
+    opacity: 0.5;
+}
+
+/* 모바일에서 카드 구분선 표시 */
+@media (max-width: 1023px) {
+    .mno-order-card-divider {
+        display: block;
+    }
+    
+    .mno-order-card {
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+    }
+}
+
+/* 통신사폰 주문 카드 액션 영역 */
+.mno-order-card-actions {
+    border-top: 1px solid var(--color-gray-200);
+    background-color: var(--color-gray-50);
+    padding: var(--spacing-md) var(--spacing-lg);
+}
+
+.mno-order-card-actions-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-md);
+}
+
+.mno-order-action-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    flex: 1;
+    min-width: 0;
+}
+
+.mno-order-action-label {
+    font-size: 0.75rem; /* 12px */
+    font-weight: 500;
+    color: var(--color-gray-500);
+    line-height: 1.2;
+    text-align: center;
+}
+
+.mno-order-action-value {
+    font-size: 1.0625rem; /* 17px - 유지기간과 동일 */
+    font-weight: 500;
+    color: var(--color-gray-700);
+    line-height: 1.3;
+    word-break: break-word;
+    text-align: center;
+}
+
+.mno-order-action-divider {
+    width: 1px;
+    height: 40px;
+    background-color: var(--color-gray-300);
+    flex-shrink: 0;
+}
+
+.mno-order-review-btn {
+    background-color: var(--color-indigo-500);
+    color: var(--color-white);
+    border: none;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 0.875rem; /* 14px */
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    width: 100%;
+    min-width: 100px;
+}
+
+.mno-order-review-btn:hover:not(:disabled) {
+    background-color: var(--color-indigo-600);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+}
+
+.mno-order-review-btn:active:not(:disabled) {
+    transform: translateY(0);
+    box-shadow: 0 1px 4px rgba(99, 102, 241, 0.2);
+}
+
+.mno-order-review-btn:disabled {
+    background-color: var(--color-gray-300);
+    color: var(--color-gray-500);
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.mno-order-review-btn:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+}
+
+.mno-order-review-btn:focus-visible {
+    outline: 2px solid var(--color-indigo-500);
+    outline-offset: 2px;
+}
+
+/* 개통 문의 버튼 */
+.mno-order-inquiry-btn {
+    background-color: #EC4899; /* 핑크색 */
+    color: var(--color-white);
+    border: none;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 0.875rem; /* 14px */
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    width: 100%;
+    min-width: 100px;
+    text-decoration: none;
+    display: inline-block;
+    text-align: center;
+    box-sizing: border-box;
+}
+
+.mno-order-inquiry-btn:hover:not(:disabled) {
+    background-color: #DB2777; /* 더 진한 핑크색 */
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(236, 72, 153, 0.3);
+}
+
+.mno-order-inquiry-btn:active:not(:disabled) {
+    transform: translateY(0);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+}
+
+.mno-order-inquiry-btn:disabled {
+    background-color: var(--color-gray-300);
+    color: var(--color-gray-500);
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.mno-order-inquiry-btn:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
+}
+
+.mno-order-inquiry-btn:focus-visible {
+    outline: 2px solid #EC4899;
+    outline-offset: 2px;
+}
+
+/* 모바일에서 액션 영역 레이아웃 조정 */
+@media (max-width: 767px) {
+    .mno-order-card-actions-content {
+        flex-wrap: wrap;
+        gap: var(--spacing-sm);
+    }
+    
+    .mno-order-action-item {
+        flex: 1 1 calc(50% - var(--spacing-sm));
+        min-width: calc(50% - var(--spacing-sm));
+    }
+    
+    .mno-order-action-item:last-child {
+        flex: 1 1 100%;
+        min-width: 100%;
+        margin-top: var(--spacing-xs);
+    }
+    
+    .mno-order-action-divider {
+        display: none;
+    }
+    
+    .mno-order-review-btn,
+    .mno-order-inquiry-btn {
+        width: 100%;
+    }
+}
+
+/* mno-order-card 내에서 가격 정보 순서 변경 */
+.mno-order-card .plan-price-left {
+    flex-direction: column-reverse;
+}
+
+.mno-order-card .plan-price-after {
+    order: -1;
+}
+
+/* mno-order 토스트 메시지 */
+.mno-order-toast {
+    position: absolute;
+    background-color: rgba(0, 0, 0, 0.85);
+    color: var(--color-white);
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 0.875rem; /* 14px */
+    font-weight: 500;
+    z-index: 10000;
+    opacity: 0;
+    transform: translateX(-100%) translateY(-50%) translateY(10px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    pointer-events: none;
+    white-space: nowrap;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    max-width: 90vw;
+    word-wrap: break-word;
+}
+
+.mno-order-toast.mno-order-toast-visible {
+    opacity: 1;
+    transform: translateX(-100%) translateY(-50%) translateY(0);
+}
+
+/* mno-order 리뷰 작성 완료 토스트 메시지 */
+.mno-review-toast {
+    position: fixed;
+    background-color: rgba(0, 0, 0, 0.85);
+    color: var(--color-white);
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 0.875rem; /* 14px */
+    font-weight: 500;
+    z-index: 10001;
+    opacity: 0;
+    transform: translateX(-50%) translateY(-50%) translateY(10px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    pointer-events: none;
+    white-space: nowrap;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    max-width: 90vw;
+    word-wrap: break-word;
+}
+
+.mno-review-toast.mno-review-toast-visible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(-50%) translateY(0);
+}
+
+/* mno-order 리뷰 작성 모달 */
+.mno-review-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-md);
+}
+
+.mno-review-modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.1);
+    backdrop-filter: none;
+}
+
+.mno-review-modal-content {
+    position: relative;
+    background-color: var(--color-white);
+    border-radius: 16px;
+    width: 100%;
+    max-width: 500px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    z-index: 1;
+    overflow: hidden;
+}
+
+.mno-review-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-lg);
+    border-bottom: 1px solid var(--color-gray-200);
+}
+
+.mno-review-modal-title {
+    font-size: var(--font-size-xl);
+    font-weight: 700;
+    color: var(--color-black);
+    margin: 0;
+}
+
+.mno-review-modal-close {
+    background: none;
+    border: none;
+    padding: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-gray-500);
+    transition: color 0.2s;
+    border-radius: 4px;
+}
+
+.mno-review-modal-close:hover {
+    color: var(--color-gray-700);
+    background-color: var(--color-gray-100);
+}
+
+.mno-review-modal-body {
+    padding: var(--spacing-lg);
+    overflow-y: auto;
+    flex: 1;
+}
+
+.mno-review-form-group {
+    margin-bottom: var(--spacing-lg);
+}
+
+.mno-review-form-label {
+    display: block;
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    color: var(--color-gray-700);
+    margin-bottom: var(--spacing-sm);
+}
+
+.mno-review-textarea {
+    width: 100%;
+    padding: var(--spacing-md);
+    border: 1px solid var(--color-gray-300);
+    border-radius: 8px;
+    font-size: var(--font-size-base);
+    font-family: inherit;
+    line-height: 1.6;
+    resize: vertical;
+    min-height: 200px;
+    box-sizing: border-box;
+    transition: border-color 0.2s;
+}
+
+.mno-review-textarea:focus {
+    outline: none;
+    border-color: var(--color-indigo-500);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.mno-review-textarea::placeholder {
+    color: var(--color-gray-400);
+}
+
+.mno-review-modal-footer {
+    display: flex;
+    gap: var(--spacing-sm);
+    padding-top: var(--spacing-md);
+    border-top: 1px solid var(--color-gray-200);
+}
+
+.mno-review-btn-cancel,
+.mno-review-btn-submit {
+    flex: 1;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.mno-review-btn-cancel {
+    background-color: var(--color-gray-100);
+    color: var(--color-gray-700);
+}
+
+.mno-review-btn-cancel:hover {
+    background-color: var(--color-gray-200);
+}
+
+.mno-review-btn-submit {
+    background-color: var(--color-indigo-500);
+    color: var(--color-white);
+}
+
+.mno-review-btn-submit:hover {
+    background-color: var(--color-indigo-600);
+}
+
+.mno-review-btn-submit:active {
+    transform: scale(0.98);
+}
+
+/* 모바일에서 모달 스타일 조정 */
+@media (max-width: 767px) {
+    .mno-review-modal {
+        padding: 0;
+        align-items: flex-end;
+    }
+
+    .mno-review-modal-content {
+        max-width: 100%;
+        max-height: 90vh;
+        border-radius: 16px 16px 0 0;
+    }
+}
+
+/* ============================================
+   요금제 주문 카드 스타일 (mvno-order.php 전용)
+   ============================================ */
+
+.mvno-order-list-container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+    width: 100%;
+}
+
+.mvno-order-card {
+    background-color: var(--color-white);
+    border: 1px solid var(--color-gray-200);
+    border-radius: 12px;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.3s ease;
+    overflow: hidden;
+    width: 100%;
+}
+
+.mvno-order-card:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.08);
+    transform: none;
+}
+
+.mvno-order-card-divider {
+    display: none;
+    width: 100%;
+    border: none;
+    height: 0;
+    margin: 0;
+    padding: 0;
+}
+
+@media (min-width: 1024px) {
+    .mvno-order-card-divider {
+        display: none;
+    }
+}
+
+.mvno-order-card-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+}
+
+.mvno-order-card-link:focus,
+.mvno-order-card-link:active,
+.mvno-order-card-link:focus-visible {
+    outline: none;
+    border: none;
+}
+
+.mvno-order-card-main-content {
+    padding: var(--spacing-lg);
+}
+
+.mvno-order-card-header-body-frame {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.mvno-order-card-top-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-sm);
+}
+
+.mvno-order-provider-rating-group {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.mvno-order-provider-logo-text {
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    color: var(--color-gray-700);
+}
+
+.mvno-order-rating-group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.mvno-order-rating-text {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--color-gray-700);
+}
+
+.mvno-order-badge-share-group {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+.mvno-order-share-btn-inline {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    transition: opacity 0.2s;
+    outline: none;
+}
+
+.mvno-order-share-btn-inline:focus {
+    outline: none;
+    box-shadow: none;
+}
+
+.mvno-order-share-btn-inline:focus-visible {
+    outline: none;
+    box-shadow: none;
+}
+
+.mvno-order-share-btn-inline:hover {
+    opacity: 0.7;
+}
+
+.mvno-order-share-btn-inline:active {
+    opacity: 0.5;
+}
+
+/* 모바일에서 카드 구분선 표시 */
+@media (max-width: 1023px) {
+    .mvno-order-card-divider {
+        display: block;
+    }
+    
+    .mvno-order-card {
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+    }
+}
+
+/* 요금제 주문 카드 액션 영역 */
+.mvno-order-card-actions {
+    border-top: 1px solid var(--color-gray-200);
+    background-color: var(--color-gray-50);
+    padding: var(--spacing-md) var(--spacing-lg);
+}
+
+.mvno-order-card-actions-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-md);
+}
+
+.mvno-order-action-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    flex: 1;
+    min-width: 0;
+}
+
+.mvno-order-action-label {
+    font-size: 0.75rem; /* 12px */
+    font-weight: 500;
+    color: var(--color-gray-500);
+    line-height: 1.2;
+    text-align: center;
+}
+
+.mvno-order-action-value {
+    font-size: 1.0625rem; /* 17px - 유지기간과 동일 */
+    font-weight: 500;
+    color: var(--color-gray-700);
+    line-height: 1.3;
+    word-break: break-word;
+    text-align: center;
+}
+
+.mvno-order-action-divider {
+    width: 1px;
+    height: 40px;
+    background-color: var(--color-gray-300);
+    flex-shrink: 0;
+}
+
+.mvno-order-review-btn {
+    background-color: var(--color-indigo-500);
+    color: var(--color-white);
+    border: none;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 0.875rem; /* 14px */
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    width: 100%;
+    min-width: 100px;
+}
+
+.mvno-order-review-btn:hover:not(:disabled) {
+    background-color: var(--color-indigo-600);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+}
+
+.mvno-order-review-btn:active:not(:disabled) {
+    transform: translateY(0);
+    box-shadow: 0 1px 4px rgba(99, 102, 241, 0.2);
+}
+
+.mvno-order-review-btn:disabled {
+    background-color: var(--color-gray-300);
+    color: var(--color-gray-500);
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.mvno-order-review-btn:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+}
+
+.mvno-order-review-btn:focus-visible {
+    outline: 2px solid var(--color-indigo-500);
+    outline-offset: 2px;
+}
+
+/* 개통 문의 버튼 */
+.mvno-order-inquiry-btn {
+    background-color: #EC4899; /* 핑크색 */
+    color: var(--color-white);
+    border: none;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 0.875rem; /* 14px */
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    width: 100%;
+    min-width: 100px;
+    text-decoration: none;
+    display: inline-block;
+    text-align: center;
+    box-sizing: border-box;
+}
+
+.mvno-order-inquiry-btn:hover:not(:disabled) {
+    background-color: #DB2777; /* 더 진한 핑크색 */
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(236, 72, 153, 0.3);
+}
+
+.mvno-order-inquiry-btn:active:not(:disabled) {
+    transform: translateY(0);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+}
+
+.mvno-order-inquiry-btn:disabled {
+    background-color: var(--color-gray-300);
+    color: var(--color-gray-500);
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.mvno-order-inquiry-btn:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
+}
+
+.mvno-order-inquiry-btn:focus-visible {
+    outline: 2px solid #EC4899;
+    outline-offset: 2px;
+}
+
+/* 모바일에서 액션 영역 레이아웃 조정 */
+@media (max-width: 767px) {
+    .mvno-order-card-actions-content {
+        flex-wrap: wrap;
+        gap: var(--spacing-sm);
+    }
+    
+    .mvno-order-action-item {
+        flex: 1 1 calc(50% - var(--spacing-sm));
+        min-width: calc(50% - var(--spacing-sm));
+    }
+    
+    .mvno-order-action-item:last-child {
+        flex: 1 1 100%;
+        min-width: 100%;
+        margin-top: var(--spacing-xs);
+    }
+    
+    .mvno-order-action-divider {
+        display: none;
+    }
+    
+    .mvno-order-review-btn,
+    .mvno-order-inquiry-btn {
+        width: 100%;
+    }
+}
+
+/* mvno-order-card 내에서 가격 정보 순서 변경 */
+.mvno-order-card .plan-price-left {
+    flex-direction: column-reverse;
+}
+
+.mvno-order-card .plan-price-after {
+    order: -1;
+}
+
+/* mvno-order 토스트 메시지 */
+.mvno-order-toast {
+    position: absolute;
+    background-color: rgba(0, 0, 0, 0.85);
+    color: var(--color-white);
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 0.875rem; /* 14px */
+    font-weight: 500;
+    z-index: 10000;
+    opacity: 0;
+    transform: translateX(-100%) translateY(-50%) translateY(10px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    pointer-events: none;
+    white-space: nowrap;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    max-width: 90vw;
+    word-wrap: break-word;
+}
+
+.mvno-order-toast.mvno-order-toast-visible {
+    opacity: 1;
+    transform: translateX(-100%) translateY(-50%) translateY(0);
+}
+
+/* mvno-order 리뷰 작성 모달 */
+.mvno-review-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-md);
+}
+
+.mvno-review-modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.1);
+    backdrop-filter: none;
+}
+
+.mvno-review-modal-content {
+    position: relative;
+    background-color: var(--color-white);
+    border-radius: 16px;
+    width: 100%;
+    max-width: 500px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    z-index: 1;
+    overflow: hidden;
+}
+
+.mvno-review-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-lg);
+    border-bottom: 1px solid var(--color-gray-200);
+}
+
+.mvno-review-modal-title {
+    font-size: var(--font-size-xl);
+    font-weight: 700;
+    color: var(--color-black);
+    margin: 0;
+}
+
+.mvno-review-modal-close {
+    background: none;
+    border: none;
+    padding: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-gray-500);
+    transition: color 0.2s;
+    border-radius: 4px;
+}
+
+.mvno-review-modal-close:hover {
+    color: var(--color-gray-700);
+    background-color: var(--color-gray-100);
+}
+
+.mvno-review-modal-body {
+    padding: var(--spacing-lg);
+    overflow-y: auto;
+    flex: 1;
+}
+
+.mvno-review-form-group {
+    margin-bottom: var(--spacing-lg);
+}
+
+.mvno-review-form-label {
+    display: block;
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    color: var(--color-gray-700);
+    margin-bottom: var(--spacing-sm);
+}
+
+.mvno-review-textarea {
+    width: 100%;
+    padding: var(--spacing-md);
+    border: 1px solid var(--color-gray-300);
+    border-radius: 8px;
+    font-size: var(--font-size-base);
+    font-family: inherit;
+    line-height: 1.6;
+    resize: vertical;
+    min-height: 200px;
+    box-sizing: border-box;
+    transition: border-color 0.2s;
+}
+
+.mvno-review-textarea:focus {
+    outline: none;
+    border-color: var(--color-indigo-500);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.mvno-review-textarea::placeholder {
+    color: var(--color-gray-400);
+}
+
+.mvno-review-modal-footer {
+    display: flex;
+    gap: var(--spacing-sm);
+    padding-top: var(--spacing-md);
+    border-top: 1px solid var(--color-gray-200);
+}
+
+.mvno-review-btn-cancel,
+.mvno-review-btn-submit {
+    flex: 1;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.mvno-review-btn-cancel {
+    background-color: var(--color-gray-100);
+    color: var(--color-gray-700);
+}
+
+.mvno-review-btn-cancel:hover {
+    background-color: var(--color-gray-200);
+}
+
+.mvno-review-btn-submit {
+    background-color: var(--color-indigo-500);
+    color: var(--color-white);
+}
+
+.mvno-review-btn-submit:hover {
+    background-color: var(--color-indigo-600);
+}
+
+.mvno-review-btn-submit:active {
+    transform: scale(0.98);
+}
+
+/* mvno-order 리뷰 작성 완료 토스트 메시지 */
+.mvno-review-toast {
+    position: fixed;
+    background-color: rgba(0, 0, 0, 0.85);
+    color: var(--color-white);
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 0.875rem; /* 14px */
+    font-weight: 500;
+    z-index: 10001;
+    opacity: 0;
+    transform: translateX(-50%) translateY(-50%) translateY(10px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    pointer-events: none;
+    white-space: nowrap;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    max-width: 90vw;
+    word-wrap: break-word;
+}
+
+.mvno-review-toast.mvno-review-toast-visible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(-50%) translateY(0);
+}
+
+/* 모바일에서 모달 스타일 조정 */
+@media (max-width: 767px) {
+    .mvno-review-modal {
+        padding: 0;
+        align-items: flex-end;
+    }
+
+    .mvno-review-modal-content {
+        max-width: 100%;
+        max-height: 90vh;
+        border-radius: 16px 16px 0 0;
+    }
 }
 
