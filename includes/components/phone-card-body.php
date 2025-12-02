@@ -75,7 +75,6 @@ if (!function_exists('formatSupportValue')) {
             <span class="phone-name-text"><?php echo htmlspecialchars($plan_info['plan_name']); ?></span>
         </span>
     </div>
-    <?php if ($layout_type === 'list'): ?>
     <div class="plan-features-row">
         <div class="mno-support-amount-section">
             <div class="mno-support-card">
@@ -122,7 +121,6 @@ if (!function_exists('formatSupportValue')) {
             </div>
         </div>
     </div>
-    <?php endif; ?>
 </div>
 
 <!-- 가격 정보 -->
