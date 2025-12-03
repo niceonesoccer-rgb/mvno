@@ -59,3 +59,4 @@ $show_features = ($layout_type === 'list');
 </div>
 <?php endif; ?>
 
+
