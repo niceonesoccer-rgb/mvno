@@ -108,6 +108,7 @@ include '../includes/header.php';
 
 <script src="../assets/js/plan-accordion.js" defer></script>
 <script src="../assets/js/favorite-heart.js" defer></script>
+<script src="../assets/js/share.js" defer></script>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {

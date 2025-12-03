@@ -51,12 +51,14 @@ if ($is_mno) {
             <!-- 통신사폰 목록 레이아웃 -->
             <?php
             $section_title = '';
+            $is_wishlist = true; // 위시리스트 페이지 플래그
             include '../includes/layouts/phone-list-layout.php';
             ?>
         <?php else: ?>
             <!-- 알뜰폰 목록 레이아웃 -->
             <?php
             $section_title = '';
+            $is_wishlist = true; // 위시리스트 페이지 플래그
             include '../includes/layouts/plan-list-layout.php';
             ?>
         <?php endif; ?>
@@ -65,6 +67,7 @@ if ($is_mno) {
 
 <script src="../assets/js/plan-accordion.js" defer></script>
 <script src="../assets/js/favorite-heart.js" defer></script>
+<script src="../assets/js/share.js" defer></script>
 
 <?php
 // 푸터 포함

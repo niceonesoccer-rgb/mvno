@@ -11,6 +11,7 @@ if (!isset($plans)) {
 }
 $section_title = $section_title ?? '';
 $layout_type = 'list';
+$is_wishlist = $is_wishlist ?? false;
 ?>
 
 <?php if (!empty($section_title)): ?>

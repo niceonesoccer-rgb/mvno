@@ -121,6 +121,8 @@ else if (!isset($is_main_page)) {
     <script src="/MVNO/assets/js/header-scroll.js" defer></script>
     <script src="/MVNO/assets/js/phone-deal-scroll.js" defer></script>
     <script src="/MVNO/assets/js/nav-click-fix.js" defer></script>
+    <script src="/MVNO/assets/js/share.js" defer></script>
+    <script src="/MVNO/assets/js/phone-consultation-modal.js" defer></script>
 </head>
 <body>
     <header class="header sticky-nav" id="mainHeader">

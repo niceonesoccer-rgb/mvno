@@ -3241,6 +3241,54 @@ button:focus {
     line-height: 1.2;
 }
 
+/* 공유하기 버튼 섹션 */
+.plan-card-share-section {
+    border-top: 1px solid var(--color-gray-200);
+    background-color: var(--color-white);
+    padding: var(--spacing-md);
+}
+
+.plan-share-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: none;
+    border: 1px solid var(--color-gray-300);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    color: var(--color-gray-600);
+}
+
+.plan-share-btn:hover {
+    background-color: var(--color-gray-100);
+    border-color: var(--color-gray-400);
+}
+
+.plan-share-btn:active {
+    background-color: var(--color-gray-200);
+}
+
+.plan-share-btn:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
+
+.plan-share-btn svg {
+    flex-shrink: 0;
+}
+
+.plan-share-text {
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    color: var(--color-gray-600);
+}
+
 /* 데스크톱에서 요금제 카드 스타일 조정 */
 @media (min-width: 992px) {
     .plan-data-main {
@@ -6678,6 +6726,103 @@ button:focus {
     }
 }
 
+/* 위시리스트 공유 버튼 */
+.wishlist-share-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    transition: background-color 0.2s, opacity 0.2s;
+    outline: none;
+    flex-shrink: 0;
+}
+
+.wishlist-share-btn:focus {
+    outline: none;
+    box-shadow: none;
+}
+
+.wishlist-share-btn:focus-visible {
+    outline: 2px solid var(--color-indigo-500);
+    outline-offset: 2px;
+}
+
+.wishlist-share-btn:hover {
+    background-color: var(--color-gray-100);
+    opacity: 0.8;
+}
+
+.wishlist-share-btn:active {
+    opacity: 0.6;
+    background-color: var(--color-gray-200);
+}
+
+.wishlist-share-btn svg {
+    width: 24px;
+    height: 24px;
+}
+
+/* 공유 토스트 메시지 */
+.share-toast {
+    position: fixed;
+    background-color: var(--color-gray-700);
+    color: var(--color-white);
+    padding: 12px 20px;
+    border-radius: 24px;
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    z-index: 10000;
+    opacity: 0;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    box-shadow: var(--shadow-lg);
+    pointer-events: none;
+    white-space: nowrap;
+    transform: translateX(-50%) translateY(-50%) scale(0.9);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.share-toast-icon {
+    width: 20px;
+    height: 20px;
+    min-width: 20px;
+    min-height: 20px;
+    background-color: #6366f1;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.share-toast-icon svg {
+    width: 14px;
+    height: 14px;
+}
+
+.share-toast-text {
+    flex: 1;
+}
+
+.share-toast.show {
+    opacity: 1;
+}
+
+.share-toast.show.toast-left {
+    transform: translateX(-100%) translateY(-50%) scale(1);
+}
+
+.share-toast.show:not(.toast-left) {
+    transform: translateX(-50%) translateY(-50%) scale(1);
+}
+
 /* Wishlist 페이지 PC 버전 너비 조정 */
 @media (min-width: 992px) {
     .wishlist-page.content-layout {
@@ -7806,6 +7951,301 @@ button:focus {
         max-width: 100%;
         max-height: 90vh;
         border-radius: 16px 16px 0 0;
+    }
+}
+
+/* ============================================
+   휴대폰 상담 신청 모달
+   ============================================ */
+.phone-consultation-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+    pointer-events: none;
+}
+
+.phone-consultation-modal.phone-consultation-modal-active {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+.phone-consultation-modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(2px);
+}
+
+.phone-consultation-modal-content {
+    position: relative;
+    background-color: var(--color-white);
+    border-radius: 16px;
+    width: 90%;
+    max-width: 500px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    transform: scale(0.95);
+    transition: transform 0.3s ease;
+    z-index: 10001;
+    overflow: hidden;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.phone-consultation-modal.phone-consultation-modal-active .phone-consultation-modal-content {
+    transform: scale(1);
+}
+
+.phone-consultation-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px;
+    border-bottom: 1px solid var(--color-gray-200);
+    flex-shrink: 0;
+}
+
+.phone-consultation-modal-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--color-gray-700);
+    margin: 0;
+    flex: 1;
+}
+
+.phone-consultation-modal-close {
+    background: none;
+    border: none;
+    padding: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    transition: background-color 0.2s;
+    outline: none;
+    margin-left: auto;
+}
+
+.phone-consultation-modal-close:hover {
+    background-color: var(--color-gray-100);
+}
+
+.phone-consultation-modal-close:focus {
+    outline: 2px solid var(--color-indigo-500);
+    outline-offset: 2px;
+}
+
+.phone-consultation-modal-close:active {
+    background-color: var(--color-gray-200);
+}
+
+.phone-consultation-modal-body {
+    padding: 20px;
+    overflow-y: auto;
+    flex: 1;
+    min-height: 0;
+}
+
+/* 안내 문구 */
+.phone-consultation-info {
+    display: flex;
+    gap: 12px;
+    padding: 16px;
+    background-color: #f3f4f6;
+    border-radius: 8px;
+    margin-bottom: 24px;
+}
+
+.phone-consultation-info-icon {
+    flex-shrink: 0;
+    display: flex;
+    align-items: flex-start;
+}
+
+.phone-consultation-info-icon svg {
+    width: 18px;
+    height: 18px;
+}
+
+.phone-consultation-info-text {
+    flex: 1;
+}
+
+.phone-consultation-info-text p {
+    margin: 0;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #374151;
+    line-height: 1.5;
+}
+
+/* 폼 스타일 */
+.phone-consultation-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.phone-consultation-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.phone-consultation-label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--color-gray-700);
+}
+
+.phone-consultation-input-wrapper {
+    position: relative;
+}
+
+.phone-consultation-input {
+    width: 100%;
+    padding: 12px 16px;
+    font-size: 1rem;
+    border: 1px solid var(--color-gray-300);
+    border-radius: 8px;
+    background-color: var(--color-white);
+    color: var(--color-gray-700);
+    transition: border-color 0.2s, box-shadow 0.2s;
+    box-sizing: border-box;
+}
+
+.phone-consultation-input:focus {
+    outline: none;
+    border-color: var(--color-indigo-500);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.phone-consultation-input::placeholder {
+    color: var(--color-gray-400);
+}
+
+/* 동의 체크박스 */
+.phone-consultation-agreement {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.phone-consultation-agreement-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-left: 8px;
+}
+
+.phone-consultation-agreement-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.phone-consultation-agreement-checkbox-label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    flex: 1;
+}
+
+.phone-consultation-checkbox {
+    width: 18px;
+    height: 18px;
+    margin-right: 8px;
+    cursor: pointer;
+    accent-color: var(--color-indigo-500);
+}
+
+.phone-consultation-checkbox-text {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--color-gray-500);
+    flex: 1;
+}
+
+.phone-consultation-agreement-link {
+    display: flex;
+    align-items: center;
+    color: var(--color-gray-500);
+    margin-left: auto;
+}
+
+.phone-consultation-agreement-link svg {
+    width: 16px;
+    height: 16px;
+}
+
+.phone-consultation-agreement-link:hover {
+    color: var(--color-indigo-500);
+}
+
+/* 제출 버튼 */
+.phone-consultation-submit-btn {
+    width: 100%;
+    padding: 14px 24px;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-white);
+    background-color: var(--color-indigo-500);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    margin-top: 8px;
+}
+
+.phone-consultation-submit-btn:hover:not(:disabled) {
+    background-color: var(--color-indigo-600);
+}
+
+.phone-consultation-submit-btn:disabled {
+    background-color: var(--color-gray-300);
+    color: var(--color-gray-500);
+    cursor: not-allowed;
+}
+
+.phone-consultation-submit-btn:focus {
+    outline: 2px solid var(--color-indigo-500);
+    outline-offset: 2px;
+}
+
+/* 모바일 스타일 */
+@media (max-width: 767px) {
+    .phone-consultation-modal-content {
+        width: 100%;
+        max-width: 100%;
+        max-height: 95vh;
+        border-radius: 20px 20px 0 0;
+    }
+    
+    .phone-consultation-modal {
+        align-items: flex-end;
+    }
+    
+    .phone-consultation-modal-body {
+        padding: 16px;
+    }
+    
+    .phone-consultation-modal-header {
+        padding: 16px;
     }
 }
 

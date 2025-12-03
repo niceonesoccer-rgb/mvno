@@ -15,22 +15,16 @@ include '../includes/header.php';
             <div class="plans-filter-group">
                 <div class="plans-filter-row">
                     <button class="plans-filter-btn">
-                        <img src="https://assets-legacy.moyoplan.com/internets/assets/thunder_m.svg" alt="" width="16" height="16">
-                        <span class="plans-filter-text">100MB</span>
+                        <span class="plans-filter-text">#100MB</span>
                     </button>
                     <button class="plans-filter-btn">
-                        <img src="https://assets-legacy.moyoplan.com/internets/assets/thunder_m.svg" alt="" width="16" height="16">
-                        <span class="plans-filter-text">500MB</span>
+                        <span class="plans-filter-text">#500MB</span>
                     </button>
                     <button class="plans-filter-btn">
-                        <img src="https://assets-legacy.moyoplan.com/internets/assets/thunder_m.svg" alt="" width="16" height="16">
-                        <span class="plans-filter-text">1G</span>
+                        <span class="plans-filter-text">#1G</span>
                     </button>
                     <button class="plans-filter-btn">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" width="16" height="16">
-                            <path fill-rule="evenodd" d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10zm5.207-11.793a1 1 0 00-1.414-1.414L11 13.586l-2.793-2.793a1 1 0 00-1.414 1.414l3.5 3.5a1 1 0 001.414 0l5.5-5.5z" clip-rule="evenodd" fill="#3F4750"></path>
-                        </svg>
-                        <span class="plans-filter-text">TV 결합</span>
+                        <span class="plans-filter-text">#TV 결합</span>
                     </button>
                 </div>
             </div>
@@ -51,7 +45,14 @@ include '../includes/header.php';
                                         <span style="box-sizing:border-box;display:block;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0;max-width:100%">
                                             <img style="display:block;max-width:100%;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0" alt="" aria-hidden="true" src="data:image/svg+xml,%3csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20version=%271.1%27%20width=%2720%27%20height=%2720%27/%3e">
                                         </span>
-                                        <img alt="map" src="https://assets-legacy.moyoplan.com/internets/assets/thunder_s.svg" decoding="async" data-nimg="intrinsic" style="position:absolute;top:0;left:0;bottom:0;right:0;box-sizing:border-box;padding:0;border:none;margin:auto;display:block;width:0;height:0;min-width:100%;max-width:100%;min-height:100%;max-height:100%" srcset="https://assets-legacy.moyoplan.com/internets/assets/thunder_s.svg 1x, https://assets-legacy.moyoplan.com/internets/assets/thunder_s.svg 2x">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="position:absolute;top:0;left:0;bottom:0;right:0;box-sizing:border-box;padding:0;border:none;margin:auto;display:block;width:100%;height:100%">
+                                            <rect x="2" y="3" width="20" height="14" rx="2" fill="#E9D5FF" stroke="#A855F7" stroke-width="1.5"/>
+                                            <rect x="4" y="5" width="16" height="10" rx="1" fill="white"/>
+                                            <rect x="2" y="17" width="20" height="4" rx="1" fill="#C084FC" stroke="#A855F7" stroke-width="1"/>
+                                            <g transform="translate(17, -2) scale(1.5)">
+                                                <path d="M0 0L-2 5H0L-1 10L2 5H0L0 0Z" fill="#6366F1" stroke="#4F46E5" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+                                            </g>
+                                        </svg>
                                     </span>500MB
                                 </div>
                                 <div class="css-1fd5u73 e82z5mt14">
@@ -59,28 +60,46 @@ include '../includes/header.php';
                                         <span style="box-sizing:border-box;display:block;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0;max-width:100%">
                                             <img style="display:block;max-width:100%;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0" alt="" aria-hidden="true" src="data:image/svg+xml,%3csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20version=%271.1%27%20width=%2720%27%20height=%2720%27/%3e">
                                         </span>
-                                        <img alt="map" src="https://assets-legacy.moyoplan.com/internets/assets/tv_s.svg" decoding="async" data-nimg="intrinsic" style="position:absolute;top:0;left:0;bottom:0;right:0;box-sizing:border-box;padding:0;border:none;margin:auto;display:block;width:0;height:0;min-width:100%;max-width:100%;min-height:100%;max-height:100%" srcset="https://assets-legacy.moyoplan.com/internets/assets/tv_s.svg 1x, https://assets-legacy.moyoplan.com/internets/assets/tv_s.svg 2x">
-                                    </span>194개
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="position:absolute;top:0;left:0;bottom:0;right:0;box-sizing:border-box;padding:0;border:none;margin:auto;display:block;width:100%;height:100%">
+                                            <defs>
+                                                <linearGradient id="checkGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                                    <stop offset="0%" style="stop-color:#10B981;stop-opacity:1" />
+                                                    <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
+                                                </linearGradient>
+                                            </defs>
+                                            <circle cx="12" cy="12" r="10" fill="url(#checkGradient)" stroke="#047857" stroke-width="1"/>
+                                            <path d="M8 12L10.5 14.5L16 9" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                        </svg>
+                                    </span>19개 신청
                                 </div>
                             </div>
                         </div>
                         <div class="css-174t92n e82z5mt7">
                             <div class="css-12zfa6z e82z5mt8">
-                                <img src="https://assets-legacy.moyoplan.com/internets/assets/gift.svg" class="css-xj5cz0 e82z5mt9">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="css-xj5cz0 e82z5mt9">
+                                    <path d="M20 7H4C2.89543 7 2 7.89543 2 9V19C2 20.1046 2.89543 21 4 21H20C21.1046 21 22 20.1046 22 19V9C22 7.89543 21.1046 7 20 7Z" stroke="#6366F1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                                    <path d="M12 7V21M12 7L8 3M12 7L16 3" stroke="#6366F1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
                                 <div class="css-0 e82z5mt10">
                                     <p class="css-2ht76o e82z5mt12">인터넷,TV 설치비 무료</p>
                                     <p class="css-1j35abw e82z5mt11">무료(36,300원 상당)</p>
                                 </div>
                             </div>
                             <div class="css-12zfa6z e82z5mt8">
-                                <img src="https://assets-legacy.moyoplan.com/internets/assets/gift.svg" class="css-xj5cz0 e82z5mt9">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="css-xj5cz0 e82z5mt9">
+                                    <path d="M20 7H4C2.89543 7 2 7.89543 2 9V19C2 20.1046 2.89543 21 4 21H20C21.1046 21 22 20.1046 22 19V9C22 7.89543 21.1046 7 20 7Z" stroke="#6366F1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                                    <path d="M12 7V21M12 7L8 3M12 7L16 3" stroke="#6366F1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
                                 <div class="css-0 e82z5mt10">
                                     <p class="css-2ht76o e82z5mt12">셋톱박스 임대료 무료</p>
                                     <p class="css-1j35abw e82z5mt11">무료(월 3,300원 상당)</p>
                                 </div>
                             </div>
                             <div class="css-12zfa6z e82z5mt8">
-                                <img src="https://assets-legacy.moyoplan.com/internets/assets/gift.svg" class="css-xj5cz0 e82z5mt9">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="css-xj5cz0 e82z5mt9">
+                                    <path d="M20 7H4C2.89543 7 2 7.89543 2 9V19C2 20.1046 2.89543 21 4 21H20C21.1046 21 22 20.1046 22 19V9C22 7.89543 21.1046 7 20 7Z" stroke="#6366F1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                                    <path d="M12 7V21M12 7L8 3M12 7L16 3" stroke="#6366F1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
                                 <div class="css-0 e82z5mt10">
                                     <p class="css-2ht76o e82z5mt12">와이파이 공유기</p>
                                     <p class="css-1j35abw e82z5mt11">무료(월 1,100원 상당)</p>
@@ -103,7 +122,14 @@ include '../includes/header.php';
                                         <span style="box-sizing:border-box;display:block;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0;max-width:100%">
                                             <img style="display:block;max-width:100%;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0" alt="" aria-hidden="true" src="data:image/svg+xml,%3csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20version=%271.1%27%20width=%2720%27%20height=%2720%27/%3e">
                                         </span>
-                                        <img alt="map" src="https://assets-legacy.moyoplan.com/internets/assets/thunder_s.svg" decoding="async" data-nimg="intrinsic" style="position:absolute;top:0;left:0;bottom:0;right:0;box-sizing:border-box;padding:0;border:none;margin:auto;display:block;width:0;height:0;min-width:100%;max-width:100%;min-height:100%;max-height:100%" srcset="https://assets-legacy.moyoplan.com/internets/assets/thunder_s.svg 1x, https://assets-legacy.moyoplan.com/internets/assets/thunder_s.svg 2x">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="position:absolute;top:0;left:0;bottom:0;right:0;box-sizing:border-box;padding:0;border:none;margin:auto;display:block;width:100%;height:100%">
+                                            <rect x="2" y="3" width="20" height="14" rx="2" fill="#E9D5FF" stroke="#A855F7" stroke-width="1.5"/>
+                                            <rect x="4" y="5" width="16" height="10" rx="1" fill="white"/>
+                                            <rect x="2" y="17" width="20" height="4" rx="1" fill="#C084FC" stroke="#A855F7" stroke-width="1"/>
+                                            <g transform="translate(17, -2) scale(1.5)">
+                                                <path d="M0 0L-2 5H0L-1 10L2 5H0L0 0Z" fill="#6366F1" stroke="#4F46E5" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+                                            </g>
+                                        </svg>
                                     </span>500MB
                                 </div>
                                 <div class="css-1fd5u73 e82z5mt14">
@@ -111,14 +137,26 @@ include '../includes/header.php';
                                         <span style="box-sizing:border-box;display:block;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0;max-width:100%">
                                             <img style="display:block;max-width:100%;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0" alt="" aria-hidden="true" src="data:image/svg+xml,%3csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20version=%271.1%27%20width=%2720%27%20height=%2720%27/%3e">
                                         </span>
-                                        <img alt="map" src="https://assets-legacy.moyoplan.com/internets/assets/tv_s.svg" decoding="async" data-nimg="intrinsic" style="position:absolute;top:0;left:0;bottom:0;right:0;box-sizing:border-box;padding:0;border:none;margin:auto;display:block;width:0;height:0;min-width:100%;max-width:100%;min-height:100%;max-height:100%" srcset="https://assets-legacy.moyoplan.com/internets/assets/tv_s.svg 1x, https://assets-legacy.moyoplan.com/internets/assets/tv_s.svg 2x">
-                                    </span>219개
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="position:absolute;top:0;left:0;bottom:0;right:0;box-sizing:border-box;padding:0;border:none;margin:auto;display:block;width:100%;height:100%">
+                                            <defs>
+                                                <linearGradient id="checkGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                                    <stop offset="0%" style="stop-color:#10B981;stop-opacity:1" />
+                                                    <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
+                                                </linearGradient>
+                                            </defs>
+                                            <circle cx="12" cy="12" r="10" fill="url(#checkGradient)" stroke="#047857" stroke-width="1"/>
+                                            <path d="M8 12L10.5 14.5L16 9" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                        </svg>
+                                    </span>21개 신청
                                 </div>
                             </div>
                         </div>
                         <div class="css-174t92n e82z5mt7">
                             <div class="css-12zfa6z e82z5mt8">
-                                <img src="https://assets-legacy.moyoplan.com/internets/assets/gift.svg" class="css-xj5cz0 e82z5mt9">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="css-xj5cz0 e82z5mt9">
+                                    <path d="M20 7H4C2.89543 7 2 7.89543 2 9V19C2 20.1046 2.89543 21 4 21H20C21.1046 21 22 20.1046 22 19V9C22 7.89543 21.1046 7 20 7Z" stroke="#6366F1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                                    <path d="M12 7V21M12 7L8 3M12 7L16 3" stroke="#6366F1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
                                 <div class="css-0 e82z5mt10">
                                     <p class="css-2ht76o e82z5mt12">기가와이파이</p>
                                     <p class="css-1j35abw e82z5mt11">무료</p>
@@ -141,7 +179,14 @@ include '../includes/header.php';
                                         <span style="box-sizing:border-box;display:block;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0;max-width:100%">
                                             <img style="display:block;max-width:100%;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0" alt="" aria-hidden="true" src="data:image/svg+xml,%3csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20version=%271.1%27%20width=%2720%27%20height=%2720%27/%3e">
                                         </span>
-                                        <img alt="map" src="https://assets-legacy.moyoplan.com/internets/assets/thunder_s.svg" decoding="async" data-nimg="intrinsic" style="position:absolute;top:0;left:0;bottom:0;right:0;box-sizing:border-box;padding:0;border:none;margin:auto;display:block;width:0;height:0;min-width:100%;max-width:100%;min-height:100%;max-height:100%" srcset="https://assets-legacy.moyoplan.com/internets/assets/thunder_s.svg 1x, https://assets-legacy.moyoplan.com/internets/assets/thunder_s.svg 2x">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="position:absolute;top:0;left:0;bottom:0;right:0;box-sizing:border-box;padding:0;border:none;margin:auto;display:block;width:100%;height:100%">
+                                            <rect x="2" y="3" width="20" height="14" rx="2" fill="#E9D5FF" stroke="#A855F7" stroke-width="1.5"/>
+                                            <rect x="4" y="5" width="16" height="10" rx="1" fill="white"/>
+                                            <rect x="2" y="17" width="20" height="4" rx="1" fill="#C084FC" stroke="#A855F7" stroke-width="1"/>
+                                            <g transform="translate(17, -2) scale(1.5)">
+                                                <path d="M0 0L-2 5H0L-1 10L2 5H0L0 0Z" fill="#6366F1" stroke="#4F46E5" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+                                            </g>
+                                        </svg>
                                     </span>500MB
                                 </div>
                                 <div class="css-1fd5u73 e82z5mt14">
@@ -149,14 +194,34 @@ include '../includes/header.php';
                                         <span style="box-sizing:border-box;display:block;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0;max-width:100%">
                                             <img style="display:block;max-width:100%;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0" alt="" aria-hidden="true" src="data:image/svg+xml,%3csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20version=%271.1%27%20width=%2720%27%20height=%2720%27/%3e">
                                         </span>
-                                        <img alt="map" src="https://assets-legacy.moyoplan.com/internets/assets/tv_s.svg" decoding="async" data-nimg="intrinsic" style="position:absolute;top:0;left:0;bottom:0;right:0;box-sizing:border-box;padding:0;border:none;margin:auto;display:block;width:0;height:0;min-width:100%;max-width:100%;min-height:100%;max-height:100%" srcset="https://assets-legacy.moyoplan.com/internets/assets/tv_s.svg 1x, https://assets-legacy.moyoplan.com/internets/assets/tv_s.svg 2x">
-                                    </span>184개
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="position:absolute;top:0;left:0;bottom:0;right:0;box-sizing:border-box;padding:0;border:none;margin:auto;display:block;width:100%;height:100%">
+                                            <defs>
+                                                <linearGradient id="checkGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                                    <stop offset="0%" style="stop-color:#10B981;stop-opacity:1" />
+                                                    <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
+                                                </linearGradient>
+                                            </defs>
+                                            <circle cx="12" cy="12" r="10" fill="url(#checkGradient)" stroke="#047857" stroke-width="1"/>
+                                            <path d="M8 12L10.5 14.5L16 9" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                        </svg>
+                                    </span>18개 신청
                                 </div>
                             </div>
                         </div>
                         <div class="css-174t92n e82z5mt7">
                             <div class="css-12zfa6z e82z5mt8">
-                                <img src="https://assets-legacy.moyoplan.com/internets/assets/cash.svg" class="css-xj5cz0 e82z5mt9">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="css-xj5cz0 e82z5mt9">
+                                    <defs>
+                                        <linearGradient id="cashGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                            <stop offset="0%" style="stop-color:#FCD34D;stop-opacity:1" />
+                                            <stop offset="50%" style="stop-color:#F59E0B;stop-opacity:1" />
+                                            <stop offset="100%" style="stop-color:#D97706;stop-opacity:1" />
+                                        </linearGradient>
+                                    </defs>
+                                    <circle cx="12" cy="12" r="11" fill="url(#cashGradient)" stroke="#B45309" stroke-width="1"/>
+                                    <circle cx="12" cy="12" r="9" fill="#FCD34D" opacity="0.9"/>
+                                    <text x="12" y="17" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#92400E" text-anchor="middle">₩</text>
+                                </svg>
                                 <div class="css-0 e82z5mt10">
                                     <p class="css-2ht76o e82z5mt12">현금</p>
                                     <p class="css-1j35abw e82z5mt11">50,000원</p>
@@ -183,7 +248,14 @@ include '../includes/header.php';
                                         <span style="box-sizing:border-box;display:block;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0;max-width:100%">
                                             <img style="display:block;max-width:100%;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0" alt="" aria-hidden="true" src="data:image/svg+xml,%3csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20version=%271.1%27%20width=%2720%27%20height=%2720%27/%3e">
                                         </span>
-                                        <img alt="map" src="https://assets-legacy.moyoplan.com/internets/assets/thunder_s.svg" decoding="async" data-nimg="intrinsic" style="position:absolute;top:0;left:0;bottom:0;right:0;box-sizing:border-box;padding:0;border:none;margin:auto;display:block;width:0;height:0;min-width:100%;max-width:100%;min-height:100%;max-height:100%" srcset="https://assets-legacy.moyoplan.com/internets/assets/thunder_s.svg 1x, https://assets-legacy.moyoplan.com/internets/assets/thunder_s.svg 2x">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="position:absolute;top:0;left:0;bottom:0;right:0;box-sizing:border-box;padding:0;border:none;margin:auto;display:block;width:100%;height:100%">
+                                            <rect x="2" y="3" width="20" height="14" rx="2" fill="#E9D5FF" stroke="#A855F7" stroke-width="1.5"/>
+                                            <rect x="4" y="5" width="16" height="10" rx="1" fill="white"/>
+                                            <rect x="2" y="17" width="20" height="4" rx="1" fill="#C084FC" stroke="#A855F7" stroke-width="1"/>
+                                            <g transform="translate(17, -2) scale(1.5)">
+                                                <path d="M0 0L-2 5H0L-1 10L2 5H0L0 0Z" fill="#6366F1" stroke="#4F46E5" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+                                            </g>
+                                        </svg>
                                     </span>500MB
                                 </div>
                                 <div class="css-1fd5u73 e82z5mt14">
@@ -191,14 +263,38 @@ include '../includes/header.php';
                                         <span style="box-sizing:border-box;display:block;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0;max-width:100%">
                                             <img style="display:block;max-width:100%;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0" alt="" aria-hidden="true" src="data:image/svg+xml,%3csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20version=%271.1%27%20width=%2720%27%20height=%2720%27/%3e">
                                         </span>
-                                        <img alt="map" src="https://assets-legacy.moyoplan.com/internets/assets/tv_s.svg" decoding="async" data-nimg="intrinsic" style="position:absolute;top:0;left:0;bottom:0;right:0;box-sizing:border-box;padding:0;border:none;margin:auto;display:block;width:0;height:0;min-width:100%;max-width:100%;min-height:100%;max-height:100%" srcset="https://assets-legacy.moyoplan.com/internets/assets/tv_s.svg 1x, https://assets-legacy.moyoplan.com/internets/assets/tv_s.svg 2x">
-                                    </span>230개
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="position:absolute;top:0;left:0;bottom:0;right:0;box-sizing:border-box;padding:0;border:none;margin:auto;display:block;width:100%;height:100%">
+                                            <defs>
+                                                <linearGradient id="checkGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                                    <stop offset="0%" style="stop-color:#10B981;stop-opacity:1" />
+                                                    <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
+                                                </linearGradient>
+                                            </defs>
+                                            <circle cx="12" cy="12" r="10" fill="url(#checkGradient)" stroke="#047857" stroke-width="1"/>
+                                            <path d="M8 12L10.5 14.5L16 9" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                        </svg>
+                                    </span>23개 신청
                                 </div>
                             </div>
                         </div>
                         <div class="css-174t92n e82z5mt7">
                             <div class="css-12zfa6z e82z5mt8">
-                                <img src="https://assets-legacy.moyoplan.com/internets/assets/voucher.svg" class="css-xj5cz0 e82z5mt9">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="css-xj5cz0 e82z5mt9">
+                                    <defs>
+                                        <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                            <stop offset="0%" style="stop-color:#FFD700;stop-opacity:1" />
+                                            <stop offset="50%" style="stop-color:#FFA500;stop-opacity:1" />
+                                            <stop offset="100%" style="stop-color:#FF8C00;stop-opacity:1" />
+                                        </linearGradient>
+                                    </defs>
+                                    <circle cx="12" cy="12" r="10" fill="url(#goldGradient)" stroke="#DAA520" stroke-width="1.5"/>
+                                    <circle cx="12" cy="12" r="8.5" fill="#FFD700" opacity="0.9"/>
+                                    <circle cx="12" cy="12" r="7" fill="#FFA500" opacity="0.7"/>
+                                    <circle cx="12" cy="12" r="5" fill="#FFD700" opacity="0.8"/>
+                                    <path d="M12 7C9.24 7 7 9.24 7 12C7 14.76 9.24 17 12 17C14.76 17 17 14.76 17 12C17 9.24 14.76 7 12 7Z" fill="#FFA500" opacity="0.5"/>
+                                    <circle cx="12" cy="12" r="3" fill="#FFD700" stroke="#DAA520" stroke-width="0.5"/>
+                                    <path d="M9 12H15M12 9V15" stroke="#8B6914" stroke-width="1.2" stroke-linecap="round"/>
+                                </svg>
                                 <div class="css-0 e82z5mt10">
                                     <p class="css-2ht76o e82z5mt12">상품권</p>
                                     <p class="css-1j35abw e82z5mt11">170,000원</p>
@@ -221,7 +317,14 @@ include '../includes/header.php';
                                         <span style="box-sizing:border-box;display:block;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0;max-width:100%">
                                             <img style="display:block;max-width:100%;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0" alt="" aria-hidden="true" src="data:image/svg+xml,%3csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20version=%271.1%27%20width=%2720%27%20height=%2720%27/%3e">
                                         </span>
-                                        <img alt="map" src="https://assets-legacy.moyoplan.com/internets/assets/thunder_s.svg" decoding="async" data-nimg="intrinsic" style="position:absolute;top:0;left:0;bottom:0;right:0;box-sizing:border-box;padding:0;border:none;margin:auto;display:block;width:0;height:0;min-width:100%;max-width:100%;min-height:100%;max-height:100%" srcset="https://assets-legacy.moyoplan.com/internets/assets/thunder_s.svg 1x, https://assets-legacy.moyoplan.com/internets/assets/thunder_s.svg 2x">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="position:absolute;top:0;left:0;bottom:0;right:0;box-sizing:border-box;padding:0;border:none;margin:auto;display:block;width:100%;height:100%">
+                                            <rect x="2" y="3" width="20" height="14" rx="2" fill="#E9D5FF" stroke="#A855F7" stroke-width="1.5"/>
+                                            <rect x="4" y="5" width="16" height="10" rx="1" fill="white"/>
+                                            <rect x="2" y="17" width="20" height="4" rx="1" fill="#C084FC" stroke="#A855F7" stroke-width="1"/>
+                                            <g transform="translate(17, -2) scale(1.5)">
+                                                <path d="M0 0L-2 5H0L-1 10L2 5H0L0 0Z" fill="#6366F1" stroke="#4F46E5" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+                                            </g>
+                                        </svg>
                                     </span>500MB
                                 </div>
                                 <div class="css-1fd5u73 e82z5mt14">
@@ -229,28 +332,70 @@ include '../includes/header.php';
                                         <span style="box-sizing:border-box;display:block;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0;max-width:100%">
                                             <img style="display:block;max-width:100%;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0" alt="" aria-hidden="true" src="data:image/svg+xml,%3csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20version=%271.1%27%20width=%2720%27%20height=%2720%27/%3e">
                                         </span>
-                                        <img alt="map" src="https://assets-legacy.moyoplan.com/internets/assets/tv_s.svg" decoding="async" data-nimg="intrinsic" style="position:absolute;top:0;left:0;bottom:0;right:0;box-sizing:border-box;padding:0;border:none;margin:auto;display:block;width:0;height:0;min-width:100%;max-width:100%;min-height:100%;max-height:100%" srcset="https://assets-legacy.moyoplan.com/internets/assets/tv_s.svg 1x, https://assets-legacy.moyoplan.com/internets/assets/tv_s.svg 2x">
-                                    </span>217개
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="position:absolute;top:0;left:0;bottom:0;right:0;box-sizing:border-box;padding:0;border:none;margin:auto;display:block;width:100%;height:100%">
+                                            <defs>
+                                                <linearGradient id="checkGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                                    <stop offset="0%" style="stop-color:#10B981;stop-opacity:1" />
+                                                    <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
+                                                </linearGradient>
+                                            </defs>
+                                            <circle cx="12" cy="12" r="10" fill="url(#checkGradient)" stroke="#047857" stroke-width="1"/>
+                                            <path d="M8 12L10.5 14.5L16 9" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                        </svg>
+                                    </span>21개 신청
                                 </div>
                             </div>
                         </div>
                         <div class="css-174t92n e82z5mt7">
                             <div class="css-12zfa6z e82z5mt8">
-                                <img src="https://assets-legacy.moyoplan.com/internets/assets/voucher.svg" class="css-xj5cz0 e82z5mt9">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="css-xj5cz0 e82z5mt9">
+                                    <defs>
+                                        <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                            <stop offset="0%" style="stop-color:#FFD700;stop-opacity:1" />
+                                            <stop offset="50%" style="stop-color:#FFA500;stop-opacity:1" />
+                                            <stop offset="100%" style="stop-color:#FF8C00;stop-opacity:1" />
+                                        </linearGradient>
+                                    </defs>
+                                    <circle cx="12" cy="12" r="10" fill="url(#goldGradient)" stroke="#DAA520" stroke-width="1.5"/>
+                                    <circle cx="12" cy="12" r="8.5" fill="#FFD700" opacity="0.9"/>
+                                    <circle cx="12" cy="12" r="7" fill="#FFA500" opacity="0.7"/>
+                                    <circle cx="12" cy="12" r="5" fill="#FFD700" opacity="0.8"/>
+                                    <path d="M12 7C9.24 7 7 9.24 7 12C7 14.76 9.24 17 12 17C14.76 17 17 14.76 17 12C17 9.24 14.76 7 12 7Z" fill="#FFA500" opacity="0.5"/>
+                                    <circle cx="12" cy="12" r="3" fill="#FFD700" stroke="#DAA520" stroke-width="0.5"/>
+                                    <path d="M9 12H15M12 9V15" stroke="#8B6914" stroke-width="1.2" stroke-linecap="round"/>
+                                </svg>
                                 <div class="css-0 e82z5mt10">
                                     <p class="css-2ht76o e82z5mt12">상품권</p>
                                     <p class="css-1j35abw e82z5mt11">360,000원</p>
                                 </div>
                             </div>
                             <div class="css-12zfa6z e82z5mt8">
-                                <img src="https://assets-legacy.moyoplan.com/internets/assets/voucher.svg" class="css-xj5cz0 e82z5mt9">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="css-xj5cz0 e82z5mt9">
+                                    <defs>
+                                        <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                            <stop offset="0%" style="stop-color:#FFD700;stop-opacity:1" />
+                                            <stop offset="50%" style="stop-color:#FFA500;stop-opacity:1" />
+                                            <stop offset="100%" style="stop-color:#FF8C00;stop-opacity:1" />
+                                        </linearGradient>
+                                    </defs>
+                                    <circle cx="12" cy="12" r="10" fill="url(#goldGradient)" stroke="#DAA520" stroke-width="1.5"/>
+                                    <circle cx="12" cy="12" r="8.5" fill="#FFD700" opacity="0.9"/>
+                                    <circle cx="12" cy="12" r="7" fill="#FFA500" opacity="0.7"/>
+                                    <circle cx="12" cy="12" r="5" fill="#FFD700" opacity="0.8"/>
+                                    <path d="M12 7C9.24 7 7 9.24 7 12C7 14.76 9.24 17 12 17C14.76 17 17 14.76 17 12C17 9.24 14.76 7 12 7Z" fill="#FFA500" opacity="0.5"/>
+                                    <circle cx="12" cy="12" r="3" fill="#FFD700" stroke="#DAA520" stroke-width="0.5"/>
+                                    <path d="M9 12H15M12 9V15" stroke="#8B6914" stroke-width="1.2" stroke-linecap="round"/>
+                                </svg>
                                 <div class="css-0 e82z5mt10">
                                     <p class="css-2ht76o e82z5mt12">상품권 (알뜰폰 결합 시)</p>
                                     <p class="css-1j35abw e82z5mt11">150,000원</p>
                                 </div>
                             </div>
                             <div class="css-12zfa6z e82z5mt8">
-                                <img src="https://assets-legacy.moyoplan.com/internets/assets/gift.svg" class="css-xj5cz0 e82z5mt9">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="css-xj5cz0 e82z5mt9">
+                                    <path d="M20 7H4C2.89543 7 2 7.89543 2 9V19C2 20.1046 2.89543 21 4 21H20C21.1046 21 22 20.1046 22 19V9C22 7.89543 21.1046 7 20 7Z" stroke="#6366F1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                                    <path d="M12 7V21M12 7L8 3M12 7L16 3" stroke="#6366F1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
                                 <div class="css-0 e82z5mt10">
                                     <p class="css-2ht76o e82z5mt12">기가와이파이 1대</p>
                                     <p class="css-1j35abw e82z5mt11">안테나형</p>
@@ -273,7 +418,14 @@ include '../includes/header.php';
                                         <span style="box-sizing:border-box;display:block;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0;max-width:100%">
                                             <img style="display:block;max-width:100%;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0" alt="" aria-hidden="true" src="data:image/svg+xml,%3csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20version=%271.1%27%20width=%2720%27%20height=%2720%27/%3e">
                                         </span>
-                                        <img alt="map" src="https://assets-legacy.moyoplan.com/internets/assets/thunder_s.svg" decoding="async" data-nimg="intrinsic" style="position:absolute;top:0;left:0;bottom:0;right:0;box-sizing:border-box;padding:0;border:none;margin:auto;display:block;width:0;height:0;min-width:100%;max-width:100%;min-height:100%;max-height:100%" srcset="https://assets-legacy.moyoplan.com/internets/assets/thunder_s.svg 1x, https://assets-legacy.moyoplan.com/internets/assets/thunder_s.svg 2x">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="position:absolute;top:0;left:0;bottom:0;right:0;box-sizing:border-box;padding:0;border:none;margin:auto;display:block;width:100%;height:100%">
+                                            <rect x="2" y="3" width="20" height="14" rx="2" fill="#E9D5FF" stroke="#A855F7" stroke-width="1.5"/>
+                                            <rect x="4" y="5" width="16" height="10" rx="1" fill="white"/>
+                                            <rect x="2" y="17" width="20" height="4" rx="1" fill="#C084FC" stroke="#A855F7" stroke-width="1"/>
+                                            <g transform="translate(17, -2) scale(1.5)">
+                                                <path d="M0 0L-2 5H0L-1 10L2 5H0L0 0Z" fill="#6366F1" stroke="#4F46E5" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+                                            </g>
+                                        </svg>
                                     </span>500MB
                                 </div>
                                 <div class="css-1fd5u73 e82z5mt14">
@@ -281,21 +433,56 @@ include '../includes/header.php';
                                         <span style="box-sizing:border-box;display:block;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0;max-width:100%">
                                             <img style="display:block;max-width:100%;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0" alt="" aria-hidden="true" src="data:image/svg+xml,%3csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20version=%271.1%27%20width=%2720%27%20height=%2720%27/%3e">
                                         </span>
-                                        <img alt="map" src="https://assets-legacy.moyoplan.com/internets/assets/tv_s.svg" decoding="async" data-nimg="intrinsic" style="position:absolute;top:0;left:0;bottom:0;right:0;box-sizing:border-box;padding:0;border:none;margin:auto;display:block;width:0;height:0;min-width:100%;max-width:100%;min-height:100%;max-height:100%" srcset="https://assets-legacy.moyoplan.com/internets/assets/tv_s.svg 1x, https://assets-legacy.moyoplan.com/internets/assets/tv_s.svg 2x">
-                                    </span>236개
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="position:absolute;top:0;left:0;bottom:0;right:0;box-sizing:border-box;padding:0;border:none;margin:auto;display:block;width:100%;height:100%">
+                                            <defs>
+                                                <linearGradient id="checkGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                                    <stop offset="0%" style="stop-color:#10B981;stop-opacity:1" />
+                                                    <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
+                                                </linearGradient>
+                                            </defs>
+                                            <circle cx="12" cy="12" r="10" fill="url(#checkGradient)" stroke="#047857" stroke-width="1"/>
+                                            <path d="M8 12L10.5 14.5L16 9" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                        </svg>
+                                    </span>23개 신청
                                 </div>
                             </div>
                         </div>
                         <div class="css-174t92n e82z5mt7">
                             <div class="css-12zfa6z e82z5mt8">
-                                <img src="https://assets-legacy.moyoplan.com/internets/assets/cash.svg" class="css-xj5cz0 e82z5mt9">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="css-xj5cz0 e82z5mt9">
+                                    <defs>
+                                        <linearGradient id="cashGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                            <stop offset="0%" style="stop-color:#FCD34D;stop-opacity:1" />
+                                            <stop offset="50%" style="stop-color:#F59E0B;stop-opacity:1" />
+                                            <stop offset="100%" style="stop-color:#D97706;stop-opacity:1" />
+                                        </linearGradient>
+                                    </defs>
+                                    <circle cx="12" cy="12" r="11" fill="url(#cashGradient)" stroke="#B45309" stroke-width="1"/>
+                                    <circle cx="12" cy="12" r="9" fill="#FCD34D" opacity="0.9"/>
+                                    <text x="12" y="17" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#92400E" text-anchor="middle">₩</text>
+                                </svg>
                                 <div class="css-0 e82z5mt10">
                                     <p class="css-2ht76o e82z5mt12">현금</p>
                                     <p class="css-1j35abw e82z5mt11">390,000원</p>
                                 </div>
                             </div>
                             <div class="css-12zfa6z e82z5mt8">
-                                <img src="https://assets-legacy.moyoplan.com/internets/assets/voucher.svg" class="css-xj5cz0 e82z5mt9">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="css-xj5cz0 e82z5mt9">
+                                    <defs>
+                                        <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                            <stop offset="0%" style="stop-color:#FFD700;stop-opacity:1" />
+                                            <stop offset="50%" style="stop-color:#FFA500;stop-opacity:1" />
+                                            <stop offset="100%" style="stop-color:#FF8C00;stop-opacity:1" />
+                                        </linearGradient>
+                                    </defs>
+                                    <circle cx="12" cy="12" r="10" fill="url(#goldGradient)" stroke="#DAA520" stroke-width="1.5"/>
+                                    <circle cx="12" cy="12" r="8.5" fill="#FFD700" opacity="0.9"/>
+                                    <circle cx="12" cy="12" r="7" fill="#FFA500" opacity="0.7"/>
+                                    <circle cx="12" cy="12" r="5" fill="#FFD700" opacity="0.8"/>
+                                    <path d="M12 7C9.24 7 7 9.24 7 12C7 14.76 9.24 17 12 17C14.76 17 17 14.76 17 12C17 9.24 14.76 7 12 7Z" fill="#FFA500" opacity="0.5"/>
+                                    <circle cx="12" cy="12" r="3" fill="#FFD700" stroke="#DAA520" stroke-width="0.5"/>
+                                    <path d="M9 12H15M12 9V15" stroke="#8B6914" stroke-width="1.2" stroke-linecap="round"/>
+                                </svg>
                                 <div class="css-0 e82z5mt10">
                                     <p class="css-2ht76o e82z5mt12">상품권</p>
                                     <p class="css-1j35abw e82z5mt11">60,000원</p>
@@ -318,7 +505,14 @@ include '../includes/header.php';
                                         <span style="box-sizing:border-box;display:block;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0;max-width:100%">
                                             <img style="display:block;max-width:100%;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0" alt="" aria-hidden="true" src="data:image/svg+xml,%3csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20version=%271.1%27%20width=%2720%27%20height=%2720%27/%3e">
                                         </span>
-                                        <img alt="map" src="https://assets-legacy.moyoplan.com/internets/assets/thunder_s.svg" decoding="async" data-nimg="intrinsic" style="position:absolute;top:0;left:0;bottom:0;right:0;box-sizing:border-box;padding:0;border:none;margin:auto;display:block;width:0;height:0;min-width:100%;max-width:100%;min-height:100%;max-height:100%" srcset="https://assets-legacy.moyoplan.com/internets/assets/thunder_s.svg 1x, https://assets-legacy.moyoplan.com/internets/assets/thunder_s.svg 2x">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="position:absolute;top:0;left:0;bottom:0;right:0;box-sizing:border-box;padding:0;border:none;margin:auto;display:block;width:100%;height:100%">
+                                            <rect x="2" y="3" width="20" height="14" rx="2" fill="#E9D5FF" stroke="#A855F7" stroke-width="1.5"/>
+                                            <rect x="4" y="5" width="16" height="10" rx="1" fill="white"/>
+                                            <rect x="2" y="17" width="20" height="4" rx="1" fill="#C084FC" stroke="#A855F7" stroke-width="1"/>
+                                            <g transform="translate(17, -2) scale(1.5)">
+                                                <path d="M0 0L-2 5H0L-1 10L2 5H0L0 0Z" fill="#6366F1" stroke="#4F46E5" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+                                            </g>
+                                        </svg>
                                     </span>500MB
                                 </div>
                                 <div class="css-1fd5u73 e82z5mt14">
@@ -326,14 +520,34 @@ include '../includes/header.php';
                                         <span style="box-sizing:border-box;display:block;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0;max-width:100%">
                                             <img style="display:block;max-width:100%;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0" alt="" aria-hidden="true" src="data:image/svg+xml,%3csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20version=%271.1%27%20width=%2720%27%20height=%2720%27/%3e">
                                         </span>
-                                        <img alt="map" src="https://assets-legacy.moyoplan.com/internets/assets/tv_s.svg" decoding="async" data-nimg="intrinsic" style="position:absolute;top:0;left:0;bottom:0;right:0;box-sizing:border-box;padding:0;border:none;margin:auto;display:block;width:0;height:0;min-width:100%;max-width:100%;min-height:100%;max-height:100%" srcset="https://assets-legacy.moyoplan.com/internets/assets/tv_s.svg 1x, https://assets-legacy.moyoplan.com/internets/assets/tv_s.svg 2x">
-                                    </span>235개
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="position:absolute;top:0;left:0;bottom:0;right:0;box-sizing:border-box;padding:0;border:none;margin:auto;display:block;width:100%;height:100%">
+                                            <defs>
+                                                <linearGradient id="checkGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                                    <stop offset="0%" style="stop-color:#10B981;stop-opacity:1" />
+                                                    <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
+                                                </linearGradient>
+                                            </defs>
+                                            <circle cx="12" cy="12" r="10" fill="url(#checkGradient)" stroke="#047857" stroke-width="1"/>
+                                            <path d="M8 12L10.5 14.5L16 9" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                        </svg>
+                                    </span>23개 신청
                                 </div>
                             </div>
                         </div>
                         <div class="css-174t92n e82z5mt7">
                             <div class="css-12zfa6z e82z5mt8">
-                                <img src="https://assets-legacy.moyoplan.com/internets/assets/cash.svg" class="css-xj5cz0 e82z5mt9">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="css-xj5cz0 e82z5mt9">
+                                    <defs>
+                                        <linearGradient id="cashGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                            <stop offset="0%" style="stop-color:#FCD34D;stop-opacity:1" />
+                                            <stop offset="50%" style="stop-color:#F59E0B;stop-opacity:1" />
+                                            <stop offset="100%" style="stop-color:#D97706;stop-opacity:1" />
+                                        </linearGradient>
+                                    </defs>
+                                    <circle cx="12" cy="12" r="11" fill="url(#cashGradient)" stroke="#B45309" stroke-width="1"/>
+                                    <circle cx="12" cy="12" r="9" fill="#FCD34D" opacity="0.9"/>
+                                    <text x="12" y="17" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#92400E" text-anchor="middle">₩</text>
+                                </svg>
                                 <div class="css-0 e82z5mt10">
                                     <p class="css-2ht76o e82z5mt12">현금</p>
                                     <p class="css-1j35abw e82z5mt11">470,000원</p>
@@ -437,6 +651,14 @@ include '../includes/header.php';
     padding: 1.5rem;
     background-color: #ffffff;
     box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    transition: box-shadow 0.3s ease, transform 0.3s ease, border-color 0.3s ease;
+    cursor: pointer;
+}
+
+.css-58gch7.e82z5mt0:hover {
+    box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
+    border-color: #d1d5db;
 }
 
 .css-1kjyj6z.e82z5mt1 {

@@ -14,6 +14,8 @@ $card_wrapper_class = $card_wrapper_class ?? '';
 $plan_id = $plan['id'] ?? 0;
 $is_link = ($layout_type === 'list' && $plan_id > 0);
 $link_url = $plan['link_url'] ?? '/MVNO/mvno/mvno-plan-detail.php?id=' . $plan_id;
+// 푸터에서 공유 링크로 사용할 수 있도록 link_url을 plan 배열에 추가
+$plan['link_url'] = $link_url;
 ?>
 
 <article class="basic-plan-card <?php echo htmlspecialchars($card_wrapper_class); ?>">

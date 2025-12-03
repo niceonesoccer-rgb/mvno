@@ -55,6 +55,11 @@
         </div>
     </footer>
 <?php endif; ?>
+
+<?php
+// 휴대폰 상담 신청 모달 포함
+include __DIR__ . '/components/phone-consultation-modal.php';
+?>
 </body>
 </html>
 

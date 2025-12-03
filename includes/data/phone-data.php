@@ -26,6 +26,7 @@ function getPhonesData($limit = 10) {
             'monthly_price' => '109,000원',
             'maintenance_period' => '185일',
             'device_price' => '출고가 2,387,000원',
+            'selection_count' => '15,234명이 신청',
             'gifts' => [
                 '추가 지원금',
                 '부가 서비스 1',
@@ -46,6 +47,7 @@ function getPhonesData($limit = 10) {
             'monthly_price' => '125,000원',
             'maintenance_period' => '180일',
             'device_price' => '출고가 2,100,000원',
+            'selection_count' => '22,156명이 신청',
             'gifts' => [
                 '추가 지원금',
                 '부가 서비스'
@@ -65,6 +67,7 @@ function getPhonesData($limit = 10) {
             'monthly_price' => '95,000원',
             'maintenance_period' => '200일',
             'device_price' => '출고가 1,250,000원',
+            'selection_count' => '18,942명이 신청',
             'gifts' => [
                 '추가 지원금'
             ]
@@ -83,6 +86,7 @@ function getPhonesData($limit = 10) {
             'monthly_price' => '85,000원',
             'maintenance_period' => '150일',
             'device_price' => '출고가 1,350,000원',
+            'selection_count' => '12,567명이 신청',
             'gifts' => []
         ],
         [
@@ -99,6 +103,7 @@ function getPhonesData($limit = 10) {
             'monthly_price' => '115,000원',
             'maintenance_period' => '190일',
             'device_price' => '출고가 1,800,000원',
+            'selection_count' => '19,876명이 신청',
             'gifts' => [
                 '추가 지원금',
                 '부가 서비스'
@@ -118,6 +123,7 @@ function getPhonesData($limit = 10) {
             'monthly_price' => '105,000원',
             'maintenance_period' => '175일',
             'device_price' => '출고가 1,950,000원',
+            'selection_count' => '16,432명이 신청',
             'gifts' => []
         ],
         [
@@ -134,6 +140,7 @@ function getPhonesData($limit = 10) {
             'monthly_price' => '75,000원',
             'maintenance_period' => '140일',
             'device_price' => '출고가 1,400,000원',
+            'selection_count' => '9,654명이 신청',
             'gifts' => []
         ],
         [
@@ -150,6 +157,7 @@ function getPhonesData($limit = 10) {
             'monthly_price' => '80,000원',
             'maintenance_period' => '160일',
             'device_price' => '출고가 1,250,000원',
+            'selection_count' => '11,234명이 신청',
             'gifts' => []
         ],
         [
@@ -166,6 +174,7 @@ function getPhonesData($limit = 10) {
             'monthly_price' => '70,000원',
             'maintenance_period' => '130일',
             'device_price' => '출고가 1,000,000원',
+            'selection_count' => '7,891명이 신청',
             'gifts' => []
         ],
         [
@@ -182,6 +191,7 @@ function getPhonesData($limit = 10) {
             'monthly_price' => '100,000원',
             'maintenance_period' => '170일',
             'device_price' => '출고가 1,650,000원',
+            'selection_count' => '14,567명이 신청',
             'gifts' => [
                 '추가 지원금'
             ]

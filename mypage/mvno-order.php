@@ -93,6 +93,7 @@ $giftIcons = [
 </main>
 
 <script src="../assets/js/plan-accordion.js" defer></script>
+<script src="../assets/js/share.js" defer></script>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {

@@ -110,6 +110,7 @@ include '../includes/footer.php';
 
 <script src="/MVNO/assets/js/plan-accordion.js" defer></script>
 <script src="/MVNO/assets/js/favorite-heart.js" defer></script>
+<script src="/MVNO/assets/js/share.js" defer></script>
 
 <script>
 // 필터가 화면에서 사라질 때 상단에 고정 (통신사폰 페이지)

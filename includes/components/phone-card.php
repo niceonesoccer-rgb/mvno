@@ -15,12 +15,10 @@ $card_wrapper_class = $card_wrapper_class ?? '';
 $phone_id = $phone['id'] ?? 0;
 $is_link = ($layout_type === 'list' && $phone_id > 0);
 $link_url = $phone['link_url'] ?? '/MVNO/mno/mno-phone-detail.php?id=' . $phone_id;
+// 푸터에서 공유 링크로 사용할 수 있도록 link_url을 phone 배열에 추가
+$phone['link_url'] = $link_url;
 
-// plan-card-header.php에서 사용할 $plan 변수 설정
-$plan = [
-    'provider' => $phone['company_name'] ?? '이야기모바일',
-    'rating' => $phone['rating'] ?? '4.5'
-];
+// phone-card-header.php에서 사용할 변수는 이미 $phone에 있음
 ?>
 
 <article class="basic-plan-card <?php echo htmlspecialchars($card_wrapper_class); ?>">
@@ -31,7 +29,7 @@ $plan = [
     <?php endif; ?>
         <div class="plan-card-main-content">
             <div class="plan-card-header-body-frame">
-                <?php include __DIR__ . '/plan-card-header.php'; ?>
+                <?php include __DIR__ . '/phone-card-header.php'; ?>
                 <?php include __DIR__ . '/phone-card-body.php'; ?>
             </div>
         </div>

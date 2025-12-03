@@ -13,8 +13,9 @@ $device_storage = $phone['device_storage'] ?? '';
 $release_price = $phone['release_price'] ?? '0원';
 $provider = $phone['provider'] ?? 'SKT';
 $plan_name = $phone['plan_name'] ?? '요금제명';
-$price_main = $phone['price'] ?? '월 0원';
+$price_main = $phone['monthly_price'] ?? $phone['price'] ?? '월 0원';
 $maintenance_period = $phone['maintenance_period'] ?? '0일';
+$selection_count = $phone['selection_count'] ?? '29,448명이 신청';
 
 // 요금제명에서 통신사명 제거 (이미 provider에 있음)
 $plan_name_clean = str_replace([$provider . ' ', 'SKT ', 'KT ', 'LG U+ '], '', $plan_name);
@@ -96,5 +97,8 @@ $contract_support = $phone['contract_support'] ?? [
             <span class="plan-price-main"><?php echo htmlspecialchars($price_main); ?></span>
         </div>
         <span class="plan-price-after">유지기간 <?php echo htmlspecialchars($maintenance_period); ?></span>
+    </div>
+    <div class="plan-price-right">
+        <span class="plan-selection-count"><?php echo htmlspecialchars($selection_count); ?></span>
     </div>
 </div>

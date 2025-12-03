@@ -12,6 +12,9 @@ $support_count = count($additional_supports);
 // 관리자 페이지에서 설정한 색상 (나중에 DB에서 가져올 예정)
 $support_colors = $phone['support_colors'] ?? ['#6366F1', '#8B5CF6', '#EC4899']; // 기본값
 $support_text_color = $phone['support_text_color'] ?? '#FFFFFF'; // 기본값: 흰색
+$phone_id = $phone['id'] ?? 0;
+// 공유 링크는 카드 클릭 시 이동하는 신청 페이지 URL 사용
+$share_url = $phone['link_url'] ?? '/MVNO/mno/mno-phone-detail.php?id=' . $phone_id;
 ?>
 
 <!-- 아코디언: 추가지원 및 부가서비스 -->
@@ -37,7 +40,7 @@ $support_text_color = $phone['support_text_color'] ?? '#FFFFFF'; // 기본값: �
                 <span class="plan-gifts-text-accordion">추가지원 및 부가서비스</span>
             </div>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="plan-accordion-arrow">
-                <path fill-rule="evenodd" clip-rule="evenodd" d="M3.15146 8.15147C3.62009 7.68284 4.37989 7.68284 4.84852 8.15147L12 15.3029L19.1515 8.15147C19.6201 7.68284 20.3799 7.68284 20.8485 8.15147C21.3171 8.6201 21.3171 9.3799 20.8485 9.84853L12.8485 17.8485C12.3799 18.3172 11.6201 18.3172 11.1515 17.8485L3.15146 9.84853C2.68283 9.3799 2.68283 8.6201 3.15146 8.15147Z" fill="#868E96"/>
+                <path d="M6 9L12 15L18 9" stroke="#868E96" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
         </button>
         <div class="plan-accordion-content" style="display: none;">
