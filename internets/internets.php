@@ -564,6 +564,243 @@ include '../includes/header.php';
     </div>
 </main>
 
+<!-- 인터넷 신청 모달 -->
+<div id="internetModal" class="internet-modal">
+    <div class="internet-modal-overlay"></div>
+    <div class="internet-modal-content">
+        <div class="internet-modal-header">
+            <h2 class="internet-modal-title" id="modalTitle">인터넷 설치여부</h2>
+            <button class="internet-modal-close" onclick="closeInternetModal()">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+        </div>
+        <div class="internet-modal-body">
+            <!-- Step 1: 인터넷 설치여부 선택 -->
+            <div class="internet-modal-step" id="step1">
+                <div class="internet-option-list">
+                    <button class="internet-option-btn" onclick="selectInternetOption('none')">
+                        <span class="internet-option-text">인터넷이 없어요</span>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                    <button class="internet-option-btn" onclick="selectInternetOption('installed')">
+                        <span class="internet-option-text">인터넷이 설치되어 있어요</span>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Step 2: 기존 설치회사 선택 -->
+            <div class="internet-modal-step" id="step2">
+                <div class="internet-company-scroll-wrapper">
+                    <div class="internet-company-scroll">
+                        <button class="internet-company-btn" onclick="selectInternetCompany('KT SkyLife', 'ktskylife')">
+                            <img src="https://assets-legacy.moyoplan.com/internets/assets/ktskylife.svg" alt="KT SkyLife" class="internet-company-logo">
+                            <span class="internet-company-name">KT SkyLife</span>
+                        </button>
+                        <button class="internet-company-btn" onclick="selectInternetCompany('HelloVision', 'hellovision')">
+                            <img src="https://assets-legacy.moyoplan.com/internets/assets/hellovision.svg" alt="HelloVision" class="internet-company-logo">
+                            <span class="internet-company-name">HelloVision</span>
+                        </button>
+                        <button class="internet-company-btn" onclick="selectInternetCompany('BTV', 'btv')">
+                            <img src="https://assets-legacy.moyoplan.com/internets/assets/btv.svg" alt="BTV" class="internet-company-logo">
+                            <span class="internet-company-name">BTV</span>
+                        </button>
+                        <button class="internet-company-btn" onclick="selectInternetCompany('DLive', 'dlive')">
+                            <img src="https://assets-legacy.moyoplan.com/internets/assets/dlive.svg" alt="DLive" class="internet-company-logo">
+                            <span class="internet-company-name">DLive</span>
+                        </button>
+                        <button class="internet-company-btn" onclick="selectInternetCompany('LG U+', 'lgu')">
+                            <img src="https://assets-legacy.moyoplan.com/internets/assets/lgu.svg" alt="LG U+" class="internet-company-logo">
+                            <span class="internet-company-name">LG U+</span>
+                        </button>
+                        <button class="internet-company-btn" onclick="selectInternetCompany('KT', 'kt')">
+                            <img src="https://assets-legacy.moyoplan.com/internets/assets/kt.svg" alt="KT" class="internet-company-logo">
+                            <span class="internet-company-name">KT</span>
+                        </button>
+                        <button class="internet-company-btn" onclick="selectInternetCompany('Broadband', 'broadband')">
+                            <img src="https://assets-legacy.moyoplan.com/internets/assets/broadband.svg" alt="Broadband" class="internet-company-logo">
+                            <span class="internet-company-name">Broadband</span>
+                        </button>
+                        <button class="internet-company-btn" onclick="selectInternetCompany('기타', 'other')">
+                            <div class="internet-company-icon-other">
+                                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <circle cx="12" cy="12" r="10" stroke="#667eea" stroke-width="2" fill="none"/>
+                                    <path d="M9.09 9C9.3251 8.33167 9.78915 7.76811 10.4 7.40913C11.0108 7.05016 11.7289 6.91894 12.4272 7.03871C13.1255 7.15849 13.7588 7.52152 14.2151 8.06353C14.6713 8.60553 14.9211 9.29152 14.92 10C14.92 12 11.92 13 11.92 15" stroke="#667eea" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M12 17H12.01" stroke="#667eea" stroke-width="2" stroke-linecap="round"/>
+                                </svg>
+                            </div>
+                            <span class="internet-company-name">기타</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Step 3: 폼 입력 -->
+            <div class="internet-modal-step" id="step3">
+                <!-- 인터넷 정보 표시 -->
+                <div class="internet-info-section">
+                    <!-- 현재 사용 중인 인터넷 카드 -->
+                    <div id="currentCompanyInfo" class="internet-info-card" style="display: none;">
+                        <div class="internet-info-label-section">
+                            <span class="internet-info-label">현재 사용 중인 인터넷</span>
+                        </div>
+                        <div class="internet-info-divider"></div>
+                        <div class="internet-info-logo-section">
+                            <div class="internet-info-logo-wrapper">
+                                <img id="currentCompanyLogo" src="" alt="" class="internet-info-logo" style="display: none;">
+                                <span class="internet-info-name" id="currentCompanyName"></span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 화살표 -->
+                    <div class="internet-info-arrow">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    
+                    <!-- 선택한 인터넷 카드 -->
+                    <div id="newCompanyInfo" class="internet-info-card">
+                        <div class="internet-info-label-section">
+                            <span class="internet-info-label">선택한 인터넷</span>
+                        </div>
+                        <div class="internet-info-divider"></div>
+                        <div class="internet-info-logo-section">
+                            <div class="internet-info-logo-wrapper">
+                                <img id="newCompanyLogo" src="" alt="" class="internet-info-logo" style="display: none;">
+                                <span class="internet-info-name" id="newCompanyName"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                
+                <!-- 입력 폼 -->
+                <div class="internet-form">
+                    <div class="internet-form-group">
+                        <label for="internetName" class="internet-form-label">이름</label>
+                        <div class="internet-form-input-wrapper">
+                            <input id="internetName" type="text" inputmode="text" name="name" class="internet-form-input">
+                        </div>
+                    </div>
+                    <div class="internet-form-group">
+                        <label for="internetPhone" class="internet-form-label">휴대폰 번호</label>
+                        <div class="internet-form-input-wrapper">
+                            <input id="internetPhone" type="tel" inputmode="tel" name="phoneNumber" class="internet-form-input" data-phone-format="true">
+                        </div>
+                    </div>
+                    
+                    <!-- 체크박스 -->
+                    <div class="internet-checkbox-group">
+                        <label class="internet-checkbox-all">
+                            <input type="checkbox" id="agreeAll" class="internet-checkbox-input" onchange="toggleAllAgreements(this.checked)">
+                            <span class="internet-checkbox-label">전체 동의</span>
+                        </label>
+                        <div class="internet-checkbox-list">
+                            <div class="internet-checkbox-item-wrapper">
+                                <div class="internet-checkbox-item">
+                                    <label class="internet-checkbox-label-item">
+                                        <input type="checkbox" id="agreePrivacy" class="internet-checkbox-input-item" onchange="checkAllAgreements(); toggleAccordion('privacyAccordion', this.checked);">
+                                        <span class="internet-checkbox-text">개인정보 수집 이용</span>
+                                    </label>
+                                    <a href="/terms/10081" target="_blank" rel="noreferrer" class="internet-checkbox-link">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor">
+                                            <path d="M5.46967 12.4697C5.17678 12.7626 5.17678 13.2374 5.46967 13.5303C5.76256 13.8232 6.23744 13.8232 6.53033 13.5303L5.46967 12.4697ZM11 8L11.5303 8.53033C11.8232 8.23744 11.8232 7.76256 11.5303 7.46967L11 8ZM6.53033 2.46967C6.23744 2.17678 5.76256 2.17678 5.46967 2.46967C5.17678 2.76256 5.17678 3.23744 5.46967 3.53033L6.53033 2.46967ZM6.53033 13.5303L11.5303 8.53033L10.4697 7.46967L5.46967 12.4697L6.53033 13.5303ZM11.5303 7.46967L6.53033 2.46967L5.46967 3.53033L10.4697 8.53033L11.5303 7.46967Z"></path>
+                                        </svg>
+                                    </a>
+                                </div>
+                                <div id="privacyAccordion" class="internet-accordion-content">
+                                    <div class="internet-accordion-inner">
+                                        <div class="internet-accordion-title">모요 개인정보 수집 이용 동의</div>
+                                        <div class="internet-accordion-section">
+                                            <div class="internet-accordion-section-title">1. 개인정보 수집·이용 목적</div>
+                                            <div class="internet-accordion-section-content">
+                                                - TV, 인터넷 등 가입 상담 서비스 제공 및 서비스 이용 경험 수집을 위한 연락
+                                            </div>
+                                        </div>
+                                        <div class="internet-accordion-section">
+                                            <div class="internet-accordion-section-title">2. 수집 항목</div>
+                                            <div class="internet-accordion-section-content">
+                                                - 이름, 연락처
+                                            </div>
+                                        </div>
+                                        <div class="internet-accordion-section">
+                                            <div class="internet-accordion-section-title">3. 개인정보 보유 및 이용 기간</div>
+                                            <div class="internet-accordion-section-content">
+                                                - 상담요청일로부터 3개월간
+                                            </div>
+                                        </div>
+                                        <div class="internet-accordion-section">
+                                            <div class="internet-accordion-section-title">4. 동의 거부권리 및 동의 거부 시 불이익 내용</div>
+                                            <div class="internet-accordion-section-content">
+                                                - 개인정보 수집이용 동의를 거부할 권리가 있습니다.<br>
+                                                - 단, 동의 거부 시 가입상담 및 서비스 가입이 제한될 수 있습니다.
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="internet-checkbox-item-wrapper">
+                                <div class="internet-checkbox-item">
+                                    <label class="internet-checkbox-label-item">
+                                        <input type="checkbox" id="agreeThirdParty" class="internet-checkbox-input-item" onchange="checkAllAgreements(); toggleAccordion('thirdPartyAccordion', this.checked);">
+                                        <span class="internet-checkbox-text">개인정보 제3자 제공</span>
+                                    </label>
+                                    <a href="/terms/10092" target="_blank" rel="noreferrer" class="internet-checkbox-link">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor">
+                                            <path d="M5.46967 12.4697C5.17678 12.7626 5.17678 13.2374 5.46967 13.5303C5.76256 13.8232 6.23744 13.8232 6.53033 13.5303L5.46967 12.4697ZM11 8L11.5303 8.53033C11.8232 8.23744 11.8232 7.76256 11.5303 7.46967L11 8ZM6.53033 2.46967C6.23744 2.17678 5.76256 2.17678 5.46967 2.46967C5.17678 2.76256 5.17678 3.23744 5.46967 3.53033L6.53033 2.46967ZM6.53033 13.5303L11.5303 8.53033L10.4697 7.46967L5.46967 12.4697L6.53033 13.5303ZM11.5303 7.46967L6.53033 2.46967L5.46967 3.53033L10.4697 8.53033L11.5303 7.46967Z"></path>
+                                        </svg>
+                                    </a>
+                                </div>
+                                <div id="thirdPartyAccordion" class="internet-accordion-content">
+                                    <div class="internet-accordion-inner">
+                                        <div class="internet-accordion-title">모요 개인정보 제3자 제공에 동의</div>
+                                        <div class="internet-accordion-section">
+                                            <div class="internet-accordion-section-title">1. 개인정보를 제공받는 자</div>
+                                            <div class="internet-accordion-section-content">
+                                                - (주)케이티스카이라이프
+                                            </div>
+                                        </div>
+                                        <div class="internet-accordion-section">
+                                            <div class="internet-accordion-section-title">2. 개인정보를 제공받는 자의 개인정보 이용 목적</div>
+                                            <div class="internet-accordion-section-content">
+                                                - TV, 인터넷 등 가입 상담 서비스 제공
+                                            </div>
+                                        </div>
+                                        <div class="internet-accordion-section">
+                                            <div class="internet-accordion-section-title">3. 제공되는 개인정보</div>
+                                            <div class="internet-accordion-section-content">
+                                                - 이름, 연락처
+                                            </div>
+                                        </div>
+                                        <div class="internet-accordion-section">
+                                            <div class="internet-accordion-section-title">4. 동의 거부권리 및 동의 거부 시 불이익 내용</div>
+                                            <div class="internet-accordion-section-content">
+                                                - 개인정보 제3자 제공 동의를 거부할 권리가 있습니다.<br>
+                                                - 단, 동의 거부 시 가입상담 및 서비스 가입이 제한될 수 있습니다.
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 상담 신청 버튼 -->
+                    <button id="submitBtn" class="internet-submit-btn" disabled onclick="submitInternetForm()">상담 신청</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <style>
 /* Tailwind-like utilities */
 .tw-m-auto {
@@ -772,6 +1009,845 @@ include '../includes/header.php';
         align-items: flex-start;
     }
 }
+
+/* 인터넷 모달 스타일 */
+.internet-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 9999;
+    overflow-y: auto;
+}
+
+.internet-modal.active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+@media (max-width: 767px) {
+    .internet-modal.active {
+        align-items: flex-end;
+        justify-content: flex-start;
+    }
+}
+
+.internet-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.internet-modal-content {
+    position: relative;
+    background-color: #ffffff;
+    border-radius: 1rem;
+    width: 90%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    z-index: 10000;
+    margin: 2rem auto;
+    /* 스크롤바 숨기기 */
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+}
+
+/* Step 2가 활성화될 때 모달 높이 증가 */
+.internet-modal-content:has(#step2.active) {
+    max-height: 95vh;
+}
+
+.internet-modal-content::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+}
+
+@media (max-width: 767px) {
+    .internet-modal-content {
+        width: 100%;
+        max-width: 100%;
+        margin: 0;
+        border-radius: 1.5rem 1.5rem 0 0;
+        max-height: 85vh;
+        box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+        animation: slideUp 0.3s ease-out;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateY(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+}
+
+@media (max-width: 767px) {
+    .internet-modal-content.closing {
+        animation: slideDown 0.3s ease-in;
+    }
+}
+
+.internet-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.5rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.internet-modal-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin: 0;
+}
+
+.internet-modal-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.5rem;
+    color: #6b7280;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.5rem;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.internet-modal-close:hover {
+    background-color: #f3f4f6;
+    color: #1a1a1a;
+}
+
+.internet-modal-body {
+    padding: 1.5rem;
+}
+
+.internet-modal-step {
+    display: none;
+}
+
+.internet-modal-step.active {
+    display: block;
+}
+
+/* Step 2: 기존 설치회사 선택 - 높이 증가 */
+#step2 {
+    min-height: 400px;
+}
+
+.internet-option-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+/* 회사 선택 그리드 영역 */
+.internet-company-scroll-wrapper {
+    width: 100%;
+    padding: 0.5rem 0;
+}
+
+.internet-company-scroll {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    padding: 0.5rem 0;
+}
+
+.internet-company-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 1rem 0.75rem;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    border: 1.5px solid #e2e8f0;
+    border-radius: 0.875rem;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    min-height: 100px;
+}
+
+.internet-company-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    opacity: 0;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 0;
+}
+
+.internet-company-btn:hover {
+    border-color: #667eea;
+    background: linear-gradient(135deg, #f0f4ff 0%, #e8f0fe 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px -5px rgba(102, 126, 234, 0.25), 
+                0 8px 10px -6px rgba(102, 126, 234, 0.15);
+}
+
+.internet-company-btn:hover::before {
+    left: 0;
+    opacity: 0.05;
+}
+
+.internet-company-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 4px 12px -2px rgba(102, 126, 234, 0.2);
+}
+
+.internet-company-btn.selected {
+    border-color: #667eea;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    box-shadow: 0 10px 25px -5px rgba(102, 126, 234, 0.4), 
+                0 8px 10px -6px rgba(102, 126, 234, 0.25);
+}
+
+.internet-company-btn.selected::before {
+    opacity: 0;
+}
+
+.internet-company-logo {
+    width: 70px;
+    height: 70px;
+    object-fit: contain;
+    position: relative;
+    z-index: 1;
+    transition: transform 0.3s ease;
+}
+
+.internet-company-btn:hover .internet-company-logo {
+    transform: scale(1.05);
+}
+
+.internet-company-btn.selected .internet-company-logo {
+    filter: brightness(0) invert(1);
+}
+
+/* KT 로고 폭 조정 (dlive처럼 작게) */
+.internet-company-logo[src*="kt.svg"] {
+    width: 50px;
+    height: 70px;
+}
+
+.internet-company-icon-other {
+    width: 70px;
+    height: 70px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    z-index: 1;
+    transition: transform 0.3s ease;
+}
+
+.internet-company-icon-other svg {
+    width: 50px;
+    height: 50px;
+}
+
+.internet-company-btn:hover .internet-company-icon-other {
+    transform: scale(1.05);
+}
+
+.internet-company-btn.selected .internet-company-icon-other svg {
+    stroke: #ffffff;
+}
+
+.internet-company-name {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #1e293b;
+    position: relative;
+    z-index: 1;
+    transition: color 0.3s ease;
+    text-align: center;
+    word-break: keep-all;
+}
+
+.internet-company-btn:hover .internet-company-name {
+    color: #667eea;
+}
+
+.internet-company-btn.selected .internet-company-name {
+    color: #ffffff;
+}
+
+.internet-option-btn {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 1.125rem 1.5rem;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    border: 1.5px solid #e2e8f0;
+    border-radius: 0.875rem;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    text-align: left;
+    position: relative;
+    overflow: hidden;
+}
+
+.internet-option-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    opacity: 0;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 0;
+}
+
+.internet-option-btn:hover {
+    border-color: #667eea;
+    background: linear-gradient(135deg, #f0f4ff 0%, #e8f0fe 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px -5px rgba(102, 126, 234, 0.25), 
+                0 8px 10px -6px rgba(102, 126, 234, 0.15);
+}
+
+.internet-option-btn:hover::before {
+    left: 0;
+    opacity: 0.05;
+}
+
+.internet-option-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 4px 12px -2px rgba(102, 126, 234, 0.2);
+}
+
+.internet-option-text {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1e293b;
+    position: relative;
+    z-index: 1;
+    transition: color 0.3s ease;
+}
+
+.internet-option-btn:hover .internet-option-text {
+    color: #667eea;
+}
+
+.internet-option-btn svg {
+    color: #94a3b8;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1;
+    transition: all 0.3s ease;
+}
+
+.internet-option-btn:hover svg {
+    color: #667eea;
+    transform: translateX(4px);
+}
+
+.internet-option-btn.selected {
+    border-color: #667eea;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    box-shadow: 0 10px 25px -5px rgba(102, 126, 234, 0.4), 
+                0 8px 10px -6px rgba(102, 126, 234, 0.25);
+}
+
+.internet-option-btn.selected::before {
+    opacity: 0;
+}
+
+.internet-option-btn.selected .internet-option-text {
+    color: #ffffff;
+}
+
+.internet-option-btn.selected svg {
+    color: #ffffff;
+    transform: translateX(4px);
+}
+
+@media (max-width: 767px) {
+    .internet-modal-header {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .internet-modal-body {
+        padding: 1.25rem 1.5rem;
+        padding-bottom: calc(1.25rem + env(safe-area-inset-bottom));
+    }
+    
+    .internet-option-btn {
+        padding: 1rem 1.25rem;
+    }
+    
+    .internet-option-text {
+        font-size: 0.9375rem;
+    }
+}
+
+/* 인터넷 정보 섹션 */
+.internet-info-section {
+    margin-bottom: 1.5rem;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.internet-info-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.75rem;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    min-width: 140px;
+    flex: 1;
+    max-width: 200px;
+    transition: all 0.2s ease;
+    overflow: hidden;
+}
+
+.internet-info-card:hover {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* 현재 사용 중인 인터넷 카드 배경색 */
+#currentCompanyInfo.internet-info-card {
+    background: #f8fafc;
+}
+
+.internet-info-label-section {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.8rem 1.5rem;
+    width: 100%;
+}
+
+.internet-info-divider {
+    width: 100%;
+    height: 1px;
+    background: #e2e8f0;
+    margin: 0;
+}
+
+.internet-info-logo-section {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem 1.5rem;
+    width: 100%;
+}
+
+.internet-info-label {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin: 0;
+    text-align: center;
+    width: 100%;
+}
+
+.internet-info-logo-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 50px;
+}
+
+.internet-info-logo {
+    height: 50px;
+    width: auto;
+    max-width: 120px;
+    object-fit: contain;
+}
+
+.internet-info-name {
+    color: #1e293b;
+    font-weight: 600;
+    font-size: 0.9375rem;
+    text-align: center;
+    width: 100%;
+}
+
+.internet-info-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #64748b;
+    flex-shrink: 0;
+    padding: 0 0.5rem;
+}
+
+.internet-info-arrow svg {
+    width: 24px;
+    height: 24px;
+}
+
+/* 현재 사용 중인 인터넷이 없을 때 화살표 숨기기 (JavaScript로 처리) */
+.internet-info-arrow.hidden {
+    display: none;
+}
+
+/* 모바일 반응형 */
+@media (max-width: 640px) {
+    .internet-info-section {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+    
+    .internet-info-card {
+        width: 100%;
+        max-width: 100%;
+    }
+    
+    .internet-info-arrow {
+        transform: rotate(90deg);
+        padding: 0.25rem 0;
+    }
+    
+    .internet-info-logo {
+        height: 45px;
+    }
+}
+
+/* 알림 메시지 (Callout) */
+.internet-callout {
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background-color: #f9fafb;
+    border-radius: 0.5rem;
+    border: 1px solid #e5e7eb;
+}
+
+.internet-callout-content {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+}
+
+.internet-callout-icon {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    margin-top: 2px;
+}
+
+.internet-callout-icon svg {
+    width: 100%;
+    height: 100%;
+}
+
+.internet-callout-text {
+    flex: 1;
+    font-size: 0.875rem;
+    color: #374151;
+    font-weight: 500;
+    line-height: 1.5;
+}
+
+/* 폼 스타일 */
+.internet-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.internet-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.internet-form-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.internet-form-input-wrapper {
+    position: relative;
+}
+
+.internet-form-input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    background-color: #ffffff;
+    color: #1e293b;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.internet-form-input:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* 체크박스 스타일 */
+.internet-checkbox-group {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.internet-checkbox-all {
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+    gap: 0.5rem;
+}
+
+.internet-checkbox-all .internet-checkbox-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #374151;
+    flex: 1;
+}
+
+.internet-checkbox-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-left: 2rem;
+}
+
+.internet-checkbox-item-wrapper {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+.internet-checkbox-item {
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+.internet-checkbox-label-item {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    flex: 1;
+}
+
+.internet-checkbox-input,
+.internet-checkbox-input-item {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    cursor: pointer;
+    accent-color: #667eea;
+}
+
+.internet-checkbox-text {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #6b7280;
+    margin-left: 0.5rem;
+}
+
+.internet-checkbox-link {
+    margin-left: auto;
+    color: #6b7280;
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+}
+
+.internet-checkbox-link svg {
+    width: 16px;
+    height: 16px;
+}
+
+.internet-checkbox-link:hover {
+    color: #374151;
+}
+
+/* 아코디언 스타일 */
+.internet-checkbox-item-wrapper {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+.internet-accordion-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+    margin-top: 0;
+    margin-left: 2rem;
+}
+
+.internet-accordion-content.active {
+    max-height: 1000px;
+    transition: max-height 0.4s ease-in;
+    margin-top: 0.75rem;
+}
+
+.internet-accordion-inner {
+    background-color: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+.internet-accordion-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.internet-accordion-section {
+    margin-bottom: 0.75rem;
+}
+
+.internet-accordion-section:last-child {
+    margin-bottom: 0;
+}
+
+.internet-accordion-section-title {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #4b5563;
+    margin-bottom: 0.5rem;
+}
+
+.internet-accordion-section-content {
+    font-size: 0.8125rem;
+    color: #6b7280;
+    line-height: 1.6;
+    padding-left: 0.5rem;
+}
+
+/* 제출 버튼 */
+.internet-submit-btn {
+    width: 100%;
+    padding: 1rem;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #ffffff;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 0.5rem;
+}
+
+.internet-submit-btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 25px -5px rgba(102, 126, 234, 0.4);
+}
+
+.internet-submit-btn:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.internet-submit-btn:disabled {
+    background: #e5e7eb;
+    color: #9ca3af;
+    cursor: not-allowed;
+}
+
+@media (max-width: 767px) {
+    .internet-callout {
+        padding: 0.875rem;
+    }
+    
+    .internet-callout-text {
+        font-size: 0.8125rem;
+    }
+    
+    .internet-form-group {
+        gap: 0.5rem;
+    }
+    
+    .internet-form-input {
+        padding: 0.875rem 1rem;
+        font-size: 0.9375rem;
+    }
+    
+    .internet-checkbox-list {
+        margin-left: 1.5rem;
+    }
+    
+    .internet-company-scroll {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.75rem;
+    }
+    
+    #step2 {
+        min-height: 450px;
+    }
+    
+    .internet-company-btn {
+        padding: 0.75rem;
+    }
+    
+    .internet-company-logo {
+        width: 60px;
+        height: 60px;
+    }
+    
+    /* KT 로고 폭 조정 (모바일) */
+    .internet-company-logo[src*="kt.svg"] {
+        width: 45px;
+        height: 60px;
+    }
+    
+    .internet-company-icon-other {
+        width: 60px;
+        height: 60px;
+    }
+    
+    .internet-company-icon-other svg {
+        width: 45px;
+        height: 45px;
+    }
+}
 </style>
 
 <script>
@@ -849,6 +1925,616 @@ include '../includes/header.php';
             }
         });
     });
+})();
+
+// 인터넷 카드 클릭 이벤트 핸들러
+(function() {
+    const internetCards = document.querySelectorAll('.css-58gch7.e82z5mt0');
+    
+    internetCards.forEach(card => {
+        card.addEventListener('click', function(e) {
+            // 모달 내부 클릭이나 특정 요소 클릭은 무시
+            if (e.target.closest('.internet-modal')) {
+                return;
+            }
+            
+            // 카드에서 회사 정보 추출
+            const logoImg = card.querySelector('img[data-testid="internet-company-logo"]');
+            if (logoImg) {
+                const logoSrc = logoImg.src;
+                const logoAlt = logoImg.alt || '';
+                
+                // URL에서 회사명 추출
+                const companyMap = {
+                    'ktskylife': { name: 'KT SkyLife', icon: 'ktskylife' },
+                    'hellovision': { name: 'HelloVision', icon: 'hellovision' },
+                    'btv': { name: 'BTV', icon: 'btv' },
+                    'dlive': { name: 'DLive', icon: 'dlive' },
+                    'lgu': { name: 'LG U+', icon: 'lgu' },
+                    'kt': { name: 'KT', icon: 'kt' },
+                    'broadband': { name: 'Broadband', icon: 'broadband' }
+                };
+                
+                let companyInfo = null;
+                for (const [key, value] of Object.entries(companyMap)) {
+                    if (logoSrc.includes(key)) {
+                        companyInfo = value;
+                        break;
+                    }
+                }
+                
+                // alt 텍스트에서도 확인
+                if (!companyInfo && logoAlt) {
+                    for (const [key, value] of Object.entries(companyMap)) {
+                        if (logoAlt.toLowerCase().includes(key.toLowerCase())) {
+                            companyInfo = value;
+                            break;
+                        }
+                    }
+                }
+                
+                if (companyInfo) {
+                    selectedData.newCompany = companyInfo.name;
+                    selectedData.newCompanyIcon = companyInfo.icon;
+                    selectedData.newCompanyLogo = logoSrc;
+                }
+            }
+            
+            // 모달 열기
+            openInternetModal();
+        });
+    });
+})();
+
+// 모달 제어 함수들
+let currentStep = 1;
+let selectedData = {};
+let scrollbarWidth = 0;
+
+function getScrollbarWidth() {
+    // 스크롤바 너비 계산
+    const outer = document.createElement('div');
+    outer.style.visibility = 'hidden';
+    outer.style.overflow = 'scroll';
+    outer.style.msOverflowStyle = 'scrollbar';
+    document.body.appendChild(outer);
+    
+    const inner = document.createElement('div');
+    outer.appendChild(inner);
+    
+    const scrollbarWidth = outer.offsetWidth - inner.offsetWidth;
+    
+    outer.parentNode.removeChild(outer);
+    
+    return scrollbarWidth;
+}
+
+function openInternetModal() {
+    const modal = document.getElementById('internetModal');
+    const modalContent = modal ? modal.querySelector('.internet-modal-content') : null;
+    
+    if (modal && modalContent) {
+        // 스크롤바 너비 계산 및 저장
+        scrollbarWidth = getScrollbarWidth();
+        
+        // closing 클래스 제거 (이전에 닫힌 경우)
+        modalContent.classList.remove('closing');
+        modal.classList.add('active');
+        
+        // body 스크롤 숨기기 (스크롤바 공간 보정)
+        document.body.style.overflow = 'hidden';
+        if (scrollbarWidth > 0) {
+            document.body.style.paddingRight = scrollbarWidth + 'px';
+        }
+        
+        // 상태 초기화 (선택한 인터넷 정보는 유지)
+        const newCompanyData = {
+            newCompany: selectedData.newCompany,
+            newCompanyIcon: selectedData.newCompanyIcon,
+            newCompanyLogo: selectedData.newCompanyLogo
+        };
+        selectedData = newCompanyData;
+        resetSteps();
+        // 첫 번째 단계 활성화
+        showStep(1);
+        // 선택한 인터넷 정보 표시
+        showNewCompanyInfo();
+    }
+}
+
+function closeInternetModal() {
+    const modal = document.getElementById('internetModal');
+    const modalContent = modal ? modal.querySelector('.internet-modal-content') : null;
+    
+    if (modal && modalContent) {
+        // 모바일에서 닫기 애니메이션 적용
+        if (window.innerWidth <= 767) {
+            modalContent.classList.add('closing');
+            setTimeout(() => {
+                modal.classList.remove('active');
+                modalContent.classList.remove('closing');
+                // body 스크롤 복원
+                document.body.style.overflow = '';
+                document.body.style.paddingRight = '';
+                // 상태 초기화
+                currentStep = 1;
+                selectedData = {};
+                resetSteps();
+            }, 300);
+        } else {
+            modal.classList.remove('active');
+            // body 스크롤 복원
+            document.body.style.overflow = '';
+            document.body.style.paddingRight = '';
+            // 상태 초기화
+            currentStep = 1;
+            selectedData = {};
+            resetSteps();
+        }
+    }
+}
+
+function showStep(step) {
+    // 모든 단계 숨기기
+    const steps = document.querySelectorAll('.internet-modal-step');
+    steps.forEach(s => s.classList.remove('active'));
+    
+    // 현재 단계 표시
+    const currentStepEl = document.getElementById('step' + step);
+    if (currentStepEl) {
+        currentStepEl.classList.add('active');
+        currentStep = step;
+    }
+}
+
+function resetSteps() {
+    const steps = document.querySelectorAll('.internet-modal-step');
+    steps.forEach(s => s.classList.remove('active'));
+    if (steps.length > 0) {
+        steps[0].classList.add('active');
+    }
+    // 선택된 버튼 상태 초기화
+    const optionButtons = document.querySelectorAll('.internet-option-btn');
+    optionButtons.forEach(btn => btn.classList.remove('selected'));
+    const companyButtons = document.querySelectorAll('.internet-company-btn');
+    companyButtons.forEach(btn => btn.classList.remove('selected'));
+    // 모달 제목 초기화
+    updateModalTitle('인터넷 설치여부');
+    // 현재 설치회사 정보 숨기기
+    hideCurrentCompanyInfo();
+    // 선택한 인터넷 정보 표시
+    showNewCompanyInfo();
+    // 체크박스 초기화
+    const agreeAll = document.getElementById('agreeAll');
+    const agreePrivacy = document.getElementById('agreePrivacy');
+    const agreeThirdParty = document.getElementById('agreeThirdParty');
+    const submitBtn = document.getElementById('submitBtn');
+    if (agreeAll) agreeAll.checked = false;
+    if (agreePrivacy) agreePrivacy.checked = false;
+    if (agreeThirdParty) agreeThirdParty.checked = false;
+    if (submitBtn) submitBtn.disabled = true;
+}
+
+function selectInternetOption(option) {
+    selectedData.installationStatus = option;
+    
+    // 모든 버튼에서 selected 클래스 제거
+    const buttons = document.querySelectorAll('#step1 .internet-option-btn');
+    buttons.forEach(btn => btn.classList.remove('selected'));
+    
+    // 클릭된 버튼에 selected 클래스 추가
+    const clickedButton = event.target.closest('.internet-option-btn');
+    if (clickedButton) {
+        clickedButton.classList.add('selected');
+    }
+    
+    // 옵션에 따라 다음 단계로 이동
+    setTimeout(() => {
+        if (option === 'none') {
+            // 인터넷이 없어요 -> 바로 폼으로 이동
+            showStep(3);
+            updateModalTitle('인터넷 신청');
+            hideCurrentCompanyInfo();
+        } else if (option === 'installed') {
+            // 인터넷이 설치되어 있어요 -> 설치회사 선택 단계로 이동
+            showStep(2);
+            updateModalTitle('기존 설치회사 선택');
+        }
+    }, 300);
+}
+
+function selectInternetCompany(company, icon) {
+    selectedData.currentCompany = company;
+    selectedData.currentCompanyIcon = icon;
+    
+    // 모든 버튼에서 selected 클래스 제거
+    const buttons = document.querySelectorAll('#step2 .internet-company-btn');
+    buttons.forEach(btn => btn.classList.remove('selected'));
+    
+    // 클릭된 버튼에 selected 클래스 추가
+    const clickedButton = event.target.closest('.internet-company-btn');
+    if (clickedButton) {
+        clickedButton.classList.add('selected');
+    }
+    
+    // 폼 단계로 이동
+    setTimeout(() => {
+        showStep(3);
+        updateModalTitle('인터넷 신청');
+        showCurrentCompanyInfo(company, icon);
+    }, 300);
+}
+
+function updateModalTitle(title) {
+    const titleEl = document.getElementById('modalTitle');
+    if (titleEl) {
+        // 물음표 제거
+        const cleanTitle = title.replace(/\?/g, '');
+        titleEl.textContent = cleanTitle;
+    }
+}
+
+function showCurrentCompanyInfo(company, icon) {
+    const infoEl = document.getElementById('currentCompanyInfo');
+    const nameEl = document.getElementById('currentCompanyName');
+    const logoEl = document.getElementById('currentCompanyLogo');
+    const arrowEl = document.querySelector('.internet-info-arrow');
+    
+    if (infoEl) {
+        // 회사 이름과 아이콘 매핑
+        const companyLogos = {
+            'KT SkyLife': 'https://assets-legacy.moyoplan.com/internets/assets/ktskylife.svg',
+            'HelloVision': 'https://assets-legacy.moyoplan.com/internets/assets/hellovision.svg',
+            'BTV': 'https://assets-legacy.moyoplan.com/internets/assets/btv.svg',
+            'DLive': 'https://assets-legacy.moyoplan.com/internets/assets/dlive.svg',
+            'LG U+': 'https://assets-legacy.moyoplan.com/internets/assets/lgu.svg',
+            'KT': 'https://assets-legacy.moyoplan.com/internets/assets/kt.svg',
+            'Broadband': 'https://assets-legacy.moyoplan.com/internets/assets/broadband.svg',
+            '기타': null
+        };
+        
+        const logoPath = companyLogos[company] || (icon ? `https://assets-legacy.moyoplan.com/internets/assets/${icon}.svg` : null);
+        
+        if (logoPath && logoEl) {
+            // 텍스트 먼저 숨기기
+            if (nameEl) nameEl.style.display = 'none';
+            
+            // 로고 설정
+            logoEl.src = logoPath;
+            logoEl.alt = company;
+            logoEl.style.display = 'block';
+            
+            // 로고 로드 실패 시 텍스트 표시
+            logoEl.onerror = function() {
+                this.style.display = 'none';
+                if (nameEl) {
+                    nameEl.textContent = company;
+                    nameEl.style.display = 'inline';
+                }
+            };
+            
+            // 로고 로드 성공 시 확인
+            logoEl.onload = function() {
+                this.style.display = 'block';
+                if (nameEl) nameEl.style.display = 'none';
+            };
+        } else {
+            // 로고가 없으면 텍스트 표시
+            if (logoEl) logoEl.style.display = 'none';
+            if (nameEl) {
+                nameEl.textContent = company;
+                nameEl.style.display = 'inline';
+            }
+        }
+        
+        // 카드 표시
+        infoEl.style.display = 'flex';
+        
+        // 화살표 표시
+        if (arrowEl) {
+            arrowEl.classList.remove('hidden');
+        }
+    }
+}
+
+function showNewCompanyInfo() {
+    const infoEl = document.getElementById('newCompanyInfo');
+    const nameEl = document.getElementById('newCompanyName');
+    const logoEl = document.getElementById('newCompanyLogo');
+    
+    if (infoEl && selectedData.newCompany) {
+        const logoPath = selectedData.newCompanyLogo || 
+            (selectedData.newCompanyIcon ? `https://assets-legacy.moyoplan.com/internets/assets/${selectedData.newCompanyIcon}.svg` : null);
+        
+        if (logoPath && logoEl) {
+            // 텍스트 먼저 숨기기
+            if (nameEl) nameEl.style.display = 'none';
+            
+            // 로고 설정
+            logoEl.src = logoPath;
+            logoEl.alt = selectedData.newCompany;
+            logoEl.style.display = 'block';
+            
+            // 로고 로드 실패 시 텍스트 표시
+            logoEl.onerror = function() {
+                this.style.display = 'none';
+                if (nameEl) {
+                    nameEl.textContent = selectedData.newCompany;
+                    nameEl.style.display = 'inline';
+                }
+            };
+            
+            // 로고 로드 성공 시 확인
+            logoEl.onload = function() {
+                this.style.display = 'block';
+                if (nameEl) nameEl.style.display = 'none';
+            };
+        } else {
+            // 로고가 없으면 텍스트 표시
+            if (logoEl) logoEl.style.display = 'none';
+            if (nameEl) {
+                nameEl.textContent = selectedData.newCompany;
+                nameEl.style.display = 'inline';
+            }
+        }
+        
+        // 카드 표시
+        infoEl.style.display = 'flex';
+    } else {
+        if (infoEl) infoEl.style.display = 'none';
+    }
+    
+    // 현재 사용 중인 인터넷이 없으면 화살표 숨기기
+    const currentInfoEl = document.getElementById('currentCompanyInfo');
+    const arrowEl = document.querySelector('.internet-info-arrow');
+    
+    if (arrowEl) {
+        if (currentInfoEl && currentInfoEl.style.display !== 'none') {
+            arrowEl.classList.remove('hidden');
+        } else {
+            arrowEl.classList.add('hidden');
+        }
+    }
+}
+
+function hideCurrentCompanyInfo() {
+    const infoEl = document.getElementById('currentCompanyInfo');
+    const arrowEl = document.querySelector('.internet-info-arrow');
+    
+    if (infoEl) {
+        infoEl.style.display = 'none';
+    }
+    
+    // 화살표 숨기기
+    if (arrowEl) {
+        arrowEl.classList.add('hidden');
+    }
+}
+
+function toggleAllAgreements(checked) {
+    const agreePrivacy = document.getElementById('agreePrivacy');
+    const agreeThirdParty = document.getElementById('agreeThirdParty');
+    
+    if (agreePrivacy && agreeThirdParty) {
+        agreePrivacy.checked = checked;
+        agreeThirdParty.checked = checked;
+        checkAllAgreements();
+        
+        // 아코디언도 함께 열기/닫기
+        toggleAccordion('privacyAccordion', checked);
+        toggleAccordion('thirdPartyAccordion', checked);
+    }
+}
+
+function toggleAccordion(accordionId, isOpen) {
+    const accordion = document.getElementById(accordionId);
+    if (accordion) {
+        if (isOpen) {
+            accordion.classList.add('active');
+        } else {
+            accordion.classList.remove('active');
+        }
+    }
+}
+
+function checkAllAgreements() {
+    const agreeAll = document.getElementById('agreeAll');
+    const agreePrivacy = document.getElementById('agreePrivacy');
+    const agreeThirdParty = document.getElementById('agreeThirdParty');
+    const submitBtn = document.getElementById('submitBtn');
+    
+    if (agreeAll && agreePrivacy && agreeThirdParty && submitBtn) {
+        // 전체 동의 체크박스 상태 업데이트
+        agreeAll.checked = agreePrivacy.checked && agreeThirdParty.checked;
+        
+        // 제출 버튼 활성화/비활성화
+        if (agreePrivacy.checked && agreeThirdParty.checked) {
+            submitBtn.disabled = false;
+        } else {
+            submitBtn.disabled = true;
+        }
+    }
+}
+
+function submitInternetForm() {
+    const name = document.getElementById('internetName').value;
+    const phone = document.getElementById('internetPhone').value;
+    
+    // 폼 데이터 수집
+    const formData = {
+        ...selectedData,
+        name: name,
+        phone: phone
+    };
+    
+    console.log('제출된 데이터:', formData);
+    
+    // TODO: 실제 제출 로직 구현
+    alert('상담 신청이 완료되었습니다.');
+    closeInternetModal();
+}
+
+// 모달 외부 클릭 시 닫기
+(function() {
+    const modal = document.getElementById('internetModal');
+    if (modal) {
+        const overlay = modal.querySelector('.internet-modal-overlay');
+        if (overlay) {
+            overlay.addEventListener('click', function(e) {
+                if (e.target === overlay) {
+                    closeInternetModal();
+                }
+            });
+        }
+    }
+})();
+
+// ESC 키로 모달 닫기
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        const modal = document.getElementById('internetModal');
+        if (modal && modal.classList.contains('active')) {
+            closeInternetModal();
+        }
+    }
+});
+
+// 전화번호 입력 모듈
+(function() {
+    /**
+     * 전화번호 형식으로 변환 (하이픈 자동 추가)
+     * @param {string} value - 입력된 값
+     * @returns {string} - 포맷된 전화번호
+     */
+    function formatPhoneNumber(value) {
+        // 숫자만 추출
+        const numbers = value.replace(/[^\d]/g, '');
+        
+        // 숫자가 없으면 빈 문자열 반환
+        if (!numbers) return '';
+        
+        // 전화번호 길이에 따라 형식 적용
+        if (numbers.length <= 3) {
+            return numbers;
+        } else if (numbers.length <= 7) {
+            // 010-123 또는 02-1234
+            if (numbers.startsWith('02')) {
+                // 서울 지역번호 (02)
+                return numbers.slice(0, 2) + '-' + numbers.slice(2);
+            } else {
+                // 휴대폰 (010, 011 등)
+                return numbers.slice(0, 3) + '-' + numbers.slice(3);
+            }
+        } else if (numbers.length <= 10) {
+            // 010-1234-567 또는 02-1234-5678
+            if (numbers.startsWith('02')) {
+                // 서울 지역번호 (02-1234-5678)
+                return numbers.slice(0, 2) + '-' + numbers.slice(2, 6) + '-' + numbers.slice(6);
+            } else {
+                // 휴대폰 (010-1234-567)
+                return numbers.slice(0, 3) + '-' + numbers.slice(3, 7) + '-' + numbers.slice(7);
+            }
+        } else {
+            // 010-1234-5678 또는 02-1234-5678
+            if (numbers.startsWith('02')) {
+                // 서울 지역번호 (02-1234-5678)
+                return numbers.slice(0, 2) + '-' + numbers.slice(2, 6) + '-' + numbers.slice(6, 10);
+            } else {
+                // 휴대폰 (010-1234-5678)
+                return numbers.slice(0, 3) + '-' + numbers.slice(3, 7) + '-' + numbers.slice(7, 11);
+            }
+        }
+    }
+    
+    /**
+     * 전화번호 입력 필드에 포맷 적용
+     * @param {HTMLInputElement} input - 입력 필드 요소
+     */
+    function applyPhoneFormat(input) {
+        // 입력 이벤트
+        input.addEventListener('input', function(e) {
+            const cursorPosition = e.target.selectionStart;
+            const oldValue = e.target.value;
+            const newValue = formatPhoneNumber(e.target.value);
+            
+            e.target.value = newValue;
+            
+            // 커서 위치 조정 (하이픈 추가로 인한 위치 변경 보정)
+            let newCursorPosition = cursorPosition;
+            const oldLength = oldValue.length;
+            const newLength = newValue.length;
+            
+            if (newLength > oldLength) {
+                // 하이픈이 추가된 경우 커서 위치 조정
+                const addedHyphens = (newValue.match(/-/g) || []).length - (oldValue.match(/-/g) || []).length;
+                newCursorPosition = cursorPosition + addedHyphens;
+            }
+            
+            e.target.setSelectionRange(newCursorPosition, newCursorPosition);
+        });
+        
+        // 붙여넣기 이벤트
+        input.addEventListener('paste', function(e) {
+            e.preventDefault();
+            const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+            const formatted = formatPhoneNumber(pastedText);
+            input.value = formatted;
+        });
+        
+        // 키 입력 제한 (숫자와 백스페이스, 삭제, 화살표 키만 허용)
+        input.addEventListener('keydown', function(e) {
+            const allowedKeys = [
+                'Backspace', 'Delete', 'Tab', 'Escape', 'Enter',
+                'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown',
+                'Home', 'End'
+            ];
+            
+            const isNumber = (e.key >= '0' && e.key <= '9');
+            const isAllowedKey = allowedKeys.includes(e.key);
+            const isCtrlA = e.ctrlKey && e.key === 'a';
+            const isCtrlC = e.ctrlKey && e.key === 'c';
+            const isCtrlV = e.ctrlKey && e.key === 'v';
+            const isCtrlX = e.ctrlKey && e.key === 'x';
+            
+            if (!isNumber && !isAllowedKey && !isCtrlA && !isCtrlC && !isCtrlV && !isCtrlX) {
+                e.preventDefault();
+            }
+        });
+    }
+    
+    /**
+     * 전화번호 양식 적용 함수 (외부에서 호출 가능)
+     * @param {string|HTMLInputElement} selector - CSS 선택자 또는 입력 필드 요소
+     */
+    window.applyPhoneNumberFormat = function(selector) {
+        let inputs;
+        
+        if (typeof selector === 'string') {
+            // CSS 선택자로 찾기
+            inputs = document.querySelectorAll(selector);
+        } else if (selector instanceof HTMLInputElement) {
+            // 직접 요소 전달
+            inputs = [selector];
+        } else {
+            // data-phone-format 속성이 있는 모든 입력 필드 찾기
+            inputs = document.querySelectorAll('input[data-phone-format="true"]');
+        }
+        
+        inputs.forEach(function(input) {
+            if (input.type === 'tel' || input.hasAttribute('data-phone-format')) {
+                applyPhoneFormat(input);
+            }
+        });
+    };
+    
+    // 페이지 로드 시 자동 적용
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() {
+            window.applyPhoneNumberFormat();
+        });
+    } else {
+        window.applyPhoneNumberFormat();
+    }
 })();
 </script>
 
