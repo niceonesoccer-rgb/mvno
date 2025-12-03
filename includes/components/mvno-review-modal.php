@@ -18,6 +18,40 @@
         </div>
         <div class="mvno-review-modal-body">
             <form id="mvnoReviewForm">
+                <div class="mvno-review-form-group mvno-rating-group-row">
+                    <div class="mvno-rating-item">
+                        <label class="mvno-review-form-label">친절해요</label>
+                        <div class="mvno-star-rating" data-rating-type="kindness">
+                            <?php 
+                            $uniqueId1 = uniqid('mvno-kindness-');
+                            for ($i = 5; $i >= 1; $i--): 
+                            ?>
+                                <input type="radio" id="kindness-star<?php echo $i; ?>-<?php echo $uniqueId1; ?>" name="kindness_rating" value="<?php echo $i; ?>" required>
+                                <label for="kindness-star<?php echo $i; ?>-<?php echo $uniqueId1; ?>" class="star-label" data-rating="<?php echo $i; ?>">
+                                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" fill="currentColor"/>
+                                    </svg>
+                                </label>
+                            <?php endfor; ?>
+                        </div>
+                    </div>
+                    <div class="mvno-rating-item">
+                        <label class="mvno-review-form-label">개통 빨라요</label>
+                        <div class="mvno-star-rating" data-rating-type="speed">
+                            <?php 
+                            $uniqueId2 = uniqid('mvno-speed-');
+                            for ($i = 5; $i >= 1; $i--): 
+                            ?>
+                                <input type="radio" id="speed-star<?php echo $i; ?>-<?php echo $uniqueId2; ?>" name="speed_rating" value="<?php echo $i; ?>" required>
+                                <label for="speed-star<?php echo $i; ?>-<?php echo $uniqueId2; ?>" class="star-label" data-rating="<?php echo $i; ?>">
+                                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" fill="currentColor"/>
+                                    </svg>
+                                </label>
+                            <?php endfor; ?>
+                        </div>
+                    </div>
+                </div>
                 <div class="mvno-review-form-group">
                     <label for="reviewText" class="mvno-review-form-label">리뷰 내용</label>
                     <textarea 

@@ -4,6 +4,22 @@ $current_page = 'internets';
 // 메인 페이지 여부 (하단 메뉴 및 푸터 표시용)
 $is_main_page = true;
 
+// 샘플 리뷰 데이터 (실제로는 데이터베이스에서 가져옴)
+$reviews = [
+    1 => [
+        ['id' => 1, 'user' => '김**', 'kindness_rating' => 5, 'speed_rating' => 5, 'content' => '설치가 정말 빠르고 직원분이 친절하셨어요!', 'date' => '2024.11.15'],
+        ['id' => 2, 'user' => '이**', 'kindness_rating' => 4, 'speed_rating' => 5, 'content' => '설치는 빠른데 약간의 지연이 있었지만 전반적으로 만족합니다.', 'date' => '2024.11.14'],
+        ['id' => 3, 'user' => '박**', 'kindness_rating' => 5, 'speed_rating' => 4, 'content' => '친절하시고 설명도 잘 해주셨어요. 추천합니다!', 'date' => '2024.11.13'],
+    ],
+    2 => [
+        ['id' => 4, 'user' => '최**', 'kindness_rating' => 5, 'speed_rating' => 5, 'content' => '완벽합니다! 설치도 빠르고 서비스도 좋아요.', 'date' => '2024.11.12'],
+        ['id' => 5, 'user' => '정**', 'kindness_rating' => 4, 'speed_rating' => 4, 'content' => '만족스러운 서비스였습니다.', 'date' => '2024.11.11'],
+    ],
+    3 => [
+        ['id' => 6, 'user' => '강**', 'kindness_rating' => 5, 'speed_rating' => 5, 'content' => '정말 좋아요! 빠르고 친절합니다.', 'date' => '2024.11.10'],
+    ],
+];
+
 // 헤더 포함
 include '../includes/header.php';
 ?>
@@ -110,6 +126,60 @@ include '../includes/header.php';
                             <p class="css-16qot29 e82z5mt6">월 26,400원</p>
                         </div>
                     </div>
+                    
+                    <!-- 리뷰 아코디언 -->
+                    <?php 
+                    $cardId = 1;
+                    $cardReviews = isset($reviews[$cardId]) ? $reviews[$cardId] : [];
+                    $reviewCount = count($cardReviews);
+                    ?>
+                    <?php if ($reviewCount > 0): ?>
+                    <div class="internet-review-accordion">
+                        <button class="internet-review-accordion-header" type="button" data-accordion-target="review-accordion-<?php echo $cardId; ?>">
+                            <span class="internet-review-accordion-title">리뷰 <?php echo $reviewCount; ?>개</span>
+                            <svg class="internet-review-accordion-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </button>
+                        <div class="internet-review-accordion-content" id="review-accordion-<?php echo $cardId; ?>">
+                            <div class="internet-review-list">
+                                <?php foreach ($cardReviews as $review): ?>
+                                <div class="internet-review-item">
+                                    <div class="internet-review-header">
+                                        <div class="internet-review-user-info">
+                                            <span class="internet-review-user"><?php echo htmlspecialchars($review['user']); ?></span>
+                                            <span class="internet-review-date"><?php echo htmlspecialchars($review['date']); ?></span>
+                                        </div>
+                                        <div class="internet-review-ratings">
+                                            <div class="internet-review-rating-item">
+                                                <span class="internet-review-rating-label">친절해요</span>
+                                                <div class="internet-review-rating-stars">
+                                                    <?php for ($i = 1; $i <= 5; $i++): ?>
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="<?php echo $i <= $review['kindness_rating'] ? '#fbbf24' : '#e5e7eb'; ?>" xmlns="http://www.w3.org/2000/svg">
+                                                            <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
+                                                        </svg>
+                                                    <?php endfor; ?>
+                                                </div>
+                                            </div>
+                                            <div class="internet-review-rating-item">
+                                                <span class="internet-review-rating-label">설치 빨라요</span>
+                                                <div class="internet-review-rating-stars">
+                                                    <?php for ($i = 1; $i <= 5; $i++): ?>
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="<?php echo $i <= $review['speed_rating'] ? '#fbbf24' : '#e5e7eb'; ?>" xmlns="http://www.w3.org/2000/svg">
+                                                            <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
+                                                        </svg>
+                                                    <?php endfor; ?>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <p class="internet-review-content"><?php echo htmlspecialchars($review['content']); ?></p>
+                                </div>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                    </div>
+                    <?php endif; ?>
                 </div>
                 
                 <div>
@@ -167,6 +237,60 @@ include '../includes/header.php';
                             <p class="css-16qot29 e82z5mt6">월 27,500원</p>
                         </div>
                     </div>
+                    
+                    <!-- 리뷰 아코디언 -->
+                    <?php 
+                    $cardId = 2;
+                    $cardReviews = isset($reviews[$cardId]) ? $reviews[$cardId] : [];
+                    $reviewCount = count($cardReviews);
+                    ?>
+                    <?php if ($reviewCount > 0): ?>
+                    <div class="internet-review-accordion">
+                        <button class="internet-review-accordion-header" type="button" data-accordion-target="review-accordion-<?php echo $cardId; ?>">
+                            <span class="internet-review-accordion-title">리뷰 <?php echo $reviewCount; ?>개</span>
+                            <svg class="internet-review-accordion-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </button>
+                        <div class="internet-review-accordion-content" id="review-accordion-<?php echo $cardId; ?>">
+                            <div class="internet-review-list">
+                                <?php foreach ($cardReviews as $review): ?>
+                                <div class="internet-review-item">
+                                    <div class="internet-review-header">
+                                        <div class="internet-review-user-info">
+                                            <span class="internet-review-user"><?php echo htmlspecialchars($review['user']); ?></span>
+                                            <span class="internet-review-date"><?php echo htmlspecialchars($review['date']); ?></span>
+                                        </div>
+                                        <div class="internet-review-ratings">
+                                            <div class="internet-review-rating-item">
+                                                <span class="internet-review-rating-label">친절해요</span>
+                                                <div class="internet-review-rating-stars">
+                                                    <?php for ($i = 1; $i <= 5; $i++): ?>
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="<?php echo $i <= $review['kindness_rating'] ? '#fbbf24' : '#e5e7eb'; ?>" xmlns="http://www.w3.org/2000/svg">
+                                                            <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
+                                                        </svg>
+                                                    <?php endfor; ?>
+                                                </div>
+                                            </div>
+                                            <div class="internet-review-rating-item">
+                                                <span class="internet-review-rating-label">설치 빨라요</span>
+                                                <div class="internet-review-rating-stars">
+                                                    <?php for ($i = 1; $i <= 5; $i++): ?>
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="<?php echo $i <= $review['speed_rating'] ? '#fbbf24' : '#e5e7eb'; ?>" xmlns="http://www.w3.org/2000/svg">
+                                                            <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
+                                                        </svg>
+                                                    <?php endfor; ?>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <p class="internet-review-content"><?php echo htmlspecialchars($review['content']); ?></p>
+                                </div>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                    </div>
+                    <?php endif; ?>
                 </div>
                 
                 <div>
@@ -236,6 +360,60 @@ include '../includes/header.php';
                             <p class="tw-text-indigo-600 css-16qot29 e82z5mt6">월 30,800원</p>
                         </div>
                     </div>
+                    
+                    <!-- 리뷰 아코디언 -->
+                    <?php 
+                    $cardId = 3;
+                    $cardReviews = isset($reviews[$cardId]) ? $reviews[$cardId] : [];
+                    $reviewCount = count($cardReviews);
+                    ?>
+                    <?php if ($reviewCount > 0): ?>
+                    <div class="internet-review-accordion">
+                        <button class="internet-review-accordion-header" type="button" data-accordion-target="review-accordion-<?php echo $cardId; ?>">
+                            <span class="internet-review-accordion-title">리뷰 <?php echo $reviewCount; ?>개</span>
+                            <svg class="internet-review-accordion-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </button>
+                        <div class="internet-review-accordion-content" id="review-accordion-<?php echo $cardId; ?>">
+                            <div class="internet-review-list">
+                                <?php foreach ($cardReviews as $review): ?>
+                                <div class="internet-review-item">
+                                    <div class="internet-review-header">
+                                        <div class="internet-review-user-info">
+                                            <span class="internet-review-user"><?php echo htmlspecialchars($review['user']); ?></span>
+                                            <span class="internet-review-date"><?php echo htmlspecialchars($review['date']); ?></span>
+                                        </div>
+                                        <div class="internet-review-ratings">
+                                            <div class="internet-review-rating-item">
+                                                <span class="internet-review-rating-label">친절해요</span>
+                                                <div class="internet-review-rating-stars">
+                                                    <?php for ($i = 1; $i <= 5; $i++): ?>
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="<?php echo $i <= $review['kindness_rating'] ? '#fbbf24' : '#e5e7eb'; ?>" xmlns="http://www.w3.org/2000/svg">
+                                                            <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
+                                                        </svg>
+                                                    <?php endfor; ?>
+                                                </div>
+                                            </div>
+                                            <div class="internet-review-rating-item">
+                                                <span class="internet-review-rating-label">설치 빨라요</span>
+                                                <div class="internet-review-rating-stars">
+                                                    <?php for ($i = 1; $i <= 5; $i++): ?>
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="<?php echo $i <= $review['speed_rating'] ? '#fbbf24' : '#e5e7eb'; ?>" xmlns="http://www.w3.org/2000/svg">
+                                                            <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
+                                                        </svg>
+                                                    <?php endfor; ?>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <p class="internet-review-content"><?php echo htmlspecialchars($review['content']); ?></p>
+                                </div>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                    </div>
+                    <?php endif; ?>
                 </div>
                 
                 <div>
@@ -707,12 +885,12 @@ include '../includes/header.php';
                             <div class="internet-checkbox-item-wrapper">
                                 <div class="internet-checkbox-item">
                                     <label class="internet-checkbox-label-item">
-                                        <input type="checkbox" id="agreePrivacy" class="internet-checkbox-input-item" onchange="checkAllAgreements(); toggleAccordion('privacyAccordion', this.checked);">
-                                        <span class="internet-checkbox-text">개인정보 수집 이용</span>
+                                        <input type="checkbox" id="agreePrivacy" class="internet-checkbox-input-item" onchange="checkAllAgreements();">
+                                        <span class="internet-checkbox-text">개인정보 수집 이용(필수)</span>
                                     </label>
-                                    <a href="/terms/10081" target="_blank" rel="noreferrer" class="internet-checkbox-link">
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor">
-                                            <path d="M5.46967 12.4697C5.17678 12.7626 5.17678 13.2374 5.46967 13.5303C5.76256 13.8232 6.23744 13.8232 6.53033 13.5303L5.46967 12.4697ZM11 8L11.5303 8.53033C11.8232 8.23744 11.8232 7.76256 11.5303 7.46967L11 8ZM6.53033 2.46967C6.23744 2.17678 5.76256 2.17678 5.46967 2.46967C5.17678 2.76256 5.17678 3.23744 5.46967 3.53033L6.53033 2.46967ZM6.53033 13.5303L11.5303 8.53033L10.4697 7.46967L5.46967 12.4697L6.53033 13.5303ZM11.5303 7.46967L6.53033 2.46967L5.46967 3.53033L10.4697 8.53033L11.5303 7.46967Z"></path>
+                                    <a href="/terms/10081" target="_blank" rel="noreferrer" class="internet-checkbox-link" id="privacyArrowLink" onclick="event.preventDefault(); toggleAccordionByArrow('privacyAccordion', 'privacyArrowLink'); return false;">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="arrow-down">
+                                            <path d="M3.646 4.646a.5.5 0 0 1 .708 0L8 8.293l3.646-3.647a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 0-.708z"></path>
                                         </svg>
                                     </a>
                                 </div>
@@ -750,12 +928,12 @@ include '../includes/header.php';
                             <div class="internet-checkbox-item-wrapper">
                                 <div class="internet-checkbox-item">
                                     <label class="internet-checkbox-label-item">
-                                        <input type="checkbox" id="agreeThirdParty" class="internet-checkbox-input-item" onchange="checkAllAgreements(); toggleAccordion('thirdPartyAccordion', this.checked);">
-                                        <span class="internet-checkbox-text">개인정보 제3자 제공</span>
+                                        <input type="checkbox" id="agreeThirdParty" class="internet-checkbox-input-item" onchange="checkAllAgreements();">
+                                        <span class="internet-checkbox-text">개인정보 제3자 제공(필수)</span>
                                     </label>
-                                    <a href="/terms/10092" target="_blank" rel="noreferrer" class="internet-checkbox-link">
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor">
-                                            <path d="M5.46967 12.4697C5.17678 12.7626 5.17678 13.2374 5.46967 13.5303C5.76256 13.8232 6.23744 13.8232 6.53033 13.5303L5.46967 12.4697ZM11 8L11.5303 8.53033C11.8232 8.23744 11.8232 7.76256 11.5303 7.46967L11 8ZM6.53033 2.46967C6.23744 2.17678 5.76256 2.17678 5.46967 2.46967C5.17678 2.76256 5.17678 3.23744 5.46967 3.53033L6.53033 2.46967ZM6.53033 13.5303L11.5303 8.53033L10.4697 7.46967L5.46967 12.4697L6.53033 13.5303ZM11.5303 7.46967L6.53033 2.46967L5.46967 3.53033L10.4697 8.53033L11.5303 7.46967Z"></path>
+                                    <a href="/terms/10092" target="_blank" rel="noreferrer" class="internet-checkbox-link" id="thirdPartyArrowLink" onclick="event.preventDefault(); toggleAccordionByArrow('thirdPartyAccordion', 'thirdPartyArrowLink'); return false;">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="arrow-down">
+                                            <path d="M3.646 4.646a.5.5 0 0 1 .708 0L8 8.293l3.646-3.647a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 0-.708z"></path>
                                         </svg>
                                     </a>
                                 </div>
@@ -798,6 +976,16 @@ include '../includes/header.php';
                 </div>
             </div>
         </div>
+    </div>
+</div>
+
+<!-- 토스트 메시지 모달 -->
+<div id="internetToastModal" class="internet-toast-modal">
+    <div class="internet-toast-overlay"></div>
+    <div class="internet-toast-content">
+        <div class="internet-toast-title">인터넷 상담을 신청했어요</div>
+        <div class="internet-toast-message">입력한 번호로 상담 전화를 드릴예정이에요</div>
+        <button class="internet-toast-button" onclick="closeInternetToast()">확인</button>
     </div>
 </div>
 
@@ -1529,22 +1717,43 @@ include '../includes/header.php';
 /* 모바일 반응형 */
 @media (max-width: 640px) {
     .internet-info-section {
-        flex-direction: column;
-        gap: 0.75rem;
+        flex-direction: row;
+        gap: 0.5rem;
     }
     
     .internet-info-card {
-        width: 100%;
-        max-width: 100%;
+        flex: 1;
+        min-width: 0;
+        max-width: none;
     }
     
     .internet-info-arrow {
-        transform: rotate(90deg);
-        padding: 0.25rem 0;
+        padding: 0 0.25rem;
+    }
+    
+    .internet-info-arrow svg {
+        width: 20px;
+        height: 20px;
     }
     
     .internet-info-logo {
-        height: 45px;
+        height: 40px;
+    }
+    
+    .internet-info-label-section {
+        padding: 0.6rem 0.75rem;
+    }
+    
+    .internet-info-logo-section {
+        padding: 0.75rem;
+    }
+    
+    .internet-info-label {
+        font-size: 0.8125rem;
+    }
+    
+    .internet-info-name {
+        font-size: 0.8125rem;
     }
 }
 
@@ -1670,13 +1879,85 @@ include '../includes/header.php';
     flex: 1;
 }
 
-.internet-checkbox-input,
 .internet-checkbox-input-item {
     width: 18px;
     height: 18px;
     margin: 0;
     cursor: pointer;
-    accent-color: #667eea;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    border-radius: 50%;
+    border: 2px solid #d1d5db;
+    background-color: #f3f4f6;
+    position: relative;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.internet-checkbox-input-item:hover {
+    border-color: #9ca3af;
+    background-color: #e5e7eb;
+}
+
+.internet-checkbox-input-item:checked {
+    background-color: #6366f1;
+    border-color: #6366f1;
+    box-shadow: 0 1px 3px rgba(99, 102, 241, 0.3);
+}
+
+.internet-checkbox-input-item:checked::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -55%) rotate(45deg);
+    width: 5px;
+    height: 9px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    border-radius: 1px;
+}
+
+/* 전체동의 원형 체크박스 */
+.internet-checkbox-all .internet-checkbox-input {
+    width: 20px;
+    height: 20px;
+    margin: 0;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    border-radius: 50%;
+    border: 2px solid #d1d5db;
+    background-color: #f3f4f6;
+    position: relative;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.internet-checkbox-all .internet-checkbox-input:hover {
+    border-color: #9ca3af;
+    background-color: #e5e7eb;
+}
+
+.internet-checkbox-all .internet-checkbox-input:checked {
+    background-color: #6366f1;
+    border-color: #6366f1;
+    box-shadow: 0 1px 3px rgba(99, 102, 241, 0.3);
+}
+
+.internet-checkbox-all .internet-checkbox-input:checked::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -55%) rotate(45deg);
+    width: 5px;
+    height: 9px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    border-radius: 1px;
 }
 
 .internet-checkbox-text {
@@ -1697,10 +1978,19 @@ include '../includes/header.php';
 .internet-checkbox-link svg {
     width: 16px;
     height: 16px;
+    transition: transform 0.3s ease;
+}
+
+.internet-checkbox-link svg.arrow-down {
+    transform: rotate(0deg);
 }
 
 .internet-checkbox-link:hover {
     color: #374151;
+}
+
+.internet-checkbox-link.arrow-up svg {
+    transform: rotate(180deg);
 }
 
 /* 아코디언 스타일 */
@@ -1719,7 +2009,9 @@ include '../includes/header.php';
 }
 
 .internet-accordion-content.active {
-    max-height: 1000px;
+    max-height: 90px;
+    overflow-y: auto;
+    overflow-x: hidden;
     transition: max-height 0.4s ease-in;
     margin-top: 0.75rem;
 }
@@ -1792,6 +2084,96 @@ include '../includes/header.php';
     cursor: not-allowed;
 }
 
+/* 토스트 메시지 모달 */
+.internet-toast-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10000;
+    align-items: center;
+    justify-content: center;
+}
+
+.internet-toast-modal.active {
+    display: flex;
+}
+
+.internet-toast-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+}
+
+.internet-toast-content {
+    position: relative;
+    background-color: #ffffff;
+    border-radius: 1rem;
+    padding: 2rem;
+    max-width: 500px;
+    width: calc(100% - 2rem);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    z-index: 10001;
+    animation: toastFadeIn 0.3s ease-out;
+}
+
+@keyframes toastFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.internet-toast-title {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin-bottom: 0.75rem;
+    text-align: center;
+}
+
+.internet-toast-message {
+    font-size: 0.9375rem;
+    color: #4b5563;
+    margin-bottom: 1.5rem;
+    text-align: center;
+    line-height: 1.5;
+    word-break: keep-all;
+    word-spacing: -0.02em;
+}
+
+.internet-toast-button {
+    width: 100%;
+    padding: 0.875rem;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #ffffff;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.internet-toast-button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 25px -5px rgba(102, 126, 234, 0.4);
+}
+
+.internet-toast-button:active {
+    transform: translateY(0);
+}
+
 @media (max-width: 767px) {
     .internet-callout {
         padding: 0.875rem;
@@ -1808,6 +2190,17 @@ include '../includes/header.php';
     .internet-form-input {
         padding: 0.875rem 1rem;
         font-size: 0.9375rem;
+    }
+    
+    .internet-toast-content {
+        max-width: 95%;
+        width: calc(100% - 1.5rem);
+        padding: 1.75rem 1.5rem;
+    }
+    
+    .internet-toast-message {
+        font-size: 0.9375rem;
+        white-space: nowrap;
     }
     
     .internet-checkbox-list {
@@ -2039,6 +2432,10 @@ function openInternetModal() {
         showStep(1);
         // 선택한 인터넷 정보 표시
         showNewCompanyInfo();
+        // 폼 검증 이벤트 리스너 설정
+        if (window.setupFormValidation) {
+            window.setupFormValidation();
+        }
     }
 }
 
@@ -2113,6 +2510,11 @@ function resetSteps() {
     if (agreePrivacy) agreePrivacy.checked = false;
     if (agreeThirdParty) agreeThirdParty.checked = false;
     if (submitBtn) submitBtn.disabled = true;
+    // 입력 필드 초기화
+    const nameInput = document.getElementById('internetName');
+    const phoneInput = document.getElementById('internetPhone');
+    if (nameInput) nameInput.value = '';
+    if (phoneInput) phoneInput.value = '';
 }
 
 function selectInternetOption(option) {
@@ -2319,10 +2721,6 @@ function toggleAllAgreements(checked) {
         agreePrivacy.checked = checked;
         agreeThirdParty.checked = checked;
         checkAllAgreements();
-        
-        // 아코디언도 함께 열기/닫기
-        toggleAccordion('privacyAccordion', checked);
-        toggleAccordion('thirdPartyAccordion', checked);
     }
 }
 
@@ -2335,6 +2733,43 @@ function toggleAccordion(accordionId, isOpen) {
             accordion.classList.remove('active');
         }
     }
+    
+    // 화살표 방향 변경
+    let arrowLink = null;
+    if (accordionId === 'privacyAccordion') {
+        arrowLink = document.getElementById('privacyArrowLink');
+    } else if (accordionId === 'thirdPartyAccordion') {
+        arrowLink = document.getElementById('thirdPartyArrowLink');
+    }
+    
+    if (arrowLink) {
+        if (isOpen) {
+            arrowLink.classList.add('arrow-up');
+        } else {
+            arrowLink.classList.remove('arrow-up');
+        }
+    }
+}
+
+function toggleAccordionByArrow(accordionId, arrowLinkId) {
+    const accordion = document.getElementById(accordionId);
+    const arrowLink = document.getElementById(arrowLinkId);
+    
+    if (!accordion || !arrowLink) return;
+    
+    // 현재 상태 확인
+    const isOpen = accordion.classList.contains('active');
+    
+    // 상태 토글
+    const newState = !isOpen;
+    
+    if (newState) {
+        accordion.classList.add('active');
+        arrowLink.classList.add('arrow-up');
+    } else {
+        accordion.classList.remove('active');
+        arrowLink.classList.remove('arrow-up');
+    }
 }
 
 function checkAllAgreements() {
@@ -2342,13 +2777,23 @@ function checkAllAgreements() {
     const agreePrivacy = document.getElementById('agreePrivacy');
     const agreeThirdParty = document.getElementById('agreeThirdParty');
     const submitBtn = document.getElementById('submitBtn');
+    const nameInput = document.getElementById('internetName');
+    const phoneInput = document.getElementById('internetPhone');
     
     if (agreeAll && agreePrivacy && agreeThirdParty && submitBtn) {
         // 전체 동의 체크박스 상태 업데이트
         agreeAll.checked = agreePrivacy.checked && agreeThirdParty.checked;
         
-        // 제출 버튼 활성화/비활성화
-        if (agreePrivacy.checked && agreeThirdParty.checked) {
+        // 이름과 휴대폰 번호 확인
+        const name = nameInput ? nameInput.value.trim() : '';
+        const phone = phoneInput ? phoneInput.value.replace(/[^\d]/g, '') : '';
+        
+        // 제출 버튼 활성화/비활성화 (모든 필드가 입력되어야 활성화)
+        const isNameValid = name.length > 0;
+        const isPhoneValid = phone.length === 11 && phone.startsWith('010');
+        const isAgreementsChecked = agreePrivacy.checked && agreeThirdParty.checked;
+        
+        if (isNameValid && isPhoneValid && isAgreementsChecked) {
             submitBtn.disabled = false;
         } else {
             submitBtn.disabled = true;
@@ -2370,8 +2815,26 @@ function submitInternetForm() {
     console.log('제출된 데이터:', formData);
     
     // TODO: 실제 제출 로직 구현
-    alert('상담 신청이 완료되었습니다.');
+    
+    // 인터넷 모달 닫기
     closeInternetModal();
+    
+    // 토스트 메시지 표시
+    showInternetToast();
+}
+
+function showInternetToast() {
+    const toastModal = document.getElementById('internetToastModal');
+    if (toastModal) {
+        toastModal.classList.add('active');
+    }
+}
+
+function closeInternetToast() {
+    const toastModal = document.getElementById('internetToastModal');
+    if (toastModal) {
+        toastModal.classList.remove('active');
+    }
 }
 
 // 모달 외부 클릭 시 닫기
@@ -2413,35 +2876,66 @@ document.addEventListener('keydown', function(e) {
         // 숫자가 없으면 빈 문자열 반환
         if (!numbers) return '';
         
+        // 휴대폰 번호 검증: 반드시 0으로 시작해야 함
+        if (numbers.length > 0 && numbers[0] !== '0') {
+            // 0으로 시작하지 않으면 이전 값 유지 (입력 차단)
+            return '';
+        }
+        
+        // 휴대폰 번호 검증: 010으로 시작해야 함 (일반적인 휴대폰 번호)
+        if (numbers.length >= 3 && !numbers.startsWith('010')) {
+            // 010으로 시작하지 않으면 이전 값 유지 (입력 차단)
+            // 단, 02(서울 지역번호)는 허용
+            if (!numbers.startsWith('02')) {
+                return '';
+            }
+        }
+        
         // 전화번호 길이에 따라 형식 적용
         if (numbers.length <= 3) {
+            // 3자리 이하일 때는 010으로 시작하는지 확인
+            if (numbers.length === 1 && numbers !== '0') {
+                return '';
+            }
+            if (numbers.length === 2 && !numbers.startsWith('01')) {
+                return '';
+            }
+            if (numbers.length === 3 && !numbers.startsWith('010')) {
+                return '';
+            }
             return numbers;
         } else if (numbers.length <= 7) {
             // 010-123 또는 02-1234
             if (numbers.startsWith('02')) {
                 // 서울 지역번호 (02)
                 return numbers.slice(0, 2) + '-' + numbers.slice(2);
-            } else {
-                // 휴대폰 (010, 011 등)
+            } else if (numbers.startsWith('010')) {
+                // 휴대폰 (010)
                 return numbers.slice(0, 3) + '-' + numbers.slice(3);
+            } else {
+                return '';
             }
         } else if (numbers.length <= 10) {
             // 010-1234-567 또는 02-1234-5678
             if (numbers.startsWith('02')) {
                 // 서울 지역번호 (02-1234-5678)
                 return numbers.slice(0, 2) + '-' + numbers.slice(2, 6) + '-' + numbers.slice(6);
-            } else {
+            } else if (numbers.startsWith('010')) {
                 // 휴대폰 (010-1234-567)
                 return numbers.slice(0, 3) + '-' + numbers.slice(3, 7) + '-' + numbers.slice(7);
+            } else {
+                return '';
             }
         } else {
             // 010-1234-5678 또는 02-1234-5678
             if (numbers.startsWith('02')) {
                 // 서울 지역번호 (02-1234-5678)
                 return numbers.slice(0, 2) + '-' + numbers.slice(2, 6) + '-' + numbers.slice(6, 10);
-            } else {
+            } else if (numbers.startsWith('010')) {
                 // 휴대폰 (010-1234-5678)
                 return numbers.slice(0, 3) + '-' + numbers.slice(3, 7) + '-' + numbers.slice(7, 11);
+            } else {
+                return '';
             }
         }
     }
@@ -2451,11 +2945,27 @@ document.addEventListener('keydown', function(e) {
      * @param {HTMLInputElement} input - 입력 필드 요소
      */
     function applyPhoneFormat(input) {
+        // 이전 유효한 값 저장
+        let lastValidValue = '';
+        
         // 입력 이벤트
         input.addEventListener('input', function(e) {
             const cursorPosition = e.target.selectionStart;
             const oldValue = e.target.value;
             const newValue = formatPhoneNumber(e.target.value);
+            
+            // 검증 실패 시 (빈 문자열 반환) 이전 유효한 값으로 복원
+            if (newValue === '' && oldValue !== '' && oldValue.replace(/[^\d]/g, '').length > 0) {
+                // 잘못된 입력이므로 이전 유효한 값으로 복원
+                e.target.value = lastValidValue;
+                e.target.setSelectionRange(cursorPosition - 1, cursorPosition - 1);
+                return;
+            }
+            
+            // 유효한 값이면 저장
+            if (newValue !== '') {
+                lastValidValue = newValue;
+            }
             
             e.target.value = newValue;
             
@@ -2471,14 +2981,35 @@ document.addEventListener('keydown', function(e) {
             }
             
             e.target.setSelectionRange(newCursorPosition, newCursorPosition);
+            
+            // 버튼 활성화 상태 확인
+            if (typeof checkAllAgreements === 'function') {
+                checkAllAgreements();
+            }
         });
         
         // 붙여넣기 이벤트
         input.addEventListener('paste', function(e) {
             e.preventDefault();
             const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+            const numbers = pastedText.replace(/[^\d]/g, '');
+            
+            // 붙여넣기 검증: 010으로 시작하는지 확인
+            if (numbers.length > 0 && !numbers.startsWith('010')) {
+                // 010으로 시작하지 않으면 이전 값 유지
+                return;
+            }
+            
             const formatted = formatPhoneNumber(pastedText);
-            input.value = formatted;
+            if (formatted !== '') {
+                input.value = formatted;
+                lastValidValue = formatted;
+                
+                // 버튼 활성화 상태 확인
+                if (typeof checkAllAgreements === 'function') {
+                    checkAllAgreements();
+                }
+            }
         });
         
         // 키 입력 제한 (숫자와 백스페이스, 삭제, 화살표 키만 허용)
@@ -2496,8 +3027,43 @@ document.addEventListener('keydown', function(e) {
             const isCtrlV = e.ctrlKey && e.key === 'v';
             const isCtrlX = e.ctrlKey && e.key === 'x';
             
+            // 숫자가 아닌 키는 기본 검증만 수행
             if (!isNumber && !isAllowedKey && !isCtrlA && !isCtrlC && !isCtrlV && !isCtrlX) {
                 e.preventDefault();
+                return;
+            }
+            
+            // 숫자 입력 시 검증
+            if (isNumber) {
+                const currentValue = e.target.value.replace(/[^\d]/g, '');
+                const cursorPosition = e.target.selectionStart;
+                const textBeforeCursor = e.target.value.substring(0, cursorPosition).replace(/[^\d]/g, '');
+                const textAfterCursor = e.target.value.substring(cursorPosition).replace(/[^\d]/g, '');
+                const newValue = textBeforeCursor + e.key + textAfterCursor;
+                
+                // 첫 번째 숫자는 반드시 0이어야 함
+                if (currentValue.length === 0 && e.key !== '0') {
+                    e.preventDefault();
+                    return;
+                }
+                
+                // 두 번째 숫자는 반드시 1이어야 함 (010으로 시작)
+                if (currentValue.length === 1 && e.key !== '1') {
+                    e.preventDefault();
+                    return;
+                }
+                
+                // 세 번째 숫자는 반드시 0이어야 함 (010으로 시작)
+                if (currentValue.length === 2 && e.key !== '0') {
+                    e.preventDefault();
+                    return;
+                }
+                
+                // 최대 11자리까지만 입력 가능 (010-1234-5678)
+                if (newValue.length > 11) {
+                    e.preventDefault();
+                    return;
+                }
             }
         });
     }
@@ -2531,10 +3097,64 @@ document.addEventListener('keydown', function(e) {
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', function() {
             window.applyPhoneNumberFormat();
+            setupFormValidation();
         });
     } else {
         window.applyPhoneNumberFormat();
+        setupFormValidation();
     }
+    
+    // 폼 검증 이벤트 리스너 설정
+    function setupFormValidation() {
+        const nameInput = document.getElementById('internetName');
+        const phoneInput = document.getElementById('internetPhone');
+        
+        if (nameInput) {
+            nameInput.addEventListener('input', checkAllAgreements);
+            nameInput.addEventListener('blur', checkAllAgreements);
+        }
+        
+        if (phoneInput) {
+            phoneInput.addEventListener('input', checkAllAgreements);
+            phoneInput.addEventListener('blur', checkAllAgreements);
+        }
+    }
+    
+    // 전역으로 노출
+    window.setupFormValidation = setupFormValidation;
+})();
+
+// 리뷰 아코디언 기능
+(function() {
+    const accordionHeaders = document.querySelectorAll('.internet-review-accordion-header');
+    
+    accordionHeaders.forEach(header => {
+        header.addEventListener('click', function() {
+            const targetId = this.getAttribute('data-accordion-target');
+            const content = document.getElementById(targetId);
+            
+            if (content) {
+                const isActive = this.classList.contains('active');
+                
+                // 모든 아코디언 닫기 (선택사항 - 원하면 주석 처리)
+                // accordionHeaders.forEach(h => {
+                //     h.classList.remove('active');
+                //     const target = document.getElementById(h.getAttribute('data-accordion-target'));
+                //     if (target) target.classList.remove('active');
+                // });
+                
+                if (isActive) {
+                    // 닫기
+                    this.classList.remove('active');
+                    content.classList.remove('active');
+                } else {
+                    // 열기
+                    this.classList.add('active');
+                    content.classList.add('active');
+                }
+            }
+        });
+    });
 })();
 </script>
 
@@ -2542,6 +3162,7 @@ document.addEventListener('keydown', function(e) {
 // 푸터 포함
 include '../includes/footer.php';
 ?>
+
 
 
 

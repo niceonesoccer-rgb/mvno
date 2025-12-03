@@ -79,6 +79,19 @@ include '../includes/header.php';
                     </a>
                 </li>
                 <li style="border-bottom: 1px solid #e5e7eb;">
+                    <a href="/MVNO/mypage/internet-order.php" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; text-decoration: none; color: inherit;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink: 0;">
+                                <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            <span style="font-size: 16px;">인터넷 신청내역</span>
+                        </div>
+                        <img alt=">" src="https://assets-legacy.moyoplan.com/img/icons/rightArrow.svg" style="width: 16px; height: 16px;">
+                    </a>
+                </li>
+                <li style="border-bottom: 1px solid #e5e7eb;">
                     <a href="/mypage/esim-applies" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; text-decoration: none; color: inherit;">
                         <div style="display: flex; align-items: center; gap: 12px;">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink: 0;">

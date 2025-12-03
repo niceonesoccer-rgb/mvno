@@ -46,10 +46,21 @@ $consultation_url = $plan['consultation_url'] ?? ''; // 상담 URL
         <!-- 리뷰쓰기 버튼 또는 업체 문의하기 버튼 -->
         <div class="mvno-order-action-item">
             <?php if ($is_activated): ?>
-                <!-- 개통된 경우: 리뷰쓰기 버튼 -->
-                <button type="button" class="mvno-order-review-btn" data-plan-id="<?php echo $plan_id; ?>" <?php echo $has_review ? 'disabled' : ''; ?>>
-                    <?php echo $has_review ? '리뷰 작성 완료' : '리뷰쓰기'; ?>
-                </button>
+                <!-- 개통된 경우: 리뷰쓰기 버튼 또는 수정/삭제 버튼 -->
+                <?php if ($has_review): ?>
+                    <div style="display: flex; gap: 8px; width: 100%;">
+                        <button type="button" class="mvno-order-review-edit-btn" data-plan-id="<?php echo $plan_id; ?>" style="flex: 1; padding: 10px 16px; background: #6366f1; border-radius: 8px; border: none; color: white; font-size: 14px; font-weight: 500; cursor: pointer;">
+                            수정
+                        </button>
+                        <button type="button" class="mvno-order-review-delete-btn" data-plan-id="<?php echo $plan_id; ?>" style="flex: 1; padding: 10px 16px; background: #ef4444; border-radius: 8px; border: none; color: white; font-size: 14px; font-weight: 500; cursor: pointer;">
+                            삭제
+                        </button>
+                    </div>
+                <?php else: ?>
+                    <button type="button" class="mvno-order-review-btn" data-plan-id="<?php echo $plan_id; ?>">
+                        리뷰쓰기
+                    </button>
+                <?php endif; ?>
             <?php else: ?>
                 <!-- 개통 안된 경우: 개통 문의 버튼 -->
                 <?php if ($consultation_url): ?>

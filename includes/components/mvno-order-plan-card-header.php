@@ -27,13 +27,12 @@ $share_url = '/MVNO/mvno/mvno-plan-detail.php?id=' . $plan_id;
         </div>
     </div>
     <div class="mvno-order-badge-share-group">
-        <?php if (!$is_sold_out): ?>
-        <button class="mvno-order-share-btn-inline" aria-label="공유하기" data-share-url="<?php echo htmlspecialchars($share_url); ?>">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M18 8C19.6569 8 21 6.65685 21 5C21 3.34315 19.6569 2 18 2C16.3431 2 15 3.34315 15 5C15 5.12549 15.0077 5.24896 15.0227 5.36986L8.08261 9.79866C7.54305 9.29209 6.80891 9 6 9C4.34315 9 3 10.3431 3 12C3 13.6569 4.34315 15 6 15C6.80891 15 7.54305 14.7079 8.08261 14.2013L15.0227 18.6301C15.0077 18.751 15 18.8745 15 19C15 20.6569 16.3431 22 18 22C19.6569 22 21 20.6569 21 19C21 17.3431 19.6569 16 18 16C17.1911 16 16.457 16.2921 15.9174 16.7987L8.97727 12.3699C8.99227 12.249 9 12.1255 9 12C9 11.8745 8.99227 11.751 8.97727 11.6301L15.9174 7.20134C16.457 7.70791 17.1911 8 18 8Z" fill="#868E96"/>
-            </svg>
-        </button>
-        <?php endif; ?>
+        <?php
+        if (!$is_sold_out) {
+            $button_class = 'mvno-order-share-btn-inline';
+            include __DIR__ . '/share-button.php';
+        }
+        ?>
     </div>
 </div>
 

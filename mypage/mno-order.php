@@ -239,6 +239,132 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    // 수정 버튼 클릭 이벤트
+    const editButtons = document.querySelectorAll('.mno-order-review-edit-btn');
+    editButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const phoneId = this.getAttribute('data-phone-id');
+            if (phoneId) {
+                openReviewModal(phoneId);
+                // TODO: 기존 리뷰 데이터를 모달에 로드
+            }
+        });
+    });
+
+    // 삭제 모달 열기 함수
+    function openDeleteModal(phoneId, buttonContainer, parentItem) {
+        const deleteModal = document.getElementById('mnoReviewDeleteModal');
+        if (deleteModal) {
+            // 스크롤바 너비 계산
+            const scrollbarWidth = getScrollbarWidth();
+            
+            // body 스크롤 방지
+            document.body.style.overflow = 'hidden';
+            document.body.style.position = 'fixed';
+            document.body.style.top = `-${window.pageYOffset || document.documentElement.scrollTop}px`;
+            document.body.style.width = '100%';
+            document.body.style.paddingRight = `${scrollbarWidth}px`;
+            document.documentElement.style.overflow = 'hidden';
+            
+            deleteModal.style.display = 'flex';
+            deleteModal.setAttribute('data-phone-id', phoneId);
+        }
+    }
+
+    // 삭제 모달 닫기 함수
+    function closeDeleteModal() {
+        const deleteModal = document.getElementById('mnoReviewDeleteModal');
+        if (deleteModal) {
+            deleteModal.style.display = 'none';
+            
+            // body 스크롤 복원
+            const scrollTop = parseInt(document.body.style.top || '0') * -1;
+            document.body.style.overflow = '';
+            document.body.style.position = '';
+            document.body.style.top = '';
+            document.body.style.width = '';
+            document.body.style.paddingRight = '';
+            document.documentElement.style.overflow = '';
+            window.scrollTo(0, scrollTop);
+        }
+    }
+
+    // 삭제 확인 함수
+    function confirmDeleteReview(phoneId) {
+        // TODO: 서버로 삭제 요청
+        console.log('리뷰 삭제 - Phone ID:', phoneId);
+        showReviewToast('리뷰가 삭제되었습니다.');
+        closeDeleteModal();
+        
+        // 버튼을 리뷰 쓰기 버튼으로 복원
+        const deleteBtn = document.querySelector(`.mno-order-review-delete-btn[data-phone-id="${phoneId}"]`);
+        
+        if (deleteBtn) {
+            const parentItem = deleteBtn.closest('.mno-order-action-item');
+            const buttonContainer = deleteBtn.parentElement;
+            
+            buttonContainer.remove();
+            
+            const newReviewBtn = document.createElement('button');
+            newReviewBtn.type = 'button';
+            newReviewBtn.className = 'mno-order-review-btn';
+            newReviewBtn.setAttribute('data-phone-id', phoneId);
+            newReviewBtn.textContent = '리뷰쓰기';
+            parentItem.appendChild(newReviewBtn);
+            
+            newReviewBtn.addEventListener('click', function() {
+                openReviewModal(phoneId);
+            });
+        }
+    }
+
+    // 삭제 버튼 클릭 이벤트
+    const deleteButtons = document.querySelectorAll('.mno-order-review-delete-btn');
+    deleteButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const phoneId = this.getAttribute('data-phone-id');
+            if (phoneId) {
+                const parentItem = this.closest('.mno-order-action-item');
+                const buttonContainer = this.parentElement;
+                openDeleteModal(phoneId, buttonContainer, parentItem);
+            }
+        });
+    });
+
+    // 삭제 모달 이벤트
+    const deleteModal = document.getElementById('mnoReviewDeleteModal');
+    if (deleteModal) {
+        const closeBtn = deleteModal.querySelector('.mno-review-delete-modal-close');
+        const cancelBtn = deleteModal.querySelector('.mno-review-delete-btn-cancel');
+        const confirmBtn = deleteModal.querySelector('.mno-review-delete-btn-confirm');
+        const overlay = deleteModal.querySelector('.mno-review-delete-modal-overlay');
+
+        if (closeBtn) {
+            closeBtn.addEventListener('click', closeDeleteModal);
+        }
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', closeDeleteModal);
+        }
+        if (overlay) {
+            overlay.addEventListener('click', closeDeleteModal);
+        }
+        if (confirmBtn) {
+            confirmBtn.addEventListener('click', function() {
+                const phoneId = deleteModal.getAttribute('data-phone-id');
+                if (phoneId) {
+                    confirmDeleteReview(phoneId);
+                }
+            });
+        }
+
+        // ESC 키로 모달 닫기
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && deleteModal.style.display === 'flex') {
+                closeDeleteModal();
+            }
+        });
+    }
+
     // 리뷰쓰기 버튼 클릭 이벤트
     const reviewButtons = document.querySelectorAll('.mno-order-review-btn');
     
@@ -285,6 +411,20 @@ document.addEventListener('DOMContentLoaded', function() {
             const modal = document.getElementById('mnoReviewModal');
             const phoneId = modal ? modal.getAttribute('data-phone-id') : null;
             const reviewText = document.getElementById('reviewText').value.trim();
+            const kindnessRatingInput = document.querySelector('#mnoReviewForm input[name="kindness_rating"]:checked');
+            const speedRatingInput = document.querySelector('#mnoReviewForm input[name="speed_rating"]:checked');
+            const kindnessRating = kindnessRatingInput ? parseInt(kindnessRatingInput.value) : null;
+            const speedRating = speedRatingInput ? parseInt(speedRatingInput.value) : null;
+
+            if (!kindnessRating) {
+                showReviewToast('친절해요 별점을 선택해주세요.');
+                return;
+            }
+
+            if (!speedRating) {
+                showReviewToast('개통 빨라요 별점을 선택해주세요.');
+                return;
+            }
 
             if (!reviewText) {
                 showReviewToast('리뷰 내용을 입력해주세요.');
@@ -297,7 +437,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             // TODO: 서버로 리뷰 데이터 전송
-            console.log('리뷰 작성 - Phone ID:', phoneId, 'Review:', reviewText);
+            console.log('리뷰 작성 - Phone ID:', phoneId, 'Kindness Rating:', kindnessRating, 'Speed Rating:', speedRating, 'Review:', reviewText);
             
             // 예시: AJAX로 서버에 전송
             // fetch('/MVNO/api/review.php', {
@@ -324,12 +464,49 @@ document.addEventListener('DOMContentLoaded', function() {
             showReviewToast('리뷰가 작성되었습니다.');
             closeReviewModal();
             
-            // 리뷰 작성 완료 상태로 버튼 업데이트 (실제로는 서버 응답 후 처리)
-            // const reviewBtn = document.querySelector(`.mno-order-review-btn[data-phone-id="${phoneId}"]`);
-            // if (reviewBtn) {
-            //     reviewBtn.disabled = true;
-            //     reviewBtn.textContent = '리뷰 작성 완료';
-            // }
+            // 리뷰 작성 완료 후 버튼을 수정/삭제 버튼으로 변경
+            const reviewBtn = document.querySelector(`.mno-order-review-btn[data-phone-id="${phoneId}"]`);
+            if (reviewBtn) {
+                const parentItem = reviewBtn.closest('.mno-order-action-item');
+                if (parentItem) {
+                    // 기존 리뷰 쓰기 버튼 제거
+                    reviewBtn.remove();
+                    
+                    // 수정/삭제 버튼 컨테이너 생성
+                    const buttonContainer = document.createElement('div');
+                    buttonContainer.style.cssText = 'display: flex; gap: 8px; width: 100%;';
+                    
+                    // 수정 버튼 생성
+                    const editBtn = document.createElement('button');
+                    editBtn.type = 'button';
+                    editBtn.className = 'mno-order-review-edit-btn';
+                    editBtn.setAttribute('data-phone-id', phoneId);
+                    editBtn.textContent = '수정';
+                    editBtn.style.cssText = 'flex: 1; padding: 10px 16px; background: #6366f1; border-radius: 8px; border: none; color: white; font-size: 14px; font-weight: 500; cursor: pointer;';
+                    
+                    // 삭제 버튼 생성
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.type = 'button';
+                    deleteBtn.className = 'mno-order-review-delete-btn';
+                    deleteBtn.setAttribute('data-phone-id', phoneId);
+                    deleteBtn.textContent = '삭제';
+                    deleteBtn.style.cssText = 'flex: 1; padding: 10px 16px; background: #ef4444; border-radius: 8px; border: none; color: white; font-size: 14px; font-weight: 500; cursor: pointer;';
+                    
+                    buttonContainer.appendChild(editBtn);
+                    buttonContainer.appendChild(deleteBtn);
+                    parentItem.appendChild(buttonContainer);
+                    
+                    // 수정 버튼 이벤트 추가
+                    editBtn.addEventListener('click', function() {
+                        openReviewModal(phoneId);
+                    });
+                    
+                    // 삭제 버튼 이벤트 추가
+                    deleteBtn.addEventListener('click', function() {
+                        openDeleteModal(phoneId, buttonContainer, parentItem);
+                    });
+                }
+            }
         });
     }
 
@@ -476,6 +653,8 @@ document.addEventListener('DOMContentLoaded', function() {
 <?php
 // 리뷰 작성 모달 포함
 include '../includes/components/mno-review-modal.php';
+// 리뷰 삭제 확인 모달 포함
+include '../includes/components/mno-review-delete-modal.php';
 ?>
 
 <?php

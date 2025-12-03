@@ -270,6 +270,20 @@ document.addEventListener('DOMContentLoaded', function() {
             const modal = document.getElementById('mvnoReviewModal');
             const planId = modal ? modal.getAttribute('data-plan-id') : null;
             const reviewText = document.getElementById('reviewText').value.trim();
+            const kindnessRatingInput = document.querySelector('#mvnoReviewForm input[name="kindness_rating"]:checked');
+            const speedRatingInput = document.querySelector('#mvnoReviewForm input[name="speed_rating"]:checked');
+            const kindnessRating = kindnessRatingInput ? parseInt(kindnessRatingInput.value) : null;
+            const speedRating = speedRatingInput ? parseInt(speedRatingInput.value) : null;
+
+            if (!kindnessRating) {
+                showReviewToast('친절해요 별점을 선택해주세요.');
+                return;
+            }
+
+            if (!speedRating) {
+                showReviewToast('개통 빨라요 별점을 선택해주세요.');
+                return;
+            }
 
             if (!reviewText) {
                 showReviewToast('리뷰 내용을 입력해주세요.');
@@ -282,11 +296,181 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             // TODO: 서버로 리뷰 데이터 전송
-            console.log('리뷰 작성 - Plan ID:', planId, 'Review:', reviewText);
+            console.log('리뷰 작성 - Plan ID:', planId, 'Kindness Rating:', kindnessRating, 'Speed Rating:', speedRating, 'Review:', reviewText);
             
             // 임시: 성공 메시지 표시 (토스트 메시지)
             showReviewToast('리뷰가 작성되었습니다.');
             closeReviewModal();
+            
+            // 리뷰 작성 완료 후 버튼을 수정/삭제 버튼으로 변경
+            const reviewBtn = document.querySelector(`.mvno-order-review-btn[data-plan-id="${planId}"]`);
+            if (reviewBtn) {
+                const parentItem = reviewBtn.closest('.mvno-order-action-item');
+                if (parentItem) {
+                    // 기존 리뷰 쓰기 버튼 제거
+                    reviewBtn.remove();
+                    
+                    // 수정/삭제 버튼 컨테이너 생성
+                    const buttonContainer = document.createElement('div');
+                    buttonContainer.style.cssText = 'display: flex; gap: 8px; width: 100%;';
+                    
+                    // 수정 버튼 생성
+                    const editBtn = document.createElement('button');
+                    editBtn.type = 'button';
+                    editBtn.className = 'mvno-order-review-edit-btn';
+                    editBtn.setAttribute('data-plan-id', planId);
+                    editBtn.textContent = '수정';
+                    editBtn.style.cssText = 'flex: 1; padding: 10px 16px; background: #6366f1; border-radius: 8px; border: none; color: white; font-size: 14px; font-weight: 500; cursor: pointer;';
+                    
+                    // 삭제 버튼 생성
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.type = 'button';
+                    deleteBtn.className = 'mvno-order-review-delete-btn';
+                    deleteBtn.setAttribute('data-plan-id', planId);
+                    deleteBtn.textContent = '삭제';
+                    deleteBtn.style.cssText = 'flex: 1; padding: 10px 16px; background: #ef4444; border-radius: 8px; border: none; color: white; font-size: 14px; font-weight: 500; cursor: pointer;';
+                    
+                    buttonContainer.appendChild(editBtn);
+                    buttonContainer.appendChild(deleteBtn);
+                    parentItem.appendChild(buttonContainer);
+                    
+                    // 수정 버튼 이벤트 추가
+                    editBtn.addEventListener('click', function() {
+                        openReviewModal(planId);
+                    });
+                    
+                    // 삭제 버튼 이벤트 추가
+                    deleteBtn.addEventListener('click', function() {
+                        openDeleteModal(planId, buttonContainer, parentItem);
+                    });
+                }
+            }
+        });
+    }
+
+    // 수정 버튼 클릭 이벤트
+    const editButtons = document.querySelectorAll('.mvno-order-review-edit-btn');
+    editButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const planId = this.getAttribute('data-plan-id');
+            if (planId) {
+                openReviewModal(planId);
+                // TODO: 기존 리뷰 데이터를 모달에 로드
+            }
+        });
+    });
+
+    // 삭제 모달 열기 함수
+    function openDeleteModal(planId, buttonContainer, parentItem) {
+        const deleteModal = document.getElementById('mvnoReviewDeleteModal');
+        if (deleteModal) {
+            // 스크롤바 너비 계산
+            const scrollbarWidth = getScrollbarWidth();
+            
+            // body 스크롤 방지
+            document.body.style.overflow = 'hidden';
+            document.body.style.position = 'fixed';
+            document.body.style.top = `-${window.pageYOffset || document.documentElement.scrollTop}px`;
+            document.body.style.width = '100%';
+            document.body.style.paddingRight = `${scrollbarWidth}px`;
+            document.documentElement.style.overflow = 'hidden';
+            
+            deleteModal.style.display = 'flex';
+            deleteModal.setAttribute('data-plan-id', planId);
+        }
+    }
+
+    // 삭제 모달 닫기 함수
+    function closeDeleteModal() {
+        const deleteModal = document.getElementById('mvnoReviewDeleteModal');
+        if (deleteModal) {
+            deleteModal.style.display = 'none';
+            
+            // body 스크롤 복원
+            const scrollTop = parseInt(document.body.style.top || '0') * -1;
+            document.body.style.overflow = '';
+            document.body.style.position = '';
+            document.body.style.top = '';
+            document.body.style.width = '';
+            document.body.style.paddingRight = '';
+            document.documentElement.style.overflow = '';
+            window.scrollTo(0, scrollTop);
+        }
+    }
+
+    // 삭제 확인 함수
+    function confirmDeleteReview(planId) {
+        // TODO: 서버로 삭제 요청
+        console.log('리뷰 삭제 - Plan ID:', planId);
+        showReviewToast('리뷰가 삭제되었습니다.');
+        closeDeleteModal();
+        
+        // 버튼을 리뷰 쓰기 버튼으로 복원
+        const deleteBtn = document.querySelector(`.mvno-order-review-delete-btn[data-plan-id="${planId}"]`);
+        
+        if (deleteBtn) {
+            const parentItem = deleteBtn.closest('.mvno-order-action-item');
+            const buttonContainer = deleteBtn.parentElement;
+            
+            buttonContainer.remove();
+            
+            const newReviewBtn = document.createElement('button');
+            newReviewBtn.type = 'button';
+            newReviewBtn.className = 'mvno-order-review-btn';
+            newReviewBtn.setAttribute('data-plan-id', planId);
+            newReviewBtn.textContent = '리뷰쓰기';
+            parentItem.appendChild(newReviewBtn);
+            
+            newReviewBtn.addEventListener('click', function() {
+                openReviewModal(planId);
+            });
+        }
+    }
+
+    // 삭제 버튼 클릭 이벤트
+    const deleteButtons = document.querySelectorAll('.mvno-order-review-delete-btn');
+    deleteButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const planId = this.getAttribute('data-plan-id');
+            if (planId) {
+                const parentItem = this.closest('.mvno-order-action-item');
+                const buttonContainer = this.parentElement;
+                openDeleteModal(planId, buttonContainer, parentItem);
+            }
+        });
+    });
+
+    // 삭제 모달 이벤트
+    const deleteModal = document.getElementById('mvnoReviewDeleteModal');
+    if (deleteModal) {
+        const closeBtn = deleteModal.querySelector('.mvno-review-delete-modal-close');
+        const cancelBtn = deleteModal.querySelector('.mvno-review-delete-btn-cancel');
+        const confirmBtn = deleteModal.querySelector('.mvno-review-delete-btn-confirm');
+        const overlay = deleteModal.querySelector('.mvno-review-delete-modal-overlay');
+
+        if (closeBtn) {
+            closeBtn.addEventListener('click', closeDeleteModal);
+        }
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', closeDeleteModal);
+        }
+        if (overlay) {
+            overlay.addEventListener('click', closeDeleteModal);
+        }
+        if (confirmBtn) {
+            confirmBtn.addEventListener('click', function() {
+                const planId = deleteModal.getAttribute('data-plan-id');
+                if (planId) {
+                    confirmDeleteReview(planId);
+                }
+            });
+        }
+
+        // ESC 키로 모달 닫기
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && deleteModal.style.display === 'flex') {
+                closeDeleteModal();
+            }
         });
     }
 
@@ -434,6 +618,8 @@ document.addEventListener('DOMContentLoaded', function() {
 <?php
 // 리뷰 작성 모달 포함
 include '../includes/components/mvno-review-modal.php';
+// 리뷰 삭제 확인 모달 포함
+include '../includes/components/mvno-review-delete-modal.php';
 ?>
 
 <?php

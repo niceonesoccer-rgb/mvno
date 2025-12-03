@@ -7955,6 +7955,960 @@ button:focus {
 }
 
 /* ============================================
+   인터넷 리뷰 작성 모달
+   ============================================ */
+.internet-review-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-md);
+}
+
+.internet-review-modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.1);
+    backdrop-filter: none;
+}
+
+.internet-review-modal-content {
+    position: relative;
+    background-color: var(--color-white);
+    border-radius: 16px;
+    width: 100%;
+    max-width: 500px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    z-index: 1;
+    overflow: hidden;
+}
+
+.internet-review-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-lg);
+    border-bottom: 1px solid var(--color-gray-200);
+}
+
+.internet-review-modal-title {
+    font-size: var(--font-size-xl);
+    font-weight: 700;
+    color: var(--color-black);
+    margin: 0;
+}
+
+.internet-review-modal-close {
+    background: none;
+    border: none;
+    padding: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-gray-500);
+    transition: color 0.2s;
+    border-radius: 4px;
+}
+
+.internet-review-modal-close:hover {
+    color: var(--color-gray-700);
+    background-color: var(--color-gray-100);
+}
+
+.internet-review-modal-body {
+    padding: var(--spacing-lg);
+    overflow-y: auto;
+    flex: 1;
+}
+
+.internet-review-form-group {
+    margin-bottom: var(--spacing-lg);
+}
+
+.internet-review-form-label {
+    display: block;
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    color: var(--color-gray-700);
+    margin-bottom: var(--spacing-sm);
+}
+
+.internet-review-textarea {
+    width: 100%;
+    padding: var(--spacing-md);
+    border: 1px solid var(--color-gray-300);
+    border-radius: 8px;
+    font-size: var(--font-size-base);
+    font-family: inherit;
+    line-height: 1.6;
+    resize: vertical;
+    min-height: 200px;
+    box-sizing: border-box;
+    transition: border-color 0.2s;
+}
+
+.internet-review-textarea:focus {
+    outline: none;
+    border-color: var(--color-indigo-500);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.internet-review-textarea::placeholder {
+    color: var(--color-gray-400);
+}
+
+/* 별점 평가 스타일 - 인터넷, 알뜰폰, 통신사폰 공통 */
+.internet-star-rating,
+.mvno-star-rating,
+.mno-star-rating {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+    gap: 4px;
+    margin-bottom: var(--spacing-sm);
+    flex-wrap: wrap;
+}
+
+/* 별점 그룹 좌우 배치 */
+.internet-rating-group-row,
+.mvno-rating-group-row,
+.mno-rating-group-row {
+    display: flex;
+    gap: var(--spacing-md);
+    align-items: flex-start;
+    width: 100%;
+    box-sizing: border-box;
+    flex-wrap: nowrap;
+}
+
+.internet-rating-item,
+.mvno-rating-item,
+.mno-rating-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-md);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    background-color: var(--color-white);
+    align-items: center;
+    text-align: center;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+.internet-rating-item .internet-review-form-label,
+.mvno-rating-item .mvno-review-form-label,
+.mno-rating-item .mno-review-form-label {
+    text-align: center;
+    width: 100%;
+    margin-bottom: 0;
+}
+
+.internet-rating-item .internet-star-rating,
+.mvno-rating-item .mvno-star-rating,
+.mno-rating-item .mno-star-rating {
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.internet-rating-item .internet-star-rating .star-label svg,
+.mvno-rating-item .mvno-star-rating .star-label svg,
+.mno-rating-item .mno-star-rating .star-label svg {
+    width: 20px;
+    height: 20px;
+}
+
+.internet-rating-item .internet-star-rating .star-label,
+.mvno-rating-item .mvno-star-rating .star-label,
+.mno-rating-item .mno-star-rating .star-label {
+    padding: 2px;
+}
+
+@media (max-width: 640px) {
+    .internet-rating-group-row,
+    .mvno-rating-group-row,
+    .mno-rating-group-row {
+        gap: var(--spacing-sm);
+    }
+    
+    .internet-rating-item,
+    .mvno-rating-item,
+    .mno-rating-item {
+        padding: var(--spacing-sm);
+    }
+    
+    .internet-rating-item .internet-star-rating,
+    .mvno-rating-item .mvno-star-rating,
+    .mno-rating-item .mno-star-rating {
+        gap: 2px;
+    }
+    
+    .internet-rating-item .internet-star-rating .star-label svg,
+    .mvno-rating-item .mvno-star-rating .star-label svg,
+    .mno-rating-item .mno-star-rating .star-label svg {
+        width: 18px;
+        height: 18px;
+    }
+    
+    .internet-rating-item .internet-star-rating .star-label,
+    .mvno-rating-item .mvno-star-rating .star-label,
+    .mno-rating-item .mno-star-rating .star-label {
+        padding: 2px;
+    }
+}
+
+.internet-star-rating input[type="radio"],
+.mvno-star-rating input[type="radio"],
+.mno-star-rating input[type="radio"] {
+    display: none;
+}
+
+.internet-star-rating .star-label,
+.mvno-star-rating .star-label,
+.mno-star-rating .star-label {
+    cursor: pointer;
+    color: var(--color-gray-300);
+    transition: color 0.2s ease, transform 0.1s ease;
+    display: inline-block;
+    padding: 4px;
+}
+
+.internet-star-rating .star-label:hover,
+.internet-star-rating .star-label:hover ~ .star-label,
+.mvno-star-rating .star-label:hover,
+.mvno-star-rating .star-label:hover ~ .star-label,
+.mno-star-rating .star-label:hover,
+.mno-star-rating .star-label:hover ~ .star-label {
+    color: #fbbf24;
+    transform: scale(1.1);
+}
+
+.internet-star-rating input[type="radio"]:checked ~ .star-label,
+.internet-star-rating input[type="radio"]:checked ~ .star-label ~ .star-label,
+.mvno-star-rating input[type="radio"]:checked ~ .star-label,
+.mvno-star-rating input[type="radio"]:checked ~ .star-label ~ .star-label,
+.mno-star-rating input[type="radio"]:checked ~ .star-label,
+.mno-star-rating input[type="radio"]:checked ~ .star-label ~ .star-label {
+    color: #fbbf24;
+}
+
+.internet-star-rating input[type="radio"]:checked + .star-label ~ .star-label,
+.mvno-star-rating input[type="radio"]:checked + .star-label ~ .star-label,
+.mno-star-rating input[type="radio"]:checked + .star-label ~ .star-label {
+    color: #fbbf24;
+}
+
+.internet-star-rating input[type="radio"]:checked ~ .star-label,
+.mvno-star-rating input[type="radio"]:checked ~ .star-label,
+.mno-star-rating input[type="radio"]:checked ~ .star-label {
+    color: #fbbf24;
+}
+
+.internet-review-modal-footer {
+    display: flex;
+    gap: var(--spacing-sm);
+    padding-top: var(--spacing-md);
+    border-top: 1px solid var(--color-gray-200);
+}
+
+.internet-review-btn-cancel,
+.internet-review-btn-submit {
+    flex: 1;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.internet-review-btn-cancel {
+    background-color: var(--color-gray-100);
+    color: var(--color-gray-700);
+}
+
+.internet-review-btn-cancel:hover {
+    background-color: var(--color-gray-200);
+}
+
+.internet-review-btn-submit {
+    background-color: var(--color-indigo-500);
+    color: var(--color-white);
+}
+
+.internet-review-btn-submit:hover {
+    background-color: var(--color-indigo-600);
+}
+
+.internet-review-btn-submit:active {
+    transform: scale(0.98);
+}
+
+/* 인터넷 리뷰 작성 완료 토스트 메시지 */
+.internet-review-toast {
+    position: fixed;
+    background-color: rgba(0, 0, 0, 0.85);
+    color: var(--color-white);
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 0.875rem; /* 14px */
+    font-weight: 500;
+    z-index: 10001;
+    opacity: 0;
+    transform: translateX(-50%) translateY(-50%) translateY(10px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    pointer-events: none;
+    white-space: nowrap;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    max-width: 90vw;
+    word-wrap: break-word;
+}
+
+.internet-review-toast.internet-review-toast-visible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(-50%) translateY(0);
+}
+
+/* 모바일에서 모달 스타일 조정 */
+@media (max-width: 767px) {
+    .internet-review-modal {
+        padding: 0;
+        align-items: flex-end;
+    }
+
+    .internet-review-modal-content {
+        max-width: 100%;
+        max-height: 90vh;
+        border-radius: 16px 16px 0 0;
+    }
+}
+
+/* ============================================
+   인터넷 리뷰 삭제 확인 모달
+   ============================================ */
+.internet-review-delete-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10001;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-md);
+}
+
+.internet-review-delete-modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(2px);
+}
+
+.internet-review-delete-modal-content {
+    position: relative;
+    background-color: var(--color-white);
+    border-radius: 16px;
+    width: 100%;
+    max-width: 400px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    z-index: 1;
+    overflow: hidden;
+}
+
+.internet-review-delete-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-lg);
+    border-bottom: 1px solid var(--color-gray-200);
+}
+
+.internet-review-delete-modal-title {
+    font-size: var(--font-size-xl);
+    font-weight: 700;
+    color: var(--color-black);
+    margin: 0;
+}
+
+.internet-review-delete-modal-close {
+    background: none;
+    border: none;
+    padding: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-gray-500);
+    transition: color 0.2s;
+    border-radius: 4px;
+}
+
+.internet-review-delete-modal-close:hover {
+    color: var(--color-gray-700);
+    background-color: var(--color-gray-100);
+}
+
+.internet-review-delete-modal-body {
+    padding: var(--spacing-lg);
+    text-align: center;
+}
+
+.internet-review-delete-message {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--color-gray-900);
+    margin: 0 0 var(--spacing-sm) 0;
+}
+
+.internet-review-delete-submessage {
+    font-size: var(--font-size-sm);
+    color: var(--color-gray-600);
+    margin: 0;
+}
+
+.internet-review-delete-modal-footer {
+    display: flex;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-lg);
+    border-top: 1px solid var(--color-gray-200);
+}
+
+.internet-review-delete-btn-cancel,
+.internet-review-delete-btn-confirm {
+    flex: 1;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.internet-review-delete-btn-cancel {
+    background-color: var(--color-gray-100);
+    color: var(--color-gray-700);
+}
+
+.internet-review-delete-btn-cancel:hover {
+    background-color: var(--color-gray-200);
+}
+
+.internet-review-delete-btn-confirm {
+    background-color: #ef4444;
+    color: var(--color-white);
+}
+
+.internet-review-delete-btn-confirm:hover {
+    background-color: #dc2626;
+}
+
+.internet-review-delete-btn-confirm:active {
+    transform: scale(0.98);
+}
+
+@media (max-width: 767px) {
+    .internet-review-delete-modal {
+        padding: 0;
+        align-items: flex-end;
+    }
+
+    .internet-review-delete-modal-content {
+        max-width: 100%;
+        border-radius: 16px 16px 0 0;
+    }
+}
+
+/* ============================================
+   알뜰폰 리뷰 삭제 확인 모달
+   ============================================ */
+.mvno-review-delete-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10001;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-md);
+}
+
+.mvno-review-delete-modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(2px);
+}
+
+.mvno-review-delete-modal-content {
+    position: relative;
+    background-color: var(--color-white);
+    border-radius: 16px;
+    width: 100%;
+    max-width: 400px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    z-index: 1;
+    overflow: hidden;
+}
+
+.mvno-review-delete-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-lg);
+    border-bottom: 1px solid var(--color-gray-200);
+}
+
+.mvno-review-delete-modal-title {
+    font-size: var(--font-size-xl);
+    font-weight: 700;
+    color: var(--color-black);
+    margin: 0;
+}
+
+.mvno-review-delete-modal-close {
+    background: none;
+    border: none;
+    padding: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-gray-500);
+    transition: color 0.2s;
+    border-radius: 4px;
+}
+
+.mvno-review-delete-modal-close:hover {
+    color: var(--color-gray-700);
+    background-color: var(--color-gray-100);
+}
+
+.mvno-review-delete-modal-body {
+    padding: var(--spacing-lg);
+    text-align: center;
+}
+
+.mvno-review-delete-message {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--color-gray-900);
+    margin: 0 0 var(--spacing-sm) 0;
+}
+
+.mvno-review-delete-submessage {
+    font-size: var(--font-size-sm);
+    color: var(--color-gray-600);
+    margin: 0;
+}
+
+.mvno-review-delete-modal-footer {
+    display: flex;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-lg);
+    border-top: 1px solid var(--color-gray-200);
+}
+
+.mvno-review-delete-btn-cancel,
+.mvno-review-delete-btn-confirm {
+    flex: 1;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.mvno-review-delete-btn-cancel {
+    background-color: var(--color-gray-100);
+    color: var(--color-gray-700);
+}
+
+.mvno-review-delete-btn-cancel:hover {
+    background-color: var(--color-gray-200);
+}
+
+.mvno-review-delete-btn-confirm {
+    background-color: #ef4444;
+    color: var(--color-white);
+}
+
+.mvno-review-delete-btn-confirm:hover {
+    background-color: #dc2626;
+}
+
+.mvno-review-delete-btn-confirm:active {
+    transform: scale(0.98);
+}
+
+@media (max-width: 767px) {
+    .mvno-review-delete-modal {
+        padding: 0;
+        align-items: flex-end;
+    }
+
+    .mvno-review-delete-modal-content {
+        max-width: 100%;
+        border-radius: 16px 16px 0 0;
+    }
+}
+
+/* ============================================
+   통신사폰 리뷰 삭제 확인 모달
+   ============================================ */
+.mno-review-delete-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10001;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-md);
+}
+
+.mno-review-delete-modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(2px);
+}
+
+.mno-review-delete-modal-content {
+    position: relative;
+    background-color: var(--color-white);
+    border-radius: 16px;
+    width: 100%;
+    max-width: 400px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    z-index: 1;
+    overflow: hidden;
+}
+
+.mno-review-delete-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-lg);
+    border-bottom: 1px solid var(--color-gray-200);
+}
+
+.mno-review-delete-modal-title {
+    font-size: var(--font-size-xl);
+    font-weight: 700;
+    color: var(--color-black);
+    margin: 0;
+}
+
+.mno-review-delete-modal-close {
+    background: none;
+    border: none;
+    padding: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-gray-500);
+    transition: color 0.2s;
+    border-radius: 4px;
+}
+
+.mno-review-delete-modal-close:hover {
+    color: var(--color-gray-700);
+    background-color: var(--color-gray-100);
+}
+
+.mno-review-delete-modal-body {
+    padding: var(--spacing-lg);
+    text-align: center;
+}
+
+.mno-review-delete-message {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--color-gray-900);
+    margin: 0 0 var(--spacing-sm) 0;
+}
+
+.mno-review-delete-submessage {
+    font-size: var(--font-size-sm);
+    color: var(--color-gray-600);
+    margin: 0;
+}
+
+.mno-review-delete-modal-footer {
+    display: flex;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-lg);
+    border-top: 1px solid var(--color-gray-200);
+}
+
+.mno-review-delete-btn-cancel,
+.mno-review-delete-btn-confirm {
+    flex: 1;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.mno-review-delete-btn-cancel {
+    background-color: var(--color-gray-100);
+    color: var(--color-gray-700);
+}
+
+.mno-review-delete-btn-cancel:hover {
+    background-color: var(--color-gray-200);
+}
+
+.mno-review-delete-btn-confirm {
+    background-color: #ef4444;
+    color: var(--color-white);
+}
+
+.mno-review-delete-btn-confirm:hover {
+    background-color: #dc2626;
+}
+
+.mno-review-delete-btn-confirm:active {
+    transform: scale(0.98);
+}
+
+@media (max-width: 767px) {
+    .mno-review-delete-modal {
+        padding: 0;
+        align-items: flex-end;
+    }
+
+    .mno-review-delete-modal-content {
+        max-width: 100%;
+        border-radius: 16px 16px 0 0;
+    }
+}
+
+/* ============================================
+   인터넷 리뷰 아코디언
+   ============================================ */
+.css-58gch7 .internet-review-accordion,
+.e82z5mt0 .internet-review-accordion {
+    border-top: 1px solid var(--color-gray-200);
+    margin-top: 16px;
+    margin-left: 0;
+    margin-right: 0;
+    margin-bottom: 0;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.internet-review-accordion {
+    border-top: 1px solid var(--color-gray-200);
+    margin-top: 16px;
+    margin-left: 0;
+    margin-right: 0;
+    margin-bottom: 0;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.internet-review-accordion-header {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    text-align: left;
+    margin: 0;
+    box-sizing: border-box;
+}
+
+.internet-review-accordion-header:hover {
+    background-color: var(--color-gray-50);
+}
+
+.internet-review-accordion-title {
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    color: var(--color-gray-900);
+}
+
+.internet-review-accordion-icon {
+    color: var(--color-gray-500);
+    transition: transform 0.3s ease, color 0.2s ease;
+    flex-shrink: 0;
+}
+
+.internet-review-accordion-header.active .internet-review-accordion-icon {
+    transform: rotate(180deg);
+    color: var(--color-gray-700);
+}
+
+.internet-review-accordion-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease, padding 0.3s ease;
+    padding: 0 20px;
+    margin: 0;
+    box-sizing: border-box;
+}
+
+.internet-review-accordion-content.active {
+    max-height: 2000px;
+    padding: 0 20px 20px 20px;
+    margin: 0;
+    box-sizing: border-box;
+}
+
+.internet-review-list {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.internet-review-item {
+    padding: 16px;
+    background-color: var(--color-gray-50);
+    border-radius: 8px;
+    border: 1px solid var(--color-gray-200);
+}
+
+.internet-review-header {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.internet-review-user-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.internet-review-user {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--color-gray-900);
+}
+
+.internet-review-date {
+    font-size: var(--font-size-xs);
+    color: var(--color-gray-500);
+}
+
+.internet-review-ratings {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.internet-review-rating-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.internet-review-rating-label {
+    font-size: var(--font-size-xs);
+    color: var(--color-gray-600);
+    white-space: nowrap;
+}
+
+.internet-review-rating-stars {
+    display: flex;
+    gap: 2px;
+    align-items: center;
+}
+
+.internet-review-rating-stars svg {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+}
+
+.internet-review-content {
+    font-size: var(--font-size-sm);
+    color: var(--color-gray-700);
+    line-height: 1.6;
+    margin: 0;
+}
+
+@media (max-width: 767px) {
+    .internet-review-accordion-header {
+        padding: 14px 16px;
+    }
+
+    .internet-review-accordion-content {
+        padding: 0 16px;
+    }
+
+    .internet-review-accordion-content.active {
+        padding: 0 16px 16px 16px;
+    }
+
+    .internet-review-item {
+        padding: 12px;
+    }
+
+    .internet-review-ratings {
+        gap: 12px;
+    }
+
+    .internet-review-rating-label {
+        font-size: 11px;
+    }
+
+    .internet-review-rating-stars svg {
+        width: 12px;
+        height: 12px;
+    }
+}
+
+/* ============================================
    휴대폰 상담 신청 모달
    ============================================ */
 .phone-consultation-modal {

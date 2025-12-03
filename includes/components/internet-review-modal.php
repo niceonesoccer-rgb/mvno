@@ -1,29 +1,29 @@
 <?php
 /**
- * 통신사폰 리뷰 작성 모달 컴포넌트
+ * 인터넷 리뷰 작성 모달 컴포넌트
  */
 ?>
 
 <!-- 리뷰 작성 모달 -->
-<div class="mno-review-modal" id="mnoReviewModal" style="display: none;">
-    <div class="mno-review-modal-overlay"></div>
-    <div class="mno-review-modal-content">
-        <div class="mno-review-modal-header">
-            <h3 class="mno-review-modal-title">리뷰 작성</h3>
-            <button type="button" class="mno-review-modal-close" aria-label="닫기">
+<div class="internet-review-modal" id="internetReviewModal" style="display: none;">
+    <div class="internet-review-modal-overlay"></div>
+    <div class="internet-review-modal-content">
+        <div class="internet-review-modal-header">
+            <h3 class="internet-review-modal-title">리뷰 작성</h3>
+            <button type="button" class="internet-review-modal-close" aria-label="닫기">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
             </button>
         </div>
-        <div class="mno-review-modal-body">
-            <form id="mnoReviewForm">
-                <div class="mno-review-form-group mno-rating-group-row">
-                    <div class="mno-rating-item">
-                        <label class="mno-review-form-label">친절해요</label>
-                        <div class="mno-star-rating" data-rating-type="kindness">
+        <div class="internet-review-modal-body">
+            <form id="internetReviewForm">
+                <div class="internet-review-form-group internet-rating-group-row">
+                    <div class="internet-rating-item">
+                        <label class="internet-review-form-label">친절해요</label>
+                        <div class="internet-star-rating" data-rating-type="kindness">
                             <?php 
-                            $uniqueId1 = uniqid('mno-kindness-');
+                            $uniqueId1 = uniqid('internet-kindness-');
                             for ($i = 5; $i >= 1; $i--): 
                             ?>
                                 <input type="radio" id="kindness-star<?php echo $i; ?>-<?php echo $uniqueId1; ?>" name="kindness_rating" value="<?php echo $i; ?>" required>
@@ -35,11 +35,11 @@
                             <?php endfor; ?>
                         </div>
                     </div>
-                    <div class="mno-rating-item">
-                        <label class="mno-review-form-label">개통 빨라요</label>
-                        <div class="mno-star-rating" data-rating-type="speed">
+                    <div class="internet-rating-item">
+                        <label class="internet-review-form-label">설치 빨라요</label>
+                        <div class="internet-star-rating" data-rating-type="speed">
                             <?php 
-                            $uniqueId2 = uniqid('mno-speed-');
+                            $uniqueId2 = uniqid('internet-speed-');
                             for ($i = 5; $i >= 1; $i--): 
                             ?>
                                 <input type="radio" id="speed-star<?php echo $i; ?>-<?php echo $uniqueId2; ?>" name="speed_rating" value="<?php echo $i; ?>" required>
@@ -52,20 +52,20 @@
                         </div>
                     </div>
                 </div>
-                <div class="mno-review-form-group">
-                    <label for="reviewText" class="mno-review-form-label">리뷰 내용</label>
+                <div class="internet-review-form-group">
+                    <label for="internetReviewText" class="internet-review-form-label">리뷰 내용</label>
                     <textarea 
-                        id="reviewText" 
+                        id="internetReviewText" 
                         name="reviewText" 
-                        class="mno-review-textarea" 
+                        class="internet-review-textarea" 
                         placeholder="리뷰를 작성해주세요."
                         rows="8"
                         required
                     ></textarea>
                 </div>
-                <div class="mno-review-modal-footer">
-                    <button type="button" class="mno-review-btn-cancel">취소</button>
-                    <button type="submit" class="mno-review-btn-submit">작성하기</button>
+                <div class="internet-review-modal-footer">
+                    <button type="button" class="internet-review-btn-cancel">취소</button>
+                    <button type="submit" class="internet-review-btn-submit">작성하기</button>
                 </div>
             </form>
         </div>
