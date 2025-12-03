@@ -145,6 +145,11 @@
 
     // 카드 클릭 이벤트 설정
     function initCardClickHandlers() {
+        // 상세 페이지에서는 카드 클릭 이벤트를 등록하지 않음
+        if (document.querySelector('.plan-detail-page')) {
+            return;
+        }
+        
         // phone-deal-card 클릭 시 모달 열기
         const phoneDealCards = document.querySelectorAll('.phone-deal-card');
         phoneDealCards.forEach(function(card) {

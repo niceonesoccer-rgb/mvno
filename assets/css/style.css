@@ -4014,6 +4014,28 @@ button:focus {
     margin-bottom: 0;
 }
 
+/* 상세 페이지에서 카드 클릭 차단 */
+.plan-detail-page .plan-card-link {
+    pointer-events: none;
+    cursor: default;
+}
+
+/* 상세 페이지에서 카드 hover 효과 제거 */
+.plan-detail-page .basic-plan-card:hover {
+    box-shadow: none;
+    transform: none;
+}
+
+/* 상세 페이지에서 버튼들은 클릭 가능하도록 */
+.plan-detail-page .plan-card-link .plan-favorite-btn,
+.plan-detail-page .plan-card-link .plan-favorite-btn-inline,
+.plan-detail-page .plan-card-link .plan-share-btn-inline,
+.plan-detail-page .plan-card-link button[data-share-url],
+.plan-detail-page .plan-card-link .plan-accordion-trigger {
+    pointer-events: auto;
+    cursor: pointer;
+}
+
 @media (min-width: 992px) {
     .plan-detail-page {
         max-width: 640px;

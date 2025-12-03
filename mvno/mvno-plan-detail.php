@@ -983,10 +983,46 @@ if (!$plan) {
 <script>
 // 아코디언 기능
 document.addEventListener('DOMContentLoaded', function() {
+    // 상세 페이지에서 카드 클릭 차단
+    const planCardLink = document.querySelector('.plan-detail-page .plan-card-link');
+    if (planCardLink) {
+        planCardLink.addEventListener('click', function(e) {
+            // 버튼이나 아코디언이 아닌 경우에만 차단
+            const target = e.target;
+            
+            // 하트 버튼 체크 (SVG path도 포함)
+            const isFavoriteBtn = target.closest('.plan-favorite-btn') || 
+                                  target.closest('.plan-favorite-btn-inline') ||
+                                  target.closest('button.plan-favorite-btn-inline') ||
+                                  (target.tagName === 'path' && target.closest('.plan-favorite-btn-inline')) ||
+                                  (target.tagName === 'svg' && target.closest('.plan-favorite-btn-inline'));
+            
+            // 공유 버튼 체크
+            const isShareBtn = target.closest('.plan-share-btn-inline') ||
+                              target.closest('[data-share-url]') ||
+                              (target.tagName === 'path' && target.closest('.plan-share-btn-inline')) ||
+                              (target.tagName === 'svg' && target.closest('.plan-share-btn-inline'));
+            
+            // 일반 버튼 체크
+            const isButton = target.closest('button') && !isFavoriteBtn && !isShareBtn;
+            
+            // 아코디언 체크
+            const isAccordion = target.closest('.plan-accordion-trigger');
+            
+            // 하트, 공유, 아코디언이 아닌 경우에만 차단
+            if (!isFavoriteBtn && !isShareBtn && !isAccordion && !isButton) {
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+            }
+        }, false); // 버블링 단계에서 처리 (하트 버튼 이벤트 이후)
+    }
+    
     const accordionTriggers = document.querySelectorAll('.plan-accordion-trigger');
     
     accordionTriggers.forEach(trigger => {
-        trigger.addEventListener('click', function() {
+        trigger.addEventListener('click', function(e) {
+            e.stopPropagation(); // 이벤트 전파 차단
             const content = this.nextElementSibling;
             const isExpanded = this.getAttribute('aria-expanded') === 'true';
             

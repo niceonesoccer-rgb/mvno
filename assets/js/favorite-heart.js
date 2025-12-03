@@ -89,11 +89,14 @@
         const favoriteButtons = document.querySelectorAll('.plan-favorite-btn-inline');
         
         favoriteButtons.forEach(function(button) {
+            // 캡처 단계에서 실행하여 다른 이벤트보다 먼저 처리
             button.addEventListener('click', function(e) {
                 e.preventDefault();
-                e.stopPropagation(); // 링크 클릭 방지
+                e.stopPropagation(); // 이벤트 전파 완전 차단
+                e.stopImmediatePropagation(); // 같은 요소의 다른 리스너도 차단
                 toggleHeart(button);
-            });
+                return false;
+            }, true); // 캡처 단계에서 처리
         });
     }
     
