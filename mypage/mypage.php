@@ -15,6 +15,23 @@ include '../includes/header.php';
             <h2 style="font-size: 24px; font-weight: bold; margin: 0;">YMB님 안녕하세요</h2>
         </div>
 
+        <!-- 포인트 정보 섹션 -->
+        <?php
+        require_once '../includes/data/point-settings.php';
+        $user_id = 'default'; // 실제로는 세션에서 가져옴
+        $user_point = getUserPoint($user_id);
+        $current_balance = $user_point['balance'] ?? 0;
+        ?>
+        <div style="margin-bottom: 24px; padding: 20px; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); border-radius: 12px; color: white;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <span style="font-size: 14px; opacity: 0.9;">보유 포인트</span>
+                <a href="/MVNO/mypage/point-history.php" style="font-size: 13px; color: white; text-decoration: underline; opacity: 0.9;">내역보기</a>
+            </div>
+            <div style="font-size: 32px; font-weight: 700;" data-point-balance>
+                <?php echo number_format($current_balance); ?>원
+            </div>
+        </div>
+
         <!-- 내가 찜한 요금제 섹션 -->
         <div style="margin-bottom: 32px;">
             <ul style="list-style: none; padding: 0; margin: 0;">
@@ -92,35 +109,14 @@ include '../includes/header.php';
                     </a>
                 </li>
                 <li style="border-bottom: 1px solid #e5e7eb;">
-                    <a href="/mypage/esim-applies" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; text-decoration: none; color: inherit;">
-                        <div style="display: flex; align-items: center; gap: 12px;">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink: 0;">
-                                <path d="M6 4H18C19.1046 4 20 4.89543 20 6V18C20 19.1046 19.1046 20 18 20H6C4.89543 20 4 19.1046 4 18V6C4 4.89543 4.89543 4 6 4Z" stroke="currentColor" stroke-width="2"/>
-                                <path d="M4 6V10H8V6C8 4.89543 7.10457 4 6 4C4.89543 4 4 4.89543 4 6Z" fill="currentColor"/>
-                                <rect x="10" y="8" width="1.5" height="1.5" rx="0.25" fill="currentColor"/>
-                                <rect x="12.5" y="8" width="1.5" height="1.5" rx="0.25" fill="currentColor"/>
-                                <rect x="15" y="8" width="1.5" height="1.5" rx="0.25" fill="currentColor"/>
-                                <rect x="10" y="10.5" width="1.5" height="1.5" rx="0.25" fill="currentColor"/>
-                                <rect x="12.5" y="10.5" width="1.5" height="1.5" rx="0.25" fill="currentColor"/>
-                                <rect x="15" y="10.5" width="1.5" height="1.5" rx="0.25" fill="currentColor"/>
-                                <rect x="10" y="13" width="1.5" height="1.5" rx="0.25" fill="currentColor"/>
-                                <rect x="12.5" y="13" width="1.5" height="1.5" rx="0.25" fill="currentColor"/>
-                                <rect x="15" y="13" width="1.5" height="1.5" rx="0.25" fill="currentColor"/>
-                            </svg>
-                            <span style="font-size: 16px;">해외eSIM 주문내역</span>
-                        </div>
-                        <img alt=">" src="https://assets-legacy.moyoplan.com/img/icons/rightArrow.svg" style="width: 16px; height: 16px;">
-                    </a>
-                </li>
-                <li style="border-bottom: 1px solid #e5e7eb;">
-                    <a href="/mypage/payment" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; text-decoration: none; color: inherit;">
+                    <a href="/MVNO/mypage/point-history.php" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; text-decoration: none; color: inherit;">
                         <div style="display: flex; align-items: center; gap: 12px;">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink: 0;">
                                 <path d="M3 10C3 6.22876 3 4.34315 4.17157 3.17157C5.34315 2.34315 7.22876 2.34315 11 2.34315H13C16.7712 2.34315 18.6569 2.34315 19.8284 3.17157C21 4.34315 21 6.22876 21 10V14C21 17.7712 21 19.6569 19.8284 20.8284C18.6569 22 16.7712 22 13 22H11C7.22876 22 5.34315 22 4.17157 20.8284C3 19.6569 3 17.7712 3 14V10Z" stroke="currentColor" stroke-width="2"/>
                                 <path d="M7 12H17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                                 <path d="M7 16H12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                             </svg>
-                            <span style="font-size: 16px;">내 결제내역</span>
+                            <span style="font-size: 16px;">내 포인트 내역</span>
                         </div>
                         <img alt=">" src="https://assets-legacy.moyoplan.com/img/icons/rightArrow.svg" style="width: 16px; height: 16px;">
                     </a>
@@ -142,7 +138,7 @@ include '../includes/header.php';
             <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 16px 0;">
             <ul style="list-style: none; padding: 0; margin: 0;">
                 <li style="border-bottom: 1px solid #e5e7eb;">
-                    <a href="/notice" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; text-decoration: none; color: inherit;">
+                    <a href="/MVNO/notice/notice.php" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; text-decoration: none; color: inherit;">
                         <div style="display: flex; align-items: center; gap: 12px;">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink: 0;">
                                 <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -155,7 +151,7 @@ include '../includes/header.php';
                     </a>
                 </li>
                 <li style="border-bottom: 1px solid #e5e7eb;">
-                    <a href="/community/questions" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; text-decoration: none; color: inherit;">
+                    <a href="/MVNO/qna/qna.php" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; text-decoration: none; color: inherit;">
                         <div style="display: flex; align-items: center; gap: 12px;">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink: 0;">
                                 <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/>
@@ -189,6 +185,7 @@ include '../includes/header.php';
 
 <script src="../assets/js/plan-accordion.js" defer></script>
 <script src="../assets/js/favorite-heart.js" defer></script>
+<script src="../assets/js/point-balance-update.js" defer></script>
 
 <?php
 // 푸터 포함
