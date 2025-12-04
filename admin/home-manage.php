@@ -11,12 +11,8 @@ session_start();
 //     exit;
 // }
 
-// 현재 페이지 설정
-$current_page = 'mypage';
-$is_main_page = false;
-
-// 헤더 포함
-include '../includes/header.php';
+// 관리자 헤더 포함
+include __DIR__ . '/includes/admin-header.php';
 
 // 함수 포함
 require_once '../includes/data/home-functions.php';
@@ -84,8 +80,7 @@ $all_plans = getPlansData(100);
 $all_phones = getPhonesData(100);
 ?>
 
-<main class="main-content">
-    <div style="width: 100%; max-width: 1200px; margin: 0 auto; padding: 20px;" class="home-manage-container">
+<div style="width: 100%; max-width: 1200px; margin: 0 auto; padding: 20px;" class="home-manage-container">
         <!-- 페이지 헤더 -->
         <div style="margin-bottom: 32px;">
             <h1 style="font-size: 28px; font-weight: bold; margin: 0 0 8px 0;">메인 페이지 관리</h1>
@@ -282,9 +277,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
+</div>
 
-<?php
-// 푸터 포함
-include '../includes/footer.php';
-?>
+<?php include __DIR__ . '/includes/admin-footer.php'; ?>
 
