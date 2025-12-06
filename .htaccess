@@ -25,6 +25,10 @@ FileETag None
 <IfModule mod_rewrite.c>
     RewriteEngine On
     
+    # /seller/* 경로를 /MVNO/seller/*로 리다이렉트
+    RewriteCond %{REQUEST_URI} ^/seller/(.*)$
+    RewriteRule ^seller/(.*)$ /MVNO/seller/$1 [L]
+    
     # .php 확장자 없이 접근 가능하도록 설정
     # 예: /mypage -> mypage.php
     # 파일이나 디렉토리가 존재하지 않고, .php 파일이 존재하는 경우

@@ -16,7 +16,7 @@ $plan_id = $plan['id'] ?? 0;
 $is_link = false; // 카드 클릭 링크 제거
 ?>
 
-<article class="mvno-order-card <?php echo htmlspecialchars($card_wrapper_class); ?>">
+<article class="mvno-order-card <?php echo htmlspecialchars($card_wrapper_class); ?>" data-plan-id="<?php echo $plan_id; ?>">
     <div class="mvno-order-card-link">
         <div class="mvno-order-card-main-content">
             <div class="mvno-order-card-header-body-frame">

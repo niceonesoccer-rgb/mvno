@@ -27,6 +27,7 @@ function getPhonesData($limit = 10) {
             'maintenance_period' => '185일',
             'device_price' => '출고가 2,387,000원',
             'selection_count' => '15,234명이 신청',
+            'apply_url' => 'https://www.daum.net',
             'gifts' => [
                 '추가 지원금',
                 '부가 서비스 1',

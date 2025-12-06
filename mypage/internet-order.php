@@ -60,151 +60,10 @@ $companyLogos = [
                         <div class="tw-m-auto tw-w-full tw-max-w-[780px] min-w-640-legacy:tw-max-w-[480px]">
                             <div class="css-2l6pil e1ebrc9o0">
                                 <?php foreach ($internets as $index => $internet): ?>
-                                    <div class="internet-item" data-index="<?php echo $index; ?>" style="<?php echo $index >= 10 ? 'display: none;' : ''; ?> margin-bottom: 1rem;">
-                                        <div class="css-58gch7 e82z5mt0">
-                                            <div class="css-1kjyj6z e82z5mt1">
-                                                <?php if (isset($companyLogos[$internet['provider']])): ?>
-                                                    <img data-testid="internet-company-logo" src="<?php echo htmlspecialchars($companyLogos[$internet['provider']]); ?>" alt="<?php echo htmlspecialchars($internet['provider']); ?>" class="css-1pg8bi e82z5mt15">
-                                                <?php else: ?>
-                                                    <div style="width: 80px; height: 80px; background: #f3f4f6; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
-                                                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                            <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="#6b7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                                            <path d="M2 17L12 22L22 17" stroke="#6b7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                                            <path d="M2 12L12 17L22 12" stroke="#6b7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                                        </svg>
-                                                    </div>
-                                                <?php endif; ?>
-                                                <div class="css-huskxe e82z5mt13">
-                                                    <div class="css-1fd5u73 e82z5mt14">
-                                                        <span style="box-sizing:border-box;display:inline-block;overflow:hidden;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0;position:relative;max-width:100%">
-                                                            <span style="box-sizing:border-box;display:block;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0;max-width:100%">
-                                                                <img style="display:block;max-width:100%;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0" alt="" aria-hidden="true" src="data:image/svg+xml,%3csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20version=%271.1%27%20width=%2720%27%20height=%2720%27/%3e">
-                                                            </span>
-                                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="position:absolute;top:0;left:0;bottom:0;right:0;box-sizing:border-box;padding:0;border:none;margin:auto;display:block;width:100%;height:100%">
-                                                                <rect x="2" y="3" width="20" height="14" rx="2" fill="#E9D5FF" stroke="#A855F7" stroke-width="1.5"/>
-                                                                <rect x="4" y="5" width="16" height="10" rx="1" fill="white"/>
-                                                                <rect x="2" y="17" width="20" height="4" rx="1" fill="#C084FC" stroke="#A855F7" stroke-width="1"/>
-                                                                <g transform="translate(17, -2) scale(1.5)">
-                                                                    <path d="M0 0L-2 5H0L-1 10L2 5H0L0 0Z" fill="#6366F1" stroke="#4F46E5" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
-                                                                </g>
-                                                            </svg>
-                                                        </span><?php echo htmlspecialchars($internet['speed']); ?>
-                                                    </div>
-                                                    <div class="css-1fd5u73 e82z5mt14">
-                                                        <span style="box-sizing:border-box;display:inline-block;overflow:hidden;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0;position:relative;max-width:100%">
-                                                            <span style="box-sizing:border-box;display:block;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0;max-width:100%">
-                                                                <img style="display:block;max-width:100%;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0" alt="" aria-hidden="true" src="data:image/svg+xml,%3csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20version=%271.1%27%20width=%2720%27%20height=%2720%27/%3e">
-                                                            </span>
-                                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="position:absolute;top:0;left:0;bottom:0;right:0;box-sizing:border-box;padding:0;border:none;margin:auto;display:block;width:100%;height:100%">
-                                                                <defs>
-                                                                    <linearGradient id="checkGradient<?php echo $internet['id']; ?>" x1="0%" y1="0%" x2="100%" y2="100%">
-                                                                        <stop offset="0%" style="stop-color:#10B981;stop-opacity:1" />
-                                                                        <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
-                                                                    </linearGradient>
-                                                                </defs>
-                                                                <circle cx="12" cy="12" r="10" fill="url(#checkGradient<?php echo $internet['id']; ?>)" stroke="#047857" stroke-width="1"/>
-                                                                <path d="M8 12L10.5 14.5L16 9" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                                            </svg>
-                                                        </span>
-                                                        <?php if (!empty($internet['installation_date'])): ?>
                                                             <?php 
-                                                            $reviewCount = isset($internet['review_count']) ? $internet['review_count'] : 0;
-                                                            if ($reviewCount > 0): 
-                                                            ?>
-                                                                <?php echo $reviewCount; ?>개 리뷰
-                                                            <?php else: ?>
-                                                                설치 완료
-                                                            <?php endif; ?>
-                                                        <?php else: ?>
-                                                            설치 대기 중
-                                                        <?php endif; ?>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div class="css-174t92n e82z5mt7">
-                                                <?php if ($internet['tv_combined']): ?>
-                                                    <div class="css-12zfa6z e82z5mt8">
-                                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="css-xj5cz0 e82z5mt9">
-                                                            <path d="M20 7H4C2.89543 7 2 7.89543 2 9V19C2 20.1046 2.89543 21 4 21H20C21.1046 21 22 20.1046 22 19V9C22 7.89543 21.1046 7 20 7Z" stroke="#6366F1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-                                                            <path d="M12 7V21M12 7L8 3M12 7L16 3" stroke="#6366F1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                                        </svg>
-                                                        <div class="css-0 e82z5mt10">
-                                                            <p class="css-2ht76o e82z5mt12">인터넷,TV 설치비 무료</p>
-                                                            <p class="css-1j35abw e82z5mt11">무료(36,300원 상당)</p>
-                                                        </div>
-                                                    </div>
-                                                    <div class="css-12zfa6z e82z5mt8">
-                                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="css-xj5cz0 e82z5mt9">
-                                                            <path d="M20 7H4C2.89543 7 2 7.89543 2 9V19C2 20.1046 2.89543 21 4 21H20C21.1046 21 22 20.1046 22 19V9C22 7.89543 21.1046 7 20 7Z" stroke="#6366F1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-                                                            <path d="M12 7V21M12 7L8 3M12 7L16 3" stroke="#6366F1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                                        </svg>
-                                                        <div class="css-0 e82z5mt10">
-                                                            <p class="css-2ht76o e82z5mt12">셋톱박스 임대료 무료</p>
-                                                            <p class="css-1j35abw e82z5mt11">무료(월 3,300원 상당)</p>
-                                                        </div>
-                                                    </div>
-                                                <?php endif; ?>
-                                                <div class="css-12zfa6z e82z5mt8">
-                                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="css-xj5cz0 e82z5mt9">
-                                                        <path d="M20 7H4C2.89543 7 2 7.89543 2 9V19C2 20.1046 2.89543 21 4 21H20C21.1046 21 22 20.1046 22 19V9C22 7.89543 21.1046 7 20 7Z" stroke="#6366F1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-                                                        <path d="M12 7V21M12 7L8 3M12 7L16 3" stroke="#6366F1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                                    </svg>
-                                                    <div class="css-0 e82z5mt10">
-                                                        <p class="css-2ht76o e82z5mt12">와이파이 공유기</p>
-                                                        <p class="css-1j35abw e82z5mt11">무료(월 1,100원 상당)</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div data-testid="full-price-information" class="css-rkh09p e82z5mt2">
-                                                <p class="css-16qot29 e82z5mt6"><?php echo htmlspecialchars($internet['price']); ?></p>
-                                            </div>
-                                            
-                                            <!-- 주문 정보 및 액션 버튼 -->
-                                            <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e5e7eb;">
-                                                <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 1rem;">
-                                                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                                                        <span style="font-size: 13px; color: #9ca3af;">신청일</span>
-                                                        <span style="font-size: 13px; color: #374151; font-weight: 500;"><?php echo htmlspecialchars($internet['order_date']); ?></span>
-                                                    </div>
-                                                    <?php if (!empty($internet['installation_date'])): ?>
-                                                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                                                            <span style="font-size: 13px; color: #9ca3af;">설치일</span>
-                                                            <span style="font-size: 13px; color: #374151; font-weight: 500;"><?php echo htmlspecialchars($internet['installation_date']); ?></span>
-                                                        </div>
-                                                    <?php endif; ?>
-                                                </div>
-                                                
-                                                <div style="display: flex; gap: 8px;">
-                                                    <?php if (empty($internet['installation_date'])): ?>
-                                                        <!-- 설치 전: 설치 문의 버튼 -->
-                                                        <?php if (!empty($internet['consultation_url'])): ?>
-                                                            <a href="<?php echo htmlspecialchars($internet['consultation_url']); ?>" style="flex: 1; padding: 10px 16px; background: #ec4899; border-radius: 8px; text-align: center; text-decoration: none; color: white; font-size: 14px; font-weight: 500;">
-                                                                설치 문의
-                                                            </a>
-                                                        <?php else: ?>
-                                                            <button disabled style="flex: 1; padding: 10px 16px; background: #ec4899; border-radius: 8px; border: none; color: white; font-size: 14px; font-weight: 500; cursor: not-allowed; opacity: 0.6;">
-                                                                설치 문의
-                                                            </button>
-                                                        <?php endif; ?>
-                                                    <?php else: ?>
-                                                        <!-- 설치 완료: 리뷰 관련 버튼 -->
-                                                        <?php if ($internet['has_review']): ?>
-                                                            <button class="internet-order-review-edit-btn" data-internet-id="<?php echo $internet['id']; ?>" style="flex: 1; padding: 10px 16px; background: #6366f1; border-radius: 8px; border: none; color: white; font-size: 14px; font-weight: 500; cursor: pointer;">
-                                                                수정
-                                                            </button>
-                                                            <button class="internet-order-review-delete-btn" data-internet-id="<?php echo $internet['id']; ?>" style="flex: 1; padding: 10px 16px; background: #ef4444; border-radius: 8px; border: none; color: white; font-size: 14px; font-weight: 500; cursor: pointer;">
-                                                                삭제
-                                                            </button>
-                                                        <?php else: ?>
-                                                            <button class="internet-order-review-btn" data-internet-id="<?php echo $internet['id']; ?>" style="flex: 1; padding: 10px 16px; background: #6366f1; border-radius: 8px; border: none; color: white; font-size: 14px; font-weight: 500; cursor: pointer;">
-                                                                리뷰 쓰기
-                                                            </button>
-                                                        <?php endif; ?>
-                                                    <?php endif; ?>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
+                                    // 인터넷 카드 컴포넌트 사용
+                                    include '../includes/components/internet-order-internet-card.php';
+                                    ?>
                                 <?php endforeach; ?>
                             </div>
                         </div>
@@ -371,17 +230,105 @@ $companyLogos = [
         padding: 1rem;
     }
 }
+
+/* 주문 페이지 리뷰 모달 별점 스타일 */
+[class*="-review-modal"] [class*="-rating-group-row"] {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+[class*="-review-modal"] [class*="-rating-item"] {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 0;
+}
+
+[class*="-review-modal"] [class*="-rating-item-spaced"] {
+    margin-top: 32px;
+}
+
+[class*="-review-modal"] [class*="-review-form-label"] {
+    font-size: 14px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 0;
+}
+
+[class*="-review-modal"] [class*="-star-rating"] {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+}
+
+[class*="-review-modal"] [class*="-star-rating"] input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    margin: 0;
+    padding: 0;
+    pointer-events: none;
+}
+
+[class*="-review-modal"] [class*="-star-label"] {
+    display: inline-block;
+    cursor: pointer;
+    color: #d1d5db;
+    transition: color 0.2s ease, transform 0.1s ease;
+    padding: 4px;
+    margin: 0;
+    line-height: 0;
+}
+
+[class*="-review-modal"] [class*="-star-label"]:hover {
+    transform: scale(1.1);
+}
+
+[class*="-review-modal"] [class*="-star-label"] svg {
+    display: block;
+    width: 32px;
+    height: 32px;
+}
+
+/* 기본 별 색상은 회색, JavaScript로 동적으로 변경됨 */
 </style>
+
+<?php
+// 공통 리뷰 모달 포함 (스크립트 전에 포함)
+$prefix = 'internet';
+$speedLabel = '설치 빨라요';
+$formId = 'internetReviewForm';
+$modalId = 'internetReviewModal';
+$textareaId = 'internetReviewText';
+include '../includes/components/order-review-modal.php';
+
+// 공통 리뷰 삭제 모달 포함
+$prefix = 'internet';
+$modalId = 'internetReviewDeleteModal';
+include '../includes/components/order-review-delete-modal.php';
+?>
 
 <script src="../assets/js/plan-accordion.js" defer></script>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+// order-review.js가 로드된 후 실행되도록 확인
+function initInternetOrderReview() {
+    if (typeof OrderReviewManager === 'undefined') {
+        console.log('OrderReviewManager 아직 로드되지 않음, 재시도...');
+        setTimeout(initInternetOrderReview, 100);
+        return;
+    }
+    
+    document.addEventListener('DOMContentLoaded', function() {
+    // 더보기 기능
     const moreBtn = document.getElementById('moreInternetsBtn');
     const internetItems = document.querySelectorAll('.internet-item');
     let visibleCount = 10;
     const totalInternets = internetItems.length;
-    const loadCount = 10; // 한 번에 보여줄 개수
+    const loadCount = 10;
 
     function updateButtonText() {
         const remaining = totalInternets - visibleCount;
@@ -395,7 +342,6 @@ document.addEventListener('DOMContentLoaded', function() {
         updateButtonText();
         
         moreBtn.addEventListener('click', function() {
-            // 다음 10개씩 표시
             const endCount = Math.min(visibleCount + loadCount, totalInternets);
             for (let i = visibleCount; i < endCount; i++) {
                 if (internetItems[i]) {
@@ -405,7 +351,6 @@ document.addEventListener('DOMContentLoaded', function() {
             
             visibleCount = endCount;
             
-            // 모든 항목이 보이면 더보기 버튼 숨기기
             if (visibleCount >= totalInternets) {
                 const moreButtonContainer = document.getElementById('moreButtonContainer');
                 if (moreButtonContainer) {
@@ -417,7 +362,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // 모든 인터넷이 보이면 더보기 버튼 숨기기
     if (visibleCount >= totalInternets) {
         const moreButtonContainer = document.getElementById('moreButtonContainer');
         if (moreButtonContainer) {
@@ -425,389 +369,148 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // 스크롤 위치 저장 변수
-    let reviewModalScrollPosition = 0;
-
-    // 스크롤바 너비 계산 함수
-    function getScrollbarWidth() {
-        const outer = document.createElement('div');
-        outer.style.visibility = 'hidden';
-        outer.style.overflow = 'scroll';
-        outer.style.msOverflowStyle = 'scrollbar';
-        document.body.appendChild(outer);
-        
-        const inner = document.createElement('div');
-        outer.appendChild(inner);
-        
-        const scrollbarWidth = outer.offsetWidth - inner.offsetWidth;
-        
-        outer.parentNode.removeChild(outer);
-        
-        return scrollbarWidth;
-    }
-
-    // 리뷰 작성 모달 열기
-    function openReviewModal(internetId) {
-        const modal = document.getElementById('internetReviewModal');
-        if (modal) {
-            // 현재 스크롤 위치 저장
-            reviewModalScrollPosition = window.pageYOffset || document.documentElement.scrollTop;
-            
-            // 스크롤바 너비 계산
-            const scrollbarWidth = getScrollbarWidth();
-            
-            // body 스크롤 방지 (스크롤바 너비만큼 padding-right 추가하여 레이아웃 이동 방지)
-            document.body.style.overflow = 'hidden';
-            document.body.style.position = 'fixed';
-            document.body.style.top = `-${reviewModalScrollPosition}px`;
-            document.body.style.width = '100%';
-            document.body.style.paddingRight = `${scrollbarWidth}px`;
-            
-            // html 요소도 스크롤 방지 (일부 브라우저용)
-            document.documentElement.style.overflow = 'hidden';
-            
-            modal.style.display = 'flex';
-            // 모달에 internetId 저장
-            modal.setAttribute('data-internet-id', internetId);
-            // 텍스트 영역 포커스
-            setTimeout(() => {
-                const textarea = document.getElementById('internetReviewText');
-                if (textarea) {
-                    textarea.focus();
-                }
-            }, 100);
-        }
-    }
-
-    // 리뷰 작성 모달 닫기
-    function closeReviewModal() {
-        const modal = document.getElementById('internetReviewModal');
-        if (modal) {
-            modal.style.display = 'none';
-            
-            // body 스크롤 복원
-            document.body.style.overflow = '';
-            document.body.style.position = '';
-            document.body.style.top = '';
-            document.body.style.width = '';
-            document.body.style.paddingRight = '';
-            document.documentElement.style.overflow = '';
-            
-            // 저장된 스크롤 위치로 복원
-            window.scrollTo(0, reviewModalScrollPosition);
-            
-            // 폼 초기화
-            const form = document.getElementById('internetReviewForm');
-            if (form) {
-                form.reset();
-            }
-        }
-    }
-
-
-    // 리뷰쓰기 버튼 클릭 이벤트
-    const reviewButtons = document.querySelectorAll('.internet-order-review-btn:not(:disabled)');
+    // 리뷰 관리 공통 모듈 초기화
+    console.log('OrderReviewManager 초기화 시작 - internet');
+    const reviewButtons = document.querySelectorAll('.internet-order-review-btn');
+    console.log('리뷰쓰기 버튼 개수:', reviewButtons.length);
+    reviewButtons.forEach((btn, idx) => {
+        console.log(`버튼 ${idx}:`, btn.className, btn.getAttribute('data-internet-id'));
+    });
     
-    reviewButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            const internetId = this.getAttribute('data-internet-id');
-            if (internetId && !this.disabled) {
-                openReviewModal(internetId);
-            }
-        });
-    });
-
-    // 수정 버튼 클릭 이벤트
-    const editButtons = document.querySelectorAll('.internet-order-review-edit-btn');
-    editButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            const internetId = this.getAttribute('data-internet-id');
-            if (internetId) {
-                openReviewModal(internetId);
-                // TODO: 기존 리뷰 데이터를 모달에 로드
-            }
-        });
-    });
-
-    // 삭제 모달 열기 함수
-    function openDeleteModal(internetId, editBtn, deleteBtn, consultationLink, parentDiv) {
-        const deleteModal = document.getElementById('internetReviewDeleteModal');
-        if (deleteModal) {
-            // 스크롤바 너비 계산
-            const scrollbarWidth = getScrollbarWidth();
-            
-            // body 스크롤 방지
-            document.body.style.overflow = 'hidden';
-            document.body.style.position = 'fixed';
-            document.body.style.top = `-${window.pageYOffset || document.documentElement.scrollTop}px`;
-            document.body.style.width = '100%';
-            document.body.style.paddingRight = `${scrollbarWidth}px`;
-            document.documentElement.style.overflow = 'hidden';
-            
-            deleteModal.style.display = 'flex';
-            deleteModal.setAttribute('data-internet-id', internetId);
-        }
-    }
-
-    // 삭제 모달 닫기 함수
-    function closeDeleteModal() {
-        const deleteModal = document.getElementById('internetReviewDeleteModal');
-        if (deleteModal) {
-            deleteModal.style.display = 'none';
-            
-            // body 스크롤 복원
-            const scrollTop = parseInt(document.body.style.top || '0') * -1;
-            document.body.style.overflow = '';
-            document.body.style.position = '';
-            document.body.style.top = '';
-            document.body.style.width = '';
-            document.body.style.paddingRight = '';
-            document.documentElement.style.overflow = '';
-            window.scrollTo(0, scrollTop);
-        }
-    }
-
-    // 삭제 확인 함수
-    function confirmDeleteReview(internetId) {
-        // TODO: 서버로 삭제 요청
-        console.log('리뷰 삭제 - Internet ID:', internetId);
-        showReviewToast('리뷰가 삭제되었습니다.');
-        closeDeleteModal();
-        
-        // 버튼을 리뷰 쓰기 버튼으로 복원
-        const deleteBtn = document.querySelector(`.internet-order-review-delete-btn[data-internet-id="${internetId}"]`);
-        const editBtn = document.querySelector(`.internet-order-review-edit-btn[data-internet-id="${internetId}"]`);
-        
-        if (deleteBtn && editBtn) {
-            const parentDiv = deleteBtn.parentElement;
-            const consultationLink = parentDiv.querySelector('a[href*="consultation"]');
-            
-            editBtn.remove();
-            deleteBtn.remove();
-            
-            const newReviewBtn = document.createElement('button');
-            newReviewBtn.className = 'internet-order-review-btn';
-            newReviewBtn.setAttribute('data-internet-id', internetId);
-            newReviewBtn.textContent = '리뷰 쓰기';
-            newReviewBtn.style.cssText = 'flex: 1; padding: 10px 16px; background: #6366f1; border-radius: 8px; border: none; color: white; font-size: 14px; font-weight: 500; cursor: pointer;';
-            
-            if (consultationLink) {
-                parentDiv.insertBefore(newReviewBtn, consultationLink.nextSibling);
-            } else {
-                parentDiv.appendChild(newReviewBtn);
-            }
-            
-            newReviewBtn.addEventListener('click', function() {
-                openReviewModal(internetId);
-            });
-        }
-    }
-
-    // 삭제 버튼 클릭 이벤트
-    const deleteButtons = document.querySelectorAll('.internet-order-review-delete-btn');
-    deleteButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            const internetId = this.getAttribute('data-internet-id');
-            if (internetId) {
-                const parentDiv = this.parentElement;
-                const editBtn = parentDiv.querySelector('.internet-order-review-edit-btn');
-                const consultationLink = parentDiv.querySelector('a[href*="consultation"]');
-                openDeleteModal(internetId, editBtn, this, consultationLink, parentDiv);
-            }
-        });
-    });
-
-    // 삭제 모달 이벤트
-    const deleteModal = document.getElementById('internetReviewDeleteModal');
-    if (deleteModal) {
-        const closeBtn = deleteModal.querySelector('.internet-review-delete-modal-close');
-        const cancelBtn = deleteModal.querySelector('.internet-review-delete-btn-cancel');
-        const confirmBtn = deleteModal.querySelector('.internet-review-delete-btn-confirm');
-        const overlay = deleteModal.querySelector('.internet-review-delete-modal-overlay');
-
-        if (closeBtn) {
-            closeBtn.addEventListener('click', closeDeleteModal);
-        }
-        if (cancelBtn) {
-            cancelBtn.addEventListener('click', closeDeleteModal);
-        }
-        if (overlay) {
-            overlay.addEventListener('click', closeDeleteModal);
-        }
-        if (confirmBtn) {
-            confirmBtn.addEventListener('click', function() {
-                const internetId = deleteModal.getAttribute('data-internet-id');
-                if (internetId) {
-                    confirmDeleteReview(internetId);
-                }
-            });
-        }
-
-        // ESC 키로 모달 닫기
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape' && deleteModal.style.display === 'flex') {
-                closeDeleteModal();
-            }
-        });
-    }
-
-    // 모달 닫기 이벤트
-    const reviewModal = document.getElementById('internetReviewModal');
-    if (reviewModal) {
-        const closeBtn = reviewModal.querySelector('.internet-review-modal-close');
-        const cancelBtn = reviewModal.querySelector('.internet-review-btn-cancel');
-        const overlay = reviewModal.querySelector('.internet-review-modal-overlay');
-
-        if (closeBtn) {
-            closeBtn.addEventListener('click', closeReviewModal);
-        }
-        if (cancelBtn) {
-            cancelBtn.addEventListener('click', closeReviewModal);
-        }
-        if (overlay) {
-            overlay.addEventListener('click', closeReviewModal);
-        }
-
-        // ESC 키로 모달 닫기
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape' && reviewModal.style.display === 'flex') {
-                closeReviewModal();
-            }
-        });
-    }
-
-    // 리뷰 작성 폼 제출
-    const reviewForm = document.getElementById('internetReviewForm');
-    if (reviewForm) {
-        reviewForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
+    // 모달 존재 확인
             const modal = document.getElementById('internetReviewModal');
-            const internetId = modal ? modal.getAttribute('data-internet-id') : null;
-            const reviewText = document.getElementById('internetReviewText').value.trim();
-            const kindnessRatingInput = document.querySelector('#internetReviewForm input[name="kindness_rating"]:checked');
-            const speedRatingInput = document.querySelector('#internetReviewForm input[name="speed_rating"]:checked');
-            const kindnessRating = kindnessRatingInput ? parseInt(kindnessRatingInput.value) : null;
-            const speedRating = speedRatingInput ? parseInt(speedRatingInput.value) : null;
-
-            if (!kindnessRating) {
-                showReviewToast('친절해요 별점을 선택해주세요.');
-                return;
-            }
-
-            if (!speedRating) {
-                showReviewToast('설치 빨라요 별점을 선택해주세요.');
-                return;
-            }
-
-            if (!reviewText) {
-                showReviewToast('리뷰 내용을 입력해주세요.');
-                return;
-            }
-
-            if (!internetId) {
-                showReviewToast('오류가 발생했습니다. 다시 시도해주세요.');
-                return;
-            }
-
+    console.log('모달 존재 여부:', modal ? '있음' : '없음', modal);
+    
+    const reviewManager = new OrderReviewManager({
+        prefix: 'internet',
+        itemIdAttr: 'data-internet-id',
+        speedLabel: '설치 빨라요',
+        textareaId: 'internetReviewText',
+        onReviewSubmit: function(internetId, reviewData) {
             // TODO: 서버로 리뷰 데이터 전송
-            console.log('리뷰 작성 - Internet ID:', internetId, 'Kindness Rating:', kindnessRating, 'Speed Rating:', speedRating, 'Review:', reviewText);
-            
-            // 임시: 성공 메시지 표시 (토스트 메시지)
-            showReviewToast('리뷰가 작성되었습니다.');
-            closeReviewModal();
-            
-            // 리뷰 작성 완료 후 버튼을 수정/삭제 버튼으로 변경
+            console.log('리뷰 작성 - Internet ID:', internetId, 'Review Data:', reviewData);
+        },
+        onReviewDelete: function(internetId) {
+            // TODO: 서버로 삭제 요청
+            console.log('리뷰 삭제 - Internet ID:', internetId);
+        },
+        onReviewUpdate: function(internetId) {
+            // 리뷰 작성 완료 후 리뷰 쓰기 버튼 제거하고 점 3개 메뉴 표시
             const reviewBtn = document.querySelector(`.internet-order-review-btn[data-internet-id="${internetId}"]`);
             if (reviewBtn) {
-                const parentDiv = reviewBtn.parentElement;
-                const consultationLink = parentDiv.querySelector('a[href*="consultation"]');
-                
-                // 기존 리뷰 쓰기 버튼 제거
-                reviewBtn.remove();
-                
-                // 수정 버튼 생성
-                const editBtn = document.createElement('button');
-                editBtn.className = 'internet-order-review-edit-btn';
-                editBtn.setAttribute('data-internet-id', internetId);
-                editBtn.textContent = '수정';
-                editBtn.style.cssText = 'flex: 1; padding: 10px 16px; background: #6366f1; border-radius: 8px; border: none; color: white; font-size: 14px; font-weight: 500; cursor: pointer;';
-                
-                // 삭제 버튼 생성
-                const deleteBtn = document.createElement('button');
-                deleteBtn.className = 'internet-order-review-delete-btn';
-                deleteBtn.setAttribute('data-internet-id', internetId);
-                deleteBtn.textContent = '삭제';
-                deleteBtn.style.cssText = 'flex: 1; padding: 10px 16px; background: #ef4444; border-radius: 8px; border: none; color: white; font-size: 14px; font-weight: 500; cursor: pointer;';
-                
-                // 버튼 추가
-                if (consultationLink) {
-                    parentDiv.insertBefore(editBtn, consultationLink.nextSibling);
-                    parentDiv.insertBefore(deleteBtn, editBtn.nextSibling);
+                const actionItem = reviewBtn.closest('.internet-order-action-item');
+                if (actionItem) {
+                    const prevDivider = actionItem.previousElementSibling;
+                    if (prevDivider && prevDivider.classList.contains('internet-order-action-divider')) {
+                        prevDivider.remove();
+                    }
+                    actionItem.remove();
                 } else {
-                    parentDiv.appendChild(editBtn);
-                    parentDiv.appendChild(deleteBtn);
+                    reviewBtn.remove();
                 }
-                
-                // 수정 버튼 이벤트 추가
-                editBtn.addEventListener('click', function() {
-                    openReviewModal(internetId);
-                });
-                
-                // 삭제 버튼 이벤트 추가
-                deleteBtn.addEventListener('click', function() {
-                    openDeleteModal(internetId, editBtn, deleteBtn, consultationLink, parentDiv);
-                });
             }
-        });
-    }
-
-    // 리뷰 작성 완료 토스트 메시지 표시 함수 (화면 중앙)
-    function showReviewToast(message) {
-        // 기존 토스트가 있으면 제거
-        const existingToast = document.querySelector('.internet-review-toast');
-        if (existingToast) {
-            existingToast.remove();
-        }
-
-        // 토스트 메시지 생성
-        const toast = document.createElement('div');
-        toast.className = 'internet-review-toast';
-        toast.textContent = message;
-        document.body.appendChild(toast);
-
-        // 화면 정중앙에 위치 설정
-        const toastTop = window.innerHeight / 2; // 화면 세로 중앙
-        const toastLeft = window.innerWidth / 2; // 화면 가로 중앙
-
-        toast.style.top = toastTop + 'px';
-        toast.style.left = toastLeft + 'px';
-        toast.style.transform = 'translateX(-50%) translateY(-50%) translateY(10px)';
-
-        // 애니메이션을 위해 약간의 지연 후 visible 클래스 추가
-        setTimeout(() => {
-            toast.classList.add('internet-review-toast-visible');
-        }, 10);
-
-        // 0.7초 후 자동 제거
-        setTimeout(() => {
-            toast.classList.remove('internet-review-toast-visible');
-            setTimeout(() => {
-                if (toast.parentNode) {
-                    toast.parentNode.removeChild(toast);
+            
+            // 헤더에 점 3개 메뉴 추가
+            const card = document.querySelector(`.css-58gch7.e82z5mt0[data-internet-id="${internetId}"]`);
+            if (card) {
+                const cardHeader = card.querySelector('.internet-order-card-top-header');
+                if (cardHeader) {
+                    const menuGroup = cardHeader.querySelector('.internet-order-menu-group');
+                    if (!menuGroup) {
+                        const newMenuGroup = document.createElement('div');
+                        newMenuGroup.className = 'internet-order-menu-group';
+                        newMenuGroup.style.cssText = 'position: relative;';
+                        
+                        const menuBtn = document.createElement('button');
+                        menuBtn.type = 'button';
+                        menuBtn.className = 'internet-order-menu-btn';
+                        menuBtn.setAttribute('data-internet-id', internetId);
+                        menuBtn.setAttribute('aria-label', '메뉴');
+                        menuBtn.style.cssText = 'background: none; border: none; padding: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center;';
+                        menuBtn.innerHTML = `
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <circle cx="12" cy="6" r="1.5" fill="#868E96"/>
+                                <circle cx="12" cy="12" r="1.5" fill="#868E96"/>
+                                <circle cx="12" cy="18" r="1.5" fill="#868E96"/>
+                            </svg>
+                        `;
+                        
+                        const dropdown = document.createElement('div');
+                        dropdown.className = 'internet-order-menu-dropdown';
+                        dropdown.id = `internet-order-menu-${internetId}`;
+                        dropdown.style.cssText = 'display: none; position: absolute; top: 100%; right: 0; margin-top: 4px; background: white; border: 1px solid #e5e7eb; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); z-index: 1000; min-width: 120px; overflow: hidden; flex-direction: column;';
+                        
+                        const editBtn = document.createElement('button');
+                        editBtn.type = 'button';
+                        editBtn.className = 'internet-order-menu-item internet-order-review-edit-btn';
+                        editBtn.setAttribute('data-internet-id', internetId);
+                        editBtn.textContent = '수정';
+                        editBtn.style.cssText = 'width: 100%; padding: 12px 16px; background: none; border: none; text-align: left; font-size: 14px; color: #374151; cursor: pointer; transition: background-color 0.2s;';
+                        
+                        const deleteBtn = document.createElement('button');
+                        deleteBtn.type = 'button';
+                        deleteBtn.className = 'internet-order-menu-item internet-order-review-delete-btn';
+                        deleteBtn.setAttribute('data-internet-id', internetId);
+                        deleteBtn.textContent = '삭제';
+                        deleteBtn.style.cssText = 'width: 100%; padding: 12px 16px; background: none; border: none; border-top: 1px solid #e5e7eb; text-align: left; font-size: 14px; color: #ef4444; cursor: pointer; transition: background-color 0.2s;';
+                        
+                        dropdown.appendChild(editBtn);
+                        dropdown.appendChild(deleteBtn);
+                        newMenuGroup.appendChild(menuBtn);
+                        newMenuGroup.appendChild(dropdown);
+                        cardHeader.appendChild(newMenuGroup);
+                    }
                 }
-            }, 300); // 애니메이션 시간
-        }, 700); // 0.7초
-    }
-});
-</script>
+            }
+        },
+        onReviewDeleteUpdate: function(internetId) {
+            // 점 3개 메뉴 제거하고 리뷰 쓰기 버튼 복원
+            const card = document.querySelector(`.css-58gch7.e82z5mt0[data-internet-id="${internetId}"]`);
+            if (card) {
+                const cardHeader = card.querySelector('.internet-order-card-top-header');
+                if (cardHeader) {
+                    const menuGroup = cardHeader.querySelector('.internet-order-menu-group');
+                    if (menuGroup) {
+                        menuGroup.remove();
+                    }
+                }
+            }
+            
+            // 리뷰 쓰기 버튼 추가
+            const actionsContent = card ? card.querySelector('.internet-order-card-actions-content') : null;
+            if (actionsContent) {
+                const actionItem = document.createElement('div');
+                actionItem.className = 'internet-order-action-item';
+                actionItem.style.cssText = 'padding: 8px 0;';
+                
+                const divider = document.createElement('div');
+                divider.className = 'internet-order-action-divider';
+                divider.style.cssText = 'width: 100%; height: 1px; background: #e5e7eb; margin: 0;';
+                
+                const reviewBtn = document.createElement('button');
+                reviewBtn.type = 'button';
+                reviewBtn.className = 'internet-order-review-btn';
+                reviewBtn.setAttribute('data-internet-id', internetId);
+                reviewBtn.textContent = '리뷰 쓰기';
+                reviewBtn.style.cssText = 'width: 100%; padding: 10px 16px; background: #6366f1; border-radius: 8px; border: none; color: white; font-size: 14px; font-weight: 500; cursor: pointer;';
+                
+                actionsContent.appendChild(divider);
+                actionItem.appendChild(reviewBtn);
+                actionsContent.appendChild(actionItem);
+            }
+        }
+    });
+}
 
-<?php
-// 리뷰 작성 모달 포함
-include '../includes/components/internet-review-modal.php';
-// 리뷰 삭제 확인 모달 포함
-include '../includes/components/internet-review-delete-modal.php';
-?>
+// order-review.js 스크립트 동적 로드
+const orderReviewScript = document.createElement('script');
+orderReviewScript.src = '../assets/js/order-review.js';
+orderReviewScript.onload = function() {
+    console.log('order-review.js 로드 완료');
+    initInternetOrderReview();
+};
+document.head.appendChild(orderReviewScript);
+</script>
 
 <?php
 // 푸터 포함

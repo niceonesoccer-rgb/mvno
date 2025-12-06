@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 2">
+  <rect width="1.5" height="2" fill="#b22234"/>
+  <rect x="1.5" width="1.5" height="2" fill="#ff0000"/>
+  <g fill="#ffffff" transform="translate(0.3,0.3)">
+    <circle cx="0" cy="0" r="0.05"/>
+    <circle cx="0.15" cy="0" r="0.05"/>
+    <circle cx="0.3" cy="0" r="0.05"/>
+  </g>
+  <path d="M1.5,0.3 L1.4,0.6 L1.2,0.6 L1.35,0.8 L1.3,1.1 L1.5,1 L1.7,1.1 L1.65,0.8 L1.8,0.6 L1.6,0.6 Z" fill="#ff0000"/>
+</svg>
+
+
+
+
+
+
+
+
+

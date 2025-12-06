@@ -31,6 +31,9 @@ $share_url = $phone['link_url'] ?? '/MVNO/mno/mno-phone-detail.php?id=' . $phone
     <div class="plan-badge-favorite-group">
         <?php
         $button_id = ($layout_type === 'detail') ? 'phoneFavoriteBtn' : '';
+        $item_id = $phone_id;
+        $item_type = 'phone';
+        $is_favorited = $phone['is_favorited'] ?? false;
         include __DIR__ . '/favorite-button.php';
         ?>
         <?php

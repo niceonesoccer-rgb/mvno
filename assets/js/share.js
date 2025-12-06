@@ -51,6 +51,62 @@
     function shareUrlWithButton(urlToShare, title, buttonElement) {
         // 항상 클립보드에 복사하고 토스트 메시지만 표시 (새 창 열기 없음)
         copyToClipboardAndShowMessage(urlToShare, buttonElement);
+        
+        // 공유 추적
+        trackShareToServer(urlToShare, buttonElement);
+    }
+    
+    /**
+     * 서버에 공유 추적 요청
+     */
+    function trackShareToServer(url, buttonElement) {
+        // 상품 정보 추출 (URL에서 또는 버튼의 data 속성에서)
+        const productType = buttonElement?.getAttribute('data-product-type') || 
+                           document.querySelector('[data-product-type]')?.getAttribute('data-product-type') || '';
+        const productId = buttonElement?.getAttribute('data-product-id') || 
+                         document.querySelector('[data-product-id]')?.getAttribute('data-product-id') || '';
+        const sellerId = buttonElement?.getAttribute('data-seller-id') || 
+                        document.querySelector('[data-seller-id]')?.getAttribute('data-seller-id') || null;
+        
+        if (!productType || !productId) {
+            // URL에서 추출 시도
+            const urlMatch = url.match(/\/(mvno|mno|internet)\/([^\/]+)/);
+            if (urlMatch) {
+                const extractedType = urlMatch[1] === 'mvno' ? 'mvno' : (urlMatch[1] === 'mno' ? 'mno' : 'internet');
+                const extractedId = urlMatch[2];
+                
+                fetch('/MVNO/api/analytics/track-share.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: new URLSearchParams({
+                        product_type: extractedType,
+                        product_id: extractedId,
+                        share_method: 'link',
+                        seller_id: sellerId || ''
+                    })
+                }).catch(error => {
+                    console.error('공유 추적 오류:', error);
+                });
+            }
+            return;
+        }
+        
+        fetch('/MVNO/api/analytics/track-share.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({
+                product_type: productType,
+                product_id: productId,
+                share_method: 'link',
+                seller_id: sellerId || ''
+            })
+        }).catch(error => {
+            console.error('공유 추적 오류:', error);
+        });
     }
 
     /**
@@ -147,14 +203,40 @@
      */
     function initShareButtons() {
         // 이벤트 위임 방식으로 모든 공유 버튼 처리
+        // 캡처 단계에서 처리하여 다른 이벤트보다 먼저 실행
+        
+        document.addEventListener('mousedown', function(e) {
+            const shareButton = e.target.closest('[data-share-url]');
+            if (shareButton && shareButton.hasAttribute('data-share-url')) {
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+            }
+        }, true);
+
         document.addEventListener('click', function(e) {
             // 클릭된 요소가 공유 버튼이거나 공유 버튼 내부 요소인지 확인
             // SVG나 path를 클릭해도 버튼을 찾을 수 있도록 closest 사용
             const shareButton = e.target.closest('[data-share-url]');
             
             if (shareButton && shareButton.hasAttribute('data-share-url')) {
+                // 이벤트 전파 완전 차단
                 e.preventDefault();
                 e.stopPropagation();
+                e.stopImmediatePropagation();
+                
+                // 부모 링크 찾기 및 클릭 방지
+                const parentLink = shareButton.closest('a.plan-card-link');
+                if (parentLink) {
+                    // 링크의 기본 동작 방지 (캡처 단계에서)
+                    const preventLinkClick = function(linkEvent) {
+                        linkEvent.preventDefault();
+                        linkEvent.stopPropagation();
+                        linkEvent.stopImmediatePropagation();
+                    };
+                    parentLink.addEventListener('click', preventLinkClick, { capture: true, once: true });
+                    parentLink.addEventListener('mousedown', preventLinkClick, { capture: true, once: true });
+                }
                 
                 const urlToShare = shareButton.getAttribute('data-share-url');
                 
@@ -166,9 +248,13 @@
                     } else {
                         shareUrlWithButton(urlToShare, null, shareButton);
                     }
+                } else {
+                    console.warn('공유 버튼에 URL이 없습니다:', shareButton);
                 }
+                
+                return false;
             }
-        }, true); // 캡처 단계에서 처리하여 다른 이벤트보다 먼저 실행
+        }, true);
     }
 
     // DOM이 로드되면 초기화
@@ -178,4 +264,3 @@
         initShareButtons();
     }
 })();
-

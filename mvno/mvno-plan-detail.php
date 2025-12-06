@@ -107,10 +107,6 @@ if (!$plan) {
                             <div class="plan-detail-value">300분</div>
                         </div>
                         <div class="plan-detail-item">
-                            <div class="plan-detail-label">번호이동 수수료</div>
-                            <div class="plan-detail-value">없음</div>
-                        </div>
-                        <div class="plan-detail-item">
                             <div class="plan-detail-label">모바일 핫스팟</div>
                             <div class="plan-detail-value">데이터 제공량 내</div>
                         </div>
@@ -180,6 +176,20 @@ if (!$plan) {
             </div>
             <div class="plan-exceed-rate-notice">
                 문자메시지 기본제공 혜택을 약관에 정한 기준보다 많이 사용하거나 스팸, 광고 목적으로 이용한 것이 확인되면 추가 요금을 내야 하거나 서비스 이용이 정지될 수 있어요.
+            </div>
+        </div>
+    </section>
+
+    <!-- 판매자 추가 정보 섹션 -->
+    <section class="plan-seller-info-section">
+        <div class="content-layout">
+            <div class="plan-info-card">
+                <h3 class="plan-info-card-title">혜택 및 유의사항</h3>
+                <div class="plan-info-card-content">
+                    <div class="plan-seller-additional-text">
+                        여기 추가내용
+                    </div>
+                </div>
             </div>
         </div>
     </section>
@@ -983,46 +993,10 @@ if (!$plan) {
 <script>
 // 아코디언 기능
 document.addEventListener('DOMContentLoaded', function() {
-    // 상세 페이지에서 카드 클릭 차단
-    const planCardLink = document.querySelector('.plan-detail-page .plan-card-link');
-    if (planCardLink) {
-        planCardLink.addEventListener('click', function(e) {
-            // 버튼이나 아코디언이 아닌 경우에만 차단
-            const target = e.target;
-            
-            // 하트 버튼 체크 (SVG path도 포함)
-            const isFavoriteBtn = target.closest('.plan-favorite-btn') || 
-                                  target.closest('.plan-favorite-btn-inline') ||
-                                  target.closest('button.plan-favorite-btn-inline') ||
-                                  (target.tagName === 'path' && target.closest('.plan-favorite-btn-inline')) ||
-                                  (target.tagName === 'svg' && target.closest('.plan-favorite-btn-inline'));
-            
-            // 공유 버튼 체크
-            const isShareBtn = target.closest('.plan-share-btn-inline') ||
-                              target.closest('[data-share-url]') ||
-                              (target.tagName === 'path' && target.closest('.plan-share-btn-inline')) ||
-                              (target.tagName === 'svg' && target.closest('.plan-share-btn-inline'));
-            
-            // 일반 버튼 체크
-            const isButton = target.closest('button') && !isFavoriteBtn && !isShareBtn;
-            
-            // 아코디언 체크
-            const isAccordion = target.closest('.plan-accordion-trigger');
-            
-            // 하트, 공유, 아코디언이 아닌 경우에만 차단
-            if (!isFavoriteBtn && !isShareBtn && !isAccordion && !isButton) {
-                e.preventDefault();
-                e.stopPropagation();
-                return false;
-            }
-        }, false); // 버블링 단계에서 처리 (하트 버튼 이벤트 이후)
-    }
-    
     const accordionTriggers = document.querySelectorAll('.plan-accordion-trigger');
     
     accordionTriggers.forEach(trigger => {
-        trigger.addEventListener('click', function(e) {
-            e.stopPropagation(); // 이벤트 전파 차단
+        trigger.addEventListener('click', function() {
             const content = this.nextElementSibling;
             const isExpanded = this.getAttribute('aria-expanded') === 'true';
             
@@ -1040,7 +1014,177 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // 공유하기 버튼은 share.js에서 자동으로 처리됩니다 (토스트 메시지 표시)
+    // 공유 모달 기능
+    const shareBtn = document.getElementById('planShareBtn');
+    const shareModal = document.getElementById('shareModal');
+    const shareModalOverlay = document.getElementById('shareModalOverlay');
+    const shareModalClose = document.getElementById('shareModalClose');
+    const shareLinkBtn = document.getElementById('shareLinkBtn');
+    const shareItems = document.querySelectorAll('.share-modal-item');
+
+    // 현재 페이지 URL과 제목 가져오기
+    const currentUrl = window.location.href;
+    const planTitle = document.querySelector('.plan-title-text')?.textContent || '요금제 상세';
+    const shareText = `${planTitle} - 모요`;
+
+    // 링크 복사 함수
+    function copyToClipboard(text) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            return navigator.clipboard.writeText(text).then(function() {
+                return true;
+            }).catch(function() {
+                return fallbackCopyTextToClipboard(text);
+            });
+        } else {
+            return fallbackCopyTextToClipboard(text);
+        }
+    }
+    
+    // 토스트 메시지 표시 함수
+    function showToastMessage(message) {
+        // 기존 토스트가 있으면 제거
+        const existingToast = document.querySelector('.toast-message');
+        if (existingToast) {
+            existingToast.remove();
+        }
+        
+        // 공유하기 버튼 위치 가져오기
+        const shareButton = document.getElementById('planShareBtn');
+        let topPosition = '50%';
+        // 좌우 중앙으로 고정
+        const leftPosition = '50%';
+        
+        if (shareButton) {
+            const rect = shareButton.getBoundingClientRect();
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            // 공유하기 버튼의 중간 높이 위치
+            topPosition = (rect.top + scrollTop + rect.height / 2) + 'px';
+        }
+        
+        // 토스트 메시지 생성
+        const toast = document.createElement('div');
+        toast.className = 'toast-message';
+        toast.textContent = message;
+        toast.style.top = topPosition;
+        toast.style.left = leftPosition;
+        document.body.appendChild(toast);
+        
+        // 강제로 리플로우 발생시켜 초기 상태 적용
+        void toast.offsetHeight;
+        
+        // 애니메이션을 위해 약간의 지연 후 visible 클래스 추가
+        requestAnimationFrame(function() {
+            requestAnimationFrame(function() {
+                toast.classList.add('toast-message-visible');
+            });
+        });
+        
+        // 1초 후 자동으로 사라지게
+        setTimeout(function() {
+            toast.classList.remove('toast-message-visible');
+            setTimeout(function() {
+                if (toast.parentNode) {
+                    toast.remove();
+                }
+            }, 300);
+        }, 1000);
+    }
+    
+    // 공유 버튼 클릭 시 바로 링크 복사
+    if (shareBtn) {
+        shareBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            copyToClipboard(currentUrl).then(function(success) {
+                if (success) {
+                    showToastMessage('공유링크를 복사했어요');
+                } else {
+                    showToastMessage('링크 복사에 실패했습니다');
+                }
+            });
+        });
+    }
+
+    // 모달 닫기
+    function closeModal() {
+        shareModal.classList.remove('share-modal-active');
+        document.body.style.overflow = '';
+    }
+
+    if (shareModalOverlay) {
+        shareModalOverlay.addEventListener('click', closeModal);
+    }
+
+    if (shareModalClose) {
+        shareModalClose.addEventListener('click', closeModal);
+    }
+
+    // ESC 키로 모달 닫기
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && shareModal.classList.contains('share-modal-active')) {
+            closeModal();
+        }
+    });
+
+    // 소셜 공유 링크 설정
+    shareItems.forEach(item => {
+        const platform = item.getAttribute('data-platform');
+        
+        if (platform === 'kakao') {
+            // 카카오톡 공유 (카카오 SDK 필요 시 사용, 여기서는 링크 공유)
+            item.href = `https://story.kakao.com/share?url=${encodeURIComponent(currentUrl)}`;
+        } else if (platform === 'facebook') {
+            // 페이스북 공유
+            item.href = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(currentUrl)}`;
+        } else if (platform === 'twitter') {
+            // 트위터 공유
+            item.href = `https://twitter.com/intent/tweet?url=${encodeURIComponent(currentUrl)}&text=${encodeURIComponent(shareText)}`;
+        } else if (platform === 'link') {
+            // 링크 복사
+            item.addEventListener('click', function(e) {
+                e.preventDefault();
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(currentUrl).then(function() {
+                        showAlert('링크가 복사되었습니다.').then(() => {
+                            closeModal();
+                        });
+                    }).catch(function() {
+                        // 클립보드 API 실패 시 fallback
+                        fallbackCopyTextToClipboard(currentUrl);
+                    });
+                } else {
+                    // 클립보드 API 미지원 시 fallback
+                    fallbackCopyTextToClipboard(currentUrl);
+                }
+            });
+        }
+    });
+
+    // 클립보드 복사 fallback 함수
+    function fallbackCopyTextToClipboard(text) {
+        return new Promise(function(resolve) {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-999999px';
+            textArea.style.top = '-999999px';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    resolve(true);
+                } else {
+                    resolve(false);
+                }
+            } catch (err) {
+                resolve(false);
+            }
+            
+            document.body.removeChild(textArea);
+        });
+    }
 
     // 신청하기 모달 기능
     const applyBtn = document.getElementById('planApplyBtn');
@@ -1422,6 +1566,49 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
+<?php
+// 포인트 사용 모달 포함
+$type = 'mvno';
+$item_id = $plan_id;
+$item_name = $plan['title'] ?? '알뜰폰 요금제';
+include '../includes/components/point-usage-modal.php';
+?>
+
 <?php include '../includes/footer.php'; ?>
 <script src="/MVNO/assets/js/favorite-heart.js" defer></script>
+<script src="/MVNO/assets/js/point-usage-integration.js" defer></script>
+
+<script>
+// 신청하기 버튼에 포인트 모달 연동
+document.addEventListener('DOMContentLoaded', function() {
+    const applyBtn = document.getElementById('planApplyBtn');
+    if (applyBtn) {
+        applyBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // 포인트 모달 열기
+            const modalId = 'pointUsageModal_mvno_<?php echo $plan_id; ?>';
+            const modal = document.getElementById(modalId);
+            if (modal && typeof openPointUsageModal === 'function') {
+                openPointUsageModal('mvno', <?php echo $plan_id; ?>);
+            } else if (modal) {
+                modal.classList.add('show');
+                document.body.style.overflow = 'hidden';
+            }
+        });
+    }
+    
+    // 포인트 사용 확인 후 기존 신청 모달 열기 (여기에 기존 신청 모달 열기 코드 추가)
+    document.addEventListener('pointUsageConfirmed', function(e) {
+        const { type, itemId, usedPoint } = e.detail;
+        if (type === 'mvno') {
+            // 기존 신청 모달 열기 로직
+            // 예: openApplicationModal(itemId, usedPoint);
+            console.log('포인트 사용 확인됨:', e.detail);
+            // TODO: 기존 신청 모달 열기
+        }
+    });
+});
+</script>
 

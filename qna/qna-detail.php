@@ -112,7 +112,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 목록으로
             </a>
             <?php if (!isset($qna['answer']) || empty($qna['answer'])): ?>
-                <form method="POST" action="" style="display: inline-block;" onsubmit="return confirm('정말 삭제하시겠습니까?');">
+                <form method="POST" action="" style="display: inline-block;" onsubmit="event.preventDefault(); showConfirm('정말 삭제하시겠습니까?', '삭제 확인').then(result => { if(result) this.submit(); }); return false;">
                     <input type="hidden" name="action" value="delete">
                     <button type="submit" 
                             style="display: inline-flex; align-items: center; justify-content: center; padding: 12px 24px; background: white; color: #dc2626; border: 1px solid #fecaca; border-radius: 8px; font-weight: 500; cursor: pointer; transition: all 0.2s;"
@@ -130,4 +130,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 // 푸터 포함
 include '../includes/footer.php';
 ?>
+
+
 

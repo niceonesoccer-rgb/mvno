@@ -46,23 +46,33 @@ $consultation_url = $phone['consultation_url'] ?? ''; // 상담 URL
         </div>
         <?php endif; ?>
         
+        <?php 
+        // 포인트 사용 내역 표시
+        $point_used = $phone['point_used'] ?? 0;
+        $point_used_date = $phone['point_used_date'] ?? '';
+        if ($point_used > 0): 
+        ?>
+        <!-- 구분선 -->
+        <div class="mno-order-action-divider"></div>
+        
+        <!-- 포인트 사용 내역 -->
+        <div class="mno-order-action-item">
+            <span class="mno-order-action-label">포인트 사용</span>
+            <span class="mno-order-action-value" style="color: #6366f1; font-weight: 600;">
+                -<?php echo number_format($point_used); ?>원
+            </span>
+        </div>
+        <?php endif; ?>
+        
+        <?php if (!$is_activated || !$has_review): ?>
         <!-- 구분선 -->
         <div class="mno-order-action-divider"></div>
         
         <!-- 리뷰쓰기 버튼 또는 업체 문의하기 버튼 -->
         <div class="mno-order-action-item">
             <?php if ($is_activated): ?>
-                <!-- 개통된 경우: 리뷰쓰기 버튼 또는 수정/삭제 버튼 -->
-                <?php if ($has_review): ?>
-                    <div style="display: flex; gap: 8px; width: 100%;">
-                        <button type="button" class="mno-order-review-edit-btn" data-phone-id="<?php echo $phone_id; ?>" style="flex: 1; padding: 10px 16px; background: #6366f1; border-radius: 8px; border: none; color: white; font-size: 14px; font-weight: 500; cursor: pointer;">
-                            수정
-                        </button>
-                        <button type="button" class="mno-order-review-delete-btn" data-phone-id="<?php echo $phone_id; ?>" style="flex: 1; padding: 10px 16px; background: #ef4444; border-radius: 8px; border: none; color: white; font-size: 14px; font-weight: 500; cursor: pointer;">
-                            삭제
-                        </button>
-                    </div>
-                <?php else: ?>
+                <!-- 개통된 경우: 리뷰쓰기 버튼 (리뷰 작성 후에는 헤더의 점 3개 메뉴 사용) -->
+                <?php if (!$has_review): ?>
                     <button type="button" class="mno-order-review-btn" data-phone-id="<?php echo $phone_id; ?>">
                         리뷰쓰기
                     </button>
@@ -80,6 +90,7 @@ $consultation_url = $phone['consultation_url'] ?? ''; // 상담 URL
                 <?php endif; ?>
             <?php endif; ?>
         </div>
+        <?php endif; ?>
     </div>
 </div>
 

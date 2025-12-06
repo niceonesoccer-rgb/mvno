@@ -15,7 +15,11 @@ $is_sold_out = $phone['is_sold_out'] ?? false; // 판매종료 여부
 $share_url = '/MVNO/mno/mno-phone-detail.php?id=' . $phone_id;
 ?>
 
-<!-- 헤더: 로고, 평점, 공유 -->
+<?php
+$has_review = $phone['has_review'] ?? false;
+$is_activated = !empty($phone['activation_date'] ?? '');
+?>
+<!-- 헤더: 로고, 평점, 점 3개 메뉴 -->
 <div class="mno-order-card-top-header">
     <div class="mno-order-provider-rating-group">
         <span class="mno-order-provider-logo-text"><?php echo htmlspecialchars($provider); ?></span>
@@ -26,13 +30,26 @@ $share_url = '/MVNO/mno/mno-phone-detail.php?id=' . $phone_id;
             <span class="mno-order-rating-text"><?php echo htmlspecialchars($rating); ?></span>
         </div>
     </div>
-    <?php if (!$is_sold_out): ?>
-    <div class="mno-order-badge-favorite-group">
-        <?php
-        $button_class = 'mno-order-share-btn-inline';
-        include __DIR__ . '/share-button.php';
-        ?>
+    <div class="mno-order-menu-group">
+        <?php if ($is_activated && $has_review): ?>
+        <!-- 리뷰 작성 후: 점 3개 메뉴 버튼 -->
+        <button type="button" class="mno-order-menu-btn" data-phone-id="<?php echo $phone_id; ?>" aria-label="메뉴">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="12" cy="6" r="1.5" fill="#868E96"/>
+                <circle cx="12" cy="12" r="1.5" fill="#868E96"/>
+                <circle cx="12" cy="18" r="1.5" fill="#868E96"/>
+            </svg>
+        </button>
+        <!-- 드롭다운 메뉴 -->
+        <div class="mno-order-menu-dropdown" id="mno-order-menu-<?php echo $phone_id; ?>" style="display: none;">
+            <button type="button" class="mno-order-menu-item mno-order-review-edit-btn" data-phone-id="<?php echo $phone_id; ?>">
+                수정
+            </button>
+            <button type="button" class="mno-order-menu-item mno-order-review-delete-btn" data-phone-id="<?php echo $phone_id; ?>">
+                삭제
+            </button>
+        </div>
+        <?php endif; ?>
     </div>
-    <?php endif; ?>
 </div>
 

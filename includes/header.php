@@ -14,9 +14,6 @@ $has_query_params = !empty($query_string);
 
 // 서브페이지로 판단할 쿼리 파라미터 목록
 $sub_page_params = [
-    'country',     // esim.php?country=china
-    'region',      // esim.php?country=china&region=beijing
-    'city',        // esim.php?country=china&region=beijing&city=shanghai
     'id',          // plans.php?id=123
     'detail',      // plans.php?detail=123
     'view',        // plans.php?view=123
@@ -65,7 +62,6 @@ else if (!isset($is_main_page)) {
         'mvno.php',
         'mno.php',
         'internets.php',
-        'esim.php',
         'event.php',
         'mypage.php'
     ];
@@ -118,6 +114,7 @@ else if (!isset($is_main_page)) {
         // 메인 페이지 여부 (하단 메뉴 및 푸터 표시 제어용)
         window.IS_MAIN_PAGE = <?php echo (isset($is_main_page) && $is_main_page) ? 'true' : 'false'; ?>;
     </script>
+    <script src="/MVNO/assets/js/modal.js" defer></script>
     <script src="/MVNO/assets/js/header-scroll.js" defer></script>
     <script src="/MVNO/assets/js/phone-deal-scroll.js" defer></script>
     <script src="/MVNO/assets/js/nav-click-fix.js" defer></script>
@@ -158,11 +155,18 @@ else if (!isset($is_main_page)) {
             </div>
             
             <!-- 모바일 우측 추가 영역 -->
-            <div class="right-addon-mobile"></div>
+            <div class="right-addon-mobile">
+                <?php include __DIR__ . '/components/login-button.php'; ?>
+            </div>
             
             <!-- 헤더 가운데 텍스트 -->
             <div class="header-center-text">
                 <span>알뜰요금의 리더</span>
+            </div>
+            
+            <!-- 데스크톱 로그인 버튼 -->
+            <div class="right-addon-desktop" style="display: flex; align-items: center;">
+                <?php include __DIR__ . '/components/login-button.php'; ?>
             </div>
             
             <!-- 네비게이션 메뉴 -->
@@ -207,26 +211,6 @@ else if (!isset($is_main_page)) {
                                 <ellipse cx="12" cy="16" rx="7" ry="2" stroke="currentColor" stroke-width="2" fill="none"/>
                             </svg>
                             <span>인터넷</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link <?php echo (isset($current_page) && $current_page == 'esim') ? 'active' : ''; ?>" href="/MVNO/esim/esim.php">
-                            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <!-- 유심칩 본체 (왼쪽 상단 모서리 잘림) -->
-                                <path d="M6 4H18C19.1046 4 20 4.89543 20 6V18C20 19.1046 19.1046 20 18 20H6C4.89543 20 4 19.1046 4 18V6C4 4.89543 4.89543 4 6 4Z" stroke="currentColor" stroke-width="2"/>
-                                <path d="M4 6V10H8V6C8 4.89543 7.10457 4 6 4C4.89543 4 4 4.89543 4 6Z" fill="currentColor"/>
-                                <!-- 금속 접촉부 (3x3 그리드) -->
-                                <rect x="10" y="8" width="1.5" height="1.5" rx="0.25" fill="currentColor"/>
-                                <rect x="12.5" y="8" width="1.5" height="1.5" rx="0.25" fill="currentColor"/>
-                                <rect x="15" y="8" width="1.5" height="1.5" rx="0.25" fill="currentColor"/>
-                                <rect x="10" y="10.5" width="1.5" height="1.5" rx="0.25" fill="currentColor"/>
-                                <rect x="12.5" y="10.5" width="1.5" height="1.5" rx="0.25" fill="currentColor"/>
-                                <rect x="15" y="10.5" width="1.5" height="1.5" rx="0.25" fill="currentColor"/>
-                                <rect x="10" y="13" width="1.5" height="1.5" rx="0.25" fill="currentColor"/>
-                                <rect x="12.5" y="13" width="1.5" height="1.5" rx="0.25" fill="currentColor"/>
-                                <rect x="15" y="13" width="1.5" height="1.5" rx="0.25" fill="currentColor"/>
-                            </svg>
-                            <span>해외eSIM</span>
                         </a>
                     </li>
                     <li class="nav-item nav-item-desktop-only">

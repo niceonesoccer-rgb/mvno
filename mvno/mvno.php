@@ -40,18 +40,15 @@ $plans = getPlansData(10);
                     <button class="plans-filter-btn">
                         <span class="plans-filter-text">인터넷 결합</span>
                     </button>
-                    <button class="plans-filter-btn">
-                        <span class="plans-filter-text">#베스트 요금제</span>
+                    <?php
+                    // 알뜰폰 필터 가져오기
+                    require_once '../includes/data/filter-data.php';
+                    $mvno_filters = getMvnoFilters();
+                    foreach ($mvno_filters as $filter): ?>
+                    <button class="plans-filter-btn" data-filter="<?php echo htmlspecialchars($filter); ?>">
+                        <span class="plans-filter-text"><?php echo htmlspecialchars($filter); ?></span>
                     </button>
-                    <button class="plans-filter-btn">
-                        <span class="plans-filter-text">#만원 미만</span>
-                    </button>
-                    <button class="plans-filter-btn">
-                        <span class="plans-filter-text">#장기 할인</span>
-                    </button>
-                    <button class="plans-filter-btn">
-                        <span class="plans-filter-text">#100원</span>
-                    </button>
+                    <?php endforeach; ?>
                 </div>
             </div>
         </div>
@@ -227,17 +224,55 @@ include '../includes/footer.php';
 // 필터 버튼 클릭 이벤트 핸들러
 (function() {
     const filterButtons = document.querySelectorAll('.plans-filter-btn');
+    const planItems = document.querySelectorAll('.plan-item, [data-plan-id]');
     
     filterButtons.forEach(button => {
         button.addEventListener('click', function() {
+            // 필터 버튼은 토글하지 않음 (검색용)
+            const filterValue = this.getAttribute('data-filter');
+            if (!filterValue) return; // 필터 버튼이 아니면 무시
+            
             // 클릭된 버튼의 active 상태 토글
             if (this.classList.contains('active')) {
                 this.classList.remove('active');
             } else {
                 this.classList.add('active');
             }
+            
+            // 필터 적용
+            applyFilters();
         });
     });
+    
+    // 필터 적용 함수
+    function applyFilters() {
+        const activeFilters = Array.from(document.querySelectorAll('.plans-filter-btn.active'))
+            .map(btn => btn.getAttribute('data-filter'))
+            .filter(f => f !== null);
+        
+        planItems.forEach(item => {
+            if (activeFilters.length === 0) {
+                // 필터가 없으면 모두 표시
+                item.style.display = '';
+                return;
+            }
+            
+            // 요금제 정보 가져오기
+            const planText = item.textContent.toLowerCase();
+            
+            // 필터 매칭 확인
+            let matches = false;
+            activeFilters.forEach(filter => {
+                const filterText = filter.replace('#', '').toLowerCase();
+                if (planText.includes(filterText)) {
+                    matches = true;
+                }
+            });
+            
+            // 매칭되면 표시, 아니면 숨김
+            item.style.display = matches ? '' : 'none';
+        });
+    }
 })();
 
 </script>

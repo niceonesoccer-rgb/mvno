@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 2">
+  <rect width="3" height="2" fill="#ff6b35"/>
+  <g fill="#ffffff" transform="translate(1.5,1)">
+    <circle cx="0" cy="0" r="0.2"/>
+    <path d="M0,0 L0.05,-0.1 L0.1,0 L0.05,0.05 Z"/>
+    <path d="M0,0 L0.05,0.1 L0.1,0 L0.05,-0.05 Z" transform="rotate(90 0.05 0)"/>
+    <path d="M0,0 L0.05,-0.1 L0.1,0 L0.05,0.05 Z" transform="rotate(45 0.05 0)"/>
+    <path d="M0,0 L0.05,-0.1 L0.1,0 L0.05,0.05 Z" transform="rotate(-45 0.05 0)"/>
+  </g>
+  <text x="1.5" y="1.4" font-size="0.2" fill="#ffffff" text-anchor="middle" font-weight="bold">13</text>
+</svg>
+
+
+
+
+
+
+
+
+

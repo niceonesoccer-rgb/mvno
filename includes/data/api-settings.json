@@ -1,0 +1,20 @@
+{
+    "naver": {
+        "client_id": "",
+        "client_secret": "",
+        "redirect_uri": ""
+    },
+    "kakao": {
+        "client_id": "",
+        "rest_api_key": "",
+        "redirect_uri": ""
+    },
+    "google": {
+        "client_id": "",
+        "client_secret": "",
+        "redirect_uri": ""
+    }
+}
+
+
+

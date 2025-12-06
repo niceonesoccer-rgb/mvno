@@ -99,3 +99,5 @@ $qnas = getQnaList($user_id);
 include '../includes/footer.php';
 ?>
 
+
+

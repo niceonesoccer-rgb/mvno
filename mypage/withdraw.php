@@ -78,17 +78,18 @@ document.getElementById('withdrawConfirm').addEventListener('change', function()
     }
 });
 
-function handleFinalWithdraw() {
+async function handleFinalWithdraw() {
     const confirmed = document.getElementById('withdrawConfirm').checked;
     if (!confirmed) {
-        alert('위 내용을 확인하고 체크박스를 선택해주세요.');
+        await showAlert('위 내용을 확인하고 체크박스를 선택해주세요.');
         return;
     }
     
-    if (confirm('정말 회원 탈퇴를 진행하시겠습니까?\n이 작업은 되돌릴 수 없습니다.')) {
+    const result = await showConfirm('정말 회원 탈퇴를 진행하시겠습니까?\n이 작업은 되돌릴 수 없습니다.', '회원 탈퇴 확인');
+    if (result) {
         // 회원 탈퇴 처리 로직
         // 실제로는 서버에 AJAX 요청을 보내야 합니다
-        alert('회원 탈퇴가 완료되었습니다.');
+        await showAlert('회원 탈퇴가 완료되었습니다.');
         // 홈페이지로 리다이렉트
         window.location.href = '/MVNO/';
     }

@@ -81,13 +81,7 @@ if (!$phone) {
                     <div class="plan-detail-grid">
                         <div class="plan-detail-item">
                             <div class="plan-detail-label">요금제명</div>
-                            <div class="plan-detail-value"><?php 
-                            // 요금제명에서 통신사명 제거 (통신사 + 요금제명 구조)
-                            $plan_name_display = $phone['plan_name'];
-                            $provider = $phone['provider'] ?? '';
-                            $plan_name_display = trim(str_replace($provider, '', $plan_name_display));
-                            echo htmlspecialchars($plan_name_display); 
-                            ?></div>
+                            <div class="plan-detail-value"><?php echo htmlspecialchars($phone['plan_name']); ?></div>
                         </div>
                         <div class="plan-detail-item">
                             <div class="plan-detail-label">월 요금</div>
@@ -155,6 +149,79 @@ if (!$phone) {
                 </div>
             </div>
 
+            <!-- 유심 정보 카드 -->
+            <div class="plan-info-card">
+                <h3 class="plan-info-card-title">유심 정보</h3>
+                <div class="plan-info-card-content">
+                    <div class="plan-detail-grid">
+                        <div class="plan-detail-item">
+                            <div class="plan-detail-label">일반 유심</div>
+                            <div class="plan-detail-value">배송가능 (6,600원)</div>
+                        </div>
+                        <div class="plan-detail-item">
+                            <div class="plan-detail-label">NFC 유심</div>
+                            <div class="plan-detail-value">배송불가</div>
+                        </div>
+                        <div class="plan-detail-item">
+                            <div class="plan-detail-label">eSIM</div>
+                            <div class="plan-detail-value">개통가능 (2,750원)</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- 초과 요금 섹션 -->
+    <section class="plan-exceed-rate-section">
+        <div class="content-layout">
+            <div class="plan-info-card">
+                <h3 class="plan-info-card-title">기본 제공 초과 시</h3>
+                <div class="plan-info-card-content">
+                    <div class="plan-detail-grid">
+                        <div class="plan-detail-item">
+                            <div class="plan-detail-label">데이터</div>
+                            <div class="plan-detail-value">
+                                22.53원/MB
+                            </div>
+                        </div>
+                        <div class="plan-detail-item">
+                            <div class="plan-detail-label">음성 통화</div>
+                            <div class="plan-detail-value">1.98원/초</div>
+                        </div>
+                        <div class="plan-detail-item">
+                            <div class="plan-detail-label">부가/영상통화</div>
+                            <div class="plan-detail-value">3.3원/초</div>
+                        </div>
+                        <div class="plan-detail-item">
+                            <div class="plan-detail-label">단문메시지(SMS)</div>
+                            <div class="plan-detail-value">22원/개</div>
+                        </div>
+                        <div class="plan-detail-item">
+                            <div class="plan-detail-label">장문 텍스트형(MMS)</div>
+                            <div class="plan-detail-value">44원/개</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="plan-exceed-rate-notice">
+                문자메시지 기본제공 혜택을 약관에 정한 기준보다 많이 사용하거나 스팸, 광고 목적으로 이용한 것이 확인되면 추가 요금을 내야 하거나 서비스 이용이 정지될 수 있어요.
+            </div>
+        </div>
+    </section>
+
+    <!-- 판매자 추가 정보 섹션 -->
+    <section class="plan-seller-info-section">
+        <div class="content-layout">
+            <div class="plan-info-card">
+                <h3 class="plan-info-card-title">혜택 및 유의사항</h3>
+                <div class="plan-info-card-content">
+                    <div class="plan-seller-additional-text">
+                        여기 추가내용
+                    </div>
+                </div>
+            </div>
         </div>
     </section>
 
@@ -518,7 +585,7 @@ include '../includes/footer.php';
                         </div>
                         <div class="plan-apply-confirm-notice"><?php echo htmlspecialchars($phone['provider']); ?> 통신사로 가입을 진행합니다</div>
                     </div>
-                    <button class="plan-apply-confirm-btn" id="phoneApplyConfirmBtn">신청하기</button>
+                    <button class="plan-apply-confirm-btn" id="phoneApplyConfirmBtn" data-apply-url="<?php echo htmlspecialchars($phone['apply_url'] ?? 'https://www.daum.net'); ?>">신청하기</button>
                 </div>
             </div>
         </div>
@@ -812,41 +879,6 @@ include '../includes/footer.php';
 <script>
 // 통신사폰 신청하기 모달 기능
 document.addEventListener('DOMContentLoaded', function() {
-    // 상세 페이지에서 카드 클릭 차단
-    const planCardLink = document.querySelector('.plan-detail-page .plan-card-link');
-    if (planCardLink) {
-        planCardLink.addEventListener('click', function(e) {
-            // 버튼이나 아코디언이 아닌 경우에만 차단
-            const target = e.target;
-            
-            // 하트 버튼 체크 (SVG path도 포함)
-            const isFavoriteBtn = target.closest('.plan-favorite-btn') || 
-                                  target.closest('.plan-favorite-btn-inline') ||
-                                  target.closest('button.plan-favorite-btn-inline') ||
-                                  (target.tagName === 'path' && target.closest('.plan-favorite-btn-inline')) ||
-                                  (target.tagName === 'svg' && target.closest('.plan-favorite-btn-inline'));
-            
-            // 공유 버튼 체크
-            const isShareBtn = target.closest('.plan-share-btn-inline') ||
-                              target.closest('[data-share-url]') ||
-                              (target.tagName === 'path' && target.closest('.plan-share-btn-inline')) ||
-                              (target.tagName === 'svg' && target.closest('.plan-share-btn-inline'));
-            
-            // 일반 버튼 체크
-            const isButton = target.closest('button') && !isFavoriteBtn && !isShareBtn;
-            
-            // 아코디언 체크
-            const isAccordion = target.closest('.plan-accordion-trigger');
-            
-            // 하트, 공유, 아코디언이 아닌 경우에만 차단
-            if (!isFavoriteBtn && !isShareBtn && !isAccordion && !isButton) {
-                e.preventDefault();
-                e.stopPropagation();
-                return false;
-            }
-        }, false); // 버블링 단계에서 처리 (하트 버튼 이벤트 이후)
-    }
-    
     const applyBtn = document.getElementById('phoneApplyBtn');
     const applyModal = document.getElementById('phoneApplyModal');
     const applyModalOverlay = document.getElementById('phoneApplyModalOverlay');
@@ -877,10 +909,13 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 모달 열기 함수
     function openApplyModal() {
+        console.log('openApplyModal 호출');
         if (!applyModal) {
             console.error('모달을 찾을 수 없습니다.');
             return;
         }
+        
+        console.log('모달 요소:', applyModal);
         
         // 현재 스크롤 위치 저장
         scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
@@ -899,7 +934,10 @@ document.addEventListener('DOMContentLoaded', function() {
         document.documentElement.style.overflow = 'hidden';
         
         // 모달 열기
+        applyModal.style.display = 'flex';
         applyModal.classList.add('phone-apply-modal-active');
+        console.log('모달 display 설정:', applyModal.style.display);
+        console.log('모달 클래스:', applyModal.className);
         
         // 신청 안내 모달(3단계) 바로 표시 (가입유형 선택 건너뛰기)
         showStep(3);
@@ -998,11 +1036,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 신청하기 버튼 클릭 이벤트
     if (applyBtn) {
+        console.log('신청하기 버튼 찾음:', applyBtn);
         applyBtn.addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
+            console.log('신청하기 버튼 클릭됨');
             openApplyModal();
         });
+    } else {
+        console.error('신청하기 버튼을 찾을 수 없습니다: phoneApplyBtn');
     }
 
     // 모달 닫기 이벤트
@@ -1025,9 +1067,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const confirmBtn = document.getElementById('phoneApplyConfirmBtn');
     if (confirmBtn) {
         confirmBtn.addEventListener('click', function() {
-            // 여기에 실제 신청 로직 추가
-            alert('통신사폰 신청이 완료되었습니다.');
-            closeApplyModal();
+            // 상품 신청 URL 가져오기
+            const applyUrl = this.getAttribute('data-apply-url') || 'https://www.daum.net';
+            // 해당 URL로 이동
+            window.location.href = applyUrl;
         });
     }
 });
@@ -1204,6 +1247,47 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('정렬 방식 변경:', this.value);
         });
     }
+});
+</script>
+
+<?php
+// 포인트 사용 모달 포함
+$type = 'mno';
+$item_id = $phone_id;
+$item_name = $phone['device_name'] ?? '통신사폰';
+include '../includes/components/point-usage-modal.php';
+?>
+
+<script src="/MVNO/assets/js/point-usage-integration.js" defer></script>
+<script>
+// 통신사폰 신청하기 버튼에 포인트 모달 연동
+document.addEventListener('DOMContentLoaded', function() {
+    const applyBtn = document.getElementById('phoneApplyBtn');
+    if (applyBtn) {
+        applyBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // 포인트 모달 열기
+            const modalId = 'pointUsageModal_mno_<?php echo $phone_id; ?>';
+            const modal = document.getElementById(modalId);
+            if (modal && typeof openPointUsageModal === 'function') {
+                openPointUsageModal('mno', <?php echo $phone_id; ?>);
+            } else if (modal) {
+                modal.classList.add('show');
+                document.body.style.overflow = 'hidden';
+            }
+        });
+    }
+    
+    // 포인트 사용 확인 후 기존 신청 모달 열기
+    document.addEventListener('pointUsageConfirmed', function(e) {
+        const { type, itemId, usedPoint } = e.detail;
+        if (type === 'mno') {
+            console.log('포인트 사용 확인됨:', e.detail);
+            // TODO: 기존 통신사폰 신청 모달 열기
+        }
+    });
 });
 </script>
 

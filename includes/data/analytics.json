@@ -1,0 +1,259 @@
+{
+    "pageviews": [],
+    "sessions": [],
+    "events": [
+        {
+            "type": "favorite_add",
+            "data": {
+                "type": "plan",
+                "id": "32627",
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-05 22:20:17",
+            "date": "2025-12-05",
+            "user_id": null
+        },
+        {
+            "type": "share",
+            "data": {
+                "type": "mvno",
+                "id": "mvno-plan-detail.php?id=32627",
+                "method": "link",
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-05 22:20:18",
+            "date": "2025-12-05",
+            "user_id": null
+        },
+        {
+            "type": "share",
+            "data": {
+                "type": "mvno",
+                "id": "mvno-plan-detail.php?id=32627",
+                "method": "link",
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-05 22:20:19",
+            "date": "2025-12-05",
+            "user_id": null
+        },
+        {
+            "type": "favorite_add",
+            "data": {
+                "type": "phone",
+                "id": "2",
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-05 22:20:32",
+            "date": "2025-12-05",
+            "user_id": null
+        },
+        {
+            "type": "share",
+            "data": {
+                "type": "mno",
+                "id": "mno-phone-detail.php?id=1",
+                "method": "link",
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-05 22:20:37",
+            "date": "2025-12-05",
+            "user_id": null
+        },
+        {
+            "type": "favorite_add",
+            "data": {
+                "type": "phone",
+                "id": "1",
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-05 22:20:57",
+            "date": "2025-12-05",
+            "user_id": null
+        },
+        {
+            "type": "share",
+            "data": {
+                "type": "mno",
+                "id": "mno-phone-detail.php?id=1",
+                "method": "link",
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-05 22:21:00",
+            "date": "2025-12-05",
+            "user_id": null
+        },
+        {
+            "type": "favorite_remove",
+            "data": {
+                "type": "phone",
+                "id": "1",
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-05 22:21:04",
+            "date": "2025-12-05",
+            "user_id": null
+        },
+        {
+            "type": "share",
+            "data": {
+                "type": "mno",
+                "id": "mno-phone-detail.php?id=2",
+                "method": "link",
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-05 22:21:10",
+            "date": "2025-12-05",
+            "user_id": null
+        },
+        {
+            "type": "favorite_add",
+            "data": {
+                "type": "phone",
+                "id": "2",
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-05 22:21:11",
+            "date": "2025-12-05",
+            "user_id": null
+        },
+        {
+            "type": "favorite_add",
+            "data": {
+                "type": "phone",
+                "id": "2",
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-05 22:21:15",
+            "date": "2025-12-05",
+            "user_id": null
+        },
+        {
+            "type": "favorite_add",
+            "data": {
+                "type": "phone",
+                "id": "2",
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-05 22:21:21",
+            "date": "2025-12-05",
+            "user_id": null
+        },
+        {
+            "type": "favorite_add",
+            "data": {
+                "type": "phone",
+                "id": "1",
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-05 22:21:28",
+            "date": "2025-12-05",
+            "user_id": null
+        },
+        {
+            "type": "favorite_add",
+            "data": {
+                "type": "phone",
+                "id": "1",
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-05 22:21:32",
+            "date": "2025-12-05",
+            "user_id": null
+        },
+        {
+            "type": "favorite_add",
+            "data": {
+                "type": "phone",
+                "id": "1",
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-05 22:21:36",
+            "date": "2025-12-05",
+            "user_id": null
+        },
+        {
+            "type": "share",
+            "data": {
+                "type": "mno",
+                "id": "mno-phone-detail.php?id=1",
+                "method": "link",
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-05 22:21:40",
+            "date": "2025-12-05",
+            "user_id": null
+        },
+        {
+            "type": "share",
+            "data": {
+                "type": "mno",
+                "id": "mno-phone-detail.php?id=1",
+                "method": "link",
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-05 22:21:41",
+            "date": "2025-12-05",
+            "user_id": null
+        },
+        {
+            "type": "share",
+            "data": {
+                "type": "mno",
+                "id": "mno-phone-detail.php?id=1",
+                "method": "link",
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-05 22:21:41",
+            "date": "2025-12-05",
+            "user_id": null
+        },
+        {
+            "type": "favorite_add",
+            "data": {
+                "type": "plan",
+                "id": "32627",
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-05 22:21:44",
+            "date": "2025-12-05",
+            "user_id": null
+        },
+        {
+            "type": "favorite_add",
+            "data": {
+                "type": "plan",
+                "id": "32627",
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-05 22:21:58",
+            "date": "2025-12-05",
+            "user_id": null
+        },
+        {
+            "type": "favorite_remove",
+            "data": {
+                "type": "plan",
+                "id": "32627",
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-05 22:21:59",
+            "date": "2025-12-05",
+            "user_id": null
+        },
+        {
+            "type": "share",
+            "data": {
+                "type": "mvno",
+                "id": "mvno-plan-detail.php?id=32627",
+                "method": "link",
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-05 22:22:07",
+            "date": "2025-12-05",
+            "user_id": null
+        }
+    ],
+    "daily_stats": []
+}
+

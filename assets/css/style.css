@@ -2699,7 +2699,7 @@ button:focus {
 
 .basic-plan-card:hover {
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.08);
-    transform: translateY(-2px);
+    transform: translateY(0);
 }
 
 .plan-card-divider {
@@ -2790,6 +2790,8 @@ button:focus {
     display: flex;
     align-items: center;
     gap: 36px;
+    position: relative;
+    z-index: 10; /* 버튼이 클릭 가능하도록 */
 }
 
 .plan-share-btn-inline {
@@ -2802,8 +2804,21 @@ button:focus {
     justify-content: center;
     width: 24px;
     height: 24px;
-    transition: opacity 0.2s;
+    transition: transform 0.2s ease, opacity 0.2s;
     outline: none;
+    position: relative;
+    z-index: 11; /* 부모 링크 위에 표시 */
+    pointer-events: auto; /* 클릭 가능하도록 */
+}
+
+.plan-share-btn-inline:hover {
+    transform: scale(1.1);
+    opacity: 0.7;
+}
+
+.plan-share-btn-inline:active {
+    transform: scale(0.95);
+    opacity: 0.5;
 }
 
 .plan-share-btn-inline:focus {
@@ -2814,10 +2829,6 @@ button:focus {
 .plan-share-btn-inline:focus-visible {
     outline: none;
     box-shadow: none;
-}
-
-.plan-share-btn-inline:hover {
-    opacity: 0.7;
 }
 
 .plan-share-btn-inline:active {
@@ -2912,6 +2923,25 @@ button:focus {
     flex-shrink: 0;
     margin: -12px -12px -12px 0;
     outline: none;
+    position: relative;
+    z-index: 11; /* 부모 링크 위에 표시 */
+    pointer-events: auto; /* 클릭 가능하도록 */
+    transition: transform 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.plan-favorite-btn-inline:hover {
+    transform: scale(1.1);
+}
+
+.plan-favorite-btn-inline:active {
+    transform: scale(0.95);
+}
+
+.plan-favorite-btn-inline.favorited .favorite-icon-path {
+    fill: #ef4444 !important;
 }
 
 .plan-favorite-btn-inline svg,
@@ -3239,54 +3269,6 @@ button:focus {
     font-weight: 500;
     color: var(--color-gray-600);
     line-height: 1.2;
-}
-
-/* 공유하기 버튼 섹션 */
-.plan-card-share-section {
-    border-top: 1px solid var(--color-gray-200);
-    background-color: var(--color-white);
-    padding: var(--spacing-md);
-}
-
-.plan-share-btn {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: var(--spacing-sm);
-    padding: var(--spacing-sm) var(--spacing-md);
-    background: none;
-    border: 1px solid var(--color-gray-300);
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.2s;
-    font-size: var(--font-size-sm);
-    font-weight: 500;
-    color: var(--color-gray-600);
-}
-
-.plan-share-btn:hover {
-    background-color: var(--color-gray-100);
-    border-color: var(--color-gray-400);
-}
-
-.plan-share-btn:active {
-    background-color: var(--color-gray-200);
-}
-
-.plan-share-btn:focus {
-    outline: none;
-    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
-}
-
-.plan-share-btn svg {
-    flex-shrink: 0;
-}
-
-.plan-share-text {
-    font-size: var(--font-size-sm);
-    font-weight: 500;
-    color: var(--color-gray-600);
 }
 
 /* 데스크톱에서 요금제 카드 스타일 조정 */
@@ -4014,28 +3996,6 @@ button:focus {
     margin-bottom: 0;
 }
 
-/* 상세 페이지에서 카드 클릭 차단 */
-.plan-detail-page .plan-card-link {
-    pointer-events: none;
-    cursor: default;
-}
-
-/* 상세 페이지에서 카드 hover 효과 제거 */
-.plan-detail-page .basic-plan-card:hover {
-    box-shadow: none;
-    transform: none;
-}
-
-/* 상세 페이지에서 버튼들은 클릭 가능하도록 */
-.plan-detail-page .plan-card-link .plan-favorite-btn,
-.plan-detail-page .plan-card-link .plan-favorite-btn-inline,
-.plan-detail-page .plan-card-link .plan-share-btn-inline,
-.plan-detail-page .plan-card-link button[data-share-url],
-.plan-detail-page .plan-card-link .plan-accordion-trigger {
-    pointer-events: auto;
-    cursor: pointer;
-}
-
 @media (min-width: 992px) {
     .plan-detail-page {
         max-width: 640px;
@@ -4739,9 +4699,37 @@ button:focus {
     color: var(--color-gray-600);
 }
 
+/* 판매자 추가 정보 섹션 */
+.plan-seller-info-section {
+    padding: 16px 0;
+    border-top: none !important;
+}
+
+.plan-seller-info-section .plan-info-card {
+    margin-top: 0;
+}
+
+.plan-seller-info-section .plan-info-card-title {
+    border-bottom: none;
+    padding-bottom: 0;
+    margin-bottom: 12px;
+}
+
+.plan-seller-additional-text {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--color-gray-700);
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
 @media (min-width: 992px) {
     .plan-exceed-rate-section {
         padding: 20px 0 40px 0 !important;
+    }
+    
+    .plan-seller-info-section {
+        padding: 20px 0 40px 0;
     }
 }
 
@@ -6057,7 +6045,7 @@ button:focus {
     right: 0;
     bottom: 0;
     z-index: 10000;
-    display: flex;
+    display: none;
     align-items: flex-end;
     justify-content: center;
     opacity: 0;
@@ -6067,6 +6055,7 @@ button:focus {
 }
 
 .phone-apply-modal.phone-apply-modal-active {
+    display: flex;
     opacity: 1;
     visibility: visible;
     pointer-events: auto;
@@ -6746,103 +6735,6 @@ button:focus {
         font-size: 16px;
         padding: 16px;
     }
-}
-
-/* 위시리스트 공유 버튼 */
-.wishlist-share-btn {
-    background: none;
-    border: none;
-    padding: 0;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    transition: background-color 0.2s, opacity 0.2s;
-    outline: none;
-    flex-shrink: 0;
-}
-
-.wishlist-share-btn:focus {
-    outline: none;
-    box-shadow: none;
-}
-
-.wishlist-share-btn:focus-visible {
-    outline: 2px solid var(--color-indigo-500);
-    outline-offset: 2px;
-}
-
-.wishlist-share-btn:hover {
-    background-color: var(--color-gray-100);
-    opacity: 0.8;
-}
-
-.wishlist-share-btn:active {
-    opacity: 0.6;
-    background-color: var(--color-gray-200);
-}
-
-.wishlist-share-btn svg {
-    width: 24px;
-    height: 24px;
-}
-
-/* 공유 토스트 메시지 */
-.share-toast {
-    position: fixed;
-    background-color: var(--color-gray-700);
-    color: var(--color-white);
-    padding: 12px 20px;
-    border-radius: 24px;
-    font-size: var(--font-size-sm);
-    font-weight: 500;
-    z-index: 10000;
-    opacity: 0;
-    transition: opacity 0.3s ease, transform 0.3s ease;
-    box-shadow: var(--shadow-lg);
-    pointer-events: none;
-    white-space: nowrap;
-    transform: translateX(-50%) translateY(-50%) scale(0.9);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.share-toast-icon {
-    width: 20px;
-    height: 20px;
-    min-width: 20px;
-    min-height: 20px;
-    background-color: #6366f1;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-
-.share-toast-icon svg {
-    width: 14px;
-    height: 14px;
-}
-
-.share-toast-text {
-    flex: 1;
-}
-
-.share-toast.show {
-    opacity: 1;
-}
-
-.share-toast.show.toast-left {
-    transform: translateX(-100%) translateY(-50%) scale(1);
-}
-
-.share-toast.show:not(.toast-left) {
-    transform: translateX(-50%) translateY(-50%) scale(1);
 }
 
 /* Wishlist 페이지 PC 버전 너비 조정 */
@@ -7532,42 +7424,111 @@ button:focus {
     color: var(--color-gray-700);
 }
 
-.mvno-order-badge-share-group {
+.mvno-order-menu-group {
     display: flex;
     align-items: center;
-    gap: var(--spacing-xs);
+    position: relative;
 }
 
-.mvno-order-share-btn-inline {
+.mvno-order-menu-btn {
     background: none;
     border: none;
-    padding: 0;
+    padding: 4px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 24px;
-    height: 24px;
+    width: 32px;
+    height: 32px;
     transition: opacity 0.2s;
     outline: none;
+    border-radius: 4px;
 }
 
-.mvno-order-share-btn-inline:focus {
+.mvno-order-menu-btn:focus {
     outline: none;
     box-shadow: none;
 }
 
-.mvno-order-share-btn-inline:focus-visible {
+.mvno-order-menu-btn:focus-visible {
     outline: none;
     box-shadow: none;
 }
 
-.mvno-order-share-btn-inline:hover {
+.mvno-order-menu-btn:hover {
+    background-color: var(--color-gray-100);
+}
+
+.mvno-order-menu-btn:active {
     opacity: 0.7;
 }
 
-.mvno-order-share-btn-inline:active {
-    opacity: 0.5;
+.mvno-order-menu-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 8px;
+    background: var(--color-white);
+    border: 1px solid var(--color-gray-200);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    z-index: 100;
+    min-width: 120px;
+    overflow: hidden;
+    display: none;
+    flex-direction: column;
+    opacity: 0;
+    transform: translateX(20px);
+    visibility: hidden;
+    transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s;
+}
+
+.mvno-order-menu-dropdown.mvno-order-menu-open {
+    opacity: 1;
+    transform: translateX(0);
+    visibility: visible;
+    display: flex;
+}
+
+.mvno-order-menu-item {
+    display: block;
+    width: 100%;
+    padding: 12px 16px;
+    background: none;
+    border: none;
+    text-align: left;
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    color: var(--color-gray-700);
+    cursor: pointer;
+    transition: background-color 0.2s;
+    border-radius: 0;
+}
+
+.mvno-order-menu-item:first-child {
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+}
+
+.mvno-order-menu-item:last-child {
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+}
+
+.mvno-order-menu-item:not(:last-child) {
+    border-bottom: 1px solid var(--color-gray-200);
+}
+
+.mvno-order-menu-item:hover {
+    background-color: var(--color-gray-100);
+}
+
+.mvno-order-menu-item.mvno-order-review-delete-btn {
+    color: var(--color-red-500);
+}
+
+.mvno-order-menu-item.mvno-order-review-delete-btn:hover {
+    background-color: var(--color-red-100);
 }
 
 /* 모바일에서 카드 구분선 표시 */
@@ -7976,10 +7937,8 @@ button:focus {
     }
 }
 
-/* ============================================
-   인터넷 리뷰 작성 모달
-   ============================================ */
-.internet-review-modal {
+/* 리뷰 작성 완료 모달 */
+.mvno-review-success-modal {
     position: fixed;
     top: 0;
     left: 0;
@@ -7992,7 +7951,7 @@ button:focus {
     padding: var(--spacing-md);
 }
 
-.internet-review-modal-overlay {
+.mvno-review-success-modal-overlay {
     position: absolute;
     top: 0;
     left: 0;
@@ -8002,13 +7961,12 @@ button:focus {
     backdrop-filter: none;
 }
 
-.internet-review-modal-content {
+.mvno-review-success-modal-content {
     position: relative;
     background-color: var(--color-white);
     border-radius: 16px;
     width: 100%;
-    max-width: 500px;
-    max-height: 90vh;
+    max-width: 400px;
     display: flex;
     flex-direction: column;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
@@ -8016,1212 +7974,204 @@ button:focus {
     overflow: hidden;
 }
 
-.internet-review-modal-header {
+.mvno-review-success-modal-body {
+    padding: var(--spacing-xl);
+    text-align: center;
     display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: space-between;
-    padding: var(--spacing-lg);
-    border-bottom: 1px solid var(--color-gray-200);
+    gap: var(--spacing-md);
 }
 
-.internet-review-modal-title {
+.mvno-review-success-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: var(--spacing-sm);
+}
+
+.mvno-review-success-title {
     font-size: var(--font-size-xl);
     font-weight: 700;
     color: var(--color-black);
     margin: 0;
 }
 
-.internet-review-modal-close {
-    background: none;
-    border: none;
-    padding: 4px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--color-gray-500);
-    transition: color 0.2s;
-    border-radius: 4px;
+.mvno-review-success-message {
+    font-size: var(--font-size-base);
+    color: var(--color-gray-600);
+    margin: 0;
 }
 
-.internet-review-modal-close:hover {
-    color: var(--color-gray-700);
-    background-color: var(--color-gray-100);
-}
-
-.internet-review-modal-body {
+.mvno-review-success-modal-footer {
     padding: var(--spacing-lg);
-    overflow-y: auto;
-    flex: 1;
+    border-top: 1px solid var(--color-gray-200);
 }
 
-.internet-review-form-group {
-    margin-bottom: var(--spacing-lg);
-}
-
-.internet-review-form-label {
-    display: block;
+.mvno-review-success-btn-confirm {
+    width: 100%;
+    padding: 12px 24px;
+    background-color: var(--color-indigo-500);
+    color: var(--color-white);
+    border: none;
+    border-radius: 8px;
     font-size: var(--font-size-base);
     font-weight: 600;
-    color: var(--color-gray-700);
-    margin-bottom: var(--spacing-sm);
+    cursor: pointer;
+    transition: all 0.2s ease;
 }
 
-.internet-review-textarea {
-    width: 100%;
-    padding: var(--spacing-md);
-    border: 1px solid var(--color-gray-300);
-    border-radius: 8px;
-    font-size: var(--font-size-base);
-    font-family: inherit;
-    line-height: 1.6;
-    resize: vertical;
-    min-height: 200px;
-    box-sizing: border-box;
-    transition: border-color 0.2s;
+.mvno-review-success-btn-confirm:hover {
+    background-color: var(--color-indigo-600);
 }
 
-.internet-review-textarea:focus {
-    outline: none;
-    border-color: var(--color-indigo-500);
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-}
-
-.internet-review-textarea::placeholder {
-    color: var(--color-gray-400);
-}
-
-/* 별점 평가 스타일 - 인터넷, 알뜰폰, 통신사폰 공통 */
-.internet-star-rating,
-.mvno-star-rating,
-.mno-star-rating {
-    display: flex;
-    flex-direction: row-reverse;
-    justify-content: flex-end;
-    gap: 4px;
-    margin-bottom: var(--spacing-sm);
-    flex-wrap: wrap;
-}
-
-/* 별점 그룹 좌우 배치 */
-.internet-rating-group-row,
-.mvno-rating-group-row,
-.mno-rating-group-row {
-    display: flex;
-    gap: var(--spacing-md);
-    align-items: flex-start;
-    width: 100%;
-    box-sizing: border-box;
-    flex-wrap: nowrap;
-}
-
-.internet-rating-item,
-.mvno-rating-item,
-.mno-rating-item {
-    flex: 1;
+/* ============================================
+   주문 페이지 리뷰 모달 별점 스타일 (공통)
+   ============================================ */
+[class*="-review-modal"] [class*="-rating-group-row"] {
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-sm);
-    padding: var(--spacing-md);
-    border: 1px solid rgba(0, 0, 0, 0.1);
-    border-radius: 8px;
-    background-color: var(--color-white);
-    align-items: center;
-    text-align: center;
-    min-width: 0;
-    box-sizing: border-box;
+    gap: 0;
 }
 
-.internet-rating-item .internet-review-form-label,
-.mvno-rating-item .mvno-review-form-label,
-.mno-rating-item .mno-review-form-label {
-    text-align: center;
-    width: 100%;
+[class*="-review-modal"] [class*="-rating-item"] {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
     margin-bottom: 0;
 }
 
-.internet-rating-item .internet-star-rating,
-.mvno-rating-item .mvno-star-rating,
-.mno-rating-item .mno-star-rating {
-    justify-content: center;
-    flex-wrap: wrap;
+[class*="-review-modal"] [class*="-rating-item-spaced"] {
+    margin-top: 32px;
 }
 
-.internet-rating-item .internet-star-rating .star-label svg,
-.mvno-rating-item .mvno-star-rating .star-label svg,
-.mno-rating-item .mno-star-rating .star-label svg {
-    width: 20px;
-    height: 20px;
+[class*="-review-modal"] [class*="-review-form-label"] {
+    font-size: 14px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 0;
 }
 
-.internet-rating-item .internet-star-rating .star-label,
-.mvno-rating-item .mvno-star-rating .star-label,
-.mno-rating-item .mno-star-rating .star-label {
-    padding: 2px;
+[class*="-review-modal"] [class*="-star-rating"] {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: relative;
 }
 
-@media (max-width: 640px) {
-    .internet-rating-group-row,
-    .mvno-rating-group-row,
-    .mno-rating-group-row {
-        gap: var(--spacing-sm);
-    }
-    
-    .internet-rating-item,
-    .mvno-rating-item,
-    .mno-rating-item {
-        padding: var(--spacing-sm);
-    }
-    
-    .internet-rating-item .internet-star-rating,
-    .mvno-rating-item .mvno-star-rating,
-    .mno-rating-item .mno-star-rating {
-        gap: 2px;
-    }
-    
-    .internet-rating-item .internet-star-rating .star-label svg,
-    .mvno-rating-item .mvno-star-rating .star-label svg,
-    .mno-rating-item .mno-star-rating .star-label svg {
-        width: 18px;
-        height: 18px;
-    }
-    
-    .internet-rating-item .internet-star-rating .star-label,
-    .mvno-rating-item .mvno-star-rating .star-label,
-    .mno-rating-item .mno-star-rating .star-label {
-        padding: 2px;
-    }
+[class*="-review-modal"] [class*="-star-rating"] input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    margin: 0;
+    padding: 0;
+    pointer-events: none;
 }
 
-.internet-star-rating input[type="radio"],
-.mvno-star-rating input[type="radio"],
-.mno-star-rating input[type="radio"] {
-    display: none;
-}
-
-.internet-star-rating .star-label,
-.mvno-star-rating .star-label,
-.mno-star-rating .star-label {
-    cursor: pointer;
-    color: var(--color-gray-300);
-    transition: color 0.2s ease, transform 0.1s ease;
+[class*="-review-modal"] [class*="-star-label"] {
     display: inline-block;
+    cursor: pointer;
+    color: #d1d5db;
+    transition: color 0.2s ease, transform 0.1s ease;
     padding: 4px;
+    margin: 0;
+    line-height: 0;
 }
 
-.internet-star-rating .star-label:hover,
-.internet-star-rating .star-label:hover ~ .star-label,
-.mvno-star-rating .star-label:hover,
-.mvno-star-rating .star-label:hover ~ .star-label,
-.mno-star-rating .star-label:hover,
-.mno-star-rating .star-label:hover ~ .star-label {
-    color: #fbbf24;
+[class*="-review-modal"] [class*="-star-label"]:hover {
     transform: scale(1.1);
 }
 
-.internet-star-rating input[type="radio"]:checked ~ .star-label,
-.internet-star-rating input[type="radio"]:checked ~ .star-label ~ .star-label,
-.mvno-star-rating input[type="radio"]:checked ~ .star-label,
-.mvno-star-rating input[type="radio"]:checked ~ .star-label ~ .star-label,
-.mno-star-rating input[type="radio"]:checked ~ .star-label,
-.mno-star-rating input[type="radio"]:checked ~ .star-label ~ .star-label {
-    color: #fbbf24;
-}
-
-.internet-star-rating input[type="radio"]:checked + .star-label ~ .star-label,
-.mvno-star-rating input[type="radio"]:checked + .star-label ~ .star-label,
-.mno-star-rating input[type="radio"]:checked + .star-label ~ .star-label {
-    color: #fbbf24;
-}
-
-.internet-star-rating input[type="radio"]:checked ~ .star-label,
-.mvno-star-rating input[type="radio"]:checked ~ .star-label,
-.mno-star-rating input[type="radio"]:checked ~ .star-label {
-    color: #fbbf24;
-}
-
-.internet-review-modal-footer {
-    display: flex;
-    gap: var(--spacing-sm);
-    padding-top: var(--spacing-md);
-    border-top: 1px solid var(--color-gray-200);
-}
-
-.internet-review-btn-cancel,
-.internet-review-btn-submit {
-    flex: 1;
-    padding: 12px 24px;
-    border: none;
-    border-radius: 8px;
-    font-size: var(--font-size-base);
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.internet-review-btn-cancel {
-    background-color: var(--color-gray-100);
-    color: var(--color-gray-700);
-}
-
-.internet-review-btn-cancel:hover {
-    background-color: var(--color-gray-200);
-}
-
-.internet-review-btn-submit {
-    background-color: var(--color-indigo-500);
-    color: var(--color-white);
-}
-
-.internet-review-btn-submit:hover {
-    background-color: var(--color-indigo-600);
-}
-
-.internet-review-btn-submit:active {
-    transform: scale(0.98);
-}
-
-/* 인터넷 리뷰 작성 완료 토스트 메시지 */
-.internet-review-toast {
-    position: fixed;
-    background-color: rgba(0, 0, 0, 0.85);
-    color: var(--color-white);
-    padding: 12px 20px;
-    border-radius: 8px;
-    font-size: 0.875rem; /* 14px */
-    font-weight: 500;
-    z-index: 10001;
-    opacity: 0;
-    transform: translateX(-50%) translateY(-50%) translateY(10px);
-    transition: opacity 0.3s ease, transform 0.3s ease;
-    pointer-events: none;
-    white-space: nowrap;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    max-width: 90vw;
-    word-wrap: break-word;
-}
-
-.internet-review-toast.internet-review-toast-visible {
-    opacity: 1;
-    transform: translateX(-50%) translateY(-50%) translateY(0);
-}
-
-/* 모바일에서 모달 스타일 조정 */
-@media (max-width: 767px) {
-    .internet-review-modal {
-        padding: 0;
-        align-items: flex-end;
-    }
-
-    .internet-review-modal-content {
-        max-width: 100%;
-        max-height: 90vh;
-        border-radius: 16px 16px 0 0;
-    }
+[class*="-review-modal"] [class*="-star-label"] svg {
+    display: block;
+    width: 32px;
+    height: 32px;
 }
 
 /* ============================================
-   인터넷 리뷰 삭제 확인 모달
+   주문 페이지 점 3개 메뉴 스타일 (공통)
    ============================================ */
-.internet-review-delete-modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 10001;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    padding: var(--spacing-md);
-}
-
-.internet-review-delete-modal-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.3);
-    backdrop-filter: blur(2px);
-}
-
-.internet-review-delete-modal-content {
-    position: relative;
-    background-color: var(--color-white);
-    border-radius: 16px;
-    width: 100%;
-    max-width: 400px;
-    display: flex;
-    flex-direction: column;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-    z-index: 1;
-    overflow: hidden;
-}
-
-.internet-review-delete-modal-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: var(--spacing-lg);
-    border-bottom: 1px solid var(--color-gray-200);
-}
-
-.internet-review-delete-modal-title {
-    font-size: var(--font-size-xl);
-    font-weight: 700;
-    color: var(--color-black);
-    margin: 0;
-}
-
-.internet-review-delete-modal-close {
-    background: none;
-    border: none;
-    padding: 4px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--color-gray-500);
-    transition: color 0.2s;
+[class*="-order-menu-btn"]:hover {
+    background-color: rgba(0, 0, 0, 0.05) !important;
     border-radius: 4px;
 }
 
-.internet-review-delete-modal-close:hover {
-    color: var(--color-gray-700);
-    background-color: var(--color-gray-100);
-}
-
-.internet-review-delete-modal-body {
-    padding: var(--spacing-lg);
-    text-align: center;
-}
-
-.internet-review-delete-message {
-    font-size: var(--font-size-lg);
-    font-weight: 600;
-    color: var(--color-gray-900);
-    margin: 0 0 var(--spacing-sm) 0;
-}
-
-.internet-review-delete-submessage {
-    font-size: var(--font-size-sm);
-    color: var(--color-gray-600);
-    margin: 0;
-}
-
-.internet-review-delete-modal-footer {
-    display: flex;
-    gap: var(--spacing-sm);
-    padding: var(--spacing-lg);
-    border-top: 1px solid var(--color-gray-200);
-}
-
-.internet-review-delete-btn-cancel,
-.internet-review-delete-btn-confirm {
-    flex: 1;
-    padding: 12px 24px;
-    border: none;
-    border-radius: 8px;
-    font-size: var(--font-size-base);
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.internet-review-delete-btn-cancel {
-    background-color: var(--color-gray-100);
-    color: var(--color-gray-700);
-}
-
-.internet-review-delete-btn-cancel:hover {
-    background-color: var(--color-gray-200);
-}
-
-.internet-review-delete-btn-confirm {
-    background-color: #ef4444;
-    color: var(--color-white);
-}
-
-.internet-review-delete-btn-confirm:hover {
-    background-color: #dc2626;
-}
-
-.internet-review-delete-btn-confirm:active {
-    transform: scale(0.98);
-}
-
-@media (max-width: 767px) {
-    .internet-review-delete-modal {
-        padding: 0;
-        align-items: flex-end;
-    }
-
-    .internet-review-delete-modal-content {
-        max-width: 100%;
-        border-radius: 16px 16px 0 0;
-    }
-}
-
-/* ============================================
-   알뜰폰 리뷰 삭제 확인 모달
-   ============================================ */
-.mvno-review-delete-modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 10001;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    padding: var(--spacing-md);
-}
-
-.mvno-review-delete-modal-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.3);
-    backdrop-filter: blur(2px);
-}
-
-.mvno-review-delete-modal-content {
-    position: relative;
-    background-color: var(--color-white);
-    border-radius: 16px;
-    width: 100%;
-    max-width: 400px;
-    display: flex;
-    flex-direction: column;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-    z-index: 1;
-    overflow: hidden;
-}
-
-.mvno-review-delete-modal-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: var(--spacing-lg);
-    border-bottom: 1px solid var(--color-gray-200);
-}
-
-.mvno-review-delete-modal-title {
-    font-size: var(--font-size-xl);
-    font-weight: 700;
-    color: var(--color-black);
-    margin: 0;
-}
-
-.mvno-review-delete-modal-close {
-    background: none;
-    border: none;
-    padding: 4px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--color-gray-500);
-    transition: color 0.2s;
-    border-radius: 4px;
-}
-
-.mvno-review-delete-modal-close:hover {
-    color: var(--color-gray-700);
-    background-color: var(--color-gray-100);
-}
-
-.mvno-review-delete-modal-body {
-    padding: var(--spacing-lg);
-    text-align: center;
-}
-
-.mvno-review-delete-message {
-    font-size: var(--font-size-lg);
-    font-weight: 600;
-    color: var(--color-gray-900);
-    margin: 0 0 var(--spacing-sm) 0;
-}
-
-.mvno-review-delete-submessage {
-    font-size: var(--font-size-sm);
-    color: var(--color-gray-600);
-    margin: 0;
-}
-
-.mvno-review-delete-modal-footer {
-    display: flex;
-    gap: var(--spacing-sm);
-    padding: var(--spacing-lg);
-    border-top: 1px solid var(--color-gray-200);
-}
-
-.mvno-review-delete-btn-cancel,
-.mvno-review-delete-btn-confirm {
-    flex: 1;
-    padding: 12px 24px;
-    border: none;
-    border-radius: 8px;
-    font-size: var(--font-size-base);
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.mvno-review-delete-btn-cancel {
-    background-color: var(--color-gray-100);
-    color: var(--color-gray-700);
-}
-
-.mvno-review-delete-btn-cancel:hover {
-    background-color: var(--color-gray-200);
-}
-
-.mvno-review-delete-btn-confirm {
-    background-color: #ef4444;
-    color: var(--color-white);
-}
-
-.mvno-review-delete-btn-confirm:hover {
-    background-color: #dc2626;
-}
-
-.mvno-review-delete-btn-confirm:active {
-    transform: scale(0.98);
-}
-
-@media (max-width: 767px) {
-    .mvno-review-delete-modal {
-        padding: 0;
-        align-items: flex-end;
-    }
-
-    .mvno-review-delete-modal-content {
-        max-width: 100%;
-        border-radius: 16px 16px 0 0;
-    }
-}
-
-/* ============================================
-   통신사폰 리뷰 삭제 확인 모달
-   ============================================ */
-.mno-review-delete-modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 10001;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    padding: var(--spacing-md);
-}
-
-.mno-review-delete-modal-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.3);
-    backdrop-filter: blur(2px);
-}
-
-.mno-review-delete-modal-content {
-    position: relative;
-    background-color: var(--color-white);
-    border-radius: 16px;
-    width: 100%;
-    max-width: 400px;
-    display: flex;
-    flex-direction: column;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-    z-index: 1;
-    overflow: hidden;
-}
-
-.mno-review-delete-modal-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: var(--spacing-lg);
-    border-bottom: 1px solid var(--color-gray-200);
-}
-
-.mno-review-delete-modal-title {
-    font-size: var(--font-size-xl);
-    font-weight: 700;
-    color: var(--color-black);
-    margin: 0;
-}
-
-.mno-review-delete-modal-close {
-    background: none;
-    border: none;
-    padding: 4px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--color-gray-500);
-    transition: color 0.2s;
-    border-radius: 4px;
-}
-
-.mno-review-delete-modal-close:hover {
-    color: var(--color-gray-700);
-    background-color: var(--color-gray-100);
-}
-
-.mno-review-delete-modal-body {
-    padding: var(--spacing-lg);
-    text-align: center;
-}
-
-.mno-review-delete-message {
-    font-size: var(--font-size-lg);
-    font-weight: 600;
-    color: var(--color-gray-900);
-    margin: 0 0 var(--spacing-sm) 0;
-}
-
-.mno-review-delete-submessage {
-    font-size: var(--font-size-sm);
-    color: var(--color-gray-600);
-    margin: 0;
-}
-
-.mno-review-delete-modal-footer {
-    display: flex;
-    gap: var(--spacing-sm);
-    padding: var(--spacing-lg);
-    border-top: 1px solid var(--color-gray-200);
-}
-
-.mno-review-delete-btn-cancel,
-.mno-review-delete-btn-confirm {
-    flex: 1;
-    padding: 12px 24px;
-    border: none;
-    border-radius: 8px;
-    font-size: var(--font-size-base);
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.mno-review-delete-btn-cancel {
-    background-color: var(--color-gray-100);
-    color: var(--color-gray-700);
-}
-
-.mno-review-delete-btn-cancel:hover {
-    background-color: var(--color-gray-200);
-}
-
-.mno-review-delete-btn-confirm {
-    background-color: #ef4444;
-    color: var(--color-white);
-}
-
-.mno-review-delete-btn-confirm:hover {
-    background-color: #dc2626;
-}
-
-.mno-review-delete-btn-confirm:active {
-    transform: scale(0.98);
-}
-
-@media (max-width: 767px) {
-    .mno-review-delete-modal {
-        padding: 0;
-        align-items: flex-end;
-    }
-
-    .mno-review-delete-modal-content {
-        max-width: 100%;
-        border-radius: 16px 16px 0 0;
-    }
-}
-
-/* ============================================
-   인터넷 리뷰 아코디언
-   ============================================ */
-.css-58gch7 .internet-review-accordion,
-.e82z5mt0 .internet-review-accordion {
-    border-top: 1px solid var(--color-gray-200);
-    margin-top: 16px;
-    margin-left: 0;
-    margin-right: 0;
-    margin-bottom: 0;
-    width: 100%;
-    box-sizing: border-box;
-}
-
-.internet-review-accordion {
-    border-top: 1px solid var(--color-gray-200);
-    margin-top: 16px;
-    margin-left: 0;
-    margin-right: 0;
-    margin-bottom: 0;
-    width: 100%;
-    box-sizing: border-box;
-}
-
-.internet-review-accordion-header {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 16px 20px;
-    background: none;
-    border: none;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-    text-align: left;
-    margin: 0;
-    box-sizing: border-box;
-}
-
-.internet-review-accordion-header:hover {
-    background-color: var(--color-gray-50);
-}
-
-.internet-review-accordion-title {
-    font-size: var(--font-size-base);
-    font-weight: 600;
-    color: var(--color-gray-900);
-}
-
-.internet-review-accordion-icon {
-    color: var(--color-gray-500);
-    transition: transform 0.3s ease, color 0.2s ease;
-    flex-shrink: 0;
-}
-
-.internet-review-accordion-header.active .internet-review-accordion-icon {
-    transform: rotate(180deg);
-    color: var(--color-gray-700);
-}
-
-.internet-review-accordion-content {
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height 0.3s ease, padding 0.3s ease;
-    padding: 0 20px;
-    margin: 0;
-    box-sizing: border-box;
-}
-
-.internet-review-accordion-content.active {
-    max-height: 2000px;
-    padding: 0 20px 20px 20px;
-    margin: 0;
-    box-sizing: border-box;
-}
-
-.internet-review-list {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-}
-
-.internet-review-item {
-    padding: 16px;
-    background-color: var(--color-gray-50);
-    border-radius: 8px;
-    border: 1px solid var(--color-gray-200);
-}
-
-.internet-review-header {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    margin-bottom: 12px;
-}
-
-.internet-review-user-info {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.internet-review-user {
-    font-size: var(--font-size-sm);
-    font-weight: 600;
-    color: var(--color-gray-900);
-}
-
-.internet-review-date {
-    font-size: var(--font-size-xs);
-    color: var(--color-gray-500);
-}
-
-.internet-review-ratings {
-    display: flex;
-    gap: 16px;
-    flex-wrap: wrap;
-}
-
-.internet-review-rating-item {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.internet-review-rating-label {
-    font-size: var(--font-size-xs);
-    color: var(--color-gray-600);
-    white-space: nowrap;
-}
-
-.internet-review-rating-stars {
-    display: flex;
-    gap: 2px;
-    align-items: center;
-}
-
-.internet-review-rating-stars svg {
-    width: 14px;
-    height: 14px;
-    flex-shrink: 0;
-}
-
-.internet-review-content {
-    font-size: var(--font-size-sm);
-    color: var(--color-gray-700);
-    line-height: 1.6;
-    margin: 0;
-}
-
-@media (max-width: 767px) {
-    .internet-review-accordion-header {
-        padding: 14px 16px;
-    }
-
-    .internet-review-accordion-content {
-        padding: 0 16px;
-    }
-
-    .internet-review-accordion-content.active {
-        padding: 0 16px 16px 16px;
-    }
-
-    .internet-review-item {
-        padding: 12px;
-    }
-
-    .internet-review-ratings {
-        gap: 12px;
-    }
-
-    .internet-review-rating-label {
-        font-size: 11px;
-    }
-
-    .internet-review-rating-stars svg {
-        width: 12px;
-        height: 12px;
-    }
-}
-
-/* ============================================
-   휴대폰 상담 신청 모달
-   ============================================ */
-.phone-consultation-modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 10000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.3s ease, visibility 0.3s ease;
-    pointer-events: none;
-}
-
-.phone-consultation-modal.phone-consultation-modal-active {
-    opacity: 1;
-    visibility: visible;
-    pointer-events: auto;
-}
-
-.phone-consultation-modal-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(2px);
-}
-
-.phone-consultation-modal-content {
-    position: relative;
-    background-color: var(--color-white);
-    border-radius: 16px;
-    width: 90%;
-    max-width: 500px;
-    max-height: 90vh;
-    display: flex;
-    flex-direction: column;
-    transform: scale(0.95);
-    transition: transform 0.3s ease;
-    z-index: 10001;
-    overflow: hidden;
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-}
-
-.phone-consultation-modal.phone-consultation-modal-active .phone-consultation-modal-content {
-    transform: scale(1);
-}
-
-.phone-consultation-modal-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 20px;
-    border-bottom: 1px solid var(--color-gray-200);
-    flex-shrink: 0;
-}
-
-.phone-consultation-modal-title {
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: var(--color-gray-700);
-    margin: 0;
-    flex: 1;
-}
-
-.phone-consultation-modal-close {
-    background: none;
-    border: none;
-    padding: 8px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 8px;
-    transition: background-color 0.2s;
-    outline: none;
-    margin-left: auto;
-}
-
-.phone-consultation-modal-close:hover {
-    background-color: var(--color-gray-100);
-}
-
-.phone-consultation-modal-close:focus {
-    outline: 2px solid var(--color-indigo-500);
-    outline-offset: 2px;
-}
-
-.phone-consultation-modal-close:active {
-    background-color: var(--color-gray-200);
-}
-
-.phone-consultation-modal-body {
-    padding: 20px;
-    overflow-y: auto;
-    flex: 1;
-    min-height: 0;
-}
-
-/* 안내 문구 */
-.phone-consultation-info {
-    display: flex;
-    gap: 12px;
-    padding: 16px;
+[class*="-order-menu-item"]:hover {
     background-color: #f3f4f6;
+}
+
+[class*="-order-menu-dropdown"] {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 4px;
+    background: white;
+    border: 1px solid #e5e7eb;
     border-radius: 8px;
-    margin-bottom: 24px;
-}
-
-.phone-consultation-info-icon {
-    flex-shrink: 0;
-    display: flex;
-    align-items: flex-start;
-}
-
-.phone-consultation-info-icon svg {
-    width: 18px;
-    height: 18px;
-}
-
-.phone-consultation-info-text {
-    flex: 1;
-}
-
-.phone-consultation-info-text p {
-    margin: 0;
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: #374151;
-    line-height: 1.5;
-}
-
-/* 폼 스타일 */
-.phone-consultation-form {
-    display: flex;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    min-width: 120px;
+    overflow: hidden;
+    display: none;
     flex-direction: column;
-    gap: 20px;
 }
 
-.phone-consultation-form-group {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.phone-consultation-label {
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: var(--color-gray-700);
-}
-
-.phone-consultation-input-wrapper {
-    position: relative;
-}
-
-.phone-consultation-input {
+[class*="-order-menu-item"] {
+    display: block;
     width: 100%;
     padding: 12px 16px;
-    font-size: 1rem;
-    border: 1px solid var(--color-gray-300);
-    border-radius: 8px;
-    background-color: var(--color-white);
-    color: var(--color-gray-700);
-    transition: border-color 0.2s, box-shadow 0.2s;
-    box-sizing: border-box;
-}
-
-.phone-consultation-input:focus {
-    outline: none;
-    border-color: var(--color-indigo-500);
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-}
-
-.phone-consultation-input::placeholder {
-    color: var(--color-gray-400);
-}
-
-/* 동의 체크박스 */
-.phone-consultation-agreement {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-}
-
-.phone-consultation-agreement-list {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    padding-left: 8px;
-}
-
-.phone-consultation-agreement-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-}
-
-.phone-consultation-agreement-checkbox-label {
-    display: flex;
-    align-items: center;
-    cursor: pointer;
-    flex: 1;
-}
-
-.phone-consultation-checkbox {
-    width: 18px;
-    height: 18px;
-    margin-right: 8px;
-    cursor: pointer;
-    accent-color: var(--color-indigo-500);
-}
-
-.phone-consultation-checkbox-text {
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: var(--color-gray-500);
-    flex: 1;
-}
-
-.phone-consultation-agreement-link {
-    display: flex;
-    align-items: center;
-    color: var(--color-gray-500);
-    margin-left: auto;
-}
-
-.phone-consultation-agreement-link svg {
-    width: 16px;
-    height: 16px;
-}
-
-.phone-consultation-agreement-link:hover {
-    color: var(--color-indigo-500);
-}
-
-/* 제출 버튼 */
-.phone-consultation-submit-btn {
-    width: 100%;
-    padding: 14px 24px;
-    font-size: 1rem;
-    font-weight: 600;
-    color: var(--color-white);
-    background-color: var(--color-indigo-500);
+    background: none;
     border: none;
-    border-radius: 8px;
+    text-align: left;
+    font-size: 14px;
+    font-weight: 500;
+    color: #374151;
     cursor: pointer;
     transition: background-color 0.2s;
-    margin-top: 8px;
+    border-radius: 0;
 }
 
-.phone-consultation-submit-btn:hover:not(:disabled) {
-    background-color: var(--color-indigo-600);
+[class*="-order-menu-item"]:first-child {
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
 }
 
-.phone-consultation-submit-btn:disabled {
-    background-color: var(--color-gray-300);
-    color: var(--color-gray-500);
-    cursor: not-allowed;
+[class*="-order-menu-item"]:last-child {
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
 }
 
-.phone-consultation-submit-btn:focus {
-    outline: 2px solid var(--color-indigo-500);
-    outline-offset: 2px;
+[class*="-order-menu-item"]:not(:last-child) {
+    border-bottom: 1px solid #e5e7eb;
 }
 
-/* 모바일 스타일 */
+[class*="-order-menu-item"][class*="-review-delete-btn"] {
+    color: #ef4444;
+}
+
+[class*="-order-menu-item"][class*="-review-delete-btn"]:hover {
+    background-color: #fee2e2;
+}
+
+[class*="-order-menu-group"] {
+    position: relative;
+}
+
+.mvno-review-success-btn-confirm:active {
+    transform: scale(0.98);
+}
+
+/* 모바일에서 성공 모달 스타일 조정 */
 @media (max-width: 767px) {
-    .phone-consultation-modal-content {
-        width: 100%;
-        max-width: 100%;
-        max-height: 95vh;
-        border-radius: 20px 20px 0 0;
-    }
-    
-    .phone-consultation-modal {
+    .mvno-review-success-modal {
+        padding: 0;
         align-items: flex-end;
     }
-    
-    .phone-consultation-modal-body {
-        padding: 16px;
-    }
-    
-    .phone-consultation-modal-header {
-        padding: 16px;
+
+    .mvno-review-success-modal-content {
+        max-width: 100%;
+        border-radius: 16px 16px 0 0;
     }
 }
 

@@ -4,22 +4,6 @@ $current_page = 'internets';
 // 메인 페이지 여부 (하단 메뉴 및 푸터 표시용)
 $is_main_page = true;
 
-// 샘플 리뷰 데이터 (실제로는 데이터베이스에서 가져옴)
-$reviews = [
-    1 => [
-        ['id' => 1, 'user' => '김**', 'kindness_rating' => 5, 'speed_rating' => 5, 'content' => '설치가 정말 빠르고 직원분이 친절하셨어요!', 'date' => '2024.11.15'],
-        ['id' => 2, 'user' => '이**', 'kindness_rating' => 4, 'speed_rating' => 5, 'content' => '설치는 빠른데 약간의 지연이 있었지만 전반적으로 만족합니다.', 'date' => '2024.11.14'],
-        ['id' => 3, 'user' => '박**', 'kindness_rating' => 5, 'speed_rating' => 4, 'content' => '친절하시고 설명도 잘 해주셨어요. 추천합니다!', 'date' => '2024.11.13'],
-    ],
-    2 => [
-        ['id' => 4, 'user' => '최**', 'kindness_rating' => 5, 'speed_rating' => 5, 'content' => '완벽합니다! 설치도 빠르고 서비스도 좋아요.', 'date' => '2024.11.12'],
-        ['id' => 5, 'user' => '정**', 'kindness_rating' => 4, 'speed_rating' => 4, 'content' => '만족스러운 서비스였습니다.', 'date' => '2024.11.11'],
-    ],
-    3 => [
-        ['id' => 6, 'user' => '강**', 'kindness_rating' => 5, 'speed_rating' => 5, 'content' => '정말 좋아요! 빠르고 친절합니다.', 'date' => '2024.11.10'],
-    ],
-];
-
 // 헤더 포함
 include '../includes/header.php';
 ?>
@@ -126,60 +110,6 @@ include '../includes/header.php';
                             <p class="css-16qot29 e82z5mt6">월 26,400원</p>
                         </div>
                     </div>
-                    
-                    <!-- 리뷰 아코디언 -->
-                    <?php 
-                    $cardId = 1;
-                    $cardReviews = isset($reviews[$cardId]) ? $reviews[$cardId] : [];
-                    $reviewCount = count($cardReviews);
-                    ?>
-                    <?php if ($reviewCount > 0): ?>
-                    <div class="internet-review-accordion">
-                        <button class="internet-review-accordion-header" type="button" data-accordion-target="review-accordion-<?php echo $cardId; ?>">
-                            <span class="internet-review-accordion-title">리뷰 <?php echo $reviewCount; ?>개</span>
-                            <svg class="internet-review-accordion-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
-                        </button>
-                        <div class="internet-review-accordion-content" id="review-accordion-<?php echo $cardId; ?>">
-                            <div class="internet-review-list">
-                                <?php foreach ($cardReviews as $review): ?>
-                                <div class="internet-review-item">
-                                    <div class="internet-review-header">
-                                        <div class="internet-review-user-info">
-                                            <span class="internet-review-user"><?php echo htmlspecialchars($review['user']); ?></span>
-                                            <span class="internet-review-date"><?php echo htmlspecialchars($review['date']); ?></span>
-                                        </div>
-                                        <div class="internet-review-ratings">
-                                            <div class="internet-review-rating-item">
-                                                <span class="internet-review-rating-label">친절해요</span>
-                                                <div class="internet-review-rating-stars">
-                                                    <?php for ($i = 1; $i <= 5; $i++): ?>
-                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="<?php echo $i <= $review['kindness_rating'] ? '#fbbf24' : '#e5e7eb'; ?>" xmlns="http://www.w3.org/2000/svg">
-                                                            <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
-                                                        </svg>
-                                                    <?php endfor; ?>
-                                                </div>
-                                            </div>
-                                            <div class="internet-review-rating-item">
-                                                <span class="internet-review-rating-label">설치 빨라요</span>
-                                                <div class="internet-review-rating-stars">
-                                                    <?php for ($i = 1; $i <= 5; $i++): ?>
-                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="<?php echo $i <= $review['speed_rating'] ? '#fbbf24' : '#e5e7eb'; ?>" xmlns="http://www.w3.org/2000/svg">
-                                                            <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
-                                                        </svg>
-                                                    <?php endfor; ?>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <p class="internet-review-content"><?php echo htmlspecialchars($review['content']); ?></p>
-                                </div>
-                                <?php endforeach; ?>
-                            </div>
-                        </div>
-                    </div>
-                    <?php endif; ?>
                 </div>
                 
                 <div>
@@ -237,60 +167,6 @@ include '../includes/header.php';
                             <p class="css-16qot29 e82z5mt6">월 27,500원</p>
                         </div>
                     </div>
-                    
-                    <!-- 리뷰 아코디언 -->
-                    <?php 
-                    $cardId = 2;
-                    $cardReviews = isset($reviews[$cardId]) ? $reviews[$cardId] : [];
-                    $reviewCount = count($cardReviews);
-                    ?>
-                    <?php if ($reviewCount > 0): ?>
-                    <div class="internet-review-accordion">
-                        <button class="internet-review-accordion-header" type="button" data-accordion-target="review-accordion-<?php echo $cardId; ?>">
-                            <span class="internet-review-accordion-title">리뷰 <?php echo $reviewCount; ?>개</span>
-                            <svg class="internet-review-accordion-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
-                        </button>
-                        <div class="internet-review-accordion-content" id="review-accordion-<?php echo $cardId; ?>">
-                            <div class="internet-review-list">
-                                <?php foreach ($cardReviews as $review): ?>
-                                <div class="internet-review-item">
-                                    <div class="internet-review-header">
-                                        <div class="internet-review-user-info">
-                                            <span class="internet-review-user"><?php echo htmlspecialchars($review['user']); ?></span>
-                                            <span class="internet-review-date"><?php echo htmlspecialchars($review['date']); ?></span>
-                                        </div>
-                                        <div class="internet-review-ratings">
-                                            <div class="internet-review-rating-item">
-                                                <span class="internet-review-rating-label">친절해요</span>
-                                                <div class="internet-review-rating-stars">
-                                                    <?php for ($i = 1; $i <= 5; $i++): ?>
-                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="<?php echo $i <= $review['kindness_rating'] ? '#fbbf24' : '#e5e7eb'; ?>" xmlns="http://www.w3.org/2000/svg">
-                                                            <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
-                                                        </svg>
-                                                    <?php endfor; ?>
-                                                </div>
-                                            </div>
-                                            <div class="internet-review-rating-item">
-                                                <span class="internet-review-rating-label">설치 빨라요</span>
-                                                <div class="internet-review-rating-stars">
-                                                    <?php for ($i = 1; $i <= 5; $i++): ?>
-                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="<?php echo $i <= $review['speed_rating'] ? '#fbbf24' : '#e5e7eb'; ?>" xmlns="http://www.w3.org/2000/svg">
-                                                            <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
-                                                        </svg>
-                                                    <?php endfor; ?>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <p class="internet-review-content"><?php echo htmlspecialchars($review['content']); ?></p>
-                                </div>
-                                <?php endforeach; ?>
-                            </div>
-                        </div>
-                    </div>
-                    <?php endif; ?>
                 </div>
                 
                 <div>
@@ -360,60 +236,6 @@ include '../includes/header.php';
                             <p class="tw-text-indigo-600 css-16qot29 e82z5mt6">월 30,800원</p>
                         </div>
                     </div>
-                    
-                    <!-- 리뷰 아코디언 -->
-                    <?php 
-                    $cardId = 3;
-                    $cardReviews = isset($reviews[$cardId]) ? $reviews[$cardId] : [];
-                    $reviewCount = count($cardReviews);
-                    ?>
-                    <?php if ($reviewCount > 0): ?>
-                    <div class="internet-review-accordion">
-                        <button class="internet-review-accordion-header" type="button" data-accordion-target="review-accordion-<?php echo $cardId; ?>">
-                            <span class="internet-review-accordion-title">리뷰 <?php echo $reviewCount; ?>개</span>
-                            <svg class="internet-review-accordion-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
-                        </button>
-                        <div class="internet-review-accordion-content" id="review-accordion-<?php echo $cardId; ?>">
-                            <div class="internet-review-list">
-                                <?php foreach ($cardReviews as $review): ?>
-                                <div class="internet-review-item">
-                                    <div class="internet-review-header">
-                                        <div class="internet-review-user-info">
-                                            <span class="internet-review-user"><?php echo htmlspecialchars($review['user']); ?></span>
-                                            <span class="internet-review-date"><?php echo htmlspecialchars($review['date']); ?></span>
-                                        </div>
-                                        <div class="internet-review-ratings">
-                                            <div class="internet-review-rating-item">
-                                                <span class="internet-review-rating-label">친절해요</span>
-                                                <div class="internet-review-rating-stars">
-                                                    <?php for ($i = 1; $i <= 5; $i++): ?>
-                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="<?php echo $i <= $review['kindness_rating'] ? '#fbbf24' : '#e5e7eb'; ?>" xmlns="http://www.w3.org/2000/svg">
-                                                            <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
-                                                        </svg>
-                                                    <?php endfor; ?>
-                                                </div>
-                                            </div>
-                                            <div class="internet-review-rating-item">
-                                                <span class="internet-review-rating-label">설치 빨라요</span>
-                                                <div class="internet-review-rating-stars">
-                                                    <?php for ($i = 1; $i <= 5; $i++): ?>
-                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="<?php echo $i <= $review['speed_rating'] ? '#fbbf24' : '#e5e7eb'; ?>" xmlns="http://www.w3.org/2000/svg">
-                                                            <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
-                                                        </svg>
-                                                    <?php endfor; ?>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <p class="internet-review-content"><?php echo htmlspecialchars($review['content']); ?></p>
-                                </div>
-                                <?php endforeach; ?>
-                            </div>
-                        </div>
-                    </div>
-                    <?php endif; ?>
                 </div>
                 
                 <div>
@@ -3123,39 +2945,46 @@ document.addEventListener('keydown', function(e) {
     // 전역으로 노출
     window.setupFormValidation = setupFormValidation;
 })();
+</script>
 
-// 리뷰 아코디언 기능
-(function() {
-    const accordionHeaders = document.querySelectorAll('.internet-review-accordion-header');
+<?php
+// 포인트 사용 모달 포함 (각 인터넷 카드마다)
+// 인터넷 카드에 data-internet-id 속성이 있다고 가정
+?>
+
+<script src="/MVNO/assets/js/point-usage-integration.js" defer></script>
+<script>
+// 인터넷 신청하기 버튼에 포인트 모달 연동
+document.addEventListener('DOMContentLoaded', function() {
+    // 인터넷 카드의 신청하기 버튼 찾기 (실제 버튼 선택자에 맞게 수정 필요)
+    const internetCards = document.querySelectorAll('[data-internet-id]');
     
-    accordionHeaders.forEach(header => {
-        header.addEventListener('click', function() {
-            const targetId = this.getAttribute('data-accordion-target');
-            const content = document.getElementById(targetId);
-            
-            if (content) {
-                const isActive = this.classList.contains('active');
+    internetCards.forEach(card => {
+        const internetId = card.getAttribute('data-internet-id');
+        const applyBtn = card.querySelector('.internet-apply-btn, [data-apply-type="internet"]');
+        
+        if (applyBtn) {
+            applyBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
                 
-                // 모든 아코디언 닫기 (선택사항 - 원하면 주석 처리)
-                // accordionHeaders.forEach(h => {
-                //     h.classList.remove('active');
-                //     const target = document.getElementById(h.getAttribute('data-accordion-target'));
-                //     if (target) target.classList.remove('active');
-                // });
-                
-                if (isActive) {
-                    // 닫기
-                    this.classList.remove('active');
-                    content.classList.remove('active');
-                } else {
-                    // 열기
-                    this.classList.add('active');
-                    content.classList.add('active');
+                // 포인트 모달 열기
+                if (typeof openPointUsageModal === 'function') {
+                    openPointUsageModal('internet', internetId);
                 }
-            }
-        });
+            });
+        }
     });
-})();
+    
+    // 포인트 사용 확인 후 기존 신청 모달 열기
+    document.addEventListener('pointUsageConfirmed', function(e) {
+        const { type, itemId, usedPoint } = e.detail;
+        if (type === 'internet') {
+            console.log('포인트 사용 확인됨:', e.detail);
+            // TODO: 기존 인터넷 신청 모달 열기
+        }
+    });
+});
 </script>
 
 <?php

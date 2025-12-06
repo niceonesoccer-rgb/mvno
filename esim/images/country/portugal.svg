@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 2">
+  <rect width="1.5" height="2" fill="#006600"/>
+  <rect x="1.5" width="1.5" height="2" fill="#ff0000"/>
+  <g fill="#ffd700" transform="translate(0.75,1)">
+    <circle cx="0" cy="0" r="0.2"/>
+    <rect x="-0.15" y="-0.1" width="0.3" height="0.2" fill="#006600"/>
+  </g>
+</svg>
+
+
+
+
+
+
+
+
+

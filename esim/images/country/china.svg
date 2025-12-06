@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 2">
+  <rect width="3" height="2" fill="#de2910"/>
+  <g fill="#ffde00">
+    <path d="M0.3,0.3 L0.5,0.1 L0.7,0.3 L0.65,0.5 L0.5,0.4 L0.35,0.5 Z"/>
+    <circle cx="0.5" cy="0.3" r="0.15" fill="#de2910"/>
+    <circle cx="0.8" cy="0.5" r="0.08"/>
+    <circle cx="0.7" cy="0.7" r="0.08"/>
+    <circle cx="0.5" cy="0.75" r="0.08"/>
+    <circle cx="0.3" cy="0.7" r="0.08"/>
+  </g>
+</svg>
+
+
+
+
+
+
+
+
+

@@ -130,3 +130,5 @@ $notices = array_slice($all_notices, $offset, $per_page);
 include '../includes/footer.php';
 ?>
 
+
+

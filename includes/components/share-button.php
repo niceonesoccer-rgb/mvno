@@ -29,7 +29,7 @@ if (!$show_condition || empty($share_url)) {
     return;
 }
 ?>
-<button class="<?php echo htmlspecialchars($button_class); ?>" 
+<button type="button" class="<?php echo htmlspecialchars($button_class); ?>" 
         aria-label="<?php echo htmlspecialchars($aria_label); ?>" 
         data-share-url="<?php echo htmlspecialchars($share_url); ?>"
         <?php if (!empty($button_id)): ?>id="<?php echo htmlspecialchars($button_id); ?>"<?php endif; ?>>

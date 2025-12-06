@@ -6,13 +6,13 @@
 
 require_once __DIR__ . '/../../includes/data/auth-functions.php';
 
-// 관리자 인증 체크
-// if (!isAdmin()) {
-//     header('Location: /MVNO/auth/login.php');
-//     exit;
-// }
-
+// 관리자 인증 체크 (출력 전에 체크)
 $currentUser = getCurrentUser();
+if (!$currentUser || !isAdmin()) {
+    header('Location: /MVNO/auth/login.php');
+    exit;
+}
+
 $currentPage = basename($_SERVER['PHP_SELF']);
 ?>
 <!DOCTYPE html>
@@ -22,6 +22,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>관리자 페이지 - 모요</title>
     <link rel="stylesheet" href="/MVNO/assets/css/style.css">
+    <script src="/MVNO/assets/js/modal.js" defer></script>
     <style>
         * {
             margin: 0;
@@ -68,6 +69,12 @@ $currentPage = basename($_SERVER['PHP_SELF']);
             text-decoration-color: #fbbf24;
             text-decoration-style: wavy;
             text-underline-offset: 4px;
+            transition: opacity 0.2s;
+            cursor: pointer;
+        }
+        
+        .admin-top-header-logo:hover {
+            opacity: 0.8;
         }
         
         .admin-top-header-right {
@@ -470,7 +477,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
     <!-- 상단 헤더 -->
     <header class="admin-top-header">
         <div class="admin-top-header-left">
-            <div class="admin-top-header-logo">모요관리자</div>
+            <a href="/MVNO/" class="admin-top-header-logo" style="text-decoration: none; color: inherit;">모요관리자</a>
         </div>
         <div class="admin-top-header-right">
             <a href="/MVNO/" target="_blank" class="admin-top-header-link">사이트보기</a>
@@ -513,23 +520,16 @@ $currentPage = basename($_SERVER['PHP_SELF']);
             <!-- 사용자 관리 -->
             <div class="menu-section">
                 <div class="menu-section-title">사용자 관리</div>
-                <a href="/MVNO/admin/users/seller-approval.php" class="menu-item <?php echo $currentPage === 'seller-approval.php' ? 'active' : ''; ?>">
+                <a href="/MVNO/admin/seller-approval.php?tab=pending" class="menu-item <?php echo ($currentPage === 'seller-approval.php' || $currentPage === 'seller-permissions.php') ? 'active' : ''; ?>">
                     <span class="menu-item-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                            <polyline points="22 4 12 14.01 9 11.01"/>
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                            <circle cx="9" cy="7" r="4"/>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
                         </svg>
                     </span>
-                    판매자 승인
-                </a>
-                <a href="/MVNO/admin/users/seller-permissions.php" class="menu-item <?php echo $currentPage === 'seller-permissions.php' ? 'active' : ''; ?>">
-                    <span class="menu-item-icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                        </svg>
-                    </span>
-                    판매자 권한
+                    판매자 관리
                 </a>
                 <a href="/MVNO/admin/users/member-list.php" class="menu-item <?php echo $currentPage === 'member-list.php' ? 'active' : ''; ?>">
                     <span class="menu-item-icon">
@@ -611,6 +611,26 @@ $currentPage = basename($_SERVER['PHP_SELF']);
             <!-- 설정 -->
             <div class="menu-section">
                 <div class="menu-section-title">설정</div>
+                <a href="/MVNO/admin/settings/admin-manage.php" class="menu-item <?php echo $currentPage === 'admin-manage.php' ? 'active' : ''; ?>">
+                    <span class="menu-item-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                            <circle cx="9" cy="7" r="4"/>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                        </svg>
+                    </span>
+                    관리자 관리
+                </a>
+                <a href="/MVNO/admin/settings/forbidden-ids-manage.php" class="menu-item <?php echo $currentPage === 'forbidden-ids-manage.php' ? 'active' : ''; ?>">
+                    <span class="menu-item-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                            <line x1="9" y1="12" x2="15" y2="12"/>
+                        </svg>
+                    </span>
+                    가입 금지어 관리
+                </a>
                 <a href="/MVNO/admin/settings/api-settings.php" class="menu-item <?php echo $currentPage === 'api-settings.php' ? 'active' : ''; ?>">
                     <span class="menu-item-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

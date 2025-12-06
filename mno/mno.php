@@ -24,25 +24,28 @@ $phones = getPhonesData(10);
 
             <!-- 필터 및 정렬 버튼 그룹 -->
             <div class="mno-filter-group">
-                <!-- 첫 번째 행: 필터 버튼들 (관리자 페이지에서 설정한 필터가 동적으로 들어갈 영역) -->
+                <!-- 첫 번째 행: 필터 + 인터넷 결합 + 해시태그 버튼들 -->
                 <div class="mno-filter-row">
                     <button class="mno-filter-btn">
-                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path fill-rule="evenodd" clip-rule="evenodd" d="M14.5 11.5C16.0487 11.5 17.3625 10.4941 17.8237 9.09999H19.9C20.5075 9.09999 21 8.60751 21 7.99999C21 7.39248 20.5075 6.89999 19.9 6.89999H17.8236C17.3625 5.50589 16.0487 4.5 14.5 4.5C12.9513 4.5 11.6375 5.50589 11.1764 6.89999H4.1C3.49249 6.89999 3 7.39248 3 7.99999C3 8.60751 3.49249 9.09999 4.1 9.09999H11.1763C11.6375 10.4941 12.9513 11.5 14.5 11.5ZM14.5 9.5C15.3284 9.5 16 8.82843 16 8C16 7.17157 15.3284 6.5 14.5 6.5C13.6716 6.5 13 7.17157 13 8C13 8.82843 13.6716 9.5 14.5 9.5Z" fill="#3F4750"></path>
-                            <path fill-rule="evenodd" clip-rule="evenodd" d="M3 16C3 15.3925 3.49249 14.9 4.1 14.9H6.17635C6.6375 13.5059 7.95128 12.5 9.5 12.5C11.0487 12.5 12.3625 13.5059 12.8236 14.9H19.9C20.5075 14.9 21 15.3925 21 16C21 16.6075 20.5075 17.1 19.9 17.1H12.8237C12.3625 18.4941 11.0487 19.5 9.5 19.5C7.95128 19.5 6.6375 18.4941 6.17635 17.1H4.1C3.49249 17.1 3 16.6075 3 16ZM11 16C11 16.8284 10.3284 17.5 9.5 17.5C8.67157 17.5 8 16.8284 8 16C8 15.1716 8.67157 14.5 9.5 14.5C10.3284 14.5 11 15.1716 11 16Z" fill="#3F4750"></path>
+                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="16" height="16">
+                            <path d="M3 7C3 6.44772 3.44772 6 4 6H20C20.5523 6 21 6.44772 21 7C21 7.55228 20.5523 8 20 8H4C3.44772 8 3 7.55228 3 7Z" fill="#3F4750"></path>
+                            <path d="M3 12C3 11.4477 3.44772 11 4 11H20C20.5523 11 21 11.4477 21 12C21 12.5523 20.5523 13 20 13H4C3.44772 13 3 12.5523 3 12Z" fill="#3F4750"></path>
+                            <path d="M4 16C3.44772 16 3 16.4477 3 17C3 17.5523 3.44772 18 4 18H20C20.5523 18 21 17.5523 21 17C21 16.4477 20.5523 16 20 16H4Z" fill="#3F4750"></path>
+                            <circle cx="6" cy="7" r="1.5" fill="#6366F1"></circle>
+                            <circle cx="18" cy="12" r="1.5" fill="#6366F1"></circle>
+                            <circle cx="6" cy="17" r="1.5" fill="#6366F1"></circle>
                         </svg>
                         <span class="mno-filter-text">필터</span>
                     </button>
                     <?php
-                    // TODO: 관리자 페이지에서 설정한 필터를 불러와서 동적으로 표시
-                    // 예시: $mno_filters = getMnoFilters(); // DB에서 필터 목록 가져오기
-                    // foreach ($mno_filters as $filter): ?>
-                    <!-- 
-                    <button class="mno-filter-btn">
-                        <span class="mno-filter-text"><?php echo htmlspecialchars($filter['name']); ?></span>
+                    // 통신사폰 필터 가져오기
+                    require_once '../includes/data/filter-data.php';
+                    $mno_filters = getMnoFilters();
+                    foreach ($mno_filters as $filter): ?>
+                    <button class="mno-filter-btn" data-filter="<?php echo htmlspecialchars($filter); ?>">
+                        <span class="mno-filter-text"><?php echo htmlspecialchars($filter); ?></span>
                     </button>
-                    -->
-                    <?php // endforeach; ?>
+                    <?php endforeach; ?>
                 </div>
             </div>
         </div>
@@ -221,14 +224,68 @@ include '../includes/footer.php';
     
     filterButtons.forEach(button => {
         button.addEventListener('click', function() {
+            // 필터 버튼만 처리 (필터 아이콘 버튼은 제외)
+            const filterValue = this.getAttribute('data-filter');
+            if (!filterValue) return; // 필터 버튼이 아니면 무시
+            
             // 클릭된 버튼의 active 상태 토글
             if (this.classList.contains('active')) {
                 this.classList.remove('active');
             } else {
                 this.classList.add('active');
             }
+            
+            // 필터 적용
+            applyFilters();
         });
     });
+    
+    // 필터 적용 함수
+    function applyFilters() {
+        const activeFilters = Array.from(document.querySelectorAll('.mno-filter-btn.active'))
+            .map(btn => btn.getAttribute('data-filter'))
+            .filter(f => f !== null);
+        
+        // 통신사폰 카드 요소 찾기
+        const phoneCards = document.querySelectorAll('.basic-plan-card, .plan-card');
+        
+        phoneCards.forEach(card => {
+            if (activeFilters.length === 0) {
+                // 필터가 없으면 모두 표시
+                card.style.display = '';
+                return;
+            }
+            
+            // 폰 정보 가져오기 (카드 전체 텍스트에서 검색)
+            const cardText = card.textContent || '';
+            const cardTextLower = cardText.toLowerCase();
+            
+            // 필터 매칭 확인
+            let matches = false;
+            activeFilters.forEach(filter => {
+                const filterText = filter.replace('#', '').toLowerCase();
+                // 필터별 특별 처리
+                if (filterText === '갤럭시' && cardTextLower.includes('galaxy')) {
+                    matches = true;
+                } else if (filterText === '아이폰' && cardTextLower.includes('iphone')) {
+                    matches = true;
+                } else if (filterText === '공짜' && (cardTextLower.includes('무료') || cardTextLower.includes('공짜') || cardTextLower.includes('0원'))) {
+                    matches = true;
+                } else if (cardTextLower.includes(filterText)) {
+                    matches = true;
+                }
+            });
+            
+            // 매칭되면 표시, 아니면 숨김
+            card.style.display = matches ? '' : 'none';
+            
+            // 구분선(hr)도 함께 숨김/표시
+            const divider = card.nextElementSibling;
+            if (divider && divider.tagName === 'HR' && divider.classList.contains('plan-card-divider')) {
+                divider.style.display = matches ? '' : 'none';
+            }
+        });
+    }
 })();
 
 </script>

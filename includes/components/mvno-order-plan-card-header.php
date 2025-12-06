@@ -1,7 +1,7 @@
 <?php
 /**
  * 요금제 주문 카드 헤더 컴포넌트 (독립 레이아웃)
- * 로고, 평점, 공유 버튼
+ * 로고, 평점, 점 3개 메뉴
  * 
  * @param array $plan 요금제 데이터
  */
@@ -11,11 +11,11 @@ if (!isset($plan)) {
 $provider = $plan['provider'] ?? '쉐이크모바일';
 $rating = $plan['rating'] ?? '4.3';
 $plan_id = $plan['id'] ?? 0;
-$is_sold_out = $plan['is_sold_out'] ?? false; // 판매종료 여부
-$share_url = '/MVNO/mvno/mvno-plan-detail.php?id=' . $plan_id;
+$has_review = $plan['has_review'] ?? false; // 리뷰 작성 여부
+$is_activated = !empty($plan['activation_date'] ?? ''); // 개통 여부
 ?>
 
-<!-- 헤더: 로고, 평점, 공유 -->
+<!-- 헤더: 로고, 평점, 점 3개 메뉴 -->
 <div class="mvno-order-card-top-header">
     <div class="mvno-order-provider-rating-group">
         <span class="mvno-order-provider-logo-text"><?php echo htmlspecialchars($provider); ?></span>
@@ -26,13 +26,26 @@ $share_url = '/MVNO/mvno/mvno-plan-detail.php?id=' . $plan_id;
             <span class="mvno-order-rating-text"><?php echo htmlspecialchars($rating); ?></span>
         </div>
     </div>
-    <div class="mvno-order-badge-share-group">
-        <?php
-        if (!$is_sold_out) {
-            $button_class = 'mvno-order-share-btn-inline';
-            include __DIR__ . '/share-button.php';
-        }
-        ?>
+    <div class="mvno-order-menu-group">
+        <?php if ($is_activated && $has_review): ?>
+        <!-- 리뷰 작성 후: 점 3개 메뉴 버튼 -->
+        <button type="button" class="mvno-order-menu-btn" data-plan-id="<?php echo $plan_id; ?>" aria-label="메뉴">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="12" cy="6" r="1.5" fill="#868E96"/>
+                <circle cx="12" cy="12" r="1.5" fill="#868E96"/>
+                <circle cx="12" cy="18" r="1.5" fill="#868E96"/>
+            </svg>
+        </button>
+        <!-- 드롭다운 메뉴 -->
+        <div class="mvno-order-menu-dropdown" id="mvno-order-menu-<?php echo $plan_id; ?>" style="display: none;">
+            <button type="button" class="mvno-order-menu-item mvno-order-review-edit-btn" data-plan-id="<?php echo $plan_id; ?>">
+                수정
+            </button>
+            <button type="button" class="mvno-order-menu-item mvno-order-review-delete-btn" data-plan-id="<?php echo $plan_id; ?>">
+                삭제
+            </button>
+        </div>
+        <?php endif; ?>
     </div>
 </div>
 

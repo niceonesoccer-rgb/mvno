@@ -89,3 +89,5 @@ $notice = getNoticeById($id); // 업데이트된 조회수 가져오기
 include '../includes/footer.php';
 ?>
 
+
+

@@ -30,6 +30,9 @@ $share_url = $plan['link_url'] ?? '/MVNO/mvno/mvno-plan-detail.php?id=' . $plan_
     <div class="plan-badge-favorite-group">
         <?php
         $button_id = ($layout_type === 'detail') ? 'planFavoriteBtn' : '';
+        $item_id = $plan_id;
+        $item_type = 'plan';
+        $is_favorited = $plan['is_favorited'] ?? false;
         include __DIR__ . '/favorite-button.php';
         ?>
         <?php
