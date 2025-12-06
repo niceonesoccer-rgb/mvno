@@ -9,8 +9,7 @@
             "created_at": "2025-12-06 07:59:29",
             "seller_approved": true,
             "permissions": [
-                "mvno",
-                "mno"
+                "internet"
             ],
             "phone": "02-1111-1111",
             "mobile": "010-1111-1111",
@@ -26,7 +25,7 @@
             "approval_status": "approved",
             "held_at": "2025-12-06 08:37:14",
             "approved_at": "2025-12-06 08:49:00",
-            "permissions_updated_at": "2025-12-06 09:11:18",
+            "permissions_updated_at": "2025-12-06 15:53:31",
             "updated_at": "2025-12-06 09:15:01"
         },
         {
@@ -61,7 +60,7 @@
             "created_at": "2025-12-06 08:32:24",
             "seller_approved": false,
             "permissions": [],
-            "approval_status": "pending",
+            "approval_status": "on_hold",
             "phone": "02-3333-3333",
             "mobile": "010-3333-3333",
             "address": "서울 강남구 가로수길 9",
@@ -72,7 +71,8 @@
             "business_type": "33333333",
             "business_item": "33333333",
             "business_license_image": "\/MVNO\/uploads\/sellers\/33333333_license_1765009047.jpg",
-            "updated_at": "2025-12-06 09:23:17"
+            "updated_at": "2025-12-06 09:23:17",
+            "held_at": "2025-12-06 16:15:20"
         },
         {
             "user_id": "44444444",
@@ -110,7 +110,7 @@
             "created_at": "2025-12-06 09:31:49",
             "seller_approved": false,
             "permissions": [],
-            "approval_status": "pending",
+            "approval_status": "on_hold",
             "phone": "02-7777-7777",
             "mobile": "010-7777-7777",
             "postal_code": "",
@@ -120,7 +120,8 @@
             "company_name": "77777777",
             "company_representative": "77777777",
             "business_type": "77777777",
-            "business_item": "77777777"
+            "business_item": "77777777",
+            "held_at": "2025-12-06 16:14:59"
         },
         {
             "user_id": "77777778",
@@ -131,7 +132,7 @@
             "created_at": "2025-12-06 09:31:49",
             "seller_approved": false,
             "permissions": [],
-            "approval_status": "pending",
+            "approval_status": "on_hold",
             "phone": "02-7777-7778",
             "mobile": "010-7777-7778",
             "postal_code": "",
@@ -141,7 +142,8 @@
             "company_name": "77777778",
             "company_representative": "77777778",
             "business_type": "77777778",
-            "business_item": "77777778"
+            "business_item": "77777778",
+            "held_at": "2025-12-06 16:15:00"
         },
         {
             "user_id": "77777779",
@@ -152,7 +154,7 @@
             "created_at": "2025-12-06 09:31:49",
             "seller_approved": false,
             "permissions": [],
-            "approval_status": "pending",
+            "approval_status": "on_hold",
             "phone": "02-7777-7779",
             "mobile": "010-7777-7779",
             "postal_code": "",
@@ -162,7 +164,8 @@
             "company_name": "77777779",
             "company_representative": "77777779",
             "business_type": "77777779",
-            "business_item": "77777779"
+            "business_item": "77777779",
+            "held_at": "2025-12-06 16:15:02"
         },
         {
             "user_id": "77777780",
@@ -173,7 +176,7 @@
             "created_at": "2025-12-06 09:31:49",
             "seller_approved": false,
             "permissions": [],
-            "approval_status": "pending",
+            "approval_status": "on_hold",
             "phone": "02-7777-7780",
             "mobile": "010-7777-7780",
             "postal_code": "",
@@ -183,7 +186,8 @@
             "company_name": "77777780",
             "company_representative": "77777780",
             "business_type": "77777780",
-            "business_item": "77777780"
+            "business_item": "77777780",
+            "held_at": "2025-12-06 16:15:04"
         },
         {
             "user_id": "77777781",
@@ -194,7 +198,7 @@
             "created_at": "2025-12-06 09:31:49",
             "seller_approved": false,
             "permissions": [],
-            "approval_status": "pending",
+            "approval_status": "on_hold",
             "phone": "02-7777-7781",
             "mobile": "010-7777-7781",
             "postal_code": "",
@@ -204,7 +208,8 @@
             "company_name": "77777781",
             "company_representative": "77777781",
             "business_type": "77777781",
-            "business_item": "77777781"
+            "business_item": "77777781",
+            "held_at": "2025-12-06 16:15:06"
         },
         {
             "user_id": "77777782",
@@ -215,7 +220,7 @@
             "created_at": "2025-12-06 09:31:49",
             "seller_approved": false,
             "permissions": [],
-            "approval_status": "pending",
+            "approval_status": "on_hold",
             "phone": "02-7777-7782",
             "mobile": "010-7777-7782",
             "postal_code": "",
@@ -225,7 +230,8 @@
             "company_name": "77777782",
             "company_representative": "77777782",
             "business_type": "77777782",
-            "business_item": "77777782"
+            "business_item": "77777782",
+            "held_at": "2025-12-06 16:15:09"
         },
         {
             "user_id": "77777783",
@@ -236,7 +242,7 @@
             "created_at": "2025-12-06 09:31:49",
             "seller_approved": false,
             "permissions": [],
-            "approval_status": "pending",
+            "approval_status": "on_hold",
             "phone": "02-7777-7783",
             "mobile": "010-7777-7783",
             "postal_code": "",
@@ -246,7 +252,8 @@
             "company_name": "77777783",
             "company_representative": "77777783",
             "business_type": "77777783",
-            "business_item": "77777783"
+            "business_item": "77777783",
+            "held_at": "2025-12-06 16:15:10"
         },
         {
             "user_id": "77777784",
@@ -257,7 +264,7 @@
             "created_at": "2025-12-06 09:31:49",
             "seller_approved": false,
             "permissions": [],
-            "approval_status": "pending",
+            "approval_status": "on_hold",
             "phone": "02-7777-7784",
             "mobile": "010-7777-7784",
             "postal_code": "",
@@ -267,7 +274,8 @@
             "company_name": "77777784",
             "company_representative": "77777784",
             "business_type": "77777784",
-            "business_item": "77777784"
+            "business_item": "77777784",
+            "held_at": "2025-12-06 16:15:12"
         },
         {
             "user_id": "77777785",
@@ -278,7 +286,7 @@
             "created_at": "2025-12-06 09:31:49",
             "seller_approved": false,
             "permissions": [],
-            "approval_status": "pending",
+            "approval_status": "on_hold",
             "phone": "02-7777-7785",
             "mobile": "010-7777-7785",
             "postal_code": "",
@@ -288,7 +296,8 @@
             "company_name": "77777785",
             "company_representative": "77777785",
             "business_type": "77777785",
-            "business_item": "77777785"
+            "business_item": "77777785",
+            "held_at": "2025-12-06 16:15:14"
         },
         {
             "user_id": "77777786",
@@ -299,7 +308,7 @@
             "created_at": "2025-12-06 09:31:49",
             "seller_approved": false,
             "permissions": [],
-            "approval_status": "pending",
+            "approval_status": "on_hold",
             "phone": "02-7777-7786",
             "mobile": "010-7777-7786",
             "postal_code": "",
@@ -309,7 +318,8 @@
             "company_name": "77777786",
             "company_representative": "77777786",
             "business_type": "77777786",
-            "business_item": "77777786"
+            "business_item": "77777786",
+            "held_at": "2025-12-06 16:15:17"
         },
         {
             "user_id": "77777787",
@@ -320,7 +330,7 @@
             "created_at": "2025-12-06 09:31:49",
             "seller_approved": false,
             "permissions": [],
-            "approval_status": "pending",
+            "approval_status": "on_hold",
             "phone": "02-7777-7787",
             "mobile": "010-7777-7787",
             "postal_code": "",
@@ -330,7 +340,8 @@
             "company_name": "77777787",
             "company_representative": "77777787",
             "business_type": "77777787",
-            "business_item": "77777787"
+            "business_item": "77777787",
+            "held_at": "2025-12-06 16:15:19"
         },
         {
             "user_id": "77777788",
@@ -341,7 +352,7 @@
             "created_at": "2025-12-06 09:31:50",
             "seller_approved": false,
             "permissions": [],
-            "approval_status": "pending",
+            "approval_status": "on_hold",
             "phone": "02-7777-7788",
             "mobile": "010-7777-7788",
             "postal_code": "",
@@ -351,7 +362,8 @@
             "company_name": "77777788",
             "company_representative": "77777788",
             "business_type": "77777788",
-            "business_item": "77777788"
+            "business_item": "77777788",
+            "held_at": "2025-12-06 15:54:49"
         },
         {
             "user_id": "77777789",
@@ -362,7 +374,7 @@
             "created_at": "2025-12-06 09:31:50",
             "seller_approved": false,
             "permissions": [],
-            "approval_status": "pending",
+            "approval_status": "on_hold",
             "phone": "02-7777-7789",
             "mobile": "010-7777-7789",
             "postal_code": "",
@@ -372,7 +384,8 @@
             "company_name": "77777789",
             "company_representative": "77777789",
             "business_type": "77777789",
-            "business_item": "77777789"
+            "business_item": "77777789",
+            "held_at": "2025-12-06 15:54:51"
         },
         {
             "user_id": "77777790",
@@ -383,7 +396,7 @@
             "created_at": "2025-12-06 09:31:50",
             "seller_approved": false,
             "permissions": [],
-            "approval_status": "pending",
+            "approval_status": "on_hold",
             "phone": "02-7777-7790",
             "mobile": "010-7777-7790",
             "postal_code": "",
@@ -393,7 +406,8 @@
             "company_name": "77777790",
             "company_representative": "77777790",
             "business_type": "77777790",
-            "business_item": "77777790"
+            "business_item": "77777790",
+            "held_at": "2025-12-06 15:54:52"
         },
         {
             "user_id": "77777791",
@@ -404,7 +418,7 @@
             "created_at": "2025-12-06 09:31:50",
             "seller_approved": false,
             "permissions": [],
-            "approval_status": "pending",
+            "approval_status": "on_hold",
             "phone": "02-7777-7791",
             "mobile": "010-7777-7791",
             "postal_code": "",
@@ -414,7 +428,8 @@
             "company_name": "77777791",
             "company_representative": "77777791",
             "business_type": "77777791",
-            "business_item": "77777791"
+            "business_item": "77777791",
+            "held_at": "2025-12-06 15:54:54"
         },
         {
             "user_id": "77777792",
@@ -425,7 +440,7 @@
             "created_at": "2025-12-06 09:31:50",
             "seller_approved": false,
             "permissions": [],
-            "approval_status": "pending",
+            "approval_status": "on_hold",
             "phone": "02-7777-7792",
             "mobile": "010-7777-7792",
             "postal_code": "",
@@ -435,7 +450,9 @@
             "company_name": "77777792",
             "company_representative": "77777792",
             "business_type": "77777792",
-            "business_item": "77777792"
+            "business_item": "77777792",
+            "permissions_updated_at": "2025-12-06 16:01:36",
+            "held_at": "2025-12-06 16:14:31"
         },
         {
             "user_id": "77777793",
@@ -446,7 +463,7 @@
             "created_at": "2025-12-06 09:31:50",
             "seller_approved": false,
             "permissions": [],
-            "approval_status": "pending",
+            "approval_status": "on_hold",
             "phone": "02-7777-7793",
             "mobile": "010-7777-7793",
             "postal_code": "",
@@ -456,7 +473,8 @@
             "company_name": "77777793",
             "company_representative": "77777793",
             "business_type": "77777793",
-            "business_item": "77777793"
+            "business_item": "77777793",
+            "held_at": "2025-12-06 16:14:33"
         },
         {
             "user_id": "77777794",
@@ -467,7 +485,7 @@
             "created_at": "2025-12-06 09:31:50",
             "seller_approved": false,
             "permissions": [],
-            "approval_status": "pending",
+            "approval_status": "on_hold",
             "phone": "02-7777-7794",
             "mobile": "010-7777-7794",
             "postal_code": "",
@@ -477,7 +495,8 @@
             "company_name": "77777794",
             "company_representative": "77777794",
             "business_type": "77777794",
-            "business_item": "77777794"
+            "business_item": "77777794",
+            "held_at": "2025-12-06 16:14:34"
         },
         {
             "user_id": "77777795",
@@ -488,7 +507,7 @@
             "created_at": "2025-12-06 09:31:50",
             "seller_approved": false,
             "permissions": [],
-            "approval_status": "pending",
+            "approval_status": "on_hold",
             "phone": "02-7777-7795",
             "mobile": "010-7777-7795",
             "postal_code": "",
@@ -498,7 +517,8 @@
             "company_name": "77777795",
             "company_representative": "77777795",
             "business_type": "77777795",
-            "business_item": "77777795"
+            "business_item": "77777795",
+            "held_at": "2025-12-06 16:14:36"
         },
         {
             "user_id": "77777796",
@@ -509,7 +529,7 @@
             "created_at": "2025-12-06 09:31:50",
             "seller_approved": false,
             "permissions": [],
-            "approval_status": "pending",
+            "approval_status": "on_hold",
             "phone": "02-7777-7796",
             "mobile": "010-7777-7796",
             "postal_code": "",
@@ -519,7 +539,8 @@
             "company_name": "77777796",
             "company_representative": "77777796",
             "business_type": "77777796",
-            "business_item": "77777796"
+            "business_item": "77777796",
+            "held_at": "2025-12-06 16:14:38"
         },
         {
             "user_id": "77777797",
@@ -530,7 +551,7 @@
             "created_at": "2025-12-06 09:31:50",
             "seller_approved": false,
             "permissions": [],
-            "approval_status": "pending",
+            "approval_status": "on_hold",
             "phone": "02-7777-7797",
             "mobile": "010-7777-7797",
             "postal_code": "",
@@ -540,7 +561,8 @@
             "company_name": "77777797",
             "company_representative": "77777797",
             "business_type": "77777797",
-            "business_item": "77777797"
+            "business_item": "77777797",
+            "held_at": "2025-12-06 16:14:39"
         },
         {
             "user_id": "77777798",
@@ -551,7 +573,7 @@
             "created_at": "2025-12-06 09:31:50",
             "seller_approved": false,
             "permissions": [],
-            "approval_status": "pending",
+            "approval_status": "on_hold",
             "phone": "02-7777-7798",
             "mobile": "010-7777-7798",
             "postal_code": "",
@@ -561,7 +583,8 @@
             "company_name": "77777798",
             "company_representative": "77777798",
             "business_type": "77777798",
-            "business_item": "77777798"
+            "business_item": "77777798",
+            "held_at": "2025-12-06 16:14:42"
         },
         {
             "user_id": "77777799",
@@ -572,7 +595,7 @@
             "created_at": "2025-12-06 09:31:50",
             "seller_approved": false,
             "permissions": [],
-            "approval_status": "pending",
+            "approval_status": "on_hold",
             "phone": "02-7777-7799",
             "mobile": "010-7777-7799",
             "postal_code": "",
@@ -582,7 +605,8 @@
             "company_name": "77777799",
             "company_representative": "77777799",
             "business_type": "77777799",
-            "business_item": "77777799"
+            "business_item": "77777799",
+            "held_at": "2025-12-06 16:14:44"
         },
         {
             "user_id": "77777800",
@@ -593,7 +617,7 @@
             "created_at": "2025-12-06 09:31:50",
             "seller_approved": false,
             "permissions": [],
-            "approval_status": "pending",
+            "approval_status": "on_hold",
             "phone": "02-7777-7800",
             "mobile": "010-7777-7800",
             "postal_code": "",
@@ -603,7 +627,8 @@
             "company_name": "77777800",
             "company_representative": "77777800",
             "business_type": "77777800",
-            "business_item": "77777800"
+            "business_item": "77777800",
+            "held_at": "2025-12-06 16:14:46"
         },
         {
             "user_id": "77777801",
@@ -614,7 +639,7 @@
             "created_at": "2025-12-06 09:31:50",
             "seller_approved": false,
             "permissions": [],
-            "approval_status": "pending",
+            "approval_status": "on_hold",
             "phone": "02-7777-7801",
             "mobile": "010-7777-7801",
             "postal_code": "",
@@ -624,7 +649,8 @@
             "company_name": "77777801",
             "company_representative": "77777801",
             "business_type": "77777801",
-            "business_item": "77777801"
+            "business_item": "77777801",
+            "held_at": "2025-12-06 16:14:48"
         },
         {
             "user_id": "77777802",
@@ -635,7 +661,7 @@
             "created_at": "2025-12-06 09:31:50",
             "seller_approved": false,
             "permissions": [],
-            "approval_status": "pending",
+            "approval_status": "on_hold",
             "phone": "02-7777-7802",
             "mobile": "010-7777-7802",
             "postal_code": "",
@@ -645,7 +671,8 @@
             "company_name": "77777802",
             "company_representative": "77777802",
             "business_type": "77777802",
-            "business_item": "77777802"
+            "business_item": "77777802",
+            "held_at": "2025-12-06 16:14:50"
         },
         {
             "user_id": "77777803",
@@ -656,7 +683,7 @@
             "created_at": "2025-12-06 09:31:50",
             "seller_approved": false,
             "permissions": [],
-            "approval_status": "pending",
+            "approval_status": "on_hold",
             "phone": "02-7777-7803",
             "mobile": "010-7777-7803",
             "postal_code": "",
@@ -666,7 +693,8 @@
             "company_name": "77777803",
             "company_representative": "77777803",
             "business_type": "77777803",
-            "business_item": "77777803"
+            "business_item": "77777803",
+            "held_at": "2025-12-06 16:14:52"
         },
         {
             "user_id": "77777804",
@@ -677,7 +705,7 @@
             "created_at": "2025-12-06 09:31:50",
             "seller_approved": false,
             "permissions": [],
-            "approval_status": "pending",
+            "approval_status": "on_hold",
             "phone": "02-7777-7804",
             "mobile": "010-7777-7804",
             "postal_code": "",
@@ -687,7 +715,8 @@
             "company_name": "77777804",
             "company_representative": "77777804",
             "business_type": "77777804",
-            "business_item": "77777804"
+            "business_item": "77777804",
+            "held_at": "2025-12-06 16:14:53"
         },
         {
             "user_id": "77777805",
@@ -698,7 +727,7 @@
             "created_at": "2025-12-06 09:31:50",
             "seller_approved": false,
             "permissions": [],
-            "approval_status": "pending",
+            "approval_status": "on_hold",
             "phone": "02-7777-7805",
             "mobile": "010-7777-7805",
             "postal_code": "",
@@ -708,7 +737,8 @@
             "company_name": "77777805",
             "company_representative": "77777805",
             "business_type": "77777805",
-            "business_item": "77777805"
+            "business_item": "77777805",
+            "held_at": "2025-12-06 16:14:55"
         },
         {
             "user_id": "77777806",
@@ -719,7 +749,7 @@
             "created_at": "2025-12-06 09:31:50",
             "seller_approved": false,
             "permissions": [],
-            "approval_status": "pending",
+            "approval_status": "on_hold",
             "phone": "02-7777-7806",
             "mobile": "010-7777-7806",
             "postal_code": "",
@@ -729,7 +759,8 @@
             "company_name": "77777806",
             "company_representative": "77777806",
             "business_type": "77777806",
-            "business_item": "77777806"
+            "business_item": "77777806",
+            "held_at": "2025-12-06 16:14:57"
         },
         {
             "user_id": "77777807",
@@ -740,7 +771,7 @@
             "created_at": "2025-12-06 09:31:51",
             "seller_approved": false,
             "permissions": [],
-            "approval_status": "pending",
+            "approval_status": "on_hold",
             "phone": "02-7777-7807",
             "mobile": "010-7777-7807",
             "postal_code": "",
@@ -750,7 +781,8 @@
             "company_name": "77777807",
             "company_representative": "77777807",
             "business_type": "77777807",
-            "business_item": "77777807"
+            "business_item": "77777807",
+            "held_at": "2025-12-06 15:54:12"
         },
         {
             "user_id": "77777808",
@@ -761,7 +793,7 @@
             "created_at": "2025-12-06 09:31:51",
             "seller_approved": false,
             "permissions": [],
-            "approval_status": "pending",
+            "approval_status": "on_hold",
             "phone": "02-7777-7808",
             "mobile": "010-7777-7808",
             "postal_code": "",
@@ -771,7 +803,8 @@
             "company_name": "77777808",
             "company_representative": "77777808",
             "business_type": "77777808",
-            "business_item": "77777808"
+            "business_item": "77777808",
+            "held_at": "2025-12-06 15:54:13"
         },
         {
             "user_id": "77777809",
@@ -782,7 +815,7 @@
             "created_at": "2025-12-06 09:31:51",
             "seller_approved": false,
             "permissions": [],
-            "approval_status": "pending",
+            "approval_status": "on_hold",
             "phone": "02-7777-7809",
             "mobile": "010-7777-7809",
             "postal_code": "",
@@ -792,7 +825,8 @@
             "company_name": "77777809",
             "company_representative": "77777809",
             "business_type": "77777809",
-            "business_item": "77777809"
+            "business_item": "77777809",
+            "held_at": "2025-12-06 15:54:15"
         },
         {
             "user_id": "77777810",
@@ -803,7 +837,7 @@
             "created_at": "2025-12-06 09:31:51",
             "seller_approved": false,
             "permissions": [],
-            "approval_status": "pending",
+            "approval_status": "on_hold",
             "phone": "02-7777-7810",
             "mobile": "010-7777-7810",
             "postal_code": "",
@@ -813,7 +847,8 @@
             "company_name": "77777810",
             "company_representative": "77777810",
             "business_type": "77777810",
-            "business_item": "77777810"
+            "business_item": "77777810",
+            "held_at": "2025-12-06 15:54:17"
         },
         {
             "user_id": "77777811",
@@ -824,7 +859,7 @@
             "created_at": "2025-12-06 09:31:51",
             "seller_approved": false,
             "permissions": [],
-            "approval_status": "pending",
+            "approval_status": "on_hold",
             "phone": "02-7777-7811",
             "mobile": "010-7777-7811",
             "postal_code": "",
@@ -834,7 +869,8 @@
             "company_name": "77777811",
             "company_representative": "77777811",
             "business_type": "77777811",
-            "business_item": "77777811"
+            "business_item": "77777811",
+            "held_at": "2025-12-06 15:54:20"
         },
         {
             "user_id": "77777812",
@@ -845,7 +881,7 @@
             "created_at": "2025-12-06 09:31:51",
             "seller_approved": false,
             "permissions": [],
-            "approval_status": "pending",
+            "approval_status": "on_hold",
             "phone": "02-7777-7812",
             "mobile": "010-7777-7812",
             "postal_code": "",
@@ -855,7 +891,8 @@
             "company_name": "77777812",
             "company_representative": "77777812",
             "business_type": "77777812",
-            "business_item": "77777812"
+            "business_item": "77777812",
+            "held_at": "2025-12-06 15:54:25"
         },
         {
             "user_id": "77777813",
@@ -866,7 +903,7 @@
             "created_at": "2025-12-06 09:31:51",
             "seller_approved": false,
             "permissions": [],
-            "approval_status": "pending",
+            "approval_status": "on_hold",
             "phone": "02-7777-7813",
             "mobile": "010-7777-7813",
             "postal_code": "",
@@ -876,7 +913,8 @@
             "company_name": "77777813",
             "company_representative": "77777813",
             "business_type": "77777813",
-            "business_item": "77777813"
+            "business_item": "77777813",
+            "held_at": "2025-12-06 15:54:27"
         },
         {
             "user_id": "77777814",
@@ -887,7 +925,7 @@
             "created_at": "2025-12-06 09:31:51",
             "seller_approved": false,
             "permissions": [],
-            "approval_status": "pending",
+            "approval_status": "on_hold",
             "phone": "02-7777-7814",
             "mobile": "010-7777-7814",
             "postal_code": "",
@@ -897,7 +935,8 @@
             "company_name": "77777814",
             "company_representative": "77777814",
             "business_type": "77777814",
-            "business_item": "77777814"
+            "business_item": "77777814",
+            "held_at": "2025-12-06 15:54:28"
         },
         {
             "user_id": "77777815",
@@ -908,7 +947,7 @@
             "created_at": "2025-12-06 09:31:51",
             "seller_approved": false,
             "permissions": [],
-            "approval_status": "pending",
+            "approval_status": "on_hold",
             "phone": "02-7777-7815",
             "mobile": "010-7777-7815",
             "postal_code": "",
@@ -918,7 +957,8 @@
             "company_name": "77777815",
             "company_representative": "77777815",
             "business_type": "77777815",
-            "business_item": "77777815"
+            "business_item": "77777815",
+            "held_at": "2025-12-06 15:54:30"
         },
         {
             "user_id": "77777816",
@@ -929,7 +969,7 @@
             "created_at": "2025-12-06 09:31:51",
             "seller_approved": false,
             "permissions": [],
-            "approval_status": "pending",
+            "approval_status": "on_hold",
             "phone": "02-7777-7816",
             "mobile": "010-7777-7816",
             "postal_code": "",
@@ -939,7 +979,8 @@
             "company_name": "77777816",
             "company_representative": "77777816",
             "business_type": "77777816",
-            "business_item": "77777816"
+            "business_item": "77777816",
+            "held_at": "2025-12-06 15:54:32"
         },
         {
             "user_id": "77777817",
@@ -950,7 +991,7 @@
             "created_at": "2025-12-06 09:31:51",
             "seller_approved": false,
             "permissions": [],
-            "approval_status": "pending",
+            "approval_status": "on_hold",
             "phone": "02-7777-7817",
             "mobile": "010-7777-7817",
             "postal_code": "",
@@ -960,7 +1001,8 @@
             "company_name": "77777817",
             "company_representative": "77777817",
             "business_type": "77777817",
-            "business_item": "77777817"
+            "business_item": "77777817",
+            "held_at": "2025-12-06 15:54:34"
         },
         {
             "user_id": "77777818",
@@ -971,7 +1013,7 @@
             "created_at": "2025-12-06 09:31:51",
             "seller_approved": false,
             "permissions": [],
-            "approval_status": "pending",
+            "approval_status": "on_hold",
             "phone": "02-7777-7818",
             "mobile": "010-7777-7818",
             "postal_code": "",
@@ -981,7 +1023,8 @@
             "company_name": "77777818",
             "company_representative": "77777818",
             "business_type": "77777818",
-            "business_item": "77777818"
+            "business_item": "77777818",
+            "held_at": "2025-12-06 15:54:36"
         },
         {
             "user_id": "77777819",
@@ -992,7 +1035,7 @@
             "created_at": "2025-12-06 09:31:51",
             "seller_approved": false,
             "permissions": [],
-            "approval_status": "pending",
+            "approval_status": "on_hold",
             "phone": "02-7777-7819",
             "mobile": "010-7777-7819",
             "postal_code": "",
@@ -1002,7 +1045,8 @@
             "company_name": "77777819",
             "company_representative": "77777819",
             "business_type": "77777819",
-            "business_item": "77777819"
+            "business_item": "77777819",
+            "held_at": "2025-12-06 15:54:37"
         },
         {
             "user_id": "77777820",
@@ -1013,7 +1057,7 @@
             "created_at": "2025-12-06 09:31:51",
             "seller_approved": false,
             "permissions": [],
-            "approval_status": "pending",
+            "approval_status": "on_hold",
             "phone": "02-7777-7820",
             "mobile": "010-7777-7820",
             "postal_code": "",
@@ -1023,28 +1067,42 @@
             "company_name": "77777820",
             "company_representative": "77777820",
             "business_type": "77777820",
-            "business_item": "77777820"
+            "business_item": "77777820",
+            "held_at": "2025-12-06 15:54:39"
         },
         {
             "user_id": "77777821",
-            "email": "77777821@test.com",
-            "name": "77777821",
+            "email": "withdrawn_77777821@withdrawn",
+            "name": "탈퇴한 판매자",
             "password": "$2y$10$8mERP\/o\/mQ5BP8fAYo9KKuZkzGqO87FKn9zWeW.tuQUjFMDaKnrzu",
             "role": "seller",
             "created_at": "2025-12-06 09:31:51",
-            "seller_approved": false,
-            "permissions": [],
-            "approval_status": "pending",
-            "phone": "02-7777-7821",
-            "mobile": "010-7777-7821",
-            "postal_code": "",
-            "address": "서울 강남구 가로수길 45",
-            "address_detail": "",
+            "seller_approved": true,
+            "permissions": [
+                "mvno",
+                "internet"
+            ],
+            "approval_status": "approved",
             "business_number": "777-77-821",
             "company_name": "77777821",
             "company_representative": "77777821",
             "business_type": "77777821",
-            "business_item": "77777821"
+            "business_item": "0000000",
+            "approved_at": "2025-12-06 17:27:19",
+            "permissions_updated_at": "2025-12-06 16:11:20",
+            "business_license_image": "\/MVNO\/uploads\/sellers\/77777821_license_1765036739.jpg",
+            "updated_at": "2025-12-06 16:58:59",
+            "info_updated": true,
+            "info_updated_at": "2025-12-06 16:58:59",
+            "info_checked_by_admin": true,
+            "withdrawal_requested": true,
+            "withdrawal_requested_at": "2025-12-06 17:09:24",
+            "info_checked_at": "2025-12-06 17:08:50",
+            "withdrawal_reason": "fdsfsaf",
+            "withdrawal_completed": true,
+            "withdrawal_completed_at": "2025-12-06 17:17:38",
+            "scheduled_delete_date": "2025-12-08",
+            "scheduled_delete_time": "2025-12-08 23:59:59"
         },
         {
             "user_id": "77777822",
@@ -1055,7 +1113,7 @@
             "created_at": "2025-12-06 09:31:51",
             "seller_approved": false,
             "permissions": [],
-            "approval_status": "pending",
+            "approval_status": "on_hold",
             "phone": "02-7777-7822",
             "mobile": "010-7777-7822",
             "postal_code": "",
@@ -1065,7 +1123,8 @@
             "company_name": "77777822",
             "company_representative": "77777822",
             "business_type": "77777822",
-            "business_item": "77777822"
+            "business_item": "77777822",
+            "held_at": "2025-12-06 15:54:44"
         },
         {
             "user_id": "77777823",
@@ -1076,7 +1135,7 @@
             "created_at": "2025-12-06 09:31:51",
             "seller_approved": false,
             "permissions": [],
-            "approval_status": "pending",
+            "approval_status": "on_hold",
             "phone": "02-7777-7823",
             "mobile": "010-7777-7823",
             "postal_code": "",
@@ -1086,7 +1145,8 @@
             "company_name": "77777823",
             "company_representative": "77777823",
             "business_type": "77777823",
-            "business_item": "77777823"
+            "business_item": "77777823",
+            "held_at": "2025-12-06 15:54:46"
         },
         {
             "user_id": "77777824",
@@ -1097,7 +1157,7 @@
             "created_at": "2025-12-06 09:31:51",
             "seller_approved": false,
             "permissions": [],
-            "approval_status": "pending",
+            "approval_status": "on_hold",
             "phone": "02-7777-7824",
             "mobile": "010-7777-7824",
             "postal_code": "",
@@ -1107,7 +1167,8 @@
             "company_name": "77777824",
             "company_representative": "77777824",
             "business_type": "77777824",
-            "business_item": "77777824"
+            "business_item": "77777824",
+            "held_at": "2025-12-06 15:54:47"
         },
         {
             "user_id": "77777825",
@@ -1140,7 +1201,7 @@
             "created_at": "2025-12-06 09:31:52",
             "seller_approved": false,
             "permissions": [],
-            "approval_status": "pending",
+            "approval_status": "on_hold",
             "phone": "02-7777-7826",
             "mobile": "010-7777-7826",
             "postal_code": "",
@@ -1150,7 +1211,9 @@
             "company_name": "77777826",
             "company_representative": "77777826",
             "business_type": "77777826",
-            "business_item": "77777826"
+            "business_item": "77777826",
+            "approved_at": "2025-12-06 15:52:10",
+            "held_at": "2025-12-06 15:52:16"
         },
         {
             "user_id": "77777827",
@@ -1161,7 +1224,7 @@
             "created_at": "2025-12-06 09:31:52",
             "seller_approved": false,
             "permissions": [],
-            "approval_status": "pending",
+            "approval_status": "on_hold",
             "phone": "02-7777-7827",
             "mobile": "010-7777-7827",
             "postal_code": "",
@@ -1171,7 +1234,9 @@
             "company_name": "77777827",
             "company_representative": "77777827",
             "business_type": "77777827",
-            "business_item": "77777827"
+            "business_item": "77777827",
+            "approved_at": "2025-12-06 15:52:33",
+            "held_at": "2025-12-06 15:52:53"
         },
         {
             "user_id": "77777828",
@@ -1182,7 +1247,7 @@
             "created_at": "2025-12-06 09:31:52",
             "seller_approved": false,
             "permissions": [],
-            "approval_status": "pending",
+            "approval_status": "on_hold",
             "phone": "02-7777-7828",
             "mobile": "010-7777-7828",
             "postal_code": "",
@@ -1192,7 +1257,8 @@
             "company_name": "77777828",
             "company_representative": "77777828",
             "business_type": "77777828",
-            "business_item": "77777828"
+            "business_item": "77777828",
+            "held_at": "2025-12-06 15:53:41"
         },
         {
             "user_id": "77777829",
@@ -1203,7 +1269,7 @@
             "created_at": "2025-12-06 09:31:52",
             "seller_approved": false,
             "permissions": [],
-            "approval_status": "pending",
+            "approval_status": "on_hold",
             "phone": "02-7777-7829",
             "mobile": "010-7777-7829",
             "postal_code": "",
@@ -1213,7 +1279,8 @@
             "company_name": "77777829",
             "company_representative": "77777829",
             "business_type": "77777829",
-            "business_item": "77777829"
+            "business_item": "77777829",
+            "held_at": "2025-12-06 15:53:43"
         },
         {
             "user_id": "77777830",
@@ -1222,19 +1289,28 @@
             "password": "$2y$10$pZT4S4hvm8DR461qnnwRgeEV2QZUT6vGrqk9VvmYD66g2DbPpV8GK",
             "role": "seller",
             "created_at": "2025-12-06 09:31:52",
-            "seller_approved": false,
-            "permissions": [],
-            "approval_status": "pending",
+            "seller_approved": true,
+            "permissions": [
+                "mno"
+            ],
+            "approval_status": "approved",
             "phone": "02-7777-7830",
             "mobile": "010-7777-7830",
-            "postal_code": "",
             "address": "서울 강남구 가로수길 54",
             "address_detail": "",
-            "business_number": "777-77-830",
+            "business_number": "777-77-77777",
             "company_name": "77777830",
             "company_representative": "77777830",
             "business_type": "77777830",
-            "business_item": "77777830"
+            "business_item": "77777830",
+            "approved_at": "2025-12-06 16:14:12",
+            "updated_at": "2025-12-06 16:53:39",
+            "permissions_updated_at": "2025-12-06 16:11:02",
+            "held_at": "2025-12-06 16:12:42",
+            "info_updated": true,
+            "info_updated_at": "2025-12-06 16:53:39",
+            "info_checked_by_admin": true,
+            "info_checked_at": "2025-12-06 16:54:03"
         },
         {
             "user_id": "77777831",
@@ -1245,7 +1321,7 @@
             "created_at": "2025-12-06 09:31:52",
             "seller_approved": false,
             "permissions": [],
-            "approval_status": "pending",
+            "approval_status": "on_hold",
             "phone": "02-7777-7831",
             "mobile": "010-7777-7831",
             "postal_code": "",
@@ -1255,7 +1331,8 @@
             "company_name": "77777831",
             "company_representative": "77777831",
             "business_type": "77777831",
-            "business_item": "77777831"
+            "business_item": "77777831",
+            "held_at": "2025-12-06 15:53:49"
         },
         {
             "user_id": "77777832",
@@ -1266,7 +1343,7 @@
             "created_at": "2025-12-06 09:31:52",
             "seller_approved": false,
             "permissions": [],
-            "approval_status": "pending",
+            "approval_status": "on_hold",
             "phone": "02-7777-7832",
             "mobile": "010-7777-7832",
             "postal_code": "",
@@ -1276,7 +1353,8 @@
             "company_name": "77777832",
             "company_representative": "77777832",
             "business_type": "77777832",
-            "business_item": "77777832"
+            "business_item": "77777832",
+            "held_at": "2025-12-06 15:53:51"
         },
         {
             "user_id": "77777833",
@@ -1287,7 +1365,7 @@
             "created_at": "2025-12-06 09:31:52",
             "seller_approved": false,
             "permissions": [],
-            "approval_status": "pending",
+            "approval_status": "on_hold",
             "phone": "02-7777-7833",
             "mobile": "010-7777-7833",
             "postal_code": "",
@@ -1297,7 +1375,8 @@
             "company_name": "77777833",
             "company_representative": "77777833",
             "business_type": "77777833",
-            "business_item": "77777833"
+            "business_item": "77777833",
+            "held_at": "2025-12-06 15:53:53"
         },
         {
             "user_id": "77777834",
@@ -1308,7 +1387,7 @@
             "created_at": "2025-12-06 09:31:52",
             "seller_approved": false,
             "permissions": [],
-            "approval_status": "pending",
+            "approval_status": "on_hold",
             "phone": "02-7777-7834",
             "mobile": "010-7777-7834",
             "postal_code": "",
@@ -1318,7 +1397,8 @@
             "company_name": "77777834",
             "company_representative": "77777834",
             "business_type": "77777834",
-            "business_item": "77777834"
+            "business_item": "77777834",
+            "held_at": "2025-12-06 15:53:55"
         },
         {
             "user_id": "77777835",
@@ -1329,7 +1409,7 @@
             "created_at": "2025-12-06 09:31:52",
             "seller_approved": false,
             "permissions": [],
-            "approval_status": "pending",
+            "approval_status": "on_hold",
             "phone": "02-7777-7835",
             "mobile": "010-7777-7835",
             "postal_code": "",
@@ -1339,7 +1419,8 @@
             "company_name": "77777835",
             "company_representative": "77777835",
             "business_type": "77777835",
-            "business_item": "77777835"
+            "business_item": "77777835",
+            "held_at": "2025-12-06 15:53:57"
         },
         {
             "user_id": "77777836",
@@ -1350,7 +1431,7 @@
             "created_at": "2025-12-06 09:31:52",
             "seller_approved": false,
             "permissions": [],
-            "approval_status": "pending",
+            "approval_status": "on_hold",
             "phone": "02-7777-7836",
             "mobile": "010-7777-7836",
             "postal_code": "",
@@ -1360,7 +1441,8 @@
             "company_name": "77777836",
             "company_representative": "77777836",
             "business_type": "77777836",
-            "business_item": "77777836"
+            "business_item": "77777836",
+            "held_at": "2025-12-06 15:53:59"
         },
         {
             "user_id": "77777837",
@@ -1371,7 +1453,7 @@
             "created_at": "2025-12-06 09:31:52",
             "seller_approved": false,
             "permissions": [],
-            "approval_status": "pending",
+            "approval_status": "on_hold",
             "phone": "02-7777-7837",
             "mobile": "010-7777-7837",
             "postal_code": "",
@@ -1381,7 +1463,8 @@
             "company_name": "77777837",
             "company_representative": "77777837",
             "business_type": "77777837",
-            "business_item": "77777837"
+            "business_item": "77777837",
+            "held_at": "2025-12-06 15:54:01"
         },
         {
             "user_id": "77777838",
@@ -1392,7 +1475,7 @@
             "created_at": "2025-12-06 09:31:52",
             "seller_approved": false,
             "permissions": [],
-            "approval_status": "pending",
+            "approval_status": "on_hold",
             "phone": "02-7777-7838",
             "mobile": "010-7777-7838",
             "postal_code": "",
@@ -1402,7 +1485,8 @@
             "company_name": "77777838",
             "company_representative": "77777838",
             "business_type": "77777838",
-            "business_item": "77777838"
+            "business_item": "77777838",
+            "held_at": "2025-12-06 15:54:03"
         },
         {
             "user_id": "77777839",
@@ -1413,7 +1497,7 @@
             "created_at": "2025-12-06 09:31:52",
             "seller_approved": false,
             "permissions": [],
-            "approval_status": "pending",
+            "approval_status": "on_hold",
             "phone": "02-7777-7839",
             "mobile": "010-7777-7839",
             "postal_code": "",
@@ -1423,7 +1507,8 @@
             "company_name": "77777839",
             "company_representative": "77777839",
             "business_type": "77777839",
-            "business_item": "77777839"
+            "business_item": "77777839",
+            "held_at": "2025-12-06 15:54:05"
         },
         {
             "user_id": "77777840",
@@ -1434,7 +1519,7 @@
             "created_at": "2025-12-06 09:31:52",
             "seller_approved": false,
             "permissions": [],
-            "approval_status": "pending",
+            "approval_status": "on_hold",
             "phone": "02-7777-7840",
             "mobile": "010-7777-7840",
             "postal_code": "",
@@ -1444,7 +1529,8 @@
             "company_name": "77777840",
             "company_representative": "77777840",
             "business_type": "77777840",
-            "business_item": "77777840"
+            "business_item": "77777840",
+            "held_at": "2025-12-06 15:54:06"
         },
         {
             "user_id": "77777841",
@@ -1455,7 +1541,7 @@
             "created_at": "2025-12-06 09:31:52",
             "seller_approved": false,
             "permissions": [],
-            "approval_status": "pending",
+            "approval_status": "on_hold",
             "phone": "02-7777-7841",
             "mobile": "010-7777-7841",
             "postal_code": "",
@@ -1465,7 +1551,8 @@
             "company_name": "77777841",
             "company_representative": "77777841",
             "business_type": "77777841",
-            "business_item": "77777841"
+            "business_item": "77777841",
+            "held_at": "2025-12-06 15:54:08"
         },
         {
             "user_id": "77777842",
@@ -1476,7 +1563,7 @@
             "created_at": "2025-12-06 09:31:52",
             "seller_approved": false,
             "permissions": [],
-            "approval_status": "pending",
+            "approval_status": "on_hold",
             "phone": "02-7777-7842",
             "mobile": "010-7777-7842",
             "postal_code": "",
@@ -1486,7 +1573,8 @@
             "company_name": "77777842",
             "company_representative": "77777842",
             "business_type": "77777842",
-            "business_item": "77777842"
+            "business_item": "77777842",
+            "held_at": "2025-12-06 15:54:10"
         },
         {
             "user_id": "77777843",
@@ -2284,24 +2372,29 @@
             "user_id": "77777879",
             "email": "7777@test.com",
             "name": "77777879",
-            "password": "$2y$10$3IKsBZsQCV7LVv304Aq.DOufhRKTqJAQ50Ph7gn64bpPLBGloLi4u",
+            "password": "$2y$10$0xWXDTYm5RcjyFXPjU9k6.og.xvOTy4iXctepuXcixETbsSmK\/Ie2",
             "role": "seller",
             "created_at": "2025-12-06 09:31:55",
-            "seller_approved": false,
+            "seller_approved": true,
             "permissions": [],
-            "approval_status": "on_hold",
+            "approval_status": "approved",
             "phone": "02-7777-7879",
             "mobile": "010-0000-0000",
             "address": "서울 강남구 가로수길 103",
-            "address_detail": "",
+            "address_detail": "101",
             "business_number": "777-77-879",
             "company_name": "77777879",
             "company_representative": "77777879",
             "business_type": "77777879",
             "business_item": "77777879",
-            "updated_at": "2025-12-06 09:40:44",
+            "updated_at": "2025-12-06 16:48:50",
             "held_at": "2025-12-06 09:49:12",
-            "approved_at": "2025-12-06 09:45:39"
+            "approved_at": "2025-12-06 16:27:22",
+            "business_license_image": "\/MVNO\/uploads\/sellers\/77777879_license_1765035926.png",
+            "info_updated": true,
+            "info_updated_at": "2025-12-06 16:48:50",
+            "info_checked_by_admin": true,
+            "info_checked_at": "2025-12-06 16:50:55"
         },
         {
             "user_id": "77777880",

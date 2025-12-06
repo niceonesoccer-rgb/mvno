@@ -65,3 +65,4 @@ echo "\n완료! 총 {$count}개 계정 생성 시도\n";
 if (php_sapi_name() !== 'cli') {
     echo '</pre>';
 }
+

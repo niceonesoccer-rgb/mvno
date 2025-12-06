@@ -3,7 +3,7 @@
  * 관리자용 판매자 상세 정보 페이지
  */
 
-require_once __DIR__ . '/../includes/admin-header.php';
+require_once __DIR__ . '/../../includes/data/auth-functions.php';
 
 // 관리자 권한 체크
 $currentUser = getCurrentUser();
@@ -20,7 +20,23 @@ if (empty($sellerId)) {
     exit;
 }
 
-// 판매자 정보 가져오기
+// 권한 설정 처리 (헤더 출력 전에 처리)
+$success_message = null;
+$error_message = null;
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_permissions'])) {
+    $userId = $_POST['user_id'] ?? '';
+    $permissions = $_POST['permissions'] ?? [];
+    
+    if ($userId && setSellerPermissions($userId, $permissions)) {
+        $success_message = '권한이 성공적으로 저장되었습니다.';
+    } else {
+        $error_message = '권한 저장에 실패했습니다.';
+    }
+}
+
+require_once __DIR__ . '/../includes/admin-header.php';
+
+// 판매자 정보 가져오기 (POST 요청 후 최신 정보를 가져오기 위해 여기서 다시 로드)
 $seller = getUserById($sellerId);
 
 if (!$seller || $seller['role'] !== 'seller') {
@@ -233,6 +249,43 @@ if (!$seller || $seller['role'] !== 'seller') {
     .full-width {
         grid-column: 1 / -1;
     }
+    
+    .permissions-form {
+        margin-top: 0;
+    }
+    
+    .permissions-checkboxes {
+        display: flex;
+        gap: 24px;
+        flex-wrap: wrap;
+    }
+    
+    .permission-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .modal-overlay.active {
+        display: flex !important;
+    }
+    
+    .modal-btn:hover {
+        opacity: 0.9;
+    }
+    
+    .modal-btn-cancel:hover {
+        background: #e5e7eb !important;
+    }
+    
+    .modal-btn-confirm:hover {
+        background: #059669 !important;
+    }
+    
+    .alert {
+        max-width: 1200px;
+        margin: 0 auto 24px;
+    }
 </style>
 
 <div class="admin-content">
@@ -274,7 +327,7 @@ if (!$seller || $seller['role'] !== 'seller') {
                 <h2 class="detail-card-title">판매자 상태</h2>
                 <div class="detail-item">
                     <div class="detail-label">승인 상태</div>
-                    <div class="detail-value">
+                    <div class="detail-value" style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
                         <?php 
                         $approvalStatus = $seller['approval_status'] ?? 'pending';
                         $isApproved = isset($seller['seller_approved']) && $seller['seller_approved'] === true;
@@ -287,58 +340,79 @@ if (!$seller || $seller['role'] !== 'seller') {
                             echo '<span class="detail-badge badge-pending">승인 대기</span>';
                         }
                         ?>
+                        <?php if (isset($seller['approved_at']) && ($isApproved || $approvalStatus === 'approved')): ?>
+                            <span style="font-size: 13px; color: #6b7280;">승인일: <?php echo htmlspecialchars($seller['approved_at']); ?></span>
+                        <?php endif; ?>
+                        <?php if (isset($seller['held_at']) && $approvalStatus === 'on_hold'): ?>
+                            <span style="font-size: 13px; color: #6b7280;">보류일: <?php echo htmlspecialchars($seller['held_at']); ?></span>
+                        <?php endif; ?>
+                        <?php if (!$isApproved && $approvalStatus !== 'on_hold'): ?>
+                            <!-- 승인 대기 회원: 승인 버튼 -->
+                            <form method="POST" action="/MVNO/admin/seller-approval.php" style="display: inline; margin: 0;">
+                                <input type="hidden" name="user_id" value="<?php echo htmlspecialchars($seller['user_id']); ?>">
+                                <button type="submit" name="approve_seller" class="btn btn-success" style="padding: 8px 16px; font-size: 13px; height: 36px; line-height: 1;">승인</button>
+                            </form>
+                        <?php elseif ($approvalStatus === 'on_hold'): ?>
+                            <!-- 승인보류 회원: 승인 버튼 (오른쪽 정렬) -->
+                            <form method="POST" action="/MVNO/admin/seller-approval.php" style="display: inline; margin: 0; margin-left: auto;">
+                                <input type="hidden" name="user_id" value="<?php echo htmlspecialchars($seller['user_id']); ?>">
+                                <button type="submit" name="approve_seller" class="btn btn-success" style="padding: 8px 16px; font-size: 13px; height: 36px; line-height: 1;">승인</button>
+                            </form>
+                        <?php elseif ($isApproved || $approvalStatus === 'approved'): ?>
+                            <!-- 승인된 회원: 승인보류 버튼 -->
+                            <form method="POST" action="/MVNO/admin/seller-approval.php" style="display: inline; margin: 0; margin-left: auto;">
+                                <input type="hidden" name="user_id" value="<?php echo htmlspecialchars($seller['user_id']); ?>">
+                                <button type="submit" name="hold_seller" class="btn btn-warning" style="padding: 8px 16px; font-size: 13px; height: 36px; line-height: 1;">승인보류</button>
+                            </form>
+                        <?php endif; ?>
                     </div>
                 </div>
-                <?php if (isset($seller['approved_at'])): ?>
-                    <div class="detail-item">
-                        <div class="detail-label">승인일</div>
-                        <div class="detail-value"><?php echo htmlspecialchars($seller['approved_at']); ?></div>
-                    </div>
-                <?php endif; ?>
-                <?php if (isset($seller['held_at'])): ?>
-                    <div class="detail-item">
-                        <div class="detail-label">보류일</div>
-                        <div class="detail-value"><?php echo htmlspecialchars($seller['held_at']); ?></div>
-                    </div>
-                <?php endif; ?>
-            </div>
-        </div>
-        
-        <!-- 판매자 권한 정보 -->
-        <div class="detail-card" style="margin-bottom: 24px;">
-            <h2 class="detail-card-title">판매자 권한</h2>
-            <div class="detail-item">
-                <div class="detail-label">게시판 권한</div>
-                <div class="detail-value">
-                    <?php 
-                    $permissions = $seller['permissions'] ?? [];
-                    if (empty($permissions)) {
-                        echo '<span class="no-permission">권한이 없습니다.</span>';
-                    } else {
+                <div class="detail-item">
+                    <div class="detail-label">권한</div>
+                    <div class="detail-value" style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                        <?php 
+                        $permissions = $seller['permissions'] ?? [];
                         $permNames = [
                             'mvno' => '알뜰폰',
                             'mno' => '통신사폰',
                             'internet' => '인터넷'
                         ];
-                        foreach ($permissions as $perm) {
-                            $permName = $permNames[$perm] ?? $perm;
-                            echo '<span class="permission-badge">' . htmlspecialchars($permName) . '</span>';
+                        if (empty($permissions)) {
+                            echo '<span class="no-permission">권한 없음</span>';
+                        } else {
+                            foreach ($permissions as $perm) {
+                                $permName = $permNames[$perm] ?? $perm;
+                                echo '<span class="permission-badge">' . htmlspecialchars($permName) . '</span>';
+                            }
                         }
-                    }
-                    ?>
+                        ?>
+                        <button type="button" class="btn btn-primary" onclick="openPermissionModal('<?php echo htmlspecialchars($seller['user_id']); ?>', <?php echo $isApproved ? 'true' : 'false'; ?>)" style="margin-left: auto; padding: 8px 16px; font-size: 13px; height: 36px; line-height: 1;">
+                            권한 설정
+                        </button>
+                    </div>
                 </div>
-            </div>
-            <?php if (isset($seller['permissions_updated_at'])): ?>
                 <div class="detail-item">
-                    <div class="detail-label">권한 수정일</div>
-                    <div class="detail-value"><?php echo htmlspecialchars($seller['permissions_updated_at']); ?></div>
+                    <div class="detail-label"></div>
+                    <div class="detail-value" style="display: flex; align-items: center; justify-content: flex-end; gap: 12px; flex-wrap: wrap;">
+                        <a href="/MVNO/admin/users/seller-edit.php?user_id=<?php echo urlencode($seller['user_id']); ?>" class="btn btn-primary" style="padding: 8px 16px; font-size: 13px; height: 36px; line-height: 1; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">
+                            정보 수정
+                        </a>
+                    </div>
                 </div>
-            <?php endif; ?>
-            <div class="action-buttons">
-                <a href="/MVNO/admin/seller-permissions.php?user_id=<?php echo urlencode($seller['user_id']); ?>" class="btn btn-primary">권한 설정</a>
-                <a href="/MVNO/admin/users/seller-edit.php?user_id=<?php echo urlencode($seller['user_id']); ?>" class="btn btn-primary">정보 수정</a>
             </div>
         </div>
+        
+        <?php if (isset($success_message)): ?>
+            <div class="alert alert-success" style="margin-bottom: 20px; padding: 12px 16px; border-radius: 8px; background: #d1fae5; color: #065f46; border: 1px solid #10b981; max-width: 1200px; margin: 0 auto 24px;">
+                <?php echo htmlspecialchars($success_message); ?>
+            </div>
+        <?php endif; ?>
+        
+        <?php if (isset($error_message)): ?>
+            <div class="alert alert-error" style="margin-bottom: 20px; padding: 12px 16px; border-radius: 8px; background: #fee2e2; color: #991b1b; border: 1px solid #ef4444; max-width: 1200px; margin: 0 auto 24px;">
+                <?php echo htmlspecialchars($error_message); ?>
+            </div>
+        <?php endif; ?>
         
         <!-- 사업자 정보 -->
         <?php if (isset($seller['business_number']) || isset($seller['company_name']) || isset($seller['phone']) || isset($seller['mobile'])): ?>
@@ -431,27 +505,6 @@ if (!$seller || $seller['role'] !== 'seller') {
             </div>
         <?php endif; ?>
         
-        <!-- 관리 작업 -->
-        <div class="detail-card">
-            <h2 class="detail-card-title">관리 작업</h2>
-            <div class="action-buttons" style="border-top: none; padding-top: 0;">
-                <?php if (!isset($seller['seller_approved']) || $seller['seller_approved'] !== true): ?>
-                    <form method="POST" action="/MVNO/admin/seller-approval.php" style="display: inline;">
-                        <input type="hidden" name="user_id" value="<?php echo htmlspecialchars($seller['user_id']); ?>">
-                        <button type="submit" name="approve_seller" class="btn btn-success">승인</button>
-                    </form>
-                    <?php if (!isset($seller['approval_status']) || $seller['approval_status'] !== 'on_hold'): ?>
-                        <form method="POST" action="/MVNO/admin/seller-approval.php" style="display: inline;">
-                            <input type="hidden" name="user_id" value="<?php echo htmlspecialchars($seller['user_id']); ?>">
-                            <button type="submit" name="hold_seller" class="btn btn-warning">승인보류</button>
-                        </form>
-                    <?php endif; ?>
-                <?php endif; ?>
-                <a href="/MVNO/admin/users/seller-edit.php?user_id=<?php echo urlencode($seller['user_id']); ?>" class="btn btn-primary">정보 수정</a>
-                <a href="/MVNO/admin/users/member-list.php?search=<?php echo urlencode($seller['user_id']); ?>" class="btn btn-primary">회원 목록에서 보기</a>
-            </div>
-        </div>
-        
         <!-- 전체 데이터 (JSON) -->
         <div class="detail-card">
             <h2 class="detail-card-title">전체 데이터 (JSON)</h2>
@@ -465,6 +518,100 @@ if (!$seller || $seller['role'] !== 'seller') {
     <img src="" alt="확대 이미지" class="image-zoom-content" onclick="event.stopPropagation()" style="max-width: 90%; max-height: 90%; border-radius: 8px;">
 </div>
 
+<!-- 권한 설정 모달 -->
+<div class="modal-overlay" id="permissionModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); z-index: 1000; align-items: center; justify-content: center;">
+    <div class="modal" style="background: white; border-radius: 12px; padding: 24px; max-width: 500px; width: 90%; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);">
+        <div class="modal-title" style="font-size: 18px; font-weight: 700; color: #1f2937; margin-bottom: 16px;">판매자 권한 설정</div>
+        
+        <form method="POST" class="permissions-form" id="permissionsForm_<?php echo htmlspecialchars($seller['user_id']); ?>" data-user-id="<?php echo htmlspecialchars($seller['user_id']); ?>" data-initial-permissions="<?php echo htmlspecialchars(json_encode($seller['permissions'] ?? [])); ?>">
+            <input type="hidden" name="save_permissions" value="1">
+            <input type="hidden" name="user_id" value="<?php echo htmlspecialchars($seller['user_id']); ?>">
+            
+            <div style="margin-bottom: 20px;">
+                <div style="font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 12px;">게시판 등록 권한</div>
+                <div class="permissions-checkboxes" style="display: flex; flex-direction: column; gap: 16px;">
+                    <div class="permission-item" style="display: flex; align-items: center; gap: 8px;">
+                        <input 
+                            type="checkbox" 
+                            id="modal_mvno_<?php echo htmlspecialchars($seller['user_id']); ?>" 
+                            name="permissions[]" 
+                            value="mvno"
+                            class="permission-checkbox"
+                            style="width: 18px; height: 18px; cursor: pointer; accent-color: #6366f1;"
+                            <?php echo (isset($seller['permissions']) && in_array('mvno', $seller['permissions'])) ? 'checked' : ''; ?>
+                        >
+                        <label for="modal_mvno_<?php echo htmlspecialchars($seller['user_id']); ?>" style="font-size: 14px; color: #374151; cursor: pointer; user-select: none;">
+                            알뜰폰
+                        </label>
+                    </div>
+                    
+                    <div class="permission-item" style="display: flex; align-items: center; gap: 8px;">
+                        <input 
+                            type="checkbox" 
+                            id="modal_mno_<?php echo htmlspecialchars($seller['user_id']); ?>" 
+                            name="permissions[]" 
+                            value="mno"
+                            class="permission-checkbox"
+                            style="width: 18px; height: 18px; cursor: pointer; accent-color: #6366f1;"
+                            <?php echo (isset($seller['permissions']) && in_array('mno', $seller['permissions'])) ? 'checked' : ''; ?>
+                        >
+                        <label for="modal_mno_<?php echo htmlspecialchars($seller['user_id']); ?>" style="font-size: 14px; color: #374151; cursor: pointer; user-select: none;">
+                            통신사폰
+                        </label>
+                    </div>
+                    
+                    <div class="permission-item" style="display: flex; align-items: center; gap: 8px;">
+                        <input 
+                            type="checkbox" 
+                            id="modal_internet_<?php echo htmlspecialchars($seller['user_id']); ?>" 
+                            name="permissions[]" 
+                            value="internet"
+                            class="permission-checkbox"
+                            style="width: 18px; height: 18px; cursor: pointer; accent-color: #6366f1;"
+                            <?php echo (isset($seller['permissions']) && in_array('internet', $seller['permissions'])) ? 'checked' : ''; ?>
+                        >
+                        <label for="modal_internet_<?php echo htmlspecialchars($seller['user_id']); ?>" style="font-size: 14px; color: #374151; cursor: pointer; user-select: none;">
+                            인터넷
+                        </label>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal-actions" style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px;">
+                <button type="button" class="modal-btn modal-btn-cancel" onclick="closePermissionModal()" style="padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; border: none; transition: all 0.2s; background: #f3f4f6; color: #374151;">취소</button>
+                <button type="button" class="modal-btn modal-btn-confirm" onclick="checkAndSavePermissions('<?php echo htmlspecialchars($seller['user_id']); ?>')" style="padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; border: none; transition: all 0.2s; background: #6366f1; color: white;">저장</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 승인 필요 경고 모달 -->
+<div class="modal-overlay" id="approvalRequiredModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); z-index: 1001; align-items: center; justify-content: center;">
+    <div class="modal" style="background: white; border-radius: 12px; padding: 24px; max-width: 400px; width: 90%; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);">
+        <div class="modal-title" style="font-size: 18px; font-weight: 700; color: #1f2937; margin-bottom: 16px;">알림</div>
+        <div class="modal-message" style="font-size: 14px; color: #6b7280; margin-bottom: 24px; line-height: 1.6;">
+            승인된 회원만 권한을 부여할 수 있습니다.<br>판매자 승인을 먼저 해주세요.
+        </div>
+        <div class="modal-actions" style="display: flex; gap: 12px; justify-content: flex-end;">
+            <button type="button" class="modal-btn modal-btn-confirm" onclick="closeApprovalRequiredModal()" style="padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; border: none; transition: all 0.2s; background: #6366f1; color: white; width: 100%;">확인</button>
+        </div>
+    </div>
+</div>
+
+<!-- 저장 확인 모달 -->
+<div class="modal-overlay" id="saveModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); z-index: 1001; align-items: center; justify-content: center;">
+    <div class="modal" style="background: white; border-radius: 12px; padding: 24px; max-width: 400px; width: 90%; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);">
+        <div class="modal-title" style="font-size: 18px; font-weight: 700; color: #1f2937; margin-bottom: 16px;">권한 저장 확인</div>
+        <div class="modal-message" id="saveModalMessage" style="font-size: 14px; color: #6b7280; margin-bottom: 24px; line-height: 1.6;">
+            판매자 권한을 저장하시겠습니까?
+        </div>
+        <div class="modal-actions" style="display: flex; gap: 12px; justify-content: flex-end;">
+            <button type="button" class="modal-btn modal-btn-cancel" onclick="closeSaveModal()" style="padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; border: none; transition: all 0.2s; background: #f3f4f6; color: #374151;">취소</button>
+            <button type="button" class="modal-btn modal-btn-confirm" onclick="confirmSave()" style="padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; border: none; transition: all 0.2s; background: #10b981; color: white;">저장</button>
+        </div>
+    </div>
+</div>
+
 <script>
     function showImageZoom(imageSrc) {
         const overlay = document.getElementById('imageZoomOverlay');
@@ -476,6 +623,164 @@ if (!$seller || $seller['role'] !== 'seller') {
     function closeImageZoom() {
         document.getElementById('imageZoomOverlay').style.display = 'none';
     }
+    
+    // 권한 설정 모달 열기
+    function openPermissionModal(userId, isApproved) {
+        // 승인되지 않은 경우 경고 모달 표시
+        if (!isApproved) {
+            showApprovalRequiredModal();
+            return;
+        }
+        
+        // 승인된 경우 권한 설정 모달 표시
+        const modal = document.getElementById('permissionModal');
+        modal.style.display = 'flex';
+    }
+    
+    // 권한 설정 모달 닫기
+    function closePermissionModal() {
+        document.getElementById('permissionModal').style.display = 'none';
+    }
+    
+    // 승인 필요 경고 모달 표시
+    function showApprovalRequiredModal() {
+        const modal = document.getElementById('approvalRequiredModal');
+        modal.style.display = 'flex';
+    }
+    
+    // 승인 필요 경고 모달 닫기
+    function closeApprovalRequiredModal() {
+        document.getElementById('approvalRequiredModal').style.display = 'none';
+    }
+    
+    // 권한 변경 감지 및 저장 처리
+    function checkAndSavePermissions(userId) {
+        const form = document.getElementById('permissionsForm_' + userId);
+        if (!form) {
+            console.error('Form not found for userId:', userId);
+            return;
+        }
+        
+        const initialPermissions = JSON.parse(form.getAttribute('data-initial-permissions') || '[]');
+        
+        // 현재 선택된 권한 가져오기
+        const checkboxes = form.querySelectorAll('.permission-checkbox:checked');
+        const currentPermissions = Array.from(checkboxes).map(cb => cb.value);
+        
+        // 권한이 변경되었는지 확인
+        const initialSorted = [...initialPermissions].sort();
+        const currentSorted = [...currentPermissions].sort();
+        const hasChanged = JSON.stringify(initialSorted) !== JSON.stringify(currentSorted);
+        
+        if (!hasChanged) {
+            // 변경 사항 없음 모달 표시
+            showNoChangeModal();
+            return;
+        }
+        
+        // 모달 표시
+        showSaveModal();
+        
+        // 저장할 폼 ID 저장
+        window.pendingFormId = userId;
+    }
+    
+    // 저장 확인 모달 표시
+    function showSaveModal() {
+        const modal = document.getElementById('saveModal');
+        const modalTitle = modal.querySelector('.modal-title');
+        const modalMessage = modal.querySelector('.modal-message');
+        const modalActions = modal.querySelector('.modal-actions');
+        
+        modalTitle.textContent = '권한 저장 확인';
+        modalMessage.textContent = '판매자 권한을 저장하시겠습니까?';
+        
+        // 버튼을 저장 모드로 변경
+        modalActions.innerHTML = `
+            <button type="button" class="modal-btn modal-btn-cancel" onclick="closeSaveModal()">취소</button>
+            <button type="button" class="modal-btn modal-btn-confirm" onclick="confirmSave()">저장</button>
+        `;
+        
+        modal.classList.add('active');
+    }
+    
+    // 변경 사항 없음 모달 표시
+    function showNoChangeModal() {
+        const modal = document.getElementById('saveModal');
+        const modalTitle = modal.querySelector('.modal-title');
+        const modalMessage = modal.querySelector('.modal-message');
+        const modalActions = modal.querySelector('.modal-actions');
+        
+        modalTitle.textContent = '알림';
+        modalMessage.textContent = '변경된 권한이 없습니다.';
+        
+        // 버튼을 확인만 표시
+        modalActions.innerHTML = `
+            <button type="button" class="modal-btn modal-btn-confirm" onclick="closeSaveModal()" style="width: 100%;">확인</button>
+        `;
+        
+        modal.classList.add('active');
+    }
+    
+    // 모달 닫기
+    function closeSaveModal() {
+        document.getElementById('saveModal').classList.remove('active');
+        window.pendingFormId = null;
+    }
+    
+    // 모달에서 확인 클릭 시 저장 실행
+    function confirmSave() {
+        const userId = window.pendingFormId;
+        if (!userId) {
+            console.error('No pending form ID');
+            return;
+        }
+        
+        const form = document.getElementById('permissionsForm_' + userId);
+        if (!form) {
+            console.error('Form not found for userId:', userId);
+            return;
+        }
+        
+        // 저장 확인 모달 닫기
+        closeSaveModal();
+        
+        // 권한 설정 모달 닫기
+        closePermissionModal();
+        
+        // 폼 제출
+        form.submit();
+    }
+    
+    // 모달 외부 클릭 시 닫기
+    document.addEventListener('DOMContentLoaded', function() {
+        const saveModal = document.getElementById('saveModal');
+        if (saveModal) {
+            saveModal.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeSaveModal();
+                }
+            });
+        }
+        
+        const permissionModal = document.getElementById('permissionModal');
+        if (permissionModal) {
+            permissionModal.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closePermissionModal();
+                }
+            });
+        }
+        
+        const approvalRequiredModal = document.getElementById('approvalRequiredModal');
+        if (approvalRequiredModal) {
+            approvalRequiredModal.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeApprovalRequiredModal();
+                }
+            });
+        }
+    });
 </script>
 
 <?php require_once __DIR__ . '/../includes/admin-footer.php'; ?>

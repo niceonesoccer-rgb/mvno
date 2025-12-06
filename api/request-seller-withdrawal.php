@@ -58,3 +58,4 @@ if (requestSellerWithdrawal($userId, $reason)) {
     echo json_encode(['success' => false, 'message' => '탈퇴 요청 처리에 실패했습니다.']);
 }
 
+

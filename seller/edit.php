@@ -1,9 +1,9 @@
 <?php
 /**
- * 관리자용 판매자 정보 수정 페이지
+ * 판매자 센터용 판매자 정보 수정 페이지
  */
 
-require_once __DIR__ . '/../../includes/data/auth-functions.php';
+require_once __DIR__ . '/../includes/data/auth-functions.php';
 
 /**
  * 이미지 리사이징 및 압축 함수 (500MB 이하로 자동 축소)
@@ -154,45 +154,42 @@ function compressImage($sourcePath, $targetPath, $maxSizeMB = 500) {
     return true;
 }
 
-// 관리자 권한 체크
-$currentUser = getCurrentUser();
-if (!$currentUser || !isAdmin($currentUser['user_id'])) {
-    header('Location: /MVNO/auth/login.php');
-    exit;
-}
-
 // 세션 시작
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// 판매자 ID 가져오기
-$sellerId = $_GET['user_id'] ?? '';
-
-if (empty($sellerId)) {
-    header('Location: /MVNO/admin/seller-approval.php');
+// 판매자 인증 체크
+$currentUser = getCurrentUser();
+if (!$currentUser || $currentUser['role'] !== 'seller') {
+    header('Location: /MVNO/seller/login.php');
     exit;
 }
 
-// 판매자 정보 가져오기
-$seller = getUserById($sellerId);
+// 판매자 승인 상태 확인
+$approvalStatus = $currentUser['approval_status'] ?? 'pending';
+if ($approvalStatus !== 'approved') {
+    header('Location: /MVNO/seller/waiting.php');
+    exit;
+}
+
+// 판매자 정보 가져오기 (본인만)
+$seller = getUserById($currentUser['user_id']);
 
 if (!$seller || $seller['role'] !== 'seller') {
-    header('Location: /MVNO/admin/seller-approval.php');
+    header('Location: /MVNO/seller/profile.php');
     exit;
 }
 
-$isAdmin = true; // 관리자 전용 페이지
-
-// 판매자 정보 수정 처리 (인증 체크 후)
+// 판매자 정보 수정 처리
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_seller'])) {
-    $userId = $_POST['user_id'] ?? '';
+    $userId = $currentUser['user_id'];
     $seller = getUserById($userId);
     
     if (!$seller || $seller['role'] !== 'seller') {
         $error_message = '판매자를 찾을 수 없습니다.';
     } else {
-        // 수정할 정보 수집
+        // 수정할 정보 수집 (사업자등록번호는 변경 불가)
         $updateData = [
             'name' => $_POST['name'] ?? $seller['name'],
             'email' => $_POST['email'] ?? $seller['email'],
@@ -200,7 +197,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_seller'])) {
             'mobile' => $_POST['mobile'] ?? ($seller['mobile'] ?? ''),
             'address' => $_POST['address'] ?? ($seller['address'] ?? ''),
             'address_detail' => $_POST['address_detail'] ?? ($seller['address_detail'] ?? ''),
-            'business_number' => $_POST['business_number'] ?? ($seller['business_number'] ?? ''),
+            // 'business_number'는 변경 불가이므로 제외
             'company_name' => $_POST['company_name'] ?? ($seller['company_name'] ?? ''),
             'company_representative' => $_POST['company_representative'] ?? ($seller['company_representative'] ?? ''),
             'business_type' => $_POST['business_type'] ?? ($seller['business_type'] ?? ''),
@@ -214,7 +211,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_seller'])) {
         
         // 사업자등록증 이미지 업로드 처리
         if (isset($_FILES['business_license_image']) && $_FILES['business_license_image']['error'] === UPLOAD_ERR_OK) {
-            $uploadDir = __DIR__ . '/../../uploads/sellers/';
+            $uploadDir = __DIR__ . '/../uploads/sellers/';
             if (!is_dir($uploadDir)) {
                 mkdir($uploadDir, 0755, true);
             }
@@ -240,8 +237,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_seller'])) {
                         $error_message = '이미지 파일만 업로드 가능합니다. (jpg, jpeg, png, gif)';
                     } else {
                         // 기존 이미지 삭제 (있는 경우)
-                        if (!empty($seller['business_license_image']) && file_exists(__DIR__ . '/../..' . $seller['business_license_image'])) {
-                            @unlink(__DIR__ . '/../..' . $seller['business_license_image']);
+                        if (!empty($seller['business_license_image']) && file_exists(__DIR__ . '/..' . $seller['business_license_image'])) {
+                            @unlink(__DIR__ . '/..' . $seller['business_license_image']);
                         }
                         
                         // 새 파일명 생성
@@ -307,13 +304,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_seller'])) {
                                 unset($u['postal_code']);
                             }
                             $u['updated_at'] = date('Y-m-d H:i:s');
-                            // 정보 업데이트 플래그 설정 (관리자 확인 전까지 유지) - 판매자가 수정한 경우에만
-                            // 관리자가 수정하는 경우는 플래그를 설정하지 않음
-                            if (!$isAdmin) {
-                                $u['info_updated'] = true;
-                                $u['info_updated_at'] = date('Y-m-d H:i:s');
-                                $u['info_checked_by_admin'] = false; // 관리자 확인 전
-                            }
+                            // 정보 업데이트 플래그 설정 (관리자 확인 전까지 유지)
+                            $u['info_updated'] = true;
+                            $u['info_updated_at'] = date('Y-m-d H:i:s');
+                            $u['info_checked_by_admin'] = false; // 관리자 확인 전
                             $updated = true;
                             break;
                         }
@@ -321,7 +315,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_seller'])) {
                     
                     if ($updated) {
                         file_put_contents($file, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-                        // 저장 성공 플래그 설정 (리다이렉트하지 않고 같은 페이지에 머물러서 모달 표시)
+                        // 저장 성공 플래그 설정
                         $success_saved = true;
                         // 판매자 정보 다시 로드 (업데이트된 정보 반영)
                         $seller = getUserById($userId);
@@ -339,13 +333,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_seller'])) {
     }
 }
 
-// POST 처리 후 판매자 정보 다시 로드 (업데이트된 정보 반영)
-if (isset($success_saved) && $success_saved && isset($userId)) {
-    $seller = getUserById($userId);
-}
-
-// 관리자 헤더 사용
-require_once __DIR__ . '/../includes/admin-header.php';
+// 판매자 헤더 포함
+require_once __DIR__ . '/includes/seller-header.php';
 ?>
 
 <style>
@@ -635,132 +624,131 @@ require_once __DIR__ . '/../includes/admin-header.php';
     }
 </style>
 
-<div class="admin-content">
-    <div class="seller-edit-container">
-        <div class="edit-header">
-            <h1>판매자 정보 수정</h1>
-            <a href="/MVNO/admin/users/seller-detail.php?user_id=<?php echo urlencode($seller['user_id']); ?>" class="back-button">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M19 12H5M12 19l-7-7 7-7"/>
-                </svg>
-                상세보기로
-            </a>
+<div class="seller-edit-container">
+    <div class="edit-header">
+        <h1>회원정보 수정</h1>
+        <a href="/MVNO/seller/profile.php" class="back-button">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+            내정보로
+        </a>
+    </div>
+    
+    <?php if (isset($error_message)): ?>
+        <div class="alert alert-error">
+            <?php echo htmlspecialchars($error_message); ?>
+        </div>
+    <?php endif; ?>
+    
+    <form method="POST" class="edit-form-card" enctype="multipart/form-data">
+        <input type="hidden" name="update_seller" value="1">
+        <input type="hidden" name="user_id" value="<?php echo htmlspecialchars($seller['user_id']); ?>">
+        
+        <!-- 기본 정보 -->
+        <div class="form-section">
+            <h2 class="form-section-title">기본 정보</h2>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label">아이디</label>
+                    <input type="text" class="form-input" value="<?php echo htmlspecialchars($seller['user_id']); ?>" disabled>
+                    <div class="password-note">아이디는 변경할 수 없습니다.</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">이름 <span class="required">*</span></label>
+                    <input type="text" name="name" class="form-input" value="<?php echo htmlspecialchars($seller['name'] ?? ''); ?>" required>
+                </div>
+            </div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label">이메일 <span class="required">*</span></label>
+                    <input type="email" name="email" class="form-input" value="<?php echo htmlspecialchars($seller['email'] ?? ''); ?>" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">비밀번호</label>
+                    <input type="password" name="password" class="form-input" placeholder="변경하지 않으려면 비워두세요">
+                    <div class="password-note">비밀번호를 변경하려면 새 비밀번호를 입력하세요.</div>
+                </div>
+            </div>
         </div>
         
-        <?php if (isset($error_message)): ?>
-            <div class="alert alert-error">
-                <?php echo htmlspecialchars($error_message); ?>
+        <!-- 연락처 정보 -->
+        <div class="form-section">
+            <h2 class="form-section-title">연락처 정보</h2>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label">전화번호</label>
+                    <input type="tel" name="phone" class="form-input" value="<?php echo htmlspecialchars($seller['phone'] ?? ''); ?>" placeholder="02-1234-5678">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">휴대폰</label>
+                    <input type="tel" name="mobile" class="form-input" value="<?php echo htmlspecialchars($seller['mobile'] ?? ''); ?>" placeholder="010-1234-5678">
+                </div>
             </div>
-        <?php endif; ?>
+        </div>
         
-        <form method="POST" class="edit-form-card" enctype="multipart/form-data">
-            <input type="hidden" name="update_seller" value="1">
-            <input type="hidden" name="user_id" value="<?php echo htmlspecialchars($seller['user_id']); ?>">
-            
-            <!-- 기본 정보 -->
-            <div class="form-section">
-                <h2 class="form-section-title">기본 정보</h2>
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label class="form-label">아이디</label>
-                        <input type="text" class="form-input" value="<?php echo htmlspecialchars($seller['user_id']); ?>" disabled>
-                        <div class="password-note">아이디는 변경할 수 없습니다.</div>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">이름 <span class="required">*</span></label>
-                        <input type="text" name="name" class="form-input" value="<?php echo htmlspecialchars($seller['name'] ?? ''); ?>" required>
-                    </div>
-                </div>
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label class="form-label">이메일 <span class="required">*</span></label>
-                        <input type="email" name="email" class="form-input" value="<?php echo htmlspecialchars($seller['email'] ?? ''); ?>" required>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">비밀번호</label>
-                        <input type="password" name="password" class="form-input" placeholder="변경하지 않으려면 비워두세요">
-                        <div class="password-note">비밀번호를 변경하려면 새 비밀번호를 입력하세요.</div>
-                    </div>
+        <!-- 주소 정보 -->
+        <div class="form-section">
+            <h2 class="form-section-title">주소 정보</h2>
+            <div class="form-group">
+                <label class="form-label">주소</label>
+                <div style="display: flex; gap: 8px;">
+                    <input type="text" id="address" name="address" class="form-input" value="<?php echo htmlspecialchars($seller['address'] ?? ''); ?>" placeholder="서울시 강남구 테헤란로 123" readonly style="flex: 1;">
+                    <button type="button" id="searchAddressBtn" class="btn btn-primary" onclick="searchAddress()" style="white-space: nowrap; padding: 10px 20px;">주소 검색</button>
                 </div>
             </div>
-            
-            <!-- 연락처 정보 -->
-            <div class="form-section">
-                <h2 class="form-section-title">연락처 정보</h2>
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label class="form-label">전화번호</label>
-                        <input type="tel" name="phone" class="form-input" value="<?php echo htmlspecialchars($seller['phone'] ?? ''); ?>" placeholder="02-1234-5678">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">휴대폰</label>
-                        <input type="tel" name="mobile" class="form-input" value="<?php echo htmlspecialchars($seller['mobile'] ?? ''); ?>" placeholder="010-1234-5678">
-                    </div>
-                </div>
+            <div class="form-group">
+                <label class="form-label">상세주소</label>
+                <input type="text" id="address_detail" name="address_detail" class="form-input" value="<?php echo htmlspecialchars($seller['address_detail'] ?? ''); ?>" placeholder="101호">
             </div>
-            
-            <!-- 주소 정보 -->
-            <div class="form-section">
-                <h2 class="form-section-title">주소 정보</h2>
+        </div>
+        
+        <!-- 사업자 정보 -->
+        <div class="form-section">
+            <h2 class="form-section-title">사업자 정보</h2>
+            <div class="form-grid">
                 <div class="form-group">
-                    <label class="form-label">주소</label>
-                    <div style="display: flex; gap: 8px;">
-                        <input type="text" id="address" name="address" class="form-input" value="<?php echo htmlspecialchars($seller['address'] ?? ''); ?>" placeholder="서울시 강남구 테헤란로 123" readonly style="flex: 1;">
-                        <button type="button" id="searchAddressBtn" class="btn btn-primary" onclick="searchAddress()" style="white-space: nowrap; padding: 10px 20px;">주소 검색</button>
-                    </div>
+                    <label class="form-label">사업자등록번호</label>
+                    <input type="text" name="business_number" class="form-input" value="<?php echo htmlspecialchars($seller['business_number'] ?? ''); ?>" placeholder="123-45-67890" disabled>
+                    <div class="password-note">사업자등록번호는 변경할 수 없습니다.</div>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">상세주소</label>
-                    <input type="text" id="address_detail" name="address_detail" class="form-input" value="<?php echo htmlspecialchars($seller['address_detail'] ?? ''); ?>" placeholder="101호">
+                    <label class="form-label">회사명</label>
+                    <input type="text" name="company_name" class="form-input" value="<?php echo htmlspecialchars($seller['company_name'] ?? ''); ?>">
                 </div>
             </div>
-            
-            <!-- 사업자 정보 -->
-            <div class="form-section">
-                <h2 class="form-section-title">사업자 정보</h2>
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label class="form-label">사업자등록번호</label>
-                        <input type="text" name="business_number" class="form-input" value="<?php echo htmlspecialchars($seller['business_number'] ?? ''); ?>" placeholder="123-45-67890">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">회사명</label>
-                        <input type="text" name="company_name" class="form-input" value="<?php echo htmlspecialchars($seller['company_name'] ?? ''); ?>">
-                    </div>
-                </div>
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label class="form-label">대표자명</label>
-                        <input type="text" name="company_representative" class="form-input" value="<?php echo htmlspecialchars($seller['company_representative'] ?? ''); ?>">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">업태</label>
-                        <input type="text" name="business_type" class="form-input" value="<?php echo htmlspecialchars($seller['business_type'] ?? ''); ?>">
-                    </div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label">대표자명</label>
+                    <input type="text" name="company_representative" class="form-input" value="<?php echo htmlspecialchars($seller['company_representative'] ?? ''); ?>">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">종목</label>
-                    <input type="text" name="business_item" class="form-input" value="<?php echo htmlspecialchars($seller['business_item'] ?? ''); ?>">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">사업자등록증</label>
-                    <?php if (!empty($seller['business_license_image'])): ?>
-                        <div style="margin-bottom: 12px;">
-                            <img src="<?php echo htmlspecialchars($seller['business_license_image']); ?>" alt="사업자등록증" style="max-width: 400px; max-height: 300px; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 8px;">
-                            <div class="password-note">현재 등록된 사업자등록증입니다. 새로 업로드하면 기존 이미지가 교체됩니다.</div>
-                        </div>
-                    <?php endif; ?>
-                    <input type="file" name="business_license_image" accept="image/jpeg,image/jpg,image/png,image/gif" class="form-input">
-                    <div class="password-note">이미지 파일만 업로드 가능합니다. (jpg, jpeg, png, gif)</div>
+                    <label class="form-label">업태</label>
+                    <input type="text" name="business_type" class="form-input" value="<?php echo htmlspecialchars($seller['business_type'] ?? ''); ?>">
                 </div>
             </div>
-            
-            <div class="form-actions">
-                <a href="/MVNO/admin/users/seller-detail.php?user_id=<?php echo urlencode($seller['user_id']); ?>" class="btn btn-secondary">취소</a>
-                <button type="submit" class="btn btn-primary">저장</button>
+            <div class="form-group">
+                <label class="form-label">종목</label>
+                <input type="text" name="business_item" class="form-input" value="<?php echo htmlspecialchars($seller['business_item'] ?? ''); ?>">
             </div>
-        </form>
-    </div>
+            <div class="form-group">
+                <label class="form-label">사업자등록증</label>
+                <?php if (!empty($seller['business_license_image'])): ?>
+                    <div style="margin-bottom: 12px;">
+                        <img src="<?php echo htmlspecialchars($seller['business_license_image']); ?>" alt="사업자등록증" style="max-width: 400px; max-height: 300px; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 8px;">
+                        <div class="password-note">현재 등록된 사업자등록증입니다. 새로 업로드하면 기존 이미지가 교체됩니다.</div>
+                    </div>
+                <?php endif; ?>
+                <input type="file" name="business_license_image" accept="image/jpeg,image/jpg,image/png,image/gif" class="form-input">
+                <div class="password-note">이미지 파일만 업로드 가능합니다. (jpg, jpeg, png, gif)</div>
+            </div>
+        </div>
+        
+        <div class="form-actions">
+            <a href="/MVNO/seller/profile.php" class="btn btn-secondary">취소</a>
+            <button type="submit" class="btn btn-primary">저장</button>
+        </div>
+    </form>
 </div>
 
 <!-- 다음 우편번호 API 스크립트 -->
@@ -1046,8 +1034,8 @@ require_once __DIR__ . '/../includes/admin-header.php';
         document.getElementById('saveSuccessModal').classList.remove('active');
     }
     
-    function goToDetailPage() {
-        window.location.href = '/MVNO/admin/users/seller-detail.php?user_id=<?php echo urlencode($seller['user_id']); ?>';
+    function goToProfilePage() {
+        window.location.href = '/MVNO/seller/profile.php';
     }
 </script>
 
@@ -1062,15 +1050,14 @@ require_once __DIR__ . '/../includes/admin-header.php';
         </div>
         <div class="save-success-modal-title">저장 완료</div>
         <div class="save-success-modal-message">
-            판매자 정보가 성공적으로 저장되었습니다.
+            회원정보가 성공적으로 저장되었습니다.
         </div>
         <div class="save-success-modal-actions">
-            <button type="button" class="modal-btn modal-btn-primary" onclick="goToDetailPage()">확인</button>
+            <button type="button" class="modal-btn modal-btn-primary" onclick="goToProfilePage()">확인</button>
         </div>
     </div>
 </div>
 
 <?php 
-require_once __DIR__ . '/../includes/admin-footer.php';
+require_once __DIR__ . '/includes/seller-footer.php';
 ?>
-

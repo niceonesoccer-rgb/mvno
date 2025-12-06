@@ -8,10 +8,13 @@ require_once __DIR__ . '/../../includes/data/auth-functions.php';
 
 // 관리자 인증 체크 (출력 전에 체크)
 $currentUser = getCurrentUser();
-if (!$currentUser || !isAdmin()) {
+if (!$currentUser || !isAdmin($currentUser['user_id'])) {
     header('Location: /MVNO/auth/login.php');
     exit;
 }
+
+// 예정된 삭제 처리 (모든 관리자 페이지 접속 시마다 확인)
+processScheduledDeletions();
 
 $currentPage = basename($_SERVER['PHP_SELF']);
 ?>

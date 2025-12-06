@@ -515,7 +515,7 @@ function requestSellerWithdrawal($userId, $reason = '') {
  * - 고객의 구매 이력 확인 필요
  * - 상품 정보 참고용 (고객이 구매한 상품 정보 확인)
  */
-function completeSellerWithdrawal($userId) {
+function completeSellerWithdrawal($userId, $deleteDate = null) {
     $user = getUserById($userId);
     if (!$user || $user['role'] !== 'seller') {
         return false;
@@ -533,19 +533,30 @@ function completeSellerWithdrawal($userId) {
             $u['withdrawal_completed_at'] = date('Y-m-d H:i:s');
             $u['approval_status'] = 'withdrawn';
             $u['seller_approved'] = false;
+            // 탈퇴 완료 처리 시 탈퇴 요청 플래그는 유지하되, 탈퇴 요청 탭에서는 제외됨 (위의 필터에서 처리)
             
-            // 개인정보만 삭제/비식별화
+            // 삭제 예정일 설정 (해당 날짜에 삭제)
+            if (!empty($deleteDate)) {
+                $u['scheduled_delete_date'] = $deleteDate;
+            } else {
+                // 날짜 미지정 시 즉시 삭제 처리
+                $u['scheduled_delete_date'] = null;
+                $u['scheduled_delete_time'] = null;
+                // 즉시 삭제 처리
+                $u['email'] = 'withdrawn_' . $userId . '@withdrawn';
+                if (isset($u['phone'])) unset($u['phone']);
+                if (isset($u['mobile'])) unset($u['mobile']);
+                if (isset($u['address'])) unset($u['address']);
+                if (isset($u['address_detail'])) unset($u['address_detail']);
+                if (isset($u['postal_code'])) unset($u['postal_code']);
+            }
+            
+            // 이름은 그대로 유지, 상태만 'withdrawn'으로 변경
             // 중요: 등록한 상품 정보와 고객의 구매 기록은 그대로 보존됨
-            $u['name'] = '탈퇴한 판매자';
-            $u['email'] = 'withdrawn_' . $userId . '@withdrawn';
-            if (isset($u['phone'])) unset($u['phone']);
-            if (isset($u['mobile'])) unset($u['mobile']);
-            if (isset($u['address'])) unset($u['address']);
-            if (isset($u['address_detail'])) unset($u['address_detail']);
-            if (isset($u['postal_code'])) unset($u['postal_code']);
+            // 이름은 유지하므로 $u['name'] 변경하지 않음
             
             // 사업자 정보는 보존 (거래 이력과 연결되어 있음)
-            // 다만 개인 연락처 정보는 삭제
+            // 다만 개인 연락처 정보는 삭제 예정일이 지나면 삭제
             
             // 등록한 상품 정보는 별도 파일에 저장되어 있으므로
             // 판매자 정보 삭제와 무관하게 보존됨
@@ -556,7 +567,59 @@ function completeSellerWithdrawal($userId) {
     }
     
     file_put_contents($file, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+    
+    // 삭제 예정일이 오늘 이전이거나 같으면 즉시 삭제 처리
+    if (!empty($deleteDate) && $deleteDate <= date('Y-m-d')) {
+        processScheduledDeletions();
+    }
+    
     return true;
+}
+
+/**
+ * 예정된 삭제 처리 (삭제 예정일이 지난 판매자들 처리)
+ */
+function processScheduledDeletions() {
+    $file = getSellersFilePath();
+    if (!file_exists($file)) {
+        return false;
+    }
+    
+    $data = json_decode(file_get_contents($file), true) ?: ['sellers' => []];
+    $currentDate = date('Y-m-d');
+    $currentDateTime = date('Y-m-d H:i:s');
+    $updated = false;
+    
+    foreach ($data['sellers'] as &$u) {
+        // 삭제 예정일이 설정되어 있고, 아직 처리되지 않은 경우
+        if (isset($u['scheduled_delete_date']) && !empty($u['scheduled_delete_date']) 
+            && (!isset($u['scheduled_delete_processed']) || $u['scheduled_delete_processed'] !== true)) {
+            $scheduledDate = $u['scheduled_delete_date'];
+            
+            // 삭제 예정일이 현재 날짜보다 이전이거나 같은 경우 (날짜만 비교)
+            if ($scheduledDate <= $currentDate) {
+                // 개인정보 삭제 처리
+                $u['email'] = 'withdrawn_' . $u['user_id'] . '@withdrawn';
+                if (isset($u['phone'])) unset($u['phone']);
+                if (isset($u['mobile'])) unset($u['mobile']);
+                if (isset($u['address'])) unset($u['address']);
+                if (isset($u['address_detail'])) unset($u['address_detail']);
+                if (isset($u['postal_code'])) unset($u['postal_code']);
+                
+                // 삭제 처리 완료 표시
+                $u['scheduled_delete_processed'] = true;
+                $u['scheduled_delete_processed_at'] = $currentDateTime;
+                
+                $updated = true;
+            }
+        }
+    }
+    
+    if ($updated) {
+        file_put_contents($file, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+    }
+    
+    return $updated;
 }
 
 /**

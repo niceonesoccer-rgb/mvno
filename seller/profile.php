@@ -217,6 +217,11 @@ $pageStyles = '
             background: #dc2626;
         }
         
+        .btn:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+        
         .modal-overlay {
             display: none;
             position: fixed;
@@ -321,9 +326,14 @@ include 'includes/seller-header.php';
 ?>
 
 <div class="profile-container">
-    <div class="profile-header">
-        <h1>내정보</h1>
-        <p>판매자 계정 정보를 확인할 수 있습니다.</p>
+    <div class="profile-header" style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h1>내정보</h1>
+            <p>판매자 계정 정보를 확인할 수 있습니다.</p>
+        </div>
+        <a href="/MVNO/seller/edit.php" class="btn" style="background: #6366f1; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 500; display: inline-block; transition: all 0.2s;">
+            회원정보 수정
+        </a>
     </div>
     
     <div class="detail-grid">
@@ -353,7 +363,7 @@ include 'includes/seller-header.php';
             <h2 class="detail-card-title">판매자 상태</h2>
             <div class="detail-item">
                 <div class="detail-label">승인 상태</div>
-                <div class="detail-value">
+                <div class="detail-value" style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
                     <?php 
                     $approvalStatus = $currentUser['approval_status'] ?? 'pending';
                     $isApproved = isset($currentUser['seller_approved']) && $currentUser['seller_approved'] === true;
@@ -366,53 +376,33 @@ include 'includes/seller-header.php';
                         echo '<span class="detail-badge badge-pending">승인 대기</span>';
                     }
                     ?>
+                    <?php if (isset($currentUser['approved_at']) && ($isApproved || $approvalStatus === 'approved')): ?>
+                        <span style="font-size: 13px; color: #6b7280;">승인일: <?php echo htmlspecialchars($currentUser['approved_at']); ?></span>
+                    <?php endif; ?>
                 </div>
             </div>
-            <?php if (isset($currentUser['approved_at'])): ?>
-                <div class="detail-item">
-                    <div class="detail-label">승인일</div>
-                    <div class="detail-value"><?php echo htmlspecialchars($currentUser['approved_at']); ?></div>
-                </div>
-            <?php endif; ?>
-            <?php if (isset($currentUser['held_at'])): ?>
-                <div class="detail-item">
-                    <div class="detail-label">보류일</div>
-                    <div class="detail-value"><?php echo htmlspecialchars($currentUser['held_at']); ?></div>
-                </div>
-            <?php endif; ?>
-        </div>
-    </div>
-    
-    <!-- 판매자 권한 정보 -->
-    <div class="detail-card" style="margin-bottom: 24px;">
-        <h2 class="detail-card-title">판매자 권한</h2>
-        <div class="detail-item">
-            <div class="detail-label">게시판 권한</div>
-            <div class="detail-value">
-                <?php 
-                $permissions = $currentUser['permissions'] ?? [];
-                if (empty($permissions)) {
-                    echo '<span class="no-permission">권한이 없습니다. 관리자에게 문의하세요.</span>';
-                } else {
-                    $permNames = [
-                        'mvno' => '알뜰폰',
-                        'mno' => '통신사폰',
-                        'internet' => '인터넷'
-                    ];
-                    foreach ($permissions as $perm) {
-                        $permName = $permNames[$perm] ?? $perm;
-                        echo '<span class="permission-badge">' . htmlspecialchars($permName) . '</span>';
-                    }
-                }
-                ?>
-            </div>
-        </div>
-        <?php if (isset($currentUser['permissions_updated_at'])): ?>
             <div class="detail-item">
-                <div class="detail-label">권한 수정일</div>
-                <div class="detail-value"><?php echo htmlspecialchars($currentUser['permissions_updated_at']); ?></div>
+                <div class="detail-label">게시판 권한</div>
+                <div class="detail-value">
+                    <?php 
+                    $permissions = $currentUser['permissions'] ?? [];
+                    if (empty($permissions)) {
+                        echo '<span class="no-permission">권한이 없습니다. 관리자에게 문의하세요.</span>';
+                    } else {
+                        $permNames = [
+                            'mvno' => '알뜰폰',
+                            'mno' => '통신사폰',
+                            'internet' => '인터넷'
+                        ];
+                        foreach ($permissions as $perm) {
+                            $permName = $permNames[$perm] ?? $perm;
+                            echo '<span class="permission-badge">' . htmlspecialchars($permName) . '</span>';
+                        }
+                    }
+                    ?>
+                </div>
             </div>
-        <?php endif; ?>
+        </div>
     </div>
     
     <!-- 사업자 정보 -->
@@ -580,6 +570,60 @@ include 'includes/seller-header.php';
     </div>
 </div>
 
+<!-- 탈퇴 요청 성공 모달 -->
+<div class="modal-overlay" id="withdrawalSuccessModal">
+    <div class="modal">
+        <div class="modal-title" style="color: #10b981;">회원탈퇴 신청되었습니다</div>
+        <div class="modal-message">
+            탈퇴 요청이 접수되었습니다.<br>
+            관리자 검토 후 처리됩니다.
+        </div>
+        <div class="modal-actions">
+            <button type="button" class="modal-btn btn-primary" onclick="closeWithdrawalSuccessModal()" style="background: #6366f1;">확인</button>
+        </div>
+    </div>
+</div>
+
+<!-- 탈퇴 요청 실패 모달 -->
+<div class="modal-overlay" id="withdrawalErrorModal">
+    <div class="modal">
+        <div class="modal-title" style="color: #ef4444;">오류</div>
+        <div class="modal-message" id="withdrawalErrorMessage">
+            탈퇴 요청 처리 중 오류가 발생했습니다.
+        </div>
+        <div class="modal-actions">
+            <button type="button" class="modal-btn btn-primary" onclick="closeWithdrawalErrorModal()" style="background: #6366f1;">확인</button>
+        </div>
+    </div>
+</div>
+
+<!-- 탈퇴 요청 취소 성공 모달 -->
+<div class="modal-overlay" id="cancelWithdrawalSuccessModal">
+    <div class="modal">
+        <div class="modal-title" style="color: #10b981;">탈퇴 요청 취소 완료</div>
+        <div class="modal-message">
+            탈퇴 요청이 취소되었습니다.<br>
+            판매자 계정이 정상적으로 활성화되었습니다.
+        </div>
+        <div class="modal-actions">
+            <button type="button" class="modal-btn btn-primary" onclick="closeCancelWithdrawalSuccessModal()" style="background: #6366f1;">확인</button>
+        </div>
+    </div>
+</div>
+
+<!-- 탈퇴 요청 취소 실패 모달 -->
+<div class="modal-overlay" id="cancelWithdrawalErrorModal">
+    <div class="modal">
+        <div class="modal-title" style="color: #ef4444;">오류</div>
+        <div class="modal-message" id="cancelWithdrawalErrorMessage">
+            탈퇴 요청 취소 중 오류가 발생했습니다.
+        </div>
+        <div class="modal-actions">
+            <button type="button" class="modal-btn btn-primary" onclick="closeCancelWithdrawalErrorModal()" style="background: #6366f1;">확인</button>
+        </div>
+    </div>
+</div>
+
 <script>
     function showWithdrawalModal() {
         document.getElementById('withdrawalModal').classList.add('active');
@@ -600,9 +644,8 @@ include 'includes/seller-header.php';
     function requestWithdrawal(event) {
         event.preventDefault();
         
-        if (!confirm('정말로 탈퇴를 요청하시겠습니까?\n요청 후 즉시 계정이 비활성화됩니다.')) {
-            return;
-        }
+        // 확인 모달 닫기
+        closeWithdrawalModal();
         
         const reason = document.getElementById('withdrawalReason').value;
         
@@ -618,22 +661,25 @@ include 'includes/seller-header.php';
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                alert('탈퇴 요청이 접수되었습니다.');
-                window.location.reload();
+                // 성공 모달 표시
+                showWithdrawalSuccessModal();
             } else {
-                alert('탈퇴 요청에 실패했습니다: ' + (data.message || '알 수 없는 오류'));
+                // 실패 모달 표시
+                document.getElementById('withdrawalErrorMessage').textContent = data.message || '탈퇴 요청 처리에 실패했습니다.';
+                showWithdrawalErrorModal();
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('탈퇴 요청 중 오류가 발생했습니다.');
+            // 실패 모달 표시
+            document.getElementById('withdrawalErrorMessage').textContent = '탈퇴 요청 중 오류가 발생했습니다.';
+            showWithdrawalErrorModal();
         });
     }
     
     function cancelWithdrawal() {
-        if (!confirm('탈퇴 요청을 취소하시겠습니까?')) {
-            return;
-        }
+        // 확인 모달 닫기
+        closeCancelWithdrawalModal();
         
         fetch('/MVNO/api/cancel-seller-withdrawal.php', {
             method: 'POST',
@@ -647,16 +693,58 @@ include 'includes/seller-header.php';
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                alert('탈퇴 요청이 취소되었습니다.');
-                window.location.reload();
+                // 성공 모달 표시
+                showCancelWithdrawalSuccessModal();
             } else {
-                alert('취소에 실패했습니다: ' + (data.message || '알 수 없는 오류'));
+                // 실패 모달 표시
+                document.getElementById('cancelWithdrawalErrorMessage').textContent = data.message || '탈퇴 요청 취소에 실패했습니다.';
+                showCancelWithdrawalErrorModal();
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('취소 중 오류가 발생했습니다.');
+            // 실패 모달 표시
+            document.getElementById('cancelWithdrawalErrorMessage').textContent = '취소 중 오류가 발생했습니다.';
+            showCancelWithdrawalErrorModal();
         });
+    }
+    
+    // 탈퇴 요청 성공 모달
+    function showWithdrawalSuccessModal() {
+        document.getElementById('withdrawalSuccessModal').classList.add('active');
+    }
+    
+    function closeWithdrawalSuccessModal() {
+        document.getElementById('withdrawalSuccessModal').classList.remove('active');
+        window.location.href = '/MVNO/seller/waiting.php';
+    }
+    
+    // 탈퇴 요청 실패 모달
+    function showWithdrawalErrorModal() {
+        document.getElementById('withdrawalErrorModal').classList.add('active');
+    }
+    
+    function closeWithdrawalErrorModal() {
+        document.getElementById('withdrawalErrorModal').classList.remove('active');
+    }
+    
+    // 탈퇴 요청 취소 성공 모달
+    function showCancelWithdrawalSuccessModal() {
+        document.getElementById('cancelWithdrawalSuccessModal').classList.add('active');
+    }
+    
+    function closeCancelWithdrawalSuccessModal() {
+        document.getElementById('cancelWithdrawalSuccessModal').classList.remove('active');
+        window.location.reload();
+    }
+    
+    // 탈퇴 요청 취소 실패 모달
+    function showCancelWithdrawalErrorModal() {
+        document.getElementById('cancelWithdrawalErrorModal').classList.add('active');
+    }
+    
+    function closeCancelWithdrawalErrorModal() {
+        document.getElementById('cancelWithdrawalErrorModal').classList.remove('active');
     }
     
     // 모달 외부 클릭 시 닫기
@@ -671,7 +759,32 @@ include 'includes/seller-header.php';
             closeCancelWithdrawalModal();
         }
     });
+    
+    document.getElementById('withdrawalSuccessModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeWithdrawalSuccessModal();
+        }
+    });
+    
+    document.getElementById('withdrawalErrorModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeWithdrawalErrorModal();
+        }
+    });
+    
+    document.getElementById('cancelWithdrawalSuccessModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeCancelWithdrawalSuccessModal();
+        }
+    });
+    
+    document.getElementById('cancelWithdrawalErrorModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeCancelWithdrawalErrorModal();
+        }
+    });
 </script>
 
 <?php include 'includes/seller-footer.php'; ?>
+
 

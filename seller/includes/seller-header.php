@@ -7,24 +7,58 @@
 require_once __DIR__ . '/../../includes/data/auth-functions.php';
 
 // 판매자 인증 체크 (출력 전에 체크)
-$currentUser = getCurrentUser();
-if (!$currentUser || $currentUser['role'] !== 'seller') {
-    header('Location: /seller/login.php');
-    exit;
+// seller-edit.php에서 이미 체크한 경우 스킵
+// 전역 변수를 먼저 확인 (seller-edit.php에서 설정한 경우)
+// $GLOBALS를 먼저 확인하고, 없으면 로컬 변수 확인
+$skipAuthCheck = false;
+// $GLOBALS를 먼저 확인 (seller-edit.php에서 설정한 경우)
+if (isset($GLOBALS['skipAuthCheck']) && $GLOBALS['skipAuthCheck'] === true) {
+    $skipAuthCheck = true;
 }
+// 로컬 변수도 확인 (seller-edit.php에서 include 전에 설정한 경우)
+// 주의: $skipAuthCheck를 false로 초기화했으므로, 로컬 변수는 이미 false입니다.
+// 따라서 로컬 변수 확인은 의미가 없으므로 제거합니다.
 
-// 판매자 승인 상태 확인 (승인불가 상태도 waiting.php로 이동)
-$approvalStatus = $currentUser['approval_status'] ?? 'pending';
-if ($approvalStatus !== 'approved') {
-    // 승인 대기 중이거나 보류, 거부 상태인 경우
-    header('Location: /MVNO/seller/waiting.php');
-    exit;
-}
+if ($skipAuthCheck === true) {
+    // seller-edit.php에서 이미 체크했으므로 전달된 $currentUser 사용
+    // $GLOBALS에서 먼저 확인
+    if (isset($GLOBALS['sellerEditCurrentUser']) && is_array($GLOBALS['sellerEditCurrentUser']) && !empty($GLOBALS['sellerEditCurrentUser'])) {
+        $currentUser = $GLOBALS['sellerEditCurrentUser'];
+    } elseif (isset($currentUser) && is_array($currentUser) && !empty($currentUser)) {
+        // 이미 설정된 경우 사용 (변경 없음)
+    } else {
+        // seller-edit.php에서 전달되지 않은 경우 getCurrentUser() 호출
+        $currentUser = getCurrentUser();
+    }
+    // seller-edit.php에서 이미 승인 체크를 했으므로 추가 체크 불필요
+    // $currentUser가 없으면 에러 방지를 위해 기본값 설정
+    if (!isset($currentUser) || !is_array($currentUser) || empty($currentUser)) {
+        // seller-edit.php에서 체크했는데 $currentUser가 없으면 문제가 있음
+        // seller-edit.php에서 이미 체크했으므로 여기서는 리다이렉트하지 않고 null로 설정
+        $currentUser = null;
+    }
+    // seller-edit.php에서 이미 인증 및 승인 체크를 완료했으므로 추가 체크 불필요
+} else {
+    // 일반적인 경우: 인증 체크 수행
+    $currentUser = getCurrentUser();
+    if (!$currentUser || $currentUser['role'] !== 'seller') {
+        header('Location: /MVNO/seller/login.php');
+        exit;
+    }
+    
+    // 판매자 승인 상태 확인 (승인불가 상태도 waiting.php로 이동)
+    $approvalStatus = $currentUser['approval_status'] ?? 'pending';
+    if ($approvalStatus !== 'approved') {
+        // 승인 대기 중이거나 보류, 거부 상태인 경우
+        header('Location: /MVNO/seller/waiting.php');
+        exit;
+    }
 
-// 탈퇴 요청 상태 확인 (탈퇴 요청 시 로그인 불가)
-if (isset($currentUser['withdrawal_requested']) && $currentUser['withdrawal_requested'] === true) {
-    header('Location: /MVNO/seller/waiting.php');
-    exit;
+    // 탈퇴 요청 상태 확인 (탈퇴 요청 시 로그인 불가)
+    if (isset($currentUser['withdrawal_requested']) && $currentUser['withdrawal_requested'] === true) {
+        header('Location: /MVNO/seller/waiting.php');
+        exit;
+    }
 }
 
 $currentPage = basename($_SERVER['PHP_SELF']);
