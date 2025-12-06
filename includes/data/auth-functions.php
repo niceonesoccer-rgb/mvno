@@ -293,6 +293,11 @@ function registerDirectUser($userId, $password, $email, $name, $role, $additiona
         'permissions' => [] // 판매자 권한 (초기값: 빈 배열)
     ];
     
+    // 판매자 가입 시 approval_status를 pending으로 설정
+    if ($role === 'seller') {
+        $newUser['approval_status'] = 'pending';
+    }
+    
     // 추가 데이터 병합 (판매자 정보 등)
     if (!empty($additionalData)) {
         $newUser = array_merge($newUser, $additionalData);

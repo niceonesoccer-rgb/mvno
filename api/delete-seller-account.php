@@ -28,11 +28,19 @@ if (!$currentUser || $currentUser['role'] !== 'seller') {
     exit;
 }
 
-// 승인불가 상태인 경우에만 삭제 가능
+// 승인되지 않은 상태(pending, on_hold, rejected)에서만 삭제 가능
 $approvalStatus = $currentUser['approval_status'] ?? 'pending';
-if ($approvalStatus !== 'rejected') {
+$allowedStatuses = ['pending', 'on_hold', 'rejected'];
+if (!in_array($approvalStatus, $allowedStatuses)) {
     http_response_code(403);
-    echo json_encode(['success' => false, 'message' => '승인불가 상태인 경우에만 계정을 삭제할 수 있습니다.']);
+    echo json_encode(['success' => false, 'message' => '승인 대기 중인 상태에서만 계정을 삭제할 수 있습니다.']);
+    exit;
+}
+
+// 탈퇴 요청이 이미 진행 중인 경우 삭제 불가
+if (isset($currentUser['withdrawal_requested']) && $currentUser['withdrawal_requested'] === true) {
+    http_response_code(403);
+    echo json_encode(['success' => false, 'message' => '이미 탈퇴 요청이 진행 중입니다.']);
     exit;
 }
 
@@ -99,3 +107,4 @@ if (file_put_contents($file, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAP
 logoutUser();
 
 echo json_encode(['success' => true, 'message' => '계정이 성공적으로 삭제되었습니다.']);
+

@@ -674,3 +674,4 @@ include 'includes/seller-header.php';
 </script>
 
 <?php include 'includes/seller-footer.php'; ?>
+

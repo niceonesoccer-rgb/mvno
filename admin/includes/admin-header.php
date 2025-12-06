@@ -477,7 +477,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
     <!-- 상단 헤더 -->
     <header class="admin-top-header">
         <div class="admin-top-header-left">
-            <a href="/MVNO/" class="admin-top-header-logo" style="text-decoration: none; color: inherit;">모요관리자</a>
+            <a href="/MVNO/admin/" class="admin-top-header-logo" style="text-decoration: none; color: inherit;">모요관리자</a>
         </div>
         <div class="admin-top-header-right">
             <a href="/MVNO/" target="_blank" class="admin-top-header-link">사이트보기</a>
@@ -487,22 +487,6 @@ $currentPage = basename($_SERVER['PHP_SELF']);
     
     <!-- 사이드바 -->
     <aside class="admin-sidebar" id="adminSidebar">
-        <div class="sidebar-user">
-            <div class="sidebar-user-name">
-                <?php echo htmlspecialchars($currentUser['name'] ?? $currentUser['user_id'] ?? '관리자'); ?>
-            </div>
-            <div class="sidebar-user-role">
-                <?php 
-                $roleNames = [
-                    'admin' => '관리자',
-                    'sub_admin' => '서브관리자',
-                    'seller' => '판매자'
-                ];
-                echo $roleNames[$currentUser['role'] ?? 'admin'] ?? '관리자';
-                ?>
-            </div>
-        </div>
-        
         <nav class="sidebar-menu">
             <!-- 대시보드 -->
             <div class="menu-section">

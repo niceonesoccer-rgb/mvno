@@ -252,8 +252,152 @@
             "timestamp": "2025-12-05 22:22:07",
             "date": "2025-12-05",
             "user_id": null
+        },
+        {
+            "type": "favorite_add",
+            "data": {
+                "type": "plan",
+                "id": "32627",
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-06 06:55:13",
+            "date": "2025-12-06",
+            "user_id": null
+        },
+        {
+            "type": "share",
+            "data": {
+                "type": "mvno",
+                "id": "mvno-plan-detail.php?id=32627",
+                "method": "link",
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-06 06:55:13",
+            "date": "2025-12-06",
+            "user_id": null
+        },
+        {
+            "type": "favorite_add",
+            "data": {
+                "type": "phone",
+                "id": "1",
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-06 06:55:16",
+            "date": "2025-12-06",
+            "user_id": null
+        },
+        {
+            "type": "favorite_add",
+            "data": {
+                "type": "phone",
+                "id": "1",
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-06 06:55:19",
+            "date": "2025-12-06",
+            "user_id": null
+        },
+        {
+            "type": "favorite_add",
+            "data": {
+                "type": "plan",
+                "id": "32627",
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-06 06:55:58",
+            "date": "2025-12-06",
+            "user_id": null
+        },
+        {
+            "type": "favorite_remove",
+            "data": {
+                "type": "plan",
+                "id": "32627",
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-06 06:55:58",
+            "date": "2025-12-06",
+            "user_id": null
+        },
+        {
+            "type": "favorite_add",
+            "data": {
+                "type": "phone",
+                "id": "1",
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-06 06:56:07",
+            "date": "2025-12-06",
+            "user_id": null
+        },
+        {
+            "type": "favorite_remove",
+            "data": {
+                "type": "phone",
+                "id": "1",
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-06 06:56:08",
+            "date": "2025-12-06",
+            "user_id": null
+        },
+        {
+            "type": "favorite_add",
+            "data": {
+                "type": "plan",
+                "id": "32627",
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-06 09:06:56",
+            "date": "2025-12-06",
+            "user_id": "admin"
+        },
+        {
+            "type": "favorite_add",
+            "data": {
+                "type": "phone",
+                "id": "1",
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-06 09:07:04",
+            "date": "2025-12-06",
+            "user_id": "admin"
+        },
+        {
+            "type": "share",
+            "data": {
+                "type": "mno",
+                "id": "mno-phone-detail.php?id=1",
+                "method": "link",
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-06 09:07:04",
+            "date": "2025-12-06",
+            "user_id": "admin"
+        },
+        {
+            "type": "favorite_remove",
+            "data": {
+                "type": "phone",
+                "id": "1",
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-06 09:07:09",
+            "date": "2025-12-06",
+            "user_id": "admin"
+        },
+        {
+            "type": "favorite_add",
+            "data": {
+                "type": "phone",
+                "id": "1",
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-06 09:07:10",
+            "date": "2025-12-06",
+            "user_id": "admin"
         }
     ],
     "daily_stats": []
 }
-

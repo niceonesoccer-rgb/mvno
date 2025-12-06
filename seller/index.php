@@ -20,7 +20,8 @@ if (!$currentUser || $currentUser['role'] !== 'seller') {
 }
 
 // 판매자 승인 체크 - 승인되지 않은 경우 waiting.php로 리다이렉트
-if (!isset($currentUser['approval_status']) || $currentUser['approval_status'] !== 'approved') {
+$isApproved = isset($currentUser['seller_approved']) && $currentUser['seller_approved'] === true;
+if (!$isApproved) {
     header('Location: /MVNO/seller/waiting.php');
     exit;
 }

@@ -3,65 +3,161 @@
  * 판매자 승인 관리 페이지
  */
 
-require_once __DIR__ . '/includes/admin-header.php';
+// POST 처리는 출력 전에 수행 (헤더 리다이렉트를 위해)
+require_once __DIR__ . '/../includes/data/auth-functions.php';
 
 // 승인 처리
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['approve_seller'])) {
     $userId = $_POST['user_id'] ?? '';
+    $currentTab = $_GET['tab'] ?? 'all';
+    $perPage = isset($_GET['per_page']) ? '&per_page=' . (int)$_GET['per_page'] : '';
     if ($userId && approveSeller($userId)) {
-        $success_message = '판매자가 승인되었습니다.';
+        header('Location: /MVNO/admin/seller-approval.php?tab=' . $currentTab . '&success=approve' . $perPage);
+        exit;
     } else {
-        $error_message = '판매자 승인에 실패했습니다.';
+        header('Location: /MVNO/admin/seller-approval.php?tab=' . $currentTab . '&error=approve' . $perPage);
+        exit;
     }
 }
 
 // 승인보류 처리
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['hold_seller'])) {
     $userId = $_POST['user_id'] ?? '';
+    $currentTab = $_GET['tab'] ?? 'all';
+    $perPage = isset($_GET['per_page']) ? '&per_page=' . (int)$_GET['per_page'] : '';
     if ($userId && holdSeller($userId)) {
-        $success_message = '판매자 승인이 보류되었습니다.';
+        header('Location: /MVNO/admin/seller-approval.php?tab=' . $currentTab . '&success=hold' . $perPage);
+        exit;
     } else {
-        $error_message = '판매자 승인보류에 실패했습니다.';
+        header('Location: /MVNO/admin/seller-approval.php?tab=' . $currentTab . '&error=hold' . $perPage);
+        exit;
     }
 }
 
 // 신청 취소(거부) 처리
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reject_seller'])) {
     $userId = $_POST['user_id'] ?? '';
+    $currentTab = $_GET['tab'] ?? 'all';
+    $perPage = isset($_GET['per_page']) ? '&per_page=' . (int)$_GET['per_page'] : '';
     if ($userId && rejectSeller($userId)) {
-        $success_message = '판매자 신청이 취소(거부)되었습니다.';
+        header('Location: /MVNO/admin/seller-approval.php?tab=' . $currentTab . '&success=reject' . $perPage);
+        exit;
     } else {
-        $error_message = '판매자 신청 취소에 실패했습니다.';
+        header('Location: /MVNO/admin/seller-approval.php?tab=' . $currentTab . '&error=reject' . $perPage);
+        exit;
     }
 }
 
 // 승인 취소 처리
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cancel_approval'])) {
     $userId = $_POST['user_id'] ?? '';
+    $currentTab = $_GET['tab'] ?? 'all';
+    $perPage = isset($_GET['per_page']) ? '&per_page=' . (int)$_GET['per_page'] : '';
     if ($userId && cancelApproval($userId)) {
-        $success_message = '판매자 승인이 취소되었습니다.';
+        header('Location: /MVNO/admin/seller-approval.php?tab=' . $currentTab . '&success=cancel_approval' . $perPage);
+        exit;
     } else {
-        $error_message = '판매자 승인 취소에 실패했습니다.';
+        header('Location: /MVNO/admin/seller-approval.php?tab=' . $currentTab . '&error=cancel_approval' . $perPage);
+        exit;
     }
 }
 
 // 탈퇴 완료 처리
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['complete_withdrawal'])) {
     $userId = $_POST['user_id'] ?? '';
+    $perPage = isset($_GET['per_page']) ? '&per_page=' . (int)$_GET['per_page'] : '';
     if ($userId && completeSellerWithdrawal($userId)) {
-        $success_message = '판매자 탈퇴가 완료되었습니다. (개인정보 삭제, 상품/리뷰/주문 데이터는 보존)';
+        header('Location: /MVNO/admin/seller-approval.php?tab=withdrawal&success=complete_withdrawal' . $perPage);
+        exit;
     } else {
-        $error_message = '판매자 탈퇴 처리에 실패했습니다.';
+        header('Location: /MVNO/admin/seller-approval.php?tab=withdrawal&error=complete_withdrawal' . $perPage);
+        exit;
     }
 }
 
 // 탈퇴 요청 취소 처리 (관리자 권한)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cancel_withdrawal'])) {
     $userId = $_POST['user_id'] ?? '';
+    $perPage = isset($_GET['per_page']) ? '&per_page=' . (int)$_GET['per_page'] : '';
     if ($userId && cancelSellerWithdrawal($userId)) {
-        $success_message = '탈퇴 요청이 취소되었습니다.';
+        header('Location: /MVNO/admin/seller-approval.php?tab=withdrawal&success=cancel_withdrawal' . $perPage);
+        exit;
     } else {
-        $error_message = '탈퇴 요청 취소에 실패했습니다.';
+        header('Location: /MVNO/admin/seller-approval.php?tab=withdrawal&error=cancel_withdrawal' . $perPage);
+        exit;
+    }
+}
+
+// 가입탈퇴 처리 (관리자 권한)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_withdrawal'])) {
+    require_once __DIR__ . '/../includes/data/auth-functions.php';
+    $userId = $_POST['user_id'] ?? '';
+    $reason = $_POST['reason'] ?? '관리자에 의한 가입탈퇴 처리';
+    $perPage = isset($_GET['per_page']) ? '&per_page=' . (int)$_GET['per_page'] : '';
+    if ($userId && requestSellerWithdrawal($userId, $reason)) {
+        header('Location: /MVNO/admin/seller-approval.php?tab=withdrawal&success=request_withdrawal' . $perPage);
+        exit;
+    } else {
+        $currentTab = $_GET['tab'] ?? 'all';
+        header('Location: /MVNO/admin/seller-approval.php?tab=' . $currentTab . '&error=request_withdrawal' . $perPage);
+        exit;
+    }
+}
+
+// 헤더 포함 (출력 시작)
+require_once __DIR__ . '/includes/admin-header.php';
+
+// 성공/에러 메시지 처리
+$success_message = '';
+$error_message = '';
+if (isset($_GET['success'])) {
+    switch ($_GET['success']) {
+        case 'approve':
+            $success_message = '판매자가 승인되었습니다.';
+            break;
+        case 'hold':
+            $success_message = '판매자 승인이 보류되었습니다.';
+            break;
+        case 'reject':
+            $success_message = '판매자 신청이 취소(거부)되었습니다.';
+            break;
+        case 'cancel_approval':
+            $success_message = '판매자 승인이 취소되었습니다.';
+            break;
+        case 'complete_withdrawal':
+            $success_message = '판매자 탈퇴가 완료되었습니다. (개인정보 삭제, 상품/리뷰/주문 데이터는 보존)';
+            break;
+        case 'cancel_withdrawal':
+            $success_message = '탈퇴 요청이 취소되었습니다.';
+            break;
+        case 'request_withdrawal':
+            $success_message = '가입탈퇴 처리가 완료되었습니다.';
+            break;
+    }
+}
+if (isset($_GET['error'])) {
+    switch ($_GET['error']) {
+        case 'approve':
+            $error_message = '판매자 승인에 실패했습니다.';
+            break;
+        case 'hold':
+            $error_message = '판매자 승인보류에 실패했습니다.';
+            break;
+        case 'reject':
+            $error_message = '판매자 신청 취소에 실패했습니다.';
+            break;
+        case 'cancel_approval':
+            $error_message = '판매자 승인 취소에 실패했습니다.';
+            break;
+        case 'complete_withdrawal':
+            $error_message = '판매자 탈퇴 처리에 실패했습니다.';
+            break;
+        case 'cancel_withdrawal':
+            $error_message = '탈퇴 요청 취소에 실패했습니다.';
+            break;
+        case 'request_withdrawal':
+            $error_message = '가입탈퇴 처리에 실패했습니다.';
+            break;
     }
 }
 
@@ -74,22 +170,20 @@ foreach ($data['users'] as $user) {
     }
 }
 
-// 승인 대기 중인 판매자 (승인보류, 거부가 아닌 미승인 판매자)
+// 신청자 (pending 상태 또는 approval_status가 없는 경우 - on_hold 제외)
 $pendingSellers = array_filter($sellers, function($seller) {
     $approvalStatus = $seller['approval_status'] ?? null;
     $isApproved = isset($seller['seller_approved']) && $seller['seller_approved'] === true;
-    return !$isApproved && $approvalStatus !== 'on_hold' && $approvalStatus !== 'rejected';
+    // 승인되지 않았고, approval_status가 없거나 pending인 경우 (on_hold 제외, 탈퇴 요청 제외)
+    return !$isApproved && ($approvalStatus === null || $approvalStatus === 'pending') && !isset($seller['withdrawal_requested']);
 });
 
-// 승인보류 판매자
-$onHoldSellers = array_filter($sellers, function($seller) {
-    $approvalStatus = $seller['approval_status'] ?? null;
-    return $approvalStatus === 'on_hold';
-});
-
-// 승인된 판매자
+// 승인된 판매자 (on_hold가 아닌 승인된 판매자만)
 $approvedSellers = array_filter($sellers, function($seller) {
-    return isset($seller['seller_approved']) && $seller['seller_approved'] === true;
+    $approvalStatus = $seller['approval_status'] ?? null;
+    $isApproved = isset($seller['seller_approved']) && $seller['seller_approved'] === true;
+    // 승인되었고 on_hold가 아닌 경우만
+    return $isApproved && $approvalStatus !== 'on_hold';
 });
 
 // 승인불가(거부) 판매자
@@ -103,8 +197,90 @@ $withdrawalRequestedSellers = array_filter($sellers, function($seller) {
     return isset($seller['withdrawal_requested']) && $seller['withdrawal_requested'] === true;
 });
 
-// 활성 탭 확인 (기본값: 신청자)
-$activeTab = $_GET['tab'] ?? 'pending';
+// 활성 탭 확인 (기본값: 전체)
+$activeTab = $_GET['tab'] ?? 'all';
+
+// 검색어 가져오기
+$searchQuery = isset($_GET['search']) ? trim($_GET['search']) : '';
+
+// 표시 개수 선택 (기본값: 50)
+$perPage = isset($_GET['per_page']) ? (int)$_GET['per_page'] : 50;
+$perPageOptions = [10, 50, 100, 500];
+if (!in_array($perPage, $perPageOptions)) {
+    $perPage = 50;
+}
+
+// 현재 페이지 (기본값: 1)
+$currentPage = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+
+// 현재 탭에 따른 데이터 선택
+$currentSellers = [];
+switch ($activeTab) {
+    case 'pending':
+        $currentSellers = array_values($pendingSellers);
+        break;
+    case 'approved':
+        $currentSellers = array_values($approvedSellers);
+        break;
+    case 'withdrawal':
+        $currentSellers = array_values($withdrawalRequestedSellers);
+        break;
+    default:
+        $currentSellers = array_values($sellers);
+        break;
+}
+
+// 검색 필터링
+if (!empty($searchQuery)) {
+    $currentSellers = array_filter($currentSellers, function($seller) use ($searchQuery) {
+        $searchLower = mb_strtolower($searchQuery, 'UTF-8');
+        
+        // 아이디 검색
+        if (mb_strpos(mb_strtolower($seller['user_id'] ?? '', 'UTF-8'), $searchLower) !== false) {
+            return true;
+        }
+        
+        // 이름 검색
+        if (isset($seller['name']) && mb_strpos(mb_strtolower($seller['name'], 'UTF-8'), $searchLower) !== false) {
+            return true;
+        }
+        
+        // 이메일 검색
+        if (isset($seller['email']) && mb_strpos(mb_strtolower($seller['email'], 'UTF-8'), $searchLower) !== false) {
+            return true;
+        }
+        
+        // 전화번호 검색 (phone, mobile)
+        if (isset($seller['phone']) && mb_strpos(mb_strtolower($seller['phone'], 'UTF-8'), $searchLower) !== false) {
+            return true;
+        }
+        if (isset($seller['mobile']) && mb_strpos(mb_strtolower($seller['mobile'], 'UTF-8'), $searchLower) !== false) {
+            return true;
+        }
+        
+        // 회사명 검색
+        if (isset($seller['company_name']) && mb_strpos(mb_strtolower($seller['company_name'], 'UTF-8'), $searchLower) !== false) {
+            return true;
+        }
+        
+        return false;
+    });
+    $currentSellers = array_values($currentSellers);
+}
+
+// 최신순 정렬 (created_at 기준 내림차순)
+usort($currentSellers, function($a, $b) {
+    $dateA = $a['created_at'] ?? '1970-01-01 00:00:00';
+    $dateB = $b['created_at'] ?? '1970-01-01 00:00:00';
+    return strcmp($dateB, $dateA); // 내림차순 (최신이 위로)
+});
+
+// 페이지네이션 계산
+$totalCount = count($currentSellers);
+$totalPages = ceil($totalCount / $perPage);
+$currentPage = min($currentPage, max(1, $totalPages)); // 범위 제한
+$offset = ($currentPage - 1) * $perPage;
+$paginatedSellers = array_slice($currentSellers, $offset, $perPage);
 ?>
 
 <style>
@@ -464,33 +640,194 @@ $activeTab = $_GET['tab'] ?? 'pending';
             max-height: 90%;
             border-radius: 8px;
         }
+        
+        /* 표시 개수 선택 및 페이지네이션 */
+        .table-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        
+        .search-box {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+            min-width: 300px;
+        }
+        
+        .search-box input {
+            flex: 1;
+            padding: 8px 16px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+            background: white;
+            color: #1f2937;
+        }
+        
+        .search-box input:focus {
+            outline: none;
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+        
+        .search-box button {
+            padding: 8px 20px;
+            background: #6366f1;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .search-box button:hover {
+            background: #4f46e5;
+        }
+        
+        .per-page-selector {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .per-page-selector label {
+            font-size: 14px;
+            color: #6b7280;
+            font-weight: 500;
+        }
+        
+        .per-page-selector select {
+            padding: 6px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+            background: white;
+            color: #1f2937;
+            cursor: pointer;
+        }
+        
+        .per-page-selector select:focus {
+            outline: none;
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+        
+        .pagination {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 24px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .pagination-info {
+            font-size: 13px;
+            color: #6b7280;
+            margin-right: 16px;
+            white-space: nowrap;
+            flex-shrink: 0;
+            min-width: 0;
+        }
+        
+        @media (max-width: 768px) {
+            .pagination {
+                flex-direction: column;
+                gap: 12px;
+            }
+            
+            .pagination-info {
+                margin-right: 0;
+                margin-bottom: 8px;
+            }
+        }
+        
+        .pagination-btn {
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            background: white;
+            color: #374151;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            white-space: nowrap;
+            min-height: 36px;
+            min-width: 44px;
+            line-height: 1.5;
+            box-sizing: border-box;
+        }
+        
+        .pagination-btn:hover:not(.disabled) {
+            background: #f9fafb;
+            border-color: #9ca3af;
+        }
+        
+        .pagination-btn.active {
+            background: #6366f1;
+            color: white;
+            border-color: #6366f1;
+        }
+        
+        .pagination-btn.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
 </style>
 
 <script>
-        function switchTab(tabName) {
-            // 모든 탭과 콘텐츠 숨기기
-            document.querySelectorAll('.tab').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            document.querySelectorAll('.tab-content').forEach(content => {
-                content.classList.remove('active');
-            });
-            
-            // 선택한 탭과 콘텐츠 보이기
-            document.getElementById('tab-' + tabName).classList.add('active');
-            document.getElementById('content-' + tabName).classList.add('active');
-            
-            // URL 업데이트 (새로고침 없이)
-            const url = new URL(window.location);
-            url.searchParams.set('tab', tabName);
-            window.history.pushState({}, '', url);
+        function switchTab(tabName, reload = true) {
+            if (reload) {
+                // URL 업데이트 및 페이지 리로드 (페이지네이션을 위해)
+                const url = new URL(window.location);
+                url.searchParams.set('tab', tabName);
+                url.searchParams.set('page', '1'); // 탭 변경 시 페이지를 1로 리셋
+                const perPage = url.searchParams.get('per_page') || '50';
+                url.searchParams.set('per_page', perPage);
+                window.location.href = url.toString();
+            } else {
+                // 탭만 활성화 (리로드 없이)
+                document.querySelectorAll('.tab').forEach(tab => {
+                    tab.classList.remove('active');
+                });
+                document.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.remove('active');
+                });
+                
+                document.getElementById('tab-' + tabName).classList.add('active');
+                document.getElementById('content-' + tabName).classList.add('active');
+            }
         }
         
-        // 페이지 로드 시 활성 탭 설정
+        // 표시 개수 변경 함수
+        function changePerPage(value) {
+            const url = new URL(window.location);
+            url.searchParams.set('per_page', value);
+            url.searchParams.set('page', '1'); // 페이지를 1로 리셋
+            const search = url.searchParams.get('search');
+            if (search) {
+                url.searchParams.set('search', search);
+            }
+            window.location.href = url.toString();
+        }
+        
+        // 페이지 로드 시 활성 탭 설정 (리로드 없이)
         document.addEventListener('DOMContentLoaded', function() {
             const urlParams = new URLSearchParams(window.location.search);
-            const tab = urlParams.get('tab') || 'pending';
-            switchTab(tab);
+            const tab = urlParams.get('tab') || 'all';
+            switchTab(tab, false); // 리로드 없이 탭만 활성화
         });
 </script>
 
@@ -509,34 +846,210 @@ $activeTab = $_GET['tab'] ?? 'pending';
             </div>
         <?php endif; ?>
         
+        <!-- 검색 및 표시 개수 선택 -->
+        <div class="table-controls">
+            <form method="GET" class="search-box" style="margin: 0;">
+                <input type="hidden" name="tab" value="<?php echo htmlspecialchars($activeTab); ?>">
+                <input type="hidden" name="per_page" value="<?php echo $perPage; ?>">
+                <input type="text" name="search" placeholder="아이디, 이름, 이메일, 전화번호, 회사명으로 검색..." value="<?php echo htmlspecialchars($searchQuery); ?>" style="flex: 1;">
+                <button type="submit">검색</button>
+                <?php if (!empty($searchQuery)): ?>
+                    <a href="?tab=<?php echo htmlspecialchars($activeTab); ?>&per_page=<?php echo $perPage; ?>" style="padding: 8px 16px; background: #ef4444; color: white; border-radius: 6px; text-decoration: none; font-size: 14px; font-weight: 500;">초기화</a>
+                <?php endif; ?>
+            </form>
+            <div class="per-page-selector">
+                <label for="per-page">표시 개수:</label>
+                <select id="per-page" onchange="changePerPage(this.value)">
+                    <?php foreach ($perPageOptions as $option): ?>
+                        <option value="<?php echo $option; ?>" <?php echo $perPage === $option ? 'selected' : ''; ?>>
+                            <?php echo $option; ?>명
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+        </div>
+        
         <!-- 탭 메뉴 -->
         <div class="tabs">
+            <button class="tab" id="tab-all" onclick="switchTab('all')">
+                전체
+                <span class="tab-badge"><?php echo count($sellers); ?></span>
+            </button>
             <button class="tab" id="tab-pending" onclick="switchTab('pending')">
                 신청자
                 <span class="tab-badge"><?php echo count($pendingSellers); ?></span>
-            </button>
-            <button class="tab" id="tab-onhold" onclick="switchTab('onhold')">
-                보류자
-                <span class="tab-badge"><?php echo count($onHoldSellers); ?></span>
             </button>
             <button class="tab" id="tab-approved" onclick="switchTab('approved')">
                 승인판매자
                 <span class="tab-badge"><?php echo count($approvedSellers); ?></span>
             </button>
-            <button class="tab" id="tab-rejected" onclick="switchTab('rejected')">
-                승인불가
-                <span class="tab-badge"><?php echo count($rejectedSellers); ?></span>
-            </button>
-            <button class="tab" id="tab-withdrawal" onclick="switchTab('withdrawal')">
-                탈퇴 요청
+            <button class="tab" id="tab-withdrawal" onclick="switchTab('withdrawal')" style="display: none;">
+                탈퇴진행
                 <span class="tab-badge"><?php echo count($withdrawalRequestedSellers); ?></span>
             </button>
+        </div>
+        
+        <!-- 전체 탭 -->
+        <div class="tab-content" id="content-all">
+            <div class="sellers-section">
+                <?php if ($totalCount > 0): ?>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>아이디</th>
+                                <th>이름</th>
+                                <th>이메일</th>
+                                <th>가입일</th>
+                                <th>상태</th>
+                                <th>작업</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($paginatedSellers as $seller): ?>
+                                <?php
+                                $approvalStatus = $seller['approval_status'] ?? null;
+                                $isApproved = isset($seller['seller_approved']) && $seller['seller_approved'] === true;
+                                $isWithdrawalRequested = isset($seller['withdrawal_requested']) && $seller['withdrawal_requested'] === true;
+                                
+                                // 상태 결정 (승인, 승인보류만 표시)
+                                $statusBadge = '';
+                                $statusText = '';
+                                if ($isWithdrawalRequested) {
+                                    $statusBadge = 'badge-on-hold';
+                                    $statusText = '탈퇴 요청';
+                                } elseif ($isApproved && $approvalStatus !== 'on_hold') {
+                                    $statusBadge = 'badge-approved';
+                                    $statusText = '승인';
+                                } elseif ($approvalStatus === 'on_hold') {
+                                    // 승인보류 상태
+                                    $statusBadge = 'badge-on-hold';
+                                    $statusText = '승인보류';
+                                } else {
+                                    // pending 상태 (신청자)
+                                    $statusBadge = 'badge-pending';
+                                    $statusText = '신청자';
+                                }
+                                ?>
+                                <tr>
+                                    <td><?php echo htmlspecialchars($seller['user_id']); ?></td>
+                                    <td><?php echo htmlspecialchars($seller['name'] ?? '-'); ?></td>
+                                    <td><?php echo htmlspecialchars($seller['email'] ?? '-'); ?></td>
+                                    <td><?php echo htmlspecialchars($seller['created_at'] ?? '-'); ?></td>
+                                    <td>
+                                        <span class="badge <?php echo $statusBadge; ?>"><?php echo $statusText; ?></span>
+                                    </td>
+                                    <td>
+                                        <a href="/MVNO/admin/users/seller-detail.php?user_id=<?php echo urlencode($seller['user_id']); ?>" class="btn" style="background: #6366f1; color: white; margin-right: 8px; text-decoration: none; display: inline-block;">상세보기</a>
+                                        <?php if (!$isApproved && $approvalStatus !== 'on_hold' && $approvalStatus !== 'rejected' && !$isWithdrawalRequested): ?>
+                                            <button type="button" onclick="showApproveModal('<?php echo htmlspecialchars($seller['user_id']); ?>', '<?php echo htmlspecialchars($seller['name'] ?? $seller['user_id']); ?>')" class="btn btn-approve" style="margin-right: 8px;">승인</button>
+                                            <button type="button" onclick="showHoldModal('<?php echo htmlspecialchars($seller['user_id']); ?>', '<?php echo htmlspecialchars($seller['name'] ?? $seller['user_id']); ?>')" class="btn btn-hold">승인보류</button>
+                                        <?php elseif ($approvalStatus === 'on_hold'): ?>
+                                            <button type="button" onclick="showApproveModal('<?php echo htmlspecialchars($seller['user_id']); ?>', '<?php echo htmlspecialchars($seller['name'] ?? $seller['user_id']); ?>')" class="btn btn-approve">승인</button>
+                                        <?php elseif ($isApproved): ?>
+                                            <a href="/MVNO/admin/seller-permissions.php?user_id=<?php echo urlencode($seller['user_id']); ?>" style="padding: 6px 12px; background: #10b981; color: white; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 500; display: inline-block; margin-right: 8px;">권한 설정</a>
+                                            <button type="button" onclick="showHoldModal('<?php echo htmlspecialchars($seller['user_id']); ?>', '<?php echo htmlspecialchars($seller['name'] ?? $seller['user_id']); ?>')" class="btn btn-hold">승인보류</button>
+                                        <?php elseif ($isWithdrawalRequested): ?>
+                                            <button type="button" onclick="showCompleteWithdrawalModal('<?php echo htmlspecialchars($seller['user_id']); ?>', '<?php echo htmlspecialchars($seller['name'] ?? $seller['user_id']); ?>')" class="btn" style="background: #ef4444; color: white; margin-right: 8px;">탈퇴 완료 처리</button>
+                                            <button type="button" onclick="showCancelWithdrawalAdminModal('<?php echo htmlspecialchars($seller['user_id']); ?>', '<?php echo htmlspecialchars($seller['name'] ?? $seller['user_id']); ?>')" class="btn btn-approve">탈퇴 요청 취소</button>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                <?php else: ?>
+                    <p style="color: #6b7280; font-size: 14px; padding: 40px; text-align: center;">
+                        <?php if (!empty($searchQuery)): ?>
+                            검색 결과가 없습니다. 다른 검색어를 입력해주세요.
+                        <?php else: ?>
+                            등록된 판매자가 없습니다.
+                        <?php endif; ?>
+                    </p>
+                <?php endif; ?>
+                
+                <!-- 페이지네이션 -->
+                <?php if ($totalCount > 0 && $totalPages > 1): ?>
+                    <div class="pagination">
+                        <span class="pagination-info">
+                            전체 <?php echo $totalCount; ?>명 중 <?php echo $offset + 1; ?>-<?php echo min($offset + $perPage, $totalCount); ?>명 표시
+                        </span>
+                        <?php 
+                        $searchParam = !empty($searchQuery) ? '&search=' . urlencode($searchQuery) : '';
+                        ?>
+                        <?php if ($currentPage > 1): ?>
+                            <a href="?tab=<?php echo $activeTab; ?>&page=<?php echo $currentPage - 1; ?>&per_page=<?php echo $perPage; ?><?php echo $searchParam; ?>" class="pagination-btn">이전</a>
+                        <?php else: ?>
+                            <span class="pagination-btn disabled">이전</span>
+                        <?php endif; ?>
+                        
+                        <?php
+                        $startPage = max(1, $currentPage - 2);
+                        $endPage = min($totalPages, $currentPage + 2);
+                        
+                        if ($startPage > 1): ?>
+                            <a href="?tab=<?php echo $activeTab; ?>&page=1&per_page=<?php echo $perPage; ?><?php echo $searchParam; ?>" class="pagination-btn">1</a>
+                            <?php if ($startPage > 2): ?>
+                                <span class="pagination-btn disabled">...</span>
+                            <?php endif; ?>
+                        <?php endif; ?>
+                        
+                        <?php for ($i = $startPage; $i <= $endPage; $i++): ?>
+                            <a href="?tab=<?php echo $activeTab; ?>&page=<?php echo $i; ?>&per_page=<?php echo $perPage; ?><?php echo $searchParam; ?>" class="pagination-btn <?php echo $i === $currentPage ? 'active' : ''; ?>">
+                                <?php echo $i; ?>
+                            </a>
+                        <?php endfor; ?>
+                        
+                        <?php if ($endPage < $totalPages): ?>
+                            <?php if ($endPage < $totalPages - 1): ?>
+                                <span class="pagination-btn disabled">...</span>
+                            <?php endif; ?>
+                            <a href="?tab=<?php echo $activeTab; ?>&page=<?php echo $totalPages; ?>&per_page=<?php echo $perPage; ?><?php echo $searchParam; ?>" class="pagination-btn"><?php echo $totalPages; ?></a>
+                        <?php endif; ?>
+                        
+                        <?php if ($currentPage < $totalPages): ?>
+                            <a href="?tab=<?php echo $activeTab; ?>&page=<?php echo $currentPage + 1; ?>&per_page=<?php echo $perPage; ?><?php echo $searchParam; ?>" class="pagination-btn">다음</a>
+                        <?php else: ?>
+                            <span class="pagination-btn disabled">다음</span>
+                        <?php endif; ?>
+                    </div>
+                <?php endif; ?>
+            </div>
         </div>
         
         <!-- 신청자 탭 -->
         <div class="tab-content" id="content-pending">
             <div class="sellers-section">
-                <?php if (count($pendingSellers) > 0): ?>
+                <?php 
+                // 신청자 탭용 검색 필터링
+                $pendingFiltered = array_values($pendingSellers);
+                if (!empty($searchQuery)) {
+                    $pendingFiltered = array_filter($pendingFiltered, function($seller) use ($searchQuery) {
+                        $searchLower = mb_strtolower($searchQuery, 'UTF-8');
+                        if (mb_strpos(mb_strtolower($seller['user_id'] ?? '', 'UTF-8'), $searchLower) !== false) return true;
+                        if (isset($seller['name']) && mb_strpos(mb_strtolower($seller['name'], 'UTF-8'), $searchLower) !== false) return true;
+                        if (isset($seller['email']) && mb_strpos(mb_strtolower($seller['email'], 'UTF-8'), $searchLower) !== false) return true;
+                        if (isset($seller['phone']) && mb_strpos(mb_strtolower($seller['phone'], 'UTF-8'), $searchLower) !== false) return true;
+                        if (isset($seller['mobile']) && mb_strpos(mb_strtolower($seller['mobile'], 'UTF-8'), $searchLower) !== false) return true;
+                        if (isset($seller['company_name']) && mb_strpos(mb_strtolower($seller['company_name'], 'UTF-8'), $searchLower) !== false) return true;
+                        return false;
+                    });
+                    $pendingFiltered = array_values($pendingFiltered);
+                }
+                // 최신순 정렬
+                usort($pendingFiltered, function($a, $b) {
+                    $dateA = $a['created_at'] ?? '1970-01-01 00:00:00';
+                    $dateB = $b['created_at'] ?? '1970-01-01 00:00:00';
+                    return strcmp($dateB, $dateA);
+                });
+                
+                // 신청자 탭용 페이지네이션 재계산
+                $pendingCount = count($pendingFiltered);
+                $pendingPages = ceil($pendingCount / $perPage);
+                $pendingCurrentPage = min($currentPage, max(1, $pendingPages));
+                $pendingOffset = ($pendingCurrentPage - 1) * $perPage;
+                $pendingPaginated = array_slice($pendingFiltered, $pendingOffset, $perPage);
+                ?>
+                <?php if ($pendingCount > 0): ?>
                     <table>
                         <thead>
                             <tr>
@@ -549,69 +1062,79 @@ $activeTab = $_GET['tab'] ?? 'pending';
                             </tr>
                         </thead>
                         <tbody>
-                            <?php foreach ($pendingSellers as $seller): ?>
+                            <?php foreach ($pendingPaginated as $seller): ?>
                                 <tr>
                                     <td><?php echo htmlspecialchars($seller['user_id']); ?></td>
                                     <td><?php echo htmlspecialchars($seller['name'] ?? '-'); ?></td>
                                     <td><?php echo htmlspecialchars($seller['email'] ?? '-'); ?></td>
                                     <td><?php echo htmlspecialchars($seller['created_at'] ?? '-'); ?></td>
                                     <td>
-                                        <span class="badge badge-pending">대기 중</span>
+                                        <span class="badge badge-pending">신청자</span>
                                     </td>
                                     <td>
                                         <a href="/MVNO/admin/users/seller-detail.php?user_id=<?php echo urlencode($seller['user_id']); ?>" class="btn" style="background: #6366f1; color: white; margin-right: 8px; text-decoration: none; display: inline-block;">상세보기</a>
                                         <button type="button" onclick="showApproveModal('<?php echo htmlspecialchars($seller['user_id']); ?>', '<?php echo htmlspecialchars($seller['name'] ?? $seller['user_id']); ?>')" class="btn btn-approve" style="margin-right: 8px;">승인</button>
-                                        <button type="button" onclick="showHoldModal('<?php echo htmlspecialchars($seller['user_id']); ?>', '<?php echo htmlspecialchars($seller['name'] ?? $seller['user_id']); ?>')" class="btn btn-hold" style="margin-right: 8px;">승인보류</button>
-                                        <button type="button" onclick="showRejectModal('<?php echo htmlspecialchars($seller['user_id']); ?>', '<?php echo htmlspecialchars($seller['name'] ?? $seller['user_id']); ?>')" class="btn btn-reject">신청취소</button>
+                                        <button type="button" onclick="showHoldModal('<?php echo htmlspecialchars($seller['user_id']); ?>', '<?php echo htmlspecialchars($seller['name'] ?? $seller['user_id']); ?>')" class="btn btn-hold">승인보류</button>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>
                     </table>
                 <?php else: ?>
-                    <p style="color: #6b7280; font-size: 14px; padding: 40px; text-align: center;">승인 대기 중인 판매자가 없습니다.</p>
+                    <p style="color: #6b7280; font-size: 14px; padding: 40px; text-align: center;">
+                        <?php if (!empty($searchQuery)): ?>
+                            검색 결과가 없습니다. 다른 검색어를 입력해주세요.
+                        <?php else: ?>
+                            승인 대기 중인 판매자가 없습니다.
+                        <?php endif; ?>
+                    </p>
                 <?php endif; ?>
-            </div>
-        </div>
-        
-        <!-- 보류자 탭 -->
-        <div class="tab-content" id="content-onhold">
-            <div class="sellers-section">
-                <?php if (count($onHoldSellers) > 0): ?>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>아이디</th>
-                                <th>이름</th>
-                                <th>이메일</th>
-                                <th>가입일</th>
-                                <th>보류일</th>
-                                <th>상태</th>
-                                <th>작업</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($onHoldSellers as $seller): ?>
-                                <tr>
-                                    <td><?php echo htmlspecialchars($seller['user_id']); ?></td>
-                                    <td><?php echo htmlspecialchars($seller['name'] ?? '-'); ?></td>
-                                    <td><?php echo htmlspecialchars($seller['email'] ?? '-'); ?></td>
-                                    <td><?php echo htmlspecialchars($seller['created_at'] ?? '-'); ?></td>
-                                    <td><?php echo htmlspecialchars($seller['held_at'] ?? '-'); ?></td>
-                                    <td>
-                                        <span class="badge badge-on-hold">승인보류</span>
-                                    </td>
-                                    <td>
-                                        <a href="/MVNO/admin/users/seller-detail.php?user_id=<?php echo urlencode($seller['user_id']); ?>" class="btn" style="background: #6366f1; color: white; margin-right: 8px; text-decoration: none; display: inline-block;">상세보기</a>
-                                        <button type="button" onclick="showApproveModal('<?php echo htmlspecialchars($seller['user_id']); ?>', '<?php echo htmlspecialchars($seller['name'] ?? $seller['user_id']); ?>')" class="btn btn-approve" style="margin-right: 8px;">승인</button>
-                                        <button type="button" onclick="showRejectModal('<?php echo htmlspecialchars($seller['user_id']); ?>', '<?php echo htmlspecialchars($seller['name'] ?? $seller['user_id']); ?>')" class="btn btn-reject">승인불가</button>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                <?php else: ?>
-                    <p style="color: #6b7280; font-size: 14px; padding: 40px; text-align: center;">승인보류 판매자가 없습니다.</p>
+                
+                <!-- 페이지네이션 -->
+                <?php if ($pendingCount > 0 && $pendingPages > 1): ?>
+                    <div class="pagination">
+                        <span class="pagination-info">
+                            전체 <?php echo $pendingCount; ?>명 중 <?php echo $pendingOffset + 1; ?>-<?php echo min($pendingOffset + $perPage, $pendingCount); ?>명 표시
+                        </span>
+                        <?php 
+                        $pendingSearchParam = !empty($searchQuery) ? '&search=' . urlencode($searchQuery) : '';
+                        ?>
+                        <?php if ($pendingCurrentPage > 1): ?>
+                            <a href="?tab=pending&page=<?php echo $pendingCurrentPage - 1; ?>&per_page=<?php echo $perPage; ?><?php echo $pendingSearchParam; ?>" class="pagination-btn">이전</a>
+                        <?php else: ?>
+                            <span class="pagination-btn disabled">이전</span>
+                        <?php endif; ?>
+                        
+                        <?php
+                        $startPage = max(1, $pendingCurrentPage - 2);
+                        $endPage = min($pendingPages, $pendingCurrentPage + 2);
+                        
+                        if ($startPage > 1): ?>
+                            <a href="?tab=pending&page=1&per_page=<?php echo $perPage; ?><?php echo $pendingSearchParam; ?>" class="pagination-btn">1</a>
+                            <?php if ($startPage > 2): ?>
+                                <span class="pagination-btn disabled">...</span>
+                            <?php endif; ?>
+                        <?php endif; ?>
+                        
+                        <?php for ($i = $startPage; $i <= $endPage; $i++): ?>
+                            <a href="?tab=pending&page=<?php echo $i; ?>&per_page=<?php echo $perPage; ?><?php echo $pendingSearchParam; ?>" class="pagination-btn <?php echo $i === $pendingCurrentPage ? 'active' : ''; ?>">
+                                <?php echo $i; ?>
+                            </a>
+                        <?php endfor; ?>
+                        
+                        <?php if ($endPage < $pendingPages): ?>
+                            <?php if ($endPage < $pendingPages - 1): ?>
+                                <span class="pagination-btn disabled">...</span>
+                            <?php endif; ?>
+                            <a href="?tab=pending&page=<?php echo $pendingPages; ?>&per_page=<?php echo $perPage; ?><?php echo $pendingSearchParam; ?>" class="pagination-btn"><?php echo $pendingPages; ?></a>
+                        <?php endif; ?>
+                        
+                        <?php if ($pendingCurrentPage < $pendingPages): ?>
+                            <a href="?tab=pending&page=<?php echo $pendingCurrentPage + 1; ?>&per_page=<?php echo $perPage; ?><?php echo $pendingSearchParam; ?>" class="pagination-btn">다음</a>
+                        <?php else: ?>
+                            <span class="pagination-btn disabled">다음</span>
+                        <?php endif; ?>
+                    </div>
                 <?php endif; ?>
             </div>
         </div>
@@ -619,7 +1142,37 @@ $activeTab = $_GET['tab'] ?? 'pending';
         <!-- 승인판매자 탭 -->
         <div class="tab-content" id="content-approved">
             <div class="sellers-section">
-                <?php if (count($approvedSellers) > 0): ?>
+                <?php 
+                // 승인판매자 탭용 검색 필터링
+                $approvedFiltered = array_values($approvedSellers);
+                if (!empty($searchQuery)) {
+                    $approvedFiltered = array_filter($approvedFiltered, function($seller) use ($searchQuery) {
+                        $searchLower = mb_strtolower($searchQuery, 'UTF-8');
+                        if (mb_strpos(mb_strtolower($seller['user_id'] ?? '', 'UTF-8'), $searchLower) !== false) return true;
+                        if (isset($seller['name']) && mb_strpos(mb_strtolower($seller['name'], 'UTF-8'), $searchLower) !== false) return true;
+                        if (isset($seller['email']) && mb_strpos(mb_strtolower($seller['email'], 'UTF-8'), $searchLower) !== false) return true;
+                        if (isset($seller['phone']) && mb_strpos(mb_strtolower($seller['phone'], 'UTF-8'), $searchLower) !== false) return true;
+                        if (isset($seller['mobile']) && mb_strpos(mb_strtolower($seller['mobile'], 'UTF-8'), $searchLower) !== false) return true;
+                        if (isset($seller['company_name']) && mb_strpos(mb_strtolower($seller['company_name'], 'UTF-8'), $searchLower) !== false) return true;
+                        return false;
+                    });
+                    $approvedFiltered = array_values($approvedFiltered);
+                }
+                // 최신순 정렬
+                usort($approvedFiltered, function($a, $b) {
+                    $dateA = $a['created_at'] ?? '1970-01-01 00:00:00';
+                    $dateB = $b['created_at'] ?? '1970-01-01 00:00:00';
+                    return strcmp($dateB, $dateA);
+                });
+                
+                // 승인판매자 탭용 페이지네이션 재계산
+                $approvedCount = count($approvedFiltered);
+                $approvedPages = ceil($approvedCount / $perPage);
+                $approvedCurrentPage = min($currentPage, max(1, $approvedPages));
+                $approvedOffset = ($approvedCurrentPage - 1) * $perPage;
+                $approvedPaginated = array_slice($approvedFiltered, $approvedOffset, $perPage);
+                ?>
+                <?php if ($approvedCount > 0): ?>
                     <table>
                         <thead>
                             <tr>
@@ -634,7 +1187,7 @@ $activeTab = $_GET['tab'] ?? 'pending';
                             </tr>
                         </thead>
                         <tbody>
-                            <?php foreach ($approvedSellers as $seller): ?>
+                            <?php foreach ($approvedPaginated as $seller): ?>
                                 <tr>
                                     <td><?php echo htmlspecialchars($seller['user_id']); ?></td>
                                     <td><?php echo htmlspecialchars($seller['name'] ?? '-'); ?></td>
@@ -652,68 +1205,110 @@ $activeTab = $_GET['tab'] ?? 'pending';
                                         ?>
                                     </td>
                                     <td>
-                                        <span class="badge badge-approved">승인됨</span>
+                                        <span class="badge badge-approved">승인</span>
                                     </td>
                                     <td>
                                         <a href="/MVNO/admin/users/seller-detail.php?user_id=<?php echo urlencode($seller['user_id']); ?>" class="btn" style="background: #6366f1; color: white; margin-right: 8px; text-decoration: none; display: inline-block;">상세보기</a>
                                         <a href="/MVNO/admin/seller-permissions.php?user_id=<?php echo urlencode($seller['user_id']); ?>" style="padding: 6px 12px; background: #10b981; color: white; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 500; display: inline-block; margin-right: 8px;">권한 설정</a>
-                                        <button type="button" onclick="showCancelApprovalModal('<?php echo htmlspecialchars($seller['user_id']); ?>', '<?php echo htmlspecialchars($seller['name'] ?? $seller['user_id']); ?>')" class="btn btn-cancel-approval">승인취소</button>
+                                        <button type="button" onclick="showHoldModal('<?php echo htmlspecialchars($seller['user_id']); ?>', '<?php echo htmlspecialchars($seller['name'] ?? $seller['user_id']); ?>')" class="btn btn-hold">승인보류</button>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>
                     </table>
                 <?php else: ?>
-                    <p style="color: #6b7280; font-size: 14px; padding: 40px; text-align: center;">승인된 판매자가 없습니다.</p>
+                    <p style="color: #6b7280; font-size: 14px; padding: 40px; text-align: center;">
+                        <?php if (!empty($searchQuery)): ?>
+                            검색 결과가 없습니다. 다른 검색어를 입력해주세요.
+                        <?php else: ?>
+                            승인된 판매자가 없습니다.
+                        <?php endif; ?>
+                    </p>
+                <?php endif; ?>
+                
+                <!-- 페이지네이션 -->
+                <?php if ($approvedCount > 0 && $approvedPages > 1): ?>
+                    <div class="pagination">
+                        <span class="pagination-info">
+                            전체 <?php echo $approvedCount; ?>명 중 <?php echo $approvedOffset + 1; ?>-<?php echo min($approvedOffset + $perPage, $approvedCount); ?>명 표시
+                        </span>
+                        <?php 
+                        $approvedSearchParam = !empty($searchQuery) ? '&search=' . urlencode($searchQuery) : '';
+                        ?>
+                        <?php if ($approvedCurrentPage > 1): ?>
+                            <a href="?tab=approved&page=<?php echo $approvedCurrentPage - 1; ?>&per_page=<?php echo $perPage; ?><?php echo $approvedSearchParam; ?>" class="pagination-btn">이전</a>
+                        <?php else: ?>
+                            <span class="pagination-btn disabled">이전</span>
+                        <?php endif; ?>
+                        
+                        <?php
+                        $startPage = max(1, $approvedCurrentPage - 2);
+                        $endPage = min($approvedPages, $approvedCurrentPage + 2);
+                        
+                        if ($startPage > 1): ?>
+                            <a href="?tab=approved&page=1&per_page=<?php echo $perPage; ?><?php echo $approvedSearchParam; ?>" class="pagination-btn">1</a>
+                            <?php if ($startPage > 2): ?>
+                                <span class="pagination-btn disabled">...</span>
+                            <?php endif; ?>
+                        <?php endif; ?>
+                        
+                        <?php for ($i = $startPage; $i <= $endPage; $i++): ?>
+                            <a href="?tab=approved&page=<?php echo $i; ?>&per_page=<?php echo $perPage; ?><?php echo $approvedSearchParam; ?>" class="pagination-btn <?php echo $i === $approvedCurrentPage ? 'active' : ''; ?>">
+                                <?php echo $i; ?>
+                            </a>
+                        <?php endfor; ?>
+                        
+                        <?php if ($endPage < $approvedPages): ?>
+                            <?php if ($endPage < $approvedPages - 1): ?>
+                                <span class="pagination-btn disabled">...</span>
+                            <?php endif; ?>
+                            <a href="?tab=approved&page=<?php echo $approvedPages; ?>&per_page=<?php echo $perPage; ?><?php echo $approvedSearchParam; ?>" class="pagination-btn"><?php echo $approvedPages; ?></a>
+                        <?php endif; ?>
+                        
+                        <?php if ($approvedCurrentPage < $approvedPages): ?>
+                            <a href="?tab=approved&page=<?php echo $approvedCurrentPage + 1; ?>&per_page=<?php echo $perPage; ?><?php echo $approvedSearchParam; ?>" class="pagination-btn">다음</a>
+                        <?php else: ?>
+                            <span class="pagination-btn disabled">다음</span>
+                        <?php endif; ?>
+                    </div>
                 <?php endif; ?>
             </div>
         </div>
         
-        <!-- 승인불가 탭 -->
-        <div class="tab-content" id="content-rejected">
-            <div class="sellers-section">
-                <?php if (count($rejectedSellers) > 0): ?>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>아이디</th>
-                                <th>이름</th>
-                                <th>이메일</th>
-                                <th>가입일</th>
-                                <th>거부일</th>
-                                <th>상태</th>
-                                <th>작업</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($rejectedSellers as $seller): ?>
-                                <tr>
-                                    <td><?php echo htmlspecialchars($seller['user_id']); ?></td>
-                                    <td><?php echo htmlspecialchars($seller['name'] ?? '-'); ?></td>
-                                    <td><?php echo htmlspecialchars($seller['email'] ?? '-'); ?></td>
-                                    <td><?php echo htmlspecialchars($seller['created_at'] ?? '-'); ?></td>
-                                    <td><?php echo htmlspecialchars($seller['rejected_at'] ?? '-'); ?></td>
-                                    <td>
-                                        <span class="badge badge-rejected">승인불가</span>
-                                    </td>
-                                    <td>
-                                        <a href="/MVNO/admin/users/seller-detail.php?user_id=<?php echo urlencode($seller['user_id']); ?>" class="btn" style="background: #6366f1; color: white; margin-right: 8px; text-decoration: none; display: inline-block;">상세보기</a>
-                                        <button type="button" onclick="showApproveModal('<?php echo htmlspecialchars($seller['user_id']); ?>', '<?php echo htmlspecialchars($seller['name'] ?? $seller['user_id']); ?>')" class="btn btn-approve">재승인</button>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                <?php else: ?>
-                    <p style="color: #6b7280; font-size: 14px; padding: 40px; text-align: center;">승인불가 판매자가 없습니다.</p>
-                <?php endif; ?>
-            </div>
-        </div>
-        
-        <!-- 탈퇴 요청 탭 -->
+        <!-- 탈퇴진행 탭 -->
         <div class="tab-content" id="content-withdrawal">
             <div class="sellers-section">
-                <?php if (count($withdrawalRequestedSellers) > 0): ?>
+                <?php 
+                // 탈퇴진행 탭용 검색 필터링
+                $withdrawalFiltered = array_values($withdrawalRequestedSellers);
+                if (!empty($searchQuery)) {
+                    $withdrawalFiltered = array_filter($withdrawalFiltered, function($seller) use ($searchQuery) {
+                        $searchLower = mb_strtolower($searchQuery, 'UTF-8');
+                        if (mb_strpos(mb_strtolower($seller['user_id'] ?? '', 'UTF-8'), $searchLower) !== false) return true;
+                        if (isset($seller['name']) && mb_strpos(mb_strtolower($seller['name'], 'UTF-8'), $searchLower) !== false) return true;
+                        if (isset($seller['email']) && mb_strpos(mb_strtolower($seller['email'], 'UTF-8'), $searchLower) !== false) return true;
+                        if (isset($seller['phone']) && mb_strpos(mb_strtolower($seller['phone'], 'UTF-8'), $searchLower) !== false) return true;
+                        if (isset($seller['mobile']) && mb_strpos(mb_strtolower($seller['mobile'], 'UTF-8'), $searchLower) !== false) return true;
+                        if (isset($seller['company_name']) && mb_strpos(mb_strtolower($seller['company_name'], 'UTF-8'), $searchLower) !== false) return true;
+                        return false;
+                    });
+                    $withdrawalFiltered = array_values($withdrawalFiltered);
+                }
+                // 최신순 정렬
+                usort($withdrawalFiltered, function($a, $b) {
+                    $dateA = $a['created_at'] ?? '1970-01-01 00:00:00';
+                    $dateB = $b['created_at'] ?? '1970-01-01 00:00:00';
+                    return strcmp($dateB, $dateA);
+                });
+                
+                // 탈퇴진행 탭용 페이지네이션 재계산
+                $withdrawalCount = count($withdrawalFiltered);
+                $withdrawalPages = ceil($withdrawalCount / $perPage);
+                $withdrawalCurrentPage = min($currentPage, max(1, $withdrawalPages));
+                $withdrawalOffset = ($withdrawalCurrentPage - 1) * $perPage;
+                $withdrawalPaginated = array_slice($withdrawalFiltered, $withdrawalOffset, $perPage);
+                ?>
+                <?php if ($withdrawalCount > 0): ?>
                     <table>
                         <thead>
                             <tr>
@@ -726,7 +1321,7 @@ $activeTab = $_GET['tab'] ?? 'pending';
                             </tr>
                         </thead>
                         <tbody>
-                            <?php foreach ($withdrawalRequestedSellers as $seller): ?>
+                            <?php foreach ($withdrawalPaginated as $seller): ?>
                                 <tr>
                                     <td><?php echo htmlspecialchars($seller['user_id']); ?></td>
                                     <td><?php echo htmlspecialchars($seller['name'] ?? '-'); ?></td>
@@ -743,7 +1338,60 @@ $activeTab = $_GET['tab'] ?? 'pending';
                         </tbody>
                     </table>
                 <?php else: ?>
-                    <p style="color: #6b7280; font-size: 14px; padding: 40px; text-align: center;">탈퇴 요청이 없습니다.</p>
+                    <p style="color: #6b7280; font-size: 14px; padding: 40px; text-align: center;">
+                        <?php if (!empty($searchQuery)): ?>
+                            검색 결과가 없습니다. 다른 검색어를 입력해주세요.
+                        <?php else: ?>
+                            탈퇴 요청이 없습니다.
+                        <?php endif; ?>
+                    </p>
+                <?php endif; ?>
+                
+                <!-- 페이지네이션 -->
+                <?php if ($withdrawalCount > 0 && $withdrawalPages > 1): ?>
+                    <div class="pagination">
+                        <span class="pagination-info">
+                            전체 <?php echo $withdrawalCount; ?>명 중 <?php echo $withdrawalOffset + 1; ?>-<?php echo min($withdrawalOffset + $perPage, $withdrawalCount); ?>명 표시
+                        </span>
+                        <?php 
+                        $withdrawalSearchParam = !empty($searchQuery) ? '&search=' . urlencode($searchQuery) : '';
+                        ?>
+                        <?php if ($withdrawalCurrentPage > 1): ?>
+                            <a href="?tab=withdrawal&page=<?php echo $withdrawalCurrentPage - 1; ?>&per_page=<?php echo $perPage; ?><?php echo $withdrawalSearchParam; ?>" class="pagination-btn">이전</a>
+                        <?php else: ?>
+                            <span class="pagination-btn disabled">이전</span>
+                        <?php endif; ?>
+                        
+                        <?php
+                        $startPage = max(1, $withdrawalCurrentPage - 2);
+                        $endPage = min($withdrawalPages, $withdrawalCurrentPage + 2);
+                        
+                        if ($startPage > 1): ?>
+                            <a href="?tab=withdrawal&page=1&per_page=<?php echo $perPage; ?><?php echo $withdrawalSearchParam; ?>" class="pagination-btn">1</a>
+                            <?php if ($startPage > 2): ?>
+                                <span class="pagination-btn disabled">...</span>
+                            <?php endif; ?>
+                        <?php endif; ?>
+                        
+                        <?php for ($i = $startPage; $i <= $endPage; $i++): ?>
+                            <a href="?tab=withdrawal&page=<?php echo $i; ?>&per_page=<?php echo $perPage; ?><?php echo $withdrawalSearchParam; ?>" class="pagination-btn <?php echo $i === $withdrawalCurrentPage ? 'active' : ''; ?>">
+                                <?php echo $i; ?>
+                            </a>
+                        <?php endfor; ?>
+                        
+                        <?php if ($endPage < $withdrawalPages): ?>
+                            <?php if ($endPage < $withdrawalPages - 1): ?>
+                                <span class="pagination-btn disabled">...</span>
+                            <?php endif; ?>
+                            <a href="?tab=withdrawal&page=<?php echo $withdrawalPages; ?>&per_page=<?php echo $perPage; ?><?php echo $withdrawalSearchParam; ?>" class="pagination-btn"><?php echo $withdrawalPages; ?></a>
+                        <?php endif; ?>
+                        
+                        <?php if ($withdrawalCurrentPage < $withdrawalPages): ?>
+                            <a href="?tab=withdrawal&page=<?php echo $withdrawalCurrentPage + 1; ?>&per_page=<?php echo $perPage; ?><?php echo $withdrawalSearchParam; ?>" class="pagination-btn">다음</a>
+                        <?php else: ?>
+                            <span class="pagination-btn disabled">다음</span>
+                        <?php endif; ?>
+                    </div>
                 <?php endif; ?>
             </div>
         </div>
@@ -811,6 +1459,25 @@ $activeTab = $_GET['tab'] ?? 'pending';
             <form method="POST" id="rejectForm" style="display: inline;">
                 <input type="hidden" name="user_id" id="rejectUserId">
                 <button type="submit" name="reject_seller" class="modal-btn modal-btn-hold" style="background: #ef4444;">취소(거부)</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 가입탈퇴 확인 모달 -->
+<div class="modal-overlay" id="withdrawalModal">
+    <div class="modal">
+        <div class="modal-title">가입탈퇴 처리 확인</div>
+        <div class="modal-message">
+            <strong id="withdrawalUserName"></strong> 판매자의 가입탈퇴를 처리하시겠습니까?<br>
+            <small style="color: #f59e0b; margin-top: 8px; display: block;">가입탈퇴 처리 후 탈퇴진행 탭으로 이동합니다.</small>
+        </div>
+        <div class="modal-actions">
+            <button type="button" class="modal-btn modal-btn-cancel" onclick="closeWithdrawalModal()">취소</button>
+            <form method="POST" id="withdrawalForm" style="display: inline;">
+                <input type="hidden" name="user_id" id="withdrawalUserId">
+                <input type="hidden" name="reason" value="관리자에 의한 가입탈퇴 처리">
+                <button type="submit" name="request_withdrawal" class="modal-btn modal-btn-hold" style="background: #f59e0b;">가입탈퇴</button>
             </form>
         </div>
     </div>
@@ -1040,6 +1707,16 @@ $activeTab = $_GET['tab'] ?? 'pending';
         document.getElementById('rejectModal').classList.remove('active');
     }
     
+    function showWithdrawalModal(userId, userName) {
+        document.getElementById('withdrawalUserId').value = userId;
+        document.getElementById('withdrawalUserName').textContent = userName;
+        document.getElementById('withdrawalModal').classList.add('active');
+    }
+    
+    function closeWithdrawalModal() {
+        document.getElementById('withdrawalModal').classList.remove('active');
+    }
+    
     function showCancelApprovalModal(userId, userName) {
         document.getElementById('cancelApprovalUserId').value = userId;
         document.getElementById('cancelApprovalUserName').textContent = userName;
@@ -1086,6 +1763,12 @@ $activeTab = $_GET['tab'] ?? 'pending';
     document.getElementById('rejectModal').addEventListener('click', function(e) {
         if (e.target === this) {
             closeRejectModal();
+        }
+    });
+    
+    document.getElementById('withdrawalModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeWithdrawalModal();
         }
     });
     

@@ -524,3 +524,4 @@ if (!hasSellerPermission($currentUser['user_id'], $boardType)) {
 8. 상품별 통계
 9. 일별/월별 통계
 
+

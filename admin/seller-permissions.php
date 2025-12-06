@@ -7,22 +7,30 @@
 require_once __DIR__ . '/../includes/data/auth-functions.php';
 
 // 관리자 인증 체크
-// if (!isAdmin()) {
-//     header('Location: /MVNO/auth/login.php');
-//     exit;
-// }
+$currentUser = getCurrentUser();
+if (!$currentUser || !isAdmin()) {
+    header('Location: /MVNO/auth/login.php');
+    exit;
+}
 
-// 권한 설정 처리
+// 권한 설정 처리 (헤더 출력 전에 처리)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_permissions'])) {
     $userId = $_POST['user_id'] ?? '';
     $permissions = $_POST['permissions'] ?? [];
     
     if ($userId && setSellerPermissions($userId, $permissions)) {
-        $success_message = '판매자 권한이 저장되었습니다.';
+        // 저장 성공 시 판매자 관리 페이지로 리다이렉트
+        header('Location: /MVNO/admin/seller-approval.php?success=permissions_saved');
+        exit;
     } else {
         $error_message = '권한 저장에 실패했습니다.';
     }
 }
+
+require_once __DIR__ . '/includes/admin-header.php';
+
+// 특정 판매자만 표시 (user_id 파라미터가 있는 경우)
+$targetUserId = $_GET['user_id'] ?? null;
 
 // 사용자 데이터 읽기
 $data = getUsersData();
@@ -37,28 +45,17 @@ foreach ($data['users'] as $user) {
 $approvedSellers = array_filter($sellers, function($seller) {
     return isset($seller['seller_approved']) && $seller['seller_approved'] === true;
 });
+
+// 특정 판매자만 표시 (user_id 파라미터가 있는 경우)
+if ($targetUserId) {
+    $approvedSellers = array_filter($approvedSellers, function($seller) use ($targetUserId) {
+        return $seller['user_id'] === $targetUserId;
+    });
+}
 ?>
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>판매자 권한 관리</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f9fafb;
-            padding: 20px;
-        }
-        
+<style>
         .admin-container {
-            max-width: 1200px;
+            max-width: 600px;
             margin: 0 auto;
             background: white;
             border-radius: 12px;
@@ -246,9 +243,89 @@ $approvedSellers = array_filter($sellers, function($seller) {
         .link-to-approval:hover {
             text-decoration: underline;
         }
+        
+        /* 모달 스타일 */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-overlay.active {
+            display: flex;
+        }
+        
+        .modal {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+        
+        .modal-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 16px;
+        }
+        
+        .modal-message {
+            font-size: 14px;
+            color: #6b7280;
+            margin-bottom: 24px;
+            line-height: 1.6;
+        }
+        
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+        
+        .modal-btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+        }
+        
+        .modal-btn-cancel {
+            background: #f3f4f6;
+            color: #374151;
+        }
+        
+        .modal-btn-cancel:hover {
+            background: #e5e7eb;
+        }
+        
+        .modal-btn-confirm {
+            background: #10b981;
+            color: white;
+        }
+        
+        .modal-btn-confirm:hover {
+            background: #059669;
+        }
+        
+        .btn-save:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
     </style>
-</head>
-<body>
+
+<div class="admin-content">
     <div class="admin-container">
         <h1>판매자 권한 관리</h1>
         <p class="page-description">승인된 판매자에게 알뜰폰, 통신사폰, 인터넷 게시판 등록 권한을 부여할 수 있습니다.</p>
@@ -286,7 +363,8 @@ $approvedSellers = array_filter($sellers, function($seller) {
                             </div>
                         </div>
                         
-                        <form method="POST" class="permissions-form">
+                        <form method="POST" class="permissions-form" id="permissionsForm_<?php echo htmlspecialchars($seller['user_id']); ?>" data-user-id="<?php echo htmlspecialchars($seller['user_id']); ?>" data-initial-permissions="<?php echo htmlspecialchars(json_encode($seller['permissions'] ?? [])); ?>">
+                            <input type="hidden" name="save_permissions" value="1">
                             <input type="hidden" name="user_id" value="<?php echo htmlspecialchars($seller['user_id']); ?>">
                             
                             <div class="permissions-title">게시판 등록 권한</div>
@@ -297,6 +375,7 @@ $approvedSellers = array_filter($sellers, function($seller) {
                                         id="mvno_<?php echo htmlspecialchars($seller['user_id']); ?>" 
                                         name="permissions[]" 
                                         value="mvno"
+                                        class="permission-checkbox"
                                         <?php echo (isset($seller['permissions']) && in_array('mvno', $seller['permissions'])) ? 'checked' : ''; ?>
                                     >
                                     <label for="mvno_<?php echo htmlspecialchars($seller['user_id']); ?>">
@@ -313,6 +392,7 @@ $approvedSellers = array_filter($sellers, function($seller) {
                                         id="mno_<?php echo htmlspecialchars($seller['user_id']); ?>" 
                                         name="permissions[]" 
                                         value="mno"
+                                        class="permission-checkbox"
                                         <?php echo (isset($seller['permissions']) && in_array('mno', $seller['permissions'])) ? 'checked' : ''; ?>
                                     >
                                     <label for="mno_<?php echo htmlspecialchars($seller['user_id']); ?>">
@@ -329,6 +409,7 @@ $approvedSellers = array_filter($sellers, function($seller) {
                                         id="internet_<?php echo htmlspecialchars($seller['user_id']); ?>" 
                                         name="permissions[]" 
                                         value="internet"
+                                        class="permission-checkbox"
                                         <?php echo (isset($seller['permissions']) && in_array('internet', $seller['permissions'])) ? 'checked' : ''; ?>
                                     >
                                     <label for="internet_<?php echo htmlspecialchars($seller['user_id']); ?>">
@@ -341,8 +422,11 @@ $approvedSellers = array_filter($sellers, function($seller) {
                             </div>
                             
                             <div style="margin-top: 16px; text-align: right;">
-                                <button type="submit" name="save_permissions" class="btn btn-save">
-                                    권한 저장
+                                <button type="button" class="btn btn-save" onclick="checkAndSavePermissions('<?php echo htmlspecialchars($seller['user_id']); ?>')">
+                                    <?php 
+                                    $hasPermissions = isset($seller['permissions']) && is_array($seller['permissions']) && count($seller['permissions']) > 0;
+                                    echo $hasPermissions ? '수정' : '권한 저장';
+                                    ?>
                                 </button>
                             </div>
                         </form>
@@ -358,8 +442,130 @@ $approvedSellers = array_filter($sellers, function($seller) {
             </div>
         <?php endif; ?>
     </div>
-</body>
-</html>
+    
+    <!-- 저장 확인 모달 -->
+    <div class="modal-overlay" id="saveModal">
+        <div class="modal">
+            <div class="modal-title">권한 저장 확인</div>
+            <div class="modal-message" id="saveModalMessage">
+                판매자 권한을 저장하시겠습니까?
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="modal-btn modal-btn-cancel" onclick="closeSaveModal()">취소</button>
+                <button type="button" class="modal-btn modal-btn-confirm" onclick="confirmSave()">저장</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // 권한 변경 감지 및 저장 처리
+        function checkAndSavePermissions(userId) {
+            const form = document.getElementById('permissionsForm_' + userId);
+            if (!form) {
+                console.error('Form not found for userId:', userId);
+                return;
+            }
+            
+            const initialPermissions = JSON.parse(form.getAttribute('data-initial-permissions') || '[]');
+            
+            // 현재 선택된 권한 가져오기
+            const checkboxes = form.querySelectorAll('.permission-checkbox:checked');
+            const currentPermissions = Array.from(checkboxes).map(cb => cb.value);
+            
+            // 권한이 변경되었는지 확인
+            const initialSorted = [...initialPermissions].sort();
+            const currentSorted = [...currentPermissions].sort();
+            const hasChanged = JSON.stringify(initialSorted) !== JSON.stringify(currentSorted);
+            
+            if (!hasChanged) {
+                // 변경 사항 없음 모달 표시
+                showNoChangeModal();
+                return;
+            }
+            
+            // 모달 표시
+            showSaveModal();
+            
+            // 저장할 폼 ID 저장
+            window.pendingFormId = userId;
+        }
+        
+        // 저장 확인 모달 표시
+        function showSaveModal() {
+            const modal = document.getElementById('saveModal');
+            const modalTitle = modal.querySelector('.modal-title');
+            const modalMessage = modal.querySelector('.modal-message');
+            const modalActions = modal.querySelector('.modal-actions');
+            
+            modalTitle.textContent = '권한 저장 확인';
+            modalMessage.textContent = '판매자 권한을 저장하시겠습니까?';
+            
+            // 버튼을 저장 모드로 변경
+            modalActions.innerHTML = `
+                <button type="button" class="modal-btn modal-btn-cancel" onclick="closeSaveModal()">취소</button>
+                <button type="button" class="modal-btn modal-btn-confirm" onclick="confirmSave()">저장</button>
+            `;
+            
+            modal.classList.add('active');
+        }
+        
+        // 변경 사항 없음 모달 표시
+        function showNoChangeModal() {
+            const modal = document.getElementById('saveModal');
+            const modalTitle = modal.querySelector('.modal-title');
+            const modalMessage = modal.querySelector('.modal-message');
+            const modalActions = modal.querySelector('.modal-actions');
+            
+            modalTitle.textContent = '알림';
+            modalMessage.textContent = '변경된 권한이 없습니다.';
+            
+            // 버튼을 확인만 표시
+            modalActions.innerHTML = `
+                <button type="button" class="modal-btn modal-btn-confirm" onclick="closeSaveModal()" style="width: 100%;">확인</button>
+            `;
+            
+            modal.classList.add('active');
+        }
+        
+        // 모달 닫기
+        function closeSaveModal() {
+            document.getElementById('saveModal').classList.remove('active');
+            window.pendingFormId = null;
+        }
+        
+        // 모달에서 확인 클릭 시 저장 실행
+        function confirmSave() {
+            const userId = window.pendingFormId;
+            if (!userId) {
+                console.error('No pending form ID');
+                return;
+            }
+            
+            const form = document.getElementById('permissionsForm_' + userId);
+            if (!form) {
+                console.error('Form not found for userId:', userId);
+                return;
+            }
+            
+            // 모달 메시지 변경
+            document.getElementById('saveModalMessage').textContent = '판매자 권한이 저장되었습니다.';
+            
+            // 폼 제출
+            form.submit();
+        }
+        
+        // 모달 외부 클릭 시 닫기
+        document.getElementById('saveModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeSaveModal();
+            }
+        });
+    </script>
+    </div>
+</div>
+
+<?php require_once __DIR__ . '/includes/admin-footer.php'; ?>
+
 
 
 

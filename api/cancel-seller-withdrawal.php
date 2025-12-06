@@ -43,3 +43,4 @@ if (cancelSellerWithdrawal($userId)) {
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => '탈퇴 요청 취소에 실패했습니다.']);
 }
+

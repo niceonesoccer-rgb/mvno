@@ -336,6 +336,7 @@ if (!$seller || $seller['role'] !== 'seller') {
             <?php endif; ?>
             <div class="action-buttons">
                 <a href="/MVNO/admin/seller-permissions.php?user_id=<?php echo urlencode($seller['user_id']); ?>" class="btn btn-primary">권한 설정</a>
+                <a href="/MVNO/admin/users/seller-edit.php?user_id=<?php echo urlencode($seller['user_id']); ?>" class="btn btn-primary">정보 수정</a>
             </div>
         </div>
         
@@ -397,13 +398,24 @@ if (!$seller || $seller['role'] !== 'seller') {
                     <div class="detail-item">
                         <div class="detail-label">주소</div>
                         <div class="detail-value">
-                            <?php if (isset($seller['postal_code'])): ?>
-                                <?php echo htmlspecialchars($seller['postal_code']); ?><br>
-                            <?php endif; ?>
-                            <?php echo htmlspecialchars($seller['address'] ?? ''); ?>
-                            <?php if (isset($seller['address_detail'])): ?>
-                                <?php echo htmlspecialchars($seller['address_detail']); ?>
-                            <?php endif; ?>
+                            <?php 
+                            $postalCode = isset($seller['postal_code']) ? htmlspecialchars($seller['postal_code']) : '';
+                            $address = htmlspecialchars($seller['address'] ?? '');
+                            $addressDetail = isset($seller['address_detail']) ? htmlspecialchars($seller['address_detail']) : '';
+                            
+                            $addressParts = [];
+                            if (!empty($postalCode)) {
+                                $addressParts[] = $postalCode;
+                            }
+                            if (!empty($address)) {
+                                $addressParts[] = $address;
+                            }
+                            if (!empty($addressDetail)) {
+                                $addressParts[] = $addressDetail;
+                            }
+                            
+                            echo implode(', ', $addressParts);
+                            ?>
                         </div>
                     </div>
                 <?php endif; ?>
@@ -435,6 +447,7 @@ if (!$seller || $seller['role'] !== 'seller') {
                         </form>
                     <?php endif; ?>
                 <?php endif; ?>
+                <a href="/MVNO/admin/users/seller-edit.php?user_id=<?php echo urlencode($seller['user_id']); ?>" class="btn btn-primary">정보 수정</a>
                 <a href="/MVNO/admin/users/member-list.php?search=<?php echo urlencode($seller['user_id']); ?>" class="btn btn-primary">회원 목록에서 보기</a>
             </div>
         </div>
@@ -466,3 +479,4 @@ if (!$seller || $seller['role'] !== 'seller') {
 </script>
 
 <?php require_once __DIR__ . '/../includes/admin-footer.php'; ?>
+

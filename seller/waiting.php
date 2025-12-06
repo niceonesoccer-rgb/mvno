@@ -20,39 +20,36 @@ if (!$currentUser || $currentUser['role'] !== 'seller') {
 }
 
 // 이미 승인된 경우 판매자 센터로 리다이렉트
-if (isset($currentUser['approval_status']) && $currentUser['approval_status'] === 'approved') {
+$isApproved = isset($currentUser['seller_approved']) && $currentUser['seller_approved'] === true;
+if ($isApproved) {
     header('Location: /MVNO/seller/');
     exit;
 }
 
 $approvalStatus = $currentUser['approval_status'] ?? 'pending';
-$statusText = '';
-$statusDescription = '';
-$isRejected = false;
+$isApproved = isset($currentUser['seller_approved']) && $currentUser['seller_approved'] === true;
 $isWithdrawalRequested = isset($currentUser['withdrawal_requested']) && $currentUser['withdrawal_requested'] === true;
+
+// 상태 메시지 설정 (모두 "승인 대기중"으로 통일)
+$statusText = '승인 대기 중입니다';
+$statusDescription = '관리자 승인 후 상품 등록 및 판매가 가능합니다.<br>승인까지 시간이 걸릴 수 있습니다.';
+
+// 상품 및 주문 확인 (간단한 체크 - 실제 데이터 구조에 맞게 수정 필요)
+$hasProducts = false;
+$hasOrders = false;
+$canWithdraw = true; // 탈퇴 가능 여부
+
+// TODO: 실제 상품 데이터와 주문 데이터를 확인하는 로직 추가
+// 예: 상품이 있고, 그 상품에 주문이 있는 경우 탈퇴 불가
+// if ($hasProducts && $hasOrders) {
+//     $canWithdraw = false;
+//     $statusDescription = '승인 보류 상태입니다.<br>등록하신 상품에 신청내역이 있어 탈퇴할 수 없습니다.<br>회원탈퇴는 1년 후 관리자가 처리합니다.';
+// }
 
 if ($isWithdrawalRequested) {
     $statusText = '탈퇴 요청이 접수되었습니다';
     $statusDescription = '판매자 계정 탈퇴 요청이 접수되었습니다.<br>관리자 검토 후 처리됩니다.<br>탈퇴 처리 전까지 상품 및 거래 정보는 보존됩니다.';
-} else {
-    switch ($approvalStatus) {
-        case 'pending':
-            $statusText = '승인 대기 중입니다';
-            $statusDescription = '관리자 승인 후 상품 등록 및 판매가 가능합니다.<br>승인까지 시간이 걸릴 수 있습니다.';
-            break;
-        case 'on_hold':
-            $statusText = '승인 보류 상태입니다';
-            $statusDescription = '관리자 검토 중입니다. 추가 정보가 필요할 수 있습니다.<br>문의사항이 있으시면 관리자에게 연락해주세요.';
-            break;
-        case 'rejected':
-            $statusText = '승인불가 처리되었습니다';
-            $statusDescription = '판매자 신청이 승인되지 않았습니다.<br>자세한 사항은 관리자에게 문의해주세요.<br>필요시 가입정보를 삭제할 수 있습니다.';
-            $isRejected = true;
-            break;
-        default:
-            $statusText = '승인 대기 중입니다';
-            $statusDescription = '관리자 승인 후 상품 등록 및 판매가 가능합니다.';
-    }
+    $canWithdraw = false;
 }
 ?>
 <!DOCTYPE html>
@@ -342,19 +339,13 @@ if ($isWithdrawalRequested) {
                 <span class="user-info-value">
                     <span class="status-badge <?php 
                         if ($isWithdrawalRequested) echo 'on-hold';
-                        elseif ($approvalStatus === 'rejected') echo 'rejected';
-                        elseif ($approvalStatus === 'on_hold') echo 'on-hold';
-                        else echo 'pending';
+                        else echo 'on-hold';
                     ?>">
                         <?php 
                         if ($isWithdrawalRequested) {
                             echo '탈퇴 요청';
-                        } elseif ($approvalStatus === 'rejected') {
-                            echo '승인불가';
-                        } elseif ($approvalStatus === 'on_hold') {
-                            echo '승인 보류';
                         } else {
-                            echo '승인 대기';
+                            echo '승인보류';
                         }
                         ?>
                     </span>
@@ -380,15 +371,14 @@ if ($isWithdrawalRequested) {
         </div>
         
         <div class="action-buttons">
-            <?php if ($isRejected): ?>
-                <a href="/MVNO/" class="btn btn-secondary">홈으로 가기</a>
-                <button onclick="showDeleteAccountModal()" class="btn btn-danger">가입정보 삭제</button>
-            <?php elseif ($isWithdrawalRequested): ?>
+            <?php if ($isWithdrawalRequested): ?>
                 <a href="/MVNO/" class="btn btn-secondary">홈으로 가기</a>
                 <button onclick="location.reload()" class="btn btn-primary">새로고침</button>
             <?php else: ?>
                 <a href="/MVNO/" class="btn btn-secondary">홈으로 가기</a>
-                <button onclick="location.reload()" class="btn btn-primary">새로고침</button>
+                <?php if ($canWithdraw): ?>
+                    <button onclick="showDeleteAccountModal()" class="btn btn-danger">탈퇴</button>
+                <?php endif; ?>
             <?php endif; ?>
         </div>
         
@@ -400,14 +390,15 @@ if ($isWithdrawalRequested) {
     <!-- 가입정보 삭제 확인 모달 -->
     <div class="modal-overlay" id="deleteAccountModal">
         <div class="modal">
-            <div class="modal-title">가입정보 삭제 확인</div>
+            <div class="modal-title">판매자 계정 탈퇴 확인</div>
             <div class="modal-message">
-                정말로 가입정보를 삭제하시겠습니까?<br>
-                <strong style="color: #ef4444;">이 작업은 되돌릴 수 없으며, 모든 판매자 정보가 영구적으로 삭제됩니다.</strong>
+                정말로 판매자 계정을 탈퇴하시겠습니까?<br>
+                <strong style="color: #ef4444;">이 작업은 되돌릴 수 없으며, 모든 판매자 정보가 영구적으로 삭제됩니다.</strong><br>
+                승인 대기 중인 상태에서 탈퇴하시면 다시 가입하셔야 합니다.
             </div>
             <div class="modal-actions">
                 <button type="button" class="modal-btn modal-btn-cancel" onclick="closeDeleteAccountModal()">취소</button>
-                <button type="button" class="modal-btn modal-btn-danger" onclick="deleteAccount()">삭제</button>
+                <button type="button" class="modal-btn modal-btn-danger" onclick="deleteAccount()">탈퇴</button>
             </div>
         </div>
     </div>
@@ -422,7 +413,9 @@ if ($isWithdrawalRequested) {
         }
         
         function deleteAccount() {
-            if (!confirm('정말로 가입정보를 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.')) {
+            const confirmMessage = '정말로 판매자 계정을 탈퇴하시겠습니까?\n이 작업은 되돌릴 수 없습니다.';
+            
+            if (!confirm(confirmMessage)) {
                 return;
             }
             
@@ -438,15 +431,15 @@ if ($isWithdrawalRequested) {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert('가입정보가 삭제되었습니다.');
+                    alert('판매자 계정이 탈퇴되었습니다.');
                     window.location.href = '/MVNO/';
                 } else {
-                    alert('삭제에 실패했습니다: ' + (data.message || '알 수 없는 오류'));
+                    alert('탈퇴에 실패했습니다: ' + (data.message || '알 수 없는 오류'));
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('삭제 중 오류가 발생했습니다.');
+                alert('탈퇴 중 오류가 발생했습니다.');
             });
         }
         

@@ -145,9 +145,6 @@ require_once __DIR__ . '/includes/admin-header.php';
             </div>
             <div class="dashboard-card-value">0</div>
             <div class="dashboard-card-description">승인 대기 중인 판매자 수</div>
-            <a href="/MVNO/admin/seller-approval.php" class="dashboard-card-link">
-                관리하기 →
-            </a>
         </div>
         
         <div class="dashboard-card">
@@ -161,9 +158,6 @@ require_once __DIR__ . '/includes/admin-header.php';
             </div>
             <div class="dashboard-card-value">0</div>
             <div class="dashboard-card-description">진행 중인 이벤트 수</div>
-            <a href="/MVNO/admin/event-manage.php" class="dashboard-card-link">
-                관리하기 →
-            </a>
         </div>
         
         <div class="dashboard-card">
@@ -178,9 +172,6 @@ require_once __DIR__ . '/includes/admin-header.php';
             </div>
             <div class="dashboard-card-value">0</div>
             <div class="dashboard-card-description">등록된 공지사항 수</div>
-            <a href="/MVNO/admin/notice-manage.php" class="dashboard-card-link">
-                관리하기 →
-            </a>
         </div>
         
         <div class="dashboard-card">
@@ -196,9 +187,6 @@ require_once __DIR__ . '/includes/admin-header.php';
             </div>
             <div class="dashboard-card-value">0</div>
             <div class="dashboard-card-description">답변 대기 중인 질문 수</div>
-            <a href="/MVNO/admin/qna-manage.php" class="dashboard-card-link">
-                관리하기 →
-            </a>
         </div>
         
         <div class="dashboard-card">
@@ -220,9 +208,6 @@ require_once __DIR__ . '/includes/admin-header.php';
                 echo number_format($totalUsers);
             ?></div>
             <div class="dashboard-card-description">전체 회원 수</div>
-            <a href="/MVNO/admin/users/member-list.php" class="dashboard-card-link">
-                관리하기 →
-            </a>
         </div>
     </div>
 </div>
