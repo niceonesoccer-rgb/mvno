@@ -35,3 +35,4 @@ for %%f in (mypage\*.php) do (
 pause
 
 
+

@@ -493,3 +493,4 @@ document.getElementById('productForm').addEventListener('submit', function(e) {
 <?php include __DIR__ . '/../includes/seller-footer.php'; ?>
 
 
+

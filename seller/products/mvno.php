@@ -394,8 +394,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 <select name="call_type" id="call_type" class="form-select" required>
                     <option value="">선택하세요</option>
                     <option value="무제한">무제한</option>
-                    <option value="제한">제한</option>
+                    <option value="직접입력">직접입력</option>
                 </select>
+                <div id="call_type_input" style="display: none; margin-top: 12px;">
+                    <div class="input-with-unit" style="max-width: 200px;">
+                        <input type="number" name="call_amount" id="call_amount" class="form-control" placeholder="300" min="0" max="99999" maxlength="5">
+                        <span class="unit">분</span>
+                    </div>
+                </div>
             </div>
             
             <div class="form-group">
@@ -405,22 +411,50 @@ document.addEventListener('DOMContentLoaded', function() {
                 <select name="sms_type" id="sms_type" class="form-select" required>
                     <option value="">선택하세요</option>
                     <option value="무제한">무제한</option>
-                    <option value="제한">제한</option>
+                    <option value="직접입력">직접입력</option>
                 </select>
+                <div id="sms_type_input" style="display: none; margin-top: 12px;">
+                    <div class="input-with-unit" style="max-width: 200px;">
+                        <input type="number" name="sms_amount" id="sms_amount" class="form-control" placeholder="300" min="0" max="99999" maxlength="5">
+                        <span class="unit">건</span>
+                    </div>
+                </div>
             </div>
             
             <div class="form-group">
                 <label class="form-label" for="data_amount">
                     데이터 제공량 <span class="required">*</span>
                 </label>
-                <input type="text" name="data_amount" id="data_amount" class="form-control" required placeholder="예: 월 100GB">
+                <select name="data_amount" id="data_amount" class="form-select" required>
+                    <option value="">선택하세요</option>
+                    <option value="무제한">무제한</option>
+                    <option value="직접입력">직접입력</option>
+                </select>
+                <div id="data_amount_input" style="display: none; margin-top: 12px;">
+                    <div class="input-with-unit" style="max-width: 200px;">
+                        <input type="number" name="data_amount_value" id="data_amount_value" class="form-control" placeholder="100" min="0" max="99999" maxlength="5" style="padding-right: 70px;">
+                        <select name="data_unit" id="data_unit" class="form-select" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); width: 60px; height: auto; border: none; background: transparent; padding: 0 20px 0 0; appearance: auto; -webkit-appearance: menulist; -moz-appearance: menulist; cursor: pointer; font-size: 15px; color: #6b7280;">
+                            <option value="GB">GB</option>
+                            <option value="MB">MB</option>
+                        </select>
+                    </div>
+                </div>
             </div>
             
             <div class="form-group">
                 <label class="form-label" for="data_exhausted">
                     데이터 소진시
                 </label>
-                <input type="text" name="data_exhausted" id="data_exhausted" class="form-control" placeholder="예: 5mbps 속도로 무제한">
+                <select name="data_exhausted" id="data_exhausted" class="form-select">
+                    <option value="">선택하세요</option>
+                    <option value="5Mbps 무제한">5Mbps 무제한</option>
+                    <option value="3Mbps 무제한">3Mbps 무제한</option>
+                    <option value="1Mbps 무제한">1Mbps 무제한</option>
+                    <option value="직접입력">직접입력</option>
+                </select>
+                <div id="data_exhausted_input" style="display: none; margin-top: 12px;">
+                    <input type="text" name="data_exhausted_value" id="data_exhausted_value" class="form-control" placeholder="10Mbps 무제한" maxlength="50">
+                </div>
             </div>
             
             <div class="form-group">
@@ -628,6 +662,162 @@ document.addEventListener('DOMContentLoaded', function() {
                     this.value = this.value.slice(0, 5);
                 }
             });
+        }
+    }
+    
+    // 통화 직접입력 필드 토글
+    const callTypeSelect = document.getElementById('call_type');
+    const callTypeInput = document.getElementById('call_type_input');
+    const callAmount = document.getElementById('call_amount');
+    
+    if (callTypeSelect && callTypeInput) {
+        callTypeSelect.addEventListener('change', function() {
+            if (this.value === '직접입력') {
+                callTypeInput.style.display = 'block';
+                if (callAmount) {
+                    callAmount.disabled = false;
+                    callAmount.focus();
+                }
+            } else {
+                callTypeInput.style.display = 'none';
+                if (callAmount) {
+                    callAmount.value = '';
+                    callAmount.disabled = true;
+                }
+            }
+        });
+        
+        // 숫자만 입력되도록 제한 (5자리)
+        if (callAmount) {
+            callAmount.addEventListener('input', function() {
+                this.value = this.value.replace(/[^0-9]/g, '');
+                if (this.value.length > 5) {
+                    this.value = this.value.slice(0, 5);
+                }
+            });
+            
+            // 초기 상태에서 비활성화
+            callAmount.disabled = true;
+        }
+    }
+    
+    // 문자 직접입력 필드 토글
+    const smsTypeSelect = document.getElementById('sms_type');
+    const smsTypeInput = document.getElementById('sms_type_input');
+    const smsAmount = document.getElementById('sms_amount');
+    
+    if (smsTypeSelect && smsTypeInput) {
+        smsTypeSelect.addEventListener('change', function() {
+            if (this.value === '직접입력') {
+                smsTypeInput.style.display = 'block';
+                if (smsAmount) {
+                    smsAmount.disabled = false;
+                    smsAmount.focus();
+                }
+            } else {
+                smsTypeInput.style.display = 'none';
+                if (smsAmount) {
+                    smsAmount.value = '';
+                    smsAmount.disabled = true;
+                }
+            }
+        });
+        
+        // 숫자만 입력되도록 제한 (5자리)
+        if (smsAmount) {
+            smsAmount.addEventListener('input', function() {
+                this.value = this.value.replace(/[^0-9]/g, '');
+                if (this.value.length > 5) {
+                    this.value = this.value.slice(0, 5);
+                }
+            });
+            
+            // 초기 상태에서 비활성화
+            smsAmount.disabled = true;
+        }
+    }
+    
+    // 데이터 제공량 직접입력 필드 토글
+    const dataAmountSelect = document.getElementById('data_amount');
+    const dataAmountInput = document.getElementById('data_amount_input');
+    const dataAmountValue = document.getElementById('data_amount_value');
+    const dataUnitSelect = document.getElementById('data_unit');
+    
+    if (dataAmountSelect && dataAmountInput) {
+        dataAmountSelect.addEventListener('change', function() {
+            if (this.value === '직접입력') {
+                dataAmountInput.style.display = 'block';
+                if (dataAmountValue) {
+                    dataAmountValue.disabled = false;
+                    dataAmountValue.focus();
+                }
+                if (dataUnitSelect) {
+                    dataUnitSelect.disabled = false;
+                }
+            } else {
+                dataAmountInput.style.display = 'none';
+                if (dataAmountValue) {
+                    dataAmountValue.value = '';
+                    dataAmountValue.disabled = true;
+                }
+                if (dataUnitSelect) {
+                    dataUnitSelect.disabled = true;
+                }
+            }
+        });
+        
+        // 숫자만 입력되도록 제한 (5자리)
+        if (dataAmountValue) {
+            dataAmountValue.addEventListener('input', function() {
+                this.value = this.value.replace(/[^0-9]/g, '');
+                if (this.value.length > 5) {
+                    this.value = this.value.slice(0, 5);
+                }
+            });
+            
+            // 초기 상태에서 비활성화
+            dataAmountValue.disabled = true;
+        }
+        
+        // 초기 상태에서 단위 선택 드롭다운 비활성화
+        if (dataUnitSelect) {
+            dataUnitSelect.disabled = true;
+        }
+    }
+    
+    // 데이터 소진시 직접입력 필드 토글
+    const dataExhaustedSelect = document.getElementById('data_exhausted');
+    const dataExhaustedInput = document.getElementById('data_exhausted_input');
+    const dataExhaustedValue = document.getElementById('data_exhausted_value');
+    
+    if (dataExhaustedSelect && dataExhaustedInput) {
+        dataExhaustedSelect.addEventListener('change', function() {
+            if (this.value === '직접입력') {
+                dataExhaustedInput.style.display = 'block';
+                if (dataExhaustedValue) {
+                    dataExhaustedValue.disabled = false;
+                    dataExhaustedValue.focus();
+                }
+            } else {
+                dataExhaustedInput.style.display = 'none';
+                if (dataExhaustedValue) {
+                    dataExhaustedValue.value = '';
+                    dataExhaustedValue.disabled = true;
+                }
+            }
+        });
+        
+        // 숫자만 입력되도록 제한 (5자리)
+        if (dataExhaustedValue) {
+            dataExhaustedValue.addEventListener('input', function() {
+                this.value = this.value.replace(/[^0-9]/g, '');
+                if (this.value.length > 5) {
+                    this.value = this.value.slice(0, 5);
+                }
+            });
+            
+            // 초기 상태에서 비활성화
+            dataExhaustedValue.disabled = true;
         }
     }
 });

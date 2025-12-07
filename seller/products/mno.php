@@ -270,6 +270,26 @@ $pageStyles = '
         font-size: 14px;
         margin-top: 8px;
     }
+    
+    .input-with-unit {
+        position: relative;
+        display: inline-block;
+        width: 100%;
+    }
+    
+    .input-with-unit input {
+        padding-right: 40px;
+    }
+    
+    .input-with-unit .unit {
+        position: absolute;
+        right: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 15px;
+        color: #6b7280;
+        pointer-events: none;
+    }
 ';
 
 include __DIR__ . '/../includes/seller-header.php';
@@ -399,16 +419,42 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="form-section-title">기능 및 특징</div>
             
             <div class="form-group">
+                <label class="form-label" for="call_type">
+                    통화 <span class="required">*</span>
+                </label>
+                <select name="call_type" id="call_type" class="form-select" required>
+                    <option value="">선택하세요</option>
+                    <option value="무제한">무제한</option>
+                    <option value="직접입력">직접입력</option>
+                </select>
+                <div id="call_type_input" style="display: none; margin-top: 12px;">
+                    <div class="input-with-unit" style="max-width: 200px;">
+                        <input type="number" name="call_amount" id="call_amount" class="form-control" placeholder="300" min="0" max="99999" maxlength="5">
+                        <span class="unit">분</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="sms_type">
+                    문자 <span class="required">*</span>
+                </label>
+                <select name="sms_type" id="sms_type" class="form-select" required>
+                    <option value="">선택하세요</option>
+                    <option value="무제한">무제한</option>
+                    <option value="직접입력">직접입력</option>
+                </select>
+                <div id="sms_type_input" style="display: none; margin-top: 12px;">
+                    <div class="input-with-unit" style="max-width: 200px;">
+                        <input type="number" name="sms_amount" id="sms_amount" class="form-control" placeholder="300" min="0" max="99999" maxlength="5">
+                        <span class="unit">건</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-group">
                 <label class="form-label">기본 기능</label>
                 <div class="form-checkbox-group">
-                    <div class="form-checkbox">
-                        <input type="checkbox" name="features[]" id="feature_call" value="통화 무제한">
-                        <label for="feature_call">통화 무제한</label>
-                    </div>
-                    <div class="form-checkbox">
-                        <input type="checkbox" name="features[]" id="feature_sms" value="문자 무제한">
-                        <label for="feature_sms">문자 무제한</label>
-                    </div>
                     <div class="form-checkbox">
                         <input type="checkbox" name="features[]" id="feature_data" value="데이터 무제한">
                         <label for="feature_data">데이터 무제한</label>
@@ -458,6 +504,80 @@ document.addEventListener('DOMContentLoaded', function() {
 </div>
 
 <script>
+// 통화 직접입력 필드 토글
+document.addEventListener('DOMContentLoaded', function() {
+    const callTypeSelect = document.getElementById('call_type');
+    const callTypeInput = document.getElementById('call_type_input');
+    const callAmount = document.getElementById('call_amount');
+    
+    if (callTypeSelect && callTypeInput) {
+        callTypeSelect.addEventListener('change', function() {
+            if (this.value === '직접입력') {
+                callTypeInput.style.display = 'block';
+                if (callAmount) {
+                    callAmount.disabled = false;
+                    callAmount.focus();
+                }
+            } else {
+                callTypeInput.style.display = 'none';
+                if (callAmount) {
+                    callAmount.value = '';
+                    callAmount.disabled = true;
+                }
+            }
+        });
+        
+        // 숫자만 입력되도록 제한 (5자리)
+        if (callAmount) {
+            callAmount.addEventListener('input', function() {
+                this.value = this.value.replace(/[^0-9]/g, '');
+                if (this.value.length > 5) {
+                    this.value = this.value.slice(0, 5);
+                }
+            });
+            
+            // 초기 상태에서 비활성화
+            callAmount.disabled = true;
+        }
+    }
+    
+    // 문자 직접입력 필드 토글
+    const smsTypeSelect = document.getElementById('sms_type');
+    const smsTypeInput = document.getElementById('sms_type_input');
+    const smsAmount = document.getElementById('sms_amount');
+    
+    if (smsTypeSelect && smsTypeInput) {
+        smsTypeSelect.addEventListener('change', function() {
+            if (this.value === '직접입력') {
+                smsTypeInput.style.display = 'block';
+                if (smsAmount) {
+                    smsAmount.disabled = false;
+                    smsAmount.focus();
+                }
+            } else {
+                smsTypeInput.style.display = 'none';
+                if (smsAmount) {
+                    smsAmount.value = '';
+                    smsAmount.disabled = true;
+                }
+            }
+        });
+        
+        // 숫자만 입력되도록 제한 (5자리)
+        if (smsAmount) {
+            smsAmount.addEventListener('input', function() {
+                this.value = this.value.replace(/[^0-9]/g, '');
+                if (this.value.length > 5) {
+                    this.value = this.value.slice(0, 5);
+                }
+            });
+            
+            // 초기 상태에서 비활성화
+            smsAmount.disabled = true;
+        }
+    }
+});
+
 let giftCount = 1;
 
 function addGiftField() {
@@ -504,5 +624,6 @@ document.getElementById('productForm').addEventListener('submit', function(e) {
 </script>
 
 <?php include __DIR__ . '/../includes/seller-footer.php'; ?>
+
 
 
