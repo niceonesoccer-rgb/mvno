@@ -270,6 +270,26 @@ $pageStyles = '
         font-size: 14px;
         margin-top: 8px;
     }
+    
+    .input-with-unit {
+        position: relative;
+        display: inline-block;
+        width: 100%;
+    }
+    
+    .input-with-unit input {
+        padding-right: 40px;
+    }
+    
+    .input-with-unit .unit {
+        position: absolute;
+        right: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 15px;
+        color: #6b7280;
+        pointer-events: none;
+    }
 ';
 
 include __DIR__ . '/../includes/seller-header.php';
@@ -329,43 +349,36 @@ document.addEventListener('DOMContentLoaded', function() {
             
             <div class="form-group">
                 <label class="form-label" for="plan_name">
-                    요금제 이름 <span class="required">*</span>
+                    요금제
                 </label>
-                <input type="text" name="plan_name" id="plan_name" class="form-control" required placeholder="예: 11월한정 LTE 100GB+밀리+Data쿠폰60GB">
+                <input type="text" name="plan_name" id="plan_name" class="form-control" required placeholder="데이터 100G 평생요금" maxlength="30">
             </div>
             
             <div class="form-group">
                 <label class="form-label" for="contract_period">
-                    통신사 약정
+                    약정기간
                 </label>
                 <select name="contract_period" id="contract_period" class="form-select">
-                    <option value="없음">없음</option>
-                    <option value="12개월">12개월</option>
-                    <option value="24개월">24개월</option>
-                    <option value="36개월">36개월</option>
+                    <option value="무약정">무약정</option>
+                    <option value="직접입력">직접입력</option>
                 </select>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label" for="network_type">
-                    통신망 <span class="required">*</span>
-                </label>
-                <select name="network_type" id="network_type" class="form-select" required>
-                    <option value="">선택하세요</option>
-                    <option value="KT망">KT망</option>
-                    <option value="SKT망">SKT망</option>
-                    <option value="LG U+망">LG U+망</option>
-                </select>
+                <div id="contract_period_input" style="display: none; margin-top: 12px;">
+                    <div class="input-with-unit" style="max-width: 200px;">
+                        <input type="number" name="contract_period_days" id="contract_period_days" class="form-control" placeholder="일 수 입력" min="1" max="99999" maxlength="5">
+                        <span class="unit">일</span>
+                    </div>
+                </div>
             </div>
             
             <div class="form-group">
                 <label class="form-label" for="service_type">
-                    통신 기술 <span class="required">*</span>
+                    데이터 속도 <span class="required">*</span>
                 </label>
                 <select name="service_type" id="service_type" class="form-select" required>
                     <option value="">선택하세요</option>
                     <option value="LTE">LTE</option>
                     <option value="5G">5G</option>
+                    <option value="6G">6G</option>
                 </select>
             </div>
         </div>
@@ -590,6 +603,35 @@ document.addEventListener('DOMContentLoaded', function() {
 </div>
 
 <script>
+// 약정기간 직접입력 필드 토글
+document.addEventListener('DOMContentLoaded', function() {
+    const contractPeriodSelect = document.getElementById('contract_period');
+    const contractPeriodInput = document.getElementById('contract_period_input');
+    
+    if (contractPeriodSelect && contractPeriodInput) {
+        contractPeriodSelect.addEventListener('change', function() {
+            if (this.value === '직접입력') {
+                contractPeriodInput.style.display = 'block';
+                document.getElementById('contract_period_days').focus();
+            } else {
+                contractPeriodInput.style.display = 'none';
+                document.getElementById('contract_period_days').value = '';
+            }
+        });
+        
+        // 숫자만 입력되도록 제한 (5자리)
+        const contractPeriodDays = document.getElementById('contract_period_days');
+        if (contractPeriodDays) {
+            contractPeriodDays.addEventListener('input', function() {
+                this.value = this.value.replace(/[^0-9]/g, '');
+                if (this.value.length > 5) {
+                    this.value = this.value.slice(0, 5);
+                }
+            });
+        }
+    }
+});
+
 let benefitCount = 1;
 
 function addBenefitField() {

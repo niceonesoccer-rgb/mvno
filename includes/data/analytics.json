@@ -453,8 +453,29 @@
             "timestamp": "2025-12-07 15:42:45",
             "date": "2025-12-07",
             "user_id": "admin"
+        },
+        {
+            "type": "favorite_add",
+            "data": {
+                "type": "plan",
+                "id": "32627",
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-08 06:17:50",
+            "date": "2025-12-08",
+            "user_id": "57575757"
+        },
+        {
+            "type": "favorite_add",
+            "data": {
+                "type": "plan",
+                "id": "32627",
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-08 06:17:53",
+            "date": "2025-12-08",
+            "user_id": "57575757"
         }
     ],
     "daily_stats": []
 }
-
