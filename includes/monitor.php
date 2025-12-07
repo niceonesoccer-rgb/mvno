@@ -4,6 +4,9 @@
  * 동시 접속 수 추적 및 로깅
  */
 
+// 한국 시간대 설정 (KST, UTC+9)
+date_default_timezone_set('Asia/Seoul');
+
 class ConnectionMonitor {
     private $logDir = 'logs';
     private $logFile;
@@ -170,6 +173,7 @@ class ConnectionMonitor {
         return $deleted;
     }
 }
+
 
 
 

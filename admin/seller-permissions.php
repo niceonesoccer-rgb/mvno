@@ -63,6 +63,17 @@ if ($targetUserId) {
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
         
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+        
+        .page-header-left {
+            flex: 1;
+        }
+        
         h1 {
             font-size: 24px;
             font-weight: 700;
@@ -73,7 +84,31 @@ if ($targetUserId) {
         .page-description {
             font-size: 14px;
             color: #6b7280;
-            margin-bottom: 24px;
+            margin-bottom: 0;
+        }
+        
+        .back-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            background: #f3f4f6;
+            color: #374151;
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        
+        .back-button:hover {
+            background: #e5e7eb;
+            color: #1f2937;
+        }
+        
+        .back-button svg {
+            width: 16px;
+            height: 16px;
         }
         
         .alert {
@@ -327,8 +362,12 @@ if ($targetUserId) {
 
 <div class="admin-content">
     <div class="admin-container">
-        <h1>판매자 권한 관리</h1>
-        <p class="page-description">승인된 판매자에게 알뜰폰, 통신사폰, 인터넷 게시판 등록 권한을 부여할 수 있습니다.</p>
+        <div class="page-header">
+            <div class="page-header-left">
+                <h1>판매자 권한 관리</h1>
+                <p class="page-description">승인된 판매자에게 알뜰폰, 통신사폰, 인터넷 게시판 등록 권한을 부여할 수 있습니다.</p>
+            </div>
+        </div>
         
         <?php if (isset($success_message)): ?>
             <div class="alert alert-success">
@@ -421,7 +460,13 @@ if ($targetUserId) {
                                 </div>
                             </div>
                             
-                            <div style="margin-top: 16px; text-align: right;">
+                            <div style="margin-top: 16px; display: flex; justify-content: space-between; align-items: center;">
+                                <a href="/MVNO/admin/seller-approval.php" class="btn btn-save" style="text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M19 12H5M12 19l-7-7 7-7"/>
+                                    </svg>
+                                    이전
+                                </a>
                                 <button type="button" class="btn btn-save" onclick="checkAndSavePermissions('<?php echo htmlspecialchars($seller['user_id']); ?>')">
                                     <?php 
                                     $hasPermissions = isset($seller['permissions']) && is_array($seller['permissions']) && count($seller['permissions']) > 0;
@@ -445,19 +490,26 @@ if ($targetUserId) {
     
     <!-- 저장 확인 모달 -->
     <div class="modal-overlay" id="saveModal">
-        <div class="modal">
-            <div class="modal-title">권한 저장 확인</div>
+        <div class="modal" style="max-width: 500px;">
+            <div class="modal-title">권한 변경 확인</div>
             <div class="modal-message" id="saveModalMessage">
-                판매자 권한을 저장하시겠습니까?
+                <div id="permissionChanges" style="margin-top: 16px;"></div>
             </div>
             <div class="modal-actions">
                 <button type="button" class="modal-btn modal-btn-cancel" onclick="closeSaveModal()">취소</button>
-                <button type="button" class="modal-btn modal-btn-confirm" onclick="confirmSave()">저장</button>
+                <button type="button" class="modal-btn modal-btn-confirm" onclick="confirmSave()">권한 변경</button>
             </div>
         </div>
     </div>
     
     <script>
+        // 권한 이름 매핑
+        const permissionNames = {
+            'mvno': '알뜰폰',
+            'mno': '통신사폰',
+            'internet': '인터넷'
+        };
+        
         // 권한 변경 감지 및 저장 처리
         function checkAndSavePermissions(userId) {
             const form = document.getElementById('permissionsForm_' + userId);
@@ -483,6 +535,42 @@ if ($targetUserId) {
                 return;
             }
             
+            // 변경된 권한 목록 생성
+            const added = currentPermissions.filter(p => !initialPermissions.includes(p));
+            const removed = initialPermissions.filter(p => !currentPermissions.includes(p));
+            
+            let changesHtml = '<div style="text-align: left; margin-bottom: 12px;"><strong>다음과 같이 권한을 변경합니다:</strong></div>';
+            changesHtml += '<div style="background: #f9fafb; padding: 16px; border-radius: 8px; margin-bottom: 16px;">';
+            
+            if (added.length > 0) {
+                changesHtml += '<div style="margin-bottom: 8px;"><span style="color: #10b981; font-weight: 600;">✓ 추가:</span> ';
+                changesHtml += added.map(p => permissionNames[p] || p).join(', ');
+                changesHtml += '</div>';
+            }
+            
+            if (removed.length > 0) {
+                changesHtml += '<div><span style="color: #ef4444; font-weight: 600;">✗ 제거:</span> ';
+                changesHtml += removed.map(p => permissionNames[p] || p).join(', ');
+                changesHtml += '</div>';
+            }
+            
+            changesHtml += '</div>';
+            
+            // 현재 권한 상태 표시
+            if (currentPermissions.length > 0) {
+                changesHtml += '<div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #e5e7eb;">';
+                changesHtml += '<div style="font-size: 13px; color: #6b7280; margin-bottom: 4px;">변경 후 권한:</div>';
+                changesHtml += '<div style="font-weight: 600; color: #1f2937;">';
+                changesHtml += currentPermissions.map(p => permissionNames[p] || p).join(', ') || '없음';
+                changesHtml += '</div></div>';
+            } else {
+                changesHtml += '<div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #e5e7eb;">';
+                changesHtml += '<div style="font-size: 13px; color: #6b7280; margin-bottom: 4px;">변경 후 권한:</div>';
+                changesHtml += '<div style="font-weight: 600; color: #9ca3af;">없음</div></div>';
+            }
+            
+            document.getElementById('permissionChanges').innerHTML = changesHtml;
+            
             // 모달 표시
             showSaveModal();
             
@@ -494,18 +582,7 @@ if ($targetUserId) {
         function showSaveModal() {
             const modal = document.getElementById('saveModal');
             const modalTitle = modal.querySelector('.modal-title');
-            const modalMessage = modal.querySelector('.modal-message');
-            const modalActions = modal.querySelector('.modal-actions');
-            
-            modalTitle.textContent = '권한 저장 확인';
-            modalMessage.textContent = '판매자 권한을 저장하시겠습니까?';
-            
-            // 버튼을 저장 모드로 변경
-            modalActions.innerHTML = `
-                <button type="button" class="modal-btn modal-btn-cancel" onclick="closeSaveModal()">취소</button>
-                <button type="button" class="modal-btn modal-btn-confirm" onclick="confirmSave()">저장</button>
-            `;
-            
+            modalTitle.textContent = '권한 변경 확인';
             modal.classList.add('active');
         }
         
@@ -513,11 +590,11 @@ if ($targetUserId) {
         function showNoChangeModal() {
             const modal = document.getElementById('saveModal');
             const modalTitle = modal.querySelector('.modal-title');
-            const modalMessage = modal.querySelector('.modal-message');
+            const permissionChanges = document.getElementById('permissionChanges');
             const modalActions = modal.querySelector('.modal-actions');
             
             modalTitle.textContent = '알림';
-            modalMessage.textContent = '변경된 권한이 없습니다.';
+            permissionChanges.innerHTML = '<div style="text-align: center; padding: 20px 0; color: #6b7280;">변경된 권한이 없습니다.</div>';
             
             // 버튼을 확인만 표시
             modalActions.innerHTML = `

@@ -362,11 +362,6 @@ if ($isWithdrawalRequested) {
                         <span class="user-info-value"><?php echo htmlspecialchars($currentUser['withdrawal_reason']); ?></span>
                     </div>
                 <?php endif; ?>
-            <?php elseif (isset($currentUser['rejected_at'])): ?>
-                <div class="user-info-item">
-                    <span class="user-info-label">거부일</span>
-                    <span class="user-info-value"><?php echo htmlspecialchars($currentUser['rejected_at']); ?></span>
-                </div>
             <?php endif; ?>
         </div>
         

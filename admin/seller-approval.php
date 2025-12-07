@@ -53,7 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cancel_approval'])) {
     $userId = $_POST['user_id'] ?? '';
     $currentTab = $_GET['tab'] ?? 'all';
     $perPage = isset($_GET['per_page']) ? '&per_page=' . (int)$_GET['per_page'] : '';
-    if ($userId && cancelApproval($userId)) {
+    if ($userId && cancelSellerApproval($userId)) {
         header('Location: /MVNO/admin/seller-approval.php?tab=' . $currentTab . '&success=cancel_approval' . $perPage);
         exit;
     } else {
@@ -247,7 +247,7 @@ $updatedSellers = array_filter($sellers, function($seller) {
         && (!isset($seller['info_checked_by_admin']) || $seller['info_checked_by_admin'] !== true);
 });
 
-// 활성 탭 확인 (기본값: 전체)
+// 활성 탭 확인 (기본값: 대시보드)
 $activeTab = $_GET['tab'] ?? 'all';
 
 // 검색어 가져오기
@@ -293,8 +293,8 @@ if (!empty($searchQuery)) {
             return true;
         }
         
-        // 이름 검색
-        if (isset($seller['name']) && mb_strpos(mb_strtolower($seller['name'], 'UTF-8'), $searchLower) !== false) {
+        // 회사명 검색
+        if (isset($seller['company_name']) && mb_strpos(mb_strtolower($seller['company_name'], 'UTF-8'), $searchLower) !== false) {
             return true;
         }
         
@@ -311,8 +311,8 @@ if (!empty($searchQuery)) {
             return true;
         }
         
-        // 회사명 검색
-        if (isset($seller['company_name']) && mb_strpos(mb_strtolower($seller['company_name'], 'UTF-8'), $searchLower) !== false) {
+        // 대표자명 검색
+        if (isset($seller['company_representative']) && mb_strpos(mb_strtolower($seller['company_representative'], 'UTF-8'), $searchLower) !== false) {
             return true;
         }
         
@@ -697,7 +697,7 @@ $paginatedSellers = array_slice($currentSellers, $offset, $perPage);
         /* 표시 개수 선택 및 페이지네이션 */
         .table-controls {
             display: flex;
-            justify-content: space-between;
+            justify-content: flex-start;
             align-items: center;
             margin-bottom: 16px;
             gap: 16px;
@@ -708,18 +708,19 @@ $paginatedSellers = array_slice($currentSellers, $offset, $perPage);
             display: flex;
             align-items: center;
             gap: 8px;
-            flex: 1;
-            min-width: 300px;
+            flex: 0 0 auto;
+            min-width: auto;
         }
         
         .search-box input {
-            flex: 1;
+            flex: 0 0 72%;
             padding: 8px 16px;
             border: 1px solid #d1d5db;
             border-radius: 6px;
             font-size: 14px;
             background: white;
             color: #1f2937;
+            max-width: 576px;
         }
         
         .search-box input:focus {
@@ -738,6 +739,7 @@ $paginatedSellers = array_slice($currentSellers, $offset, $perPage);
             font-weight: 500;
             cursor: pointer;
             transition: background 0.2s;
+            white-space: nowrap;
         }
         
         .search-box button:hover {
@@ -754,6 +756,7 @@ $paginatedSellers = array_slice($currentSellers, $offset, $perPage);
             font-size: 14px;
             color: #6b7280;
             font-weight: 500;
+            white-space: nowrap;
         }
         
         .per-page-selector select {
@@ -886,14 +889,142 @@ $paginatedSellers = array_slice($currentSellers, $offset, $perPage);
 
 <div class="admin-content">
     <h1>판매자 관리</h1>
+    
+    <!-- 대시보드 버튼 탭 -->
+    <div class="dashboard-tabs" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 24px;">
+        <!-- 전체 - 흰색 -->
+        <a href="/MVNO/admin/seller-approval.php?tab=all&page=1&per_page=<?php echo $perPage; ?>" class="dashboard-tab-card" style="background: white; border: 2px solid #e5e7eb; border-radius: 12px; padding: 20px; text-decoration: none; display: block; transition: all 0.3s; cursor: pointer;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                <div style="font-size: 14px; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.5px;">전체</div>
+                <div style="width: 40px; height: 40px; background: #f3f4f6; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                        <line x1="9" y1="3" x2="9" y2="21"/>
+                        <line x1="15" y1="3" x2="15" y2="21"/>
+                        <line x1="3" y1="9" x2="21" y2="9"/>
+                        <line x1="3" y1="15" x2="21" y2="15"/>
+                    </svg>
+                </div>
+            </div>
+            <div style="font-size: 32px; font-weight: 700; color: #1f2937; margin-bottom: 4px;"><?php echo count($sellers); ?></div>
+            <div style="font-size: 12px; color: #6b7280;">전체 판매자</div>
+        </a>
         
-        <?php if (isset($success_message)): ?>
+        <!-- 신청자 -->
+        <?php 
+        $pendingCount = count($pendingSellers);
+        $pendingBg = $pendingCount > 0 ? 'linear-gradient(135deg, #fdf2f8 0%, #fce7f3 100%)' : 'white';
+        $pendingBorder = $pendingCount > 0 ? '#ec4899' : '#e5e7eb';
+        $pendingTextColor = $pendingCount > 0 ? '#9f1239' : '#374151';
+        $pendingNumberColor = $pendingCount > 0 ? '#831843' : '#1f2937';
+        $pendingIconBg = $pendingCount > 0 ? 'rgba(236, 72, 153, 0.2)' : '#f3f4f6';
+        $pendingIconStroke = $pendingCount > 0 ? '#ec4899' : '#6b7280';
+        ?>
+        <a href="/MVNO/admin/seller-approval.php?tab=pending&page=1&per_page=<?php echo $perPage; ?>" class="dashboard-tab-card" style="background: <?php echo $pendingBg; ?>; border: 2px solid <?php echo $pendingBorder; ?>; border-radius: 12px; padding: 20px; text-decoration: none; display: block; transition: all 0.3s; cursor: pointer;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                <div style="font-size: 14px; font-weight: 600; color: <?php echo $pendingTextColor; ?>; text-transform: uppercase; letter-spacing: 0.5px;">신청자</div>
+                <div style="width: 40px; height: 40px; background: <?php echo $pendingIconBg; ?>; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="<?php echo $pendingIconStroke; ?>" stroke-width="2">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                        <circle cx="9" cy="7" r="4"/>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                    </svg>
+                </div>
+            </div>
+            <div style="font-size: 32px; font-weight: 700; color: <?php echo $pendingNumberColor; ?>; margin-bottom: 4px;"><?php echo $pendingCount; ?></div>
+            <div style="font-size: 12px; color: #6b7280;">승인 대기 중</div>
+        </a>
+        
+        <!-- 승인판매자 - 흰색 -->
+        <a href="/MVNO/admin/seller-approval.php?tab=approved&page=1&per_page=<?php echo $perPage; ?>" class="dashboard-tab-card" style="background: white; border: 2px solid #e5e7eb; border-radius: 12px; padding: 20px; text-decoration: none; display: block; transition: all 0.3s; cursor: pointer;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                <div style="font-size: 14px; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.5px;">승인판매자</div>
+                <div style="width: 40px; height: 40px; background: #f3f4f6; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                        <polyline points="22 4 12 14.01 9 11.01"/>
+                    </svg>
+                </div>
+            </div>
+            <div style="font-size: 32px; font-weight: 700; color: #1f2937; margin-bottom: 4px;"><?php echo count($approvedSellers); ?></div>
+            <div style="font-size: 12px; color: #6b7280;">승인 완료</div>
+        </a>
+        
+        <!-- 업데이트 -->
+        <?php 
+        $updatedCount = count($updatedSellers);
+        $updatedBg = $updatedCount > 0 ? 'linear-gradient(135deg, #fdf2f8 0%, #fce7f3 100%)' : 'white';
+        $updatedBorder = $updatedCount > 0 ? '#ec4899' : '#e5e7eb';
+        $updatedTextColor = $updatedCount > 0 ? '#9f1239' : '#374151';
+        $updatedNumberColor = $updatedCount > 0 ? '#831843' : '#1f2937';
+        $updatedIconBg = $updatedCount > 0 ? 'rgba(236, 72, 153, 0.2)' : '#f3f4f6';
+        $updatedIconStroke = $updatedCount > 0 ? '#ec4899' : '#6b7280';
+        ?>
+        <a href="/MVNO/admin/seller-approval.php?tab=updated&page=1&per_page=<?php echo $perPage; ?>" class="dashboard-tab-card" style="background: <?php echo $updatedBg; ?>; border: 2px solid <?php echo $updatedBorder; ?>; border-radius: 12px; padding: 20px; text-decoration: none; display: block; transition: all 0.3s; cursor: pointer;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                <div style="font-size: 14px; font-weight: 600; color: <?php echo $updatedTextColor; ?>; text-transform: uppercase; letter-spacing: 0.5px;">업데이트</div>
+                <div style="width: 40px; height: 40px; background: <?php echo $updatedIconBg; ?>; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="<?php echo $updatedIconStroke; ?>" stroke-width="2">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                    </svg>
+                </div>
+            </div>
+            <div style="font-size: 32px; font-weight: 700; color: <?php echo $updatedNumberColor; ?>; margin-bottom: 4px;"><?php echo $updatedCount; ?></div>
+            <div style="font-size: 12px; color: #6b7280;">정보 수정 대기</div>
+        </a>
+        
+        <!-- 탈퇴요청 -->
+        <?php 
+        $withdrawalCount = count($withdrawalRequestedSellers);
+        $withdrawalBg = $withdrawalCount > 0 ? 'linear-gradient(135deg, #fdf2f8 0%, #fce7f3 100%)' : 'white';
+        $withdrawalBorder = $withdrawalCount > 0 ? '#ec4899' : '#e5e7eb';
+        $withdrawalTextColor = $withdrawalCount > 0 ? '#9f1239' : '#374151';
+        $withdrawalNumberColor = $withdrawalCount > 0 ? '#831843' : '#1f2937';
+        $withdrawalIconBg = $withdrawalCount > 0 ? 'rgba(236, 72, 153, 0.2)' : '#f3f4f6';
+        $withdrawalIconStroke = $withdrawalCount > 0 ? '#ec4899' : '#6b7280';
+        ?>
+        <a href="/MVNO/admin/seller-approval.php?tab=withdrawal&page=1&per_page=<?php echo $perPage; ?>" class="dashboard-tab-card" style="background: <?php echo $withdrawalBg; ?>; border: 2px solid <?php echo $withdrawalBorder; ?>; border-radius: 12px; padding: 20px; text-decoration: none; display: block; transition: all 0.3s; cursor: pointer;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                <div style="font-size: 14px; font-weight: 600; color: <?php echo $withdrawalTextColor; ?>; text-transform: uppercase; letter-spacing: 0.5px;">탈퇴요청</div>
+                <div style="width: 40px; height: 40px; background: <?php echo $withdrawalIconBg; ?>; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="<?php echo $withdrawalIconStroke; ?>" stroke-width="2">
+                        <path d="M18 6L6 18M6 6l12 12"/>
+                    </svg>
+                </div>
+            </div>
+            <div style="font-size: 32px; font-weight: 700; color: <?php echo $withdrawalNumberColor; ?>; margin-bottom: 4px;"><?php echo $withdrawalCount; ?></div>
+            <div style="font-size: 12px; color: #6b7280;">탈퇴 처리 대기</div>
+        </a>
+    </div>
+    
+    <style>
+        .dashboard-tab-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+        }
+        
+        @media (max-width: 1200px) {
+            .dashboard-tabs {
+                grid-template-columns: repeat(3, 1fr) !important;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .dashboard-tabs {
+                grid-template-columns: 1fr !important;
+            }
+        }
+    </style>
+        
+        <?php if (isset($success_message) && !empty($success_message)): ?>
             <div class="alert alert-success">
                 <?php echo htmlspecialchars($success_message); ?>
             </div>
         <?php endif; ?>
         
-        <?php if (isset($error_message)): ?>
+        <?php if (isset($error_message) && !empty($error_message)): ?>
             <div class="alert alert-error">
                 <?php echo htmlspecialchars($error_message); ?>
             </div>
@@ -904,28 +1035,28 @@ $paginatedSellers = array_slice($currentSellers, $offset, $perPage);
             <form method="GET" class="search-box" style="margin: 0;">
                 <input type="hidden" name="tab" value="<?php echo htmlspecialchars($activeTab); ?>">
                 <input type="hidden" name="per_page" value="<?php echo $perPage; ?>">
-                <input type="text" name="search" placeholder="아이디, 이름, 이메일, 전화번호, 회사명으로 검색..." value="<?php echo htmlspecialchars($searchQuery); ?>" style="flex: 1;">
+                <input type="text" name="search" placeholder="아이디, 회사명, 이메일, 전화번호, 대표자명으로 검색..." value="<?php echo htmlspecialchars($searchQuery); ?>">
                 <button type="submit">검색</button>
                 <?php if (!empty($searchQuery)): ?>
                     <a href="?tab=<?php echo htmlspecialchars($activeTab); ?>&per_page=<?php echo $perPage; ?>" style="padding: 8px 16px; background: #ef4444; color: white; border-radius: 6px; text-decoration: none; font-size: 14px; font-weight: 500;">초기화</a>
                 <?php endif; ?>
+                <div class="per-page-selector" style="margin-left: 16px;">
+                    <label for="per-page">표시 개수:</label>
+                    <select id="per-page" onchange="changePerPage(this.value)">
+                        <?php foreach ($perPageOptions as $option): ?>
+                            <option value="<?php echo $option; ?>" <?php echo $perPage === $option ? 'selected' : ''; ?>>
+                                <?php echo $option; ?>명
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
             </form>
-            <div class="per-page-selector">
-                <label for="per-page">표시 개수:</label>
-                <select id="per-page" onchange="changePerPage(this.value)">
-                    <?php foreach ($perPageOptions as $option): ?>
-                        <option value="<?php echo $option; ?>" <?php echo $perPage === $option ? 'selected' : ''; ?>>
-                            <?php echo $option; ?>명
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
         </div>
         
         <!-- 탭 메뉴 -->
         <div class="tabs">
             <button class="tab" id="tab-all" onclick="switchTab('all')">
-                전체
+                대시보드
                 <span class="tab-badge"><?php echo count($sellers); ?></span>
             </button>
             <button class="tab" id="tab-pending" onclick="switchTab('pending')">
@@ -946,23 +1077,26 @@ $paginatedSellers = array_slice($currentSellers, $offset, $perPage);
             </button>
         </div>
         
-        <!-- 전체 탭 -->
+        <!-- 대시보드 탭 -->
         <div class="tab-content" id="content-all">
             <div class="sellers-section">
                 <?php if ($totalCount > 0): ?>
                     <table>
                         <thead>
                             <tr>
+                                <th>번호</th>
                                 <th>아이디</th>
                                 <th>이름</th>
                                 <th>이메일</th>
                                 <th>가입일</th>
                                 <th>상태</th>
+                                <th>권한</th>
                                 <th>작업</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <?php foreach ($paginatedSellers as $seller): ?>
+                            <?php foreach ($paginatedSellers as $index => $seller): ?>
+                                <?php $rowNumber = $totalCount - ($offset + $index); ?>
                                 <?php
                                 $approvalStatus = $seller['approval_status'] ?? null;
                                 $isApproved = isset($seller['seller_approved']) && $seller['seller_approved'] === true;
@@ -986,14 +1120,29 @@ $paginatedSellers = array_slice($currentSellers, $offset, $perPage);
                                     $statusBadge = 'badge-pending';
                                     $statusText = '신청자';
                                 }
+                                
+                                // 권한 정보 표시
+                                $permissions = $seller['permissions'] ?? [];
+                                $permissionLabels = [];
+                                if (in_array('mvno', $permissions)) $permissionLabels[] = '알뜰폰';
+                                if (in_array('mno', $permissions)) $permissionLabels[] = '통신사폰';
+                                if (in_array('internet', $permissions)) $permissionLabels[] = '인터넷';
                                 ?>
                                 <tr>
+                                    <td><?php echo $rowNumber; ?></td>
                                     <td><?php echo htmlspecialchars($seller['user_id']); ?></td>
                                     <td><?php echo htmlspecialchars($seller['name'] ?? '-'); ?></td>
                                     <td><?php echo htmlspecialchars($seller['email'] ?? '-'); ?></td>
                                     <td><?php echo htmlspecialchars($seller['created_at'] ?? '-'); ?></td>
                                     <td>
                                         <span class="badge <?php echo $statusBadge; ?>"><?php echo $statusText; ?></span>
+                                    </td>
+                                    <td>
+                                        <?php if (!empty($permissionLabels)): ?>
+                                            <span style="font-size: 12px; color: #1f2937;"><?php echo implode(', ', $permissionLabels); ?></span>
+                                        <?php else: ?>
+                                            <span style="font-size: 12px; color: #9ca3af;">권한 없음</span>
+                                        <?php endif; ?>
                                     </td>
                                     <td>
                                         <a href="/MVNO/admin/users/seller-detail.php?user_id=<?php echo urlencode($seller['user_id']); ?>" class="btn" style="background: #6366f1; color: white; margin-right: 8px; text-decoration: none; display: inline-block;">상세보기</a>
@@ -1083,19 +1232,19 @@ $paginatedSellers = array_slice($currentSellers, $offset, $perPage);
                     $pendingFiltered = array_filter($pendingFiltered, function($seller) use ($searchQuery) {
                         $searchLower = mb_strtolower($searchQuery, 'UTF-8');
                         if (mb_strpos(mb_strtolower($seller['user_id'] ?? '', 'UTF-8'), $searchLower) !== false) return true;
-                        if (isset($seller['name']) && mb_strpos(mb_strtolower($seller['name'], 'UTF-8'), $searchLower) !== false) return true;
+                        if (isset($seller['company_name']) && mb_strpos(mb_strtolower($seller['company_name'], 'UTF-8'), $searchLower) !== false) return true;
                         if (isset($seller['email']) && mb_strpos(mb_strtolower($seller['email'], 'UTF-8'), $searchLower) !== false) return true;
                         if (isset($seller['phone']) && mb_strpos(mb_strtolower($seller['phone'], 'UTF-8'), $searchLower) !== false) return true;
                         if (isset($seller['mobile']) && mb_strpos(mb_strtolower($seller['mobile'], 'UTF-8'), $searchLower) !== false) return true;
-                        if (isset($seller['company_name']) && mb_strpos(mb_strtolower($seller['company_name'], 'UTF-8'), $searchLower) !== false) return true;
+                        if (isset($seller['company_representative']) && mb_strpos(mb_strtolower($seller['company_representative'], 'UTF-8'), $searchLower) !== false) return true;
                         return false;
                     });
                     $pendingFiltered = array_values($pendingFiltered);
                 }
-                // 최신순 정렬
+                // 최근 업데이트일 기준 정렬 (updated_at 우선, 없으면 created_at)
                 usort($pendingFiltered, function($a, $b) {
-                    $dateA = $a['created_at'] ?? '1970-01-01 00:00:00';
-                    $dateB = $b['created_at'] ?? '1970-01-01 00:00:00';
+                    $dateA = $a['updated_at'] ?? $a['created_at'] ?? '1970-01-01 00:00:00';
+                    $dateB = $b['updated_at'] ?? $b['created_at'] ?? '1970-01-01 00:00:00';
                     return strcmp($dateB, $dateA);
                 });
                 
@@ -1110,6 +1259,7 @@ $paginatedSellers = array_slice($currentSellers, $offset, $perPage);
                     <table>
                         <thead>
                             <tr>
+                                <th>번호</th>
                                 <th>아이디</th>
                                 <th>이름</th>
                                 <th>이메일</th>
@@ -1119,8 +1269,10 @@ $paginatedSellers = array_slice($currentSellers, $offset, $perPage);
                             </tr>
                         </thead>
                         <tbody>
-                            <?php foreach ($pendingPaginated as $seller): ?>
+                            <?php foreach ($pendingPaginated as $index => $seller): ?>
+                                <?php $rowNumber = $pendingCount - ($pendingOffset + $index); ?>
                                 <tr>
+                                    <td><?php echo $rowNumber; ?></td>
                                     <td><?php echo htmlspecialchars($seller['user_id']); ?></td>
                                     <td><?php echo htmlspecialchars($seller['name'] ?? '-'); ?></td>
                                     <td><?php echo htmlspecialchars($seller['email'] ?? '-'); ?></td>
@@ -1206,19 +1358,19 @@ $paginatedSellers = array_slice($currentSellers, $offset, $perPage);
                     $approvedFiltered = array_filter($approvedFiltered, function($seller) use ($searchQuery) {
                         $searchLower = mb_strtolower($searchQuery, 'UTF-8');
                         if (mb_strpos(mb_strtolower($seller['user_id'] ?? '', 'UTF-8'), $searchLower) !== false) return true;
-                        if (isset($seller['name']) && mb_strpos(mb_strtolower($seller['name'], 'UTF-8'), $searchLower) !== false) return true;
+                        if (isset($seller['company_name']) && mb_strpos(mb_strtolower($seller['company_name'], 'UTF-8'), $searchLower) !== false) return true;
                         if (isset($seller['email']) && mb_strpos(mb_strtolower($seller['email'], 'UTF-8'), $searchLower) !== false) return true;
                         if (isset($seller['phone']) && mb_strpos(mb_strtolower($seller['phone'], 'UTF-8'), $searchLower) !== false) return true;
                         if (isset($seller['mobile']) && mb_strpos(mb_strtolower($seller['mobile'], 'UTF-8'), $searchLower) !== false) return true;
-                        if (isset($seller['company_name']) && mb_strpos(mb_strtolower($seller['company_name'], 'UTF-8'), $searchLower) !== false) return true;
+                        if (isset($seller['company_representative']) && mb_strpos(mb_strtolower($seller['company_representative'], 'UTF-8'), $searchLower) !== false) return true;
                         return false;
                     });
                     $approvedFiltered = array_values($approvedFiltered);
                 }
-                // 최신순 정렬
+                // 최근 승인일 기준 정렬 (최근 업데이트 순)
                 usort($approvedFiltered, function($a, $b) {
-                    $dateA = $a['created_at'] ?? '1970-01-01 00:00:00';
-                    $dateB = $b['created_at'] ?? '1970-01-01 00:00:00';
+                    $dateA = $a['approved_at'] ?? '1970-01-01 00:00:00';
+                    $dateB = $b['approved_at'] ?? '1970-01-01 00:00:00';
                     return strcmp($dateB, $dateA);
                 });
                 
@@ -1233,6 +1385,7 @@ $paginatedSellers = array_slice($currentSellers, $offset, $perPage);
                     <table>
                         <thead>
                             <tr>
+                                <th>번호</th>
                                 <th>아이디</th>
                                 <th>이름</th>
                                 <th>이메일</th>
@@ -1244,8 +1397,10 @@ $paginatedSellers = array_slice($currentSellers, $offset, $perPage);
                             </tr>
                         </thead>
                         <tbody>
-                            <?php foreach ($approvedPaginated as $seller): ?>
+                            <?php foreach ($approvedPaginated as $index => $seller): ?>
+                                <?php $rowNumber = $approvedCount - ($approvedOffset + $index); ?>
                                 <tr>
+                                    <td><?php echo $rowNumber; ?></td>
                                     <td><?php echo htmlspecialchars($seller['user_id']); ?></td>
                                     <td><?php echo htmlspecialchars($seller['name'] ?? '-'); ?></td>
                                     <td><?php echo htmlspecialchars($seller['email'] ?? '-'); ?></td>
@@ -1342,11 +1497,11 @@ $paginatedSellers = array_slice($currentSellers, $offset, $perPage);
                     $updatedFiltered = array_filter($updatedFiltered, function($seller) use ($searchQuery) {
                         $searchLower = mb_strtolower($searchQuery, 'UTF-8');
                         if (mb_strpos(mb_strtolower($seller['user_id'] ?? '', 'UTF-8'), $searchLower) !== false) return true;
-                        if (isset($seller['name']) && mb_strpos(mb_strtolower($seller['name'], 'UTF-8'), $searchLower) !== false) return true;
+                        if (isset($seller['company_name']) && mb_strpos(mb_strtolower($seller['company_name'], 'UTF-8'), $searchLower) !== false) return true;
                         if (isset($seller['email']) && mb_strpos(mb_strtolower($seller['email'], 'UTF-8'), $searchLower) !== false) return true;
                         if (isset($seller['phone']) && mb_strpos(mb_strtolower($seller['phone'], 'UTF-8'), $searchLower) !== false) return true;
                         if (isset($seller['mobile']) && mb_strpos(mb_strtolower($seller['mobile'], 'UTF-8'), $searchLower) !== false) return true;
-                        if (isset($seller['company_name']) && mb_strpos(mb_strtolower($seller['company_name'], 'UTF-8'), $searchLower) !== false) return true;
+                        if (isset($seller['company_representative']) && mb_strpos(mb_strtolower($seller['company_representative'], 'UTF-8'), $searchLower) !== false) return true;
                         return false;
                     });
                     $updatedFiltered = array_values($updatedFiltered);
@@ -1369,6 +1524,7 @@ $paginatedSellers = array_slice($currentSellers, $offset, $perPage);
                     <table>
                         <thead>
                             <tr>
+                                <th>번호</th>
                                 <th>아이디</th>
                                 <th>이름</th>
                                 <th>이메일</th>
@@ -1378,8 +1534,10 @@ $paginatedSellers = array_slice($currentSellers, $offset, $perPage);
                             </tr>
                         </thead>
                         <tbody>
-                            <?php foreach ($updatedPaginated as $seller): ?>
+                            <?php foreach ($updatedPaginated as $index => $seller): ?>
+                                <?php $rowNumber = $updatedCount - ($updatedOffset + $index); ?>
                                 <tr>
+                                    <td><?php echo $rowNumber; ?></td>
                                     <td><?php echo htmlspecialchars($seller['user_id']); ?></td>
                                     <td><?php echo htmlspecialchars($seller['name'] ?? '-'); ?></td>
                                     <td><?php echo htmlspecialchars($seller['email'] ?? '-'); ?></td>
@@ -1469,19 +1627,19 @@ $paginatedSellers = array_slice($currentSellers, $offset, $perPage);
                     $withdrawalFiltered = array_filter($withdrawalFiltered, function($seller) use ($searchQuery) {
                         $searchLower = mb_strtolower($searchQuery, 'UTF-8');
                         if (mb_strpos(mb_strtolower($seller['user_id'] ?? '', 'UTF-8'), $searchLower) !== false) return true;
-                        if (isset($seller['name']) && mb_strpos(mb_strtolower($seller['name'], 'UTF-8'), $searchLower) !== false) return true;
+                        if (isset($seller['company_name']) && mb_strpos(mb_strtolower($seller['company_name'], 'UTF-8'), $searchLower) !== false) return true;
                         if (isset($seller['email']) && mb_strpos(mb_strtolower($seller['email'], 'UTF-8'), $searchLower) !== false) return true;
                         if (isset($seller['phone']) && mb_strpos(mb_strtolower($seller['phone'], 'UTF-8'), $searchLower) !== false) return true;
                         if (isset($seller['mobile']) && mb_strpos(mb_strtolower($seller['mobile'], 'UTF-8'), $searchLower) !== false) return true;
-                        if (isset($seller['company_name']) && mb_strpos(mb_strtolower($seller['company_name'], 'UTF-8'), $searchLower) !== false) return true;
+                        if (isset($seller['company_representative']) && mb_strpos(mb_strtolower($seller['company_representative'], 'UTF-8'), $searchLower) !== false) return true;
                         return false;
                     });
                     $withdrawalFiltered = array_values($withdrawalFiltered);
                 }
-                // 최신순 정렬
+                // 최근 탈퇴 요청일 기준 정렬 (withdrawal_requested_at 우선, 없으면 updated_at)
                 usort($withdrawalFiltered, function($a, $b) {
-                    $dateA = $a['created_at'] ?? '1970-01-01 00:00:00';
-                    $dateB = $b['created_at'] ?? '1970-01-01 00:00:00';
+                    $dateA = $a['withdrawal_requested_at'] ?? $a['updated_at'] ?? '1970-01-01 00:00:00';
+                    $dateB = $b['withdrawal_requested_at'] ?? $b['updated_at'] ?? '1970-01-01 00:00:00';
                     return strcmp($dateB, $dateA);
                 });
                 
@@ -1496,6 +1654,7 @@ $paginatedSellers = array_slice($currentSellers, $offset, $perPage);
                     <table>
                         <thead>
                             <tr>
+                                <th>번호</th>
                                 <th>아이디</th>
                                 <th>이름</th>
                                 <th>이메일</th>
@@ -1505,8 +1664,10 @@ $paginatedSellers = array_slice($currentSellers, $offset, $perPage);
                             </tr>
                         </thead>
                         <tbody>
-                            <?php foreach ($withdrawalPaginated as $seller): ?>
+                            <?php foreach ($withdrawalPaginated as $index => $seller): ?>
+                                <?php $rowNumber = $withdrawalCount - ($withdrawalOffset + $index); ?>
                                 <tr>
+                                    <td><?php echo $rowNumber; ?></td>
                                     <td><?php echo htmlspecialchars($seller['user_id']); ?></td>
                                     <td><?php echo htmlspecialchars($seller['name'] ?? '-'); ?></td>
                                     <td><?php echo htmlspecialchars($seller['email'] ?? '-'); ?></td>

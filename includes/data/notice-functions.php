@@ -4,6 +4,9 @@
  * JSON 파일 기반 데이터 저장
  */
 
+// 한국 시간대 설정 (KST, UTC+9)
+date_default_timezone_set('Asia/Seoul');
+
 // 공지사항 데이터 파일 경로
 function getNoticeDataFile() {
     return __DIR__ . '/notices.json';
@@ -189,6 +192,7 @@ function getAllNoticesForAdmin() {
     
     return $notices;
 }
+
 
 
 

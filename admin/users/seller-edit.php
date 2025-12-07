@@ -222,40 +222,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_seller'])) {
             $tempPath = $_FILES['business_license_image']['tmp_name'];
             $originalFileName = $_FILES['business_license_image']['name'];
             $fileExtension = strtolower(pathinfo($originalFileName, PATHINFO_EXTENSION));
-            $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif'];
-            
-            // 확장자 체크
-            if (!in_array($fileExtension, $allowedExtensions)) {
-                $error_message = '이미지 파일만 업로드 가능합니다. (jpg, jpeg, png, gif)';
+            // 문서 파일 확장자 차단
+            $documentExtensions = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'hwp', 'gif'];
+            if (in_array($fileExtension, $documentExtensions)) {
+                $error_message = 'GIF 파일과 문서 파일은 업로드할 수 없습니다. (JPG, PNG만 가능)';
             } else {
-                // 실제 이미지 파일인지 MIME 타입으로 체크
-                $imageInfo = @getimagesize($tempPath);
-                if ($imageInfo === false) {
-                    $error_message = '이미지 파일이 아닙니다. 올바른 이미지 파일을 업로드해주세요.';
+                $allowedExtensions = ['jpg', 'jpeg', 'png'];
+                
+                // 확장자 체크
+                if (!in_array($fileExtension, $allowedExtensions)) {
+                    $error_message = '이미지 파일만 업로드 가능합니다. (jpg, jpeg, png)';
                 } else {
-                    $allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
-                    $detectedMimeType = $imageInfo['mime'];
-                    
-                    if (!in_array($detectedMimeType, $allowedMimeTypes)) {
-                        $error_message = '이미지 파일만 업로드 가능합니다. (jpg, jpeg, png, gif)';
+                    // 실제 이미지 파일인지 MIME 타입으로 체크
+                    $imageInfo = @getimagesize($tempPath);
+                    if ($imageInfo === false) {
+                        $error_message = '이미지 파일이 아닙니다. 올바른 이미지 파일을 업로드해주세요.';
                     } else {
-                        // 기존 이미지 삭제 (있는 경우)
-                        if (!empty($seller['business_license_image']) && file_exists(__DIR__ . '/../..' . $seller['business_license_image'])) {
-                            @unlink(__DIR__ . '/../..' . $seller['business_license_image']);
-                        }
+                        $allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+                        $detectedMimeType = $imageInfo['mime'];
                         
-                        // 새 파일명 생성
-                        $fileName = $userId . '_license_' . time() . '.' . $fileExtension;
-                        $targetPath = $uploadDir . $fileName;
-                        
-                        // 이미지 압축 및 저장 (500MB 이하로 자동 압축)
-                        if (compressImage($tempPath, $targetPath)) {
-                            // 상대 경로 저장
-                            $updateData['business_license_image'] = '/MVNO/uploads/sellers/' . $fileName;
+                        if (!in_array($detectedMimeType, $allowedMimeTypes)) {
+                            $error_message = '이미지 파일만 업로드 가능합니다. (jpg, jpeg, png)';
                         } else {
-                            $error_message = '이미지 업로드에 실패했습니다.';
+                            // 기존 이미지 삭제 (있는 경우)
+                            if (!empty($seller['business_license_image']) && file_exists(__DIR__ . '/../..' . $seller['business_license_image'])) {
+                                @unlink(__DIR__ . '/../..' . $seller['business_license_image']);
+                            }
+                            
+                            // 새 파일명 생성
+                            $fileName = $userId . '_license_' . time() . '.' . $fileExtension;
+                            $targetPath = $uploadDir . $fileName;
+                            
+                            // 이미지 압축 및 저장 (500MB 이하로 자동 압축)
+                            if (compressImage($tempPath, $targetPath)) {
+                                // 상대 경로 저장
+                                $updateData['business_license_image'] = '/MVNO/uploads/sellers/' . $fileName;
+                            } else {
+                                $error_message = '이미지 업로드에 실패했습니다.';
+                            }
                         }
-                    }
                 }
             }
         }
@@ -750,8 +755,8 @@ require_once __DIR__ . '/../includes/admin-header.php';
                             <div class="password-note">현재 등록된 사업자등록증입니다. 새로 업로드하면 기존 이미지가 교체됩니다.</div>
                         </div>
                     <?php endif; ?>
-                    <input type="file" name="business_license_image" accept="image/jpeg,image/jpg,image/png,image/gif" class="form-input">
-                    <div class="password-note">이미지 파일만 업로드 가능합니다. (jpg, jpeg, png, gif)</div>
+                    <input type="file" name="business_license_image" accept="image/jpeg,image/jpg,image/png" class="form-input">
+                    <div class="password-note">이미지 파일만 업로드 가능합니다. (jpg, jpeg, png) - GIF 및 문서 파일은 업로드 불가</div>
                 </div>
             </div>
             

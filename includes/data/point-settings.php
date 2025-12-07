@@ -4,6 +4,9 @@
  * 관리자가 설정할 수 있는 포인트 관련 설정
  */
 
+// 한국 시간대 설정 (KST, UTC+9)
+date_default_timezone_set('Asia/Seoul');
+
 // 포인트 설정 (나중에 관리자 페이지에서 수정 가능)
 $point_settings = [
     // 최대 사용 가능 포인트 (원 단위)

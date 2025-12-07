@@ -227,32 +227,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // 판매자 필수 필드 확인
         if (empty($additionalData['business_number']) || empty($additionalData['company_name'])) {
             $error = '사업자등록번호와 회사명은 필수 입력 항목입니다.';
+        } elseif (empty($additionalData['company_representative'])) {
+            $error = '대표자명은 필수 입력 항목입니다.';
+        } elseif (empty($additionalData['business_type'])) {
+            $error = '업종은 필수 입력 항목입니다.';
+        } elseif (empty($additionalData['business_item'])) {
+            $error = '업태는 필수 입력 항목입니다.';
+        } elseif (empty($additionalData['address'])) {
+            $error = '주소는 필수 입력 항목입니다.';
+        } elseif (empty($additionalData['mobile'])) {
+            $error = '휴대폰 번호는 필수 입력 항목입니다.';
         } elseif (mb_strlen($additionalData['company_name']) > 20) {
             $error = '회사명은 20자 이내로 입력해주세요.';
-        } elseif (!empty($additionalData['company_representative']) && mb_strlen($additionalData['company_representative']) > 20) {
+        } elseif (mb_strlen($additionalData['company_representative']) > 20) {
             $error = '대표자명은 20자 이내로 입력해주세요.';
-        } elseif (!empty($additionalData['business_type']) && mb_strlen($additionalData['business_type']) > 20) {
+        } elseif (mb_strlen($additionalData['business_type']) > 20) {
             $error = '업종은 20자 이내로 입력해주세요.';
-        } elseif (!empty($additionalData['business_item']) && mb_strlen($additionalData['business_item']) > 20) {
+        } elseif (mb_strlen($additionalData['business_item']) > 20) {
             $error = '업태는 20자 이내로 입력해주세요.';
         } else {
-            // 휴대폰 번호 검증 (입력된 경우에만)
-            if (!empty($additionalData['mobile'])) {
-                $mobileNumbers = preg_replace('/[^\d]/', '', $additionalData['mobile']);
-                if (!preg_match('/^010\d{8}$/', $mobileNumbers)) {
-                    $error = '휴대폰 번호는 010으로 시작하는 11자리 숫자여야 합니다.';
-                }
+            // 휴대폰 번호 검증 (필수)
+            $mobileNumbers = preg_replace('/[^\d]/', '', $additionalData['mobile']);
+            if (!preg_match('/^010\d{8}$/', $mobileNumbers)) {
+                $error = '휴대폰 번호는 010으로 시작하는 11자리 숫자여야 합니다.';
             }
             
-            // 전화번호 형식 검증 (입력된 경우에만)
+            // 전화번호 형식 검증 (입력된 경우에만, 쉼표로 구분된 여러 번호 지원)
             if (empty($error) && !empty($additionalData['phone'])) {
-                $phoneNumbers = preg_replace('/[^\d]/', '', $additionalData['phone']);
-                $phoneLength = strlen($phoneNumbers);
+                // 쉼표로 구분된 전화번호들을 배열로 분리
+                $phoneList = array_map('trim', explode(',', $additionalData['phone']));
+                $phoneList = array_filter($phoneList); // 빈 값 제거
                 
-                // 숫자 길이 검증
-                if ($phoneLength < 8 || $phoneLength > 11) {
-                    $error = '전화번호 형식이 올바르지 않습니다.';
-                } else {
+                foreach ($phoneList as $phoneItem) {
+                    $phoneNumbers = preg_replace('/[^\d]/', '', $phoneItem);
+                    $phoneLength = strlen($phoneNumbers);
+                    
+                    // 숫자 길이 검증
+                    if ($phoneLength < 8 || $phoneLength > 11) {
+                        $error = '전화번호 형식이 올바르지 않습니다. (각 번호는 8-11자리여야 합니다)';
+                        break;
+                    }
+                    
                     // 한국 전화번호 형식 검증
                     $isValidFormat = false;
                     
@@ -276,13 +291,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     elseif ($phoneLength === 11 && preg_match('/^0[78]0\d{8}$/', $phoneNumbers)) {
                         $isValidFormat = true;
                     }
-                    // 1588/1544/1577/1600 등 (전국대표번호, 8자리)
-                    elseif ($phoneLength === 8 && preg_match('/^(1588|1544|1577|1600|1800|1566|1599|1644)\d{4}$/', $phoneNumbers)) {
+                    // 전국대표번호 (1XXX로 시작하는 4자리 번호 + 4자리, 총 8자리)
+                    // 예: 1588-1234, 1688-5678, 1544-0000, 1577-9999 등
+                    elseif ($phoneLength === 8 && preg_match('/^1\d{3}\d{4}$/', $phoneNumbers)) {
                         $isValidFormat = true;
                     }
                     
                     if (!$isValidFormat) {
-                        $error = '전화번호 형식이 올바르지 않습니다. (예: 02-1234-5678, 031-123-4567, 010-1234-5678, 1644-1234)';
+                        $error = '전화번호 형식이 올바르지 않습니다. (예: 02-1234-5678, 031-123-4567, 010-1234-5678, 1588-1234, 070-1234-5678)';
+                        break;
                     }
                 }
             }
@@ -295,20 +312,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         mkdir($uploadDir, 0755, true);
                     }
                     
-                    $fileExtension = pathinfo($_FILES['business_license_image']['name'], PATHINFO_EXTENSION);
-                    $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif'];
-                    if (!in_array(strtolower($fileExtension), $allowedExtensions)) {
-                        $error = '허용되지 않은 파일 형식입니다. (JPG, PNG, GIF만 가능)';
+                    $fileExtension = strtolower(pathinfo($_FILES['business_license_image']['name'], PATHINFO_EXTENSION));
+                    // 문서 파일 확장자 차단
+                    $documentExtensions = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'hwp', 'gif'];
+                    if (in_array($fileExtension, $documentExtensions)) {
+                        $error = 'GIF 파일과 문서 파일은 업로드할 수 없습니다. (JPG, PNG만 가능)';
                     } else {
-                        $fileName = $userId . '_license_' . time() . '.' . $fileExtension;
-                        $uploadPath = $uploadDir . $fileName;
-                        $tmpPath = $_FILES['business_license_image']['tmp_name'];
-                        
-                        // 이미지 리사이징 및 압축 (500MB 이하로)
-                        if (compressImage($tmpPath, $uploadPath, 500)) {
-                            $additionalData['business_license_image'] = '/MVNO/uploads/sellers/' . $fileName;
+                        $allowedExtensions = ['jpg', 'jpeg', 'png'];
+                        if (!in_array($fileExtension, $allowedExtensions)) {
+                            $error = '허용되지 않은 파일 형식입니다. (JPG, PNG만 가능)';
                         } else {
-                            $error = '이미지 처리에 실패했습니다.';
+                            $fileName = $userId . '_license_' . time() . '.' . $fileExtension;
+                            $uploadPath = $uploadDir . $fileName;
+                            $tmpPath = $_FILES['business_license_image']['tmp_name'];
+                            
+                            // 이미지 리사이징 및 압축 (500MB 이하로)
+                            if (compressImage($tmpPath, $uploadPath, 500)) {
+                                $additionalData['business_license_image'] = '/MVNO/uploads/sellers/' . $fileName;
+                            } else {
+                                $error = '이미지 처리에 실패했습니다.';
+                            }
                         }
                     }
                 } else {
@@ -478,6 +501,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         box-sizing: border-box;
         background: #ffffff;
+    }
+    
+    .form-group input[readonly] {
+        cursor: pointer;
+    }
+    
+    .form-group input[readonly]:hover {
+        border-color: #667eea;
+        background: #f9fafb;
     }
     
     .form-group input:hover,
@@ -1222,7 +1254,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <div class="form-group">
                             <label>사업자등록증 이미지</label>
                             <div class="file-upload-area" id="fileUploadArea">
-                                <input type="file" id="business_license_image" name="business_license_image" accept="image/*" class="file-upload-input" required>
+                                <input type="file" id="business_license_image" name="business_license_image" accept="image/jpeg,image/jpg,image/png" class="file-upload-input" required>
                                 <label for="business_license_image" class="file-upload-label">
                                     <svg class="file-upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -1230,7 +1262,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                         <line x1="12" y1="3" x2="12" y2="15"/>
                                     </svg>
                                     <div class="file-upload-text">클릭하거나 파일을 드래그하여 업로드</div>
-                                    <div class="file-upload-hint">JPG, PNG, GIF (이미지 파일만 가능)</div>
+                                    <div class="file-upload-hint">JPG, PNG만 가능 (GIF 및 문서 파일 불가)</div>
                                 </label>
                             </div>
                             <div id="filePreview" class="file-preview" style="display: none;">
@@ -1261,29 +1293,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
                         
                         <div class="form-group">
-                            <label for="company_representative">대표자명</label>
-                            <input type="text" id="company_representative" name="company_representative" placeholder="홍길동" maxlength="20" value="<?php echo htmlspecialchars($_POST['company_representative'] ?? ''); ?>">
+                            <label for="company_representative">대표자명 <span class="required">*</span></label>
+                            <input type="text" id="company_representative" name="company_representative" placeholder="홍길동" maxlength="20" required value="<?php echo htmlspecialchars($_POST['company_representative'] ?? ''); ?>">
                             <div class="form-help">20자 이내로 입력해주세요.</div>
                         </div>
                         
                         <div class="form-group">
-                            <label for="business_type">업종</label>
-                            <input type="text" id="business_type" name="business_type" placeholder="도매 및 소매업" maxlength="20" value="<?php echo htmlspecialchars($_POST['business_type'] ?? ''); ?>">
+                            <label for="business_type">업종 <span class="required">*</span></label>
+                            <input type="text" id="business_type" name="business_type" placeholder="도매 및 소매업" maxlength="20" required value="<?php echo htmlspecialchars($_POST['business_type'] ?? ''); ?>">
                             <div class="form-help">20자 이내로 입력해주세요.</div>
                         </div>
                         
                         <div class="form-group">
-                            <label for="business_item">업태</label>
-                            <input type="text" id="business_item" name="business_item" placeholder="통신판매업" maxlength="20" value="<?php echo htmlspecialchars($_POST['business_item'] ?? ''); ?>">
+                            <label for="business_item">업태 <span class="required">*</span></label>
+                            <input type="text" id="business_item" name="business_item" placeholder="통신판매업" maxlength="20" required value="<?php echo htmlspecialchars($_POST['business_item'] ?? ''); ?>">
                             <div class="form-help">20자 이내로 입력해주세요.</div>
                         </div>
                         
                         <h3 style="font-size: 16px; font-weight: 600; color: #374151; margin: 24px 0 16px 0;">주소 정보</h3>
                         
                         <div class="form-group">
-                            <label for="address">주소</label>
+                            <label for="address">주소 <span class="required">*</span></label>
                             <div style="display: flex; gap: 8px;">
-                                <input type="text" id="address" name="address" placeholder="서울시 강남구" value="<?php echo htmlspecialchars($_POST['address'] ?? ''); ?>" style="flex: 1;" readonly>
+                                <input type="text" id="address" name="address" placeholder="주소 검색 버튼을 클릭하세요" value="<?php echo htmlspecialchars($_POST['address'] ?? ''); ?>" style="flex: 1;" readonly required onclick="searchAddress()">
                                 <button type="button" id="searchAddressBtn" class="check-duplicate-btn" onclick="searchAddress()">주소 검색</button>
                             </div>
                         </div>
@@ -1296,14 +1328,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <h3 style="font-size: 16px; font-weight: 600; color: #374151; margin: 24px 0 16px 0;">연락처 정보</h3>
                         
                         <div class="form-group">
-                            <label for="mobile">휴대폰</label>
-                            <input type="tel" id="mobile" name="mobile" placeholder="010-1234-5678" value="<?php echo htmlspecialchars($_POST['mobile'] ?? ''); ?>">
+                            <label for="mobile">휴대폰 <span class="required">*</span></label>
+                            <input type="tel" id="mobile" name="mobile" placeholder="010-1234-5678" required value="<?php echo htmlspecialchars($_POST['mobile'] ?? ''); ?>">
                         </div>
                         
                         <div class="form-group">
                             <label for="phone">전화번호</label>
-                            <input type="tel" id="phone" name="phone" placeholder="02-1234-5678, 031-123-4567, 010-1234-5678" value="<?php echo htmlspecialchars($_POST['phone'] ?? ''); ?>">
-                            <div class="form-help">예: 02-1234-5678, 031-123-4567, 010-1234-5678, 070-1234-5678</div>
+                            <input type="tel" id="phone" name="phone" placeholder="1588-1588-070-1234-5678,010-1234-5678" value="<?php echo htmlspecialchars($_POST['phone'] ?? ''); ?>">
                         </div>
                     </div>
                     
@@ -1690,15 +1721,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         } else if (step === 2) {
             const fileInput = document.getElementById('business_license_image');
+            const filePreview = document.getElementById('filePreview');
+            
+            // 파일이 업로드되었는지 확인
             if (!fileInput.files || fileInput.files.length === 0) {
-                showAlert('사업자등록증 이미지를 업로드해주세요.');
+                showAlert('사업자등록증 이미지를 업로드해주세요.').then(() => {
+                    fileInput.focus();
+                });
                 isValid = false;
             } else {
                 const file = fileInput.files[0];
-                const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
-                if (!allowedTypes.includes(file.type)) {
-                    showAlert('이미지 파일만 업로드 가능합니다. (JPG, PNG, GIF)');
+                const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+                
+                // 문서 파일 확장자 차단
+                const fileName = file.name.toLowerCase();
+                const fileExtension = fileName.split('.').pop();
+                const documentExtensions = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'hwp'];
+                
+                if (documentExtensions.includes(fileExtension)) {
+                    showAlert('문서 파일은 업로드할 수 없습니다. JPG 또는 PNG 이미지 파일만 업로드 가능합니다.').then(() => {
+                        fileInput.focus();
+                    });
                     isValid = false;
+                }
+                // GIF 파일 차단
+                else if (file.type === 'image/gif') {
+                    showAlert('GIF 파일은 업로드할 수 없습니다. JPG 또는 PNG 파일만 업로드 가능합니다.').then(() => {
+                        fileInput.focus();
+                    });
+                    isValid = false;
+                }
+                // 파일 타입 검증
+                else if (!allowedTypes.includes(file.type)) {
+                    showAlert('이미지 파일만 업로드 가능합니다. (JPG, PNG만 가능)').then(() => {
+                        fileInput.focus();
+                    });
+                    isValid = false;
+                } else {
+                    // 파일이 정상적으로 업로드되었는지 확인 (미리보기 표시 여부)
+                    if (filePreview && filePreview.style.display === 'none') {
+                        showAlert('파일 업로드를 완료해주세요.').then(() => {
+                            fileInput.focus();
+                        });
+                        isValid = false;
+                    }
                 }
             }
         } else if (step === 3) {
@@ -1707,6 +1773,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             const companyRepresentative = document.getElementById('company_representative').value.trim();
             const businessType = document.getElementById('business_type').value.trim();
             const businessItem = document.getElementById('business_item').value.trim();
+            const address = document.getElementById('address').value.trim();
+            const mobile = document.getElementById('mobile').value.trim();
             
             if (!businessNumber) {
                 showAlert('사업자등록번호를 입력해주세요.').then(() => {
@@ -1716,6 +1784,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else if (!companyName) {
                 showAlert('회사명을 입력해주세요.').then(() => {
                     document.getElementById('company_name').focus();
+                });
+                isValid = false;
+            } else if (!companyRepresentative) {
+                showAlert('대표자명을 입력해주세요.').then(() => {
+                    document.getElementById('company_representative').focus();
+                });
+                isValid = false;
+            } else if (!businessType) {
+                showAlert('업종을 입력해주세요.').then(() => {
+                    document.getElementById('business_type').focus();
+                });
+                isValid = false;
+            } else if (!businessItem) {
+                showAlert('업태를 입력해주세요.').then(() => {
+                    document.getElementById('business_item').focus();
+                });
+                isValid = false;
+            } else if (!address) {
+                showAlert('주소를 입력해주세요. 주소 검색 버튼을 클릭하여 주소를 선택해주세요.').then(() => {
+                    document.getElementById('searchAddressBtn').focus();
+                });
+                isValid = false;
+            } else if (!mobile) {
+                showAlert('휴대폰 번호를 입력해주세요.').then(() => {
+                    document.getElementById('mobile').focus();
                 });
                 isValid = false;
             } else if (companyName.length > 20) {
@@ -1739,36 +1832,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 });
                 isValid = false;
             } else {
-                // 휴대폰 검증 (입력된 경우에만)
-                const mobile = document.getElementById('mobile').value.trim();
-                if (mobile) {
-                    const mobileNumbers = mobile.replace(/[^\d]/g, '');
-                    if (!mobileNumbers.startsWith('010')) {
-                        showAlert('휴대폰 번호는 010으로 시작해야 합니다.').then(() => {
-                            document.getElementById('mobile').focus();
-                        });
-                        isValid = false;
-                    } else if (mobileNumbers.length !== 11) {
-                        showAlert('휴대폰 번호는 11자리여야 합니다.').then(() => {
-                            document.getElementById('mobile').focus();
-                        });
-                        isValid = false;
-                    }
+                // 휴대폰 검증 (필수)
+                const mobileNumbers = mobile.replace(/[^\d]/g, '');
+                if (!mobileNumbers.startsWith('010')) {
+                    showAlert('휴대폰 번호는 010으로 시작해야 합니다.').then(() => {
+                        document.getElementById('mobile').focus();
+                    });
+                    isValid = false;
+                } else if (mobileNumbers.length !== 11) {
+                    showAlert('휴대폰 번호는 11자리여야 합니다.').then(() => {
+                        document.getElementById('mobile').focus();
+                    });
+                    isValid = false;
                 }
                 
-                // 전화번호 검증 (입력된 경우에만)
+                // 전화번호 검증 (입력된 경우에만, 쉼표로 구분된 여러 번호 지원)
                 const phone = document.getElementById('phone').value.trim();
                 if (phone) {
-                    const phoneNumbers = phone.replace(/[^\d]/g, '');
-                    const phoneLength = phoneNumbers.length;
+                    // 쉼표로 구분된 전화번호들을 배열로 분리
+                    const phoneList = phone.split(',').map(p => p.trim()).filter(p => p.length > 0);
                     
-                    // 숫자 길이 검증
-                    if (phoneLength < 8 || phoneLength > 11) {
-                        showAlert('전화번호 형식이 올바르지 않습니다.').then(() => {
-                            document.getElementById('phone').focus();
-                        });
-                        isValid = false;
-                    } else {
+                    for (let i = 0; i < phoneList.length; i++) {
+                        const phoneItem = phoneList[i];
+                        const phoneNumbers = phoneItem.replace(/[^\d]/g, '');
+                        const phoneLength = phoneNumbers.length;
+                        
+                        // 숫자 길이 검증
+                        if (phoneLength < 8 || phoneLength > 11) {
+                            showAlert('전화번호 형식이 올바르지 않습니다. (각 번호는 8-11자리여야 합니다)').then(() => {
+                                document.getElementById('phone').focus();
+                            });
+                            isValid = false;
+                            break;
+                        }
+                        
                         // 한국 전화번호 형식 검증
                         let isValidFormat = false;
                         
@@ -1792,16 +1889,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         else if (phoneLength === 11 && /^0[78]0\d{8}$/.test(phoneNumbers)) {
                             isValidFormat = true;
                         }
-                        // 1588/1544/1577/1600 등 (전국대표번호, 8자리)
-                        else if (phoneLength === 8 && /^(1588|1544|1577|1600|1800|1566|1599|1644)\d{4}$/.test(phoneNumbers)) {
+                        // 전국대표번호 (1XXX로 시작하는 4자리 번호 + 4자리, 총 8자리)
+                        // 예: 1588-1234, 1688-5678, 1544-0000, 1577-9999 등
+                        else if (phoneLength === 8 && /^1\d{3}\d{4}$/.test(phoneNumbers)) {
                             isValidFormat = true;
                         }
                         
                         if (!isValidFormat) {
-                            showAlert('전화번호 형식이 올바르지 않습니다. (예: 02-1234-5678, 031-123-4567, 010-1234-5678)').then(() => {
+                            showAlert('전화번호 형식이 올바르지 않습니다. (예: 02-1234-5678, 031-123-4567, 010-1234-5678, 1588-1234, 070-1234-5678)').then(() => {
                                 document.getElementById('phone').focus();
                             });
                             isValid = false;
+                            break;
                         }
                     }
                 }
@@ -1833,9 +1932,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         if (!file) return;
         
+        // 문서 파일 확장자 차단
+        const fileName = file.name.toLowerCase();
+        const fileExtension = fileName.split('.').pop();
+        const documentExtensions = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'hwp'];
+        
+        if (documentExtensions.includes(fileExtension)) {
+            showAlert('문서 파일은 업로드할 수 없습니다. JPG 또는 PNG 이미지 파일만 업로드 가능합니다.');
+            fileInput.value = ''; // 파일 선택 초기화
+            uploadArea.classList.remove('has-file', 'drag-over');
+            preview.style.display = 'none';
+            previewContent.innerHTML = '';
+            return;
+        }
+        
         // 이미지 파일만 허용
         if (!file.type.startsWith('image/')) {
-            showAlert('이미지 파일만 업로드 가능합니다. (JPG, PNG, GIF)');
+            showAlert('이미지 파일만 업로드 가능합니다. (JPG, PNG만 가능)');
+            fileInput.value = ''; // 파일 선택 초기화
+            uploadArea.classList.remove('has-file', 'drag-over');
+            preview.style.display = 'none';
+            previewContent.innerHTML = '';
+            return;
+        }
+        
+        // GIF 파일 차단
+        if (file.type === 'image/gif') {
+            showAlert('GIF 파일은 업로드할 수 없습니다. JPG 또는 PNG 파일만 업로드 가능합니다.');
             fileInput.value = ''; // 파일 선택 초기화
             uploadArea.classList.remove('has-file', 'drag-over');
             preview.style.display = 'none';
@@ -1991,9 +2114,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     
     function removeFile() {
-        document.getElementById('business_license_image').value = '';
-        document.getElementById('fileUploadArea').classList.remove('has-file');
-        document.getElementById('filePreview').style.display = 'none';
+        const fileInput = document.getElementById('business_license_image');
+        const fileUploadArea = document.getElementById('fileUploadArea');
+        const filePreview = document.getElementById('filePreview');
+        
+        // 파일 입력 초기화
+        fileInput.value = '';
+        
+        // FileList를 초기화하기 위해 새로운 input 요소로 교체
+        const newFileInput = fileInput.cloneNode(true);
+        fileInput.parentNode.replaceChild(newFileInput, fileInput);
+        newFileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            handleFile(file);
+        });
+        
+        fileUploadArea.classList.remove('has-file');
+        filePreview.style.display = 'none';
         document.getElementById('previewContent').innerHTML = '';
     }
     
@@ -2087,16 +2224,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     return limited.slice(0, 3) + '-' + limited.slice(3, 7) + '-' + limited.slice(7);
                 }
             }
-            // 전국대표번호 4자리 (1588, 1544, 1577, 1600 등) - 8자리: 1588-1234
-            else if (numbers.startsWith('1588') || numbers.startsWith('1544') || 
-                numbers.startsWith('1577') || numbers.startsWith('1600') ||
-                numbers.startsWith('1800') || numbers.startsWith('1566') ||
-                numbers.startsWith('1599') || numbers.startsWith('1644')) {
+            // 전국대표번호 (1XXX로 시작하는 4자리 번호) - 8자리: 1588-1234, 1688-5678, 1544-0000 등
+            else if (numbers.length >= 4 && numbers.startsWith('1') && /^1\d{3}$/.test(numbers.slice(0, 4))) {
                 const limited = numbers.slice(0, 8);
                 if (limited.length <= 4) {
                     return limited;
                 } else {
-                    // 4-4 형식: 1588-1234
+                    // 4-4 형식: 1588-1234, 1688-5678 등
                     return limited.slice(0, 4) + '-' + limited.slice(4, 8);
                 }
             }

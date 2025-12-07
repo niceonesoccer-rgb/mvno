@@ -189,68 +189,169 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_seller'])) {
     if (!$seller || $seller['role'] !== 'seller') {
         $error_message = '판매자를 찾을 수 없습니다.';
     } else {
-        // 수정할 정보 수집 (사업자등록번호는 변경 불가)
-        $updateData = [
-            'name' => $_POST['name'] ?? $seller['name'],
-            'email' => $_POST['email'] ?? $seller['email'],
-            'phone' => $_POST['phone'] ?? ($seller['phone'] ?? ''),
-            'mobile' => $_POST['mobile'] ?? ($seller['mobile'] ?? ''),
-            'address' => $_POST['address'] ?? ($seller['address'] ?? ''),
-            'address_detail' => $_POST['address_detail'] ?? ($seller['address_detail'] ?? ''),
-            // 'business_number'는 변경 불가이므로 제외
-            'company_name' => $_POST['company_name'] ?? ($seller['company_name'] ?? ''),
-            'company_representative' => $_POST['company_representative'] ?? ($seller['company_representative'] ?? ''),
-            'business_type' => $_POST['business_type'] ?? ($seller['business_type'] ?? ''),
-            'business_item' => $_POST['business_item'] ?? ($seller['business_item'] ?? ''),
-        ];
+        // 입력값 검증
+        // 이메일 처리 (@ 앞부분과 뒷부분 분리 또는 전체 이메일)
+        $emailLocal = trim($_POST['email_local'] ?? '');
+        $emailDomain = trim($_POST['email_domain'] ?? '');
+        $emailCustom = trim($_POST['email_custom'] ?? '');
         
-        // 비밀번호 변경이 있는 경우
-        if (!empty($_POST['password'])) {
-            $updateData['password'] = password_hash($_POST['password'], PASSWORD_DEFAULT);
+        // 이메일 조합
+        if (!empty($emailCustom)) {
+            $email = $emailLocal . '@' . $emailCustom;
+        } else {
+            $email = $emailLocal . '@' . $emailDomain;
+        }
+        $email = trim($email);
+        
+        $phone = trim($_POST['phone'] ?? '');
+        $mobile = trim($_POST['mobile'] ?? '');
+        
+        // 이메일 검증
+        if (empty($emailLocal)) {
+            $error_message = '이메일 아이디를 입력해주세요.';
+        } elseif (strlen($emailLocal) > 20) {
+            $error_message = '이메일 아이디는 20자 이내로 입력해주세요.';
+        } elseif (empty($emailDomain)) {
+            $error_message = '이메일 도메인을 선택해주세요.';
+        } elseif ($emailDomain === 'custom' && empty($emailCustom)) {
+            $error_message = '이메일 도메인을 입력해주세요.';
+        } elseif (empty($email)) {
+            $error_message = '이메일을 입력해주세요.';
+        } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $error_message = '올바른 이메일 형식을 입력해주세요.';
         }
         
-        // 사업자등록증 이미지 업로드 처리
-        if (isset($_FILES['business_license_image']) && $_FILES['business_license_image']['error'] === UPLOAD_ERR_OK) {
-            $uploadDir = __DIR__ . '/../uploads/sellers/';
-            if (!is_dir($uploadDir)) {
-                mkdir($uploadDir, 0755, true);
+        // 전화번호 검증 (입력된 경우에만)
+        if (empty($error_message) && !empty($phone)) {
+            // 하이픈 제거 후 숫자만 추출
+            $phoneNumbers = preg_replace('/[^0-9]/', '', $phone);
+            $phoneLength = strlen($phoneNumbers);
+            
+            // 숫자 길이 검증
+            if ($phoneLength < 8 || $phoneLength > 11) {
+                $error_message = '전화번호 형식이 올바르지 않습니다. (예: 02-1234-5678, 031-123-4567, 010-1234-5678, 1644-1234)';
+            } else {
+                // 한국 전화번호 형식 검증
+                $isValidFormat = false;
+                
+                // 휴대폰 (010, 011, 016, 017, 018, 019) - 11자리
+                if ($phoneLength === 11 && preg_match('/^01[0-9]\d{8}$/', $phoneNumbers)) {
+                    $isValidFormat = true;
+                }
+                // 02-XXXX-XXXX (서울, 10자리)
+                elseif ($phoneLength === 10 && preg_match('/^02\d{8}$/', $phoneNumbers)) {
+                    $isValidFormat = true;
+                }
+                // 0XX-XXX-XXXX (지역번호 3자리, 10자리)
+                elseif ($phoneLength === 10 && preg_match('/^0[3-6]\d{8}$/', $phoneNumbers)) {
+                    $isValidFormat = true;
+                }
+                // 0XX-XXXX-XXXX (일부 지역번호, 11자리)
+                elseif ($phoneLength === 11 && preg_match('/^0[3-6]\d{9}$/', $phoneNumbers)) {
+                    $isValidFormat = true;
+                }
+                // 070/080-XXXX-XXXX (인터넷전화, 11자리)
+                elseif ($phoneLength === 11 && preg_match('/^0[78]0\d{8}$/', $phoneNumbers)) {
+                    $isValidFormat = true;
+                }
+                // 전국대표번호 (8자리) - 15XX, 16XX, 18XX 등으로 시작하는 8자리 번호
+                elseif ($phoneLength === 8 && preg_match('/^(15|16|18)\d{6}$/', $phoneNumbers)) {
+                    $isValidFormat = true;
+                }
+                
+                if (!$isValidFormat) {
+                    $error_message = '전화번호 형식이 올바르지 않습니다. (예: 02-1234-5678, 031-123-4567, 010-1234-5678, 1644-1234)';
+                }
+            }
+        }
+        
+        // 휴대폰번호 검증 (입력된 경우에만)
+        if (empty($error_message) && !empty($mobile)) {
+            // 하이픈 제거 후 숫자만 추출
+            $mobileNumbers = preg_replace('/[^0-9]/', '', $mobile);
+            
+            // 휴대폰번호 형식 검증 (010으로 시작하는 11자리)
+            if (strlen($mobileNumbers) !== 11) {
+                $error_message = '휴대폰번호는 11자리 숫자여야 합니다. (예: 010-1234-5678)';
+            } elseif (!preg_match('/^010/', $mobileNumbers)) {
+                $error_message = '휴대폰번호는 010으로 시작해야 합니다. (예: 010-1234-5678)';
+            }
+        }
+        
+        // 수정할 정보 수집 (사업자등록번호는 변경 불가)
+        if (empty($error_message)) {
+            $updateData = [
+                'name' => $_POST['name'] ?? $seller['name'],
+                'email' => $email,
+                'phone' => $phone,
+                'mobile' => $mobile,
+                'address' => $_POST['address'] ?? ($seller['address'] ?? ''),
+                'address_detail' => $_POST['address_detail'] ?? ($seller['address_detail'] ?? ''),
+                // 'business_number'는 변경 불가이므로 제외
+                'company_name' => $_POST['company_name'] ?? ($seller['company_name'] ?? ''),
+                'company_representative' => $_POST['company_representative'] ?? ($seller['company_representative'] ?? ''),
+                'business_type' => $_POST['business_type'] ?? ($seller['business_type'] ?? ''),
+                'business_item' => $_POST['business_item'] ?? ($seller['business_item'] ?? ''),
+            ];
+            
+            // 비밀번호 변경이 있는 경우
+            if (!empty($_POST['password'])) {
+                if (strlen($_POST['password']) < 8) {
+                    $error_message = '비밀번호는 최소 8자 이상이어야 합니다.';
+                } else {
+                    $updateData['password'] = password_hash($_POST['password'], PASSWORD_DEFAULT);
+                }
             }
             
-            $tempPath = $_FILES['business_license_image']['tmp_name'];
-            $originalFileName = $_FILES['business_license_image']['name'];
-            $fileExtension = strtolower(pathinfo($originalFileName, PATHINFO_EXTENSION));
-            $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif'];
-            
-            // 확장자 체크
-            if (!in_array($fileExtension, $allowedExtensions)) {
-                $error_message = '이미지 파일만 업로드 가능합니다. (jpg, jpeg, png, gif)';
-            } else {
-                // 실제 이미지 파일인지 MIME 타입으로 체크
-                $imageInfo = @getimagesize($tempPath);
-                if ($imageInfo === false) {
-                    $error_message = '이미지 파일이 아닙니다. 올바른 이미지 파일을 업로드해주세요.';
+            // 사업자등록증 이미지 업로드 처리
+            if (empty($error_message) && isset($_FILES['business_license_image']) && $_FILES['business_license_image']['error'] === UPLOAD_ERR_OK) {
+                $uploadDir = __DIR__ . '/../uploads/sellers/';
+                if (!is_dir($uploadDir)) {
+                    mkdir($uploadDir, 0755, true);
+                }
+                
+                $tempPath = $_FILES['business_license_image']['tmp_name'];
+                $originalFileName = $_FILES['business_license_image']['name'];
+                $fileExtension = strtolower(pathinfo($originalFileName, PATHINFO_EXTENSION));
+                // 문서 파일 확장자 차단
+                $documentExtensions = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'hwp', 'gif'];
+                if (in_array($fileExtension, $documentExtensions)) {
+                    $error_message = 'GIF 파일과 문서 파일은 업로드할 수 없습니다. (JPG, PNG만 가능)';
                 } else {
-                    $allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
-                    $detectedMimeType = $imageInfo['mime'];
+                    $allowedExtensions = ['jpg', 'jpeg', 'png'];
                     
-                    if (!in_array($detectedMimeType, $allowedMimeTypes)) {
-                        $error_message = '이미지 파일만 업로드 가능합니다. (jpg, jpeg, png, gif)';
+                    // 확장자 체크
+                    if (!in_array($fileExtension, $allowedExtensions)) {
+                        $error_message = '이미지 파일만 업로드 가능합니다. (jpg, jpeg, png)';
                     } else {
-                        // 기존 이미지 삭제 (있는 경우)
-                        if (!empty($seller['business_license_image']) && file_exists(__DIR__ . '/..' . $seller['business_license_image'])) {
-                            @unlink(__DIR__ . '/..' . $seller['business_license_image']);
-                        }
-                        
-                        // 새 파일명 생성
-                        $fileName = $userId . '_license_' . time() . '.' . $fileExtension;
-                        $targetPath = $uploadDir . $fileName;
-                        
-                        // 이미지 압축 및 저장 (500MB 이하로 자동 압축)
-                        if (compressImage($tempPath, $targetPath)) {
-                            // 상대 경로 저장
-                            $updateData['business_license_image'] = '/MVNO/uploads/sellers/' . $fileName;
+                        // 실제 이미지 파일인지 MIME 타입으로 체크
+                        $imageInfo = @getimagesize($tempPath);
+                        if ($imageInfo === false) {
+                            $error_message = '이미지 파일이 아닙니다. 올바른 이미지 파일을 업로드해주세요.';
                         } else {
-                            $error_message = '이미지 업로드에 실패했습니다.';
+                            $allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+                            $detectedMimeType = $imageInfo['mime'];
+                            
+                            if (!in_array($detectedMimeType, $allowedMimeTypes)) {
+                                $error_message = '이미지 파일만 업로드 가능합니다. (jpg, jpeg, png)';
+                            } else {
+                                // 기존 이미지 삭제 (있는 경우)
+                                if (!empty($seller['business_license_image']) && file_exists(__DIR__ . '/..' . $seller['business_license_image'])) {
+                                    @unlink(__DIR__ . '/..' . $seller['business_license_image']);
+                                }
+                                
+                                // 새 파일명 생성
+                                $fileName = $userId . '_license_' . time() . '.' . $fileExtension;
+                                $targetPath = $uploadDir . $fileName;
+                                
+                                // 이미지 압축 및 저장 (500MB 이하로 자동 압축)
+                                if (compressImage($tempPath, $targetPath)) {
+                                    // 상대 경로 저장
+                                    $updateData['business_license_image'] = '/MVNO/uploads/sellers/' . $fileName;
+                                } else {
+                                    $error_message = '이미지 업로드에 실패했습니다.';
+                                }
+                            }
                         }
                     }
                 }
@@ -258,7 +359,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_seller'])) {
         }
         
         // 에러가 없을 때만 업데이트 진행
-        if (!isset($error_message)) {
+        if (empty($error_message)) {
             // 변경 사항 확인
             $hasChanges = false;
             
@@ -652,7 +753,6 @@ require_once __DIR__ . '/includes/seller-header.php';
                 <div class="form-group">
                     <label class="form-label">아이디</label>
                     <input type="text" class="form-input" value="<?php echo htmlspecialchars($seller['user_id']); ?>" disabled>
-                    <div class="password-note">아이디는 변경할 수 없습니다.</div>
                 </div>
                 <div class="form-group">
                     <label class="form-label">이름 <span class="required">*</span></label>
@@ -662,7 +762,28 @@ require_once __DIR__ . '/includes/seller-header.php';
             <div class="form-grid">
                 <div class="form-group">
                     <label class="form-label">이메일 <span class="required">*</span></label>
-                    <input type="email" name="email" class="form-input" value="<?php echo htmlspecialchars($seller['email'] ?? ''); ?>" required>
+                    <div class="email-input-group" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                        <?php
+                        $currentEmail = $seller['email'] ?? '';
+                        $emailParts = explode('@', $currentEmail);
+                        $emailLocalValue = count($emailParts) === 2 ? $emailParts[0] : '';
+                        $emailDomainValue = count($emailParts) === 2 ? $emailParts[1] : '';
+                        $commonDomains = ['naver.com', 'gmail.com', 'hanmail.net', 'nate.com'];
+                        $isCustomDomain = !empty($emailDomainValue) && !in_array($emailDomainValue, $commonDomains);
+                        ?>
+                        <input type="text" id="email_local" name="email_local" class="form-input" value="<?php echo htmlspecialchars($emailLocalValue); ?>" required maxlength="20" style="flex: 1; min-width: 120px;" placeholder="이메일 아이디">
+                        <span class="email-at" style="font-size: 16px; color: #6b7280; white-space: nowrap; padding: 0 4px;">@</span>
+                        <select id="email_domain" name="email_domain" class="form-input" onchange="handleEmailDomainChange()" style="flex: 1; min-width: 150px;">
+                            <option value="">선택하세요</option>
+                            <option value="naver.com" <?php echo ($emailDomainValue === 'naver.com') ? 'selected' : ''; ?>>naver.com</option>
+                            <option value="gmail.com" <?php echo ($emailDomainValue === 'gmail.com') ? 'selected' : ''; ?>>gmail.com</option>
+                            <option value="hanmail.net" <?php echo ($emailDomainValue === 'hanmail.net') ? 'selected' : ''; ?>>hanmail.net</option>
+                            <option value="nate.com" <?php echo ($emailDomainValue === 'nate.com') ? 'selected' : ''; ?>>nate.com</option>
+                            <option value="custom" <?php echo $isCustomDomain ? 'selected' : ''; ?>>직접 입력</option>
+                        </select>
+                        <input type="text" id="email_custom" name="email_custom" class="form-input" value="<?php echo $isCustomDomain ? htmlspecialchars($emailDomainValue) : ''; ?>" placeholder="도메인 입력" style="flex: 1; min-width: 150px; display: <?php echo $isCustomDomain ? 'block' : 'none'; ?>;">
+                    </div>
+                    <input type="hidden" id="email" name="email" value="<?php echo htmlspecialchars($currentEmail); ?>">
                 </div>
                 <div class="form-group">
                     <label class="form-label">비밀번호</label>
@@ -678,11 +799,11 @@ require_once __DIR__ . '/includes/seller-header.php';
             <div class="form-grid">
                 <div class="form-group">
                     <label class="form-label">전화번호</label>
-                    <input type="tel" name="phone" class="form-input" value="<?php echo htmlspecialchars($seller['phone'] ?? ''); ?>" placeholder="02-1234-5678">
+                    <input type="tel" name="phone" id="phone" class="form-input" value="<?php echo htmlspecialchars($seller['phone'] ?? ''); ?>" placeholder="1588-1588, 02-1234-1234">
                 </div>
                 <div class="form-group">
                     <label class="form-label">휴대폰</label>
-                    <input type="tel" name="mobile" class="form-input" value="<?php echo htmlspecialchars($seller['mobile'] ?? ''); ?>" placeholder="010-1234-5678">
+                    <input type="tel" name="mobile" id="mobile" class="form-input" value="<?php echo htmlspecialchars($seller['mobile'] ?? ''); ?>" placeholder="010-1234-5678">
                 </div>
             </div>
         </div>
@@ -710,7 +831,6 @@ require_once __DIR__ . '/includes/seller-header.php';
                 <div class="form-group">
                     <label class="form-label">사업자등록번호</label>
                     <input type="text" name="business_number" class="form-input" value="<?php echo htmlspecialchars($seller['business_number'] ?? ''); ?>" placeholder="123-45-67890" disabled>
-                    <div class="password-note">사업자등록번호는 변경할 수 없습니다.</div>
                 </div>
                 <div class="form-group">
                     <label class="form-label">회사명</label>
@@ -739,8 +859,8 @@ require_once __DIR__ . '/includes/seller-header.php';
                         <div class="password-note">현재 등록된 사업자등록증입니다. 새로 업로드하면 기존 이미지가 교체됩니다.</div>
                     </div>
                 <?php endif; ?>
-                <input type="file" name="business_license_image" accept="image/jpeg,image/jpg,image/png,image/gif" class="form-input">
-                <div class="password-note">이미지 파일만 업로드 가능합니다. (jpg, jpeg, png, gif)</div>
+                <input type="file" name="business_license_image" accept="image/jpeg,image/jpg,image/png" class="form-input">
+                <div class="password-note">이미지 파일만 업로드 가능합니다. (jpg, jpeg, png) - GIF 및 문서 파일은 업로드 불가</div>
             </div>
         </div>
         
@@ -860,16 +980,13 @@ require_once __DIR__ . '/includes/seller-header.php';
                     return limited.slice(0, 3) + '-' + limited.slice(3, 7) + '-' + limited.slice(7);
                 }
             }
-            // 전국대표번호 4자리 (1588, 1544, 1577, 1600, 1644 등) - 8자리: 1588-1234
-            else if (numbers.startsWith('1588') || numbers.startsWith('1544') || 
-                numbers.startsWith('1577') || numbers.startsWith('1600') ||
-                numbers.startsWith('1800') || numbers.startsWith('1566') ||
-                numbers.startsWith('1599') || numbers.startsWith('1644')) {
+            // 전국대표번호 (15XX, 16XX, 18XX로 시작하는 8자리) - 8자리: 1655-4444
+            else if (numbers.length >= 2 && (numbers.startsWith('15') || numbers.startsWith('16') || numbers.startsWith('18'))) {
                 const limited = numbers.slice(0, 8);
                 if (limited.length <= 4) {
                     return limited;
                 } else {
-                    // 4-4 형식: 1588-1234
+                    // 4-4 형식: 1655-4444
                     return limited.slice(0, 4) + '-' + limited.slice(4, 8);
                 }
             }
@@ -978,7 +1095,7 @@ require_once __DIR__ . '/includes/seller-header.php';
         if (mobileInput) {
             mobileInput.addEventListener('input', function(e) {
                 // 숫자만 추출
-                let numbers = e.target.value.replace(/[^\d]/g, '');
+                const numbers = e.target.value.replace(/[^\d]/g, '');
                 
                 // 010으로 시작하지 않으면 입력 제한
                 if (numbers.length > 0) {
@@ -1017,6 +1134,95 @@ require_once __DIR__ . '/includes/seller-header.php';
                 e.target.setSelectionRange(newCursorPosition, newCursorPosition);
             });
         }
+        
+        // 이메일 도메인 선택 변경 처리
+        function handleEmailDomainChange() {
+            const emailDomain = document.getElementById('email_domain');
+            const emailCustom = document.getElementById('email_custom');
+            
+            if (emailDomain && emailCustom) {
+                if (emailDomain.value === 'custom') {
+                    emailCustom.style.display = 'block';
+                    emailCustom.required = true;
+                    emailCustom.focus();
+                } else {
+                    emailCustom.style.display = 'none';
+                    emailCustom.required = false;
+                    emailCustom.value = '';
+                }
+                
+                // 이메일 조합하여 hidden 필드 업데이트
+                updateEmailField();
+            }
+        }
+        
+        // 이메일 조합 함수
+        function getCombinedEmail() {
+            const emailLocal = document.getElementById('email_local');
+            const emailDomain = document.getElementById('email_domain');
+            const emailCustom = document.getElementById('email_custom');
+            
+            if (!emailLocal || !emailDomain) {
+                return '';
+            }
+            
+            const emailLocalValue = emailLocal.value.trim();
+            if (!emailLocalValue) {
+                return '';
+            }
+            
+            let domain = '';
+            if (emailDomain.value === 'custom') {
+                domain = emailCustom ? emailCustom.value.trim() : '';
+            } else {
+                domain = emailDomain.value;
+            }
+            
+            if (!domain) {
+                return '';
+            }
+            
+            return emailLocalValue + '@' + domain;
+        }
+        
+        // 이메일 필드 업데이트
+        function updateEmailField() {
+            const emailHidden = document.getElementById('email');
+            if (emailHidden) {
+                const combinedEmail = getCombinedEmail();
+                emailHidden.value = combinedEmail;
+            }
+        }
+        
+        // 이메일 입력 필드 변경 시 처리
+        const emailLocalInput = document.getElementById('email_local');
+        if (emailLocalInput) {
+            emailLocalInput.addEventListener('input', function() {
+                // 20자 제한
+                if (this.value.length > 20) {
+                    this.value = this.value.slice(0, 20);
+                }
+                updateEmailField();
+            });
+        }
+        
+        const emailCustomInput = document.getElementById('email_custom');
+        if (emailCustomInput) {
+            emailCustomInput.addEventListener('input', function() {
+                updateEmailField();
+            });
+        }
+        
+        // 이메일 도메인 선택 변경 시
+        const emailDomainSelect = document.getElementById('email_domain');
+        if (emailDomainSelect) {
+            emailDomainSelect.addEventListener('change', function() {
+                handleEmailDomainChange();
+            });
+        }
+        
+        // 초기 이메일 필드 업데이트
+        updateEmailField();
     });
     
     // 저장 성공 모달 표시
@@ -1061,3 +1267,4 @@ require_once __DIR__ . '/includes/seller-header.php';
 <?php 
 require_once __DIR__ . '/includes/seller-footer.php';
 ?>
+

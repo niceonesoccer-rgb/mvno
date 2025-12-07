@@ -6,6 +6,7 @@ $is_main_page = true;
 
 // 헤더 포함
 include '../includes/header.php';
+
 ?>
 
 <main class="main-content">
@@ -15,125 +16,10 @@ include '../includes/header.php';
             <h2 style="font-size: 24px; font-weight: bold; margin: 0;">YMB님 안녕하세요</h2>
         </div>
 
-        <!-- 포인트 정보 섹션 -->
-        <?php
-        require_once '../includes/data/point-settings.php';
-        $user_id = 'default'; // 실제로는 세션에서 가져옴
-        $user_point = getUserPoint($user_id);
-        $current_balance = $user_point['balance'] ?? 0;
-        ?>
-        <div style="margin-bottom: 24px; padding: 20px; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); border-radius: 12px; color: white;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                <span style="font-size: 14px; opacity: 0.9;">보유 포인트</span>
-                <a href="/MVNO/mypage/point-history.php" style="font-size: 13px; color: white; text-decoration: underline; opacity: 0.9;">내역보기</a>
-            </div>
-            <div style="font-size: 32px; font-weight: 700;" data-point-balance>
-                <?php echo number_format($current_balance); ?>원
-            </div>
-        </div>
-
-        <!-- 내가 찜한 요금제 섹션 -->
-        <div style="margin-bottom: 32px;">
-            <ul style="list-style: none; padding: 0; margin: 0;">
-                <li style="border-bottom: 1px solid #e5e7eb;">
-                    <a href="/MVNO/mypage/wishlist.php?type=mvno" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; text-decoration: none; color: inherit;">
-                        <div style="display: flex; align-items: center; gap: 12px;">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink: 0;">
-                                <path d="M21 9.54803C21 10.8797 20.4656 12.1588 19.5112 13.105C17.3144 15.2837 15.1837 17.5556 12.9048 19.6553C12.3824 20.1296 11.5538 20.1123 11.0539 19.6166L4.48838 13.105C2.50387 11.1368 2.50387 7.95928 4.48838 5.99107C6.49239 4.00353 9.75714 4.00353 11.7611 5.99107L11.9998 6.22775L12.2383 5.99121C13.1992 5.03776 14.5078 4.5 15.8748 4.5C17.2418 4.5 18.5503 5.03771 19.5112 5.99107C20.4657 6.93733 21 8.21636 21 9.54803Z" fill="#FA5252"/>
-                            </svg>
-                            <span style="font-size: 16px;">찜한 알뜰폰 요금제</span>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <span style="font-size: 14px; color: #6b7280;">8개</span>
-                            <img alt=">" src="https://assets-legacy.moyoplan.com/img/icons/rightArrow.svg" style="width: 16px; height: 16px;">
-                        </div>
-                    </a>
-                </li>
-                <li style="border-bottom: 1px solid #e5e7eb;">
-                    <a href="/MVNO/mypage/wishlist.php?type=mno" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; text-decoration: none; color: inherit;">
-                        <div style="display: flex; align-items: center; gap: 12px;">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink: 0;">
-                                <path d="M21 9.54803C21 10.8797 20.4656 12.1588 19.5112 13.105C17.3144 15.2837 15.1837 17.5556 12.9048 19.6553C12.3824 20.1296 11.5538 20.1123 11.0539 19.6166L4.48838 13.105C2.50387 11.1368 2.50387 7.95928 4.48838 5.99107C6.49239 4.00353 9.75714 4.00353 11.7611 5.99107L11.9998 6.22775L12.2383 5.99121C13.1992 5.03776 14.5078 4.5 15.8748 4.5C17.2418 4.5 18.5503 5.03771 19.5112 5.99107C20.4657 6.93733 21 8.21636 21 9.54803Z" fill="#FA5252"/>
-                            </svg>
-                            <span style="font-size: 16px;">찜한 통신사폰 요금제</span>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <span style="font-size: 14px; color: #6b7280;">5개</span>
-                            <img alt=">" src="https://assets-legacy.moyoplan.com/img/icons/rightArrow.svg" style="width: 16px; height: 16px;">
-                        </div>
-                    </a>
-                </li>
-            </ul>
-        </div>
 
         <!-- 하단 메뉴 리스트 -->
         <div style="margin-bottom: 32px;">
             <ul style="list-style: none; padding: 0; margin: 0;">
-                <li style="border-bottom: 1px solid #e5e7eb;">
-                    <a href="/MVNO/mypage/mvno-order.php" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; text-decoration: none; color: inherit;">
-                        <div style="display: flex; align-items: center; gap: 12px;">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink: 0;">
-                                <path d="M9 5H7C5.89543 5 5 5.89543 5 7V19C5 20.1046 5.89543 21 7 21H17C18.1046 21 19 20.1046 19 19V7C19 5.89543 18.1046 5 17 5H15M9 5C9 6.10457 9.89543 7 11 7H13C14.1046 7 15 6.10457 15 5M9 5C9 3.89543 9.89543 3 11 3H13C14.1046 3 15 3.89543 15 5M9 12H15M9 16H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
-                            <span style="font-size: 16px;">알뜰폰 신청내역</span>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <span style="font-size: 14px; color: #6b7280;">15개</span>
-                            <img alt=">" src="https://assets-legacy.moyoplan.com/img/icons/rightArrow.svg" style="width: 16px; height: 16px;">
-                        </div>
-                    </a>
-                </li>
-                <li style="border-bottom: 1px solid #e5e7eb;">
-                    <a href="/MVNO/mypage/mno-order.php" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; text-decoration: none; color: inherit;">
-                        <div style="display: flex; align-items: center; gap: 12px;">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink: 0;">
-                                <path d="M5 4C5 2.89543 5.89543 2 7 2H17C18.1046 2 19 2.89543 19 4V20C19 21.1046 18.1046 22 17 22H7C5.89543 22 5 21.1046 5 20V4Z" stroke="currentColor" stroke-width="2"/>
-                                <path d="M12 18H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                            </svg>
-                            <span style="font-size: 16px;">통신사폰 신청내역</span>
-                        </div>
-                        <img alt=">" src="https://assets-legacy.moyoplan.com/img/icons/rightArrow.svg" style="width: 16px; height: 16px;">
-                    </a>
-                </li>
-                <li style="border-bottom: 1px solid #e5e7eb;">
-                    <a href="/MVNO/mypage/internet-order.php" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; text-decoration: none; color: inherit;">
-                        <div style="display: flex; align-items: center; gap: 12px;">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink: 0;">
-                                <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
-                            <span style="font-size: 16px;">인터넷 신청내역</span>
-                        </div>
-                        <img alt=">" src="https://assets-legacy.moyoplan.com/img/icons/rightArrow.svg" style="width: 16px; height: 16px;">
-                    </a>
-                </li>
-                <li style="border-bottom: 1px solid #e5e7eb;">
-                    <a href="/MVNO/mypage/point-history.php" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; text-decoration: none; color: inherit;">
-                        <div style="display: flex; align-items: center; gap: 12px;">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink: 0;">
-                                <path d="M3 10C3 6.22876 3 4.34315 4.17157 3.17157C5.34315 2.34315 7.22876 2.34315 11 2.34315H13C16.7712 2.34315 18.6569 2.34315 19.8284 3.17157C21 4.34315 21 6.22876 21 10V14C21 17.7712 21 19.6569 19.8284 20.8284C18.6569 22 16.7712 22 13 22H11C7.22876 22 5.34315 22 4.17157 20.8284C3 19.6569 3 17.7712 3 14V10Z" stroke="currentColor" stroke-width="2"/>
-                                <path d="M7 12H17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                                <path d="M7 16H12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                            </svg>
-                            <span style="font-size: 16px;">내 포인트 내역</span>
-                        </div>
-                        <img alt=">" src="https://assets-legacy.moyoplan.com/img/icons/rightArrow.svg" style="width: 16px; height: 16px;">
-                    </a>
-                </li>
-                <li style="border-bottom: 1px solid #e5e7eb;">
-                    <a href="/MVNO/mypage/alarm-setting.php" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; text-decoration: none; color: inherit;">
-                        <div style="display: flex; align-items: center; gap: 12px;">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink: 0;">
-                                <path d="M18 8C18 6.4087 17.3679 4.88258 16.2426 3.75736C15.1174 2.63214 13.5913 2 12 2C10.4087 2 8.88258 2.63214 7.75736 3.75736C6.63214 4.88258 6 6.4087 6 8C6 15 3 17 3 17H21C21 17 18 15 18 8Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                <path d="M13.73 21C13.5542 21.3031 13.3019 21.5547 12.9982 21.7295C12.6946 21.9044 12.3504 21.9965 12 21.9965C11.6496 21.9965 11.3054 21.9044 11.0018 21.7295C10.6982 21.5547 10.4458 21.3031 10.27 21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
-                            <span style="font-size: 16px;">알림 설정</span>
-                        </div>
-                        <img alt=">" src="https://assets-legacy.moyoplan.com/img/icons/rightArrow.svg" style="width: 16px; height: 16px;">
-                    </a>
-                </li>
-            </ul>
 
             <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 16px 0;">
             <ul style="list-style: none; padding: 0; margin: 0;">
@@ -164,21 +50,6 @@ include '../includes/header.php';
                 </li>
             </ul>
 
-            <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 16px 0;">
-            <ul style="list-style: none; padding: 0; margin: 0;">
-                <li>
-                    <a href="/MVNO/mypage/account-management.php" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; text-decoration: none; color: inherit;">
-                        <div style="display: flex; align-items: center; gap: 12px;">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink: 0;">
-                                <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                <path d="M12 11C14.2091 11 16 9.20914 16 7C16 4.79086 14.2091 3 12 3C9.79086 3 8 4.79086 8 7C8 9.20914 9.79086 11 12 11Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
-                            <span style="font-size: 16px;">계정 설정</span>
-                        </div>
-                        <img alt=">" src="https://assets-legacy.moyoplan.com/img/icons/rightArrow.svg" style="width: 16px; height: 16px;">
-                    </a>
-                </li>
-            </ul>
         </div>
     </div>
 </main>

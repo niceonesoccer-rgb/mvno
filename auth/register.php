@@ -59,21 +59,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             mkdir($uploadDir, 0755, true);
                         }
                         
-                        $fileExtension = pathinfo($_FILES['business_license_image']['name'], PATHINFO_EXTENSION);
-                        $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'pdf'];
-                        if (!in_array(strtolower($fileExtension), $allowedExtensions)) {
-                            $error = '허용되지 않은 파일 형식입니다. (JPG, PNG, GIF, PDF만 가능)';
+                        $fileExtension = strtolower(pathinfo($_FILES['business_license_image']['name'], PATHINFO_EXTENSION));
+                        // 문서 파일 확장자 차단
+                        $documentExtensions = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'hwp', 'gif'];
+                        if (in_array($fileExtension, $documentExtensions)) {
+                            $error = 'GIF 파일과 문서 파일은 업로드할 수 없습니다. (JPG, PNG만 가능)';
                         } else {
-                            $fileName = $userId . '_license_' . time() . '.' . $fileExtension;
-                            $uploadPath = $uploadDir . $fileName;
-                            
-                            // 파일 크기 확인 (5MB)
-                            if ($_FILES['business_license_image']['size'] > 5 * 1024 * 1024) {
-                                $error = '파일 크기는 5MB 이하여야 합니다.';
-                            } elseif (move_uploaded_file($_FILES['business_license_image']['tmp_name'], $uploadPath)) {
-                                $additionalData['business_license_image'] = '/MVNO/uploads/sellers/' . $fileName;
+                            $allowedExtensions = ['jpg', 'jpeg', 'png'];
+                            if (!in_array($fileExtension, $allowedExtensions)) {
+                                $error = '허용되지 않은 파일 형식입니다. (JPG, PNG만 가능)';
                             } else {
-                                $error = '파일 업로드에 실패했습니다.';
+                                $fileName = $userId . '_license_' . time() . '.' . $fileExtension;
+                                $uploadPath = $uploadDir . $fileName;
+                                
+                                // 파일 크기 확인 (5MB)
+                                if ($_FILES['business_license_image']['size'] > 5 * 1024 * 1024) {
+                                    $error = '파일 크기는 5MB 이하여야 합니다.';
+                                } elseif (move_uploaded_file($_FILES['business_license_image']['tmp_name'], $uploadPath)) {
+                                    $additionalData['business_license_image'] = '/MVNO/uploads/sellers/' . $fileName;
+                                } else {
+                                    $error = '파일 업로드에 실패했습니다.';
+                                }
                             }
                         }
                     } else {
@@ -439,7 +445,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                     <div class="form-group">
                         <label for="business_license_image">사업자등록증 이미지</label>
-                        <input type="file" id="business_license_image" name="business_license_image" accept="image/*">
+                        <input type="file" id="business_license_image" name="business_license_image" accept="image/jpeg,image/jpg,image/png">
                         <div class="form-help">사업자등록증 이미지를 업로드해주세요. (JPG, PNG, 최대 5MB)</div>
                         <div id="licensePreview" style="margin-top: 12px; display: none;">
                             <img id="licensePreviewImg" src="" alt="사업자등록증 미리보기" style="max-width: 300px; border-radius: 8px; border: 1px solid #e5e7eb;">

@@ -4,6 +4,9 @@
  * JSON 파일 기반 데이터 저장
  */
 
+// 한국 시간대 설정 (KST, UTC+9)
+date_default_timezone_set('Asia/Seoul');
+
 // Q&A 데이터 파일 경로
 function getQnaDataFile() {
     return __DIR__ . '/qna.json';

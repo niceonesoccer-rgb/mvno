@@ -34,9 +34,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_permissions'])) 
     }
 }
 
+// 승인 처리 (헤더 출력 전에 처리)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['approve_seller'])) {
+    $userId = $_POST['user_id'] ?? '';
+    if ($userId && approveSeller($userId)) {
+        header('Location: /MVNO/admin/users/seller-detail.php?user_id=' . urlencode($userId) . '&success=approve');
+        exit;
+    } else {
+        header('Location: /MVNO/admin/users/seller-detail.php?user_id=' . urlencode($userId) . '&error=approve');
+        exit;
+    }
+}
+
+// 승인보류 처리 (헤더 출력 전에 처리)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['hold_seller'])) {
+    $userId = $_POST['user_id'] ?? '';
+    if ($userId && holdSeller($userId)) {
+        header('Location: /MVNO/admin/users/seller-detail.php?user_id=' . urlencode($userId) . '&success=hold');
+        exit;
+    } else {
+        header('Location: /MVNO/admin/users/seller-detail.php?user_id=' . urlencode($userId) . '&error=hold');
+        exit;
+    }
+}
+
 require_once __DIR__ . '/../includes/admin-header.php';
 
-// 판매자 정보 가져오기 (POST 요청 후 최신 정보를 가져오기 위해 여기서 다시 로드)
+// 판매자 정보 가져오기 (POST 요청 후 최신 정보를 가져오기 위해 여기서 로드)
+// 파일 캐시 클리어하여 최신 데이터 가져오기
+$sellersFile = __DIR__ . '/../../includes/data/sellers.json';
+if (file_exists($sellersFile)) {
+    clearstatcache(true, $sellersFile);
+}
 $seller = getUserById($sellerId);
 
 if (!$seller || $seller['role'] !== 'seller') {
@@ -346,25 +375,18 @@ if (!$seller || $seller['role'] !== 'seller') {
                         <?php if (isset($seller['held_at']) && $approvalStatus === 'on_hold'): ?>
                             <span style="font-size: 13px; color: #6b7280;">보류일: <?php echo htmlspecialchars($seller['held_at']); ?></span>
                         <?php endif; ?>
-                        <?php if (!$isApproved && $approvalStatus !== 'on_hold'): ?>
-                            <!-- 승인 대기 회원: 승인 버튼 -->
-                            <form method="POST" action="/MVNO/admin/seller-approval.php" style="display: inline; margin: 0;">
-                                <input type="hidden" name="user_id" value="<?php echo htmlspecialchars($seller['user_id']); ?>">
-                                <button type="submit" name="approve_seller" class="btn btn-success" style="padding: 8px 16px; font-size: 13px; height: 36px; line-height: 1;">승인</button>
-                            </form>
-                        <?php elseif ($approvalStatus === 'on_hold'): ?>
-                            <!-- 승인보류 회원: 승인 버튼 (오른쪽 정렬) -->
-                            <form method="POST" action="/MVNO/admin/seller-approval.php" style="display: inline; margin: 0; margin-left: auto;">
-                                <input type="hidden" name="user_id" value="<?php echo htmlspecialchars($seller['user_id']); ?>">
-                                <button type="submit" name="approve_seller" class="btn btn-success" style="padding: 8px 16px; font-size: 13px; height: 36px; line-height: 1;">승인</button>
-                            </form>
-                        <?php elseif ($isApproved || $approvalStatus === 'approved'): ?>
-                            <!-- 승인된 회원: 승인보류 버튼 -->
-                            <form method="POST" action="/MVNO/admin/seller-approval.php" style="display: inline; margin: 0; margin-left: auto;">
-                                <input type="hidden" name="user_id" value="<?php echo htmlspecialchars($seller['user_id']); ?>">
-                                <button type="submit" name="hold_seller" class="btn btn-warning" style="padding: 8px 16px; font-size: 13px; height: 36px; line-height: 1;">승인보류</button>
-                            </form>
-                        <?php endif; ?>
+                        <div style="margin-left: auto;">
+                            <?php if (!$isApproved && $approvalStatus !== 'on_hold'): ?>
+                                <!-- 승인 대기 회원: 승인 버튼 -->
+                                <button type="button" onclick="showApproveConfirmModal('<?php echo htmlspecialchars($seller['user_id']); ?>', '<?php echo htmlspecialchars($seller['name'] ?? $seller['user_id']); ?>')" class="btn btn-success" style="padding: 8px 16px; font-size: 13px; height: 36px; line-height: 1;">승인</button>
+                            <?php elseif ($approvalStatus === 'on_hold'): ?>
+                                <!-- 승인보류 회원: 승인 버튼 -->
+                                <button type="button" onclick="showApproveConfirmModal('<?php echo htmlspecialchars($seller['user_id']); ?>', '<?php echo htmlspecialchars($seller['name'] ?? $seller['user_id']); ?>')" class="btn btn-success" style="padding: 8px 16px; font-size: 13px; height: 36px; line-height: 1;">승인</button>
+                            <?php elseif ($isApproved || $approvalStatus === 'approved'): ?>
+                                <!-- 승인된 회원: 승인보류 버튼 -->
+                                <button type="button" onclick="showHoldConfirmModal('<?php echo htmlspecialchars($seller['user_id']); ?>', '<?php echo htmlspecialchars($seller['name'] ?? $seller['user_id']); ?>')" class="btn btn-warning" style="padding: 8px 16px; font-size: 13px; height: 36px; line-height: 1;">승인보류</button>
+                            <?php endif; ?>
+                        </div>
                     </div>
                 </div>
                 <div class="detail-item">
@@ -402,6 +424,29 @@ if (!$seller || $seller['role'] !== 'seller') {
             </div>
         </div>
         
+        <?php 
+        // 성공/에러 메시지 처리
+        if (isset($_GET['success'])) {
+            switch ($_GET['success']) {
+                case 'approve':
+                    $success_message = '판매자가 승인되었습니다.';
+                    break;
+                case 'hold':
+                    $success_message = '판매자 승인이 보류되었습니다.';
+                    break;
+            }
+        }
+        if (isset($_GET['error'])) {
+            switch ($_GET['error']) {
+                case 'approve':
+                    $error_message = '판매자 승인에 실패했습니다.';
+                    break;
+                case 'hold':
+                    $error_message = '판매자 승인보류에 실패했습니다.';
+                    break;
+            }
+        }
+        ?>
         <?php if (isset($success_message)): ?>
             <div class="alert alert-success" style="margin-bottom: 20px; padding: 12px 16px; border-radius: 8px; background: #d1fae5; color: #065f46; border: 1px solid #10b981; max-width: 1200px; margin: 0 auto 24px;">
                 <?php echo htmlspecialchars($success_message); ?>
@@ -598,6 +643,40 @@ if (!$seller || $seller['role'] !== 'seller') {
     </div>
 </div>
 
+<!-- 승인 확인 모달 -->
+<div class="modal-overlay" id="approveConfirmModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); z-index: 1002; align-items: center; justify-content: center;">
+    <div class="modal" style="background: white; border-radius: 12px; padding: 24px; max-width: 400px; width: 90%; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);">
+        <div class="modal-title" style="font-size: 18px; font-weight: 700; color: #1f2937; margin-bottom: 16px;">승인 상태 변경 확인</div>
+        <div class="modal-message" id="approveConfirmMessage" style="font-size: 14px; color: #6b7280; margin-bottom: 24px; line-height: 1.6;">
+            <strong id="approveConfirmUserName"></strong> 판매자의 승인 상태를 <strong style="color: #10b981;">승인</strong>으로 변경하시겠습니까?
+        </div>
+        <div class="modal-actions" style="display: flex; gap: 12px; justify-content: flex-end;">
+            <button type="button" class="modal-btn modal-btn-cancel" onclick="closeApproveConfirmModal()" style="padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; border: none; transition: all 0.2s; background: #f3f4f6; color: #374151;">취소</button>
+            <form method="POST" action="/MVNO/admin/users/seller-detail.php?user_id=<?php echo urlencode($seller['user_id']); ?>" id="approveConfirmForm" style="display: inline;">
+                <input type="hidden" name="user_id" id="approveConfirmUserId">
+                <button type="submit" name="approve_seller" class="modal-btn modal-btn-confirm" style="padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; border: none; transition: all 0.2s; background: #10b981; color: white;">승인</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 승인보류 확인 모달 -->
+<div class="modal-overlay" id="holdConfirmModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); z-index: 1002; align-items: center; justify-content: center;">
+    <div class="modal" style="background: white; border-radius: 12px; padding: 24px; max-width: 400px; width: 90%; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);">
+        <div class="modal-title" style="font-size: 18px; font-weight: 700; color: #1f2937; margin-bottom: 16px;">승인 상태 변경 확인</div>
+        <div class="modal-message" id="holdConfirmMessage" style="font-size: 14px; color: #6b7280; margin-bottom: 24px; line-height: 1.6;">
+            <strong id="holdConfirmUserName"></strong> 판매자의 승인 상태를 <strong style="color: #f59e0b;">승인보류</strong>로 변경하시겠습니까?
+        </div>
+        <div class="modal-actions" style="display: flex; gap: 12px; justify-content: flex-end;">
+            <button type="button" class="modal-btn modal-btn-cancel" onclick="closeHoldConfirmModal()" style="padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; border: none; transition: all 0.2s; background: #f3f4f6; color: #374151;">취소</button>
+            <form method="POST" action="/MVNO/admin/users/seller-detail.php?user_id=<?php echo urlencode($seller['user_id']); ?>" id="holdConfirmForm" style="display: inline;">
+                <input type="hidden" name="user_id" id="holdConfirmUserId">
+                <button type="submit" name="hold_seller" class="modal-btn modal-btn-hold" style="padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; border: none; transition: all 0.2s; background: #f59e0b; color: white;">승인보류</button>
+            </form>
+        </div>
+    </div>
+</div>
+
 <!-- 저장 확인 모달 -->
 <div class="modal-overlay" id="saveModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); z-index: 1001; align-items: center; justify-content: center;">
     <div class="modal" style="background: white; border-radius: 12px; padding: 24px; max-width: 400px; width: 90%; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);">
@@ -752,6 +831,30 @@ if (!$seller || $seller['role'] !== 'seller') {
         form.submit();
     }
     
+    // 승인 확인 모달 표시
+    function showApproveConfirmModal(userId, userName) {
+        document.getElementById('approveConfirmUserId').value = userId;
+        document.getElementById('approveConfirmUserName').textContent = userName;
+        document.getElementById('approveConfirmModal').style.display = 'flex';
+    }
+    
+    // 승인 확인 모달 닫기
+    function closeApproveConfirmModal() {
+        document.getElementById('approveConfirmModal').style.display = 'none';
+    }
+    
+    // 승인보류 확인 모달 표시
+    function showHoldConfirmModal(userId, userName) {
+        document.getElementById('holdConfirmUserId').value = userId;
+        document.getElementById('holdConfirmUserName').textContent = userName;
+        document.getElementById('holdConfirmModal').style.display = 'flex';
+    }
+    
+    // 승인보류 확인 모달 닫기
+    function closeHoldConfirmModal() {
+        document.getElementById('holdConfirmModal').style.display = 'none';
+    }
+    
     // 모달 외부 클릭 시 닫기
     document.addEventListener('DOMContentLoaded', function() {
         const saveModal = document.getElementById('saveModal');
@@ -777,6 +880,24 @@ if (!$seller || $seller['role'] !== 'seller') {
             approvalRequiredModal.addEventListener('click', function(e) {
                 if (e.target === this) {
                     closeApprovalRequiredModal();
+                }
+            });
+        }
+        
+        const approveConfirmModal = document.getElementById('approveConfirmModal');
+        if (approveConfirmModal) {
+            approveConfirmModal.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeApproveConfirmModal();
+                }
+            });
+        }
+        
+        const holdConfirmModal = document.getElementById('holdConfirmModal');
+        if (holdConfirmModal) {
+            holdConfirmModal.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeHoldConfirmModal();
                 }
             });
         }

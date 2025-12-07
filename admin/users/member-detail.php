@@ -31,8 +31,11 @@ if (!$user) {
 // 판매자인지 확인
 $isSeller = isset($user['role']) && $user['role'] === 'seller';
 
-// 판매자가 아닌 경우에만 일반 회원 정보 가져오기
-if (!$isSeller) {
+// 관리자/부관리자인지 확인
+$isAdmin = isset($user['role']) && ($user['role'] === 'admin' || $user['role'] === 'sub_admin');
+
+// 판매자가 아니고 관리자/부관리자가 아닌 경우에만 일반 회원 정보 가져오기
+if (!$isSeller && !$isAdmin) {
     // 포인트 정보 가져오기
     $pointsData = [];
     $pointsFile = __DIR__ . '/../../includes/data/user-points.json';
@@ -474,12 +477,23 @@ if (!$isSeller) {
     <div class="member-detail-container">
         <div class="detail-header">
             <h1><?php echo $isSeller ? '판매자 상세 정보' : '회원 상세 정보'; ?></h1>
-            <a href="<?php echo $isSeller ? '/MVNO/admin/seller-approval.php?tab=approved' : '/MVNO/admin/users/member-list.php'; ?>" class="back-button">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M19 12H5M12 19l-7-7 7-7"/>
-                </svg>
-                목록으로
-            </a>
+            <div style="display: flex; gap: 12px; align-items: center;">
+                <?php if ($isAdmin): ?>
+                    <a href="/MVNO/admin/settings/admin-manage.php?edit=<?php echo urlencode($userId); ?>" class="back-button" style="background: #6366f1; color: white;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                        </svg>
+                        정보 수정
+                    </a>
+                <?php endif; ?>
+                <a href="<?php echo $isSeller ? '/MVNO/admin/seller-approval.php?tab=approved' : '/MVNO/admin/users/member-list.php'; ?>" class="back-button">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 12H5M12 19l-7-7 7-7"/>
+                    </svg>
+                    목록으로
+                </a>
+            </div>
         </div>
         
         <div class="detail-grid">
@@ -494,10 +508,17 @@ if (!$isSeller) {
                     <div class="detail-label">이름</div>
                     <div class="detail-value"><?php echo htmlspecialchars($user['name'] ?? ''); ?></div>
                 </div>
-                <div class="detail-item">
-                    <div class="detail-label">이메일</div>
-                    <div class="detail-value"><?php echo htmlspecialchars($user['email'] ?? ''); ?></div>
-                </div>
+                <?php if ($isAdmin): ?>
+                    <div class="detail-item">
+                        <div class="detail-label">전화번호</div>
+                        <div class="detail-value"><?php echo htmlspecialchars($user['phone'] ?? ''); ?></div>
+                    </div>
+                <?php else: ?>
+                    <div class="detail-item">
+                        <div class="detail-label">이메일</div>
+                        <div class="detail-value"><?php echo htmlspecialchars($user['email'] ?? ''); ?></div>
+                    </div>
+                <?php endif; ?>
                 <div class="detail-item">
                     <div class="detail-label">역할</div>
                     <div class="detail-value">
@@ -584,12 +605,6 @@ if (!$isSeller) {
                         <div class="detail-item">
                             <div class="detail-label">보류일</div>
                             <div class="detail-value"><?php echo htmlspecialchars($user['held_at']); ?></div>
-                        </div>
-                    <?php endif; ?>
-                    <?php if (isset($user['rejected_at'])): ?>
-                        <div class="detail-item">
-                            <div class="detail-label">거부일</div>
-                            <div class="detail-value"><?php echo htmlspecialchars($user['rejected_at']); ?></div>
                         </div>
                     <?php endif; ?>
                     <?php if (isset($user['withdrawal_requested_at'])): ?>
@@ -717,7 +732,7 @@ if (!$isSeller) {
         <?php endif; ?>
         
         <!-- 포인트 정보 (일반 회원만) -->
-        <?php if (!$isSeller): ?>
+        <?php if (!$isSeller && !$isAdmin): ?>
         <div class="detail-card mypage-section">
             <h2 class="detail-card-title">포인트 정보</h2>
             <?php if ($userPoints): ?>
@@ -758,7 +773,7 @@ if (!$isSeller) {
         <?php endif; ?>
         
         <!-- 찜한 요금제 (일반 회원만) -->
-        <?php if (!$isSeller): ?>
+        <?php if (!$isSeller && !$isAdmin): ?>
         <div class="detail-card mypage-section">
             <h2 class="detail-card-title">찜한 요금제</h2>
             <?php if ($userWishlist): ?>
@@ -800,7 +815,7 @@ if (!$isSeller) {
         <?php endif; ?>
         
         <!-- 신청 내역 (일반 회원만) -->
-        <?php if (!$isSeller): ?>
+        <?php if (!$isSeller && !$isAdmin): ?>
         <div class="detail-card mypage-section">
             <h2 class="detail-card-title">신청 내역</h2>
             <?php if ($userOrders): ?>
@@ -888,7 +903,7 @@ if (!$isSeller) {
         <?php endif; ?>
         
         <!-- 알림 설정 (일반 회원만) -->
-        <?php if (!$isSeller): ?>
+        <?php if (!$isSeller && !$isAdmin): ?>
         <div class="detail-card mypage-section">
             <h2 class="detail-card-title">알림 설정</h2>
             <?php if ($userNotifications): ?>
@@ -917,7 +932,7 @@ if (!$isSeller) {
         <?php endif; ?>
         
         <!-- 계정 설정 (일반 회원만) -->
-        <?php if (!$isSeller): ?>
+        <?php if (!$isSeller && !$isAdmin): ?>
         <div class="detail-card mypage-section">
             <h2 class="detail-card-title">계정 설정</h2>
             <?php if ($userAccount): ?>

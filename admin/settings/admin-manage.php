@@ -21,15 +21,71 @@ $currentUser = getCurrentUser();
 $error = '';
 $success = '';
 
-// 관리자 추가 처리
+// 관리자 정보 수정 처리
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update_admin') {
+    $editUserId = $_POST['user_id'] ?? '';
+    $phone = trim($_POST['phone'] ?? '');
+    $name = trim($_POST['name'] ?? '');
+    $role = $_POST['role'] ?? 'sub_admin';
+    $password = $_POST['password'] ?? '';
+    
+    if (empty($editUserId) || empty($phone) || empty($name)) {
+        $error = '모든 필드를 입력해주세요.';
+    } else {
+        $adminsFile = getAdminsFilePath();
+        if (file_exists($adminsFile)) {
+            $data = json_decode(file_get_contents($adminsFile), true) ?: ['admins' => []];
+            $admins = $data['admins'] ?? [];
+            
+            $updated = false;
+            foreach ($admins as &$admin) {
+                if (isset($admin['user_id']) && $admin['user_id'] === $editUserId) {
+                    $admin['phone'] = $phone;
+                    $admin['name'] = $name;
+                    
+                    // admin 아이디가 아닌 경우 관리자 역할로 변경 불가
+                    if ($editUserId === 'admin') {
+                        $admin['role'] = 'admin'; // admin은 항상 관리자
+                    } else {
+                        $admin['role'] = 'sub_admin'; // 그 외는 부관리자만 가능
+                    }
+                    
+                    // 비밀번호가 입력된 경우에만 업데이트
+                    if (!empty($password)) {
+                        if (strlen($password) < 8) {
+                            $error = '비밀번호는 최소 8자 이상이어야 합니다.';
+                            break;
+                        }
+                        $admin['password'] = password_hash($password, PASSWORD_DEFAULT);
+                    }
+                    
+                    $updated = true;
+                    break;
+                }
+            }
+            
+            if ($updated && empty($error)) {
+                $data = ['admins' => $admins];
+                if (file_put_contents($adminsFile, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE))) {
+                    $success = '관리자 정보가 수정되었습니다.';
+                    // 수정 후 목록으로 리다이렉트
+                    header('Location: /MVNO/admin/settings/admin-manage.php?success=update');
+                    exit;
+                }
+            }
+        }
+    }
+}
+
+// 관리자 추가 처리 (사이드바 모달에서 호출)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'add_admin') {
     $userId = strtolower(trim($_POST['user_id'] ?? '')); // 소문자로 변환
     $password = $_POST['password'] ?? '';
-    $email = trim($_POST['email'] ?? '');
+    $phone = trim($_POST['phone'] ?? '');
     $name = trim($_POST['name'] ?? '');
     $role = $_POST['role'] ?? 'sub_admin';
     
-    if (empty($userId) || empty($password) || empty($email) || empty($name)) {
+    if (empty($userId) || empty($password) || empty($phone) || empty($name)) {
         $error = '모든 필드를 입력해주세요.';
     } elseif (!preg_match('/^[a-z0-9]{4,20}$/', $userId)) {
         $error = '아이디는 소문자 영문자와 숫자 조합 4-20자로 입력해주세요.';
@@ -59,7 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             // 관리자 추가
             $newAdmin = [
                 'user_id' => $userId,
-                'email' => $email,
+                'phone' => $phone,
                 'name' => $name,
                 'password' => password_hash($password, PASSWORD_DEFAULT),
                 'role' => $role,
@@ -71,7 +127,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $data = ['admins' => $admins];
             
             if (file_put_contents($adminsFile, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE))) {
-                $success = '관리자가 성공적으로 추가되었습니다.';
+                $success = '부관리자가 성공적으로 추가되었습니다.';
+                // 추가 후 목록으로 리다이렉트
+                header('Location: /MVNO/admin/settings/admin-manage.php?success=add');
+                exit;
             } else {
                 $error = '관리자 추가 중 오류가 발생했습니다.';
             }
@@ -101,6 +160,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 $success = '관리자가 삭제되었습니다.';
             } else {
                 $error = '관리자 삭제 중 오류가 발생했습니다.';
+            }
+        }
+    }
+}
+
+// 수정할 관리자 정보 가져오기
+$editAdmin = null;
+$editUserId = $_GET['edit'] ?? '';
+if (!empty($editUserId)) {
+    $adminsFile = getAdminsFilePath();
+    if (file_exists($adminsFile)) {
+        $data = json_decode(file_get_contents($adminsFile), true) ?: ['admins' => []];
+        $admins = $data['admins'] ?? [];
+        foreach ($admins as $admin) {
+            if (isset($admin['user_id']) && $admin['user_id'] === $editUserId) {
+                $editAdmin = $admin;
+                break;
             }
         }
     }
@@ -145,7 +221,7 @@ include '../includes/admin-header.php';
     
     .admin-grid {
         display: grid;
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: 1fr;
         gap: 24px;
         margin-bottom: 32px;
     }
@@ -329,62 +405,82 @@ include '../includes/admin-header.php';
         </div>
     <?php endif; ?>
     
+    <?php if (isset($_GET['success']) && $_GET['success'] === 'update'): ?>
+        <div class="alert alert-success">
+            관리자 정보가 수정되었습니다.
+        </div>
+    <?php endif; ?>
+    
+    <?php if (isset($_GET['success']) && $_GET['success'] === 'add'): ?>
+        <div class="alert alert-success">
+            부관리자가 성공적으로 추가되었습니다.
+        </div>
+    <?php endif; ?>
+    
     <?php if ($success): ?>
         <div class="alert alert-success">
             <?php echo htmlspecialchars($success); ?>
         </div>
     <?php endif; ?>
     
-    <div class="admin-grid">
-        <!-- 관리자 추가 폼 -->
-        <div class="card">
-            <h2 class="card-title">관리자 추가</h2>
+    <?php if ($editAdmin): ?>
+        <!-- 관리자 정보 수정 폼 -->
+        <div class="card" style="max-width: 600px; margin-bottom: 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 class="card-title">관리자 정보 수정</h2>
+                <a href="/MVNO/admin/settings/admin-manage.php" class="btn btn-primary" style="padding: 8px 16px; font-size: 14px; text-decoration: none; display: inline-block;">목록으로</a>
+            </div>
             <form method="POST">
-                <input type="hidden" name="action" value="add_admin">
+                <input type="hidden" name="action" value="update_admin">
+                <input type="hidden" name="user_id" value="<?php echo htmlspecialchars($editAdmin['user_id'] ?? ''); ?>">
                 
                 <div class="form-group">
-                    <label for="user_id">아이디 <span class="required">*</span></label>
-                    <input type="text" id="user_id" name="user_id" required value="<?php echo htmlspecialchars($_POST['user_id'] ?? ''); ?>" pattern="[a-z0-9]{4,20}" title="소문자 영문자와 숫자 조합 4-20자로 입력해주세요.">
-                    <div class="form-help">소문자 영문자와 숫자 조합 4-20자</div>
+                    <label for="edit_user_id">아이디</label>
+                    <input type="text" id="edit_user_id" value="<?php echo htmlspecialchars($editAdmin['user_id'] ?? ''); ?>" disabled style="background: #f3f4f6; color: #6b7280;">
+                    <div class="form-help">아이디는 변경할 수 없습니다.</div>
                 </div>
                 
                 <div class="form-group">
-                    <label for="email">이메일 <span class="required">*</span></label>
-                    <input type="email" id="email" name="email" required value="<?php echo htmlspecialchars($_POST['email'] ?? ''); ?>">
+                    <label for="edit_phone">전화번호 <span class="required">*</span></label>
+                    <input type="tel" id="edit_phone" name="phone" required value="<?php echo htmlspecialchars($editAdmin['phone'] ?? ''); ?>">
                 </div>
                 
                 <div class="form-group">
-                    <label for="name">이름 <span class="required">*</span></label>
-                    <input type="text" id="name" name="name" required value="<?php echo htmlspecialchars($_POST['name'] ?? ''); ?>">
+                    <label for="edit_name">이름 <span class="required">*</span></label>
+                    <input type="text" id="edit_name" name="name" required value="<?php echo htmlspecialchars($editAdmin['name'] ?? ''); ?>">
                 </div>
                 
                 <div class="form-group">
-                    <label for="password">비밀번호 <span class="required">*</span></label>
-                    <input type="password" id="password" name="password" required minlength="8">
-                    <div class="form-help">최소 8자 이상 입력해주세요.</div>
+                    <label for="edit_password">비밀번호</label>
+                    <input type="password" id="edit_password" name="password" minlength="8">
+                    <div class="form-help">변경하지 않으려면 비워두세요. (최소 8자 이상)</div>
                 </div>
                 
                 <div class="form-group">
-                    <label for="role">역할 <span class="required">*</span></label>
-                    <select id="role" name="role" required>
-                        <option value="sub_admin" <?php echo (isset($_POST['role']) && $_POST['role'] === 'sub_admin') ? 'selected' : ''; ?>>부관리자</option>
-                        <option value="admin" <?php echo (isset($_POST['role']) && $_POST['role'] === 'admin') ? 'selected' : ''; ?>>관리자</option>
-                    </select>
-                    <div class="form-help">부관리자: 제한된 권한, 관리자: 전체 권한</div>
+                    <label for="edit_role">역할 <span class="required">*</span></label>
+                    <?php if (($editAdmin['user_id'] ?? '') === 'admin'): ?>
+                        <select id="edit_role" name="role" required>
+                            <option value="admin" <?php echo (($editAdmin['role'] ?? '') === 'admin') ? 'selected' : ''; ?>>관리자</option>
+                        </select>
+                        <div class="form-help">관리자(admin)는 역할을 변경할 수 없습니다.</div>
+                    <?php else: ?>
+                        <select id="edit_role" name="role" required>
+                            <option value="sub_admin" <?php echo (($editAdmin['role'] ?? '') === 'sub_admin') ? 'selected' : ''; ?>>부관리자</option>
+                        </select>
+                        <div class="form-help">부관리자만 추가 및 수정 가능합니다.</div>
+                    <?php endif; ?>
                 </div>
                 
-                <button type="submit" class="btn btn-primary">관리자 추가</button>
+                <div style="display: flex; gap: 12px;">
+                    <button type="submit" class="btn btn-primary">수정 완료</button>
+                    <a href="/MVNO/admin/settings/admin-manage.php" class="btn" style="background: #f3f4f6; color: #374151; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">취소</a>
+                </div>
             </form>
-            <script>
-                // 아이디 입력 시 소문자로 자동 변환
-                document.getElementById('user_id').addEventListener('input', function(e) {
-                    this.value = this.value.replace(/[^a-z0-9]/gi, '').toLowerCase();
-                });
-            </script>
         </div>
-        
+    <?php else: ?>
+    <div class="admin-grid">
         <!-- 관리자 목록 -->
-        <div class="card">
+        <div class="card" style="grid-column: 1 / -1;">
             <h2 class="card-title">관리자 목록</h2>
             
             <?php if (empty($admins)): ?>
@@ -397,7 +493,7 @@ include '../includes/admin-header.php';
                         <tr>
                             <th>아이디</th>
                             <th>이름</th>
-                            <th>이메일</th>
+                            <th>전화번호</th>
                             <th>역할</th>
                             <th>가입일</th>
                             <th>관리</th>
@@ -408,7 +504,7 @@ include '../includes/admin-header.php';
                             <tr>
                                 <td><?php echo htmlspecialchars($admin['user_id'] ?? ''); ?></td>
                                 <td><?php echo htmlspecialchars($admin['name'] ?? ''); ?></td>
-                                <td><?php echo htmlspecialchars($admin['email'] ?? ''); ?></td>
+                                <td><?php echo htmlspecialchars($admin['phone'] ?? ''); ?></td>
                                 <td>
                                     <span class="role-badge <?php echo ($admin['role'] ?? '') === 'admin' ? 'admin' : 'sub_admin'; ?>">
                                         <?php echo ($admin['role'] ?? '') === 'admin' ? '관리자' : '부관리자'; ?>
@@ -416,15 +512,18 @@ include '../includes/admin-header.php';
                                 </td>
                                 <td><?php echo htmlspecialchars($admin['created_at'] ?? ''); ?></td>
                                 <td>
-                                    <?php if (($admin['user_id'] ?? '') !== $currentUser['user_id']): ?>
-                                        <form method="POST" style="display: inline;" onsubmit="event.preventDefault(); showConfirm('정말 이 관리자를 삭제하시겠습니까?', '관리자 삭제').then(result => { if(result) this.submit(); }); return false;">
-                                            <input type="hidden" name="action" value="delete_admin">
-                                            <input type="hidden" name="user_id" value="<?php echo htmlspecialchars($admin['user_id'] ?? ''); ?>">
-                                            <button type="submit" class="btn btn-danger">삭제</button>
-                                        </form>
-                                    <?php else: ?>
-                                        <span style="color: #9ca3af; font-size: 12px;">본인</span>
-                                    <?php endif; ?>
+                                    <div style="display: flex; gap: 8px; align-items: center;">
+                                        <a href="/MVNO/admin/settings/admin-manage.php?edit=<?php echo urlencode($admin['user_id'] ?? ''); ?>" class="btn btn-primary" style="padding: 6px 12px; font-size: 13px; text-decoration: none; display: inline-block;">수정</a>
+                                        <?php if (($admin['user_id'] ?? '') !== $currentUser['user_id']): ?>
+                                            <form method="POST" style="display: inline;" onsubmit="event.preventDefault(); showConfirm('정말 이 관리자를 삭제하시겠습니까?', '관리자 삭제').then(result => { if(result) this.submit(); }); return false;">
+                                                <input type="hidden" name="action" value="delete_admin">
+                                                <input type="hidden" name="user_id" value="<?php echo htmlspecialchars($admin['user_id'] ?? ''); ?>">
+                                                <button type="submit" class="btn btn-danger">삭제</button>
+                                            </form>
+                                        <?php else: ?>
+                                            <span style="color: #9ca3af; font-size: 12px;">본인</span>
+                                        <?php endif; ?>
+                                    </div>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -433,6 +532,7 @@ include '../includes/admin-header.php';
             <?php endif; ?>
         </div>
     </div>
+    <?php endif; ?>
 </div>
 
 <?php

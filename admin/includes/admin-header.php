@@ -17,6 +17,15 @@ if (!$currentUser || !isAdmin($currentUser['user_id'])) {
 processScheduledDeletions();
 
 $currentPage = basename($_SERVER['PHP_SELF']);
+
+// 관리자/부관리자 수 계산
+$adminsFile = getAdminsFilePath();
+$adminCount = 0;
+if (file_exists($adminsFile)) {
+    $data = json_decode(file_get_contents($adminsFile), true) ?: ['admins' => []];
+    $admins = $data['admins'] ?? [];
+    $adminCount = count($admins);
+}
 ?>
 <!DOCTYPE html>
 <html lang="ko">
@@ -428,6 +437,30 @@ $currentPage = basename($_SERVER['PHP_SELF']);
             font-size: 13px;
         }
         
+        .menu-add-button {
+            padding: 8px 20px;
+            font-size: 13px;
+            color: #93c5fd;
+            background: rgba(59, 130, 246, 0.15);
+            margin: 4px 20px;
+            border-radius: 6px;
+            text-align: center;
+            justify-content: center;
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            transition: all 0.3s;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+        
+        .menu-add-button:hover {
+            background: rgba(59, 130, 246, 0.25);
+            color: #ffffff;
+            border-color: rgba(59, 130, 246, 0.5);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+        }
+        
         /* 메인 콘텐츠 */
         .admin-main {
             margin-left: 260px;
@@ -609,6 +642,9 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                     </span>
                     관리자 관리
                 </a>
+                <button type="button" class="menu-add-button" onclick="showAddSubAdminModal()">
+                    <span>+ 부관리자 추가</span>
+                </button>
                 <a href="/MVNO/admin/settings/forbidden-ids-manage.php" class="menu-item <?php echo $currentPage === 'forbidden-ids-manage.php' ? 'active' : ''; ?>">
                     <span class="menu-item-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -758,6 +794,155 @@ $currentPage = basename($_SERVER['PHP_SELF']);
             </div>
         </nav>
     </aside>
+    
+    <!-- 부관리자 추가 모달 -->
+    <div id="addSubAdminModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); z-index: 2000; align-items: center; justify-content: center;">
+        <div style="background: white; border-radius: 12px; padding: 24px; max-width: 500px; width: 90%; max-height: 90vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="font-size: 20px; font-weight: 700; color: #1f2937; margin: 0;">부관리자 추가</h2>
+                <button type="button" onclick="closeAddSubAdminModal()" style="background: none; border: none; font-size: 24px; color: #6b7280; cursor: pointer; padding: 0; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;">&times;</button>
+            </div>
+            <form id="addSubAdminForm" method="POST" action="/MVNO/admin/settings/admin-manage.php">
+                <input type="hidden" name="action" value="add_admin">
+                <input type="hidden" name="role" value="sub_admin">
+                
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 8px;">아이디 <span style="color: #ef4444;">*</span></label>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="admin_user_id" name="user_id" required pattern="[a-z0-9]{4,20}" style="flex: 1; padding: 12px 16px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 15px; box-sizing: border-box;" placeholder="소문자 영문자와 숫자 조합 4-20자">
+                        <button type="button" id="checkAdminIdBtn" onclick="checkAdminDuplicate()" style="padding: 12px 20px; background: #6366f1; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap;">중복확인</button>
+                    </div>
+                    <div id="adminIdCheckResult" style="font-size: 13px; margin-top: 6px;"></div>
+                    <div style="font-size: 13px; color: #6b7280; margin-top: 6px;">소문자 영문자와 숫자 조합 4-20자</div>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 8px;">이름 <span style="color: #ef4444;">*</span></label>
+                    <input type="text" name="name" required style="width: 100%; padding: 12px 16px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 15px; box-sizing: border-box;" placeholder="이름">
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 8px;">전화번호 <span style="color: #ef4444;">*</span></label>
+                    <input type="tel" name="phone" required style="width: 100%; padding: 12px 16px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 15px; box-sizing: border-box;" placeholder="010-1234-5678">
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 8px;">비밀번호 <span style="color: #ef4444;">*</span></label>
+                    <input type="password" name="password" required minlength="8" style="width: 100%; padding: 12px 16px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 15px; box-sizing: border-box;" placeholder="최소 8자 이상">
+                    <div style="font-size: 13px; color: #6b7280; margin-top: 6px;">최소 8자 이상 입력해주세요.</div>
+                </div>
+                
+                <div style="display: flex; gap: 12px; margin-top: 24px;">
+                    <button type="submit" style="flex: 1; padding: 12px 24px; background: #6366f1; color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: background 0.2s;">추가</button>
+                    <button type="button" onclick="closeAddSubAdminModal()" style="flex: 1; padding: 12px 24px; background: #f3f4f6; color: #374151; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: background 0.2s;">취소</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        function showAddSubAdminModal() {
+            document.getElementById('addSubAdminModal').style.display = 'flex';
+        }
+        
+        function closeAddSubAdminModal() {
+            document.getElementById('addSubAdminModal').style.display = 'none';
+            document.getElementById('addSubAdminForm').reset();
+        }
+        
+        // 모달 외부 클릭 시 닫기
+        document.getElementById('addSubAdminModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeAddSubAdminModal();
+            }
+        });
+        
+        // 아이디 입력 시 소문자로 자동 변환
+        const adminUserIdInput = document.getElementById('admin_user_id');
+        if (adminUserIdInput) {
+            adminUserIdInput.addEventListener('input', function(e) {
+                this.value = this.value.replace(/[^a-z0-9]/gi, '').toLowerCase();
+                // 중복확인 상태 초기화
+                document.getElementById('adminIdCheckResult').innerHTML = '';
+                document.getElementById('adminIdCheckResult').className = '';
+            });
+        }
+        
+        let adminIdChecked = false;
+        let adminIdValid = false;
+        
+        function checkAdminDuplicate() {
+            const userId = adminUserIdInput.value.trim();
+            const checkBtn = document.getElementById('checkAdminIdBtn');
+            const resultDiv = document.getElementById('adminIdCheckResult');
+            
+            if (!userId) {
+                resultDiv.innerHTML = '<span style="color: #ef4444;">아이디를 입력해주세요.</span>';
+                resultDiv.className = 'error';
+                adminUserIdInput.focus();
+                return;
+            }
+            
+            // 아이디 형식 검증
+            if (!/^[a-z0-9]{4,20}$/.test(userId)) {
+                resultDiv.innerHTML = '<span style="color: #ef4444;">소문자 영문자와 숫자 조합 4-20자로 입력해주세요.</span>';
+                resultDiv.className = 'error';
+                adminIdChecked = true;
+                adminIdValid = false;
+                return;
+            }
+            
+            // 중복확인 중
+            checkBtn.disabled = true;
+            checkBtn.textContent = '확인 중...';
+            resultDiv.innerHTML = '<span style="color: #6b7280;">확인 중...</span>';
+            resultDiv.className = 'checking';
+            
+            fetch(`/MVNO/api/check-admin-duplicate.php?type=user_id&value=${encodeURIComponent(userId)}`)
+                .then(response => response.json())
+                .then(data => {
+                    checkBtn.disabled = false;
+                    checkBtn.textContent = '중복확인';
+                    
+                    if (data.success && !data.duplicate) {
+                        resultDiv.innerHTML = '<span style="color: #10b981;">✓ ' + data.message + '</span>';
+                        resultDiv.className = 'success';
+                        adminUserIdInput.style.borderColor = '#10b981';
+                        adminIdChecked = true;
+                        adminIdValid = true;
+                    } else {
+                        resultDiv.innerHTML = '<span style="color: #ef4444;">✗ ' + data.message + '</span>';
+                        resultDiv.className = 'error';
+                        adminUserIdInput.style.borderColor = '#ef4444';
+                        adminIdChecked = true;
+                        adminIdValid = false;
+                    }
+                })
+                .catch(error => {
+                    checkBtn.disabled = false;
+                    checkBtn.textContent = '중복확인';
+                    resultDiv.innerHTML = '<span style="color: #ef4444;">확인 중 오류가 발생했습니다.</span>';
+                    resultDiv.className = 'error';
+                    console.error('Error:', error);
+                });
+        }
+        
+        // 폼 제출 시 중복확인 체크
+        document.getElementById('addSubAdminForm').addEventListener('submit', function(e) {
+            if (!adminIdChecked) {
+                e.preventDefault();
+                alert('아이디 중복확인을 해주세요.');
+                adminUserIdInput.focus();
+                return false;
+            }
+            if (!adminIdValid) {
+                e.preventDefault();
+                alert('사용 가능한 아이디를 입력해주세요.');
+                adminUserIdInput.focus();
+                return false;
+            }
+        });
+    </script>
     
     <!-- 메인 콘텐츠 -->
     <main class="admin-main">

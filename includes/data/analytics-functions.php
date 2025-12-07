@@ -3,6 +3,9 @@
  * 웹 통계 관련 함수
  */
 
+// 한국 시간대 설정 (KST, UTC+9)
+date_default_timezone_set('Asia/Seoul');
+
 /**
  * 통계 데이터 파일 경로
  */

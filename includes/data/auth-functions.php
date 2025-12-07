@@ -3,6 +3,9 @@
  * 사용자 인증 관련 함수
  */
 
+// 한국 시간대 설정 (KST, UTC+9)
+date_default_timezone_set('Asia/Seoul');
+
 // 세션 시작
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -25,6 +28,8 @@ function getSellersFilePath() {
 
 /**
  * 모든 사용자 데이터 읽기 (일반회원, 관리자, 판매자 통합)
+ * 주의: 통합 검색이 필요한 경우에만 사용하세요.
+ * 일반적으로는 getUserById(), getUserByEmail() 등 역할별 분리 검색 함수를 사용하세요.
  */
 function getUsersData() {
     $allUsers = [];
@@ -32,6 +37,7 @@ function getUsersData() {
     // 일반 회원 (users.json)
     $usersFile = getUsersFilePath();
     if (file_exists($usersFile)) {
+        clearstatcache(true, $usersFile); // 파일 캐시 클리어
         $content = file_get_contents($usersFile);
         $data = json_decode($content, true) ?: ['users' => []];
         $allUsers = array_merge($allUsers, $data['users'] ?? []);
@@ -40,6 +46,7 @@ function getUsersData() {
     // 관리자 (admins.json)
     $adminsFile = getAdminsFilePath();
     if (file_exists($adminsFile)) {
+        clearstatcache(true, $adminsFile); // 파일 캐시 클리어
         $content = file_get_contents($adminsFile);
         $data = json_decode($content, true) ?: ['admins' => []];
         $allUsers = array_merge($allUsers, $data['admins'] ?? []);
@@ -48,6 +55,7 @@ function getUsersData() {
     // 판매자 (sellers.json)
     $sellersFile = getSellersFilePath();
     if (file_exists($sellersFile)) {
+        clearstatcache(true, $sellersFile); // 파일 캐시 클리어
         $content = file_get_contents($sellersFile);
         $data = json_decode($content, true) ?: ['sellers' => []];
         $allUsers = array_merge($allUsers, $data['sellers'] ?? []);
@@ -105,42 +113,134 @@ function generateSnsUserId($provider, $snsId) {
 }
 
 /**
- * 사용자 ID로 사용자 찾기
+ * 사용자 ID로 사용자 찾기 (역할별 DB 분리 검색)
  */
 function getUserById($userId) {
-    $data = getUsersData();
-    foreach ($data['users'] as $user) {
-        if ($user['user_id'] === $userId) {
-            return $user;
+    // 1. 일반 회원 검색 (users.json)
+    $usersFile = getUsersFilePath();
+    if (file_exists($usersFile)) {
+        $content = file_get_contents($usersFile);
+        $data = json_decode($content, true) ?: ['users' => []];
+        foreach ($data['users'] ?? [] as $user) {
+            if (isset($user['user_id']) && $user['user_id'] === $userId) {
+                return $user;
+            }
         }
     }
+    
+    // 2. 관리자/부관리자 검색 (admins.json)
+    $adminsFile = getAdminsFilePath();
+    if (file_exists($adminsFile)) {
+        $content = file_get_contents($adminsFile);
+        $data = json_decode($content, true) ?: ['admins' => []];
+        foreach ($data['admins'] ?? [] as $admin) {
+            if (isset($admin['user_id']) && $admin['user_id'] === $userId) {
+                return $admin;
+            }
+        }
+    }
+    
+    // 3. 판매자 검색 (sellers.json)
+    $sellersFile = getSellersFilePath();
+    if (file_exists($sellersFile)) {
+        $content = file_get_contents($sellersFile);
+        $data = json_decode($content, true) ?: ['sellers' => []];
+        foreach ($data['sellers'] ?? [] as $seller) {
+            if (isset($seller['user_id']) && $seller['user_id'] === $userId) {
+                return $seller;
+            }
+        }
+    }
+    
     return null;
 }
 
 /**
- * 이메일로 사용자 찾기
+ * 이메일로 사용자 찾기 (역할별 DB 분리 검색)
  */
 function getUserByEmail($email) {
-    $data = getUsersData();
-    foreach ($data['users'] as $user) {
-        if (isset($user['email']) && $user['email'] === $email) {
-            return $user;
+    // 1. 일반 회원 검색 (users.json)
+    $usersFile = getUsersFilePath();
+    if (file_exists($usersFile)) {
+        $content = file_get_contents($usersFile);
+        $data = json_decode($content, true) ?: ['users' => []];
+        foreach ($data['users'] ?? [] as $user) {
+            if (isset($user['email']) && $user['email'] === $email) {
+                return $user;
+            }
         }
     }
+    
+    // 2. 관리자/부관리자 검색 (admins.json) - 관리자는 이메일이 없을 수 있음
+    $adminsFile = getAdminsFilePath();
+    if (file_exists($adminsFile)) {
+        $content = file_get_contents($adminsFile);
+        $data = json_decode($content, true) ?: ['admins' => []];
+        foreach ($data['admins'] ?? [] as $admin) {
+            if (isset($admin['email']) && $admin['email'] === $email) {
+                return $admin;
+            }
+        }
+    }
+    
+    // 3. 판매자 검색 (sellers.json)
+    $sellersFile = getSellersFilePath();
+    if (file_exists($sellersFile)) {
+        $content = file_get_contents($sellersFile);
+        $data = json_decode($content, true) ?: ['sellers' => []];
+        foreach ($data['sellers'] ?? [] as $seller) {
+            if (isset($seller['email']) && $seller['email'] === $email) {
+                return $seller;
+            }
+        }
+    }
+    
     return null;
 }
 
 /**
- * SNS ID로 사용자 찾기
+ * SNS ID로 사용자 찾기 (역할별 DB 분리 검색)
  */
 function getUserBySnsId($provider, $snsId) {
-    $data = getUsersData();
-    foreach ($data['users'] as $user) {
-        if (isset($user['sns_provider']) && $user['sns_provider'] === $provider && 
-            isset($user['sns_id']) && $user['sns_id'] === $snsId) {
-            return $user;
+    // 1. 일반 회원 검색 (users.json) - SNS 로그인은 주로 일반 회원
+    $usersFile = getUsersFilePath();
+    if (file_exists($usersFile)) {
+        $content = file_get_contents($usersFile);
+        $data = json_decode($content, true) ?: ['users' => []];
+        foreach ($data['users'] ?? [] as $user) {
+            if (isset($user['sns_provider']) && $user['sns_provider'] === $provider && 
+                isset($user['sns_id']) && $user['sns_id'] === $snsId) {
+                return $user;
+            }
         }
     }
+    
+    // 2. 관리자/부관리자 검색 (admins.json) - 일반적으로 SNS 로그인 없음
+    $adminsFile = getAdminsFilePath();
+    if (file_exists($adminsFile)) {
+        $content = file_get_contents($adminsFile);
+        $data = json_decode($content, true) ?: ['admins' => []];
+        foreach ($data['admins'] ?? [] as $admin) {
+            if (isset($admin['sns_provider']) && $admin['sns_provider'] === $provider && 
+                isset($admin['sns_id']) && $admin['sns_id'] === $snsId) {
+                return $admin;
+            }
+        }
+    }
+    
+    // 3. 판매자 검색 (sellers.json) - 일반적으로 SNS 로그인 없음
+    $sellersFile = getSellersFilePath();
+    if (file_exists($sellersFile)) {
+        $content = file_get_contents($sellersFile);
+        $data = json_decode($content, true) ?: ['sellers' => []];
+        foreach ($data['sellers'] ?? [] as $seller) {
+            if (isset($seller['sns_provider']) && $seller['sns_provider'] === $provider && 
+                isset($seller['sns_id']) && $seller['sns_id'] === $snsId) {
+                return $seller;
+            }
+        }
+    }
+    
     return null;
 }
 
@@ -343,7 +443,60 @@ function loginDirectUser($userId, $password) {
 }
 
 /**
+ * 판매자 데이터 파일 저장 (공통 함수)
+ * 
+ * @param string $file 파일 경로
+ * @param array $data 저장할 데이터
+ * @return bool 성공 여부
+ */
+function saveSellersData($file, $data) {
+    $jsonData = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+    
+    $fp = fopen($file, 'c+');
+    if (!$fp) {
+        return false;
+    }
+    
+    if (!flock($fp, LOCK_EX)) {
+        fclose($fp);
+        return false;
+    }
+    
+    ftruncate($fp, 0);
+    rewind($fp);
+    
+    $written = fwrite($fp, $jsonData);
+    if ($written === false || $written === 0) {
+        flock($fp, LOCK_UN);
+        fclose($fp);
+        return false;
+    }
+    
+    fflush($fp);
+    
+    if (function_exists('fsync')) {
+        fsync($fp);
+    }
+    
+    flock($fp, LOCK_UN);
+    fclose($fp);
+    
+    clearstatcache(true, $file);
+    
+    return true;
+}
+
+/**
  * 판매자 승인
+ * 
+ * 날짜 필드 정리:
+ * - created_at (가입일): 최초 1번만 설정, 변경 안됨
+ * - approved_at (승인일): 승인할 때마다 현재 시간으로 업데이트
+ * - held_at (승인보류일): 승인보류할 때마다 현재 시간으로 업데이트
+ * - updated_at (정보수정일): 판매자 정보 수정 시 업데이트 (별도 관리)
+ * 
+ * @param string $userId 판매자 아이디
+ * @return bool 성공 여부
  */
 function approveSeller($userId) {
     $user = getUserById($userId);
@@ -356,13 +509,31 @@ function approveSeller($userId) {
         return false;
     }
     
-    $data = json_decode(file_get_contents($file), true) ?: ['sellers' => []];
+    // 파일 캐시 클리어 후 읽기
+    clearstatcache(true, $file);
+    
+    // 파일 내용 읽기
+    $content = @file_get_contents($file);
+    if ($content === false) {
+        return false;
+    }
+    
+    $data = @json_decode($content, true);
+    if (!is_array($data) || !isset($data['sellers'])) {
+        return false;
+    }
+    
+    $currentTime = date('Y-m-d H:i:s');
+    $foundUser = false;
+    
+    // 데이터 업데이트
     foreach ($data['sellers'] as &$u) {
-        if ($u['user_id'] === $userId) {
+        if (isset($u['user_id']) && $u['user_id'] === $userId) {
+            $foundUser = true;
+            $u['approved_at'] = $currentTime;  // 승인일 업데이트
             $u['seller_approved'] = true;
-            $u['approved_at'] = date('Y-m-d H:i:s');
             $u['approval_status'] = 'approved';
-            // 기본 권한 설정 (없으면 빈 배열)
+            
             if (!isset($u['permissions'])) {
                 $u['permissions'] = [];
             }
@@ -370,12 +541,24 @@ function approveSeller($userId) {
         }
     }
     
-    file_put_contents($file, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-    return true;
+    if (!$foundUser) {
+        return false;
+    }
+    
+    // 파일 저장
+    return saveSellersData($file, $data);
 }
 
 /**
  * 판매자 승인보류
+ * 
+ * 날짜 필드 정리:
+ * - held_at (승인보류일): 승인보류할 때마다 현재 시간으로 업데이트
+ * - approved_at (승인일): 승인보류 시에도 유지 (히스토리 보존)
+ * - updated_at (정보수정일): 변경 안됨 (별도 관리)
+ * 
+ * @param string $userId 판매자 아이디
+ * @return bool 성공 여부
  */
 function holdSeller($userId) {
     $user = getUserById($userId);
@@ -388,18 +571,41 @@ function holdSeller($userId) {
         return false;
     }
     
-    $data = json_decode(file_get_contents($file), true) ?: ['sellers' => []];
+    // 파일 캐시 클리어 후 읽기
+    clearstatcache(true, $file);
+    
+    // 파일 내용 읽기
+    $content = @file_get_contents($file);
+    if ($content === false) {
+        return false;
+    }
+    
+    $data = @json_decode($content, true);
+    if (!is_array($data) || !isset($data['sellers'])) {
+        return false;
+    }
+    
+    $currentTime = date('Y-m-d H:i:s');
+    $foundUser = false;
+    
+    // 데이터 업데이트
     foreach ($data['sellers'] as &$u) {
-        if ($u['user_id'] === $userId) {
+        if (isset($u['user_id']) && $u['user_id'] === $userId) {
+            $foundUser = true;
+            $u['held_at'] = $currentTime;  // 승인보류일 업데이트
             $u['seller_approved'] = false;
             $u['approval_status'] = 'on_hold';
-            $u['held_at'] = date('Y-m-d H:i:s');
+            // approved_at은 유지 (히스토리 보존)
             break;
         }
     }
     
-    file_put_contents($file, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-    return true;
+    if (!$foundUser) {
+        return false;
+    }
+    
+    // 파일 저장
+    return saveSellersData($file, $data);
 }
 
 /**
@@ -421,7 +627,7 @@ function rejectSeller($userId) {
         if ($u['user_id'] === $userId) {
             $u['seller_approved'] = false;
             $u['approval_status'] = 'rejected';
-            $u['rejected_at'] = date('Y-m-d H:i:s');
+            // rejected_at 필드 제거 (용어 정리: 승인일, 승인보류일만 유지)
             break;
         }
     }
@@ -432,8 +638,16 @@ function rejectSeller($userId) {
 
 /**
  * 판매자 승인 취소 (승인 -> 대기로 변경)
+ * 
+ * 날짜 필드 정리:
+ * - approved_at (승인일): 승인 취소 시에도 유지 (히스토리 보존)
+ * - held_at (승인보류일): 승인 취소 시 유지 (히스토리 보존)
+ * - updated_at (정보수정일): 변경 안됨 (별도 관리)
+ * 
+ * @param string $userId 판매자 아이디
+ * @return bool 성공 여부
  */
-function cancelApproval($userId) {
+function cancelSellerApproval($userId) {
     $user = getUserById($userId);
     if (!$user || $user['role'] !== 'seller') {
         return false;
@@ -449,8 +663,7 @@ function cancelApproval($userId) {
         if ($u['user_id'] === $userId) {
             $u['seller_approved'] = false;
             $u['approval_status'] = 'pending';
-            $u['approval_cancelled_at'] = date('Y-m-d H:i:s');
-            // 이전 승인일은 유지 (히스토리)
+            // 승인일(approved_at)과 승인보류일(held_at)은 유지 (히스토리 보존)
             break;
         }
     }

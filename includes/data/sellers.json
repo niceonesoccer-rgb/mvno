@@ -35,9 +35,11 @@
             "password": "$2y$10$npqvx7.RtxEF3JkYtLzm7.4SsfR598TPF9qKtb.wEuW5QX0nIRtFu",
             "role": "seller",
             "created_at": "2025-12-06 08:25:32",
-            "seller_approved": false,
-            "permissions": [],
-            "approval_status": "on_hold",
+            "seller_approved": true,
+            "permissions": [
+                "mvno"
+            ],
+            "approval_status": "approved",
             "phone": "02-2222-2222",
             "mobile": "010-2222-2222",
             "postal_code": "",
@@ -49,7 +51,9 @@
             "business_type": "22222222",
             "business_item": "22222222",
             "business_license_image": "\/MVNO\/uploads\/sellers\/22222222_license_1765005932.jpg",
-            "held_at": "2025-12-06 08:35:03"
+            "held_at": "2025-12-06 08:35:03",
+            "approved_at": "2025-12-07 07:13:10",
+            "permissions_updated_at": "2025-12-07 07:40:48"
         },
         {
             "user_id": "33333333",
@@ -2370,16 +2374,20 @@
         },
         {
             "user_id": "77777879",
-            "email": "7777@test.com",
+            "email": "77773@test.com",
             "name": "77777879",
             "password": "$2y$10$0xWXDTYm5RcjyFXPjU9k6.og.xvOTy4iXctepuXcixETbsSmK\/Ie2",
             "role": "seller",
             "created_at": "2025-12-06 09:31:55",
-            "seller_approved": true,
-            "permissions": [],
-            "approval_status": "approved",
-            "phone": "02-7777-7879",
-            "mobile": "010-0000-0000",
+            "seller_approved": false,
+            "permissions": [
+                "mvno",
+                "mno",
+                "internet"
+            ],
+            "approval_status": "on_hold",
+            "phone": "02-2222-2222",
+            "mobile": "010-2222-4444",
             "address": "서울 강남구 가로수길 103",
             "address_detail": "101",
             "business_number": "777-77-879",
@@ -2387,14 +2395,15 @@
             "company_representative": "77777879",
             "business_type": "77777879",
             "business_item": "77777879",
-            "updated_at": "2025-12-06 16:48:50",
-            "held_at": "2025-12-06 09:49:12",
-            "approved_at": "2025-12-06 16:27:22",
-            "business_license_image": "\/MVNO\/uploads\/sellers\/77777879_license_1765035926.png",
+            "updated_at": "2025-12-07 08:17:11",
+            "held_at": "2025-12-07 08:46:46",
+            "approved_at": "2025-12-07 08:01:41",
+            "business_license_image": "\/MVNO\/uploads\/sellers\/77777879_license_1765061857.png",
             "info_updated": true,
-            "info_updated_at": "2025-12-06 16:48:50",
+            "info_updated_at": "2025-12-07 08:17:11",
             "info_checked_by_admin": true,
-            "info_checked_at": "2025-12-06 16:50:55"
+            "info_checked_at": "2025-12-07 08:46:52",
+            "permissions_updated_at": "2025-12-07 07:45:08"
         },
         {
             "user_id": "77777880",
@@ -2403,9 +2412,9 @@
             "password": "$2y$10$SKZfXpgab08fsV49dphRBOmwgxXfe309Y81TTpKt5Ow1MPkzpyQ3.",
             "role": "seller",
             "created_at": "2025-12-06 09:31:55",
-            "seller_approved": false,
+            "seller_approved": true,
             "permissions": [],
-            "approval_status": "on_hold",
+            "approval_status": "approved",
             "phone": "02-7777-7880",
             "mobile": "010-7777-7880",
             "postal_code": "",
@@ -2416,7 +2425,8 @@
             "company_representative": "77777880",
             "business_type": "77777880",
             "business_item": "77777880",
-            "held_at": "2025-12-06 09:43:50"
+            "held_at": "2025-12-06 09:43:50",
+            "approved_at": "2025-12-07 08:01:50"
         },
         {
             "user_id": "77777881",
@@ -2770,6 +2780,56 @@
             "business_type": "77777896",
             "business_item": "77777896",
             "held_at": "2025-12-06 09:45:46"
+        },
+        {
+            "user_id": "57575757",
+            "email": "57575757@naver.com",
+            "name": "57575757",
+            "password": "$2y$10$BD3GFLmaYV7pxk8EGBxKGeJDgPFTNDv7IvlffIttYV2PrkJlgoVUe",
+            "role": "seller",
+            "created_at": "2025-12-07 08:19:30",
+            "seller_approved": true,
+            "permissions": [],
+            "approval_status": "approved",
+            "phone": "",
+            "mobile": "010-2222-2222",
+            "postal_code": "",
+            "address": "서울 강남구 가로수길 5",
+            "address_detail": "21",
+            "business_number": "575-75-75755",
+            "company_name": "57575757",
+            "company_representative": "57575757",
+            "business_type": "57575757",
+            "business_item": "57575757",
+            "business_license_image": "\/MVNO\/uploads\/sellers\/57575757_license_1765063170.png",
+            "approved_at": "2025-12-07 08:45:50"
+        },
+        {
+            "user_id": "12345678",
+            "email": "12345678@gmail.com",
+            "name": "12345678",
+            "password": "$2y$10$70NsKXWzTOzxCBDAzdvYE.OUXrEOFVsMbHm.uX7WmkUuqxDGGkhka",
+            "role": "seller",
+            "created_at": "2025-12-07 08:45:16",
+            "seller_approved": true,
+            "permissions": [
+                "mno",
+                "internet"
+            ],
+            "approval_status": "approved",
+            "phone": "080-2222-2222",
+            "mobile": "010-2222-2222",
+            "postal_code": "",
+            "address": "서울 종로구 북악산로 179",
+            "address_detail": "",
+            "business_number": "123-45-67899",
+            "company_name": "12345678",
+            "company_representative": "12345678",
+            "business_type": "12345678",
+            "business_item": "12345678",
+            "business_license_image": "\/MVNO\/uploads\/sellers\/12345678_license_1765064716.png",
+            "approved_at": "2025-12-07 08:45:46",
+            "permissions_updated_at": "2025-12-07 08:46:13"
         }
     ]
 }
