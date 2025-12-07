@@ -394,6 +394,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <select name="call_type" id="call_type" class="form-select" required>
                     <option value="">선택하세요</option>
                     <option value="무제한">무제한</option>
+                    <option value="기본제공">기본제공</option>
                     <option value="직접입력">직접입력</option>
                 </select>
                 <div id="call_type_input" style="display: none; margin-top: 12px;">
@@ -411,6 +412,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <select name="sms_type" id="sms_type" class="form-select" required>
                     <option value="">선택하세요</option>
                     <option value="무제한">무제한</option>
+                    <option value="기본제공">기본제공</option>
                     <option value="직접입력">직접입력</option>
                 </select>
                 <div id="sms_type_input" style="display: none; margin-top: 12px;">
@@ -459,23 +461,26 @@ document.addEventListener('DOMContentLoaded', function() {
             
             <div class="form-group">
                 <label class="form-label" for="additional_call">
-                    부가통화
+                    부가·영상통화
                 </label>
-                <input type="text" name="additional_call" id="additional_call" class="form-control" placeholder="예: 300분">
+                <div class="input-with-unit" style="max-width: 200px;">
+                    <input type="number" name="additional_call" id="additional_call" class="form-control" placeholder="300" min="0" max="99999" maxlength="5">
+                    <span class="unit">분</span>
+                </div>
             </div>
             
             <div class="form-group">
                 <label class="form-label" for="mobile_hotspot">
-                    모바일 핫스팟
+                    테더링(핫스팟)
                 </label>
-                <input type="text" name="mobile_hotspot" id="mobile_hotspot" class="form-control" placeholder="예: 데이터 제공량 내">
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label" for="data_sharing">
-                    데이터 쉐어링
-                </label>
-                <input type="text" name="data_sharing" id="data_sharing" class="form-control" placeholder="예: 데이터 제공량 내">
+                <select name="mobile_hotspot" id="mobile_hotspot" class="form-select">
+                    <option value="">선택하세요</option>
+                    <option value="기본 제공량 내에서 사용">기본 제공량 내에서 사용</option>
+                    <option value="직접선택">직접선택</option>
+                </select>
+                <div id="mobile_hotspot_input" style="display: none; margin-top: 12px;">
+                    <input type="text" name="mobile_hotspot_value" id="mobile_hotspot_value" class="form-control" placeholder="50GB" maxlength="10">
+                </div>
             </div>
         </div>
         
@@ -818,6 +823,52 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // 초기 상태에서 비활성화
             dataExhaustedValue.disabled = true;
+        }
+    }
+    
+    // 부가·영상통화 숫자 입력 제한 (5자리)
+    const additionalCall = document.getElementById('additional_call');
+    if (additionalCall) {
+        additionalCall.addEventListener('input', function() {
+            this.value = this.value.replace(/[^0-9]/g, '');
+            if (this.value.length > 5) {
+                this.value = this.value.slice(0, 5);
+            }
+        });
+    }
+    
+    // 테더링(핫스팟) 직접선택 필드 토글
+    const mobileHotspotSelect = document.getElementById('mobile_hotspot');
+    const mobileHotspotInput = document.getElementById('mobile_hotspot_input');
+    const mobileHotspotValue = document.getElementById('mobile_hotspot_value');
+    
+    if (mobileHotspotSelect && mobileHotspotInput) {
+        mobileHotspotSelect.addEventListener('change', function() {
+            if (this.value === '직접선택') {
+                mobileHotspotInput.style.display = 'block';
+                if (mobileHotspotValue) {
+                    mobileHotspotValue.disabled = false;
+                    mobileHotspotValue.focus();
+                }
+            } else {
+                mobileHotspotInput.style.display = 'none';
+                if (mobileHotspotValue) {
+                    mobileHotspotValue.value = '';
+                    mobileHotspotValue.disabled = true;
+                }
+            }
+        });
+        
+        // 텍스트 입력 제한 (10글자)
+        if (mobileHotspotValue) {
+            mobileHotspotValue.addEventListener('input', function() {
+                if (this.value.length > 10) {
+                    this.value = this.value.slice(0, 10);
+                }
+            });
+            
+            // 초기 상태에서 비활성화
+            mobileHotspotValue.disabled = true;
         }
     }
 });
