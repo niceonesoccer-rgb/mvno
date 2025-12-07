@@ -11,24 +11,40 @@
             "permissions": []
         },
         {
-            "user_id": "sub_admin01",
-            "email": "subadmin1@moyo.com",
-            "name": "부관리자1",
-            "password": "$2y$10$OIEyR\/h9x9MA66JKhThnQuvuxziA3IX0.j4ttIeGBfAJhO0Zw7lgm",
+            "user_id": "11111",
+            "phone": "010-2222-1111",
+            "name": "카카오테",
+            "password": "$2y$10$x7s1l4O8roxLFwybKytJVeuEeNz76JGEnc6AHILfR5VkZgvYSWgR2",
             "role": "sub_admin",
-            "created_at": "2025-01-10 10:00:00",
-            "seller_approved": true,
-            "permissions": []
+            "created_at": "2025-12-07 10:16:55",
+            "created_by": "admin"
         },
         {
-            "user_id": "sub_admin02",
-            "email": "subadmin2@moyo.com",
-            "name": "부관리자2",
-            "password": "$2y$10$OIEyR\/h9x9MA66JKhThnQuvuxziA3IX0.j4ttIeGBfAJhO0Zw7lgm",
+            "user_id": "ddddddd",
+            "phone": "010-2222-1111",
+            "name": "dddd",
+            "password": "$2y$10$GTm4HILm8XXSK2TiOHBsJOW9wZuEQXR2KhUQh9I81M995Nqr9DGly",
             "role": "sub_admin",
-            "created_at": "2025-01-11 10:00:00",
-            "seller_approved": true,
-            "permissions": []
+            "created_at": "2025-12-07 10:21:25",
+            "created_by": "admin"
+        },
+        {
+            "user_id": "00000000",
+            "phone": "010-0000-0000",
+            "name": "00011111111111",
+            "password": "$2y$10$WUiwoeF4dO6aak.CPTCOfOQCKhFpCFm508mJ2YGsjzBaXYHfiPqda",
+            "role": "sub_admin",
+            "created_at": "2025-12-07 10:29:33",
+            "created_by": "admin"
+        },
+        {
+            "user_id": "dsfadsfadsf",
+            "phone": "010-2145-5555dxdx",
+            "name": "수정",
+            "password": "$2y$10$86WY4pexlKY9vklVCEBOo.3A3XZpA\/hraVDfBMmjCQ6h4J8\/worvC",
+            "role": "sub_admin",
+            "created_at": "2025-12-07 12:30:10",
+            "created_by": "admin"
         }
     ]
 }

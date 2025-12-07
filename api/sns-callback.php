@@ -98,6 +98,13 @@ if ($provider === 'naver') {
     }
     
     loginUser($user['user_id']);
+    
+    // 전화번호가 없으면 추가 정보 입력 페이지로 리다이렉트
+    if (empty($user['phone'])) {
+        header('Location: /MVNO/auth/complete-profile.php');
+        exit;
+    }
+    
     header('Location: /MVNO/');
     exit;
 }
@@ -154,6 +161,13 @@ if ($provider === 'kakao') {
     }
     
     loginUser($user['user_id']);
+    
+    // 전화번호가 없으면 추가 정보 입력 페이지로 리다이렉트
+    if (empty($user['phone'])) {
+        header('Location: /MVNO/auth/complete-profile.php');
+        exit;
+    }
+    
     header('Location: /MVNO/');
     exit;
 }
@@ -219,6 +233,13 @@ if ($provider === 'google') {
     }
     
     loginUser($user['user_id']);
+    
+    // 전화번호가 없으면 추가 정보 입력 페이지로 리다이렉트
+    if (empty($user['phone'])) {
+        header('Location: /MVNO/auth/complete-profile.php');
+        exit;
+    }
+    
     header('Location: /MVNO/');
     exit;
 }

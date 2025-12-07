@@ -41,29 +41,11 @@ if (file_exists($adminsFile)) {
 
 $isDuplicate = false;
 
-// 아이디 중복확인 (관리자)
+// 아이디 중복확인 (관리자/부관리자만 확인)
 foreach ($admins as $admin) {
     if (isset($admin['user_id']) && strtolower($admin['user_id']) === $lowerValue) {
         $isDuplicate = true;
         break;
-    }
-}
-
-// 판매자 데이터도 확인 (관리자와 판매자는 같은 아이디 사용 불가)
-if (!$isDuplicate) {
-    $sellersFile = getSellersFilePath();
-    $sellers = [];
-    
-    if (file_exists($sellersFile)) {
-        $data = json_decode(file_get_contents($sellersFile), true) ?: ['sellers' => []];
-        $sellers = $data['sellers'] ?? [];
-    }
-    
-    foreach ($sellers as $seller) {
-        if (isset($seller['user_id']) && strtolower($seller['user_id']) === $lowerValue) {
-            $isDuplicate = true;
-            break;
-        }
     }
 }
 
@@ -80,3 +62,4 @@ if ($isDuplicate) {
         'message' => '사용 가능한 아이디입니다.'
     ]);
 }
+

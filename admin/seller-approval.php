@@ -1145,19 +1145,7 @@ $paginatedSellers = array_slice($currentSellers, $offset, $perPage);
                                         <?php endif; ?>
                                     </td>
                                     <td>
-                                        <a href="/MVNO/admin/users/seller-detail.php?user_id=<?php echo urlencode($seller['user_id']); ?>" class="btn" style="background: #6366f1; color: white; margin-right: 8px; text-decoration: none; display: inline-block;">상세보기</a>
-                                        <?php if (!$isApproved && $approvalStatus !== 'on_hold' && $approvalStatus !== 'rejected' && !$isWithdrawalRequested): ?>
-                                            <button type="button" onclick="showApproveModal('<?php echo htmlspecialchars($seller['user_id']); ?>', '<?php echo htmlspecialchars($seller['name'] ?? $seller['user_id']); ?>')" class="btn btn-approve" style="margin-right: 8px;">승인</button>
-                                            <button type="button" onclick="showHoldModal('<?php echo htmlspecialchars($seller['user_id']); ?>', '<?php echo htmlspecialchars($seller['name'] ?? $seller['user_id']); ?>')" class="btn btn-hold">승인보류</button>
-                                        <?php elseif ($approvalStatus === 'on_hold'): ?>
-                                            <button type="button" onclick="showApproveModal('<?php echo htmlspecialchars($seller['user_id']); ?>', '<?php echo htmlspecialchars($seller['name'] ?? $seller['user_id']); ?>')" class="btn btn-approve">승인</button>
-                                        <?php elseif ($isApproved): ?>
-                                            <a href="/MVNO/admin/seller-permissions.php?user_id=<?php echo urlencode($seller['user_id']); ?>" style="padding: 6px 12px; background: #10b981; color: white; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 500; display: inline-block; margin-right: 8px;">권한 설정</a>
-                                            <button type="button" onclick="showHoldModal('<?php echo htmlspecialchars($seller['user_id']); ?>', '<?php echo htmlspecialchars($seller['name'] ?? $seller['user_id']); ?>')" class="btn btn-hold">승인보류</button>
-                                        <?php elseif ($isWithdrawalRequested): ?>
-                                            <button type="button" onclick="showCompleteWithdrawalModal('<?php echo htmlspecialchars($seller['user_id']); ?>', '<?php echo htmlspecialchars($seller['name'] ?? $seller['user_id']); ?>')" class="btn" style="background: #ef4444; color: white; margin-right: 8px;">탈퇴 완료 처리</button>
-                                            <button type="button" onclick="showCancelWithdrawalAdminModal('<?php echo htmlspecialchars($seller['user_id']); ?>', '<?php echo htmlspecialchars($seller['name'] ?? $seller['user_id']); ?>')" class="btn btn-approve">탈퇴 요청 취소</button>
-                                        <?php endif; ?>
+                                        <a href="/MVNO/admin/users/seller-detail.php?user_id=<?php echo urlencode($seller['user_id']); ?>" class="btn" style="background: #6366f1; color: white; text-decoration: none; display: inline-block;">상세보기</a>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -1281,9 +1269,7 @@ $paginatedSellers = array_slice($currentSellers, $offset, $perPage);
                                         <span class="badge badge-pending">신청자</span>
                                     </td>
                                     <td>
-                                        <a href="/MVNO/admin/users/seller-detail.php?user_id=<?php echo urlencode($seller['user_id']); ?>" class="btn" style="background: #6366f1; color: white; margin-right: 8px; text-decoration: none; display: inline-block;">상세보기</a>
-                                        <button type="button" onclick="showApproveModal('<?php echo htmlspecialchars($seller['user_id']); ?>', '<?php echo htmlspecialchars($seller['name'] ?? $seller['user_id']); ?>')" class="btn btn-approve" style="margin-right: 8px;">승인</button>
-                                        <button type="button" onclick="showHoldModal('<?php echo htmlspecialchars($seller['user_id']); ?>', '<?php echo htmlspecialchars($seller['name'] ?? $seller['user_id']); ?>')" class="btn btn-hold">승인보류</button>
+                                        <a href="/MVNO/admin/users/seller-detail.php?user_id=<?php echo urlencode($seller['user_id']); ?>" class="btn" style="background: #6366f1; color: white; text-decoration: none; display: inline-block;">상세보기</a>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -1420,9 +1406,7 @@ $paginatedSellers = array_slice($currentSellers, $offset, $perPage);
                                         <span class="badge badge-approved">승인</span>
                                     </td>
                                     <td>
-                                        <a href="/MVNO/admin/users/seller-detail.php?user_id=<?php echo urlencode($seller['user_id']); ?>" class="btn" style="background: #6366f1; color: white; margin-right: 8px; text-decoration: none; display: inline-block;">상세보기</a>
-                                        <a href="/MVNO/admin/seller-permissions.php?user_id=<?php echo urlencode($seller['user_id']); ?>" style="padding: 6px 12px; background: #10b981; color: white; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 500; display: inline-block; margin-right: 8px;">권한 설정</a>
-                                        <button type="button" onclick="showHoldModal('<?php echo htmlspecialchars($seller['user_id']); ?>', '<?php echo htmlspecialchars($seller['name'] ?? $seller['user_id']); ?>')" class="btn btn-hold">승인보류</button>
+                                        <a href="/MVNO/admin/users/seller-detail.php?user_id=<?php echo urlencode($seller['user_id']); ?>" class="btn" style="background: #6366f1; color: white; text-decoration: none; display: inline-block;">상세보기</a>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -1546,13 +1530,7 @@ $paginatedSellers = array_slice($currentSellers, $offset, $perPage);
                                         <span class="badge badge-pending">정보 업데이트</span>
                                     </td>
                                     <td>
-                                        <a href="/MVNO/admin/users/seller-detail.php?user_id=<?php echo urlencode($seller['user_id']); ?>" class="btn" style="background: #6366f1; color: white; margin-right: 8px; text-decoration: none; display: inline-block;">상세보기</a>
-                                        <form method="POST" action="/MVNO/admin/seller-approval.php" style="display: inline;">
-                                            <input type="hidden" name="user_id" value="<?php echo htmlspecialchars($seller['user_id']); ?>">
-                                            <input type="hidden" name="tab" value="updated">
-                                            <input type="hidden" name="per_page" value="<?php echo $perPage; ?>">
-                                            <button type="submit" name="check_info_update" class="btn btn-approve">확인 완료</button>
-                                        </form>
+                                        <a href="/MVNO/admin/users/seller-detail.php?user_id=<?php echo urlencode($seller['user_id']); ?>" class="btn" style="background: #6366f1; color: white; text-decoration: none; display: inline-block;">상세보기</a>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -1674,9 +1652,7 @@ $paginatedSellers = array_slice($currentSellers, $offset, $perPage);
                                     <td><?php echo htmlspecialchars($seller['withdrawal_requested_at'] ?? '-'); ?></td>
                                     <td><?php echo htmlspecialchars($seller['withdrawal_reason'] ?? '사유 없음'); ?></td>
                                     <td>
-                                        <a href="/MVNO/admin/users/seller-detail.php?user_id=<?php echo urlencode($seller['user_id']); ?>" class="btn" style="background: #6366f1; color: white; margin-right: 8px; text-decoration: none; display: inline-block;">상세보기</a>
-                                        <button type="button" onclick="showCompleteWithdrawalModal('<?php echo htmlspecialchars($seller['user_id']); ?>', '<?php echo htmlspecialchars($seller['name'] ?? $seller['user_id']); ?>')" class="btn" style="background: #ef4444; color: white; margin-right: 8px;">탈퇴 완료 처리</button>
-                                        <button type="button" onclick="showCancelWithdrawalAdminModal('<?php echo htmlspecialchars($seller['user_id']); ?>', '<?php echo htmlspecialchars($seller['name'] ?? $seller['user_id']); ?>')" class="btn btn-approve">탈퇴 요청 취소</button>
+                                        <a href="/MVNO/admin/users/seller-detail.php?user_id=<?php echo urlencode($seller['user_id']); ?>" class="btn" style="background: #6366f1; color: white; text-decoration: none; display: inline-block;">상세보기</a>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>

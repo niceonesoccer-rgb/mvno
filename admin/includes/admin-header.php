@@ -796,13 +796,13 @@ if (file_exists($adminsFile)) {
     </aside>
     
     <!-- 부관리자 추가 모달 -->
-    <div id="addSubAdminModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); z-index: 2000; align-items: center; justify-content: center;">
-        <div style="background: white; border-radius: 12px; padding: 24px; max-width: 500px; width: 90%; max-height: 90vh; overflow-y: auto;">
+    <div id="addSubAdminModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); z-index: 2000; align-items: center; justify-content: center; pointer-events: auto;">
+        <div id="addSubAdminModalContent" style="background: white; border-radius: 12px; padding: 24px; max-width: 500px; width: 90%; max-height: 90vh; overflow-y: auto; pointer-events: auto;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <h2 style="font-size: 20px; font-weight: 700; color: #1f2937; margin: 0;">부관리자 추가</h2>
                 <button type="button" onclick="closeAddSubAdminModal()" style="background: none; border: none; font-size: 24px; color: #6b7280; cursor: pointer; padding: 0; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;">&times;</button>
             </div>
-            <form id="addSubAdminForm" method="POST" action="/MVNO/admin/settings/admin-manage.php">
+            <form id="addSubAdminForm" method="POST" action="/MVNO/api/add-admin.php">
                 <input type="hidden" name="action" value="add_admin">
                 <input type="hidden" name="role" value="sub_admin">
                 
@@ -822,14 +822,21 @@ if (file_exists($adminsFile)) {
                 </div>
                 
                 <div style="margin-bottom: 20px;">
-                    <label style="display: block; font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 8px;">전화번호 <span style="color: #ef4444;">*</span></label>
-                    <input type="tel" name="phone" required style="width: 100%; padding: 12px 16px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 15px; box-sizing: border-box;" placeholder="010-1234-5678">
+                    <label style="display: block; font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 8px;">휴대폰 <span style="color: #ef4444;">*</span></label>
+                    <input type="tel" id="admin_phone" name="phone" required pattern="010-\d{4}-\d{4}" style="width: 100%; padding: 12px 16px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 15px; box-sizing: border-box;" placeholder="010-1234-5678" maxlength="13">
+                    <div style="font-size: 13px; color: #6b7280; margin-top: 6px;">휴대폰 번호를 입력해주세요. (예: 010-1234-5678)</div>
                 </div>
                 
                 <div style="margin-bottom: 20px;">
                     <label style="display: block; font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 8px;">비밀번호 <span style="color: #ef4444;">*</span></label>
-                    <input type="password" name="password" required minlength="8" style="width: 100%; padding: 12px 16px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 15px; box-sizing: border-box;" placeholder="최소 8자 이상">
+                    <input type="password" id="admin_password" name="password" required minlength="8" style="width: 100%; padding: 12px 16px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 15px; box-sizing: border-box;" placeholder="최소 8자 이상">
                     <div style="font-size: 13px; color: #6b7280; margin-top: 6px;">최소 8자 이상 입력해주세요.</div>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 8px;">비밀번호 확인 <span style="color: #ef4444;">*</span></label>
+                    <input type="password" id="admin_password_confirm" name="password_confirm" required minlength="8" style="width: 100%; padding: 12px 16px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 15px; box-sizing: border-box;" placeholder="비밀번호를 다시 입력해주세요">
+                    <div id="passwordMatchResult" style="font-size: 13px; margin-top: 6px;"></div>
                 </div>
                 
                 <div style="display: flex; gap: 12px; margin-top: 24px;">
@@ -842,20 +849,104 @@ if (file_exists($adminsFile)) {
     
     <script>
         function showAddSubAdminModal() {
-            document.getElementById('addSubAdminModal').style.display = 'flex';
+            const modal = document.getElementById('addSubAdminModal');
+            modal.style.display = 'flex';
+            // 모달이 열릴 때 body 스크롤 막기
+            document.body.style.overflow = 'hidden';
+            // 모달 열릴 때 모든 필드 초기화 및 활성화
+            setTimeout(function() {
+                // 아이디 입력 필드
+                const adminUserIdInput = document.getElementById('admin_user_id');
+                if (adminUserIdInput) {
+                    adminUserIdInput.value = '';
+                    adminUserIdInput.removeAttribute('disabled');
+                    adminUserIdInput.removeAttribute('readonly');
+                    adminUserIdInput.disabled = false;
+                    adminUserIdInput.readOnly = false;
+                    adminUserIdInput.style.borderColor = '#d1d5db';
+                    adminUserIdInput.focus();
+                }
+                
+                // 비밀번호 필드 초기화
+                const adminPasswordInput = document.getElementById('admin_password');
+                const adminPasswordConfirmInput = document.getElementById('admin_password_confirm');
+                if (adminPasswordInput) {
+                    adminPasswordInput.value = '';
+                    adminPasswordInput.style.borderColor = '#d1d5db';
+                }
+                if (adminPasswordConfirmInput) {
+                    adminPasswordConfirmInput.value = '';
+                    adminPasswordConfirmInput.style.borderColor = '#d1d5db';
+                }
+                if (passwordMatchResult) {
+                    passwordMatchResult.innerHTML = '';
+                }
+                
+                // 중복확인 상태 초기화
+                document.getElementById('adminIdCheckResult').innerHTML = '';
+                document.getElementById('adminIdCheckResult').className = '';
+                adminIdChecked = false;
+                adminIdValid = false;
+            }, 100);
         }
         
         function closeAddSubAdminModal() {
-            document.getElementById('addSubAdminModal').style.display = 'none';
+            const modal = document.getElementById('addSubAdminModal');
+            modal.style.display = 'none';
+            // 모달이 닫힐 때 body 스크롤 복원
+            document.body.style.overflow = '';
             document.getElementById('addSubAdminForm').reset();
+            // 모든 상태 초기화
+            const adminUserIdInput = document.getElementById('admin_user_id');
+            if (adminUserIdInput) {
+                adminUserIdInput.removeAttribute('disabled');
+                adminUserIdInput.removeAttribute('readonly');
+                adminUserIdInput.disabled = false;
+                adminUserIdInput.readOnly = false;
+                adminUserIdInput.style.borderColor = '#d1d5db';
+            }
+            document.getElementById('adminIdCheckResult').innerHTML = '';
+            document.getElementById('adminIdCheckResult').className = '';
+            
+            // 비밀번호 필드 초기화
+            const adminPasswordInput = document.getElementById('admin_password');
+            const adminPasswordConfirmInput = document.getElementById('admin_password_confirm');
+            const passwordMatchResultDiv = document.getElementById('passwordMatchResult');
+            if (adminPasswordInput) {
+                adminPasswordInput.style.borderColor = '#d1d5db';
+            }
+            if (adminPasswordConfirmInput) {
+                adminPasswordConfirmInput.style.borderColor = '#d1d5db';
+            }
+            if (passwordMatchResultDiv) {
+                passwordMatchResultDiv.innerHTML = '';
+            }
+            
+            adminIdChecked = false;
+            adminIdValid = false;
         }
         
-        // 모달 외부 클릭 시 닫기
-        document.getElementById('addSubAdminModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeAddSubAdminModal();
-            }
-        });
+        // 모달 외부 클릭 방지 (모달이 열려있을 때 뒷배경 클릭 막기)
+        const addSubAdminModal = document.getElementById('addSubAdminModal');
+        const addSubAdminModalContent = document.getElementById('addSubAdminModalContent');
+        
+        if (addSubAdminModal && addSubAdminModalContent) {
+            // 모달 배경(뒷배경) 클릭 시 아무 동작도 하지 않음
+            addSubAdminModal.addEventListener('click', function(e) {
+                // 뒷배경을 직접 클릭한 경우에만 동작 방지
+                if (e.target === this) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    // 모달을 닫지 않음
+                    return false;
+                }
+            });
+            
+            // 모달 내부 컨텐츠 영역 클릭 시 이벤트 전파 방지 (뒷배경으로 전파되지 않도록)
+            addSubAdminModalContent.addEventListener('click', function(e) {
+                e.stopPropagation();
+            });
+        }
         
         // 아이디 입력 시 소문자로 자동 변환
         const adminUserIdInput = document.getElementById('admin_user_id');
@@ -865,6 +956,105 @@ if (file_exists($adminsFile)) {
                 // 중복확인 상태 초기화
                 document.getElementById('adminIdCheckResult').innerHTML = '';
                 document.getElementById('adminIdCheckResult').className = '';
+            });
+        }
+        
+        // 휴대폰 번호 자동 포맷팅 (010-XXXX-XXXX, 010으로 시작 강제)
+        const adminPhoneInput = document.getElementById('admin_phone');
+        if (adminPhoneInput) {
+            adminPhoneInput.addEventListener('input', function(e) {
+                let value = this.value.replace(/[^0-9]/g, ''); // 숫자만 추출
+                
+                // 010으로 시작하지 않으면 처음 3자리를 010으로 강제
+                if (value.length > 0) {
+                    if (value.length === 1 && value !== '0') {
+                        value = '0';
+                    } else if (value.length === 2 && !value.startsWith('01')) {
+                        value = '01';
+                    } else if (value.length >= 3 && !value.startsWith('010')) {
+                        value = '010' + value.substring(3);
+                    }
+                }
+                
+                // 최대 11자리까지만 허용
+                if (value.length > 11) {
+                    value = value.substring(0, 11);
+                }
+                
+                // 자동 하이픈 추가 (010-XXXX-XXXX)
+                if (value.length === 0) {
+                    this.value = '';
+                } else if (value.length <= 3) {
+                    this.value = value;
+                } else if (value.length > 3 && value.length <= 7) {
+                    this.value = value.substring(0, 3) + '-' + value.substring(3);
+                } else if (value.length > 7) {
+                    this.value = value.substring(0, 3) + '-' + value.substring(3, 7) + '-' + value.substring(7);
+                }
+            });
+            
+            // 포커스 인 시 010으로 시작 확인
+            adminPhoneInput.addEventListener('focus', function(e) {
+                if (!this.value || this.value.trim() === '') {
+                    this.value = '010-';
+                    this.setSelectionRange(4, 4); // 커서를 하이픈 뒤로 이동
+                } else if (!this.value.startsWith('010')) {
+                    let value = this.value.replace(/[^0-9]/g, '');
+                    if (value && !value.startsWith('010')) {
+                        this.value = '010-' + (value.length > 3 ? value.substring(3) : '');
+                    }
+                }
+            });
+            
+            // 포커스 아웃 시 형식 검증
+            adminPhoneInput.addEventListener('blur', function(e) {
+                const phonePattern = /^010-\d{4}-\d{4}$/;
+                if (this.value && !phonePattern.test(this.value)) {
+                    this.style.borderColor = '#ef4444';
+                } else if (phonePattern.test(this.value)) {
+                    this.style.borderColor = '#d1d5db';
+                }
+            });
+        }
+        
+        // 비밀번호 확인 검증
+        const adminPasswordInput = document.getElementById('admin_password');
+        const adminPasswordConfirmInput = document.getElementById('admin_password_confirm');
+        const passwordMatchResult = document.getElementById('passwordMatchResult');
+        
+        function checkPasswordMatch() {
+            const password = adminPasswordInput ? adminPasswordInput.value : '';
+            const passwordConfirm = adminPasswordConfirmInput ? adminPasswordConfirmInput.value : '';
+            
+            if (!passwordConfirm) {
+                passwordMatchResult.innerHTML = '';
+                if (adminPasswordConfirmInput) {
+                    adminPasswordConfirmInput.style.borderColor = '#d1d5db';
+                }
+                return;
+            }
+            
+            if (password && passwordConfirm) {
+                if (password === passwordConfirm) {
+                    passwordMatchResult.innerHTML = '<span style="color: #10b981;">✓ 비밀번호가 일치합니다.</span>';
+                    if (adminPasswordConfirmInput) {
+                        adminPasswordConfirmInput.style.borderColor = '#10b981';
+                    }
+                } else {
+                    passwordMatchResult.innerHTML = '<span style="color: #ef4444;">✗ 비밀번호가 일치하지 않습니다.</span>';
+                    if (adminPasswordConfirmInput) {
+                        adminPasswordConfirmInput.style.borderColor = '#ef4444';
+                    }
+                }
+            }
+        }
+        
+        if (adminPasswordInput && adminPasswordConfirmInput) {
+            adminPasswordInput.addEventListener('input', checkPasswordMatch);
+            adminPasswordConfirmInput.addEventListener('input', checkPasswordMatch);
+            
+            adminPasswordConfirmInput.addEventListener('blur', function() {
+                checkPasswordMatch();
             });
         }
         
@@ -927,7 +1117,7 @@ if (file_exists($adminsFile)) {
                 });
         }
         
-        // 폼 제출 시 중복확인 체크
+        // 폼 제출 시 중복확인 체크 및 휴대폰 번호 검증
         document.getElementById('addSubAdminForm').addEventListener('submit', function(e) {
             if (!adminIdChecked) {
                 e.preventDefault();
@@ -939,6 +1129,40 @@ if (file_exists($adminsFile)) {
                 e.preventDefault();
                 alert('사용 가능한 아이디를 입력해주세요.');
                 adminUserIdInput.focus();
+                return false;
+            }
+            
+            // 휴대폰 번호 형식 검증
+            const phonePattern = /^010-\d{4}-\d{4}$/;
+            const phoneValue = adminPhoneInput ? adminPhoneInput.value.trim() : '';
+            if (!phoneValue || !phonePattern.test(phoneValue)) {
+                e.preventDefault();
+                alert('휴대폰 번호를 올바르게 입력해주세요. (예: 010-1234-5678)');
+                if (adminPhoneInput) {
+                    adminPhoneInput.focus();
+                    adminPhoneInput.style.borderColor = '#ef4444';
+                }
+                return false;
+            }
+            
+            // 비밀번호 확인 검증
+            const password = adminPasswordInput ? adminPasswordInput.value : '';
+            const passwordConfirm = adminPasswordConfirmInput ? adminPasswordConfirmInput.value : '';
+            if (!password || password.length < 8) {
+                e.preventDefault();
+                alert('비밀번호는 최소 8자 이상 입력해주세요.');
+                if (adminPasswordInput) {
+                    adminPasswordInput.focus();
+                }
+                return false;
+            }
+            if (password !== passwordConfirm) {
+                e.preventDefault();
+                alert('비밀번호가 일치하지 않습니다.');
+                if (adminPasswordConfirmInput) {
+                    adminPasswordConfirmInput.focus();
+                    adminPasswordConfirmInput.style.borderColor = '#ef4444';
+                }
                 return false;
             }
         });

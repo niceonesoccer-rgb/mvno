@@ -192,10 +192,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_seller'])) {
     if (!$seller || $seller['role'] !== 'seller') {
         $error_message = '판매자를 찾을 수 없습니다.';
     } else {
+        // 이메일 처리 (@ 앞부분과 뒷부분 분리 또는 전체 이메일)
+        $emailLocal = trim($_POST['email_local'] ?? '');
+        $emailDomain = trim($_POST['email_domain'] ?? '');
+        $emailCustom = trim($_POST['email_custom'] ?? '');
+        
+        // 이메일 조합
+        if (!empty($emailLocal)) {
+            if (!empty($emailCustom)) {
+                $email = $emailLocal . '@' . $emailCustom;
+            } else if (!empty($emailDomain)) {
+                $email = $emailLocal . '@' . $emailDomain;
+            } else {
+                $email = $seller['email'] ?? '';
+            }
+        } else {
+            // 기존 방식으로 이메일 입력한 경우
+            $email = trim($_POST['email'] ?? $seller['email'] ?? '');
+        }
+        $email = trim($email);
+        
         // 수정할 정보 수집
         $updateData = [
             'name' => $_POST['name'] ?? $seller['name'],
-            'email' => $_POST['email'] ?? $seller['email'],
+            'email' => $email,
             'phone' => $_POST['phone'] ?? ($seller['phone'] ?? ''),
             'mobile' => $_POST['mobile'] ?? ($seller['mobile'] ?? ''),
             'address' => $_POST['address'] ?? ($seller['address'] ?? ''),
@@ -210,6 +230,77 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_seller'])) {
         // 비밀번호 변경이 있는 경우
         if (!empty($_POST['password'])) {
             $updateData['password'] = password_hash($_POST['password'], PASSWORD_DEFAULT);
+        }
+        
+        // 이메일 검증
+        if (empty($email)) {
+            $error_message = '이메일을 입력해주세요.';
+        } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $error_message = '올바른 이메일 형식이 아닙니다.';
+        } elseif (strlen($emailLocal) > 20) {
+            $error_message = '이메일 아이디는 20자 이내로 입력해주세요.';
+        }
+        
+        // 휴대폰 번호 검증 (필수)
+        if (empty($error_message) && !empty($updateData['mobile'])) {
+            $mobileNumbers = preg_replace('/[^\d]/', '', $updateData['mobile']);
+            if (!preg_match('/^010\d{8}$/', $mobileNumbers)) {
+                $error_message = '휴대폰 번호는 010으로 시작하는 11자리 숫자여야 합니다.';
+            } else {
+                // 휴대폰 번호 포맷팅
+                $updateData['mobile'] = '010-' . substr($mobileNumbers, 3, 4) . '-' . substr($mobileNumbers, 7, 4);
+            }
+        }
+        
+        // 전화번호 형식 검증 (입력된 경우에만, 쉼표로 구분된 여러 번호 지원)
+        if (empty($error_message) && !empty($updateData['phone'])) {
+            // 쉼표로 구분된 전화번호들을 배열로 분리
+            $phoneList = array_map('trim', explode(',', $updateData['phone']));
+            $phoneList = array_filter($phoneList); // 빈 값 제거
+            
+            foreach ($phoneList as $phoneItem) {
+                $phoneNumbers = preg_replace('/[^\d]/', '', $phoneItem);
+                $phoneLength = strlen($phoneNumbers);
+                
+                // 숫자 길이 검증
+                if ($phoneLength < 8 || $phoneLength > 11) {
+                    $error_message = '전화번호 형식이 올바르지 않습니다. (각 번호는 8-11자리여야 합니다)';
+                    break;
+                }
+                
+                // 한국 전화번호 형식 검증
+                $isValidFormat = false;
+                
+                // 휴대폰 (010, 011, 016, 017, 018, 019) - 11자리
+                if ($phoneLength === 11 && preg_match('/^01[0-9]\d{8}$/', $phoneNumbers)) {
+                    $isValidFormat = true;
+                }
+                // 02-XXXX-XXXX (서울, 10자리)
+                elseif ($phoneLength === 10 && preg_match('/^02\d{8}$/', $phoneNumbers)) {
+                    $isValidFormat = true;
+                }
+                // 0XX-XXX-XXXX (지역번호 3자리, 10자리)
+                elseif ($phoneLength === 10 && preg_match('/^0[3-6]\d{8}$/', $phoneNumbers)) {
+                    $isValidFormat = true;
+                }
+                // 0XX-XXXX-XXXX (일부 지역번호, 11자리)
+                elseif ($phoneLength === 11 && preg_match('/^0[3-6]\d{9}$/', $phoneNumbers)) {
+                    $isValidFormat = true;
+                }
+                // 070/080-XXXX-XXXX (인터넷전화, 11자리)
+                elseif ($phoneLength === 11 && preg_match('/^0[78]0\d{8}$/', $phoneNumbers)) {
+                    $isValidFormat = true;
+                }
+                // 전국대표번호 (1XXX로 시작하는 4자리 번호 + 4자리, 총 8자리)
+                elseif ($phoneLength === 8 && preg_match('/^1\d{3}\d{4}$/', $phoneNumbers)) {
+                    $isValidFormat = true;
+                }
+                
+                if (!$isValidFormat) {
+                    $error_message = '전화번호 형식이 올바르지 않습니다. (예: 02-1234-5678, 031-123-4567, 010-1234-5678, 1588-1234, 070-1234-5678)';
+                    break;
+                }
+            }
         }
         
         // 사업자등록증 이미지 업로드 처리
@@ -261,6 +352,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_seller'])) {
                                 $error_message = '이미지 업로드에 실패했습니다.';
                             }
                         }
+                    }
                 }
             }
         }
@@ -347,6 +439,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_seller'])) {
 // POST 처리 후 판매자 정보 다시 로드 (업데이트된 정보 반영)
 if (isset($success_saved) && $success_saved && isset($userId)) {
     $seller = getUserById($userId);
+}
+
+// 기존 이메일 값을 파싱하여 email_local과 email_domain으로 분리
+$emailLocal = '';
+$emailDomain = '';
+$emailCustom = '';
+$currentEmail = $seller['email'] ?? '';
+if (!empty($currentEmail) && strpos($currentEmail, '@') !== false) {
+    $emailParts = explode('@', $currentEmail);
+    $emailLocal = $emailParts[0] ?? '';
+    $domain = $emailParts[1] ?? '';
+    
+    $commonDomains = ['naver.com', 'gmail.com', 'hanmail.net', 'nate.com'];
+    if (in_array($domain, $commonDomains)) {
+        $emailDomain = $domain;
+    } else {
+        $emailDomain = 'custom';
+        $emailCustom = $domain;
+    }
 }
 
 // 관리자 헤더 사용
@@ -442,6 +553,27 @@ require_once __DIR__ . '/../includes/admin-header.php';
         box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
     }
     
+    .form-input.error {
+        border-color: #ef4444;
+        background-color: #fef2f2;
+    }
+    
+    .form-input.error:focus {
+        border-color: #ef4444;
+        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+    }
+    
+    .form-error-message {
+        font-size: 12px;
+        color: #ef4444;
+        margin-top: 4px;
+        display: none;
+    }
+    
+    .form-group.has-error .form-error-message {
+        display: block;
+    }
+    
     .form-textarea {
         width: 100%;
         padding: 10px 14px;
@@ -532,6 +664,31 @@ require_once __DIR__ . '/../includes/admin-header.php';
         font-size: 12px;
         color: #6b7280;
         margin-top: 4px;
+    }
+    
+    /* 이메일 입력 필드 스타일 */
+    .email-input-group {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+    
+    .email-input-group input[type="text"] {
+        flex: 1;
+        min-width: 120px;
+    }
+    
+    .email-input-group select {
+        flex: 1;
+        min-width: 150px;
+    }
+    
+    .email-input-group .email-at {
+        font-size: 16px;
+        color: #6b7280;
+        white-space: nowrap;
+        padding: 0 4px;
     }
     
     .form-input[type="file"] {
@@ -679,7 +836,21 @@ require_once __DIR__ . '/../includes/admin-header.php';
                 <div class="form-grid">
                     <div class="form-group">
                         <label class="form-label">이메일 <span class="required">*</span></label>
-                        <input type="email" name="email" class="form-input" value="<?php echo htmlspecialchars($seller['email'] ?? ''); ?>" required>
+                        <div class="email-input-group">
+                            <input type="text" id="email_local" name="email_local" class="form-input" value="<?php echo htmlspecialchars($emailLocal); ?>" placeholder="이메일 아이디" maxlength="20" required>
+                            <span class="email-at">@</span>
+                            <select id="email_domain" name="email_domain" class="form-input" onchange="handleEmailDomainChange()" required>
+                                <option value="">선택하세요</option>
+                                <option value="naver.com" <?php echo ($emailDomain === 'naver.com') ? 'selected' : ''; ?>>naver.com</option>
+                                <option value="gmail.com" <?php echo ($emailDomain === 'gmail.com') ? 'selected' : ''; ?>>gmail.com</option>
+                                <option value="hanmail.net" <?php echo ($emailDomain === 'hanmail.net') ? 'selected' : ''; ?>>hanmail.net</option>
+                                <option value="nate.com" <?php echo ($emailDomain === 'nate.com') ? 'selected' : ''; ?>>nate.com</option>
+                                <option value="custom" <?php echo ($emailDomain === 'custom') ? 'selected' : ''; ?>>직접 입력</option>
+                            </select>
+                            <input type="text" id="email_custom" name="email_custom" class="form-input" value="<?php echo htmlspecialchars($emailCustom); ?>" placeholder="도메인 입력" style="display: <?php echo ($emailDomain === 'custom') ? 'block' : 'none'; ?>;">
+                        </div>
+                        <input type="hidden" id="email" name="email" value="<?php echo htmlspecialchars($currentEmail); ?>">
+                        <div class="password-note">이메일 아이디는 20자 이내로 입력해주세요.</div>
                     </div>
                     <div class="form-group">
                         <label class="form-label">비밀번호</label>
@@ -695,11 +866,14 @@ require_once __DIR__ . '/../includes/admin-header.php';
                 <div class="form-grid">
                     <div class="form-group">
                         <label class="form-label">전화번호</label>
-                        <input type="tel" name="phone" class="form-input" value="<?php echo htmlspecialchars($seller['phone'] ?? ''); ?>" placeholder="02-1234-5678">
+                        <input type="tel" id="phone" name="phone" class="form-input" value="<?php echo htmlspecialchars($seller['phone'] ?? ''); ?>" placeholder="1588-1234, 02-1234-5678, 070-1234-5678">
+                        <div class="password-note">쉼표로 구분하여 여러 번호를 입력할 수 있습니다. (예: 1588-1234, 02-1234-5678)</div>
+                        <div class="phone-error-message" style="display: none; font-size: 12px; color: #ef4444; margin-top: 4px;"></div>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">휴대폰</label>
-                        <input type="tel" name="mobile" class="form-input" value="<?php echo htmlspecialchars($seller['mobile'] ?? ''); ?>" placeholder="010-1234-5678">
+                        <label class="form-label">휴대폰 <span class="required">*</span></label>
+                        <input type="tel" id="mobile" name="mobile" class="form-input" value="<?php echo htmlspecialchars($seller['mobile'] ?? ''); ?>" placeholder="010-1234-5678" required>
+                        <div class="password-note">010으로 시작하는 11자리 숫자를 입력해주세요.</div>
                     </div>
                 </div>
             </div>
@@ -847,7 +1021,7 @@ require_once __DIR__ . '/../includes/admin-header.php';
         }
     }
     
-    // 전화번호 하이픈 자동 입력
+    // 전화번호 하이픈 자동 입력 및 길이 제한
     function formatPhoneNumber(value, isMobile = false) {
         // 숫자만 추출
         const numbers = value.replace(/[^\d]/g, '');
@@ -882,12 +1056,16 @@ require_once __DIR__ . '/../includes/admin-header.php';
                 numbers.startsWith('1577') || numbers.startsWith('1600') ||
                 numbers.startsWith('1800') || numbers.startsWith('1566') ||
                 numbers.startsWith('1599') || numbers.startsWith('1644')) {
+                // 전국대표번호는 정확히 8자리만 허용
                 const limited = numbers.slice(0, 8);
                 if (limited.length <= 4) {
                     return limited;
-                } else {
+                } else if (limited.length === 8) {
                     // 4-4 형식: 1588-1234
                     return limited.slice(0, 4) + '-' + limited.slice(4, 8);
+                } else {
+                    // 5-7자리: 하이픈 추가
+                    return limited.slice(0, 4) + '-' + limited.slice(4);
                 }
             }
             // 인터넷전화 (070, 080) - 11자리
@@ -901,8 +1079,9 @@ require_once __DIR__ . '/../includes/admin-header.php';
                     return limited.slice(0, 3) + '-' + limited.slice(3, 7) + '-' + limited.slice(7);
                 }
             }
-            // 서울 지역번호 (02) - 10자리: 02-XXXX-XXXX
+            // 서울 지역번호 (02) - 10자리: 02-XXXX-XXXX (엄격한 길이 제한)
             else if (numbers.startsWith('02')) {
+                // 02로 시작하는 경우 최대 10자리만 허용
                 const limited = numbers.slice(0, 10);
                 if (limited.length <= 2) {
                     return limited;
@@ -936,6 +1115,43 @@ require_once __DIR__ . '/../includes/admin-header.php';
         }
     }
     
+    // 전화번호 유효성 검증 함수
+    function validatePhoneNumber(phoneValue) {
+        const numbers = phoneValue.replace(/[^\d]/g, '');
+        const length = numbers.length;
+        
+        if (length < 8 || length > 11) {
+            return { valid: false, message: '전화번호는 8-11자리여야 합니다.' };
+        }
+        
+        // 휴대폰 (010, 011, 016, 017, 018, 019) - 11자리
+        if (length === 11 && /^01[0-9]\d{8}$/.test(numbers)) {
+            return { valid: true };
+        }
+        // 02-XXXX-XXXX (서울, 10자리)
+        if (length === 10 && /^02\d{8}$/.test(numbers)) {
+            return { valid: true };
+        }
+        // 0XX-XXX-XXXX (지역번호 3자리, 10자리)
+        if (length === 10 && /^0[3-6]\d{8}$/.test(numbers)) {
+            return { valid: true };
+        }
+        // 0XX-XXXX-XXXX (일부 지역번호, 11자리)
+        if (length === 11 && /^0[3-6]\d{9}$/.test(numbers)) {
+            return { valid: true };
+        }
+        // 070/080-XXXX-XXXX (인터넷전화, 11자리)
+        if (length === 11 && /^0[78]0\d{8}$/.test(numbers)) {
+            return { valid: true };
+        }
+        // 전국대표번호 (1XXX로 시작하는 4자리 번호 + 4자리, 총 8자리)
+        if (length === 8 && /^1\d{3}\d{4}$/.test(numbers)) {
+            return { valid: true };
+        }
+        
+        return { valid: false, message: '전화번호 형식이 올바르지 않습니다. (예: 02-1234-5678, 031-123-4567, 010-1234-5678, 1588-1234, 070-1234-5678)' };
+    }
+    
     // 사업자등록번호 하이픈 자동 입력 (123-45-67890)
     function formatBusinessNumber(value) {
         // 숫자만 추출
@@ -952,6 +1168,55 @@ require_once __DIR__ . '/../includes/admin-header.php';
         } else {
             return limited.slice(0, 3) + '-' + limited.slice(3, 5) + '-' + limited.slice(5);
         }
+    }
+    
+    // 이메일 조합 함수
+    function getCombinedEmail() {
+        const emailLocal = document.getElementById('email_local').value.trim();
+        const emailDomain = document.getElementById('email_domain').value;
+        const emailCustom = document.getElementById('email_custom').value.trim();
+        
+        if (!emailLocal) {
+            return '';
+        }
+        
+        let domain = '';
+        if (emailDomain === 'custom') {
+            domain = emailCustom;
+        } else {
+            domain = emailDomain;
+        }
+        
+        if (!domain) {
+            return '';
+        }
+        
+        return emailLocal + '@' + domain;
+    }
+    
+    // 이메일 필드 업데이트
+    function updateEmailField() {
+        const combinedEmail = getCombinedEmail();
+        document.getElementById('email').value = combinedEmail;
+    }
+    
+    // 이메일 도메인 선택 변경 처리
+    function handleEmailDomainChange() {
+        const emailDomain = document.getElementById('email_domain').value;
+        const emailCustom = document.getElementById('email_custom');
+        
+        if (emailDomain === 'custom') {
+            emailCustom.style.display = 'block';
+            emailCustom.required = true;
+            emailCustom.focus();
+        } else {
+            emailCustom.style.display = 'none';
+            emailCustom.required = false;
+            emailCustom.value = '';
+        }
+        
+        // 이메일 조합하여 hidden 필드 업데이트
+        updateEmailField();
     }
     
     // 페이지 로드 시 전화번호 필드에 이벤트 리스너 추가
@@ -973,20 +1238,376 @@ require_once __DIR__ . '/../includes/admin-header.php';
             });
         }
         
-        // 전화번호 필드
+        // 전화번호 필드 (쉼표로 구분된 여러 번호 지원)
         const phoneInput = document.querySelector('input[name="phone"]');
         if (phoneInput) {
+            let isFormatting = false; // 포맷팅 중 중복 실행 방지
+            
             phoneInput.addEventListener('input', function(e) {
+                if (isFormatting) return;
+                isFormatting = true;
+                
+                let value = e.target.value;
                 const cursorPosition = e.target.selectionStart;
-                const oldValue = e.target.value;
-                const newValue = formatPhoneNumber(e.target.value, false);
                 
-                e.target.value = newValue;
+                try {
+                    // 쉼표로 구분된 전화번호들을 각각 포맷팅
+                    if (value.includes(',')) {
+                        // 쉼표로 분리
+                        const phoneList = value.split(',');
+                        const formattedList = [];
+                        
+                        for (let i = 0; i < phoneList.length; i++) {
+                            const phone = phoneList[i].trim();
+                            if (phone) {
+                                // 숫자만 추출하여 길이 확인
+                                let numbers = phone.replace(/[^\d]/g, '');
+                                
+                                // 각 전화번호 유형별 최대 길이 결정 및 제한 (우선순위: 전국대표번호 > 02 > 기타)
+                                let maxLength = 11;
+                                
+                                // 전국대표번호는 8자리로 엄격하게 제한 (우선 검사)
+                                if (numbers.startsWith('1588') || numbers.startsWith('1544') || 
+                                    numbers.startsWith('1577') || numbers.startsWith('1600') ||
+                                    numbers.startsWith('1800') || numbers.startsWith('1566') ||
+                                    numbers.startsWith('1599') || numbers.startsWith('1644')) {
+                                    maxLength = 8; // 전국대표번호는 8자리
+                                }
+                                // 서울 지역번호는 10자리
+                                else if (numbers.startsWith('02')) {
+                                    maxLength = 10; // 서울 지역번호는 10자리
+                                }
+                                // 휴대폰은 11자리
+                                else if (numbers.startsWith('010') || numbers.startsWith('011') || 
+                                         numbers.startsWith('016') || numbers.startsWith('017') || 
+                                         numbers.startsWith('018') || numbers.startsWith('019')) {
+                                    maxLength = 11; // 휴대폰은 11자리
+                                }
+                                // 인터넷전화는 11자리
+                                else if (numbers.startsWith('070') || numbers.startsWith('080')) {
+                                    maxLength = 11; // 인터넷전화는 11자리
+                                }
+                                // 지역번호 3자리로 시작하는 경우
+                                else if (numbers.startsWith('0') && numbers.length >= 3) {
+                                    maxLength = 11; // 지역번호는 최대 11자리
+                                }
+                                
+                                // 최대 길이 초과 시 자르기
+                                if (numbers.length > maxLength) {
+                                    numbers = numbers.slice(0, maxLength);
+                                }
+                                
+                                if (numbers.length > 0) {
+                                    formattedList.push(formatPhoneNumber(numbers, false));
+                                }
+                            } else if (i === phoneList.length - 1) {
+                                // 마지막 항목이 빈 값인 경우 (입력 중)
+                                formattedList.push('');
+                            }
+                        }
+                        
+                        // 쉼표와 공백으로 조인 (빈 값 제거)
+                        const validPhones = formattedList.filter(p => p.trim());
+                        const result = validPhones.join(', ');
+                        
+                        e.target.value = result;
+                    } else {
+                        // 단일 전화번호 포맷팅 - 길이 제한 적용
+                        let numbers = value.replace(/[^\d]/g, '');
+                        
+                        // 각 전화번호 유형별 최대 길이 결정 (우선순위: 전국대표번호 > 02 > 기타)
+                        let maxLength = 11;
+                        
+                        // 전국대표번호는 8자리로 엄격하게 제한 (우선 검사)
+                        if (numbers.startsWith('1588') || numbers.startsWith('1544') || 
+                            numbers.startsWith('1577') || numbers.startsWith('1600') ||
+                            numbers.startsWith('1800') || numbers.startsWith('1566') ||
+                            numbers.startsWith('1599') || numbers.startsWith('1644')) {
+                            maxLength = 8; // 전국대표번호는 8자리
+                        }
+                        // 서울 지역번호는 10자리
+                        else if (numbers.startsWith('02')) {
+                            maxLength = 10; // 서울 지역번호는 10자리
+                        }
+                        // 휴대폰은 11자리
+                        else if (numbers.startsWith('010') || numbers.startsWith('011') || 
+                                 numbers.startsWith('016') || numbers.startsWith('017') || 
+                                 numbers.startsWith('018') || numbers.startsWith('019')) {
+                            maxLength = 11; // 휴대폰은 11자리
+                        }
+                        // 인터넷전화는 11자리
+                        else if (numbers.startsWith('070') || numbers.startsWith('080')) {
+                            maxLength = 11; // 인터넷전화는 11자리
+                        }
+                        // 지역번호 3자리로 시작하는 경우
+                        else if (numbers.startsWith('0') && numbers.length >= 3) {
+                            maxLength = 11; // 최대 11자리
+                        }
+                        
+                        // 최대 길이 초과 시 자르기
+                        if (numbers.length > maxLength) {
+                            numbers = numbers.slice(0, maxLength);
+                        }
+                        
+                        const oldValue = e.target.value;
+                        const newValue = formatPhoneNumber(numbers, false);
+                        
+                        // 포맷팅 후에도 검증하여 올바른 형식으로 재포맷팅
+                        const formattedNumbers = newValue.replace(/[^\d]/g, '');
+                        
+                        // 전국대표번호인 경우 8자리로 엄격하게 제한 (우선 검사)
+                        if (formattedNumbers.startsWith('1588') || formattedNumbers.startsWith('1544') || 
+                            formattedNumbers.startsWith('1577') || formattedNumbers.startsWith('1600') ||
+                            formattedNumbers.startsWith('1800') || formattedNumbers.startsWith('1566') ||
+                            formattedNumbers.startsWith('1599') || formattedNumbers.startsWith('1644')) {
+                            if (formattedNumbers.length > 8) {
+                                const correctedNumbers = formattedNumbers.slice(0, 8);
+                                e.target.value = formatPhoneNumber(correctedNumbers, false);
+                            } else {
+                                e.target.value = newValue;
+                            }
+                        }
+                        // 02로 시작하는 경우 10자리로 제한
+                        else if (formattedNumbers.startsWith('02')) {
+                            if (formattedNumbers.length > 10) {
+                                const correctedNumbers = formattedNumbers.slice(0, 10);
+                                e.target.value = formatPhoneNumber(correctedNumbers, false);
+                            } else {
+                                e.target.value = newValue;
+                            }
+                        }
+                        // 지역번호 3자리로 시작하는 경우 11자리로 제한
+                        else if (formattedNumbers.startsWith('0') && formattedNumbers.length >= 3) {
+                            if (formattedNumbers.length > 11) {
+                                const correctedNumbers = formattedNumbers.slice(0, 11);
+                                e.target.value = formatPhoneNumber(correctedNumbers, false);
+                            } else {
+                                e.target.value = newValue;
+                            }
+                        }
+                        else {
+                            e.target.value = newValue;
+                        }
+                        
+                        // 커서 위치 조정
+                        const finalValue = e.target.value;
+                        const diff = finalValue.length - oldValue.length;
+                        const newCursorPosition = Math.max(0, Math.min(finalValue.length, cursorPosition + diff));
+                        setTimeout(() => {
+                            e.target.setSelectionRange(newCursorPosition, newCursorPosition);
+                        }, 0);
+                    }
+                } catch (error) {
+                    console.error('전화번호 포맷팅 오류:', error);
+                }
                 
-                // 커서 위치 조정
-                const diff = newValue.length - oldValue.length;
-                const newCursorPosition = Math.max(0, Math.min(newValue.length, cursorPosition + diff));
-                e.target.setSelectionRange(newCursorPosition, newCursorPosition);
+                isFormatting = false;
+            });
+            
+            // 키 입력 차단 (과도한 숫자 입력 방지)
+            phoneInput.addEventListener('keypress', function(e) {
+                const value = e.target.value;
+                const cursorPosition = e.target.selectionStart;
+                
+                // 숫자만 허용 (0-9)
+                if (!/[0-9]/.test(e.key) && e.key !== ',' && e.key !== 'Backspace' && e.key !== 'Delete' && e.key !== 'ArrowLeft' && e.key !== 'ArrowRight' && e.key !== 'Tab') {
+                    e.preventDefault();
+                    return false;
+                }
+                
+                // 쉼표로 구분된 여러 번호인 경우
+                if (value.includes(',')) {
+                    const phoneList = value.split(',');
+                    const currentIndex = value.substring(0, cursorPosition).split(',').length - 1;
+                    const currentPhone = phoneList[currentIndex] || '';
+                    const numbers = currentPhone.replace(/[^\d]/g, '');
+                    
+                    // 현재 전화번호의 최대 길이 확인 (우선순위: 전국대표번호 > 02 > 기타)
+                    let maxLength = 11;
+                    if (numbers.startsWith('1588') || numbers.startsWith('1544') || 
+                        numbers.startsWith('1577') || numbers.startsWith('1600') ||
+                        numbers.startsWith('1800') || numbers.startsWith('1566') ||
+                        numbers.startsWith('1599') || numbers.startsWith('1644')) {
+                        maxLength = 8; // 전국대표번호는 8자리
+                    } else if (numbers.startsWith('02')) {
+                        maxLength = 10; // 서울 지역번호는 10자리
+                    }
+                    
+                    // 숫자 입력 시 길이 제한
+                    if (/[0-9]/.test(e.key) && numbers.length >= maxLength) {
+                        e.preventDefault();
+                        return false;
+                    }
+                } else {
+                    // 단일 전화번호인 경우
+                    const numbers = value.replace(/[^\d]/g, '');
+                    
+                    // 최대 길이 확인 (우선순위: 전국대표번호 > 02 > 기타)
+                    let maxLength = 11;
+                    if (numbers.startsWith('1588') || numbers.startsWith('1544') || 
+                        numbers.startsWith('1577') || numbers.startsWith('1600') ||
+                        numbers.startsWith('1800') || numbers.startsWith('1566') ||
+                        numbers.startsWith('1599') || numbers.startsWith('1644')) {
+                        maxLength = 8; // 전국대표번호는 8자리
+                    } else if (numbers.startsWith('02')) {
+                        maxLength = 10; // 서울 지역번호는 10자리
+                    }
+                    
+                    // 숫자 입력 시 길이 제한
+                    if (/[0-9]/.test(e.key) && numbers.length >= maxLength) {
+                        e.preventDefault();
+                        return false;
+                    }
+                }
+            });
+            
+            // 블러 시 검증 및 오류 표시
+            phoneInput.addEventListener('blur', function(e) {
+                const value = e.target.value.trim();
+                const formGroup = e.target.closest('.form-group');
+                let errorMessage = formGroup ? formGroup.querySelector('.phone-error-message') : null;
+                
+                if (!value) {
+                    e.target.classList.remove('error');
+                    if (errorMessage) errorMessage.style.display = 'none';
+                    return;
+                }
+                
+                // 쉼표로 구분된 전화번호 검증
+                const phoneList = value.split(',').map(p => p.trim()).filter(p => p.length > 0);
+                let hasError = false;
+                let errorMsg = '';
+                
+                if (phoneList.length === 0) {
+                    hasError = true;
+                    errorMsg = '전화번호를 입력해주세요.';
+                } else {
+                    for (let i = 0; i < phoneList.length; i++) {
+                        const phoneItem = phoneList[i];
+                        const validation = validatePhoneNumber(phoneItem);
+                        
+                        if (!validation.valid) {
+                            hasError = true;
+                            errorMsg = validation.message || '전화번호 형식이 올바르지 않습니다.';
+                            break;
+                        }
+                    }
+                }
+                
+                if (hasError) {
+                    e.target.classList.add('error');
+                    if (!errorMessage) {
+                        errorMessage = document.createElement('div');
+                        errorMessage.className = 'phone-error-message';
+                        errorMessage.style.cssText = 'font-size: 12px; color: #ef4444; margin-top: 4px;';
+                        formGroup.appendChild(errorMessage);
+                    }
+                    errorMessage.textContent = errorMsg || '전화번호 형식이 올바르지 않습니다.';
+                    errorMessage.style.display = 'block';
+                } else {
+                    e.target.classList.remove('error');
+                    if (errorMessage) errorMessage.style.display = 'none';
+                }
+            });
+            
+            // 입력 중 실시간 검증 (일정 시간 후)
+            let validationTimeout = null;
+            phoneInput.addEventListener('input', function(e) {
+                // 기존 타이머 취소
+                if (validationTimeout) {
+                    clearTimeout(validationTimeout);
+                }
+                
+                // 1초 후 검증 실행
+                validationTimeout = setTimeout(function() {
+                    const value = e.target.value.trim();
+                    if (!value) {
+                        e.target.classList.remove('error');
+                        const formGroup = e.target.closest('.form-group');
+                        if (formGroup) {
+                            const errorMessage = formGroup.querySelector('.phone-error-message');
+                            if (errorMessage) errorMessage.style.display = 'none';
+                        }
+                        return;
+                    }
+                    
+                    // 쉼표로 구분된 전화번호 실시간 검증
+                    const phoneList = value.split(',').map(p => p.trim()).filter(p => p.length > 0);
+                    let hasError = false;
+                    
+                    for (let i = 0; i < phoneList.length; i++) {
+                        const phoneItem = phoneList[i];
+                        // 입력 중인 마지막 번호는 제외 (아직 입력 중일 수 있음)
+                        if (i === phoneList.length - 1 && value.endsWith(',')) {
+                            continue;
+                        }
+                        const validation = validatePhoneNumber(phoneItem);
+                        if (!validation.valid) {
+                            hasError = true;
+                            break;
+                        }
+                    }
+                    
+                    if (hasError) {
+                        e.target.classList.add('error');
+                    } else {
+                        e.target.classList.remove('error');
+                    }
+                }, 1000);
+            });
+            
+            // 포커스 시 오류 표시 제거
+            phoneInput.addEventListener('focus', function(e) {
+                e.target.classList.remove('error');
+                const formGroup = e.target.closest('.form-group');
+                if (formGroup) {
+                    const errorMessage = formGroup.querySelector('.phone-error-message');
+                    if (errorMessage) errorMessage.style.display = 'none';
+                }
+            });
+            
+            // 붙여넣기 이벤트 처리 (과도한 입력 방지)
+            phoneInput.addEventListener('paste', function(e) {
+                e.preventDefault();
+                
+                const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+                const currentValue = e.target.value;
+                const cursorPosition = e.target.selectionStart;
+                
+                // 현재 위치 기준으로 붙여넣을 위치 결정
+                const beforeText = currentValue.substring(0, cursorPosition);
+                const afterText = currentValue.substring(e.target.selectionEnd);
+                
+                // 붙여넣은 텍스트를 현재 값에 삽입
+                const newValue = beforeText + pastedText + afterText;
+                
+                // 포맷팅 적용
+                setTimeout(() => {
+                    if (isFormatting) return;
+                    isFormatting = true;
+                    
+                    try {
+                        if (newValue.includes(',')) {
+                            const phoneList = newValue.split(',');
+                            const formattedList = [];
+                            
+                            for (let i = 0; i < phoneList.length; i++) {
+                                const phone = phoneList[i].trim();
+                                if (phone) {
+                                    formattedList.push(formatPhoneNumber(phone, false));
+                                }
+                            }
+                            
+                            e.target.value = formattedList.filter(p => p.trim()).join(', ');
+                        } else {
+                            e.target.value = formatPhoneNumber(newValue, false);
+                        }
+                    } catch (error) {
+                        console.error('전화번호 붙여넣기 오류:', error);
+                    }
+                    
+                    isFormatting = false;
+                }, 0);
             });
         }
         
@@ -1032,6 +1653,138 @@ require_once __DIR__ . '/../includes/admin-header.php';
                 const diff = newValue.length - oldValue.length;
                 const newCursorPosition = Math.max(0, Math.min(newValue.length, cursorPosition + diff));
                 e.target.setSelectionRange(newCursorPosition, newCursorPosition);
+            });
+            
+            // 블러 시 형식 검증
+            mobileInput.addEventListener('blur', function(e) {
+                const phoneNumbers = e.target.value.replace(/[^\d]/g, '');
+                if (phoneNumbers.length > 0 && (!/^010\d{8}$/.test(phoneNumbers))) {
+                    e.target.style.borderColor = '#ef4444';
+                } else {
+                    e.target.style.borderColor = '';
+                }
+            });
+        }
+        
+        // 이메일 입력 필드 변경 시 처리
+        const emailLocalInput = document.getElementById('email_local');
+        if (emailLocalInput) {
+            emailLocalInput.addEventListener('input', function() {
+                // 20자 제한
+                if (this.value.length > 20) {
+                    this.value = this.value.slice(0, 20);
+                }
+                updateEmailField();
+            });
+        }
+        
+        const emailCustomInput = document.getElementById('email_custom');
+        if (emailCustomInput) {
+            emailCustomInput.addEventListener('input', function() {
+                updateEmailField();
+            });
+        }
+        
+        // 페이지 로드 시 이메일 도메인 선택 상태 확인
+        const emailDomainSelect = document.getElementById('email_domain');
+        if (emailDomainSelect && emailDomainSelect.value === 'custom') {
+            const emailCustomInput = document.getElementById('email_custom');
+            if (emailCustomInput) {
+                emailCustomInput.style.display = 'block';
+                emailCustomInput.required = true;
+            }
+        }
+        
+        // 초기 이메일 필드 업데이트
+        updateEmailField();
+        
+        // 폼 제출 시 검증
+        const editForm = document.querySelector('.edit-form-card');
+        if (editForm) {
+            editForm.addEventListener('submit', function(e) {
+                // 이메일 검증
+                const emailLocal = document.getElementById('email_local').value.trim();
+                const emailDomain = document.getElementById('email_domain').value;
+                const emailCustom = document.getElementById('email_custom').value.trim();
+                const email = getCombinedEmail();
+                
+                if (!emailLocal) {
+                    e.preventDefault();
+                    alert('이메일 아이디를 입력해주세요.');
+                    document.getElementById('email_local').focus();
+                    return false;
+                }
+                
+                if (!emailDomain) {
+                    e.preventDefault();
+                    alert('이메일 도메인을 선택해주세요.');
+                    document.getElementById('email_domain').focus();
+                    return false;
+                }
+                
+                if (emailDomain === 'custom' && !emailCustom) {
+                    e.preventDefault();
+                    alert('이메일 도메인을 입력해주세요.');
+                    document.getElementById('email_custom').focus();
+                    return false;
+                }
+                
+                if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                    e.preventDefault();
+                    alert('올바른 이메일 형식이 아닙니다.');
+                    document.getElementById('email_local').focus();
+                    return false;
+                }
+                
+                // 휴대폰 검증
+                const mobile = document.querySelector('input[name="mobile"]').value.trim();
+                const mobileNumbers = mobile.replace(/[^\d]/g, '');
+                if (!/^010\d{8}$/.test(mobileNumbers)) {
+                    e.preventDefault();
+                    alert('휴대폰 번호는 010으로 시작하는 11자리 숫자여야 합니다.');
+                    document.querySelector('input[name="mobile"]').focus();
+                    return false;
+                }
+                
+                // 전화번호 검증 (입력된 경우에만)
+                const phone = document.querySelector('input[name="phone"]').value.trim();
+                if (phone) {
+                    const phoneList = phone.split(',').map(p => p.trim()).filter(p => p.length > 0);
+                    for (let i = 0; i < phoneList.length; i++) {
+                        const phoneItem = phoneList[i];
+                        const phoneNumbers = phoneItem.replace(/[^\d]/g, '');
+                        const phoneLength = phoneNumbers.length;
+                        
+                        if (phoneLength < 8 || phoneLength > 11) {
+                            e.preventDefault();
+                            alert('전화번호 형식이 올바르지 않습니다. (각 번호는 8-11자리여야 합니다)');
+                            document.querySelector('input[name="phone"]').focus();
+                            return false;
+                        }
+                        
+                        let isValidFormat = false;
+                        if (phoneLength === 11 && /^01[0-9]\d{8}$/.test(phoneNumbers)) {
+                            isValidFormat = true;
+                        } else if (phoneLength === 10 && /^02\d{8}$/.test(phoneNumbers)) {
+                            isValidFormat = true;
+                        } else if (phoneLength === 10 && /^0[3-6]\d{8}$/.test(phoneNumbers)) {
+                            isValidFormat = true;
+                        } else if (phoneLength === 11 && /^0[3-6]\d{9}$/.test(phoneNumbers)) {
+                            isValidFormat = true;
+                        } else if (phoneLength === 11 && /^0[78]0\d{8}$/.test(phoneNumbers)) {
+                            isValidFormat = true;
+                        } else if (phoneLength === 8 && /^1\d{3}\d{4}$/.test(phoneNumbers)) {
+                            isValidFormat = true;
+                        }
+                        
+                        if (!isValidFormat) {
+                            e.preventDefault();
+                            alert('전화번호 형식이 올바르지 않습니다. (예: 02-1234-5678, 031-123-4567, 010-1234-5678, 1588-1234, 070-1234-5678)');
+                            document.querySelector('input[name="phone"]').focus();
+                            return false;
+                        }
+                    }
+                }
             });
         }
     });

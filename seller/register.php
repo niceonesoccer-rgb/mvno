@@ -224,6 +224,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $additionalData['business_type'] = trim($_POST['business_type'] ?? '');
         $additionalData['business_item'] = trim($_POST['business_item'] ?? '');
         
+        // 판매 상품 선택 (permissions)
+        $permissions = $_POST['permissions'] ?? [];
+        $allowedPermissions = ['mno', 'mvno', 'internet'];
+        $validPermissions = [];
+        foreach ($permissions as $perm) {
+            if (in_array($perm, $allowedPermissions)) {
+                $validPermissions[] = $perm;
+            }
+        }
+        $additionalData['permissions'] = $validPermissions;
+        
+        // 판매 상품 선택 검증
+        if (empty($validPermissions)) {
+            $error = '판매할 상품을 하나 이상 선택해주세요.';
+        }
+        
         // 판매자 필수 필드 확인
         if (empty($additionalData['business_number']) || empty($additionalData['company_name'])) {
             $error = '사업자등록번호와 회사명은 필수 입력 항목입니다.';
@@ -358,6 +374,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'company_representative' => $additionalData['company_representative'] ?? '',
                     'business_type' => $additionalData['business_type'] ?? '',
                     'business_item' => $additionalData['business_item'] ?? '',
+                    'permissions' => $additionalData['permissions'] ?? [],
                 ];
             } else {
                 $error = $result['message'];
@@ -1152,6 +1169,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <span class="info-value"><?php echo htmlspecialchars($registeredData['address']); ?> <?php echo htmlspecialchars($registeredData['address_detail'] ?? ''); ?></span>
                         </div>
                         <?php endif; ?>
+                        <?php if (!empty($registeredData['permissions']) && is_array($registeredData['permissions'])): ?>
+                        <div class="info-item full-width">
+                            <span class="info-label">선택한 판매 상품</span>
+                            <span class="info-value" style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px;">
+                                <?php 
+                                $permNames = [
+                                    'mno' => 'MNO (통신사폰)',
+                                    'mvno' => 'MVNO (알뜰폰)',
+                                    'internet' => 'INTERNET (인터넷)'
+                                ];
+                                foreach ($registeredData['permissions'] as $perm): 
+                                    $permName = $permNames[$perm] ?? $perm;
+                                ?>
+                                    <span style="display: inline-block; padding: 6px 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 8px; font-size: 13px; font-weight: 600;"><?php echo htmlspecialchars($permName); ?></span>
+                                <?php endforeach; ?>
+                            </span>
+                        </div>
+                        <?php endif; ?>
                         <div class="info-item full-width" style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #e5e7eb; text-align: center;">
                             <span class="info-value" style="color: #f59e0b; font-weight: 700; font-size: 18px;">승인대기중</span>
                             <div style="margin-top: 24px;">
@@ -1177,6 +1212,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="step-line"></div>
                     <div class="step-item" data-step="3">
                         <div class="step-number">3</div>
+                        <div class="step-label">판매 상품 선택</div>
+                    </div>
+                    <div class="step-line"></div>
+                    <div class="step-item" data-step="4">
+                        <div class="step-number">4</div>
                         <div class="step-label">사업자 정보</div>
                     </div>
                 </div>
@@ -1275,9 +1315,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
                     </div>
                     
-                    <!-- 사업자 정보 -->
+                    <!-- 판매 상품 선택 -->
                     <div class="form-section step-content" id="step3" style="display: none;">
-                        <h2 class="form-section-title">3단계: 사업자 정보</h2>
+                        <h2 class="form-section-title">3단계: 판매 상품 선택</h2>
+                        
+                        <div style="margin-bottom: 32px;">
+                            <p style="font-size: 16px; color: #374151; margin-bottom: 24px;">어느것을 판매하시나요? (복수 선택 가능)</p>
+                            
+                            <div style="display: flex; flex-direction: column; gap: 16px;">
+                                <label style="display: flex; align-items: center; padding: 20px; border: 2px solid #e5e7eb; border-radius: 12px; cursor: pointer; transition: all 0.3s; background: #ffffff;" onmouseover="this.style.borderColor='#667eea'; this.style.background='#f9fafb';" onmouseout="this.style.borderColor='#e5e7eb'; this.style.background='#ffffff';">
+                                    <input type="checkbox" name="permissions[]" value="mno" style="width: 24px; height: 24px; margin-right: 16px; cursor: pointer; accent-color: #667eea;" <?php echo (isset($_POST['permissions']) && in_array('mno', $_POST['permissions'])) ? 'checked' : ''; ?>>
+                                    <div style="flex: 1;">
+                                        <div style="font-size: 18px; font-weight: 700; color: #1f2937; margin-bottom: 4px;">MNO (통신사폰)</div>
+                                        <div style="font-size: 14px; color: #6b7280;">통신사폰 상품을 판매합니다</div>
+                                    </div>
+                                </label>
+                                
+                                <label style="display: flex; align-items: center; padding: 20px; border: 2px solid #e5e7eb; border-radius: 12px; cursor: pointer; transition: all 0.3s; background: #ffffff;" onmouseover="this.style.borderColor='#667eea'; this.style.background='#f9fafb';" onmouseout="this.style.borderColor='#e5e7eb'; this.style.background='#ffffff';">
+                                    <input type="checkbox" name="permissions[]" value="mvno" style="width: 24px; height: 24px; margin-right: 16px; cursor: pointer; accent-color: #667eea;" <?php echo (isset($_POST['permissions']) && in_array('mvno', $_POST['permissions'])) ? 'checked' : ''; ?>>
+                                    <div style="flex: 1;">
+                                        <div style="font-size: 18px; font-weight: 700; color: #1f2937; margin-bottom: 4px;">MVNO (알뜰폰)</div>
+                                        <div style="font-size: 14px; color: #6b7280;">알뜰폰 요금제를 판매합니다</div>
+                                    </div>
+                                </label>
+                                
+                                <label style="display: flex; align-items: center; padding: 20px; border: 2px solid #e5e7eb; border-radius: 12px; cursor: pointer; transition: all 0.3s; background: #ffffff;" onmouseover="this.style.borderColor='#667eea'; this.style.background='#f9fafb';" onmouseout="this.style.borderColor='#e5e7eb'; this.style.background='#ffffff';">
+                                    <input type="checkbox" name="permissions[]" value="internet" style="width: 24px; height: 24px; margin-right: 16px; cursor: pointer; accent-color: #667eea;" <?php echo (isset($_POST['permissions']) && in_array('internet', $_POST['permissions'])) ? 'checked' : ''; ?>>
+                                    <div style="flex: 1;">
+                                        <div style="font-size: 18px; font-weight: 700; color: #1f2937; margin-bottom: 4px;">INTERNET (인터넷)</div>
+                                        <div style="font-size: 14px; color: #6b7280;">인터넷 상품을 판매합니다</div>
+                                    </div>
+                                </label>
+                            </div>
+                            
+                            <div class="form-help" style="margin-top: 16px; padding: 12px; background: #f0f4ff; border-radius: 8px; color: #3730a3;">
+                                <strong>💡 안내:</strong> 판매하고자 하는 상품을 하나 이상 선택해주세요. 선택하신 상품에 따라 판매 권한이 부여됩니다.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 사업자 정보 -->
+                    <div class="form-section step-content" id="step4" style="display: none;">
+                        <h2 class="form-section-title">4단계: 사업자 정보</h2>
                         
                         <h3 style="font-size: 16px; font-weight: 600; color: #374151; margin: 24px 0 16px 0;">사업자 등록 정보</h3>
                         
@@ -1356,7 +1435,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <script>
     let currentStep = 1;
-    const totalSteps = 3;
+    const totalSteps = 4;
     
     // 단계 이동 함수
     function showStep(step) {
@@ -1768,6 +1847,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
         } else if (step === 3) {
+            // 판매 상품 선택 검증
+            const permissions = document.querySelectorAll('input[name="permissions[]"]:checked');
+            if (permissions.length === 0) {
+                showAlert('판매할 상품을 하나 이상 선택해주세요.').then(() => {
+                    document.querySelector('input[name="permissions[]"]').focus();
+                });
+                isValid = false;
+            }
+        } else if (step === 4) {
             const businessNumber = document.getElementById('business_number').value.trim();
             const companyName = document.getElementById('company_name').value.trim();
             const companyRepresentative = document.getElementById('company_representative').value.trim();
@@ -2148,9 +2236,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     // 폼 제출 시 최종 검증
     document.getElementById('registerForm').addEventListener('submit', function(e) {
-        if (!validateStep(3)) {
+        if (!validateStep(4)) {
             e.preventDefault();
-            showStep(3);
+            showStep(4);
         }
     });
     

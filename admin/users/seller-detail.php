@@ -408,7 +408,7 @@ if (!$seller || $seller['role'] !== 'seller') {
                             }
                         }
                         ?>
-                        <button type="button" class="btn btn-primary" onclick="openPermissionModal('<?php echo htmlspecialchars($seller['user_id']); ?>', <?php echo $isApproved ? 'true' : 'false'; ?>)" style="margin-left: auto; padding: 8px 16px; font-size: 13px; height: 36px; line-height: 1;">
+                        <button type="button" class="btn btn-primary" onclick="openPermissionModal('<?php echo htmlspecialchars($seller['user_id']); ?>')" style="margin-left: auto; padding: 8px 16px; font-size: 13px; height: 36px; line-height: 1;">
                             권한 설정
                         </button>
                     </div>
@@ -630,19 +630,6 @@ if (!$seller || $seller['role'] !== 'seller') {
     </div>
 </div>
 
-<!-- 승인 필요 경고 모달 -->
-<div class="modal-overlay" id="approvalRequiredModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); z-index: 1001; align-items: center; justify-content: center;">
-    <div class="modal" style="background: white; border-radius: 12px; padding: 24px; max-width: 400px; width: 90%; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);">
-        <div class="modal-title" style="font-size: 18px; font-weight: 700; color: #1f2937; margin-bottom: 16px;">알림</div>
-        <div class="modal-message" style="font-size: 14px; color: #6b7280; margin-bottom: 24px; line-height: 1.6;">
-            승인된 회원만 권한을 부여할 수 있습니다.<br>판매자 승인을 먼저 해주세요.
-        </div>
-        <div class="modal-actions" style="display: flex; gap: 12px; justify-content: flex-end;">
-            <button type="button" class="modal-btn modal-btn-confirm" onclick="closeApprovalRequiredModal()" style="padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; border: none; transition: all 0.2s; background: #6366f1; color: white; width: 100%;">확인</button>
-        </div>
-    </div>
-</div>
-
 <!-- 승인 확인 모달 -->
 <div class="modal-overlay" id="approveConfirmModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); z-index: 1002; align-items: center; justify-content: center;">
     <div class="modal" style="background: white; border-radius: 12px; padding: 24px; max-width: 400px; width: 90%; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);">
@@ -704,14 +691,8 @@ if (!$seller || $seller['role'] !== 'seller') {
     }
     
     // 권한 설정 모달 열기
-    function openPermissionModal(userId, isApproved) {
-        // 승인되지 않은 경우 경고 모달 표시
-        if (!isApproved) {
-            showApprovalRequiredModal();
-            return;
-        }
-        
-        // 승인된 경우 권한 설정 모달 표시
+    function openPermissionModal(userId) {
+        // 권한 설정 모달 표시 (승인 여부와 관계없이)
         const modal = document.getElementById('permissionModal');
         modal.style.display = 'flex';
     }
@@ -719,17 +700,6 @@ if (!$seller || $seller['role'] !== 'seller') {
     // 권한 설정 모달 닫기
     function closePermissionModal() {
         document.getElementById('permissionModal').style.display = 'none';
-    }
-    
-    // 승인 필요 경고 모달 표시
-    function showApprovalRequiredModal() {
-        const modal = document.getElementById('approvalRequiredModal');
-        modal.style.display = 'flex';
-    }
-    
-    // 승인 필요 경고 모달 닫기
-    function closeApprovalRequiredModal() {
-        document.getElementById('approvalRequiredModal').style.display = 'none';
     }
     
     // 권한 변경 감지 및 저장 처리
@@ -871,15 +841,6 @@ if (!$seller || $seller['role'] !== 'seller') {
             permissionModal.addEventListener('click', function(e) {
                 if (e.target === this) {
                     closePermissionModal();
-                }
-            });
-        }
-        
-        const approvalRequiredModal = document.getElementById('approvalRequiredModal');
-        if (approvalRequiredModal) {
-            approvalRequiredModal.addEventListener('click', function(e) {
-                if (e.target === this) {
-                    closeApprovalRequiredModal();
                 }
             });
         }

@@ -13,11 +13,11 @@ $users = $usersData['users'] ?? [];
 $activeTab = $_GET['tab'] ?? 'users'; // 'users', 'sellers', 'admins'
 $searchQuery = $_GET['search'] ?? '';
 
-// 표시 개수 선택 (기본값: 50)
-$perPage = isset($_GET['per_page']) ? (int)$_GET['per_page'] : 50;
+// 표시 개수 선택 (기본값: 10)
+$perPage = isset($_GET['per_page']) ? (int)$_GET['per_page'] : 10;
 $perPageOptions = [10, 50, 100, 500];
 if (!in_array($perPage, $perPageOptions)) {
-    $perPage = 50;
+    $perPage = 10;
 }
 
 // 현재 페이지 (기본값: 1)
@@ -32,10 +32,13 @@ $sellerUsers = array_filter($users, function($user) {
     return ($user['role'] ?? 'user') === 'seller';
 });
 
-$adminUsers = array_filter($users, function($user) {
-    $role = $user['role'] ?? 'user';
-    return $role === 'admin' || $role === 'sub_admin';
-});
+// 관리자 데이터는 admins.json에서 가져오기
+$adminUsers = [];
+$adminsFile = getAdminsFilePath();
+if (file_exists($adminsFile)) {
+    $adminsData = json_decode(file_get_contents($adminsFile), true) ?: ['admins' => []];
+    $adminUsers = $adminsData['admins'] ?? [];
+}
 
 // 최신순 정렬 (created_at 기준 내림차순)
 usort($regularUsers, function($a, $b) {
@@ -77,6 +80,17 @@ $adminCount = count(array_filter($users, fn($u) => ($u['role'] ?? 'user') === 'a
         border-radius: 8px;
         padding: 20px;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        cursor: pointer;
+        transition: all 0.2s;
+        display: block;
+        text-decoration: none;
+        color: inherit;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        background: #f9fafb;
     }
     
     .stat-label {
@@ -298,24 +312,54 @@ $adminCount = count(array_filter($users, fn($u) => ($u['role'] ?? 'user') === 'a
 <div class="admin-content">
     <h1 class="admin-page-title">회원 관리</h1>
     
+    <?php
+    // 성공/에러 메시지 표시
+    if (isset($_GET['success']) && $_GET['success'] === 'add'): ?>
+        <div class="alert alert-success" style="padding: 16px; border-radius: 8px; margin-bottom: 24px; background: #d1fae5; color: #065f46; border: 1px solid #10b981;">
+            부관리자가 성공적으로 추가되었습니다.
+        </div>
+    <?php endif; ?>
+    
+    <?php if (isset($_GET['success']) && $_GET['success'] === 'update'): ?>
+        <div class="alert alert-success" style="padding: 16px; border-radius: 8px; margin-bottom: 24px; background: #d1fae5; color: #065f46; border: 1px solid #10b981;">
+            관리자 정보가 수정되었습니다.
+        </div>
+    <?php endif; ?>
+    
+    <?php if (isset($_GET['error'])): 
+        $errorMessages = [
+            'password_mismatch' => '비밀번호가 일치하지 않습니다.',
+            'empty_fields' => '모든 필드를 입력해주세요.',
+            'invalid_id' => '아이디는 소문자 영문자와 숫자 조합 4-20자로 입력해주세요.',
+            'password_length' => '비밀번호는 최소 8자 이상이어야 합니다.',
+            'duplicate_id' => '이미 사용 중인 아이디입니다.',
+            'save_failed' => '관리자 추가 중 오류가 발생했습니다.'
+        ];
+        $errorMsg = $errorMessages[$_GET['error']] ?? '오류가 발생했습니다.';
+    ?>
+        <div class="alert alert-error" style="padding: 16px; border-radius: 8px; margin-bottom: 24px; background: #fee2e2; color: #991b1b; border: 1px solid #ef4444;">
+            <?php echo htmlspecialchars($errorMsg); ?>
+        </div>
+    <?php endif; ?>
+    
     <!-- 통계 -->
     <div class="member-stats">
-        <div class="stat-card">
+        <a href="/MVNO/admin/users/member-list.php?tab=users" class="stat-card" style="text-decoration: none; color: inherit;">
             <div class="stat-label">전체 회원</div>
             <div class="stat-value"><?php echo number_format($totalUsers); ?></div>
-        </div>
-        <div class="stat-card">
+        </a>
+        <a href="/MVNO/admin/users/member-list.php?tab=users" class="stat-card" style="text-decoration: none; color: inherit;">
             <div class="stat-label">일반 회원</div>
             <div class="stat-value"><?php echo number_format($userCount); ?></div>
-        </div>
-        <div class="stat-card">
+        </a>
+        <a href="/MVNO/admin/users/member-list.php?tab=sellers" class="stat-card" style="text-decoration: none; color: inherit;">
             <div class="stat-label">판매자</div>
             <div class="stat-value"><?php echo number_format($sellerCount); ?></div>
-        </div>
-        <div class="stat-card">
+        </a>
+        <a href="/MVNO/admin/users/member-list.php?tab=admins" class="stat-card" style="text-decoration: none; color: inherit;">
             <div class="stat-label">관리자</div>
             <div class="stat-value"><?php echo number_format($adminCount); ?></div>
-        </div>
+        </a>
     </div>
     
     <!-- 탭 메뉴 -->
@@ -338,7 +382,17 @@ $adminCount = count(array_filter($users, fn($u) => ($u['role'] ?? 'user') === 'a
             <div class="filter-left">
                 <div class="filter-group">
                     <label>검색:</label>
-                    <input type="text" name="search" placeholder="이름, 이메일, 아이디" value="<?php echo htmlspecialchars($searchQuery); ?>">
+                    <input type="text" name="search" placeholder="<?php 
+                        if ($activeTab === 'users') {
+                            echo '아이디, 이름, 전화번호, 이메일';
+                        } elseif ($activeTab === 'sellers') {
+                            echo '아이디, 회사명, 사업자번호';
+                        } elseif ($activeTab === 'admins') {
+                            echo '아이디, 이름, 전화번호';
+                        } else {
+                            echo '검색어 입력';
+                        }
+                    ?>" value="<?php echo htmlspecialchars($searchQuery); ?>">
                 </div>
                 <div class="filter-group">
                     <button type="submit" class="btn-sm btn-primary">검색</button>
@@ -365,15 +419,17 @@ $adminCount = count(array_filter($users, fn($u) => ($u['role'] ?? 'user') === 'a
     <div class="tab-content <?php echo $activeTab === 'users' ? 'active' : ''; ?>">
         <div class="member-table">
             <?php 
-            // 일반 회원용 필터링
+            // 일반 회원용 필터링 (아이디, 이름, 전화번호, 이메일)
             $filteredRegularUsers = array_values($regularUsers);
             if (!empty($searchQuery)) {
                 $filteredRegularUsers = array_filter($filteredRegularUsers, function($user) use ($searchQuery) {
                     $name = $user['name'] ?? '';
                     $email = $user['email'] ?? '';
+                    $phone = $user['phone'] ?? '';
                     $userId = $user['user_id'] ?? '';
                     return stripos($name, $searchQuery) !== false || 
                            stripos($email, $searchQuery) !== false ||
+                           stripos($phone, $searchQuery) !== false ||
                            stripos($userId, $searchQuery) !== false;
                 });
                 $filteredRegularUsers = array_values($filteredRegularUsers);
@@ -398,11 +454,10 @@ $adminCount = count(array_filter($users, fn($u) => ($u['role'] ?? 'user') === 'a
                             <th>아이디</th>
                             <th>이름</th>
                             <th>이메일</th>
-                            <th>역할</th>
-                            <th>SNS 제공자</th>
-                            <th>SNS ID</th>
+                            <th>전화번호</th>
                             <th>가입일</th>
-                            <th>관리</th>
+                            <th>상태</th>
+                            <th>작업</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -413,20 +468,11 @@ $adminCount = count(array_filter($users, fn($u) => ($u['role'] ?? 'user') === 'a
                                 <td><?php echo htmlspecialchars($user['user_id'] ?? ''); ?></td>
                                 <td><?php echo htmlspecialchars($user['name'] ?? ''); ?></td>
                                 <td><?php echo htmlspecialchars($user['email'] ?? ''); ?></td>
+                                <td><?php echo htmlspecialchars($user['phone'] ?? '-'); ?></td>
+                                <td><?php echo htmlspecialchars($user['created_at'] ?? ''); ?></td>
                                 <td>
                                     <span class="role-badge user">일반 회원</span>
                                 </td>
-                                <td>
-                                    <?php if (isset($user['sns_provider'])): ?>
-                                        <span class="sns-badge"><?php echo strtoupper($user['sns_provider']); ?></span>
-                                    <?php else: ?>
-                                        <span style="color: #9ca3af;">-</span>
-                                    <?php endif; ?>
-                                </td>
-                                <td>
-                                    <?php echo htmlspecialchars($user['sns_id'] ?? '-'); ?>
-                                </td>
-                                <td><?php echo htmlspecialchars($user['created_at'] ?? ''); ?></td>
                                 <td>
                                     <div class="action-buttons">
                                         <a href="/MVNO/admin/users/member-detail.php?user_id=<?php echo urlencode($user['user_id']); ?>" class="btn-sm btn-primary">상세</a>
@@ -468,16 +514,16 @@ $adminCount = count(array_filter($users, fn($u) => ($u['role'] ?? 'user') === 'a
     <div class="tab-content <?php echo $activeTab === 'sellers' ? 'active' : ''; ?>">
         <div class="member-table">
             <?php 
-            // 판매자용 필터링
+            // 판매자용 필터링 (아이디, 회사명, 사업자번호)
             $filteredSellers = array_values($sellerUsers);
             if (!empty($searchQuery)) {
                 $filteredSellers = array_filter($filteredSellers, function($user) use ($searchQuery) {
-                    $name = $user['name'] ?? '';
-                    $email = $user['email'] ?? '';
+                    $companyName = $user['company_name'] ?? '';
+                    $businessNumber = $user['business_number'] ?? '';
                     $userId = $user['user_id'] ?? '';
-                    return stripos($name, $searchQuery) !== false || 
-                           stripos($email, $searchQuery) !== false ||
-                           stripos($userId, $searchQuery) !== false;
+                    return stripos($userId, $searchQuery) !== false || 
+                           stripos($companyName, $searchQuery) !== false ||
+                           stripos($businessNumber, $searchQuery) !== false;
                 });
                 $filteredSellers = array_values($filteredSellers);
             }
@@ -499,15 +545,12 @@ $adminCount = count(array_filter($users, fn($u) => ($u['role'] ?? 'user') === 'a
                         <tr>
                             <th>번호</th>
                             <th>아이디</th>
-                            <th>이름</th>
-                            <th>이메일</th>
-                            <th>역할</th>
+                            <th>회사명</th>
+                            <th>대표자명</th>
                             <th>가입일</th>
-                            <th>승인 상태</th>
-                            <th>승인일</th>
+                            <th>상태</th>
                             <th>권한</th>
-                            <th>권한 수정일</th>
-                            <th>관리</th>
+                            <th>작업</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -516,27 +559,21 @@ $adminCount = count(array_filter($users, fn($u) => ($u['role'] ?? 'user') === 'a
                             <tr>
                                 <td><?php echo $rowNumber; ?></td>
                                 <td><?php echo htmlspecialchars($user['user_id'] ?? ''); ?></td>
-                                <td><?php echo htmlspecialchars($user['name'] ?? ''); ?></td>
-                                <td><?php echo htmlspecialchars($user['email'] ?? ''); ?></td>
-                                <td>
-                                    <span class="role-badge seller">판매자</span>
-                                </td>
+                                <td><?php echo htmlspecialchars($user['company_name'] ?? '-'); ?></td>
+                                <td><?php echo htmlspecialchars($user['company_representative'] ?? '-'); ?></td>
                                 <td><?php echo htmlspecialchars($user['created_at'] ?? ''); ?></td>
                                 <td>
                                     <?php if (isset($user['seller_approved']) && $user['seller_approved']): ?>
-                                        <span style="color: #10b981;">승인됨</span>
+                                        <span style="color: #10b981;">승인</span>
                                     <?php else: ?>
-                                        <span style="color: #f59e0b;">대기중</span>
+                                        <span style="color: #f59e0b;">승인보류</span>
                                     <?php endif; ?>
-                                </td>
-                                <td>
-                                    <?php echo htmlspecialchars($user['approved_at'] ?? '-'); ?>
                                 </td>
                                 <td>
                                     <?php 
                                     $permissions = $user['permissions'] ?? [];
                                     if (empty($permissions)) {
-                                        echo '<span style="color: #9ca3af;">권한 없음</span>';
+                                        echo '<span style="color: #9ca3af;">-</span>';
                                     } else {
                                         $permNames = [
                                             'mvno' => '알뜰폰',
@@ -551,14 +588,7 @@ $adminCount = count(array_filter($users, fn($u) => ($u['role'] ?? 'user') === 'a
                                     ?>
                                 </td>
                                 <td>
-                                    <?php echo htmlspecialchars($user['permissions_updated_at'] ?? '-'); ?>
-                                </td>
-                                <td>
                                     <div class="action-buttons">
-                                        <?php if (!isset($user['seller_approved']) || !$user['seller_approved']): ?>
-                                            <a href="/MVNO/admin/users/seller-approval.php?user_id=<?php echo urlencode($user['user_id']); ?>" class="btn-sm btn-primary">승인</a>
-                                        <?php endif; ?>
-                                        <a href="/MVNO/admin/users/seller-permissions.php?user_id=<?php echo urlencode($user['user_id']); ?>" class="btn-sm btn-primary">권한</a>
                                         <a href="/MVNO/admin/users/member-detail.php?user_id=<?php echo urlencode($user['user_id']); ?>" class="btn-sm btn-primary">상세</a>
                                     </div>
                                 </td>
@@ -603,10 +633,10 @@ $adminCount = count(array_filter($users, fn($u) => ($u['role'] ?? 'user') === 'a
             if (!empty($searchQuery)) {
                 $filteredAdmins = array_filter($filteredAdmins, function($user) use ($searchQuery) {
                     $name = $user['name'] ?? '';
-                    $email = $user['email'] ?? '';
+                    $phone = $user['phone'] ?? '';
                     $userId = $user['user_id'] ?? '';
                     return stripos($name, $searchQuery) !== false || 
-                           stripos($email, $searchQuery) !== false ||
+                           stripos($phone, $searchQuery) !== false ||
                            stripos($userId, $searchQuery) !== false;
                 });
                 $filteredAdmins = array_values($filteredAdmins);
@@ -630,12 +660,10 @@ $adminCount = count(array_filter($users, fn($u) => ($u['role'] ?? 'user') === 'a
                             <th>번호</th>
                             <th>아이디</th>
                             <th>이름</th>
-                            <th>이메일</th>
+                            <th>전화번호</th>
                             <th>역할</th>
                             <th>가입일</th>
-                            <th>승인 상태</th>
-                            <th>권한</th>
-                            <th>관리</th>
+                            <th>작업</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -645,7 +673,7 @@ $adminCount = count(array_filter($users, fn($u) => ($u['role'] ?? 'user') === 'a
                                 <td><?php echo $rowNumber; ?></td>
                                 <td><?php echo htmlspecialchars($user['user_id'] ?? ''); ?></td>
                                 <td><?php echo htmlspecialchars($user['name'] ?? ''); ?></td>
-                                <td><?php echo htmlspecialchars($user['email'] ?? ''); ?></td>
+                                <td><?php echo htmlspecialchars($user['phone'] ?? '-'); ?></td>
                                 <td>
                                     <?php 
                                     $role = $user['role'] ?? 'user';
@@ -659,23 +687,6 @@ $adminCount = count(array_filter($users, fn($u) => ($u['role'] ?? 'user') === 'a
                                     </span>
                                 </td>
                                 <td><?php echo htmlspecialchars($user['created_at'] ?? ''); ?></td>
-                                <td>
-                                    <?php if (isset($user['seller_approved'])): ?>
-                                        <?php echo $user['seller_approved'] ? '<span style="color: #10b981;">승인됨</span>' : '<span style="color: #f59e0b;">미승인</span>'; ?>
-                                    <?php else: ?>
-                                        <span style="color: #9ca3af;">-</span>
-                                    <?php endif; ?>
-                                </td>
-                                <td>
-                                    <?php 
-                                    $permissions = $user['permissions'] ?? [];
-                                    if (empty($permissions)) {
-                                        echo '<span style="color: #9ca3af;">-</span>';
-                                    } else {
-                                        echo htmlspecialchars(implode(', ', $permissions));
-                                    }
-                                    ?>
-                                </td>
                                 <td>
                                     <div class="action-buttons">
                                         <a href="/MVNO/admin/users/member-detail.php?user_id=<?php echo urlencode($user['user_id']); ?>" class="btn-sm btn-primary">상세</a>

@@ -128,12 +128,13 @@
         },
         {
             "user_id": "gol_5678901",
-            "email": "user15@test.com",
+            "email": "uesdser1d5@test.com",
             "name": "양동현",
             "role": "user",
             "sns_provider": "google",
             "sns_id": "sns_000015",
-            "created_at": "2025-01-15 10:00:00"
+            "created_at": "2025-01-15 10:00:00",
+            "phone": "010-2154-2222"
         }
     ]
 }
