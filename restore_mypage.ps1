@@ -122,3 +122,4 @@ Write-Host "=== 복구 완료 ===" -ForegroundColor Green
 Write-Host ""
 Write-Host "변경사항을 확인하려면 'git status'를 실행하세요." -ForegroundColor Cyan
 Write-Host "변경사항을 되돌리려면 'git restore mypage/*'를 실행하세요." -ForegroundColor Cyan
+

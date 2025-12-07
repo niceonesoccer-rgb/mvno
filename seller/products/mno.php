@@ -504,3 +504,4 @@ document.getElementById('productForm').addEventListener('submit', function(e) {
 </script>
 
 <?php include __DIR__ . '/../includes/seller-footer.php'; ?>
+

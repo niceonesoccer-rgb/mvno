@@ -134,3 +134,4 @@ if (file_put_contents($file, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAP
         'message' => '정보 업데이트에 실패했습니다.'
     ]);
 }
+

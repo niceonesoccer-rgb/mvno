@@ -443,3 +443,4 @@ function deleteProduct(productId) {
 </script>
 
 <?php include __DIR__ . '/../includes/seller-footer.php'; ?>
+
