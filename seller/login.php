@@ -178,12 +178,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <form method="POST" id="loginForm">
                 <div class="form-group">
                     <label for="user_id">아이디</label>
-                    <input type="text" id="user_id" name="user_id" required autofocus>
+                    <input type="text" id="user_id" name="user_id" value="57575757" required autofocus>
                 </div>
                 
                 <div class="form-group">
                     <label for="password">비밀번호</label>
-                    <input type="password" id="password" name="password" required>
+                    <input type="password" id="password" name="password" value="57575757" required>
                 </div>
                 
                 <button type="submit" class="login-button">로그인</button>

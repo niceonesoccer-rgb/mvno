@@ -2790,7 +2790,9 @@
             "created_at": "2025-12-07 08:19:30",
             "seller_approved": true,
             "permissions": [
-                "mno"
+                "mvno",
+                "mno",
+                "internet"
             ],
             "approval_status": "approved",
             "phone": "",
@@ -2806,7 +2808,7 @@
             "business_license_image": "\/MVNO\/uploads\/sellers\/57575757_license_1765063170.png",
             "approved_at": "2025-12-07 14:37:43",
             "held_at": "2025-12-07 12:16:16",
-            "permissions_updated_at": "2025-12-07 14:37:41"
+            "permissions_updated_at": "2025-12-07 16:19:18"
         },
         {
             "user_id": "12345678",
@@ -2871,11 +2873,12 @@
             "password": "$2y$10$ChQAbQCLEiOs8R1V5OydYe\/UXAY0W5tf09ubhCD2DiSCxn2BAXuFe",
             "role": "seller",
             "created_at": "2025-12-07 13:56:28",
-            "seller_approved": true,
+            "seller_approved": false,
             "permissions": [
+                "mno",
                 "internet"
             ],
-            "approval_status": "approved",
+            "approval_status": "on_hold",
             "phone": "1655-4444",
             "mobile": "010-1221-2122",
             "address": "경기 성남시 분당구 서판교로 32",
@@ -2887,9 +2890,9 @@
             "business_item": "99999999999999999999",
             "business_license_image": "\/MVNO\/uploads\/sellers\/fsafasfasf_license_1765083466.png",
             "updated_at": "2025-12-07 14:41:17",
-            "permissions_updated_at": "2025-12-07 14:41:26",
+            "permissions_updated_at": "2025-12-07 15:21:24",
             "approved_at": "2025-12-07 14:41:21",
-            "held_at": "2025-12-07 14:35:44"
+            "held_at": "2025-12-07 15:21:20"
         }
     ]
 }

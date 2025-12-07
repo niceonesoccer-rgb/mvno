@@ -165,6 +165,25 @@ include 'includes/seller-header.php';
                 </div>
             <?php endif; ?>
             
+            <?php if (isset($_GET['error'])): ?>
+                <?php if ($_GET['error'] === 'no_permission_mvno'): ?>
+                    <div style="padding: 16px; background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; margin-bottom: 24px;">
+                        <div style="font-size: 16px; font-weight: 600; color: #92400e; margin-bottom: 8px;">권한이 없습니다</div>
+                        <div style="font-size: 14px; color: #78350f;">알뜰폰 게시판에 상품을 등록할 권한이 없습니다. 관리자에게 권한을 요청하세요.</div>
+                    </div>
+                <?php elseif ($_GET['error'] === 'no_permission_mno'): ?>
+                    <div style="padding: 16px; background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; margin-bottom: 24px;">
+                        <div style="font-size: 16px; font-weight: 600; color: #92400e; margin-bottom: 8px;">권한이 없습니다</div>
+                        <div style="font-size: 14px; color: #78350f;">통신사폰 게시판에 상품을 등록할 권한이 없습니다. 관리자에게 권한을 요청하세요.</div>
+                    </div>
+                <?php elseif ($_GET['error'] === 'no_permission_internet'): ?>
+                    <div style="padding: 16px; background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; margin-bottom: 24px;">
+                        <div style="font-size: 16px; font-weight: 600; color: #92400e; margin-bottom: 8px;">권한이 없습니다</div>
+                        <div style="font-size: 14px; color: #78350f;">인터넷 게시판에 상품을 등록할 권한이 없습니다. 관리자에게 권한을 요청하세요.</div>
+                    </div>
+                <?php endif; ?>
+            <?php endif; ?>
+            
             <!-- 대시보드 카드 -->
                 <!-- 대시보드 카드 -->
                 <div class="dashboard-grid">

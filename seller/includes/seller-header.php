@@ -255,7 +255,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
     <!-- 상단 헤더 -->
     <header class="seller-top-header">
         <div class="seller-top-header-left">
-            <a href="/seller/" class="seller-top-header-logo">판매자 센터</a>
+            <a href="/MVNO/seller/" class="seller-top-header-logo">판매자 센터</a>
         </div>
         <div class="seller-top-header-right">
             <a href="/MVNO/" class="seller-top-header-link">사이트보기</a>
@@ -267,7 +267,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
     <aside class="seller-sidebar">
         <div class="menu-section">
             <div class="menu-section-title">대시보드</div>
-            <a href="/seller/" class="menu-item <?php echo $currentPage === 'index.php' ? 'active' : ''; ?>">
+            <a href="/MVNO/seller/" class="menu-item <?php echo $currentPage === 'index.php' ? 'active' : ''; ?>">
                 <span class="menu-item-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <rect x="3" y="3" width="7" height="7"/>
@@ -282,17 +282,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         
         <div class="menu-section">
             <div class="menu-section-title">상품 관리</div>
-            <a href="/seller/products/" class="menu-item">
-                <span class="menu-item-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
-                        <line x1="3" y1="6" x2="21" y2="6"/>
-                        <path d="M16 10a4 4 0 0 1-8 0"/>
-                    </svg>
-                </span>
-                상품 등록
-            </a>
-            <a href="/seller/products/list.php" class="menu-item">
+            <a href="/MVNO/seller/products/list.php" class="menu-item <?php echo $currentPage === 'list.php' ? 'active' : ''; ?>">
                 <span class="menu-item-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <line x1="8" y1="6" x2="21" y2="6"/>
@@ -305,11 +295,41 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                 </span>
                 상품 목록
             </a>
+            <a href="/MVNO/seller/products/mvno.php" class="menu-item <?php echo $currentPage === 'mvno.php' ? 'active' : ''; ?>">
+                <span class="menu-item-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+                        <line x1="3" y1="6" x2="21" y2="6"/>
+                        <path d="M16 10a4 4 0 0 1-8 0"/>
+                    </svg>
+                </span>
+                알뜰폰 등록
+            </a>
+            <a href="/MVNO/seller/products/mno.php" class="menu-item <?php echo $currentPage === 'mno.php' ? 'active' : ''; ?>">
+                <span class="menu-item-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+                        <line x1="3" y1="6" x2="21" y2="6"/>
+                        <path d="M16 10a4 4 0 0 1-8 0"/>
+                    </svg>
+                </span>
+                통신사폰 등록
+            </a>
+            <a href="/MVNO/seller/products/internet.php" class="menu-item <?php echo $currentPage === 'internet.php' ? 'active' : ''; ?>">
+                <span class="menu-item-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+                        <line x1="3" y1="6" x2="21" y2="6"/>
+                        <path d="M16 10a4 4 0 0 1-8 0"/>
+                    </svg>
+                </span>
+                인터넷 등록
+            </a>
         </div>
         
         <div class="menu-section">
             <div class="menu-section-title">주문 관리</div>
-            <a href="/seller/orders/" class="menu-item">
+            <a href="/MVNO/seller/orders/" class="menu-item">
                 <span class="menu-item-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="9" cy="21" r="1"/>
@@ -323,7 +343,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         
         <div class="menu-section">
             <div class="menu-section-title">통계</div>
-            <a href="/seller/statistics/" class="menu-item">
+            <a href="/MVNO/seller/statistics/" class="menu-item">
                 <span class="menu-item-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <line x1="18" y1="20" x2="18" y2="10"/>

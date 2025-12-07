@@ -397,10 +397,63 @@
             "timestamp": "2025-12-06 09:07:10",
             "date": "2025-12-06",
             "user_id": "admin"
+        },
+        {
+            "type": "favorite_add",
+            "data": {
+                "type": "phone",
+                "id": "1",
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-07 15:42:41",
+            "date": "2025-12-07",
+            "user_id": "admin"
+        },
+        {
+            "type": "favorite_remove",
+            "data": {
+                "type": "phone",
+                "id": "1",
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-07 15:42:42",
+            "date": "2025-12-07",
+            "user_id": "admin"
+        },
+        {
+            "type": "share",
+            "data": {
+                "type": "mno",
+                "id": "mno-phone-detail.php?id=1",
+                "method": "link",
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-07 15:42:43",
+            "date": "2025-12-07",
+            "user_id": "admin"
+        },
+        {
+            "type": "favorite_add",
+            "data": {
+                "type": "phone",
+                "id": "1",
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-07 15:42:44",
+            "date": "2025-12-07",
+            "user_id": "admin"
+        },
+        {
+            "type": "favorite_remove",
+            "data": {
+                "type": "phone",
+                "id": "1",
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-07 15:42:45",
+            "date": "2025-12-07",
+            "user_id": "admin"
         }
     ],
     "daily_stats": []
 }
-
-
-
