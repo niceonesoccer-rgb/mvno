@@ -490,46 +490,53 @@ document.addEventListener('DOMContentLoaded', function() {
             
             <div class="form-group">
                 <label class="form-label" for="regular_sim_available">
-                    일반 유심 배송가능
+                    배송가능
                 </label>
                 <select name="regular_sim_available" id="regular_sim_available" class="form-select">
+                    <option value="">선택</option>
                     <option value="배송불가">배송불가</option>
                     <option value="배송가능">배송가능</option>
                 </select>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label" for="regular_sim_price">
-                    일반 유심 가격
-                </label>
-                <input type="text" name="regular_sim_price" id="regular_sim_price" class="form-control" placeholder="예: 6,600원">
+                <div id="regular_sim_price_input" style="display: none; margin-top: 12px;">
+                    <div class="input-with-unit" style="max-width: 200px;">
+                        <input type="text" name="regular_sim_price" id="regular_sim_price" class="form-control" placeholder="2200" maxlength="5">
+                        <span class="unit">원</span>
+                    </div>
+                </div>
             </div>
             
             <div class="form-group">
                 <label class="form-label" for="nfc_sim_available">
-                    NFC 유심 배송가능
+                    NFC
                 </label>
                 <select name="nfc_sim_available" id="nfc_sim_available" class="form-select">
+                    <option value="">선택</option>
                     <option value="배송불가">배송불가</option>
                     <option value="배송가능">배송가능</option>
                 </select>
+                <div id="nfc_sim_price_input" style="display: none; margin-top: 12px;">
+                    <div class="input-with-unit" style="max-width: 200px;">
+                        <input type="text" name="nfc_sim_price" id="nfc_sim_price" class="form-control" placeholder="4400" maxlength="5">
+                        <span class="unit">원</span>
+                    </div>
+                </div>
             </div>
             
             <div class="form-group">
                 <label class="form-label" for="esim_available">
-                    eSIM 개통가능
+                    eSIM
                 </label>
                 <select name="esim_available" id="esim_available" class="form-select">
+                    <option value="">선택</option>
                     <option value="개통불가">개통불가</option>
                     <option value="개통가능">개통가능</option>
                 </select>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label" for="esim_price">
-                    eSIM 가격
-                </label>
-                <input type="text" name="esim_price" id="esim_price" class="form-control" placeholder="예: 2,750원">
+                <div id="esim_price_input" style="display: none; margin-top: 12px;">
+                    <div class="input-with-unit" style="max-width: 200px;">
+                        <input type="text" name="esim_price" id="esim_price" class="form-control" placeholder="2750" maxlength="5">
+                        <span class="unit">원</span>
+                    </div>
+                </div>
             </div>
         </div>
         
@@ -869,6 +876,144 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // 초기 상태에서 비활성화
             mobileHotspotValue.disabled = true;
+        }
+    }
+    
+    // 일반 유심 배송가능 필드 토글
+    const regularSimSelect = document.getElementById('regular_sim_available');
+    const regularSimPriceInput = document.getElementById('regular_sim_price_input');
+    const regularSimPrice = document.getElementById('regular_sim_price');
+    
+    if (regularSimSelect && regularSimPriceInput) {
+        regularSimSelect.addEventListener('change', function() {
+            if (this.value === '배송가능') {
+                regularSimPriceInput.style.display = 'block';
+                if (regularSimPrice) {
+                    regularSimPrice.disabled = false;
+                    regularSimPrice.focus();
+                }
+            } else {
+                regularSimPriceInput.style.display = 'none';
+                if (regularSimPrice) {
+                    regularSimPrice.value = '';
+                    regularSimPrice.disabled = true;
+                }
+            }
+        });
+        
+        // 숫자만 입력 및 천단위 표시 (5자리)
+        if (regularSimPrice) {
+            regularSimPrice.addEventListener('input', function() {
+                let value = this.value.replace(/[^0-9]/g, '');
+                if (value.length > 5) {
+                    value = value.slice(0, 5);
+                }
+                this.value = value;
+            });
+            
+            regularSimPrice.addEventListener('blur', function() {
+                if (this.value) {
+                    this.value = parseInt(this.value).toLocaleString('ko-KR');
+                }
+            });
+            
+            regularSimPrice.addEventListener('focus', function() {
+                this.value = this.value.replace(/,/g, '');
+            });
+            
+            regularSimPrice.disabled = true;
+        }
+    }
+    
+    // NFC 유심 배송가능 필드 토글
+    const nfcSimSelect = document.getElementById('nfc_sim_available');
+    const nfcSimPriceInput = document.getElementById('nfc_sim_price_input');
+    const nfcSimPrice = document.getElementById('nfc_sim_price');
+    
+    if (nfcSimSelect && nfcSimPriceInput) {
+        nfcSimSelect.addEventListener('change', function() {
+            if (this.value === '배송가능') {
+                nfcSimPriceInput.style.display = 'block';
+                if (nfcSimPrice) {
+                    nfcSimPrice.disabled = false;
+                    nfcSimPrice.focus();
+                }
+            } else {
+                nfcSimPriceInput.style.display = 'none';
+                if (nfcSimPrice) {
+                    nfcSimPrice.value = '';
+                    nfcSimPrice.disabled = true;
+                }
+            }
+        });
+        
+        // 숫자만 입력 및 천단위 표시 (5자리)
+        if (nfcSimPrice) {
+            nfcSimPrice.addEventListener('input', function() {
+                let value = this.value.replace(/[^0-9]/g, '');
+                if (value.length > 5) {
+                    value = value.slice(0, 5);
+                }
+                this.value = value;
+            });
+            
+            nfcSimPrice.addEventListener('blur', function() {
+                if (this.value) {
+                    this.value = parseInt(this.value).toLocaleString('ko-KR');
+                }
+            });
+            
+            nfcSimPrice.addEventListener('focus', function() {
+                this.value = this.value.replace(/,/g, '');
+            });
+            
+            nfcSimPrice.disabled = true;
+        }
+    }
+    
+    // eSIM 개통가능 필드 토글
+    const esimSelect = document.getElementById('esim_available');
+    const esimPriceInput = document.getElementById('esim_price_input');
+    const esimPrice = document.getElementById('esim_price');
+    
+    if (esimSelect && esimPriceInput) {
+        esimSelect.addEventListener('change', function() {
+            if (this.value === '개통가능') {
+                esimPriceInput.style.display = 'block';
+                if (esimPrice) {
+                    esimPrice.disabled = false;
+                    esimPrice.focus();
+                }
+            } else {
+                esimPriceInput.style.display = 'none';
+                if (esimPrice) {
+                    esimPrice.value = '';
+                    esimPrice.disabled = true;
+                }
+            }
+        });
+        
+        // 숫자만 입력 및 천단위 표시 (5자리)
+        if (esimPrice) {
+            esimPrice.addEventListener('input', function() {
+                let value = this.value.replace(/[^0-9]/g, '');
+                if (value.length > 5) {
+                    value = value.slice(0, 5);
+                }
+                this.value = value;
+            });
+            
+            esimPrice.addEventListener('blur', function() {
+                if (this.value) {
+                    this.value = parseInt(this.value).toLocaleString('ko-KR');
+                }
+            });
+            
+            esimPrice.addEventListener('focus', function() {
+                this.value = this.value.replace(/,/g, '');
+            });
+            
+            esimPrice.disabled = true;
         }
     }
 });
