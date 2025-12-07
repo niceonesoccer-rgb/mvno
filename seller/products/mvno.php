@@ -335,78 +335,84 @@ document.addEventListener('DOMContentLoaded', function() {
         <div class="form-section">
             <div class="form-section-title">요금제</div>
             
-            <div class="form-group">
-                <label class="form-label" for="provider">
-                    통신사 <span class="required">*</span>
-                </label>
-                <select name="provider" id="provider" class="form-select" required>
-                    <option value="">선택하세요</option>
-                    <option value="KT알뜰폰">KT알뜰폰</option>
-                    <option value="SK알뜰폰">SK알뜰폰</option>
-                    <option value="LG알뜰폰">LG알뜰폰</option>
-                </select>
+            <div class="form-group" style="display: flex; gap: 16px; align-items: flex-start;">
+                <div style="flex: 1;">
+                    <label class="form-label" for="provider">
+                        통신사 <span class="required">*</span>
+                    </label>
+                    <select name="provider" id="provider" class="form-select" required>
+                        <option value="">선택하세요</option>
+                        <option value="KT알뜰폰">KT알뜰폰</option>
+                        <option value="SK알뜰폰">SK알뜰폰</option>
+                        <option value="LG알뜰폰">LG알뜰폰</option>
+                    </select>
+                </div>
+                
+                <div style="flex: 1;">
+                    <label class="form-label" for="service_type">
+                        데이터 속도 <span class="required">*</span>
+                    </label>
+                    <select name="service_type" id="service_type" class="form-select" required>
+                        <option value="">선택하세요</option>
+                        <option value="LTE">LTE</option>
+                        <option value="5G">5G</option>
+                        <option value="6G">6G</option>
+                    </select>
+                </div>
             </div>
             
             <div class="form-group">
                 <label class="form-label" for="plan_name">
-                    요금제
+                    요금제명
                 </label>
                 <input type="text" name="plan_name" id="plan_name" class="form-control" required placeholder="데이터 100G 평생요금" maxlength="30">
             </div>
             
-            <div class="form-group">
-                <label class="form-label" for="contract_period">
-                    약정기간
-                </label>
-                <select name="contract_period" id="contract_period" class="form-select">
-                    <option value="무약정">무약정</option>
-                    <option value="직접입력">직접입력</option>
-                </select>
-                <div id="contract_period_input" style="display: none; margin-top: 12px;">
-                    <div class="input-with-unit" style="max-width: 200px;">
-                        <input type="number" name="contract_period_days" id="contract_period_days" class="form-control" placeholder="일 수 입력" min="1" max="99999" maxlength="5">
-                        <span class="unit">일</span>
+            <div class="form-group" style="display: flex; gap: 16px; align-items: flex-start;">
+                <div style="flex: 1;">
+                    <label class="form-label" for="contract_period">
+                        약정기간
+                    </label>
+                    <select name="contract_period" id="contract_period" class="form-select">
+                        <option value="무약정">무약정</option>
+                        <option value="직접입력">직접입력</option>
+                    </select>
+                    <div id="contract_period_input" style="display: none; margin-top: 12px;">
+                        <div class="input-with-unit" style="max-width: 200px;">
+                            <input type="number" name="contract_period_days" id="contract_period_days" class="form-control" placeholder="일 수 입력" min="1" max="99999" maxlength="5">
+                            <span class="unit">일</span>
+                        </div>
                     </div>
                 </div>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label" for="service_type">
-                    데이터 속도 <span class="required">*</span>
-                </label>
-                <select name="service_type" id="service_type" class="form-select" required>
-                    <option value="">선택하세요</option>
-                    <option value="LTE">LTE</option>
-                    <option value="5G">5G</option>
-                    <option value="6G">6G</option>
-                </select>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label" for="price_main">
-                    월 요금 <span class="required">*</span>
-                </label>
-                <div class="input-with-unit" style="max-width: 200px;">
-                    <input type="text" name="price_main" id="price_main" class="form-control" required placeholder="1500" maxlength="5">
-                    <span class="unit">원</span>
+                
+                <div style="flex: 1;">
+                    <label class="form-label" for="discount_period">
+                        할인기간(프로모션기간)
+                    </label>
+                    <input type="text" name="discount_period" id="discount_period" class="form-control" placeholder="7개월" maxlength="10">
                 </div>
             </div>
             
-            <div class="form-group">
-                <label class="form-label" for="price_after">
-                    할인 후 요금(프로모션기간)
-                </label>
-                <div class="input-with-unit" style="max-width: 200px;">
-                    <input type="text" name="price_after" id="price_after" class="form-control" placeholder="500" maxlength="5">
-                    <span class="unit">원</span>
+            <div class="form-group" style="display: flex; gap: 16px; align-items: flex-start;">
+                <div style="flex: 1;">
+                    <label class="form-label" for="price_main">
+                        월 요금 <span class="required">*</span>
+                    </label>
+                    <div class="input-with-unit" style="max-width: 200px;">
+                        <input type="text" name="price_main" id="price_main" class="form-control" required placeholder="1500" maxlength="5">
+                        <span class="unit">원</span>
+                    </div>
                 </div>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label" for="discount_period">
-                    할인기간(프로모션기간)
-                </label>
-                <input type="text" name="discount_period" id="discount_period" class="form-control" placeholder="7개월" maxlength="10">
+                
+                <div style="flex: 1;">
+                    <label class="form-label" for="price_after">
+                        할인 후 요금(프로모션기간)
+                    </label>
+                    <div class="input-with-unit" style="max-width: 200px;">
+                        <input type="text" name="price_after" id="price_after" class="form-control" placeholder="500" maxlength="5">
+                        <span class="unit">원</span>
+                    </div>
+                </div>
             </div>
         </div>
         
@@ -414,99 +420,113 @@ document.addEventListener('DOMContentLoaded', function() {
         <div class="form-section">
             <div class="form-section-title">데이터 정보</div>
             
-            <div class="form-group">
-                <label class="form-label" for="call_type">
-                    통화 <span class="required">*</span>
-                </label>
-                <select name="call_type" id="call_type" class="form-select" required>
-                    <option value="">선택하세요</option>
-                    <option value="무제한">무제한</option>
-                    <option value="기본제공">기본제공</option>
-                    <option value="직접입력">직접입력</option>
-                </select>
-                <div id="call_type_input" style="display: none; margin-top: 12px;">
-                    <div class="input-with-unit" style="max-width: 200px;">
-                        <input type="number" name="call_amount" id="call_amount" class="form-control" placeholder="300" min="0" max="99999" maxlength="5">
-                        <span class="unit">분</span>
+            <div class="form-group" style="display: flex; gap: 16px; align-items: flex-start;">
+                <div style="flex: 1;">
+                    <label class="form-label" for="data_amount">
+                        데이터 제공량 <span class="required">*</span>
+                    </label>
+                    <select name="data_amount" id="data_amount" class="form-select" required>
+                        <option value="">선택하세요</option>
+                        <option value="무제한">무제한</option>
+                        <option value="직접입력">직접입력</option>
+                    </select>
+                    <div id="data_amount_input" style="display: none; margin-top: 12px;">
+                        <div class="input-with-unit" style="max-width: 200px;">
+                            <input type="number" name="data_amount_value" id="data_amount_value" class="form-control" placeholder="100" min="0" max="99999" maxlength="5" style="padding-right: 70px;">
+                            <select name="data_unit" id="data_unit" class="form-select" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); width: 60px; height: auto; border: none; background: transparent; padding: 0 20px 0 0; appearance: auto; -webkit-appearance: menulist; -moz-appearance: menulist; cursor: pointer; font-size: 15px; color: #6b7280;">
+                                <option value="GB">GB</option>
+                                <option value="MB">MB</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="flex: 1;">
+                    <label class="form-label" for="data_exhausted">
+                        데이터 소진시
+                    </label>
+                    <select name="data_exhausted" id="data_exhausted" class="form-select">
+                        <option value="">선택하세요</option>
+                        <option value="5Mbps 무제한">5Mbps 무제한</option>
+                        <option value="3Mbps 무제한">3Mbps 무제한</option>
+                        <option value="1Mbps 무제한">1Mbps 무제한</option>
+                        <option value="직접입력">직접입력</option>
+                    </select>
+                    <div id="data_exhausted_input" style="display: none; margin-top: 12px;">
+                        <input type="text" name="data_exhausted_value" id="data_exhausted_value" class="form-control" placeholder="10Mbps 무제한" maxlength="50">
                     </div>
                 </div>
             </div>
             
-            <div class="form-group">
-                <label class="form-label" for="sms_type">
-                    문자 <span class="required">*</span>
-                </label>
-                <select name="sms_type" id="sms_type" class="form-select" required>
-                    <option value="">선택하세요</option>
-                    <option value="무제한">무제한</option>
-                    <option value="기본제공">기본제공</option>
-                    <option value="직접입력">직접입력</option>
-                </select>
-                <div id="sms_type_input" style="display: none; margin-top: 12px;">
-                    <div class="input-with-unit" style="max-width: 200px;">
-                        <input type="number" name="sms_amount" id="sms_amount" class="form-control" placeholder="300" min="0" max="99999" maxlength="5">
-                        <span class="unit">건</span>
+            <div class="form-group" style="display: flex; gap: 16px; align-items: flex-start;">
+                <div style="flex: 1;">
+                    <label class="form-label" for="call_type">
+                        통화 <span class="required">*</span>
+                    </label>
+                    <select name="call_type" id="call_type" class="form-select" required>
+                        <option value="">선택하세요</option>
+                        <option value="무제한">무제한</option>
+                        <option value="기본제공">기본제공</option>
+                        <option value="직접입력">직접입력</option>
+                    </select>
+                    <div id="call_type_input" style="display: none; margin-top: 12px;">
+                        <div class="input-with-unit" style="max-width: 200px;">
+                            <input type="number" name="call_amount" id="call_amount" class="form-control" placeholder="300" min="0" max="99999" maxlength="5">
+                            <span class="unit">분</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="flex: 1;">
+                    <label class="form-label" for="additional_call">
+                        부가·영상통화
+                    </label>
+                    <select name="additional_call_type" id="additional_call_type" class="form-select">
+                        <option value="">선택하세요</option>
+                        <option value="무제한">무제한</option>
+                        <option value="기본제공">기본제공</option>
+                        <option value="직접입력">직접입력</option>
+                    </select>
+                    <div id="additional_call_input" style="display: none; margin-top: 12px;">
+                        <div class="input-with-unit" style="max-width: 200px;">
+                            <input type="number" name="additional_call" id="additional_call" class="form-control" placeholder="300" min="0" max="99999" maxlength="5">
+                            <span class="unit">분</span>
+                        </div>
                     </div>
                 </div>
             </div>
             
-            <div class="form-group">
-                <label class="form-label" for="data_amount">
-                    데이터 제공량 <span class="required">*</span>
-                </label>
-                <select name="data_amount" id="data_amount" class="form-select" required>
-                    <option value="">선택하세요</option>
-                    <option value="무제한">무제한</option>
-                    <option value="직접입력">직접입력</option>
-                </select>
-                <div id="data_amount_input" style="display: none; margin-top: 12px;">
-                    <div class="input-with-unit" style="max-width: 200px;">
-                        <input type="number" name="data_amount_value" id="data_amount_value" class="form-control" placeholder="100" min="0" max="99999" maxlength="5" style="padding-right: 70px;">
-                        <select name="data_unit" id="data_unit" class="form-select" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); width: 60px; height: auto; border: none; background: transparent; padding: 0 20px 0 0; appearance: auto; -webkit-appearance: menulist; -moz-appearance: menulist; cursor: pointer; font-size: 15px; color: #6b7280;">
-                            <option value="GB">GB</option>
-                            <option value="MB">MB</option>
-                        </select>
+            <div class="form-group" style="display: flex; gap: 16px; align-items: flex-start;">
+                <div style="flex: 1;">
+                    <label class="form-label" for="sms_type">
+                        문자 <span class="required">*</span>
+                    </label>
+                    <select name="sms_type" id="sms_type" class="form-select" required>
+                        <option value="">선택하세요</option>
+                        <option value="무제한">무제한</option>
+                        <option value="기본제공">기본제공</option>
+                        <option value="직접입력">직접입력</option>
+                    </select>
+                    <div id="sms_type_input" style="display: none; margin-top: 12px;">
+                        <div class="input-with-unit" style="max-width: 200px;">
+                            <input type="number" name="sms_amount" id="sms_amount" class="form-control" placeholder="300" min="0" max="99999" maxlength="5">
+                            <span class="unit">건</span>
+                        </div>
                     </div>
                 </div>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label" for="data_exhausted">
-                    데이터 소진시
-                </label>
-                <select name="data_exhausted" id="data_exhausted" class="form-select">
-                    <option value="">선택하세요</option>
-                    <option value="5Mbps 무제한">5Mbps 무제한</option>
-                    <option value="3Mbps 무제한">3Mbps 무제한</option>
-                    <option value="1Mbps 무제한">1Mbps 무제한</option>
-                    <option value="직접입력">직접입력</option>
-                </select>
-                <div id="data_exhausted_input" style="display: none; margin-top: 12px;">
-                    <input type="text" name="data_exhausted_value" id="data_exhausted_value" class="form-control" placeholder="10Mbps 무제한" maxlength="50">
-                </div>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label" for="additional_call">
-                    부가·영상통화
-                </label>
-                <div class="input-with-unit" style="max-width: 200px;">
-                    <input type="number" name="additional_call" id="additional_call" class="form-control" placeholder="300" min="0" max="99999" maxlength="5">
-                    <span class="unit">분</span>
-                </div>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label" for="mobile_hotspot">
-                    테더링(핫스팟)
-                </label>
-                <select name="mobile_hotspot" id="mobile_hotspot" class="form-select">
-                    <option value="">선택하세요</option>
-                    <option value="기본 제공량 내에서 사용">기본 제공량 내에서 사용</option>
-                    <option value="직접선택">직접선택</option>
-                </select>
-                <div id="mobile_hotspot_input" style="display: none; margin-top: 12px;">
-                    <input type="text" name="mobile_hotspot_value" id="mobile_hotspot_value" class="form-control" placeholder="50GB" maxlength="10">
+                
+                <div style="flex: 1;">
+                    <label class="form-label" for="mobile_hotspot">
+                        테더링(핫스팟)
+                    </label>
+                    <select name="mobile_hotspot" id="mobile_hotspot" class="form-select">
+                        <option value="">선택하세요</option>
+                        <option value="기본 제공량 내에서 사용">기본 제공량 내에서 사용</option>
+                        <option value="직접선택">직접선택</option>
+                    </select>
+                    <div id="mobile_hotspot_input" style="display: none; margin-top: 12px;">
+                        <input type="text" name="mobile_hotspot_value" id="mobile_hotspot_value" class="form-control" placeholder="50GB" maxlength="10">
+                    </div>
                 </div>
             </div>
         </div>
@@ -515,53 +535,55 @@ document.addEventListener('DOMContentLoaded', function() {
         <div class="form-section">
             <div class="form-section-title">유심 정보</div>
             
-            <div class="form-group">
-                <label class="form-label" for="regular_sim_available">
-                    배송가능
-                </label>
-                <select name="regular_sim_available" id="regular_sim_available" class="form-select">
-                    <option value="">선택</option>
-                    <option value="배송불가">배송불가</option>
-                    <option value="배송가능">배송가능</option>
-                </select>
-                <div id="regular_sim_price_input" style="display: none; margin-top: 12px;">
-                    <div class="input-with-unit" style="max-width: 200px;">
-                        <input type="text" name="regular_sim_price" id="regular_sim_price" class="form-control" placeholder="2200" maxlength="5">
-                        <span class="unit">원</span>
+            <div class="form-group" style="display: flex; gap: 16px; align-items: flex-start;">
+                <div style="flex: 1;">
+                    <label class="form-label" for="regular_sim_available">
+                        일반유심
+                    </label>
+                    <select name="regular_sim_available" id="regular_sim_available" class="form-select">
+                        <option value="">선택</option>
+                        <option value="배송불가">배송불가</option>
+                        <option value="배송가능">배송가능</option>
+                    </select>
+                    <div id="regular_sim_price_input" style="display: none; margin-top: 12px;">
+                        <div class="input-with-unit" style="max-width: 200px;">
+                            <input type="text" name="regular_sim_price" id="regular_sim_price" class="form-control" placeholder="2200" maxlength="5">
+                            <span class="unit">원</span>
+                        </div>
                     </div>
                 </div>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label" for="nfc_sim_available">
-                    NFC
-                </label>
-                <select name="nfc_sim_available" id="nfc_sim_available" class="form-select">
-                    <option value="">선택</option>
-                    <option value="배송불가">배송불가</option>
-                    <option value="배송가능">배송가능</option>
-                </select>
-                <div id="nfc_sim_price_input" style="display: none; margin-top: 12px;">
-                    <div class="input-with-unit" style="max-width: 200px;">
-                        <input type="text" name="nfc_sim_price" id="nfc_sim_price" class="form-control" placeholder="4400" maxlength="5">
-                        <span class="unit">원</span>
+                
+                <div style="flex: 1;">
+                    <label class="form-label" for="nfc_sim_available">
+                        NFC유심
+                    </label>
+                    <select name="nfc_sim_available" id="nfc_sim_available" class="form-select">
+                        <option value="">선택</option>
+                        <option value="배송불가">배송불가</option>
+                        <option value="배송가능">배송가능</option>
+                    </select>
+                    <div id="nfc_sim_price_input" style="display: none; margin-top: 12px;">
+                        <div class="input-with-unit" style="max-width: 200px;">
+                            <input type="text" name="nfc_sim_price" id="nfc_sim_price" class="form-control" placeholder="4400" maxlength="5">
+                            <span class="unit">원</span>
+                        </div>
                     </div>
                 </div>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label" for="esim_available">
-                    eSIM
-                </label>
-                <select name="esim_available" id="esim_available" class="form-select">
-                    <option value="">선택</option>
-                    <option value="개통불가">개통불가</option>
-                    <option value="개통가능">개통가능</option>
-                </select>
-                <div id="esim_price_input" style="display: none; margin-top: 12px;">
-                    <div class="input-with-unit" style="max-width: 200px;">
-                        <input type="text" name="esim_price" id="esim_price" class="form-control" placeholder="2750" maxlength="5">
-                        <span class="unit">원</span>
+                
+                <div style="flex: 1;">
+                    <label class="form-label" for="esim_available">
+                        eSIM
+                    </label>
+                    <select name="esim_available" id="esim_available" class="form-select">
+                        <option value="">선택</option>
+                        <option value="개통불가">개통불가</option>
+                        <option value="개통가능">개통가능</option>
+                    </select>
+                    <div id="esim_price_input" style="display: none; margin-top: 12px;">
+                        <div class="input-with-unit" style="max-width: 200px;">
+                            <input type="text" name="esim_price" id="esim_price" class="form-control" placeholder="2750" maxlength="5">
+                            <span class="unit">원</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -571,64 +593,90 @@ document.addEventListener('DOMContentLoaded', function() {
         <div class="form-section">
             <div class="form-section-title">기본 제공 초과 시</div>
             
-            <div class="form-group">
-                <label class="form-label" for="over_data_price">
-                    데이터
-                </label>
-                <div class="input-with-unit" style="max-width: 200px;">
-                    <input type="text" name="over_data_price" id="over_data_price" class="form-control" placeholder="22.53" maxlength="6">
-                    <span class="unit">원/MB</span>
+            <div class="form-group" style="display: flex; gap: 16px; align-items: flex-start;">
+                <div style="flex: 1;">
+                    <label class="form-label" for="over_data_price">
+                        데이터
+                    </label>
+                    <div class="input-with-unit" style="max-width: 200px;">
+                        <input type="text" name="over_data_price" id="over_data_price" class="form-control" placeholder="22.53" maxlength="6">
+                        <span class="unit">원/MB</span>
+                    </div>
+                </div>
+                
+                <div style="flex: 1;">
+                    <label class="form-label" for="over_voice_price">
+                        음성
+                    </label>
+                    <div class="input-with-unit" style="max-width: 200px;">
+                        <input type="text" name="over_voice_price" id="over_voice_price" class="form-control" placeholder="1.98" maxlength="6">
+                        <span class="unit">원/MB</span>
+                    </div>
+                </div>
+                
+                <div style="flex: 1;">
+                    <label class="form-label" for="over_video_price">
+                        영상통화
+                    </label>
+                    <div class="input-with-unit" style="max-width: 200px;">
+                        <input type="text" name="over_video_price" id="over_video_price" class="form-control" placeholder="3.3" maxlength="6">
+                        <span class="unit">원/초</span>
+                    </div>
                 </div>
             </div>
             
-            <div class="form-group">
-                <label class="form-label" for="over_voice_price">
-                    음성
-                </label>
-                <div class="input-with-unit" style="max-width: 200px;">
-                    <input type="text" name="over_voice_price" id="over_voice_price" class="form-control" placeholder="1.98" maxlength="6">
-                    <span class="unit">원/MB</span>
+            <div class="form-group" style="display: flex; gap: 16px; align-items: flex-start;">
+                <div style="flex: 1;">
+                    <label class="form-label" for="over_sms_price">
+                        단문메시지(SMS)
+                    </label>
+                    <div class="input-with-unit" style="max-width: 200px;">
+                        <input type="text" name="over_sms_price" id="over_sms_price" class="form-control" placeholder="22" maxlength="5">
+                        <span class="unit">원/건</span>
+                    </div>
                 </div>
+                
+                <div style="flex: 1;">
+                    <label class="form-label" for="over_lms_price">
+                        텍스트형(LMS,MMS)
+                    </label>
+                    <div class="input-with-unit" style="max-width: 200px;">
+                        <input type="text" name="over_lms_price" id="over_lms_price" class="form-control" placeholder="33" maxlength="5">
+                        <span class="unit">원/건</span>
+                    </div>
+                </div>
+                
+                <div style="flex: 1;">
+                    <label class="form-label" for="over_mms_price">
+                        멀티미디어형(MMS)
+                    </label>
+                    <div class="input-with-unit" style="max-width: 200px;">
+                        <input type="text" name="over_mms_price" id="over_mms_price" class="form-control" placeholder="110" maxlength="5">
+                        <span class="unit">원/건</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 프로모션 이벤트 -->
+        <div class="form-section">
+            <div class="form-section-title">프로모션 이벤트</div>
+            
+            <div class="form-group">
+                <label class="form-label" for="promotion_title">
+                    제목
+                </label>
+                <input type="text" name="promotion_title" id="promotion_title" class="form-control" placeholder="프로모션 이벤트 제목을 입력하세요" maxlength="100">
             </div>
             
             <div class="form-group">
-                <label class="form-label" for="over_video_price">
-                    영상통화
-                </label>
-                <div class="input-with-unit" style="max-width: 200px;">
-                    <input type="text" name="over_video_price" id="over_video_price" class="form-control" placeholder="3.3" maxlength="6">
-                    <span class="unit">원/초</span>
+                <label class="form-label">항목</label>
+                <div id="promotion-container">
+                    <div class="gift-input-group">
+                        <input type="text" name="promotions[]" class="form-control" placeholder="Npay 2,000" maxlength="30">
+                    </div>
                 </div>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label" for="over_sms_price">
-                    단문메시지(SMS)
-                </label>
-                <div class="input-with-unit" style="max-width: 200px;">
-                    <input type="text" name="over_sms_price" id="over_sms_price" class="form-control" placeholder="22" maxlength="5">
-                    <span class="unit">원/건</span>
-                </div>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label" for="over_lms_price">
-                    텍스트형(LMS,MMS)
-                </label>
-                <div class="input-with-unit" style="max-width: 200px;">
-                    <input type="text" name="over_lms_price" id="over_lms_price" class="form-control" placeholder="33" maxlength="5">
-                    <span class="unit">원/건</span>
-                </div>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label" for="over_mms_price">
-                    멀티미디어형(MMS)
-                </label>
-                <div class="input-with-unit" style="max-width: 200px;">
-                    <input type="text" name="over_mms_price" id="over_mms_price" class="form-control" placeholder="110" maxlength="5">
-                    <span class="unit">원/건</span>
-                </div>
+                <button type="button" class="btn-add" onclick="addPromotionField()">+ 항목 추가</button>
             </div>
         </div>
         
@@ -843,15 +891,40 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // 부가·영상통화 숫자 입력 제한 (5자리)
+    // 부가·영상통화 직접입력 필드 토글
+    const additionalCallTypeSelect = document.getElementById('additional_call_type');
+    const additionalCallInput = document.getElementById('additional_call_input');
     const additionalCall = document.getElementById('additional_call');
-    if (additionalCall) {
-        additionalCall.addEventListener('input', function() {
-            this.value = this.value.replace(/[^0-9]/g, '');
-            if (this.value.length > 5) {
-                this.value = this.value.slice(0, 5);
+    
+    if (additionalCallTypeSelect && additionalCallInput) {
+        additionalCallTypeSelect.addEventListener('change', function() {
+            if (this.value === '직접입력') {
+                additionalCallInput.style.display = 'block';
+                if (additionalCall) {
+                    additionalCall.disabled = false;
+                    additionalCall.focus();
+                }
+            } else {
+                additionalCallInput.style.display = 'none';
+                if (additionalCall) {
+                    additionalCall.value = '';
+                    additionalCall.disabled = true;
+                }
             }
         });
+        
+        // 숫자만 입력되도록 제한 (5자리)
+        if (additionalCall) {
+            additionalCall.addEventListener('input', function() {
+                this.value = this.value.replace(/[^0-9]/g, '');
+                if (this.value.length > 5) {
+                    this.value = this.value.slice(0, 5);
+                }
+            });
+            
+            // 초기 상태에서 비활성화
+            additionalCall.disabled = true;
+        }
     }
     
     // 테더링(핫스팟) 직접선택 필드 토글
@@ -1153,6 +1226,27 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+let promotionCount = 1;
+
+function addPromotionField() {
+    const container = document.getElementById('promotion-container');
+    const newField = document.createElement('div');
+    newField.className = 'gift-input-group';
+    newField.innerHTML = `
+        <input type="text" name="promotions[]" class="form-control" placeholder="Npay 2,000" maxlength="30">
+        <button type="button" class="btn-remove" onclick="removePromotionField(this)">삭제</button>
+    `;
+    container.appendChild(newField);
+    promotionCount++;
+}
+
+function removePromotionField(button) {
+    const container = document.getElementById('promotion-container');
+    if (container.children.length > 1) {
+        button.parentElement.remove();
+    }
+}
 
 let benefitCount = 1;
 
