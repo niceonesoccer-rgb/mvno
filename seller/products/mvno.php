@@ -381,6 +381,33 @@ document.addEventListener('DOMContentLoaded', function() {
                     <option value="6G">6G</option>
                 </select>
             </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="price_main">
+                    월 요금 <span class="required">*</span>
+                </label>
+                <div class="input-with-unit" style="max-width: 200px;">
+                    <input type="text" name="price_main" id="price_main" class="form-control" required placeholder="1500" maxlength="5">
+                    <span class="unit">원</span>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="price_after">
+                    할인 후 요금(프로모션기간)
+                </label>
+                <div class="input-with-unit" style="max-width: 200px;">
+                    <input type="text" name="price_after" id="price_after" class="form-control" placeholder="500" maxlength="5">
+                    <span class="unit">원</span>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="discount_period">
+                    할인기간(프로모션기간)
+                </label>
+                <input type="text" name="discount_period" id="discount_period" class="form-control" placeholder="7개월" maxlength="10">
+            </div>
         </div>
         
         <!-- 데이터 정보 -->
@@ -548,63 +575,60 @@ document.addEventListener('DOMContentLoaded', function() {
                 <label class="form-label" for="over_data_price">
                     데이터
                 </label>
-                <input type="text" name="over_data_price" id="over_data_price" class="form-control" placeholder="예: 22.53원/MB">
+                <div class="input-with-unit" style="max-width: 200px;">
+                    <input type="text" name="over_data_price" id="over_data_price" class="form-control" placeholder="22.53" maxlength="6">
+                    <span class="unit">원/MB</span>
+                </div>
             </div>
             
             <div class="form-group">
                 <label class="form-label" for="over_voice_price">
-                    음성 통화
+                    음성
                 </label>
-                <input type="text" name="over_voice_price" id="over_voice_price" class="form-control" placeholder="예: 1.98원/초">
+                <div class="input-with-unit" style="max-width: 200px;">
+                    <input type="text" name="over_voice_price" id="over_voice_price" class="form-control" placeholder="1.98" maxlength="6">
+                    <span class="unit">원/MB</span>
+                </div>
             </div>
             
             <div class="form-group">
                 <label class="form-label" for="over_video_price">
-                    부가/영상통화
+                    영상통화
                 </label>
-                <input type="text" name="over_video_price" id="over_video_price" class="form-control" placeholder="예: 3.3원/초">
+                <div class="input-with-unit" style="max-width: 200px;">
+                    <input type="text" name="over_video_price" id="over_video_price" class="form-control" placeholder="3.3" maxlength="6">
+                    <span class="unit">원/초</span>
+                </div>
             </div>
             
             <div class="form-group">
                 <label class="form-label" for="over_sms_price">
                     단문메시지(SMS)
                 </label>
-                <input type="text" name="over_sms_price" id="over_sms_price" class="form-control" placeholder="예: 22원/개">
+                <div class="input-with-unit" style="max-width: 200px;">
+                    <input type="text" name="over_sms_price" id="over_sms_price" class="form-control" placeholder="22" maxlength="5">
+                    <span class="unit">원/건</span>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="over_lms_price">
+                    텍스트형(LMS,MMS)
+                </label>
+                <div class="input-with-unit" style="max-width: 200px;">
+                    <input type="text" name="over_lms_price" id="over_lms_price" class="form-control" placeholder="33" maxlength="5">
+                    <span class="unit">원/건</span>
+                </div>
             </div>
             
             <div class="form-group">
                 <label class="form-label" for="over_mms_price">
-                    장문 텍스트형(MMS)
+                    멀티미디어형(MMS)
                 </label>
-                <input type="text" name="over_mms_price" id="over_mms_price" class="form-control" placeholder="예: 44원/개">
-            </div>
-        </div>
-        
-        <!-- 요금 정보 -->
-        <div class="form-section">
-            <div class="form-section-title">요금 정보</div>
-            
-            <div class="form-group">
-                <label class="form-label" for="price_main">
-                    월 요금 <span class="required">*</span>
-                </label>
-                <input type="number" name="price_main" id="price_main" class="form-control" required placeholder="예: 17000" min="0">
-                <div class="form-help">원 단위로 입력하세요</div>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label" for="price_after">
-                    할인 후 요금
-                </label>
-                <input type="text" name="price_after" id="price_after" class="form-control" placeholder="예: 7개월 이후 42,900원">
-                <div class="form-help">할인 기간이 끝난 후 요금을 입력하세요</div>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label" for="discount_period">
-                    할인 기간
-                </label>
-                <input type="text" name="discount_period" id="discount_period" class="form-control" placeholder="예: 7개월">
+                <div class="input-with-unit" style="max-width: 200px;">
+                    <input type="text" name="over_mms_price" id="over_mms_price" class="form-control" placeholder="110" maxlength="5">
+                    <span class="unit">원/건</span>
+                </div>
             </div>
         </div>
         
@@ -613,25 +637,11 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="form-section-title">혜택 및 유의사항</div>
             
             <div class="form-group">
-                <label class="form-label">혜택 및 유의사항</label>
                 <div id="benefits-container">
                     <div class="gift-input-group">
                         <textarea name="benefits[]" class="form-textarea" style="min-height: 80px;" placeholder="혜택 및 유의사항을 입력하세요"></textarea>
                     </div>
                 </div>
-                <button type="button" class="btn-add" onclick="addBenefitField()">+ 항목 추가</button>
-            </div>
-        </div>
-        
-        <!-- 상세 설명 -->
-        <div class="form-section">
-            <div class="form-section-title">상세 정보</div>
-            
-            <div class="form-group">
-                <label class="form-label" for="description">
-                    상품 설명
-                </label>
-                <textarea name="description" id="description" class="form-textarea" placeholder="상품에 대한 자세한 설명을 입력하세요"></textarea>
             </div>
         </div>
         
@@ -1016,6 +1026,132 @@ document.addEventListener('DOMContentLoaded', function() {
             esimPrice.disabled = true;
         }
     }
+    
+    // 기본 제공 초과 시 필드 검증
+    // 데이터: 정수3자리 소수2자리 (최대 999.99)
+    const overDataPrice = document.getElementById('over_data_price');
+    if (overDataPrice) {
+        overDataPrice.addEventListener('input', function() {
+            let value = this.value.replace(/[^0-9.]/g, '');
+            // 소수점이 하나만 있도록 제한
+            const parts = value.split('.');
+            if (parts.length > 2) {
+                value = parts[0] + '.' + parts.slice(1).join('');
+            }
+            // 정수 부분 3자리 제한
+            if (parts[0] && parts[0].length > 3) {
+                value = parts[0].slice(0, 3) + (parts[1] ? '.' + parts[1] : '');
+            }
+            // 소수 부분 2자리 제한
+            if (parts[1] && parts[1].length > 2) {
+                value = parts[0] + '.' + parts[1].slice(0, 2);
+            }
+            this.value = value;
+        });
+    }
+    
+    // 음성: 정수3자리 소수2자리 (최대 999.99)
+    const overVoicePrice = document.getElementById('over_voice_price');
+    if (overVoicePrice) {
+        overVoicePrice.addEventListener('input', function() {
+            let value = this.value.replace(/[^0-9.]/g, '');
+            const parts = value.split('.');
+            if (parts.length > 2) {
+                value = parts[0] + '.' + parts.slice(1).join('');
+            }
+            if (parts[0] && parts[0].length > 3) {
+                value = parts[0].slice(0, 3) + (parts[1] ? '.' + parts[1] : '');
+            }
+            if (parts[1] && parts[1].length > 2) {
+                value = parts[0] + '.' + parts[1].slice(0, 2);
+            }
+            this.value = value;
+        });
+    }
+    
+    // 영상통화: 정수3자리 소수2자리 (최대 999.99)
+    const overVideoPrice = document.getElementById('over_video_price');
+    if (overVideoPrice) {
+        overVideoPrice.addEventListener('input', function() {
+            let value = this.value.replace(/[^0-9.]/g, '');
+            const parts = value.split('.');
+            if (parts.length > 2) {
+                value = parts[0] + '.' + parts.slice(1).join('');
+            }
+            if (parts[0] && parts[0].length > 3) {
+                value = parts[0].slice(0, 3) + (parts[1] ? '.' + parts[1] : '');
+            }
+            if (parts[1] && parts[1].length > 2) {
+                value = parts[0] + '.' + parts[1].slice(0, 2);
+            }
+            this.value = value;
+        });
+    }
+    
+    // 단문메시지(SMS): 숫자 5자리
+    const overSmsPrice = document.getElementById('over_sms_price');
+    if (overSmsPrice) {
+        overSmsPrice.addEventListener('input', function() {
+            this.value = this.value.replace(/[^0-9]/g, '');
+            if (this.value.length > 5) {
+                this.value = this.value.slice(0, 5);
+            }
+        });
+    }
+    
+    // 텍스트형(LMS,MMS): 숫자 5자리
+    const overLmsPrice = document.getElementById('over_lms_price');
+    if (overLmsPrice) {
+        overLmsPrice.addEventListener('input', function() {
+            this.value = this.value.replace(/[^0-9]/g, '');
+            if (this.value.length > 5) {
+                this.value = this.value.slice(0, 5);
+            }
+        });
+    }
+    
+    // 멀티미디어형(MMS): 숫자 5자리
+    const overMmsPrice = document.getElementById('over_mms_price');
+    if (overMmsPrice) {
+        overMmsPrice.addEventListener('input', function() {
+            this.value = this.value.replace(/[^0-9]/g, '');
+            if (this.value.length > 5) {
+                this.value = this.value.slice(0, 5);
+            }
+        });
+    }
+    
+    // 월 요금: 숫자 5자리
+    const priceMain = document.getElementById('price_main');
+    if (priceMain) {
+        priceMain.addEventListener('input', function() {
+            this.value = this.value.replace(/[^0-9]/g, '');
+            if (this.value.length > 5) {
+                this.value = this.value.slice(0, 5);
+            }
+        });
+    }
+    
+    // 할인 후 요금: 숫자 5자리
+    const priceAfter = document.getElementById('price_after');
+    if (priceAfter) {
+        priceAfter.addEventListener('input', function() {
+            this.value = this.value.replace(/[^0-9]/g, '');
+            if (this.value.length > 5) {
+                this.value = this.value.slice(0, 5);
+            }
+        });
+    }
+    
+    // 할인기간: 텍스트 10자리
+    const discountPeriod = document.getElementById('discount_period');
+    if (discountPeriod) {
+        discountPeriod.addEventListener('input', function() {
+            if (this.value.length > 10) {
+                this.value = this.value.slice(0, 10);
+            }
+        });
+    }
 });
 
 let benefitCount = 1;
@@ -1026,7 +1162,6 @@ function addBenefitField() {
     newField.className = 'gift-input-group';
     newField.innerHTML = `
         <textarea name="benefits[]" class="form-textarea" style="min-height: 80px;" placeholder="혜택 및 유의사항을 입력하세요"></textarea>
-        <button type="button" class="btn-remove" onclick="removeBenefitField(this)">삭제</button>
     `;
     container.appendChild(newField);
     benefitCount++;
