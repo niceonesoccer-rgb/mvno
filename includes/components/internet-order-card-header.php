@@ -67,3 +67,5 @@ $is_installed = !empty($internet['installation_date'] ?? ''); // 설치 여부
 
 
 
+
+

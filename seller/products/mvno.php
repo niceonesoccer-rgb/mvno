@@ -1,4 +1,5 @@
 <?php
+
 /**
  * 판매자 알뜰폰 상품 등록 페이지
  * 경로: /seller/products/mvno.php
@@ -271,6 +272,23 @@ $pageStyles = '
         margin-top: 8px;
     }
     
+    .btn-add-item {
+        padding: 12px 16px;
+        background: #10b981;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 600;
+        white-space: nowrap;
+        transition: all 0.2s;
+    }
+    
+    .btn-add-item:hover {
+        background: #059669;
+    }
+    
     .input-with-unit {
         position: relative;
         display: inline-block;
@@ -328,8 +346,7 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
     <?php endif; ?>
     
-    <form id="productForm" class="product-form" method="POST" action="/MVNO/api/product-register.php">
-        <input type="hidden" name="board_type" value="mvno">
+    <form id="productForm" class="product-form" method="POST" action="/MVNO/api/product-register-mvno.php">
         
         <!-- 기본 정보 -->
         <div class="form-section">
@@ -666,7 +683,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <label class="form-label" for="promotion_title">
                     제목
                 </label>
-                <input type="text" name="promotion_title" id="promotion_title" class="form-control" placeholder="프로모션 이벤트 제목을 입력하세요" maxlength="100">
+                <input type="text" name="promotion_title" id="promotion_title" class="form-control" placeholder="쿠폰북 최대 5만원 지급" maxlength="100">
             </div>
             
             <div class="form-group">
@@ -674,9 +691,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div id="promotion-container">
                     <div class="gift-input-group">
                         <input type="text" name="promotions[]" class="form-control" placeholder="Npay 2,000" maxlength="30">
+                        <button type="button" class="btn-add-item" onclick="addPromotionField()">추가</button>
                     </div>
                 </div>
-                <button type="button" class="btn-add" onclick="addPromotionField()">+ 항목 추가</button>
             </div>
         </div>
         
@@ -1273,7 +1290,7 @@ document.getElementById('productForm').addEventListener('submit', function(e) {
     
     const formData = new FormData(this);
     
-    fetch('/MVNO/api/product-register.php', {
+    fetch('/MVNO/api/product-register-mvno.php', {
         method: 'POST',
         body: formData
     })

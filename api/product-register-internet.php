@@ -1,7 +1,7 @@
 <?php
 /**
- * 상품 등록 API
- * 판매자 권한 체크 후 상품 등록 처리
+ * 인터넷 상품 등록 API
+ * 인터넷 전용 - 다른 상품 타입과 완전히 분리됨
  */
 
 require_once __DIR__ . '/../includes/data/auth-functions.php';
@@ -26,51 +26,34 @@ if (!isSellerApproved()) {
     exit;
 }
 
-// 게시판 타입 확인
-$boardType = $_POST['board_type'] ?? '';
-$allowedTypes = ['mvno', 'mno', 'internet'];
-
-if (!in_array($boardType, $allowedTypes)) {
-    echo json_encode(['success' => false, 'message' => '유효하지 않은 게시판 타입입니다.']);
+// 인터넷 권한 체크 (Internet만)
+if (!hasSellerPermission($currentUser['user_id'], 'internet')) {
+    echo json_encode(['success' => false, 'message' => '인터넷 등록 권한이 없습니다. 관리자에게 권한을 요청하세요.']);
     exit;
 }
 
-// 권한 체크
-if (!hasSellerPermission($currentUser['user_id'], $boardType)) {
-    echo json_encode(['success' => false, 'message' => '해당 게시판에 등록할 권한이 없습니다. 관리자에게 권한을 요청하세요.']);
-    exit;
-}
-
-// 여기서 실제 상품 등록 로직을 구현하세요
-// 예시:
+// 인터넷 상품 데이터 수집
 $productData = [
     'seller_id' => $currentUser['user_id'],
-    'board_type' => $boardType,
+    'board_type' => 'internet', // 고정값
     'provider' => $_POST['provider'] ?? '',
     'plan_name' => $_POST['plan_name'] ?? '',
-    'monthly_fee' => $_POST['monthly_fee'] ?? 0,
     'speed' => $_POST['speed'] ?? '',
+    'tv_channels' => $_POST['tv_channels'] ?? '',
+    'price_main' => $_POST['price_main'] ?? 0,
+    'installation_fee' => $_POST['installation_fee'] ?? 0,
+    'discount_period' => $_POST['discount_period'] ?? '',
+    'features' => $_POST['features'] ?? [],
+    'gifts' => $_POST['gifts'] ?? [],
+    'description' => $_POST['description'] ?? '',
     'created_at' => date('Y-m-d H:i:s')
 ];
 
-// TODO: 실제 상품 데이터 저장 로직 구현
-// 예: saveProductData($productData);
+// TODO: 실제 인터넷 상품 데이터 저장 로직 구현
+// 예: saveInternetProductData($productData);
 
 echo json_encode([
     'success' => true, 
-    'message' => '상품이 등록되었습니다.',
+    'message' => '인터넷 상품이 등록되었습니다.',
     'product' => $productData
 ]);
-
-
-
-
-
-
-
-
-
-
-
-
-

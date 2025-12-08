@@ -308,8 +308,7 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
     <?php endif; ?>
     
-    <form id="productForm" class="product-form" method="POST" action="/MVNO/api/product-register.php">
-        <input type="hidden" name="board_type" value="internet">
+    <form id="productForm" class="product-form" method="POST" action="/MVNO/api/product-register-internet.php">
         
         <!-- 기본 정보 -->
         <div class="form-section">
@@ -471,7 +470,7 @@ document.getElementById('productForm').addEventListener('submit', function(e) {
     
     const formData = new FormData(this);
     
-    fetch('/MVNO/api/product-register.php', {
+    fetch('/MVNO/api/product-register-internet.php', {
         method: 'POST',
         body: formData
     })
@@ -491,6 +490,8 @@ document.getElementById('productForm').addEventListener('submit', function(e) {
 </script>
 
 <?php include __DIR__ . '/../includes/seller-footer.php'; ?>
+
+
 
 
 
