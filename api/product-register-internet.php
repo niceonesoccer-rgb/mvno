@@ -57,3 +57,4 @@ echo json_encode([
     'message' => '인터넷 상품이 등록되었습니다.',
     'product' => $productData
 ]);
+

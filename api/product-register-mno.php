@@ -82,6 +82,8 @@ $productData = [
     'promotion_title' => $_POST['promotion_title'] ?? '',
     'promotions' => $_POST['promotions'] ?? [],
     'benefits' => $_POST['benefits'] ?? [],
+    'delivery_method' => $_POST['delivery_method'] ?? 'delivery',
+    'visit_region' => $_POST['visit_region'] ?? '',
     'created_at' => date('Y-m-d H:i:s')
 ];
 
@@ -93,3 +95,4 @@ echo json_encode([
     'message' => '통신사폰 상품이 등록되었습니다.',
     'product' => $productData
 ]);
+

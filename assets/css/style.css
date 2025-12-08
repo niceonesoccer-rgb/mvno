@@ -3064,7 +3064,7 @@ button:focus {
     display: flex;
     gap: var(--spacing-md); /* 카드 사이 간격 줄임 */
     flex-wrap: nowrap; /* 한 줄로 고정 */
-    justify-content: center; /* 가운데 정렬 */
+    justify-content: space-between; /* 좌우 끝까지 배치 */
     margin-top: var(--spacing-xs);
     width: 100%; /* 전체 너비 사용 */
 }
@@ -3077,7 +3077,6 @@ button:focus {
 .mno-support-card {
     flex: 1 1 0; /* 동일한 너비로 분배 */
     min-width: 0; /* flex item이 축소될 수 있도록 */
-    max-width: 50%; /* 최대 50% 너비 */
     background-color: var(--color-gray-50);
     border: 1px solid var(--color-gray-200);
     border-radius: 10px; /* 모서리 더 둥글게 */
@@ -3183,8 +3182,16 @@ button:focus {
     display: inline-block;
     font-size: 0.8125rem; /* 13px - 크기 줄임 */
     font-weight: 500;
-    color: #ef4444; /* 빨간색 */
+    color: #3b82f6; /* 기본 파란색 */
     padding: 4px 8px; /* 패딩 줄임 */
+}
+
+.mno-support-text-negative {
+    color: #ef4444; /* 빨간색 - 음수 */
+}
+
+.mno-support-text-positive {
+    color: #3b82f6; /* 파란색 - 양수 */
 }
 
 .mno-support-text-empty {
@@ -3212,6 +3219,7 @@ button:focus {
         flex-wrap: nowrap; /* 한 줄 유지 */
         overflow-x: hidden; /* 가로 스크롤 방지 */
         gap: var(--spacing-xs); /* 모바일에서 간격 더 줄임 */
+        justify-content: space-between; /* 좌우 끝까지 배치 */
         width: 100%;
         box-sizing: border-box;
     }
@@ -3219,7 +3227,6 @@ button:focus {
     .mno-support-card {
         flex: 1 1 0; /* 동일한 너비로 분배 */
         min-width: 0; /* flex item이 축소될 수 있도록 */
-        max-width: calc(50% - var(--spacing-xs) / 2); /* 간격을 고려한 최대 너비 */
         padding: var(--spacing-xs) 4px; /* 패딩 더 줄임 */
         box-sizing: border-box;
     }
@@ -3284,7 +3291,15 @@ button:focus {
         padding: 1px 2px; /* 패딩 최소화 */
         display: block;
         word-break: break-all; /* 긴 숫자도 줄바꿈 */
-        color: #ef4444; /* 빨간색 */
+        color: #3b82f6; /* 기본 파란색 */
+    }
+    
+    .mno-support-text-negative {
+        color: #ef4444; /* 빨간색 - 음수 */
+    }
+    
+    .mno-support-text-positive {
+        color: #3b82f6; /* 파란색 - 양수 */
     }
     
     .mno-support-text-empty {

@@ -212,10 +212,38 @@ $show_only_one_section = ($show_common_section && !$show_contract_section) || (!
                                 </td>
                                 <?php endif; ?>
                                 <td>
-                                    <span class="mno-support-text"><?php echo htmlspecialchars($row['number_port'] ?? ''); ?></span>
+                                    <?php 
+                                    $port_value = $row['number_port'] ?? '';
+                                    $port_display = htmlspecialchars($port_value);
+                                    $port_color_class = '';
+                                    if ($port_value !== '' && $port_value !== null && $port_value != 9999) {
+                                        // 음수면 빨강, 양수면 파랑
+                                        $port_str = (string)$port_value;
+                                        if (strpos($port_str, '-') === 0 || floatval($port_value) < 0) {
+                                            $port_color_class = 'mno-support-text-negative';
+                                        } else {
+                                            $port_color_class = 'mno-support-text-positive';
+                                        }
+                                    }
+                                    ?>
+                                    <span class="mno-support-text <?php echo htmlspecialchars($port_color_class); ?>"><?php echo $port_display; ?></span>
                                 </td>
                                 <td>
-                                    <span class="mno-support-text"><?php echo htmlspecialchars($row['device_change'] ?? ''); ?></span>
+                                    <?php 
+                                    $change_value = $row['device_change'] ?? '';
+                                    $change_display = htmlspecialchars($change_value);
+                                    $change_color_class = '';
+                                    if ($change_value !== '' && $change_value !== null && $change_value != 9999) {
+                                        // 음수면 빨강, 양수면 파랑
+                                        $change_str = (string)$change_value;
+                                        if (strpos($change_str, '-') === 0 || floatval($change_value) < 0) {
+                                            $change_color_class = 'mno-support-text-negative';
+                                        } else {
+                                            $change_color_class = 'mno-support-text-positive';
+                                        }
+                                    }
+                                    ?>
+                                    <span class="mno-support-text <?php echo htmlspecialchars($change_color_class); ?>"><?php echo $change_display; ?></span>
                                 </td>
                             </tr>
                             <?php endforeach; ?>
@@ -276,10 +304,38 @@ $show_only_one_section = ($show_common_section && !$show_contract_section) || (!
                                 </td>
                                 <?php endif; ?>
                                 <td>
-                                    <span class="mno-support-text"><?php echo htmlspecialchars($row['number_port'] ?? ''); ?></span>
+                                    <?php 
+                                    $port_value = $row['number_port'] ?? '';
+                                    $port_display = htmlspecialchars($port_value);
+                                    $port_color_class = '';
+                                    if ($port_value !== '' && $port_value !== null && $port_value != 9999) {
+                                        // 음수면 빨강, 양수면 파랑
+                                        $port_str = (string)$port_value;
+                                        if (strpos($port_str, '-') === 0 || floatval($port_value) < 0) {
+                                            $port_color_class = 'mno-support-text-negative';
+                                        } else {
+                                            $port_color_class = 'mno-support-text-positive';
+                                        }
+                                    }
+                                    ?>
+                                    <span class="mno-support-text <?php echo htmlspecialchars($port_color_class); ?>"><?php echo $port_display; ?></span>
                                 </td>
                                 <td>
-                                    <span class="mno-support-text"><?php echo htmlspecialchars($row['device_change'] ?? ''); ?></span>
+                                    <?php 
+                                    $change_value = $row['device_change'] ?? '';
+                                    $change_display = htmlspecialchars($change_value);
+                                    $change_color_class = '';
+                                    if ($change_value !== '' && $change_value !== null && $change_value != 9999) {
+                                        // 음수면 빨강, 양수면 파랑
+                                        $change_str = (string)$change_value;
+                                        if (strpos($change_str, '-') === 0 || floatval($change_value) < 0) {
+                                            $change_color_class = 'mno-support-text-negative';
+                                        } else {
+                                            $change_color_class = 'mno-support-text-positive';
+                                        }
+                                    }
+                                    ?>
+                                    <span class="mno-support-text <?php echo htmlspecialchars($change_color_class); ?>"><?php echo $change_display; ?></span>
                                 </td>
                             </tr>
                             <?php endforeach; ?>

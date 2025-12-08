@@ -574,6 +574,40 @@
             "timestamp": "2025-12-08 22:29:33",
             "date": "2025-12-08",
             "user_id": null
+        },
+        {
+            "type": "favorite_add",
+            "data": {
+                "type": "phone",
+                "id": "2",
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-09 06:33:52",
+            "date": "2025-12-09",
+            "user_id": "57575757"
+        },
+        {
+            "type": "share",
+            "data": {
+                "type": "mno",
+                "id": "mno-phone-detail.php?id=2",
+                "method": "link",
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-09 06:33:53",
+            "date": "2025-12-09",
+            "user_id": "57575757"
+        },
+        {
+            "type": "favorite_remove",
+            "data": {
+                "type": "phone",
+                "id": "2",
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-09 06:33:54",
+            "date": "2025-12-09",
+            "user_id": "57575757"
         }
     ],
     "daily_stats": []

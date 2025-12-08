@@ -169,7 +169,8 @@ $pageStyles = '
         gap: 8px;
     }
     
-    .form-checkbox input[type="checkbox"] {
+    .form-checkbox input[type="checkbox"],
+    .form-checkbox input[type="radio"] {
         width: 18px;
         height: 18px;
         cursor: pointer;
@@ -497,59 +498,20 @@ document.addEventListener('DOMContentLoaded', function() {
         
         <!-- 택배 방문시 지역 선택 -->
         <div class="form-section">
-            <div class="form-section-title">택배 및 방문 서비스</div>
+            <div class="form-section-title">단말기 수령방법</div>
             
             <div class="form-group">
                 <div class="form-checkbox-group">
                     <div class="form-checkbox">
-                        <input type="checkbox" name="delivery_enabled" id="delivery_enabled" value="1">
+                        <input type="radio" name="delivery_method" id="delivery_enabled" value="delivery" checked>
                         <label for="delivery_enabled">택배</label>
                     </div>
-                    <div class="form-checkbox">
-                        <input type="checkbox" name="visit_enabled" id="visit_enabled" value="1">
-                        <label for="visit_enabled">방문</label>
+                    <div class="form-checkbox" style="display: flex; align-items: center; gap: 8px;">
+                        <input type="radio" name="delivery_method" id="visit_enabled" value="visit">
+                        <label for="visit_enabled" style="margin: 0;">내방</label>
+                        <input type="text" name="visit_region" id="visit_region" class="form-control" placeholder="영등포 강남" maxlength="8" style="width: 150px; padding: 8px 12px; font-size: 14px; margin: 0; opacity: 0.5; background-color: #f3f4f6;" tabindex="-1">
                     </div>
                 </div>
-            </div>
-            
-            <div id="delivery_region_section" style="display: none; margin-top: 20px; padding: 20px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
-                <div style="margin-bottom: 16px;">
-                    <label class="form-label" style="font-size: 15px; font-weight: 600; color: #374151; margin-bottom: 12px;">
-                        방문 가능 지역 선택 (어느 지역에서 방문 서비스를 받을지 선택하세요)
-                    </label>
-                    <p class="form-help" style="margin-top: 4px; margin-bottom: 16px;">
-                        방문 서비스를 제공할 지역을 입력하세요. 여러 지역을 추가할 수 있습니다.
-                    </p>
-                </div>
-                <div id="delivery-region-container">
-                    <div class="delivery-region-row" style="display: flex; gap: 16px; align-items: flex-start; margin-bottom: 16px;">
-                        <div style="flex: 1;">
-                            <label class="form-label">
-                                시/도
-                            </label>
-                            <input type="text" name="delivery_sido[]" class="form-control" placeholder="시/도 입력 (예: 서울특별시)" maxlength="50">
-                        </div>
-                        
-                        <div style="flex: 1;">
-                            <label class="form-label">
-                                시/군/구
-                            </label>
-                            <input type="text" name="delivery_sigungu[]" class="form-control" placeholder="시/군/구 입력" maxlength="50">
-                        </div>
-                        
-                        <div style="flex: 1;">
-                            <label class="form-label">
-                                읍/면/동
-                            </label>
-                            <input type="text" name="delivery_eupmyeondong[]" class="form-control" placeholder="읍/면/동 입력" maxlength="50">
-                        </div>
-                        
-                        <div style="display: flex; align-items: flex-end; padding-bottom: 0;">
-                            <button type="button" class="btn-remove" onclick="removeDeliveryRegionRow(this)" style="margin-top: 0;">삭제</button>
-                        </div>
-                    </div>
-                </div>
-                <button type="button" class="btn-add" onclick="addDeliveryRegionRow()">지역 추가</button>
             </div>
         </div>
         
@@ -596,23 +558,71 @@ document.addEventListener('DOMContentLoaded', function() {
 // 약정기간 직접입력 필드 토글
 document.addEventListener('DOMContentLoaded', function() {
     
-    // 방문시 지역 선택 섹션 토글 (방문 체크박스만 체크되었을 때 표시)
-    const visitCheckbox = document.getElementById('visit_enabled');
-    const deliveryRegionSection = document.getElementById('delivery_region_section');
+    // 방문시 텍스트 필드 활성화/비활성화
+    const deliveryRadio = document.getElementById('delivery_enabled');
+    const visitRadio = document.getElementById('visit_enabled');
+    const visitRegionInput = document.getElementById('visit_region');
     
-    function toggleDeliveryRegionSection() {
-        if (deliveryRegionSection && visitCheckbox) {
-            if (visitCheckbox.checked) {
-                deliveryRegionSection.style.display = 'block';
+    function toggleVisitRegionInput() {
+        if (visitRegionInput) {
+            if (visitRadio && visitRadio.checked) {
+                // 내방 선택 시: 모든 제한 제거, 입력 가능하도록
+                visitRegionInput.removeAttribute('readonly');
+                visitRegionInput.removeAttribute('disabled');
+                visitRegionInput.removeAttribute('tabindex');
+                visitRegionInput.style.opacity = '1';
+                visitRegionInput.style.backgroundColor = '#ffffff';
+                visitRegionInput.style.cursor = 'text';
+                visitRegionInput.style.pointerEvents = 'auto';
+                // 포커스 주기
+                setTimeout(function() {
+                    visitRegionInput.focus();
+                    visitRegionInput.click(); // 클릭 이벤트도 트리거
+                }, 100);
             } else {
-                deliveryRegionSection.style.display = 'none';
+                // 택배 선택 시: 입력 불가 상태로
+                visitRegionInput.setAttribute('readonly', 'readonly');
+                visitRegionInput.setAttribute('tabindex', '-1');
+                visitRegionInput.style.opacity = '0.5';
+                visitRegionInput.style.backgroundColor = '#f3f4f6';
+                visitRegionInput.style.cursor = 'default';
+                visitRegionInput.style.pointerEvents = 'none';
+                // 택배 선택 시 입력값 초기화
+                visitRegionInput.value = '';
+                visitRegionInput.blur();
             }
         }
     }
     
-    if (visitCheckbox) {
-        visitCheckbox.addEventListener('change', toggleDeliveryRegionSection);
+    // 라디오 버튼 변경 이벤트
+    if (deliveryRadio) {
+        deliveryRadio.addEventListener('change', toggleVisitRegionInput);
     }
+    
+    if (visitRadio) {
+        visitRadio.addEventListener('change', toggleVisitRegionInput);
+    }
+    
+    // 텍스트 필드 클릭 이벤트 (내방 선택 시에만 작동)
+    if (visitRegionInput) {
+        visitRegionInput.addEventListener('click', function(e) {
+            if (visitRadio && visitRadio.checked) {
+                this.focus();
+            } else {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        });
+        
+        visitRegionInput.addEventListener('focus', function() {
+            if (!visitRadio || !visitRadio.checked) {
+                this.blur();
+            }
+        });
+    }
+    
+    // 초기 상태 설정
+    toggleVisitRegionInput();
     
     // 단말기 출고가: 정수 8자리, 천단위 콤마 표시
     const devicePrice = document.getElementById('device_price');
@@ -1572,3 +1582,4 @@ document.getElementById('productForm').addEventListener('submit', function(e) {
 </script>
 
 <?php include __DIR__ . '/../includes/seller-footer.php'; ?>
+
