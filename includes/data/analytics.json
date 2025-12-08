@@ -475,9 +475,106 @@
             "timestamp": "2025-12-08 06:17:53",
             "date": "2025-12-08",
             "user_id": "57575757"
+        },
+        {
+            "type": "favorite_add",
+            "data": {
+                "type": "phone",
+                "id": "1",
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-08 22:06:24",
+            "date": "2025-12-08",
+            "user_id": "57575757"
+        },
+        {
+            "type": "favorite_remove",
+            "data": {
+                "type": "phone",
+                "id": "1",
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-08 22:06:25",
+            "date": "2025-12-08",
+            "user_id": "57575757"
+        },
+        {
+            "type": "favorite_add",
+            "data": {
+                "type": "phone",
+                "id": "1",
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-08 22:06:26",
+            "date": "2025-12-08",
+            "user_id": "57575757"
+        },
+        {
+            "type": "favorite_remove",
+            "data": {
+                "type": "phone",
+                "id": "1",
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-08 22:06:28",
+            "date": "2025-12-08",
+            "user_id": "57575757"
+        },
+        {
+            "type": "favorite_add",
+            "data": {
+                "type": "phone",
+                "id": "1",
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-08 22:08:21",
+            "date": "2025-12-08",
+            "user_id": "57575757"
+        },
+        {
+            "type": "favorite_add",
+            "data": {
+                "type": "phone",
+                "id": "1",
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-08 22:10:05",
+            "date": "2025-12-08",
+            "user_id": "57575757"
+        },
+        {
+            "type": "favorite_add",
+            "data": {
+                "type": "phone",
+                "id": "1",
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-08 22:29:31",
+            "date": "2025-12-08",
+            "user_id": null
+        },
+        {
+            "type": "favorite_remove",
+            "data": {
+                "type": "phone",
+                "id": "1",
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-08 22:29:32",
+            "date": "2025-12-08",
+            "user_id": null
+        },
+        {
+            "type": "favorite_add",
+            "data": {
+                "type": "phone",
+                "id": "1",
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-08 22:29:33",
+            "date": "2025-12-08",
+            "user_id": null
         }
     ],
     "daily_stats": []
 }
-
-

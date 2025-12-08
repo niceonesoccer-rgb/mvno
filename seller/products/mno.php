@@ -368,219 +368,212 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             </div>
             
-            <!-- 색상 선택 -->
-            <div class="form-group" style="margin-top: 24px;">
-                <label class="form-label" style="font-size: 14px; font-weight: 600; margin-bottom: 16px; color: #374151;">색상</label>
-                <div id="color-container" style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start;">
-                    <!-- 기본 색상 6개 -->
-                    <div class="color-item" style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
-                        <div class="color-swatch" style="width: 60px; height: 60px; border-radius: 50%; border: 2px solid #e5e7eb; cursor: pointer; position: relative; background-color: #1e3a8a; overflow: hidden;" data-color="#1e3a8a">
-                            <input type="color" class="color-picker" value="#1e3a8a" style="position: absolute; width: 100%; height: 100%; opacity: 0; cursor: pointer;">
-                            <input type="hidden" name="device_colors[]" value='{"name":"블루 쉐도우","color":"#1e3a8a"}'>
-                        </div>
-                        <input type="text" class="color-name-input" value="블루 쉐도우" style="width: 100px; text-align: center; border: 1px solid #e5e7eb; border-radius: 4px; padding: 4px 8px; font-size: 12px;" maxlength="20">
-                        <button type="button" class="btn-remove-color" onclick="removeColorItem(this)" style="padding: 4px 8px; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px;">삭제</button>
-                    </div>
-                    
-                    <div class="color-item" style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
-                        <div class="color-swatch" style="width: 60px; height: 60px; border-radius: 50%; border: 2px solid #3b82f6; cursor: pointer; position: relative; background-color: #1f2937; overflow: hidden;" data-color="#1f2937">
-                            <input type="color" class="color-picker" value="#1f2937" style="position: absolute; width: 100%; height: 100%; opacity: 0; cursor: pointer;">
-                            <input type="hidden" name="device_colors[]" value='{"name":"제트블랙","color":"#1f2937"}'>
-                        </div>
-                        <input type="text" class="color-name-input" value="제트블랙" style="width: 100px; text-align: center; border: 1px solid #e5e7eb; border-radius: 4px; padding: 4px 8px; font-size: 12px;" maxlength="20">
-                        <button type="button" class="btn-remove-color" onclick="removeColorItem(this)" style="padding: 4px 8px; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px;">삭제</button>
-                    </div>
-                    
-                    <div class="color-item" style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
-                        <div class="color-swatch" style="width: 60px; height: 60px; border-radius: 50%; border: 2px solid #e5e7eb; cursor: pointer; position: relative; background-color: #d1d5db; overflow: hidden;" data-color="#d1d5db">
-                            <input type="color" class="color-picker" value="#d1d5db" style="position: absolute; width: 100%; height: 100%; opacity: 0; cursor: pointer;">
-                            <input type="hidden" name="device_colors[]" value='{"name":"실버 쉐도우","color":"#d1d5db"}'>
-                        </div>
-                        <input type="text" class="color-name-input" value="실버 쉐도우" style="width: 100px; text-align: center; border: 1px solid #e5e7eb; border-radius: 4px; padding: 4px 8px; font-size: 12px;" maxlength="20">
-                        <button type="button" class="btn-remove-color" onclick="removeColorItem(this)" style="padding: 4px 8px; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px;">삭제</button>
-                    </div>
-                    
-                    <div class="color-item" style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
-                        <div class="color-swatch" style="width: 60px; height: 60px; border-radius: 50%; border: 2px solid #e5e7eb; cursor: pointer; position: relative; background-color: #000000; overflow: hidden;" data-color="#000000">
-                            <input type="color" class="color-picker" value="#000000" style="position: absolute; width: 100%; height: 100%; opacity: 0; cursor: pointer;">
-                            <input type="hidden" name="device_colors[]" value='{"name":"블랙","color":"#000000"}'>
-                        </div>
-                        <input type="text" class="color-name-input" value="블랙" style="width: 100px; text-align: center; border: 1px solid #e5e7eb; border-radius: 4px; padding: 4px 8px; font-size: 12px;" maxlength="20">
-                        <button type="button" class="btn-remove-color" onclick="removeColorItem(this)" style="padding: 4px 8px; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px;">삭제</button>
-                    </div>
-                    
-                    <div class="color-item" style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
-                        <div class="color-swatch" style="width: 60px; height: 60px; border-radius: 50%; border: 2px solid #e5e7eb; cursor: pointer; position: relative; background-color: #ffffff; border: 2px solid #d1d5db; overflow: hidden;" data-color="#ffffff">
-                            <input type="color" class="color-picker" value="#ffffff" style="position: absolute; width: 100%; height: 100%; opacity: 0; cursor: pointer;">
-                            <input type="hidden" name="device_colors[]" value='{"name":"화이트","color":"#ffffff"}'>
-                        </div>
-                        <input type="text" class="color-name-input" value="화이트" style="width: 100px; text-align: center; border: 1px solid #e5e7eb; border-radius: 4px; padding: 4px 8px; font-size: 12px;" maxlength="20">
-                        <button type="button" class="btn-remove-color" onclick="removeColorItem(this)" style="padding: 4px 8px; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px;">삭제</button>
-                    </div>
-                    
-                    <div class="color-item" style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
-                        <div class="color-swatch" style="width: 60px; height: 60px; border-radius: 50%; border: 2px solid #e5e7eb; cursor: pointer; position: relative; background-color: #dc2626; overflow: hidden;" data-color="#dc2626">
-                            <input type="color" class="color-picker" value="#dc2626" style="position: absolute; width: 100%; height: 100%; opacity: 0; cursor: pointer;">
-                            <input type="hidden" name="device_colors[]" value='{"name":"레드","color":"#dc2626"}'>
-                        </div>
-                        <input type="text" class="color-name-input" value="레드" style="width: 100px; text-align: center; border: 1px solid #e5e7eb; border-radius: 4px; padding: 4px 8px; font-size: 12px;" maxlength="20">
-                        <button type="button" class="btn-remove-color" onclick="removeColorItem(this)" style="padding: 4px 8px; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px;">삭제</button>
-                    </div>
-                </div>
-                
-                <div style="margin-top: 16px;">
-                    <button type="button" class="btn-add-color" onclick="addColorItem()" style="padding: 8px 16px; background: #10b981; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px;">색상 추가</button>
-                </div>
-            </div>
-            
             <!-- 할인방법 -->
             <div class="form-group" style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; background: #f9fafb;">
                 <label class="form-label" style="font-size: 16px; margin-bottom: 20px;">할인방법</label>
                 
-                <!-- 공통지원할인 -->
-                <div style="margin-bottom: 24px;">
-                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
-                        <label class="form-label" style="font-size: 14px; font-weight: 600; color: #374151; margin: 0;">공통지원할인</label>
-                        <span style="font-size: 12px; color: #374151; font-weight: 600;">( 정책없음 = 9999 )</span>
-                    </div>
-                    <div id="common-discount-container">
-                        <div class="common-discount-row" style="display: flex; gap: 8px; flex-wrap: nowrap; margin-bottom: 12px; align-items: flex-end;">
-                            <div style="flex: 1.2; min-width: 0;">
-                                <label class="form-label" style="font-size: 13px; font-weight: 500;">통신사</label>
-                                <select name="common_provider[]" class="form-select">
-                                    <option value="">선택</option>
-                                    <option value="KT">KT</option>
-                                    <option value="SKT">SKT</option>
-                                    <option value="LG U+">LG U+</option>
-                                </select>
+                <!-- 공통지원할인과 선택약정할인 나란히 배치 -->
+                <div style="display: flex; gap: 24px; align-items: flex-start;">
+                    <!-- 공통지원할인 -->
+                    <div style="flex: 1;">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                            <label class="form-label" style="font-size: 14px; font-weight: 600; color: #374151; margin: 0;">공통지원할인</label>
+                            <span style="font-size: 12px; color: #374151; font-weight: 600;">( 정책없음 = 9999 )</span>
+                        </div>
+                        <div id="common-discount-container">
+                            <div class="common-discount-row" style="display: flex; gap: 8px; flex-wrap: nowrap; margin-bottom: 8px; align-items: flex-end;">
+                                <div style="flex: 1; min-width: 0;">
+                                    <label class="form-label" style="font-size: 13px; font-weight: 500; margin-bottom: 8px;">통신사</label>
+                                    <div class="form-control" style="background: #f9fafb; border: 1px solid #e5e7eb; padding: 10px 14px; font-weight: 600; font-size: 14px; height: 40px; line-height: 20px; box-sizing: border-box; display: flex; align-items: center;">SKT</div>
+                                    <input type="hidden" name="common_provider[]" value="SKT">
+                                </div>
+                                <div style="flex: 1; min-width: 0;">
+                                    <label class="form-label" style="font-size: 13px; font-weight: 500; margin-bottom: 8px;">신규가입</label>
+                                    <input type="text" name="common_discount_new[]" class="form-control common-discount-input" placeholder="9999" value="9999" maxlength="7" style="padding: 10px 14px; font-size: 14px; height: 40px; box-sizing: border-box;">
+                                </div>
+                                <div style="flex: 1; min-width: 0;">
+                                    <label class="form-label" style="font-size: 13px; font-weight: 500; margin-bottom: 8px;">번호이동</label>
+                                    <input type="text" name="common_discount_port[]" class="form-control common-discount-input" placeholder="-198" maxlength="7" style="padding: 10px 14px; font-size: 14px; height: 40px; box-sizing: border-box;">
+                                </div>
+                                <div style="flex: 1; min-width: 0;">
+                                    <label class="form-label" style="font-size: 13px; font-weight: 500; margin-bottom: 8px;">기기변경</label>
+                                    <input type="text" name="common_discount_change[]" class="form-control common-discount-input" placeholder="191.6" maxlength="7" style="padding: 10px 14px; font-size: 14px; height: 40px; box-sizing: border-box;">
+                                </div>
                             </div>
-                            <div style="flex: 1.5; min-width: 0;">
-                                <label class="form-label" style="font-size: 13px; font-weight: 500;">요금제</label>
-                                <input type="text" name="common_plan[]" class="form-control" placeholder="요금제명" maxlength="15">
+                            <div class="common-discount-row" style="display: flex; gap: 8px; flex-wrap: nowrap; margin-bottom: 8px; align-items: center;">
+                                <div style="flex: 1; min-width: 0;">
+                                    <div class="form-control" style="background: #f9fafb; border: 1px solid #e5e7eb; padding: 10px 14px; font-weight: 600; font-size: 14px; height: 40px; line-height: 20px; box-sizing: border-box; display: flex; align-items: center;">KT</div>
+                                    <input type="hidden" name="common_provider[]" value="KT">
+                                </div>
+                                <div style="flex: 1; min-width: 0;">
+                                    <input type="text" name="common_discount_new[]" class="form-control common-discount-input" placeholder="9999" value="9999" maxlength="7" style="padding: 10px 14px; font-size: 14px; height: 40px; box-sizing: border-box;">
+                                </div>
+                                <div style="flex: 1; min-width: 0;">
+                                    <input type="text" name="common_discount_port[]" class="form-control common-discount-input" placeholder="-198" maxlength="7" style="padding: 10px 14px; font-size: 14px; height: 40px; box-sizing: border-box;">
+                                </div>
+                                <div style="flex: 1; min-width: 0;">
+                                    <input type="text" name="common_discount_change[]" class="form-control common-discount-input" placeholder="191.6" maxlength="7" style="padding: 10px 14px; font-size: 14px; height: 40px; box-sizing: border-box;">
+                                </div>
                             </div>
-                            <div style="flex: 1; min-width: 0;">
-                                <label class="form-label" style="font-size: 13px; font-weight: 500;">신규가입</label>
-                                <input type="text" name="common_discount_new[]" class="form-control common-discount-input" placeholder="9999" value="9999" maxlength="7">
-                            </div>
-                            <div style="flex: 1; min-width: 0;">
-                                <label class="form-label" style="font-size: 13px; font-weight: 500;">번호이동</label>
-                                <input type="text" name="common_discount_port[]" class="form-control common-discount-input" placeholder="-198" maxlength="7">
-                            </div>
-                            <div style="flex: 1; min-width: 0;">
-                                <label class="form-label" style="font-size: 13px; font-weight: 500;">기기변경</label>
-                                <input type="text" name="common_discount_change[]" class="form-control common-discount-input" placeholder="191.6" maxlength="7">
-                            </div>
-                            <div style="flex: 0 0 auto; padding-top: 24px;">
-                                <button type="button" class="btn-add" onclick="addCommonDiscountRow()" style="margin-top: 0;">추가</button>
+                            <div class="common-discount-row" style="display: flex; gap: 8px; flex-wrap: nowrap; margin-bottom: 0; align-items: center;">
+                                <div style="flex: 1; min-width: 0;">
+                                    <div class="form-control" style="background: #f9fafb; border: 1px solid #e5e7eb; padding: 10px 14px; font-weight: 600; font-size: 14px; height: 40px; line-height: 20px; box-sizing: border-box; display: flex; align-items: center;">LGU+</div>
+                                    <input type="hidden" name="common_provider[]" value="LG U+">
+                                </div>
+                                <div style="flex: 1; min-width: 0;">
+                                    <input type="text" name="common_discount_new[]" class="form-control common-discount-input" placeholder="9999" value="9999" maxlength="7" style="padding: 10px 14px; font-size: 14px; height: 40px; box-sizing: border-box;">
+                                </div>
+                                <div style="flex: 1; min-width: 0;">
+                                    <input type="text" name="common_discount_port[]" class="form-control common-discount-input" placeholder="-198" maxlength="7" style="padding: 10px 14px; font-size: 14px; height: 40px; box-sizing: border-box;">
+                                </div>
+                                <div style="flex: 1; min-width: 0;">
+                                    <input type="text" name="common_discount_change[]" class="form-control common-discount-input" placeholder="191.6" maxlength="7" style="padding: 10px 14px; font-size: 14px; height: 40px; box-sizing: border-box;">
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-                
-                <!-- 선택약정할인 -->
-                <div>
-                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
-                        <label class="form-label" style="font-size: 14px; font-weight: 600; color: #374151; margin: 0;">선택약정할인</label>
-                        <span style="font-size: 12px; color: #374151; font-weight: 600;">( 정책없음 = 9999 )</span>
-                    </div>
-                    <div id="contract-discount-container">
-                        <div class="contract-discount-row" style="display: flex; gap: 8px; flex-wrap: nowrap; margin-bottom: 12px; align-items: flex-end;">
-                            <div style="flex: 1.2; min-width: 0;">
-                                <label class="form-label" style="font-size: 13px; font-weight: 500;">통신사</label>
-                                <select name="contract_provider[]" class="form-select">
-                                    <option value="">선택</option>
-                                    <option value="KT">KT</option>
-                                    <option value="SKT">SKT</option>
-                                    <option value="LG U+">LG U+</option>
-                                </select>
+                    
+                    <!-- 선택약정할인 -->
+                    <div style="flex: 1;">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                            <label class="form-label" style="font-size: 14px; font-weight: 600; color: #374151; margin: 0;">선택약정할인</label>
+                            <span style="font-size: 12px; color: #374151; font-weight: 600;">( 정책없음 = 9999 )</span>
+                        </div>
+                        <div id="contract-discount-container">
+                            <div class="contract-discount-row" style="display: flex; gap: 8px; flex-wrap: nowrap; margin-bottom: 8px; align-items: flex-end;">
+                                <div style="flex: 1; min-width: 0;">
+                                    <label class="form-label" style="font-size: 13px; font-weight: 500; margin-bottom: 8px;">통신사</label>
+                                    <div class="form-control" style="background: #f9fafb; border: 1px solid #e5e7eb; padding: 10px 14px; font-weight: 600; font-size: 14px; height: 40px; line-height: 20px; box-sizing: border-box; display: flex; align-items: center;">SKT</div>
+                                    <input type="hidden" name="contract_provider[]" value="SKT">
+                                </div>
+                                <div style="flex: 1; min-width: 0;">
+                                    <label class="form-label" style="font-size: 13px; font-weight: 500; margin-bottom: 8px;">신규가입</label>
+                                    <input type="text" name="contract_discount_new[]" class="form-control contract-discount-input" placeholder="9999" value="9999" maxlength="7" style="padding: 10px 14px; font-size: 14px; height: 40px; box-sizing: border-box;">
+                                </div>
+                                <div style="flex: 1; min-width: 0;">
+                                    <label class="form-label" style="font-size: 13px; font-weight: 500; margin-bottom: 8px;">번호이동</label>
+                                    <input type="text" name="contract_discount_port[]" class="form-control contract-discount-input" placeholder="198" maxlength="7" style="padding: 10px 14px; font-size: 14px; height: 40px; box-sizing: border-box;">
+                                </div>
+                                <div style="flex: 1; min-width: 0;">
+                                    <label class="form-label" style="font-size: 13px; font-weight: 500; margin-bottom: 8px;">기기변경</label>
+                                    <input type="text" name="contract_discount_change[]" class="form-control contract-discount-input" placeholder="150" maxlength="7" style="padding: 10px 14px; font-size: 14px; height: 40px; box-sizing: border-box;">
+                                </div>
                             </div>
-                            <div style="flex: 1.5; min-width: 0;">
-                                <label class="form-label" style="font-size: 13px; font-weight: 500;">요금제</label>
-                                <input type="text" name="contract_plan[]" class="form-control" placeholder="요금제명" maxlength="15">
+                            <div class="contract-discount-row" style="display: flex; gap: 8px; flex-wrap: nowrap; margin-bottom: 8px; align-items: center;">
+                                <div style="flex: 1; min-width: 0;">
+                                    <div class="form-control" style="background: #f9fafb; border: 1px solid #e5e7eb; padding: 10px 14px; font-weight: 600; font-size: 14px; height: 40px; line-height: 20px; box-sizing: border-box; display: flex; align-items: center;">KT</div>
+                                    <input type="hidden" name="contract_provider[]" value="KT">
+                                </div>
+                                <div style="flex: 1; min-width: 0;">
+                                    <input type="text" name="contract_discount_new[]" class="form-control contract-discount-input" placeholder="9999" value="9999" maxlength="7" style="padding: 10px 14px; font-size: 14px; height: 40px; box-sizing: border-box;">
+                                </div>
+                                <div style="flex: 1; min-width: 0;">
+                                    <input type="text" name="contract_discount_port[]" class="form-control contract-discount-input" placeholder="198" maxlength="7" style="padding: 10px 14px; font-size: 14px; height: 40px; box-sizing: border-box;">
+                                </div>
+                                <div style="flex: 1; min-width: 0;">
+                                    <input type="text" name="contract_discount_change[]" class="form-control contract-discount-input" placeholder="150" maxlength="7" style="padding: 10px 14px; font-size: 14px; height: 40px; box-sizing: border-box;">
+                                </div>
                             </div>
-                            <div style="flex: 1; min-width: 0;">
-                                <label class="form-label" style="font-size: 13px; font-weight: 500;">신규가입</label>
-                                <input type="text" name="contract_discount_new[]" class="form-control contract-discount-input" placeholder="9999" value="9999" maxlength="7">
-                            </div>
-                            <div style="flex: 1; min-width: 0;">
-                                <label class="form-label" style="font-size: 13px; font-weight: 500;">번호이동</label>
-                                <input type="text" name="contract_discount_port[]" class="form-control contract-discount-input" placeholder="198" maxlength="7">
-                            </div>
-                            <div style="flex: 1; min-width: 0;">
-                                <label class="form-label" style="font-size: 13px; font-weight: 500;">기기변경</label>
-                                <input type="text" name="contract_discount_change[]" class="form-control contract-discount-input" placeholder="150" maxlength="7">
-                            </div>
-                            <div style="flex: 0 0 auto; padding-top: 24px;">
-                                <button type="button" class="btn-add" onclick="addContractDiscountRow()" style="margin-top: 0;">추가</button>
+                            <div class="contract-discount-row" style="display: flex; gap: 8px; flex-wrap: nowrap; margin-bottom: 0; align-items: center;">
+                                <div style="flex: 1; min-width: 0;">
+                                    <div class="form-control" style="background: #f9fafb; border: 1px solid #e5e7eb; padding: 10px 14px; font-weight: 600; font-size: 14px; height: 40px; line-height: 20px; box-sizing: border-box; display: flex; align-items: center;">LGU+</div>
+                                    <input type="hidden" name="contract_provider[]" value="LG U+">
+                                </div>
+                                <div style="flex: 1; min-width: 0;">
+                                    <input type="text" name="contract_discount_new[]" class="form-control contract-discount-input" placeholder="9999" value="9999" maxlength="7" style="padding: 10px 14px; font-size: 14px; height: 40px; box-sizing: border-box;">
+                                </div>
+                                <div style="flex: 1; min-width: 0;">
+                                    <input type="text" name="contract_discount_port[]" class="form-control contract-discount-input" placeholder="198" maxlength="7" style="padding: 10px 14px; font-size: 14px; height: 40px; box-sizing: border-box;">
+                                </div>
+                                <div style="flex: 1; min-width: 0;">
+                                    <input type="text" name="contract_discount_change[]" class="form-control contract-discount-input" placeholder="150" maxlength="7" style="padding: 10px 14px; font-size: 14px; height: 40px; box-sizing: border-box;">
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label" for="service_type">
-                    데이터 속도 <span class="required">*</span>
-                </label>
-                <select name="service_type" id="service_type" class="form-select" required>
-                    <option value="">선택하세요</option>
-                    <option value="LTE">LTE</option>
-                    <option value="5G">5G</option>
-                    <option value="6G">6G</option>
-                </select>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label" for="contract_period">
-                    약정기간
-                </label>
-                <select name="contract_period" id="contract_period" class="form-select">
-                    <option value="">선택하세요</option>
-                    <option value="12개월">12개월</option>
-                    <option value="24개월">24개월</option>
-                    <option value="36개월">36개월</option>
-                    <option value="직접입력">직접입력</option>
-                </select>
-                <div id="contract_period_input" style="display: none; margin-top: 12px;">
-                    <input type="text" name="contract_period_value" id="contract_period_value" class="form-control" placeholder="46개월" maxlength="10">
                 </div>
             </div>
         </div>
         
-        <!-- 구입조건 및 지원혜택 -->
+        <!-- 택배 방문시 지역 선택 -->
         <div class="form-section">
-            <div class="form-section-title">구입조건 및 지원혜택</div>
+            <div class="form-section-title">택배 및 방문 서비스</div>
+            
+            <div class="form-group">
+                <div class="form-checkbox-group">
+                    <div class="form-checkbox">
+                        <input type="checkbox" name="delivery_enabled" id="delivery_enabled" value="1">
+                        <label for="delivery_enabled">택배</label>
+                    </div>
+                    <div class="form-checkbox">
+                        <input type="checkbox" name="visit_enabled" id="visit_enabled" value="1">
+                        <label for="visit_enabled">방문</label>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="delivery_region_section" style="display: none; margin-top: 20px; padding: 20px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
+                <div style="margin-bottom: 16px;">
+                    <label class="form-label" style="font-size: 15px; font-weight: 600; color: #374151; margin-bottom: 12px;">
+                        방문 가능 지역 선택 (어느 지역에서 방문 서비스를 받을지 선택하세요)
+                    </label>
+                    <p class="form-help" style="margin-top: 4px; margin-bottom: 16px;">
+                        방문 서비스를 제공할 지역을 입력하세요. 여러 지역을 추가할 수 있습니다.
+                    </p>
+                </div>
+                <div id="delivery-region-container">
+                    <div class="delivery-region-row" style="display: flex; gap: 16px; align-items: flex-start; margin-bottom: 16px;">
+                        <div style="flex: 1;">
+                            <label class="form-label">
+                                시/도
+                            </label>
+                            <input type="text" name="delivery_sido[]" class="form-control" placeholder="시/도 입력 (예: 서울특별시)" maxlength="50">
+                        </div>
+                        
+                        <div style="flex: 1;">
+                            <label class="form-label">
+                                시/군/구
+                            </label>
+                            <input type="text" name="delivery_sigungu[]" class="form-control" placeholder="시/군/구 입력" maxlength="50">
+                        </div>
+                        
+                        <div style="flex: 1;">
+                            <label class="form-label">
+                                읍/면/동
+                            </label>
+                            <input type="text" name="delivery_eupmyeondong[]" class="form-control" placeholder="읍/면/동 입력" maxlength="50">
+                        </div>
+                        
+                        <div style="display: flex; align-items: flex-end; padding-bottom: 0;">
+                            <button type="button" class="btn-remove" onclick="removeDeliveryRegionRow(this)" style="margin-top: 0;">삭제</button>
+                        </div>
+                    </div>
+                </div>
+                <button type="button" class="btn-add" onclick="addDeliveryRegionRow()">지역 추가</button>
+            </div>
+        </div>
+        
+        <!-- 부가서비스 및 유지기간 -->
+        <div class="form-section">
+            <div class="form-section-title">부가서비스 및 유지기간</div>
             
             <div class="form-group">
                 <label class="form-label" for="promotion_title">
                     제목
                 </label>
-                <input type="text" name="promotion_title" id="promotion_title" class="form-control" placeholder="사은품 10가지 제공" maxlength="100">
+                <input type="text" name="promotion_title" id="promotion_title" class="form-control" placeholder="부가서비스 및 유지기간" maxlength="100">
             </div>
             
             <div class="form-group">
                 <label class="form-label">항목</label>
                 <div id="promotion-container">
                     <div class="gift-input-group">
-                        <input type="text" name="promotions[]" class="form-control" placeholder="부가서비스 없음" maxlength="30">
+                        <input type="text" name="promotions[]" class="form-control" placeholder="부가 미가입시 +10" maxlength="30">
                         <button type="button" class="btn-add" onclick="addPromotionField()">추가</button>
                     </div>
                     <div class="gift-input-group">
-                        <input type="text" name="promotions[]" class="form-control" placeholder="사은품 갤럭시워치" maxlength="30">
+                        <input type="text" name="promotions[]" class="form-control" placeholder="파손보험 5700원" maxlength="30">
                         <button type="button" class="btn-remove" onclick="removePromotionField(this)">삭제</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- 혜택 및 유의사항 -->
-        <div class="form-section">
-            <div class="form-section-title">혜택 및 유의사항</div>
-            
-            <div class="form-group">
-                <div id="benefits-container">
-                    <div class="gift-input-group">
-                        <textarea name="benefits[]" class="form-textarea" style="min-height: 80px;" placeholder="혜택 및 유의사항을 입력하세요"></textarea>
                     </div>
                 </div>
             </div>
@@ -602,98 +595,24 @@ document.addEventListener('DOMContentLoaded', function() {
 <script>
 // 약정기간 직접입력 필드 토글
 document.addEventListener('DOMContentLoaded', function() {
-    // 색상 추가 버튼 이벤트
-    const addColorBtn = document.querySelector('.btn-add-color');
-    if (addColorBtn) {
-        addColorBtn.addEventListener('click', addColorItem);
-    }
     
-    // 기존 색상 항목들에 이벤트 연결
-    document.querySelectorAll('.color-item').forEach(function(item) {
-        // 색상 피커 이벤트
-        const colorPicker = item.querySelector('.color-picker');
-        if (colorPicker) {
-            colorPicker.addEventListener('input', function() {
-                const swatch = item.querySelector('.color-swatch');
-                const newColor = this.value;
-                swatch.style.backgroundColor = newColor;
-                swatch.setAttribute('data-color', newColor);
-                
-                const hiddenInput = item.querySelector('input[type="hidden"]');
-                const nameInput = item.querySelector('.color-name-input');
-                hiddenInput.value = JSON.stringify({name: nameInput.value, color: newColor});
-            });
-        }
-        
-        // 색상 이름 입력 이벤트 (실시간)
-        const nameInput = item.querySelector('.color-name-input');
-        if (nameInput) {
-            nameInput.addEventListener('input', function() {
-                const swatch = item.querySelector('.color-swatch');
-                const colorPicker = item.querySelector('.color-picker');
-                const hiddenInput = item.querySelector('input[type="hidden"]');
-                
-                // 색상 이름으로 색상 찾기 (실시간)
-                const foundColor = findColorByName(this.value);
-                if (foundColor) {
-                    // 색상을 찾았으면 즉시 색상 변경
-                    swatch.style.backgroundColor = foundColor;
-                    swatch.setAttribute('data-color', foundColor);
-                    colorPicker.value = foundColor;
-                }
-                
-                // hidden input 실시간 업데이트
-                const colorValue = swatch.getAttribute('data-color');
-                hiddenInput.value = JSON.stringify({name: this.value, color: colorValue});
-            });
-        }
-        
-        // 삭제 버튼 이벤트
-        const removeBtn = item.querySelector('.btn-remove-color');
-        if (removeBtn) {
-            removeBtn.addEventListener('click', function() {
-                removeColorItem(this);
-            });
-        }
-        
-        // 색상 선택 이벤트 (테두리 표시)
-        const swatch = item.querySelector('.color-swatch');
-        if (swatch) {
-            swatch.addEventListener('click', function(e) {
-                // color-picker가 클릭된 경우는 제외
-                if (e.target.classList.contains('color-picker')) {
-                    return;
-                }
-                selectColor(this);
-            });
-        }
-    });
+    // 방문시 지역 선택 섹션 토글 (방문 체크박스만 체크되었을 때 표시)
+    const visitCheckbox = document.getElementById('visit_enabled');
+    const deliveryRegionSection = document.getElementById('delivery_region_section');
     
-    const contractPeriodSelect = document.getElementById('contract_period');
-    const contractPeriodInput = document.getElementById('contract_period_input');
-    
-    if (contractPeriodSelect && contractPeriodInput) {
-        contractPeriodSelect.addEventListener('change', function() {
-            if (this.value === '직접입력') {
-                contractPeriodInput.style.display = 'block';
-                document.getElementById('contract_period_value').focus();
+    function toggleDeliveryRegionSection() {
+        if (deliveryRegionSection && visitCheckbox) {
+            if (visitCheckbox.checked) {
+                deliveryRegionSection.style.display = 'block';
             } else {
-                contractPeriodInput.style.display = 'none';
-                document.getElementById('contract_period_value').value = '';
+                deliveryRegionSection.style.display = 'none';
             }
-        });
-        
-        // 텍스트 입력 제한 (10자리)
-        const contractPeriodValue = document.getElementById('contract_period_value');
-        if (contractPeriodValue) {
-            contractPeriodValue.addEventListener('input', function() {
-                if (this.value.length > 10) {
-                    this.value = this.value.slice(0, 10);
-                }
-            });
         }
     }
     
+    if (visitCheckbox) {
+        visitCheckbox.addEventListener('change', toggleDeliveryRegionSection);
+    }
     
     // 단말기 출고가: 정수 8자리, 천단위 콤마 표시
     const devicePrice = document.getElementById('device_price');
@@ -765,99 +684,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
 });
 
-// 공통지원할인 행 추가
-function addCommonDiscountRow() {
-    const container = document.getElementById('common-discount-container');
-    const newRow = document.createElement('div');
-    newRow.className = 'common-discount-row';
-    newRow.style.cssText = 'display: flex; gap: 8px; flex-wrap: nowrap; margin-bottom: 12px; align-items: center;';
-    newRow.innerHTML = `
-        <div style="flex: 1.2; min-width: 0;">
-            <select name="common_provider[]" class="form-select">
-                <option value="">선택</option>
-                <option value="KT">KT</option>
-                <option value="SKT">SKT</option>
-                <option value="LG U+">LG U+</option>
-            </select>
-        </div>
-        <div style="flex: 1.5; min-width: 0;">
-            <input type="text" name="common_plan[]" class="form-control" placeholder="요금제명" maxlength="15">
-        </div>
-        <div style="flex: 1; min-width: 0;">
-            <input type="text" name="common_discount_new[]" class="form-control common-discount-input" placeholder="9999" value="9999" maxlength="7">
-        </div>
-        <div style="flex: 1; min-width: 0;">
-            <input type="text" name="common_discount_port[]" class="form-control common-discount-input" placeholder="-198" maxlength="7">
-        </div>
-        <div style="flex: 1; min-width: 0;">
-            <input type="text" name="common_discount_change[]" class="form-control common-discount-input" placeholder="191.6" maxlength="7">
-        </div>
-        <div style="flex: 0 0 auto;">
-            <button type="button" class="btn-remove" onclick="removeCommonDiscountRow(this)">삭제</button>
-        </div>
-    `;
-    container.appendChild(newRow);
-    
-    // 새로 추가된 할인 필드들에 이벤트 리스너 추가
-    newRow.querySelectorAll('.common-discount-input').forEach(function(field) {
-        initDiscountField(field);
-    });
-}
-
-// 공통지원할인 행 삭제
-function removeCommonDiscountRow(button) {
-    const container = document.getElementById('common-discount-container');
-    if (container.children.length > 1) {
-        button.closest('.common-discount-row').remove();
-    }
-}
-
-// 선택약정할인 행 추가
-function addContractDiscountRow() {
-    const container = document.getElementById('contract-discount-container');
-    const newRow = document.createElement('div');
-    newRow.className = 'contract-discount-row';
-    newRow.style.cssText = 'display: flex; gap: 8px; flex-wrap: nowrap; margin-bottom: 12px; align-items: center;';
-    newRow.innerHTML = `
-        <div style="flex: 1.2; min-width: 0;">
-            <select name="contract_provider[]" class="form-select">
-                <option value="">선택</option>
-                <option value="KT">KT</option>
-                <option value="SKT">SKT</option>
-                <option value="LG U+">LG U+</option>
-            </select>
-        </div>
-        <div style="flex: 1.5; min-width: 0;">
-            <input type="text" name="contract_plan[]" class="form-control" placeholder="요금제명" maxlength="15">
-        </div>
-        <div style="flex: 1; min-width: 0;">
-            <input type="text" name="contract_discount_new[]" class="form-control contract-discount-input" placeholder="9999" value="9999" maxlength="7">
-        </div>
-        <div style="flex: 1; min-width: 0;">
-            <input type="text" name="contract_discount_port[]" class="form-control contract-discount-input" placeholder="198" maxlength="7">
-        </div>
-        <div style="flex: 1; min-width: 0;">
-            <input type="text" name="contract_discount_change[]" class="form-control contract-discount-input" placeholder="150" maxlength="7">
-        </div>
-        <div style="flex: 0 0 auto;">
-            <button type="button" class="btn-remove" onclick="removeContractDiscountRow(this)">삭제</button>
-        </div>
-    `;
-    container.appendChild(newRow);
-    
-    // 새로 추가된 할인 필드들에 이벤트 리스너 추가
-    newRow.querySelectorAll('.contract-discount-input').forEach(function(field) {
-        initDiscountField(field);
-    });
-}
-
-// 선택약정할인 행 삭제
-function removeContractDiscountRow(button) {
-    const container = document.getElementById('contract-discount-container');
-    if (container.children.length > 1) {
-        button.closest('.contract-discount-row').remove();
-    }
-}
 
 function initDiscountField(field) {
     field.addEventListener('input', function() {
@@ -889,13 +715,94 @@ function initDiscountField(field) {
     });
 }
 
-// 색상 이름과 HEX 코드 매핑
-const colorNameMap = {
-    // 기본 색상
-    '블랙': '#000000',
-    '검정': '#000000',
-    'black': '#000000',
-    '화이트': '#ffffff',
+let promotionCount = 3;
+
+function addPromotionField() {
+    const container = document.getElementById('promotion-container');
+    const newField = document.createElement('div');
+    newField.className = 'gift-input-group';
+    const placeholders = ['부가 미가입시 +10', '파손보험 5700원'];
+    const placeholderIndex = (promotionCount - 3) % placeholders.length;
+    newField.innerHTML = `
+        <input type="text" name="promotions[]" class="form-control" placeholder="${placeholders[placeholderIndex]}" maxlength="30">
+        <button type="button" class="btn-remove" onclick="removePromotionField(this)">삭제</button>
+    `;
+    container.appendChild(newField);
+    promotionCount++;
+}
+
+function removePromotionField(button) {
+    const container = document.getElementById('promotion-container');
+    if (container.children.length > 1) {
+        button.parentElement.remove();
+    }
+}
+
+// 방문 가능 지역 추가/삭제 함수
+function addDeliveryRegionRow() {
+    const container = document.getElementById('delivery-region-container');
+    const newRow = document.createElement('div');
+    newRow.className = 'delivery-region-row';
+    newRow.style.cssText = 'display: flex; gap: 16px; align-items: flex-start; margin-bottom: 16px;';
+    newRow.innerHTML = `
+        <div style="flex: 1;">
+            <label class="form-label">
+                시/도
+            </label>
+            <input type="text" name="delivery_sido[]" class="form-control" placeholder="시/도 입력 (예: 서울특별시)" maxlength="50">
+        </div>
+        
+        <div style="flex: 1;">
+            <label class="form-label">
+                시/군/구
+            </label>
+            <input type="text" name="delivery_sigungu[]" class="form-control" placeholder="시/군/구 입력" maxlength="50">
+        </div>
+        
+        <div style="flex: 1;">
+            <label class="form-label">
+                읍/면/동
+            </label>
+            <input type="text" name="delivery_eupmyeondong[]" class="form-control" placeholder="읍/면/동 입력" maxlength="50">
+        </div>
+        
+        <div style="display: flex; align-items: flex-end; padding-bottom: 0;">
+            <button type="button" class="btn-remove" onclick="removeDeliveryRegionRow(this)" style="margin-top: 0;">삭제</button>
+        </div>
+    `;
+    container.appendChild(newRow);
+}
+
+function removeDeliveryRegionRow(button) {
+    const container = document.getElementById('delivery-region-container');
+    if (container.children.length > 1) {
+        button.closest('.delivery-region-row').remove();
+    } else {
+        alert('최소 하나의 지역은 입력해야 합니다.');
+    }
+}
+
+let benefitCount = 1;
+
+function addBenefitField() {
+    const container = document.getElementById('benefits-container');
+    const newField = document.createElement('div');
+    newField.className = 'gift-input-group';
+    newField.innerHTML = `
+        <textarea name="benefits[]" class="form-textarea" style="min-height: 80px;" placeholder="혜택 및 유의사항을 입력하세요"></textarea>
+    `;
+    container.appendChild(newField);
+    benefitCount++;
+}
+
+function removeBenefitField(button) {
+    const container = document.getElementById('benefits-container');
+    if (container.children.length > 1) {
+        button.parentElement.remove();
+    }
+}
+
+document.getElementById('productForm').addEventListener('submit', function(e) {
     '흰색': '#ffffff',
     'white': '#ffffff',
     '레드': '#dc2626',
@@ -1637,60 +1544,6 @@ function removeColorItem(button) {
     const colorItem = button.closest('.color-item');
     if (colorItem) {
         colorItem.remove();
-    }
-}
-
-// 색상 선택
-function selectColor(swatch) {
-    // 모든 색상 스와치의 선택 상태 제거
-    document.querySelectorAll('.color-swatch').forEach(function(item) {
-        item.style.border = '2px solid #e5e7eb';
-    });
-    
-    // 선택된 색상에 파란색 테두리 추가
-    swatch.style.border = '2px solid #3b82f6';
-}
-
-let promotionCount = 3;
-
-function addPromotionField() {
-    const container = document.getElementById('promotion-container');
-    const newField = document.createElement('div');
-    newField.className = 'gift-input-group';
-    const placeholders = ['부가서비스 없음', '사은품 갤럭시워치'];
-    const placeholderIndex = (promotionCount - 3) % placeholders.length;
-    newField.innerHTML = `
-        <input type="text" name="promotions[]" class="form-control" placeholder="${placeholders[placeholderIndex]}" maxlength="30">
-        <button type="button" class="btn-remove" onclick="removePromotionField(this)">삭제</button>
-    `;
-    container.appendChild(newField);
-    promotionCount++;
-}
-
-function removePromotionField(button) {
-    const container = document.getElementById('promotion-container');
-    if (container.children.length > 1) {
-        button.parentElement.remove();
-    }
-}
-
-let benefitCount = 1;
-
-function addBenefitField() {
-    const container = document.getElementById('benefits-container');
-    const newField = document.createElement('div');
-    newField.className = 'gift-input-group';
-    newField.innerHTML = `
-        <textarea name="benefits[]" class="form-textarea" style="min-height: 80px;" placeholder="혜택 및 유의사항을 입력하세요"></textarea>
-    `;
-    container.appendChild(newField);
-    benefitCount++;
-}
-
-function removeBenefitField(button) {
-    const container = document.getElementById('benefits-container');
-    if (container.children.length > 1) {
-        button.parentElement.remove();
     }
 }
 

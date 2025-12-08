@@ -521,73 +521,131 @@ include '../includes/footer.php';
 <script src="/MVNO/assets/js/plan-accordion.js" defer></script>
 <script src="/MVNO/assets/js/favorite-heart.js" defer></script>
 
-<!-- 통신사폰 신청하기 모달 -->
-<div class="phone-apply-modal" id="phoneApplyModal">
-    <div class="phone-apply-modal-overlay" id="phoneApplyModalOverlay"></div>
-    <div class="phone-apply-modal-content">
-        <div class="phone-apply-modal-header">
-            <button class="phone-apply-modal-back" aria-label="뒤로 가기" id="phoneApplyModalBack" style="display: none;">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M15 18L9 12L15 6" stroke="#868E96" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-            </button>
-            <h3 class="phone-apply-modal-title">가입유형</h3>
-            <button class="phone-apply-modal-close" aria-label="닫기" id="phoneApplyModalClose">
+<?php
+// 사용자 정보 가져오기 (세션에서)
+$user_name = $_SESSION['user_name'] ?? $_SESSION['name'] ?? '';
+$user_phone = $_SESSION['user_phone'] ?? $_SESSION['phone'] ?? '';
+$user_email = $_SESSION['user_email'] ?? $_SESSION['email'] ?? '';
+?>
+
+<!-- 상담신청 모달 -->
+<div class="consultation-modal" id="consultationModal">
+    <div class="consultation-modal-overlay" id="consultationModalOverlay"></div>
+    <div class="consultation-modal-content">
+        <div class="consultation-modal-header">
+            <h3 class="consultation-modal-title">가입상담 신청</h3>
+            <button class="consultation-modal-close" aria-label="닫기" id="consultationModalClose">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M18 6L6 18M6 6L18 18" stroke="#868E96" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
             </button>
         </div>
-        <div class="phone-apply-modal-body" id="phoneApplyModalBody">
-            <!-- 2단계: 가입 방법 선택 -->
-            <div class="phone-apply-modal-step" id="phoneStep2">
-                <div class="plan-order-section">
-                    <div class="plan-order-checkbox-group">
-                        <div class="plan-order-checkbox-item">
-                            <input type="checkbox" id="phoneNumberPort" name="phoneJoinMethod" value="port" class="plan-order-checkbox-input">
-                            <label for="phoneNumberPort" class="plan-order-checkbox-label">
-                                <div class="plan-order-checkbox-content">
-                                    <div class="plan-order-checkbox-title">번호 이동</div>
-                                    <div class="plan-order-checkbox-description">지금 쓰는 번호 그대로 사용할래요</div>
-                                </div>
-                            </label>
+        <div class="consultation-modal-body">
+            <form id="consultationForm" class="consultation-form">
+                <div class="consultation-form-group">
+                    <label for="consultationName" class="consultation-form-label">이름</label>
+                    <input type="text" id="consultationName" name="name" class="consultation-form-input" value="<?php echo htmlspecialchars($user_name); ?>" required>
+                </div>
+                
+                <div class="consultation-form-group">
+                    <label for="consultationPhone" class="consultation-form-label">휴대폰번호</label>
+                    <input type="tel" id="consultationPhone" name="phone" class="consultation-form-input" value="<?php echo htmlspecialchars($user_phone); ?>" placeholder="010-1234-5678" required>
+                </div>
+                
+                <div class="consultation-form-group">
+                    <label for="consultationEmail" class="consultation-form-label">이메일</label>
+                    <input type="email" id="consultationEmail" name="email" class="consultation-form-input" value="<?php echo htmlspecialchars($user_email); ?>" placeholder="example@email.com" required>
+                </div>
+                
+                <div class="consultation-notice-section">
+                    <div class="consultation-notice-intro">
+                        모유에서 다음 정보가 알림톡으로 발송됩니다:<br>
+                        <span class="consultation-notice-intro-sub">알림 정보 설정은 마이페이지에서 수정가능하세요.</span>
+                    </div>
+                    <div class="consultation-notice-list">
+                        <div class="consultation-notice-item consultation-notice-item-empty"></div>
+                        <div class="consultation-notice-item consultation-notice-item-center">
+                            • 신청정보<br>
+                            • 약정기간 종료 안내<br>
+                            • 프로모션 종료 안내<br>
+                            • 기타 상품관련 안내
                         </div>
-                        <div class="plan-order-checkbox-item">
-                            <input type="checkbox" id="phoneNewJoin" name="phoneJoinMethod" value="new" class="plan-order-checkbox-input">
-                            <label for="phoneNewJoin" class="plan-order-checkbox-label">
-                                <div class="plan-order-checkbox-content">
-                                    <div class="plan-order-checkbox-title">신규 가입</div>
-                                    <div class="plan-order-checkbox-description">새로운 번호로 가입할래요</div>
-                                </div>
+                        <div class="consultation-notice-item consultation-notice-item-empty"></div>
+                    </div>
+                    <div class="consultation-notice-text">
+                        <?php 
+                        $company_name = $phone['company_name'] ?? '쉐이크모바일';
+                        echo htmlspecialchars($company_name); 
+                        ?>에서 고객님께 가입상담을 진행합니다
+                    </div>
+                    <div class="consultation-notice-agreement-text">
+                        동의 하시면 신청하기를 진행해주세요
+                    </div>
+                </div>
+                
+                <div class="consultation-agreement-section">
+                    <div class="consultation-agreement-all">
+                        <div class="consultation-agreement-checkbox-wrapper">
+                            <input type="checkbox" id="agreementAll" class="consultation-agreement-checkbox consultation-agreement-all-checkbox">
+                            <label for="agreementAll" class="consultation-agreement-label consultation-agreement-all-label">
+                                전체 동의
                             </label>
                         </div>
                     </div>
-                </div>
-            </div>
-            
-            <!-- 3단계: 신청 안내 -->
-            <div class="phone-apply-modal-step" id="phoneStep3" style="display: none;">
-                <div class="plan-apply-confirm-section">
-                    <div class="plan-apply-confirm-description">
-                        <div class="plan-apply-confirm-intro">
-                            모요에서 다음 정보가 알림톡으로 발송됩니다:<br>
-                            <span class="plan-apply-confirm-intro-sub">알림 정보 설정은 마이페이지에서 수정가능하세요.</span>
+                    
+                    <div class="consultation-agreement-divider"></div>
+                    
+                    <div class="consultation-agreement-item">
+                        <div class="consultation-agreement-checkbox-wrapper">
+                            <input type="checkbox" id="agreementPurpose" name="agreementPurpose" class="consultation-agreement-checkbox consultation-agreement-item-checkbox" required>
+                            <label for="agreementPurpose" class="consultation-agreement-label">
+                                개인정보 수집 및 이용목적에 동의합니까?
+                            </label>
+                            <button type="button" class="consultation-agreement-view-btn" data-agreement="purpose">내용보기</button>
                         </div>
-                        <div class="plan-apply-confirm-list">
-                            <div class="plan-apply-confirm-item plan-apply-confirm-item-empty"></div>
-                            <div class="plan-apply-confirm-item plan-apply-confirm-item-center">
-                                • 신청정보<br>
-                                • 약정기간 종료 안내<br>
-                                • 프로모션 종료 안내<br>
-                                • 기타 상품관련 안내
-                            </div>
-                            <div class="plan-apply-confirm-item plan-apply-confirm-item-empty"></div>
-                        </div>
-                        <div class="plan-apply-confirm-notice"><?php echo htmlspecialchars($phone['provider']); ?> 통신사로 가입을 진행합니다</div>
                     </div>
-                    <button class="plan-apply-confirm-btn" id="phoneApplyConfirmBtn" data-apply-url="<?php echo htmlspecialchars($phone['apply_url'] ?? 'https://www.daum.net'); ?>">신청하기</button>
+                    
+                    <div class="consultation-agreement-item">
+                        <div class="consultation-agreement-checkbox-wrapper">
+                            <input type="checkbox" id="agreementItems" name="agreementItems" class="consultation-agreement-checkbox consultation-agreement-item-checkbox" required>
+                            <label for="agreementItems" class="consultation-agreement-label">
+                                개인정보 수집하는 항목에 동의합니까?
+                            </label>
+                            <button type="button" class="consultation-agreement-view-btn" data-agreement="items">내용보기</button>
+                        </div>
+                    </div>
+                    
+                    <div class="consultation-agreement-item">
+                        <div class="consultation-agreement-checkbox-wrapper">
+                            <input type="checkbox" id="agreementPeriod" name="agreementPeriod" class="consultation-agreement-checkbox consultation-agreement-item-checkbox" required>
+                            <label for="agreementPeriod" class="consultation-agreement-label">
+                                개인정보 보유 및 이용기간에 동의합니까?
+                            </label>
+                            <button type="button" class="consultation-agreement-view-btn" data-agreement="period">내용보기</button>
+                        </div>
+                    </div>
                 </div>
-            </div>
+                
+                <button type="submit" class="consultation-submit-btn" id="consultationSubmitBtn">신청하기</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 개인정보 내용보기 모달 -->
+<div class="privacy-content-modal" id="privacyContentModal">
+    <div class="privacy-content-modal-overlay" id="privacyContentModalOverlay"></div>
+    <div class="privacy-content-modal-content">
+        <div class="privacy-content-modal-header">
+            <h3 class="privacy-content-modal-title" id="privacyContentModalTitle">개인정보 수집 및 이용목적</h3>
+            <button class="privacy-content-modal-close" aria-label="닫기" id="privacyContentModalClose">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M18 6L6 18M6 6L18 18" stroke="#868E96" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+        </div>
+        <div class="privacy-content-modal-body" id="privacyContentModalBody">
+            <!-- 내용이 JavaScript로 동적으로 채워짐 -->
         </div>
     </div>
 </div>
@@ -877,18 +935,99 @@ include '../includes/footer.php';
 </div>
 
 <script>
-// 통신사폰 신청하기 모달 기능
+// 상담신청 모달 기능
 document.addEventListener('DOMContentLoaded', function() {
     const applyBtn = document.getElementById('phoneApplyBtn');
-    const applyModal = document.getElementById('phoneApplyModal');
-    const applyModalOverlay = document.getElementById('phoneApplyModalOverlay');
-    const applyModalClose = document.getElementById('phoneApplyModalClose');
-    const applyModalBody = document.getElementById('phoneApplyModalBody');
-    const applyModalBack = document.getElementById('phoneApplyModalBack');
-
+    const consultationModal = document.getElementById('consultationModal');
+    const consultationModalOverlay = document.getElementById('consultationModalOverlay');
+    const consultationModalClose = document.getElementById('consultationModalClose');
+    const consultationForm = document.getElementById('consultationForm');
+    
+    // 개인정보 내용보기 모달
+    const privacyModal = document.getElementById('privacyContentModal');
+    const privacyModalOverlay = document.getElementById('privacyContentModalOverlay');
+    const privacyModalClose = document.getElementById('privacyContentModalClose');
+    const privacyModalTitle = document.getElementById('privacyContentModalTitle');
+    const privacyModalBody = document.getElementById('privacyContentModalBody');
+    
+    // 개인정보 내용 정의
+    const privacyContents = {
+        purpose: {
+            title: '개인정보 수집 및 이용목적',
+            content: `<div class="privacy-content-text">
+                <p><strong>1. 개인정보의 수집 및 이용목적</strong></p>
+                <p>모유('http://www.dtmall.net' 이하 '회사') 은(는) 다음의 목적을 위하여 개인정보를 처리하고 있으며, 다음의 목적 이외의 용도로는 이용하지 않습니다.</p>
+                
+                <p><strong>가. 서비스 제공에 관한 계약 이행 및 서비스 제공에 따른 요금정산</strong></p>
+                <p>컨텐츠 제공, 특정 맞춤 서비스 제공, 물품배송 또는 청구서 등 발송, 본인인증, 구매 및 요금 결제</p>
+                
+                <p><strong>나. 회원관리</strong></p>
+                <p>회원제 서비스 이용 및 제한적 본인 확인제에 따른 고객 가입의사 확인, 고객에 대한 서비스 제공에 따른 본인 식별.인증, 불량회원의 부정 이용방지와 비인가 사용방지, 가입 및 가입횟수 제한, 분쟁 조정을 위한 기록보존, 불만처리 등 민원처리, 고지사항 전달, 회원자격 유지.관리, 회원 포인트 유지.관리 등</p>
+                
+                <p><strong>다. 신규 서비스 개발 및 마케팅</strong></p>
+                <p>신규 서비스 개발 및 맞춤 서비스 제공, 통계학적 특성에 따른 서비스 제공 및 광고 게재, 서비스의 유효성 확인, 이벤트 및 광고성 정보 제공 및 참여기회 제공, 접속빈도 파악, 회원의 서비스이용에 대한 통계</p>
+            </div>`
+        },
+        items: {
+            title: '개인정보 수집하는 항목',
+            content: `<div class="privacy-content-text">
+                <p><strong>2. 개인정보 수집항목 및 수집방법</strong></p>
+                <p>모유('http://www.dtmall.net' 이하 '회사') 은(는) 다음의 개인정보 항목을 처리하고 있습니다.</p>
+                
+                <p><strong>가. 수집하는 개인정보의 항목</strong></p>
+                <p>첫째, 회사는 휴대폰 개통 및 원활한 고객상담을 위해 주문시 아래와 같은 개인정보를 수집하고 있습니다.</p>
+                <p>- 필수항목 : 성명, 핸드폰번호, 긴급연락처</p>
+                
+                <p>둘째, 서비스 이용과정이나 사업처리 과정에서 아래와 같은 정보들이 자동으로 생성되어 수집될 수 있습니다.</p>
+                <p>- IP Address, 쿠키, 방문 일시, 서비스 이용 기록, 불량 이용 기록</p>
+                
+                <p><strong>나. 개인정보 수집방법</strong></p>
+                <p>회사는 다음과 같은 방법으로 개인정보를 수집합니다.</p>
+                <p>- 홈페이지, 서면양식, 팩스, 전화, 상담 게시판, 이메일, 이벤트 응모, 배송요청</p>
+                <p>- 협력회사로부터의 제공</p>
+                <p>- 생성정보 수집 툴을 통한 수집</p>
+            </div>`
+        },
+        period: {
+            title: '개인정보 보유 및 이용기간',
+            content: `<div class="privacy-content-text">
+                <p><strong>3. 개인정보의 보유 및 이용기간</strong></p>
+                <p>모유('http://www.dtmall.net' 이하 '회사') 은(는) 이용자의 개인정보는 원칙적으로 개인정보의 수집 및 이용목적이 달성되면 지체 없이 파기합니다. 단, 다음의 정보에 대해서는 아래의 이유로 명시한 기간 동안 보존합니다.</p>
+                
+                <p><strong>가. 내부 방침에 의한 정보보유 사유</strong></p>
+                <p>- 부정이용기록</p>
+                <p>보존 이유 : 부정 이용 방지</p>
+                <p>보존 기간 : 1년</p>
+                
+                <p><strong>나. 관련법령에 의한 정보보유 사유</strong></p>
+                <p>상법, 전자상거래 등에서의 소비자보호에 관한 법률 등 관계법령의 규정에 의하여 보존할 필요가 있는 경우 회사는 관계법령에서 정한 일정한 기간 동안 회원정보를 보관합니다. 이 경우 회사는 보관하는 정보를 그 보관의 목적으로만 이용하며 보존기간은 아래와 같습니다.</p>
+                
+                <p>- 계약 또는 청약철회 등에 관한 기록</p>
+                <p>보존 이유 : 전자상거래 등에서의 소비자보호에 관한 법률</p>
+                <p>보존 기간 : 5년</p>
+                
+                <p>- 대금결제 및 재화 등의 공급에 관한 기록</p>
+                <p>보존 이유 : 전자상거래 등에서의 소비자보호에 관한 법률</p>
+                <p>보존 기간 : 5년</p>
+                
+                <p>- 소비자의 불만 또는 분쟁처리에 관한 기록</p>
+                <p>보존 이유 : 전자상거래 등에서의 소비자보호에 관한 법률</p>
+                <p>보존 기간 : 3년</p>
+                
+                <p>- 본인확인에 관한 기록</p>
+                <p>보존 이유 : 정보통신 이용촉진 및 정보보호 등에 관한 법률</p>
+                <p>보존 기간 : 6개월</p>
+                
+                <p>- 방문에 관한 기록</p>
+                <p>보존 이유 : 통신비밀보호법</p>
+                <p>보존 기간 : 3개월</p>
+            </div>`
+        }
+    };
+    
     // 스크롤 위치 저장 변수
     let scrollPosition = 0;
-
+    
     // 스크롤바 너비 계산 함수
     function getScrollbarWidth() {
         const outer = document.createElement('div');
@@ -907,50 +1046,30 @@ document.addEventListener('DOMContentLoaded', function() {
         return scrollbarWidth;
     }
     
-    // 모달 열기 함수
-    function openApplyModal() {
-        console.log('openApplyModal 호출');
-        if (!applyModal) {
-            console.error('모달을 찾을 수 없습니다.');
-            return;
-        }
+    // 상담신청 모달 열기
+    function openConsultationModal() {
+        if (!consultationModal) return;
         
-        console.log('모달 요소:', applyModal);
-        
-        // 현재 스크롤 위치 저장
         scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
-        
-        // 스크롤바 너비 계산
         const scrollbarWidth = getScrollbarWidth();
         
-        // body 스크롤 방지 (스크롤바 너비만큼 padding-right 추가하여 레이아웃 이동 방지)
         document.body.style.overflow = 'hidden';
         document.body.style.position = 'fixed';
         document.body.style.top = `-${scrollPosition}px`;
         document.body.style.width = '100%';
         document.body.style.paddingRight = `${scrollbarWidth}px`;
-        
-        // html 요소도 스크롤 방지 (일부 브라우저용)
         document.documentElement.style.overflow = 'hidden';
         
-        // 모달 열기
-        applyModal.style.display = 'flex';
-        applyModal.classList.add('phone-apply-modal-active');
-        console.log('모달 display 설정:', applyModal.style.display);
-        console.log('모달 클래스:', applyModal.className);
-        
-        // 신청 안내 모달(3단계) 바로 표시 (가입유형 선택 건너뛰기)
-        showStep(3);
+        consultationModal.style.display = 'flex';
+        consultationModal.classList.add('consultation-modal-active');
     }
     
-    // 모달 닫기 함수
-    function closeApplyModal() {
-        if (!applyModal) return;
+    // 상담신청 모달 닫기
+    function closeConsultationModal() {
+        if (!consultationModal) return;
         
-        // 모달 닫기
-        applyModal.classList.remove('phone-apply-modal-active');
+        consultationModal.classList.remove('consultation-modal-active');
         
-        // body 스크롤 복원
         document.body.style.overflow = '';
         document.body.style.position = '';
         document.body.style.top = '';
@@ -958,119 +1077,130 @@ document.addEventListener('DOMContentLoaded', function() {
         document.body.style.paddingRight = '';
         document.documentElement.style.overflow = '';
         
-        // 저장된 스크롤 위치로 복원
         window.scrollTo(0, scrollPosition);
     }
     
-    // 모달 단계 관리
-    let currentStep = 3;
-    
-    // 단계 표시 함수
-    function showStep(stepNumber, selectedMethod) {
-        const step2 = document.getElementById('phoneStep2');
-        const step3 = document.getElementById('phoneStep3');
-        const modalTitle = document.querySelector('.phone-apply-modal-title');
+    // 개인정보 내용보기 모달 열기
+    function openPrivacyModal(type) {
+        if (!privacyModal || !privacyContents[type]) return;
         
-        if (stepNumber === 2) {
-            if (step2) step2.style.display = 'block';
-            if (step3) step3.style.display = 'none';
-            if (modalTitle) modalTitle.textContent = '가입유형';
-            if (applyModalBack) applyModalBack.style.display = 'flex';
-            currentStep = 2;
-        } else if (stepNumber === 3) {
-            if (step2) step2.style.display = 'none';
-            if (step3) step3.style.display = 'block';
-            // 모달 제목 기본값: 통신사 가입신청
-            if (modalTitle) {
-                modalTitle.textContent = '통신사 가입신청';
-            }
-            // 뒤로 가기 버튼 숨김 (첫 번째 모달이므로)
-            if (applyModalBack) applyModalBack.style.display = 'none';
-            // 버튼 텍스트 기본값: 신청하기
-            const confirmBtn = document.getElementById('phoneApplyConfirmBtn');
-            if (confirmBtn) {
-                confirmBtn.textContent = '신청하기';
-            }
-            currentStep = 3;
-        }
+        privacyModalTitle.textContent = privacyContents[type].title;
+        privacyModalBody.innerHTML = privacyContents[type].content;
+        
+        privacyModal.style.display = 'flex';
+        privacyModal.classList.add('privacy-content-modal-active');
     }
     
-    // 뒤로 가기 버튼 이벤트
-    if (applyModalBack) {
-        applyModalBack.addEventListener('click', function() {
-            // step3에서 뒤로 가기 시 모달 닫기
-            if (currentStep === 3) {
-                closeApplyModal();
-            }
-        });
+    // 개인정보 내용보기 모달 닫기
+    function closePrivacyModal() {
+        if (!privacyModal) return;
+        
+        privacyModal.classList.remove('privacy-content-modal-active');
     }
     
-    // 가입 방법 선택 이벤트 (라디오 버튼처럼 동작)
-    const joinMethodInputs = document.querySelectorAll('input[name="phoneJoinMethod"]');
-    joinMethodInputs.forEach(input => {
-        input.addEventListener('change', function() {
-            // 다른 체크박스 해제 (라디오 버튼처럼 동작)
-            joinMethodInputs.forEach(inp => {
-                if (inp !== this) {
-                    inp.checked = false;
-                    inp.closest('.plan-order-checkbox-item').classList.remove('plan-order-checkbox-checked');
-                }
-            });
-            
-            // 선택된 항목에 체크 스타일 적용
-            if (this.checked) {
-                this.closest('.plan-order-checkbox-item').classList.add('plan-order-checkbox-checked');
-                
-                // 선택된 가입 방법 텍스트 가져오기
-                const selectedMethod = this.value === 'port' ? '번호 이동' : '신규 가입';
-                
-                // 다음 단계로 진행
-                setTimeout(() => {
-                    showStep(3, selectedMethod);
-                }, 300);
-            } else {
-                this.closest('.plan-order-checkbox-item').classList.remove('plan-order-checkbox-checked');
-            }
-        });
-    });
-
     // 신청하기 버튼 클릭 이벤트
     if (applyBtn) {
-        console.log('신청하기 버튼 찾음:', applyBtn);
         applyBtn.addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
-            console.log('신청하기 버튼 클릭됨');
-            openApplyModal();
+            openConsultationModal();
         });
-    } else {
-        console.error('신청하기 버튼을 찾을 수 없습니다: phoneApplyBtn');
     }
-
-    // 모달 닫기 이벤트
-    if (applyModalOverlay) {
-        applyModalOverlay.addEventListener('click', closeApplyModal);
+    
+    // 상담신청 모달 닫기 이벤트
+    if (consultationModalOverlay) {
+        consultationModalOverlay.addEventListener('click', closeConsultationModal);
     }
-
-    if (applyModalClose) {
-        applyModalClose.addEventListener('click', closeApplyModal);
+    
+    if (consultationModalClose) {
+        consultationModalClose.addEventListener('click', closeConsultationModal);
     }
-
+    
+    // 전체 동의 체크박스
+    const agreementAll = document.getElementById('agreementAll');
+    const agreementItemCheckboxes = document.querySelectorAll('.consultation-agreement-item-checkbox');
+    
+    // 전체 동의 체크박스 변경 이벤트
+    if (agreementAll) {
+        agreementAll.addEventListener('change', function() {
+            const isChecked = this.checked;
+            agreementItemCheckboxes.forEach(checkbox => {
+                checkbox.checked = isChecked;
+            });
+        });
+    }
+    
+    // 개별 체크박스 변경 이벤트 (전체 동의 상태 업데이트)
+    agreementItemCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const allChecked = Array.from(agreementItemCheckboxes).every(cb => cb.checked);
+            if (agreementAll) {
+                agreementAll.checked = allChecked;
+            }
+        });
+    });
+    
+    // 개인정보 내용보기 버튼 클릭 이벤트
+    const viewBtns = document.querySelectorAll('.consultation-agreement-view-btn');
+    viewBtns.forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const type = this.getAttribute('data-agreement');
+            openPrivacyModal(type);
+        });
+    });
+    
+    // 개인정보 내용보기 모달 닫기 이벤트
+    if (privacyModalOverlay) {
+        privacyModalOverlay.addEventListener('click', closePrivacyModal);
+    }
+    
+    if (privacyModalClose) {
+        privacyModalClose.addEventListener('click', closePrivacyModal);
+    }
+    
     // ESC 키로 모달 닫기
     document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' && applyModal && applyModal.classList.contains('phone-apply-modal-active')) {
-            closeApplyModal();
+        if (e.key === 'Escape') {
+            if (privacyModal && privacyModal.classList.contains('privacy-content-modal-active')) {
+                closePrivacyModal();
+            } else if (consultationModal && consultationModal.classList.contains('consultation-modal-active')) {
+                closeConsultationModal();
+            }
         }
     });
-
-    // 최종 신청하기 버튼 클릭 이벤트
-    const confirmBtn = document.getElementById('phoneApplyConfirmBtn');
-    if (confirmBtn) {
-        confirmBtn.addEventListener('click', function() {
-            // 상품 신청 URL 가져오기
-            const applyUrl = this.getAttribute('data-apply-url') || 'https://www.daum.net';
-            // 해당 URL로 이동
-            window.location.href = applyUrl;
+    
+    // 폼 제출 이벤트
+    if (consultationForm) {
+        consultationForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // 모든 동의 체크박스 확인
+            const agreementPurpose = document.getElementById('agreementPurpose');
+            const agreementItems = document.getElementById('agreementItems');
+            const agreementPeriod = document.getElementById('agreementPeriod');
+            
+            if (!agreementPurpose.checked || !agreementItems.checked || !agreementPeriod.checked) {
+                alert('모든 개인정보 동의 항목에 동의해주세요.');
+                return;
+            }
+            
+            // 폼 데이터 수집
+            const formData = new FormData(this);
+            
+            // TODO: 실제 서버로 데이터 전송
+            console.log('상담신청 데이터:', {
+                name: formData.get('name'),
+                phone: formData.get('phone'),
+                email: formData.get('email'),
+                agreementPurpose: formData.get('agreementPurpose'),
+                agreementItems: formData.get('agreementItems'),
+                agreementPeriod: formData.get('agreementPeriod')
+            });
+            
+            alert('상담신청이 완료되었습니다.');
+            closeConsultationModal();
         });
     }
 });
@@ -1250,44 +1380,4 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-<?php
-// 포인트 사용 모달 포함
-$type = 'mno';
-$item_id = $phone_id;
-$item_name = $phone['device_name'] ?? '통신사폰';
-include '../includes/components/point-usage-modal.php';
-?>
-
-<script src="/MVNO/assets/js/point-usage-integration.js" defer></script>
-<script>
-// 통신사폰 신청하기 버튼에 포인트 모달 연동
-document.addEventListener('DOMContentLoaded', function() {
-    const applyBtn = document.getElementById('phoneApplyBtn');
-    if (applyBtn) {
-        applyBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            // 포인트 모달 열기
-            const modalId = 'pointUsageModal_mno_<?php echo $phone_id; ?>';
-            const modal = document.getElementById(modalId);
-            if (modal && typeof openPointUsageModal === 'function') {
-                openPointUsageModal('mno', <?php echo $phone_id; ?>);
-            } else if (modal) {
-                modal.classList.add('show');
-                document.body.style.overflow = 'hidden';
-            }
-        });
-    }
-    
-    // 포인트 사용 확인 후 기존 신청 모달 열기
-    document.addEventListener('pointUsageConfirmed', function(e) {
-        const { type, itemId, usedPoint } = e.detail;
-        if (type === 'mno') {
-            console.log('포인트 사용 확인됨:', e.detail);
-            // TODO: 기존 통신사폰 신청 모달 열기
-        }
-    });
-});
-</script>
 

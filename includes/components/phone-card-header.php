@@ -15,6 +15,7 @@ $company_name = $phone['company_name'] ?? '쉐이크모바일';
 $rating = $phone['rating'] ?? '4.3';
 $phone_id = $phone['id'] ?? 0;
 $share_url = $phone['link_url'] ?? '/MVNO/mno/mno-phone-detail.php?id=' . $phone_id;
+$selection_count = $phone['selection_count'] ?? '29,448명이 신청';
 ?>
 
 <!-- 헤더: 통신사, 찜 -->
@@ -29,6 +30,7 @@ $share_url = $phone['link_url'] ?? '/MVNO/mno/mno-phone-detail.php?id=' . $phone
         </div>
     </div>
     <div class="plan-badge-favorite-group">
+        <span class="plan-selection-count"><?php echo htmlspecialchars($selection_count); ?></span>
         <?php
         $button_id = ($layout_type === 'detail') ? 'phoneFavoriteBtn' : '';
         $item_id = $phone_id;
