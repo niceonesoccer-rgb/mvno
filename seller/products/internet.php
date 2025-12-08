@@ -169,7 +169,8 @@ $pageStyles = '
         gap: 8px;
     }
     
-    .form-checkbox input[type="checkbox"] {
+    .form-checkbox input[type="checkbox"],
+    .form-checkbox input[type="radio"] {
         width: 18px;
         height: 18px;
         cursor: pointer;
@@ -179,6 +180,142 @@ $pageStyles = '
         font-size: 14px;
         color: #374151;
         cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .registration-logo {
+        width: 100px;
+        height: 40px;
+        object-fit: contain;
+        display: inline-block;
+    }
+    
+    .registration-logo-dlive {
+        object-fit: cover;
+        padding: 0;
+        margin: 0;
+        width: 120px;
+        height: 35px;
+    }
+    
+    .registration-logo-kt {
+        height: 24px;
+    }
+    
+    .custom-select-wrapper {
+        position: relative;
+        flex: 1;
+    }
+    
+    .custom-select {
+        display: none;
+    }
+    
+    .custom-select-trigger {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 16px;
+        font-size: 15px;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        background: white;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .custom-select-trigger:hover {
+        border-color: #10b981;
+    }
+    
+    .custom-select-trigger:focus {
+        outline: none;
+        border-color: #10b981;
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+    }
+    
+    .custom-select-trigger .selected-value {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .custom-select-trigger .selected-value img {
+        max-width: 100px;
+        max-height: 40px;
+        object-fit: contain;
+    }
+    
+    .custom-select-trigger .arrow {
+        width: 0;
+        height: 0;
+        border-left: 5px solid transparent;
+        border-right: 5px solid transparent;
+        border-top: 6px solid #6b7280;
+        transition: transform 0.2s;
+    }
+    
+    .custom-select-trigger.open .arrow {
+        transform: rotate(180deg);
+    }
+    
+    .custom-options {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        margin-top: 4px;
+        max-height: 300px;
+        overflow-y: auto;
+        z-index: 1000;
+        display: none;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    
+    .custom-options.open {
+        display: block;
+    }
+    
+    .custom-option {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 12px 16px;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+    
+    .custom-option:hover {
+        background: #f3f4f6;
+    }
+    
+    .custom-option.selected {
+        background: #d1fae5;
+    }
+    
+    .custom-option img {
+        max-width: 100px;
+        max-height: 40px;
+        object-fit: contain;
+    }
+    
+    .custom-option[data-value="KT"] img {
+        height: 24px;
+    }
+    
+    .custom-option[data-value="DLIVE"] img {
+        height: 35px;
+        object-fit: cover;
+    }
+    
+    .custom-option[data-value="기타"] {
+        padding-left: 16px;
     }
     
     .form-actions {
@@ -242,7 +379,7 @@ $pageStyles = '
     
     .gift-input-group {
         display: flex;
-        gap: 8px;
+        gap: 0;
         margin-bottom: 8px;
     }
     
@@ -310,123 +447,102 @@ document.addEventListener('DOMContentLoaded', function() {
     
     <form id="productForm" class="product-form" method="POST" action="/MVNO/api/product-register-internet.php">
         
-        <!-- 기본 정보 -->
+        <!-- 인터넷가입처 -->
         <div class="form-section">
-            <div class="form-section-title">기본 정보</div>
+            <div class="form-section-title">인터넷가입처</div>
             
             <div class="form-group">
-                <label class="form-label" for="provider">
-                    제공사 <span class="required">*</span>
-                </label>
-                <select name="provider" id="provider" class="form-select" required>
-                    <option value="">선택하세요</option>
-                    <option value="KT">KT</option>
-                    <option value="SKT">SKT</option>
-                    <option value="LG U+">LG U+</option>
-                    <option value="KT skylife">KT skylife</option>
-                    <option value="LG헬로비전">LG헬로비전</option>
-                    <option value="기타">기타</option>
-                </select>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label" for="plan_name">
-                    상품명 <span class="required">*</span>
-                </label>
-                <input type="text" name="plan_name" id="plan_name" class="form-control" required placeholder="예: 인터넷 500MB + TV 194채널">
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label" for="speed">
-                    인터넷 속도 <span class="required">*</span>
-                </label>
-                <input type="text" name="speed" id="speed" class="form-control" required placeholder="예: 500MB">
-                <div class="form-help">인터넷 속도를 입력하세요</div>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label" for="tv_channels">
-                    TV 채널 수
-                </label>
-                <input type="text" name="tv_channels" id="tv_channels" class="form-control" placeholder="예: 194개">
+                <label class="form-label" for="registration_place">가입처 업체</label>
+                <div class="custom-select-wrapper">
+                    <select name="registration_place" id="registration_place" class="custom-select">
+                        <option value="">선택하세요</option>
+                        <option value="KT">KT</option>
+                        <option value="SKT">SKT</option>
+                        <option value="LG U+">LG U+</option>
+                        <option value="KT skylife">KT skylife</option>
+                        <option value="LG헬로비전">LG헬로비전</option>
+                        <option value="BTV">BTV</option>
+                        <option value="DLIVE">DLIVE</option>
+                        <option value="기타">기타</option>
+                    </select>
+                    <div class="custom-select-trigger" id="custom-select-trigger">
+                        <div class="selected-value">
+                            <span>선택하세요</span>
+                        </div>
+                        <div class="arrow"></div>
+                    </div>
+                    <div class="custom-options" id="custom-options">
+                        <div class="custom-option" data-value="">
+                            <span>선택하세요</span>
+                        </div>
+                        <div class="custom-option" data-value="KT">
+                            <img src="/MVNO/assets/images/internets/kt.svg" alt="KT">
+                        </div>
+                        <div class="custom-option" data-value="SKT">
+                            <img src="/MVNO/assets/images/internets/broadband.svg" alt="SKT">
+                        </div>
+                        <div class="custom-option" data-value="LG U+">
+                            <img src="/MVNO/assets/images/internets/lgu.svg" alt="LG U+">
+                        </div>
+                        <div class="custom-option" data-value="KT skylife">
+                            <img src="/MVNO/assets/images/internets/ktskylife.svg" alt="KT skylife">
+                        </div>
+                        <div class="custom-option" data-value="LG헬로비전">
+                            <img src="/MVNO/assets/images/internets/hellovision.svg" alt="LG헬로비전">
+                        </div>
+                        <div class="custom-option" data-value="BTV">
+                            <img src="/MVNO/assets/images/internets/btv.svg" alt="BTV">
+                        </div>
+                        <div class="custom-option" data-value="DLIVE">
+                            <img src="/MVNO/assets/images/internets/dlive.svg" alt="DLIVE">
+                        </div>
+                        <div class="custom-option" data-value="기타">
+                            <span>기타</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-help">가입 가능한 업체를 선택하세요</div>
             </div>
         </div>
         
-        <!-- 요금 정보 -->
+        <!-- 가입속도 -->
         <div class="form-section">
-            <div class="form-section-title">요금 정보</div>
+            <div class="form-section-title">가입속도</div>
             
             <div class="form-group">
-                <label class="form-label" for="price_main">
-                    월 요금 <span class="required">*</span>
-                </label>
-                <input type="number" name="price_main" id="price_main" class="form-control" required placeholder="예: 35000" min="0">
-                <div class="form-help">원 단위로 입력하세요</div>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label" for="installation_fee">
-                    설치비
-                </label>
-                <input type="number" name="installation_fee" id="installation_fee" class="form-control" placeholder="예: 0" min="0">
-                <div class="form-help">설치비가 무료인 경우 0을 입력하세요</div>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label" for="discount_period">
-                    할인 기간
-                </label>
-                <input type="text" name="discount_period" id="discount_period" class="form-control" placeholder="예: 24개월">
-            </div>
-        </div>
-        
-        <!-- 기능/특징 -->
-        <div class="form-section">
-            <div class="form-section-title">기능 및 특징</div>
-            
-            <div class="form-group">
-                <label class="form-label">포함 서비스</label>
+                <label class="form-label">속도 선택</label>
                 <div class="form-checkbox-group">
                     <div class="form-checkbox">
-                        <input type="checkbox" name="features[]" id="feature_tv" value="TV 포함">
-                        <label for="feature_tv">TV 포함</label>
+                        <input type="radio" name="speed_option" id="speed_100m" value="100M">
+                        <label for="speed_100m">100M</label>
                     </div>
                     <div class="form-checkbox">
-                        <input type="checkbox" name="features[]" id="feature_wifi" value="WiFi 공유기">
-                        <label for="feature_wifi">WiFi 공유기</label>
+                        <input type="radio" name="speed_option" id="speed_500m" value="500M">
+                        <label for="speed_500m">500M</label>
                     </div>
                     <div class="form-checkbox">
-                        <input type="checkbox" name="features[]" id="feature_install" value="설치비 무료">
-                        <label for="feature_install">설치비 무료</label>
+                        <input type="radio" name="speed_option" id="speed_1g" value="1G">
+                        <label for="speed_1g">1G</label>
                     </div>
                 </div>
             </div>
         </div>
         
-        <!-- 혜택/사은품 -->
+        <!-- 현금지급 -->
         <div class="form-section">
-            <div class="form-section-title">혜택 및 사은품</div>
+            <div class="form-section-title">현금지급</div>
             
             <div class="form-group">
-                <label class="form-label">사은품 목록</label>
-                <div id="gifts-container">
+                <label class="form-label">항목</label>
+                <div id="cash-payment-container">
                     <div class="gift-input-group">
-                        <input type="text" name="gifts[]" class="form-control" placeholder="예: 네이버페이 10,000원">
+                        <div style="display: flex; align-items: center; justify-content: center; padding: 0 12px; background: #f3f4f6; border: 1px solid #d1d5db; border-right: none; border-radius: 8px 0 0 8px; width: 40px;">
+                            <img src="/MVNO/assets/images/won.svg" alt="원" style="width: 20px; height: 20px; object-fit: contain;">
+                        </div>
+                        <input type="text" name="cash_payments[]" class="form-control" placeholder="항목 입력" maxlength="20" style="border-left: none; border-right: none; border-radius: 0;">
+                        <button type="button" class="btn-add" onclick="addCashPaymentField()" style="margin-top: 0; border-radius: 0 8px 8px 0; border-left: none;">추가</button>
                     </div>
                 </div>
-                <button type="button" class="btn-add" onclick="addGiftField()">+ 혜택 추가</button>
-            </div>
-        </div>
-        
-        <!-- 상세 설명 -->
-        <div class="form-section">
-            <div class="form-section-title">상세 정보</div>
-            
-            <div class="form-group">
-                <label class="form-label" for="description">
-                    상품 설명
-                </label>
-                <textarea name="description" id="description" class="form-textarea" placeholder="상품에 대한 자세한 설명을 입력하세요"></textarea>
             </div>
         </div>
         
@@ -444,22 +560,127 @@ document.addEventListener('DOMContentLoaded', function() {
 </div>
 
 <script>
-let giftCount = 1;
+// 가입처 로고 매핑
+const registrationLogos = {
+    'KT': '/MVNO/assets/images/internets/kt.svg',
+    'SKT': '/MVNO/assets/images/internets/broadband.svg',
+    'LG U+': '/MVNO/assets/images/internets/lgu.svg',
+    'KT skylife': '/MVNO/assets/images/internets/ktskylife.svg',
+    'LG헬로비전': '/MVNO/assets/images/internets/hellovision.svg',
+    'BTV': '/MVNO/assets/images/internets/btv.svg',
+    'DLIVE': '/MVNO/assets/images/internets/dlive.svg',
+    '기타': ''
+};
 
-function addGiftField() {
-    const container = document.getElementById('gifts-container');
+// 커스텀 드롭다운 초기화
+document.addEventListener('DOMContentLoaded', function() {
+    const customSelect = document.querySelector('.custom-select');
+    const customTrigger = document.getElementById('custom-select-trigger');
+    const customOptions = document.getElementById('custom-options');
+    const options = customOptions.querySelectorAll('.custom-option');
+    
+    // 트리거 클릭 시 옵션 열기/닫기
+    if (customTrigger && customOptions) {
+        customTrigger.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const isOpen = customTrigger.classList.contains('open');
+            
+            // 다른 열린 드롭다운 닫기
+            document.querySelectorAll('.custom-select-trigger.open').forEach(trigger => {
+                if (trigger !== customTrigger) {
+                    trigger.classList.remove('open');
+                    trigger.nextElementSibling.classList.remove('open');
+                }
+            });
+            
+            if (isOpen) {
+                customTrigger.classList.remove('open');
+                customOptions.classList.remove('open');
+            } else {
+                customTrigger.classList.add('open');
+                customOptions.classList.add('open');
+            }
+        });
+        
+        // 옵션 클릭 시 선택
+        options.forEach(option => {
+            option.addEventListener('click', function() {
+                const value = this.getAttribute('data-value');
+                const hiddenSelect = customSelect;
+                
+                // hidden select 업데이트
+                hiddenSelect.value = value;
+                
+                // 트리거 업데이트
+                const selectedOption = this.cloneNode(true);
+                const selectedValueDiv = customTrigger.querySelector('.selected-value');
+                selectedValueDiv.innerHTML = '';
+                
+                if (value && registrationLogos[value]) {
+                    const img = document.createElement('img');
+                    img.src = registrationLogos[value];
+                    img.alt = value;
+                    
+                    if (value === 'DLIVE') {
+                        img.style.height = '35px';
+                        img.style.objectFit = 'cover';
+                    } else if (value === 'KT') {
+                        img.style.height = '24px';
+                    } else {
+                        img.style.height = '40px';
+                        img.style.objectFit = 'contain';
+                    }
+                    
+                    selectedValueDiv.appendChild(img);
+                } else {
+                    const span = document.createElement('span');
+                    span.textContent = '선택하세요';
+                    selectedValueDiv.appendChild(span);
+                }
+                
+                // 선택된 옵션 표시 업데이트
+                options.forEach(opt => opt.classList.remove('selected'));
+                this.classList.add('selected');
+                
+                // 드롭다운 닫기
+                customTrigger.classList.remove('open');
+                customOptions.classList.remove('open');
+                
+                // change 이벤트 트리거
+                const event = new Event('change', { bubbles: true });
+                hiddenSelect.dispatchEvent(event);
+            });
+        });
+        
+        // 외부 클릭 시 드롭다운 닫기
+        document.addEventListener('click', function(e) {
+            if (!customTrigger.contains(e.target) && !customOptions.contains(e.target)) {
+                customTrigger.classList.remove('open');
+                customOptions.classList.remove('open');
+            }
+        });
+    }
+});
+
+let cashPaymentCount = 1;
+
+function addCashPaymentField() {
+    const container = document.getElementById('cash-payment-container');
     const newField = document.createElement('div');
     newField.className = 'gift-input-group';
     newField.innerHTML = `
-        <input type="text" name="gifts[]" class="form-control" placeholder="예: 네이버페이 10,000원">
-        <button type="button" class="btn-remove" onclick="removeGiftField(this)">삭제</button>
+        <div style="display: flex; align-items: center; justify-content: center; padding: 0 12px; background: #f3f4f6; border: 1px solid #d1d5db; border-right: none; border-radius: 8px 0 0 8px; width: 40px;">
+            <img src="/MVNO/assets/images/won.svg" alt="원" style="width: 20px; height: 20px; object-fit: contain;">
+        </div>
+        <input type="text" name="cash_payments[]" class="form-control" placeholder="항목 입력" maxlength="20" style="border-left: none; border-right: none; border-radius: 0;">
+        <button type="button" class="btn-remove" onclick="removeCashPaymentField(this)" style="border-radius: 0 8px 8px 0; border-left: none;">삭제</button>
     `;
     container.appendChild(newField);
-    giftCount++;
+    cashPaymentCount++;
 }
 
-function removeGiftField(button) {
-    const container = document.getElementById('gifts-container');
+function removeCashPaymentField(button) {
+    const container = document.getElementById('cash-payment-container');
     if (container.children.length > 1) {
         button.parentElement.remove();
     }
