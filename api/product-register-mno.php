@@ -5,6 +5,8 @@
  */
 
 require_once __DIR__ . '/../includes/data/auth-functions.php';
+require_once __DIR__ . '/../includes/data/db-config.php';
+require_once __DIR__ . '/../includes/data/product-functions.php';
 
 header('Content-Type: application/json');
 
@@ -37,7 +39,7 @@ $productData = [
     'seller_id' => $currentUser['user_id'],
     'board_type' => 'mno', // 고정값
     'device_name' => $_POST['device_name'] ?? '',
-    'device_price' => $_POST['device_price'] ?? '',
+    'device_price' => !empty($_POST['device_price']) ? floatval(str_replace(',', '', $_POST['device_price'])) : null,
     'device_capacity' => $_POST['device_capacity'] ?? '',
     'device_colors' => $_POST['device_colors'] ?? [],
     'common_provider' => $_POST['common_provider'] ?? [],
@@ -53,7 +55,7 @@ $productData = [
     'service_type' => $_POST['service_type'] ?? '',
     'contract_period' => $_POST['contract_period'] ?? '',
     'contract_period_value' => $_POST['contract_period_value'] ?? '',
-    'price_main' => $_POST['price_main'] ?? 0,
+    'price_main' => !empty($_POST['price_main']) ? floatval(str_replace(',', '', $_POST['price_main'])) : 0,
     'data_amount' => $_POST['data_amount'] ?? '',
     'data_amount_value' => $_POST['data_amount_value'] ?? '',
     'data_unit' => $_POST['data_unit'] ?? '',
@@ -87,12 +89,38 @@ $productData = [
     'created_at' => date('Y-m-d H:i:s')
 ];
 
-// TODO: 실제 통신사폰 상품 데이터 저장 로직 구현
-// 예: saveMnoProductData($productData);
+// 필수 필드 검증
+if (empty($productData['device_name'])) {
+    echo json_encode([
+        'success' => false,
+        'message' => '단말기명을 입력해주세요.'
+    ]);
+    exit;
+}
+
+// 통신사폰 상품 데이터 저장
+try {
+    $productId = saveMnoProduct($productData);
+    
+    if ($productId === false) {
+        echo json_encode([
+            'success' => false,
+            'message' => '상품 등록에 실패했습니다. 데이터베이스 연결을 확인해주세요.'
+        ]);
+        exit;
+    }
+} catch (Exception $e) {
+    error_log("Product registration error: " . $e->getMessage());
+    echo json_encode([
+        'success' => false,
+        'message' => '상품 등록 중 오류가 발생했습니다: ' . $e->getMessage()
+    ]);
+    exit;
+}
 
 echo json_encode([
     'success' => true, 
     'message' => '통신사폰 상품이 등록되었습니다.',
-    'product' => $productData
+    'product_id' => $productId
 ]);
 

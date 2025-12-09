@@ -261,17 +261,6 @@ $pageStyles = '
         font-size: 14px;
     }
     
-    .btn-add {
-        padding: 8px 16px;
-        background: #f3f4f6;
-        color: #374151;
-        border: none;
-        border-radius: 8px;
-        cursor: pointer;
-        font-size: 14px;
-        margin-top: 8px;
-    }
-    
     .btn-add-item {
         padding: 12px 16px;
         background: #10b981;
@@ -422,13 +411,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
                 
                 <div style="flex: 1;">
-                    <label class="form-label" for="price_after">
+                    <label class="form-label" for="price_after_type">
                         할인 후 요금(프로모션기간)
                     </label>
-                    <div class="input-with-unit" style="max-width: 200px;">
-                        <input type="text" name="price_after" id="price_after" class="form-control" placeholder="500" maxlength="5">
-                        <span class="unit">원</span>
+                    <select name="price_after_type" id="price_after_type" class="form-select" style="max-width: 200px;">
+                        <option value="">선택하세요</option>
+                        <option value="free">공짜</option>
+                        <option value="custom">직접입력</option>
+                    </select>
+                    <div id="price_after_input" style="display: none; margin-top: 12px;">
+                        <div class="input-with-unit" style="max-width: 200px;">
+                            <input type="text" id="price_after" class="form-control" placeholder="500" maxlength="5">
+                            <span class="unit">원</span>
+                        </div>
                     </div>
+                    <input type="hidden" name="price_after" id="price_after_hidden" value="">
                 </div>
             </div>
         </div>
@@ -455,6 +452,20 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <option value="MB">MB</option>
                             </select>
                         </div>
+                    </div>
+                </div>
+                
+                <div style="flex: 1;">
+                    <label class="form-label" for="data_additional">
+                        데이터 추가제공 <span class="required">*</span>
+                    </label>
+                    <select name="data_additional" id="data_additional" class="form-select" required>
+                        <option value="">선택하세요</option>
+                        <option value="없음">없음</option>
+                        <option value="직접입력">직접입력</option>
+                    </select>
+                    <div id="data_additional_input" style="display: none; margin-top: 12px;">
+                        <input type="text" name="data_additional_value" id="data_additional_value" class="form-control" placeholder="매일 20GB" maxlength="15">
                     </div>
                 </div>
                 
@@ -496,9 +507,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 <div style="flex: 1;">
                     <label class="form-label" for="additional_call">
-                        부가·영상통화
+                        부가·영상통화 <span class="required">*</span>
                     </label>
-                    <select name="additional_call_type" id="additional_call_type" class="form-select">
+                    <select name="additional_call_type" id="additional_call_type" class="form-select" required>
                         <option value="">선택하세요</option>
                         <option value="무제한">무제한</option>
                         <option value="기본제공">기본제공</option>
@@ -534,9 +545,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 <div style="flex: 1;">
                     <label class="form-label" for="mobile_hotspot">
-                        테더링(핫스팟)
+                        테더링(핫스팟) <span class="required">*</span>
                     </label>
-                    <select name="mobile_hotspot" id="mobile_hotspot" class="form-select">
+                    <select name="mobile_hotspot" id="mobile_hotspot" class="form-select" required>
                         <option value="">선택하세요</option>
                         <option value="기본 제공량 내에서 사용">기본 제공량 내에서 사용</option>
                         <option value="직접선택">직접선택</option>
@@ -724,530 +735,391 @@ document.addEventListener('DOMContentLoaded', function() {
 </div>
 
 <script>
-// 약정기간 직접입력 필드 토글
 document.addEventListener('DOMContentLoaded', function() {
-    const contractPeriodSelect = document.getElementById('contract_period');
-    const contractPeriodInput = document.getElementById('contract_period_input');
-    
-    if (contractPeriodSelect && contractPeriodInput) {
-        contractPeriodSelect.addEventListener('change', function() {
-            if (this.value === '직접입력') {
-                contractPeriodInput.style.display = 'block';
-                document.getElementById('contract_period_days').focus();
-            } else {
-                contractPeriodInput.style.display = 'none';
-                document.getElementById('contract_period_days').value = '';
-            }
-        });
-        
-        // 숫자만 입력되도록 제한 (5자리)
-        const contractPeriodDays = document.getElementById('contract_period_days');
-        if (contractPeriodDays) {
-            contractPeriodDays.addEventListener('input', function() {
-                this.value = this.value.replace(/[^0-9]/g, '');
-                if (this.value.length > 5) {
-                    this.value = this.value.slice(0, 5);
-                }
-            });
+    // 헬퍼 함수: 직접입력 필드 토글
+    function toggleInputField(selectId, inputContainerId, triggerValue, inputId = null, additionalSelectId = null) {
+        const select = document.getElementById(selectId);
+        const container = document.getElementById(inputContainerId);
+        if (!select || !container) {
+            console.error('toggleInputField: 요소를 찾을 수 없습니다.', selectId, inputContainerId);
+            return;
         }
-    }
-    
-    // 통화 직접입력 필드 토글
-    const callTypeSelect = document.getElementById('call_type');
-    const callTypeInput = document.getElementById('call_type_input');
-    const callAmount = document.getElementById('call_amount');
-    
-    if (callTypeSelect && callTypeInput) {
-        callTypeSelect.addEventListener('change', function() {
-            if (this.value === '직접입력') {
-                callTypeInput.style.display = 'block';
-                if (callAmount) {
-                    callAmount.disabled = false;
-                    callAmount.focus();
-                }
-            } else {
-                callTypeInput.style.display = 'none';
-                if (callAmount) {
-                    callAmount.value = '';
-                    callAmount.disabled = true;
+        
+        // 초기 상태 설정
+        const initialValue = select.value;
+        const isInitiallyShow = initialValue === triggerValue;
+        container.style.display = isInitiallyShow ? 'block' : 'none';
+        
+        if (inputId) {
+            const input = document.getElementById(inputId);
+            if (input) {
+                input.disabled = !isInitiallyShow;
+                if (!isInitiallyShow) {
+                    input.setAttribute('disabled', 'disabled');
+                } else {
+                    input.removeAttribute('disabled');
                 }
             }
-        });
+        }
         
-        // 숫자만 입력되도록 제한 (5자리)
-        if (callAmount) {
-            callAmount.addEventListener('input', function() {
-                this.value = this.value.replace(/[^0-9]/g, '');
-                if (this.value.length > 5) {
-                    this.value = this.value.slice(0, 5);
+        if (additionalSelectId) {
+            const additionalSelect = document.getElementById(additionalSelectId);
+            if (additionalSelect) {
+                additionalSelect.disabled = !isInitiallyShow;
+                if (!isInitiallyShow) {
+                    additionalSelect.setAttribute('disabled', 'disabled');
+                } else {
+                    additionalSelect.removeAttribute('disabled');
                 }
-            });
+            }
+        }
+        
+        // change 이벤트 리스너
+        select.addEventListener('change', function() {
+            const isShow = this.value === triggerValue;
+            container.style.display = isShow ? 'block' : 'none';
             
-            // 초기 상태에서 비활성화
-            callAmount.disabled = true;
-        }
-    }
-    
-    // 문자 직접입력 필드 토글
-    const smsTypeSelect = document.getElementById('sms_type');
-    const smsTypeInput = document.getElementById('sms_type_input');
-    const smsAmount = document.getElementById('sms_amount');
-    
-    if (smsTypeSelect && smsTypeInput) {
-        smsTypeSelect.addEventListener('change', function() {
-            if (this.value === '직접입력') {
-                smsTypeInput.style.display = 'block';
-                if (smsAmount) {
-                    smsAmount.disabled = false;
-                    smsAmount.focus();
+            if (inputId) {
+                const input = document.getElementById(inputId);
+                if (input) {
+                    if (isShow) {
+                        input.removeAttribute('disabled');
+                        input.focus();
+                    } else {
+                        input.setAttribute('disabled', 'disabled');
+                        input.value = '';
+                    }
                 }
-            } else {
-                smsTypeInput.style.display = 'none';
-                if (smsAmount) {
-                    smsAmount.value = '';
-                    smsAmount.disabled = true;
+            }
+            
+            if (additionalSelectId) {
+                const additionalSelect = document.getElementById(additionalSelectId);
+                if (additionalSelect) {
+                    if (isShow) {
+                        additionalSelect.removeAttribute('disabled');
+                    } else {
+                        additionalSelect.setAttribute('disabled', 'disabled');
+                    }
                 }
             }
         });
-        
-        // 숫자만 입력되도록 제한 (5자리)
-        if (smsAmount) {
-            smsAmount.addEventListener('input', function() {
-                this.value = this.value.replace(/[^0-9]/g, '');
-                if (this.value.length > 5) {
-                    this.value = this.value.slice(0, 5);
-                }
-            });
-            
-            // 초기 상태에서 비활성화
-            smsAmount.disabled = true;
-        }
     }
     
-    // 데이터 제공량 직접입력 필드 토글
-    const dataAmountSelect = document.getElementById('data_amount');
-    const dataAmountInput = document.getElementById('data_amount_input');
-    const dataAmountValue = document.getElementById('data_amount_value');
+    // 헬퍼 함수: 숫자 입력 제한
+    function limitNumericInput(inputId, maxLength, disabled = false) {
+        const input = document.getElementById(inputId);
+        if (!input) return;
+        
+        // disabled는 toggleInputField에서 관리하므로 여기서는 설정하지 않음
+        // if (disabled) input.disabled = true;
+        
+        input.addEventListener('input', function() {
+            this.value = this.value.replace(/[^0-9]/g, '');
+            if (maxLength && this.value.length > maxLength) {
+                this.value = this.value.slice(0, maxLength);
+            }
+        });
+    }
+    
+    // 헬퍼 함수: 텍스트 길이 제한
+    function limitTextInput(inputId, maxLength, disabled = false) {
+        const input = document.getElementById(inputId);
+        if (!input) return;
+        
+        // disabled는 toggleInputField에서 관리하므로 여기서는 설정하지 않음
+        // if (disabled) input.disabled = true;
+        
+        input.addEventListener('input', function() {
+            if (this.value.length > maxLength) {
+                this.value = this.value.slice(0, maxLength);
+            }
+        });
+    }
+    
+    // 헬퍼 함수: 소수점 입력 제한 (정수3자리, 소수2자리)
+    function limitDecimalInput(inputId) {
+        const input = document.getElementById(inputId);
+        if (!input) return;
+        
+        input.addEventListener('input', function() {
+            let value = this.value.replace(/[^0-9.]/g, '');
+            const parts = value.split('.');
+            
+            if (parts.length > 2) {
+                value = parts[0] + '.' + parts.slice(1).join('');
+            }
+            if (parts[0] && parts[0].length > 3) {
+                value = parts[0].slice(0, 3) + (parts[1] ? '.' + parts[1] : '');
+            }
+            if (parts[1] && parts[1].length > 2) {
+                value = parts[0] + '.' + parts[1].slice(0, 2);
+            }
+            this.value = value;
+        });
+    }
+    
+    // 헬퍼 함수: 가격 입력 (천단위 표시)
+    function setupPriceInput(inputId, disabled = false) {
+        const input = document.getElementById(inputId);
+        if (!input) return;
+        
+        if (disabled) input.disabled = true;
+        
+        input.addEventListener('input', function() {
+            let value = this.value.replace(/[^0-9]/g, '');
+            if (value.length > 5) value = value.slice(0, 5);
+            this.value = value;
+        });
+        
+        input.addEventListener('blur', function() {
+            if (this.value) {
+                this.value = parseInt(this.value).toLocaleString('ko-KR');
+            }
+        });
+        
+        input.addEventListener('focus', function() {
+            this.value = this.value.replace(/,/g, '');
+        });
+    }
+    
+    // 약정기간
+    toggleInputField('contract_period', 'contract_period_input', '직접입력', 'contract_period_days');
+    limitNumericInput('contract_period_days', 5);
+    
+    // 통화
+    toggleInputField('call_type', 'call_type_input', '직접입력', 'call_amount');
+    limitNumericInput('call_amount', 5, false);
+    
+    // 문자
+    toggleInputField('sms_type', 'sms_type_input', '직접입력', 'sms_amount');
+    limitNumericInput('sms_amount', 5, false);
+    
+    // 데이터 제공량
+    toggleInputField('data_amount', 'data_amount_input', '직접입력', 'data_amount_value', 'data_unit');
+    limitNumericInput('data_amount_value', 5, false);
     const dataUnitSelect = document.getElementById('data_unit');
-    
-    if (dataAmountSelect && dataAmountInput) {
-        dataAmountSelect.addEventListener('change', function() {
-            if (this.value === '직접입력') {
-                dataAmountInput.style.display = 'block';
-                if (dataAmountValue) {
-                    dataAmountValue.disabled = false;
-                    dataAmountValue.focus();
-                }
-                if (dataUnitSelect) {
-                    dataUnitSelect.disabled = false;
-                }
-            } else {
-                dataAmountInput.style.display = 'none';
-                if (dataAmountValue) {
-                    dataAmountValue.value = '';
-                    dataAmountValue.disabled = true;
-                }
-                if (dataUnitSelect) {
-                    dataUnitSelect.disabled = true;
-                }
-            }
-        });
-        
-        // 숫자만 입력되도록 제한 (5자리)
-        if (dataAmountValue) {
-            dataAmountValue.addEventListener('input', function() {
-                this.value = this.value.replace(/[^0-9]/g, '');
-                if (this.value.length > 5) {
-                    this.value = this.value.slice(0, 5);
-                }
-            });
-            
-            // 초기 상태에서 비활성화
-            dataAmountValue.disabled = true;
-        }
-        
-        // 초기 상태에서 단위 선택 드롭다운 비활성화
-        if (dataUnitSelect) {
+    if (dataUnitSelect) {
+        // 초기 상태 설정
+        const dataAmount = document.getElementById('data_amount');
+        if (dataAmount && dataAmount.value !== '직접입력') {
             dataUnitSelect.disabled = true;
         }
     }
     
-    // 데이터 소진시 직접입력 필드 토글
-    const dataExhaustedSelect = document.getElementById('data_exhausted');
-    const dataExhaustedInput = document.getElementById('data_exhausted_input');
-    const dataExhaustedValue = document.getElementById('data_exhausted_value');
+    // 데이터 추가제공 (텍스트 입력)
+    toggleInputField('data_additional', 'data_additional_input', '직접입력', 'data_additional_value');
+    limitTextInput('data_additional_value', 15, false);
     
-    if (dataExhaustedSelect && dataExhaustedInput) {
-        dataExhaustedSelect.addEventListener('change', function() {
-            if (this.value === '직접입력') {
-                dataExhaustedInput.style.display = 'block';
-                if (dataExhaustedValue) {
-                    dataExhaustedValue.disabled = false;
-                    dataExhaustedValue.focus();
+    // 데이터 소진시 (텍스트 입력)
+    toggleInputField('data_exhausted', 'data_exhausted_input', '직접입력', 'data_exhausted_value');
+    limitTextInput('data_exhausted_value', 50, false);
+    
+    // 부가·영상통화
+    toggleInputField('additional_call_type', 'additional_call_input', '직접입력', 'additional_call');
+    limitNumericInput('additional_call', 5, false);
+    
+    // 테더링(핫스팟)
+    toggleInputField('mobile_hotspot', 'mobile_hotspot_input', '직접선택', 'mobile_hotspot_value');
+    limitTextInput('mobile_hotspot_value', 10, false);
+    
+    // 일반 유심
+    toggleInputField('regular_sim_available', 'regular_sim_price_input', '배송가능', 'regular_sim_price');
+    setupPriceInput('regular_sim_price', true);
+    
+    // NFC 유심
+    toggleInputField('nfc_sim_available', 'nfc_sim_price_input', '배송가능', 'nfc_sim_price');
+    setupPriceInput('nfc_sim_price', true);
+    
+    // eSIM
+    toggleInputField('esim_available', 'esim_price_input', '개통가능', 'esim_price');
+    setupPriceInput('esim_price', true);
+    
+    // 기본 제공 초과 시 가격
+    limitDecimalInput('over_data_price');
+    limitDecimalInput('over_voice_price');
+    limitDecimalInput('over_video_price');
+    limitNumericInput('over_sms_price', 5);
+    limitNumericInput('over_lms_price', 5);
+    limitNumericInput('over_mms_price', 5);
+    
+    // 요금 및 기타 입력
+    limitNumericInput('price_main', 5);
+    limitNumericInput('price_after', 5);
+    limitTextInput('discount_period', 10);
+    
+    // 할인 후 요금 타입 선택
+    const priceAfterType = document.getElementById('price_after_type');
+    const priceAfterInput = document.getElementById('price_after_input');
+    const priceAfterField = document.getElementById('price_after');
+    const priceAfterHidden = document.getElementById('price_after_hidden');
+    
+    if (priceAfterType && priceAfterInput && priceAfterHidden) {
+        priceAfterType.addEventListener('change', function() {
+            if (this.value === 'free') {
+                // 공짜 선택 시
+                priceAfterInput.style.display = 'none';
+                priceAfterHidden.value = '0';
+                if (priceAfterField) priceAfterField.value = '';
+            } else if (this.value === 'custom') {
+                // 직접입력 선택 시
+                priceAfterInput.style.display = 'block';
+                priceAfterHidden.value = '';
+                if (priceAfterField) {
+                    priceAfterField.focus();
                 }
             } else {
-                dataExhaustedInput.style.display = 'none';
-                if (dataExhaustedValue) {
-                    dataExhaustedValue.value = '';
-                    dataExhaustedValue.disabled = true;
-                }
+                // 선택 안함
+                priceAfterInput.style.display = 'none';
+                priceAfterHidden.value = '';
+                if (priceAfterField) priceAfterField.value = '';
             }
         });
         
-        // 숫자만 입력되도록 제한 (5자리)
-        if (dataExhaustedValue) {
-            dataExhaustedValue.addEventListener('input', function() {
-                this.value = this.value.replace(/[^0-9]/g, '');
-                if (this.value.length > 5) {
-                    this.value = this.value.slice(0, 5);
+        // 직접입력 필드 값 변경 시 hidden 필드 업데이트
+        if (priceAfterField) {
+            priceAfterField.addEventListener('input', function() {
+                if (priceAfterType.value === 'custom') {
+                    priceAfterHidden.value = this.value.replace(/[^0-9]/g, '');
                 }
             });
-            
-            // 초기 상태에서 비활성화
-            dataExhaustedValue.disabled = true;
         }
     }
     
-    // 부가·영상통화 직접입력 필드 토글
-    const additionalCallTypeSelect = document.getElementById('additional_call_type');
-    const additionalCallInput = document.getElementById('additional_call_input');
-    const additionalCall = document.getElementById('additional_call');
-    
-    if (additionalCallTypeSelect && additionalCallInput) {
-        additionalCallTypeSelect.addEventListener('change', function() {
-            if (this.value === '직접입력') {
-                additionalCallInput.style.display = 'block';
-                if (additionalCall) {
-                    additionalCall.disabled = false;
-                    additionalCall.focus();
+    // 폼 제출
+    document.getElementById('productForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // 필수 필드 검증: 직접입력 필드
+        const callType = document.getElementById('call_type');
+        const callAmount = document.getElementById('call_amount');
+        if (callType && callType.value === '직접입력') {
+            if (!callAmount || !callAmount.value.trim()) {
+                alert('통화를 입력해주세요.');
+                if (callAmount) callAmount.focus();
+                return;
+            }
+        }
+        
+        const smsType = document.getElementById('sms_type');
+        const smsAmount = document.getElementById('sms_amount');
+        if (smsType && smsType.value === '직접입력') {
+            if (!smsAmount || !smsAmount.value.trim()) {
+                alert('문자를 입력해주세요.');
+                if (smsAmount) smsAmount.focus();
+                return;
+            }
+        }
+        
+        const dataAmount = document.getElementById('data_amount');
+        const dataAmountValue = document.getElementById('data_amount_value');
+        if (dataAmount && dataAmount.value === '직접입력') {
+            if (!dataAmountValue || !dataAmountValue.value.trim()) {
+                alert('데이터 제공량을 입력해주세요.');
+                if (dataAmountValue) dataAmountValue.focus();
+                return;
+            }
+        }
+        
+        const dataAdditional = document.getElementById('data_additional');
+        const dataAdditionalValue = document.getElementById('data_additional_value');
+        if (dataAdditional && dataAdditional.value === '직접입력') {
+            if (!dataAdditionalValue || !dataAdditionalValue.value.trim()) {
+                alert('데이터 추가제공을 입력해주세요.');
+                if (dataAdditionalValue) dataAdditionalValue.focus();
+                return;
+            }
+        }
+        
+        const additionalCallType = document.getElementById('additional_call_type');
+        const additionalCallInput = document.getElementById('additional_call');
+        if (additionalCallType && additionalCallType.value === '직접입력') {
+            if (!additionalCallInput || !additionalCallInput.value.trim()) {
+                alert('부가·영상통화를 입력해주세요.');
+                if (additionalCallInput) additionalCallInput.focus();
+                return;
+            }
+        }
+        
+        const mobileHotspot = document.getElementById('mobile_hotspot');
+        const mobileHotspotInput = document.getElementById('mobile_hotspot_value');
+        if (mobileHotspot && mobileHotspot.value === '직접선택') {
+            if (!mobileHotspotInput || !mobileHotspotInput.value.trim()) {
+                alert('테더링(핫스팟)을 입력해주세요.');
+                if (mobileHotspotInput) mobileHotspotInput.focus();
+                return;
+            }
+        }
+        
+        // 데이터 추가제공 값 최종 처리
+        const dataAdditional = document.getElementById('data_additional');
+        const dataAdditionalValue = document.getElementById('data_additional_value');
+        if (dataAdditional) {
+            if (dataAdditional.value === '없음') {
+                // "없음" 선택 시 값 초기화
+                if (dataAdditionalValue) {
+                    dataAdditionalValue.value = '';
+                    dataAdditionalValue.disabled = false; // 제출을 위해 활성화
+                }
+            } else if (dataAdditional.value === '직접입력') {
+                // "직접입력" 선택 시 입력값 사용 (이미 검증됨)
+                if (dataAdditionalValue) {
+                    dataAdditionalValue.disabled = false; // 제출을 위해 활성화
                 }
             } else {
-                additionalCallInput.style.display = 'none';
-                if (additionalCall) {
-                    additionalCall.value = '';
-                    additionalCall.disabled = true;
+                // 선택 안함
+                if (dataAdditionalValue) {
+                    dataAdditionalValue.value = '';
+                    dataAdditionalValue.disabled = false;
                 }
             }
-        });
-        
-        // 숫자만 입력되도록 제한 (5자리)
-        if (additionalCall) {
-            additionalCall.addEventListener('input', function() {
-                this.value = this.value.replace(/[^0-9]/g, '');
-                if (this.value.length > 5) {
-                    this.value = this.value.slice(0, 5);
-                }
-            });
-            
-            // 초기 상태에서 비활성화
-            additionalCall.disabled = true;
         }
-    }
-    
-    // 테더링(핫스팟) 직접선택 필드 토글
-    const mobileHotspotSelect = document.getElementById('mobile_hotspot');
-    const mobileHotspotInput = document.getElementById('mobile_hotspot_input');
-    const mobileHotspotValue = document.getElementById('mobile_hotspot_value');
-    
-    if (mobileHotspotSelect && mobileHotspotInput) {
-        mobileHotspotSelect.addEventListener('change', function() {
-            if (this.value === '직접선택') {
-                mobileHotspotInput.style.display = 'block';
-                if (mobileHotspotValue) {
-                    mobileHotspotValue.disabled = false;
-                    mobileHotspotValue.focus();
-                }
+        
+        // 할인 후 요금 값 최종 처리
+        const priceAfterType = document.getElementById('price_after_type');
+        const priceAfterHidden = document.getElementById('price_after_hidden');
+        const priceAfterField = document.getElementById('price_after');
+        
+        if (priceAfterType && priceAfterHidden) {
+            if (priceAfterType.value === 'free') {
+                // 공짜 선택 시 0으로 설정
+                priceAfterHidden.value = '0';
+            } else if (priceAfterType.value === 'custom' && priceAfterField) {
+                // 직접입력 시 입력값 사용
+                priceAfterHidden.value = priceAfterField.value.replace(/[^0-9]/g, '');
             } else {
-                mobileHotspotInput.style.display = 'none';
-                if (mobileHotspotValue) {
-                    mobileHotspotValue.value = '';
-                    mobileHotspotValue.disabled = true;
-                }
+                // 선택 안함
+                priceAfterHidden.value = '';
             }
-        });
-        
-        // 텍스트 입력 제한 (10글자)
-        if (mobileHotspotValue) {
-            mobileHotspotValue.addEventListener('input', function() {
-                if (this.value.length > 10) {
-                    this.value = this.value.slice(0, 10);
-                }
-            });
-            
-            // 초기 상태에서 비활성화
-            mobileHotspotValue.disabled = true;
         }
-    }
-    
-    // 일반 유심 배송가능 필드 토글
-    const regularSimSelect = document.getElementById('regular_sim_available');
-    const regularSimPriceInput = document.getElementById('regular_sim_price_input');
-    const regularSimPrice = document.getElementById('regular_sim_price');
-    
-    if (regularSimSelect && regularSimPriceInput) {
-        regularSimSelect.addEventListener('change', function() {
-            if (this.value === '배송가능') {
-                regularSimPriceInput.style.display = 'block';
-                if (regularSimPrice) {
-                    regularSimPrice.disabled = false;
-                    regularSimPrice.focus();
-                }
+        
+        const formData = new FormData(this);
+        
+        fetch('/MVNO/api/product-register-mvno.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                window.location.href = '/MVNO/seller/products/mvno.php?success=1';
             } else {
-                regularSimPriceInput.style.display = 'none';
-                if (regularSimPrice) {
-                    regularSimPrice.value = '';
-                    regularSimPrice.disabled = true;
-                }
+                alert(data.message || '상품 등록에 실패했습니다.');
             }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('상품 등록 중 오류가 발생했습니다.');
         });
-        
-        // 숫자만 입력 및 천단위 표시 (5자리)
-        if (regularSimPrice) {
-            regularSimPrice.addEventListener('input', function() {
-                let value = this.value.replace(/[^0-9]/g, '');
-                if (value.length > 5) {
-                    value = value.slice(0, 5);
-                }
-                this.value = value;
-            });
-            
-            regularSimPrice.addEventListener('blur', function() {
-                if (this.value) {
-                    this.value = parseInt(this.value).toLocaleString('ko-KR');
-                }
-            });
-            
-            regularSimPrice.addEventListener('focus', function() {
-                this.value = this.value.replace(/,/g, '');
-            });
-            
-            regularSimPrice.disabled = true;
-        }
-    }
-    
-    // NFC 유심 배송가능 필드 토글
-    const nfcSimSelect = document.getElementById('nfc_sim_available');
-    const nfcSimPriceInput = document.getElementById('nfc_sim_price_input');
-    const nfcSimPrice = document.getElementById('nfc_sim_price');
-    
-    if (nfcSimSelect && nfcSimPriceInput) {
-        nfcSimSelect.addEventListener('change', function() {
-            if (this.value === '배송가능') {
-                nfcSimPriceInput.style.display = 'block';
-                if (nfcSimPrice) {
-                    nfcSimPrice.disabled = false;
-                    nfcSimPrice.focus();
-                }
-            } else {
-                nfcSimPriceInput.style.display = 'none';
-                if (nfcSimPrice) {
-                    nfcSimPrice.value = '';
-                    nfcSimPrice.disabled = true;
-                }
-            }
-        });
-        
-        // 숫자만 입력 및 천단위 표시 (5자리)
-        if (nfcSimPrice) {
-            nfcSimPrice.addEventListener('input', function() {
-                let value = this.value.replace(/[^0-9]/g, '');
-                if (value.length > 5) {
-                    value = value.slice(0, 5);
-                }
-                this.value = value;
-            });
-            
-            nfcSimPrice.addEventListener('blur', function() {
-                if (this.value) {
-                    this.value = parseInt(this.value).toLocaleString('ko-KR');
-                }
-            });
-            
-            nfcSimPrice.addEventListener('focus', function() {
-                this.value = this.value.replace(/,/g, '');
-            });
-            
-            nfcSimPrice.disabled = true;
-        }
-    }
-    
-    // eSIM 개통가능 필드 토글
-    const esimSelect = document.getElementById('esim_available');
-    const esimPriceInput = document.getElementById('esim_price_input');
-    const esimPrice = document.getElementById('esim_price');
-    
-    if (esimSelect && esimPriceInput) {
-        esimSelect.addEventListener('change', function() {
-            if (this.value === '개통가능') {
-                esimPriceInput.style.display = 'block';
-                if (esimPrice) {
-                    esimPrice.disabled = false;
-                    esimPrice.focus();
-                }
-            } else {
-                esimPriceInput.style.display = 'none';
-                if (esimPrice) {
-                    esimPrice.value = '';
-                    esimPrice.disabled = true;
-                }
-            }
-        });
-        
-        // 숫자만 입력 및 천단위 표시 (5자리)
-        if (esimPrice) {
-            esimPrice.addEventListener('input', function() {
-                let value = this.value.replace(/[^0-9]/g, '');
-                if (value.length > 5) {
-                    value = value.slice(0, 5);
-                }
-                this.value = value;
-            });
-            
-            esimPrice.addEventListener('blur', function() {
-                if (this.value) {
-                    this.value = parseInt(this.value).toLocaleString('ko-KR');
-                }
-            });
-            
-            esimPrice.addEventListener('focus', function() {
-                this.value = this.value.replace(/,/g, '');
-            });
-            
-            esimPrice.disabled = true;
-        }
-    }
-    
-    // 기본 제공 초과 시 필드 검증
-    // 데이터: 정수3자리 소수2자리 (최대 999.99)
-    const overDataPrice = document.getElementById('over_data_price');
-    if (overDataPrice) {
-        overDataPrice.addEventListener('input', function() {
-            let value = this.value.replace(/[^0-9.]/g, '');
-            // 소수점이 하나만 있도록 제한
-            const parts = value.split('.');
-            if (parts.length > 2) {
-                value = parts[0] + '.' + parts.slice(1).join('');
-            }
-            // 정수 부분 3자리 제한
-            if (parts[0] && parts[0].length > 3) {
-                value = parts[0].slice(0, 3) + (parts[1] ? '.' + parts[1] : '');
-            }
-            // 소수 부분 2자리 제한
-            if (parts[1] && parts[1].length > 2) {
-                value = parts[0] + '.' + parts[1].slice(0, 2);
-            }
-            this.value = value;
-        });
-    }
-    
-    // 음성: 정수3자리 소수2자리 (최대 999.99)
-    const overVoicePrice = document.getElementById('over_voice_price');
-    if (overVoicePrice) {
-        overVoicePrice.addEventListener('input', function() {
-            let value = this.value.replace(/[^0-9.]/g, '');
-            const parts = value.split('.');
-            if (parts.length > 2) {
-                value = parts[0] + '.' + parts.slice(1).join('');
-            }
-            if (parts[0] && parts[0].length > 3) {
-                value = parts[0].slice(0, 3) + (parts[1] ? '.' + parts[1] : '');
-            }
-            if (parts[1] && parts[1].length > 2) {
-                value = parts[0] + '.' + parts[1].slice(0, 2);
-            }
-            this.value = value;
-        });
-    }
-    
-    // 영상통화: 정수3자리 소수2자리 (최대 999.99)
-    const overVideoPrice = document.getElementById('over_video_price');
-    if (overVideoPrice) {
-        overVideoPrice.addEventListener('input', function() {
-            let value = this.value.replace(/[^0-9.]/g, '');
-            const parts = value.split('.');
-            if (parts.length > 2) {
-                value = parts[0] + '.' + parts.slice(1).join('');
-            }
-            if (parts[0] && parts[0].length > 3) {
-                value = parts[0].slice(0, 3) + (parts[1] ? '.' + parts[1] : '');
-            }
-            if (parts[1] && parts[1].length > 2) {
-                value = parts[0] + '.' + parts[1].slice(0, 2);
-            }
-            this.value = value;
-        });
-    }
-    
-    // 단문메시지(SMS): 숫자 5자리
-    const overSmsPrice = document.getElementById('over_sms_price');
-    if (overSmsPrice) {
-        overSmsPrice.addEventListener('input', function() {
-            this.value = this.value.replace(/[^0-9]/g, '');
-            if (this.value.length > 5) {
-                this.value = this.value.slice(0, 5);
-            }
-        });
-    }
-    
-    // 텍스트형(LMS,MMS): 숫자 5자리
-    const overLmsPrice = document.getElementById('over_lms_price');
-    if (overLmsPrice) {
-        overLmsPrice.addEventListener('input', function() {
-            this.value = this.value.replace(/[^0-9]/g, '');
-            if (this.value.length > 5) {
-                this.value = this.value.slice(0, 5);
-            }
-        });
-    }
-    
-    // 멀티미디어형(MMS): 숫자 5자리
-    const overMmsPrice = document.getElementById('over_mms_price');
-    if (overMmsPrice) {
-        overMmsPrice.addEventListener('input', function() {
-            this.value = this.value.replace(/[^0-9]/g, '');
-            if (this.value.length > 5) {
-                this.value = this.value.slice(0, 5);
-            }
-        });
-    }
-    
-    // 월 요금: 숫자 5자리
-    const priceMain = document.getElementById('price_main');
-    if (priceMain) {
-        priceMain.addEventListener('input', function() {
-            this.value = this.value.replace(/[^0-9]/g, '');
-            if (this.value.length > 5) {
-                this.value = this.value.slice(0, 5);
-            }
-        });
-    }
-    
-    // 할인 후 요금: 숫자 5자리
-    const priceAfter = document.getElementById('price_after');
-    if (priceAfter) {
-        priceAfter.addEventListener('input', function() {
-            this.value = this.value.replace(/[^0-9]/g, '');
-            if (this.value.length > 5) {
-                this.value = this.value.slice(0, 5);
-            }
-        });
-    }
-    
-    // 할인기간: 텍스트 10자리
-    const discountPeriod = document.getElementById('discount_period');
-    if (discountPeriod) {
-        discountPeriod.addEventListener('input', function() {
-            if (this.value.length > 10) {
-                this.value = this.value.slice(0, 10);
-            }
-        });
-    }
+    });
 });
 
-let promotionCount = 1;
-
-function addPromotionField() {
+// 전역 함수로 선언 (onclick에서 호출 가능하도록)
+window.addPromotionField = function() {
     const container = document.getElementById('promotion-container');
+    if (!container) {
+        console.error('promotion-container를 찾을 수 없습니다.');
+        return;
+    }
     const newField = document.createElement('div');
     newField.className = 'gift-input-group';
     newField.innerHTML = `
@@ -1255,58 +1127,18 @@ function addPromotionField() {
         <button type="button" class="btn-remove" onclick="removePromotionField(this)">삭제</button>
     `;
     container.appendChild(newField);
-    promotionCount++;
-}
+};
 
-function removePromotionField(button) {
+window.removePromotionField = function(button) {
     const container = document.getElementById('promotion-container');
+    if (!container) {
+        console.error('promotion-container를 찾을 수 없습니다.');
+        return;
+    }
     if (container.children.length > 1) {
         button.parentElement.remove();
     }
-}
-
-let benefitCount = 1;
-
-function addBenefitField() {
-    const container = document.getElementById('benefits-container');
-    const newField = document.createElement('div');
-    newField.className = 'gift-input-group';
-    newField.innerHTML = `
-        <textarea name="benefits[]" class="form-textarea" style="min-height: 80px;" placeholder="혜택 및 유의사항을 입력하세요"></textarea>
-    `;
-    container.appendChild(newField);
-    benefitCount++;
-}
-
-function removeBenefitField(button) {
-    const container = document.getElementById('benefits-container');
-    if (container.children.length > 1) {
-        button.parentElement.remove();
-    }
-}
-
-document.getElementById('productForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    
-    const formData = new FormData(this);
-    
-    fetch('/MVNO/api/product-register-mvno.php', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            window.location.href = '/MVNO/seller/products/mvno.php?success=1';
-        } else {
-            alert(data.message || '상품 등록에 실패했습니다.');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('상품 등록 중 오류가 발생했습니다.');
-    });
-});
+};
 </script>
 
 <?php include __DIR__ . '/../includes/seller-footer.php'; ?>

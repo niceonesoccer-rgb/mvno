@@ -5,6 +5,8 @@
  */
 
 require_once __DIR__ . '/../includes/data/auth-functions.php';
+require_once __DIR__ . '/../includes/data/db-config.php';
+require_once __DIR__ . '/../includes/data/product-functions.php';
 
 header('Content-Type: application/json');
 
@@ -42,11 +44,13 @@ $productData = [
     'contract_period' => $_POST['contract_period'] ?? '',
     'contract_period_days' => $_POST['contract_period_days'] ?? '',
     'discount_period' => $_POST['discount_period'] ?? '',
-    'price_main' => $_POST['price_main'] ?? 0,
-    'price_after' => $_POST['price_after'] ?? 0,
+    'price_main' => !empty($_POST['price_main']) ? floatval(str_replace(',', '', $_POST['price_main'])) : 0,
+    'price_after' => !empty($_POST['price_after']) ? floatval(str_replace(',', '', $_POST['price_after'])) : 0,
     'data_amount' => $_POST['data_amount'] ?? '',
     'data_amount_value' => $_POST['data_amount_value'] ?? '',
     'data_unit' => $_POST['data_unit'] ?? '',
+    'data_additional' => $_POST['data_additional'] ?? '',
+    'data_additional_value' => (!empty($_POST['data_additional']) && $_POST['data_additional'] === '직접입력') ? ($_POST['data_additional_value'] ?? '') : '',
     'data_exhausted' => $_POST['data_exhausted'] ?? '',
     'data_exhausted_value' => $_POST['data_exhausted_value'] ?? '',
     'call_type' => $_POST['call_type'] ?? '',
@@ -75,13 +79,48 @@ $productData = [
     'created_at' => date('Y-m-d H:i:s')
 ];
 
-// TODO: 실제 알뜰폰 상품 데이터 저장 로직 구현
-// 예: saveMvnoProductData($productData);
+// 필수 필드 검증
+if (empty($productData['plan_name'])) {
+    echo json_encode([
+        'success' => false,
+        'message' => '요금제명을 입력해주세요.'
+    ]);
+    exit;
+}
+
+if (empty($productData['provider'])) {
+    echo json_encode([
+        'success' => false,
+        'message' => '통신사를 선택해주세요.'
+    ]);
+    exit;
+}
+
+// 알뜰폰 상품 데이터 저장
+try {
+    $productId = saveMvnoProduct($productData);
+    
+    if ($productId === false) {
+        echo json_encode([
+            'success' => false,
+            'message' => '상품 등록에 실패했습니다. 데이터베이스 연결을 확인해주세요.'
+        ]);
+        exit;
+    }
+} catch (Exception $e) {
+    error_log("Product registration error: " . $e->getMessage());
+    echo json_encode([
+        'success' => false,
+        'message' => '상품 등록 중 오류가 발생했습니다: ' . $e->getMessage()
+    ]);
+    exit;
+}
 
 echo json_encode([
     'success' => true, 
     'message' => '알뜰폰 상품이 등록되었습니다.',
-    'product' => $productData
+    'product_id' => $productId
 ]);
+
 
 

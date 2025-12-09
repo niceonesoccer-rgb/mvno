@@ -71,6 +71,42 @@ $pageStyles = '
     
     .form-section {
         margin-bottom: 32px;
+        background: #f9fafb;
+        border-radius: 12px;
+        padding: 24px;
+        border: 1px solid #e5e7eb;
+    }
+    
+    .form-section-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 16px;
+        margin-bottom: 32px;
+        background: #f9fafb;
+        border-radius: 12px;
+        padding: 24px;
+        border: 1px solid #e5e7eb;
+    }
+    
+    .form-section-item {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .form-section-item .form-section-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: #1f2937;
+        margin-bottom: 12px;
+        padding-bottom: 8px;
+        border-bottom: 2px solid #e5e7eb;
+    }
+    
+    @media (max-width: 768px) {
+        .form-section-row {
+            grid-template-columns: 1fr;
+            gap: 24px;
+        }
     }
     
     .form-section-title {
@@ -80,6 +116,16 @@ $pageStyles = '
         margin-bottom: 20px;
         padding-bottom: 12px;
         border-bottom: 2px solid #e5e7eb;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .form-section-title-icon {
+        width: 24px;
+        height: 24px;
+        object-fit: contain;
+        flex-shrink: 0;
     }
     
     .form-group {
@@ -379,12 +425,71 @@ $pageStyles = '
     
     .gift-input-group {
         display: flex;
-        gap: 0;
+        gap: 8px;
         margin-bottom: 8px;
+        align-items: stretch;
     }
     
     .gift-input-group .form-control {
         flex: 1;
+    }
+    
+    .item-icon-wrapper {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 12px;
+        background: #f3f4f6;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        width: 40px;
+        flex-shrink: 0;
+    }
+    
+    .item-name-input {
+        flex: 1;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+    }
+    
+    .item-name-input:focus {
+        outline: none;
+        border-color: #10b981;
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+    }
+    
+    .item-price-input-wrapper {
+        position: relative;
+        display: flex;
+        align-items: center;
+        flex: 1.5;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+    }
+    
+    .item-price-input-wrapper:focus-within {
+        border-color: #10b981;
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+    }
+    
+    .item-price-input-wrapper .form-control {
+        border: none;
+        padding-right: 35px;
+        border-radius: 8px;
+    }
+    
+    .item-price-input-wrapper .form-control:focus {
+        outline: none;
+        box-shadow: none;
+    }
+    
+    .item-price-suffix {
+        position: absolute;
+        right: 12px;
+        color: #6b7280;
+        font-size: 13px;
+        pointer-events: none;
+        z-index: 1;
     }
     
     .btn-remove {
@@ -406,6 +511,29 @@ $pageStyles = '
         cursor: pointer;
         font-size: 14px;
         margin-top: 8px;
+    }
+    
+    .price-input-wrapper {
+        position: relative;
+        display: flex;
+        align-items: center;
+    }
+    
+    .price-input-wrapper .form-control {
+        text-align: right;
+    }
+    
+    .price-input-suffix {
+        position: absolute;
+        right: 12px;
+        color: #6b7280;
+        font-size: 14px;
+        pointer-events: none;
+        z-index: 1;
+    }
+    
+    .price-input-wrapper .form-control[data-suffix] {
+        padding-right: 50px;
     }
 ';
 
@@ -447,100 +575,181 @@ document.addEventListener('DOMContentLoaded', function() {
     
     <form id="productForm" class="product-form" method="POST" action="/MVNO/api/product-register-internet.php">
         
-        <!-- 인터넷가입처 -->
-        <div class="form-section">
-            <div class="form-section-title">인터넷가입처</div>
-            
-            <div class="form-group">
-                <label class="form-label" for="registration_place">가입처 업체</label>
-                <div class="custom-select-wrapper">
-                    <select name="registration_place" id="registration_place" class="custom-select">
-                        <option value="">선택하세요</option>
-                        <option value="KT">KT</option>
-                        <option value="SKT">SKT</option>
-                        <option value="LG U+">LG U+</option>
-                        <option value="KT skylife">KT skylife</option>
-                        <option value="LG헬로비전">LG헬로비전</option>
-                        <option value="BTV">BTV</option>
-                        <option value="DLIVE">DLIVE</option>
-                        <option value="기타">기타</option>
-                    </select>
-                    <div class="custom-select-trigger" id="custom-select-trigger">
-                        <div class="selected-value">
-                            <span>선택하세요</span>
+        <!-- 인터넷가입처 / 가입속도 / 사용요금 한 줄 -->
+        <div class="form-section-row">
+            <!-- 인터넷가입처 -->
+            <div class="form-section-item">
+                <div class="form-section-title">인터넷가입처</div>
+                <div class="form-group">
+                    <label class="form-label" for="registration_place">가입처 업체</label>
+                    <div class="custom-select-wrapper">
+                        <select name="registration_place" id="registration_place" class="custom-select">
+                            <option value="">선택하세요</option>
+                            <option value="KT">KT</option>
+                            <option value="SKT">SKT</option>
+                            <option value="LG U+">LG U+</option>
+                            <option value="KT skylife">KT skylife</option>
+                            <option value="LG헬로비전">LG헬로비전</option>
+                            <option value="BTV">BTV</option>
+                            <option value="DLIVE">DLIVE</option>
+                            <option value="기타">기타</option>
+                        </select>
+                        <div class="custom-select-trigger" id="custom-select-trigger">
+                            <div class="selected-value">
+                                <span>선택하세요</span>
+                            </div>
+                            <div class="arrow"></div>
                         </div>
-                        <div class="arrow"></div>
+                        <div class="custom-options" id="custom-options">
+                            <div class="custom-option" data-value="">
+                                <span>선택하세요</span>
+                            </div>
+                            <div class="custom-option" data-value="KT">
+                                <img src="/MVNO/assets/images/internets/kt.svg" alt="KT">
+                            </div>
+                            <div class="custom-option" data-value="SKT">
+                                <img src="/MVNO/assets/images/internets/broadband.svg" alt="SKT">
+                            </div>
+                            <div class="custom-option" data-value="LG U+">
+                                <img src="/MVNO/assets/images/internets/lgu.svg" alt="LG U+">
+                            </div>
+                            <div class="custom-option" data-value="KT skylife">
+                                <img src="/MVNO/assets/images/internets/ktskylife.svg" alt="KT skylife">
+                            </div>
+                            <div class="custom-option" data-value="LG헬로비전">
+                                <img src="/MVNO/assets/images/internets/hellovision.svg" alt="LG헬로비전">
+                            </div>
+                            <div class="custom-option" data-value="BTV">
+                                <img src="/MVNO/assets/images/internets/btv.svg" alt="BTV">
+                            </div>
+                            <div class="custom-option" data-value="DLIVE">
+                                <img src="/MVNO/assets/images/internets/dlive.svg" alt="DLIVE">
+                            </div>
+                            <div class="custom-option" data-value="기타">
+                                <span>기타</span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="custom-options" id="custom-options">
-                        <div class="custom-option" data-value="">
-                            <span>선택하세요</span>
-                        </div>
-                        <div class="custom-option" data-value="KT">
-                            <img src="/MVNO/assets/images/internets/kt.svg" alt="KT">
-                        </div>
-                        <div class="custom-option" data-value="SKT">
-                            <img src="/MVNO/assets/images/internets/broadband.svg" alt="SKT">
-                        </div>
-                        <div class="custom-option" data-value="LG U+">
-                            <img src="/MVNO/assets/images/internets/lgu.svg" alt="LG U+">
-                        </div>
-                        <div class="custom-option" data-value="KT skylife">
-                            <img src="/MVNO/assets/images/internets/ktskylife.svg" alt="KT skylife">
-                        </div>
-                        <div class="custom-option" data-value="LG헬로비전">
-                            <img src="/MVNO/assets/images/internets/hellovision.svg" alt="LG헬로비전">
-                        </div>
-                        <div class="custom-option" data-value="BTV">
-                            <img src="/MVNO/assets/images/internets/btv.svg" alt="BTV">
-                        </div>
-                        <div class="custom-option" data-value="DLIVE">
-                            <img src="/MVNO/assets/images/internets/dlive.svg" alt="DLIVE">
-                        </div>
-                        <div class="custom-option" data-value="기타">
-                            <span>기타</span>
-                        </div>
-                    </div>
+                    <div class="form-help">가입 가능한 업체를 선택하세요</div>
                 </div>
-                <div class="form-help">가입 가능한 업체를 선택하세요</div>
             </div>
-        </div>
-        
-        <!-- 가입속도 -->
-        <div class="form-section">
-            <div class="form-section-title">가입속도</div>
             
-            <div class="form-group">
-                <label class="form-label">속도 선택</label>
-                <div class="form-checkbox-group">
-                    <div class="form-checkbox">
-                        <input type="radio" name="speed_option" id="speed_100m" value="100M">
-                        <label for="speed_100m">100M</label>
+            <!-- 가입속도 -->
+            <div class="form-section-item">
+                <div class="form-section-title">가입속도</div>
+                <div class="form-group">
+                    <label class="form-label" for="speed_option">속도 선택</label>
+                    <select name="speed_option" id="speed_option" class="form-select">
+                        <option value="">선택하세요</option>
+                        <option value="100M">100M</option>
+                        <option value="500M">500M</option>
+                        <option value="1G">1G</option>
+                    </select>
+                    <div class="form-help">가입 속도를 선택하세요</div>
+                </div>
+            </div>
+            
+            <!-- 사용요금 -->
+            <div class="form-section-item">
+                <div class="form-section-title">사용요금</div>
+                <div class="form-group">
+                    <label class="form-label" for="monthly_fee">월 요금제</label>
+                    <div class="price-input-wrapper">
+                        <input type="text" name="monthly_fee" id="monthly_fee" class="form-control" placeholder="0" maxlength="10" data-suffix="원">
+                        <span class="price-input-suffix">원</span>
                     </div>
-                    <div class="form-checkbox">
-                        <input type="radio" name="speed_option" id="speed_500m" value="500M">
-                        <label for="speed_500m">500M</label>
-                    </div>
-                    <div class="form-checkbox">
-                        <input type="radio" name="speed_option" id="speed_1g" value="1G">
-                        <label for="speed_1g">1G</label>
-                    </div>
+                    <div class="form-help">월 요금제 금액을 입력하세요 (최대 10자)</div>
                 </div>
             </div>
         </div>
         
         <!-- 현금지급 -->
         <div class="form-section">
-            <div class="form-section-title">현금지급</div>
+            <div class="form-section-title">
+                <img src="/MVNO/assets/images/icons/cash.svg" alt="현금" class="form-section-title-icon">
+                현금지급
+            </div>
             
             <div class="form-group">
                 <label class="form-label">항목</label>
                 <div id="cash-payment-container">
                     <div class="gift-input-group">
-                        <div style="display: flex; align-items: center; justify-content: center; padding: 0 12px; background: #f3f4f6; border: 1px solid #d1d5db; border-right: none; border-radius: 8px 0 0 8px; width: 40px;">
-                            <img src="/MVNO/assets/images/won.svg" alt="원" style="width: 20px; height: 20px; object-fit: contain;">
+                        <div class="item-icon-wrapper">
+                            <img src="/MVNO/assets/images/icons/cash.svg" alt="현금" style="width: 20px; height: 20px; object-fit: contain;">
                         </div>
-                        <input type="text" name="cash_payments[]" class="form-control" placeholder="항목 입력" maxlength="20" style="border-left: none; border-right: none; border-radius: 0;">
-                        <button type="button" class="btn-add" onclick="addCashPaymentField()" style="margin-top: 0; border-radius: 0 8px 8px 0; border-left: none;">추가</button>
+                        <input type="text" name="cash_payment_names[]" class="form-control item-name-input" placeholder="현금" maxlength="30">
+                        <div class="item-price-input-wrapper">
+                            <input type="text" name="cash_payment_prices[]" class="form-control" placeholder="50,000원">
+                            <span class="item-price-suffix">원</span>
+                        </div>
+                        <button type="button" class="btn-add" onclick="addCashPaymentField()" style="margin-top: 0;">추가</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 상품권 지급 -->
+        <div class="form-section">
+            <div class="form-section-title">
+                <img src="/MVNO/assets/images/icons/gift-card.svg" alt="상품권" class="form-section-title-icon">
+                상품권 지급
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">항목</label>
+                <div id="gift-card-container">
+                    <div class="gift-input-group">
+                        <div class="item-icon-wrapper">
+                            <img src="/MVNO/assets/images/icons/gift-card.svg" alt="상품권" style="width: 20px; height: 20px; object-fit: contain;">
+                        </div>
+                        <input type="text" name="gift_card_names[]" class="form-control item-name-input" placeholder="상품권" maxlength="30">
+                        <div class="item-price-input-wrapper">
+                            <input type="text" name="gift_card_prices[]" class="form-control" placeholder="170,000원">
+                            <span class="item-price-suffix">원</span>
+                        </div>
+                        <button type="button" class="btn-add" onclick="addGiftCardField()" style="margin-top: 0;">추가</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 장비 및 기타 서비스 -->
+        <div class="form-section">
+            <div class="form-section-title">
+                <img src="/MVNO/assets/images/icons/equipment.svg" alt="장비" class="form-section-title-icon">
+                장비 및 기타 서비스
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">장비 제공</label>
+                <div id="equipment-container">
+                    <div class="gift-input-group">
+                        <div class="item-icon-wrapper">
+                            <img src="/MVNO/assets/images/icons/equipment.svg" alt="장비" style="width: 20px; height: 20px; object-fit: contain;">
+                        </div>
+                        <input type="text" name="equipment_names[]" class="form-control item-name-input" placeholder="와이파이 공유기" maxlength="30">
+                        <div class="item-price-input-wrapper">
+                            <input type="text" name="equipment_prices[]" class="form-control" placeholder="무료(월1,100원 상당)">
+                            <span class="item-price-suffix">원</span>
+                        </div>
+                        <button type="button" class="btn-add" onclick="addEquipmentField()" style="margin-top: 0;">추가</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">설치 및 기타 서비스</label>
+                <div id="installation-container">
+                    <div class="gift-input-group">
+                        <div class="item-icon-wrapper">
+                            <img src="/MVNO/assets/images/icons/installation.svg" alt="설치" style="width: 20px; height: 20px; object-fit: contain;">
+                        </div>
+                        <input type="text" name="installation_names[]" class="form-control item-name-input" placeholder="인터넷,TV설치비" maxlength="30">
+                        <div class="item-price-input-wrapper">
+                            <input type="text" name="installation_prices[]" class="form-control" placeholder="무료(36,000원 상당)">
+                            <span class="item-price-suffix">원</span>
+                        </div>
+                        <button type="button" class="btn-add" onclick="addInstallationField()" style="margin-top: 0;">추가</button>
                     </div>
                 </div>
             </div>
@@ -662,25 +871,101 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-let cashPaymentCount = 1;
-
 function addCashPaymentField() {
     const container = document.getElementById('cash-payment-container');
     const newField = document.createElement('div');
     newField.className = 'gift-input-group';
     newField.innerHTML = `
-        <div style="display: flex; align-items: center; justify-content: center; padding: 0 12px; background: #f3f4f6; border: 1px solid #d1d5db; border-right: none; border-radius: 8px 0 0 8px; width: 40px;">
-            <img src="/MVNO/assets/images/won.svg" alt="원" style="width: 20px; height: 20px; object-fit: contain;">
+        <div class="item-icon-wrapper">
+            <img src="/MVNO/assets/images/icons/cash.svg" alt="현금" style="width: 20px; height: 20px; object-fit: contain;">
         </div>
-        <input type="text" name="cash_payments[]" class="form-control" placeholder="항목 입력" maxlength="20" style="border-left: none; border-right: none; border-radius: 0;">
-        <button type="button" class="btn-remove" onclick="removeCashPaymentField(this)" style="border-radius: 0 8px 8px 0; border-left: none;">삭제</button>
+        <input type="text" name="cash_payment_names[]" class="form-control item-name-input" placeholder="현금" maxlength="30">
+        <div class="item-price-input-wrapper">
+            <input type="text" name="cash_payment_prices[]" class="form-control" placeholder="50,000원">
+            <span class="item-price-suffix">원</span>
+        </div>
+        <button type="button" class="btn-remove" onclick="removeCashPaymentField(this)">삭제</button>
     `;
     container.appendChild(newField);
-    cashPaymentCount++;
 }
 
 function removeCashPaymentField(button) {
     const container = document.getElementById('cash-payment-container');
+    if (container.children.length > 1) {
+        button.parentElement.remove();
+    }
+}
+
+function addGiftCardField() {
+    const container = document.getElementById('gift-card-container');
+    const newField = document.createElement('div');
+    newField.className = 'gift-input-group';
+    newField.innerHTML = `
+        <div class="item-icon-wrapper">
+            <img src="/MVNO/assets/images/icons/gift-card.svg" alt="상품권" style="width: 20px; height: 20px; object-fit: contain;">
+        </div>
+        <input type="text" name="gift_card_names[]" class="form-control item-name-input" placeholder="상품권" maxlength="30">
+        <div class="item-price-input-wrapper">
+            <input type="text" name="gift_card_prices[]" class="form-control" placeholder="170,000원">
+            <span class="item-price-suffix">원</span>
+        </div>
+        <button type="button" class="btn-remove" onclick="removeGiftCardField(this)">삭제</button>
+    `;
+    container.appendChild(newField);
+}
+
+function removeGiftCardField(button) {
+    const container = document.getElementById('gift-card-container');
+    if (container.children.length > 1) {
+        button.parentElement.remove();
+    }
+}
+
+function addEquipmentField() {
+    const container = document.getElementById('equipment-container');
+    const newField = document.createElement('div');
+    newField.className = 'gift-input-group';
+    newField.innerHTML = `
+        <div class="item-icon-wrapper">
+            <img src="/MVNO/assets/images/icons/equipment.svg" alt="장비" style="width: 20px; height: 20px; object-fit: contain;">
+        </div>
+        <input type="text" name="equipment_names[]" class="form-control item-name-input" placeholder="와이파이 공유기" maxlength="30">
+        <div class="item-price-input-wrapper">
+            <input type="text" name="equipment_prices[]" class="form-control" placeholder="무료(월1,100원 상당)">
+            <span class="item-price-suffix">원</span>
+        </div>
+        <button type="button" class="btn-remove" onclick="removeEquipmentField(this)">삭제</button>
+    `;
+    container.appendChild(newField);
+}
+
+function removeEquipmentField(button) {
+    const container = document.getElementById('equipment-container');
+    if (container.children.length > 1) {
+        button.parentElement.remove();
+    }
+}
+
+function addInstallationField() {
+    const container = document.getElementById('installation-container');
+    const newField = document.createElement('div');
+    newField.className = 'gift-input-group';
+    newField.innerHTML = `
+        <div class="item-icon-wrapper">
+            <img src="/MVNO/assets/images/icons/installation.svg" alt="설치" style="width: 20px; height: 20px; object-fit: contain;">
+        </div>
+        <input type="text" name="installation_names[]" class="form-control item-name-input" placeholder="인터넷,TV설치비" maxlength="30">
+        <div class="item-price-input-wrapper">
+            <input type="text" name="installation_prices[]" class="form-control" placeholder="무료(36,000원 상당)">
+            <span class="item-price-suffix">원</span>
+        </div>
+        <button type="button" class="btn-remove" onclick="removeInstallationField(this)">삭제</button>
+    `;
+    container.appendChild(newField);
+}
+
+function removeInstallationField(button) {
+    const container = document.getElementById('installation-container');
     if (container.children.length > 1) {
         button.parentElement.remove();
     }
@@ -711,8 +996,3 @@ document.getElementById('productForm').addEventListener('submit', function(e) {
 </script>
 
 <?php include __DIR__ . '/../includes/seller-footer.php'; ?>
-
-
-
-
-

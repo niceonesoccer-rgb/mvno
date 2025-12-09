@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
+  <defs>
+    <linearGradient id="equipmentGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#4f46e5;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Main router/equipment body -->
+  <rect x="4" y="8" width="16" height="10" rx="2" fill="url(#equipmentGradient)" stroke="#312e81" stroke-width="1.5"/>
+  
+  <!-- Top panel section -->
+  <rect x="5" y="9" width="14" height="3" rx="1" fill="#818cf8" opacity="0.3"/>
+  
+  <!-- LED indicator lights -->
+  <circle cx="7" cy="10.5" r="0.8" fill="#10b981"/>
+  <circle cx="9.5" cy="10.5" r="0.8" fill="#fbbf24"/>
+  <circle cx="12" cy="10.5" r="0.8" fill="#ef4444"/>
+  
+  <!-- Port/connector rows -->
+  <rect x="6" y="13" width="2" height="1.5" rx="0.3" fill="#312e81"/>
+  <rect x="9" y="13" width="2" height="1.5" rx="0.3" fill="#312e81"/>
+  <rect x="12" y="13" width="2" height="1.5" rx="0.3" fill="#312e81"/>
+  <rect x="15" y="13" width="2" height="1.5" rx="0.3" fill="#312e81"/>
+  
+  <rect x="6" y="15.5" width="2" height="1.5" rx="0.3" fill="#312e81"/>
+  <rect x="9" y="15.5" width="2" height="1.5" rx="0.3" fill="#312e81"/>
+  <rect x="12" y="15.5" width="2" height="1.5" rx="0.3" fill="#312e81"/>
+  <rect x="15" y="15.5" width="2" height="1.5" rx="0.3" fill="#312e81"/>
+  
+  <!-- Antenna -->
+  <line x1="12" y1="8" x2="10" y2="4" stroke="#6366f1" stroke-width="1.5" stroke-linecap="round"/>
+  <circle cx="10" cy="4" r="1.2" fill="#6366f1"/>
+  <line x1="12" y1="8" x2="14" y2="4" stroke="#6366f1" stroke-width="1.5" stroke-linecap="round"/>
+  <circle cx="14" cy="4" r="1.2" fill="#6366f1"/>
+  
+  <!-- Signal waves -->
+  <path d="M6 6 Q8 5 10 6" stroke="#818cf8" stroke-width="1.5" fill="none" stroke-linecap="round" opacity="0.6"/>
+  <path d="M14 6 Q16 5 18 6" stroke="#818cf8" stroke-width="1.5" fill="none" stroke-linecap="round" opacity="0.6"/>
+</svg>
+
