@@ -45,7 +45,8 @@ $productData = [
     'contract_period_days' => $_POST['contract_period_days'] ?? '',
     'discount_period' => $_POST['discount_period'] ?? '',
     'price_main' => !empty($_POST['price_main']) ? floatval(str_replace(',', '', $_POST['price_main'])) : 0,
-    'price_after' => ($_POST['price_after_type_hidden'] ?? '') === 'free' ? null : (!empty($_POST['price_after']) ? floatval(str_replace(',', '', $_POST['price_after'])) : null),
+    'price_after' => ($_POST['price_after_type_hidden'] ?? '') === 'free' ? null : (isset($_POST['price_after']) && $_POST['price_after'] !== '' ? floatval(str_replace(',', '', $_POST['price_after'])) : null),
+    'price_after_type_hidden' => $_POST['price_after_type_hidden'] ?? '',
     'data_amount' => $_POST['data_amount'] ?? '',
     'data_amount_value' => $_POST['data_amount_value'] ?? '',
     'data_unit' => $_POST['data_unit'] ?? '',
@@ -62,11 +63,11 @@ $productData = [
     'mobile_hotspot' => $_POST['mobile_hotspot'] ?? '',
     'mobile_hotspot_value' => $_POST['mobile_hotspot_value'] ?? '',
     'regular_sim_available' => $_POST['regular_sim_available'] ?? '',
-    'regular_sim_price' => $_POST['regular_sim_price'] ?? '',
+    'regular_sim_price' => (!empty($_POST['regular_sim_price']) && ($_POST['regular_sim_available'] ?? '') === '배송가능') ? intval(str_replace(',', '', $_POST['regular_sim_price'])) : null,
     'nfc_sim_available' => $_POST['nfc_sim_available'] ?? '',
-    'nfc_sim_price' => $_POST['nfc_sim_price'] ?? '',
+    'nfc_sim_price' => (!empty($_POST['nfc_sim_price']) && ($_POST['nfc_sim_available'] ?? '') === '배송가능') ? intval(str_replace(',', '', $_POST['nfc_sim_price'])) : null,
     'esim_available' => $_POST['esim_available'] ?? '',
-    'esim_price' => $_POST['esim_price'] ?? '',
+    'esim_price' => (!empty($_POST['esim_price']) && ($_POST['esim_available'] ?? '') === '개통가능') ? intval(str_replace(',', '', $_POST['esim_price'])) : null,
     'over_data_price' => $_POST['over_data_price'] ?? '',
     'over_voice_price' => $_POST['over_voice_price'] ?? '',
     'over_video_price' => $_POST['over_video_price'] ?? '',
@@ -125,7 +126,7 @@ try {
         global $lastDbError;
         $errorMessage = '상품 등록에 실패했습니다.';
         
-        // 개발 환경에서는 상세 에러 표시
+        // 상세 에러 정보 포함
         if (isset($lastDbError)) {
             $errorMessage .= "\n\n오류: " . htmlspecialchars($lastDbError);
         } else {
@@ -135,18 +136,19 @@ try {
         // POST 데이터도 로깅
         error_log("Failed product registration. POST data: " . json_encode($_POST, JSON_UNESCAPED_UNICODE));
         
-        // 디버깅 정보를 응답에 포함
-        $debugInfo = [
-            'lastDbError' => isset($lastDbError) ? $lastDbError : null,
-            'postDataKeys' => array_keys($_POST),
-            'productId' => $_POST['product_id'] ?? 'not set'
-        ];
-        
-        echo json_encode([
+        // 디버깅 정보를 항상 응답에 포함
+        $response = [
             'success' => false,
             'message' => $errorMessage,
-            'debug' => $debugInfo
-        ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+            'debug' => [
+                'lastDbError' => isset($lastDbError) ? $lastDbError : null,
+                'postDataKeys' => array_keys($_POST),
+                'productId' => $_POST['product_id'] ?? 'not set',
+                'productDataKeys' => isset($productData) ? array_keys($productData) : []
+            ]
+        ];
+        
+        echo json_encode($response, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
         exit;
     }
 } catch (Exception $e) {

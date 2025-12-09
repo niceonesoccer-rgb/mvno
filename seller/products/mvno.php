@@ -93,17 +93,25 @@ if ($productId > 0) {
                     WHERE product_id = :product_id
                 ");
                 $detailStmt->execute([':product_id' => $productId]);
+                $detailStmt->setFetchMode(PDO::FETCH_ASSOC);
                 $productDetail = $detailStmt->fetch();
                 
                 if ($productDetail) {
                     $isEditMode = true;
                     $productData = array_merge($product, $productDetail);
                     
-                    // price_after 처리: null이면 'free', 0이면 실제 0, 그 외는 숫자값
-                    if ($productData['price_after'] === null) {
+                    // price_after 처리: null이면 'free' (공짜), 숫자(0 포함)면 그대로 표시
+                    // PDO에서 가져온 값이 실제 null인지 확인 (0과 구분)
+                    // PDO::FETCH_ASSOC를 사용하면 null 값이 PHP null로 반환됨
+                    if ($productData['price_after'] === null || 
+                        (is_string($productData['price_after']) && (trim($productData['price_after']) === '' || strtolower(trim($productData['price_after'])) === 'null'))) {
+                        // null이면 'free'로 처리 (공짜)
                         $productData['price_after'] = 'free';
                         $productData['price_after_type_hidden'] = 'free';
                     } else {
+                        // 숫자로 변환하여 저장 (0도 숫자이므로 그대로 저장)
+                        $priceAfterValue = floatval($productData['price_after']);
+                        $productData['price_after'] = $priceAfterValue;
                         $productData['price_after_type_hidden'] = 'custom';
                     }
                     
@@ -507,16 +515,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     </label>
                     <select name="price_after_type" id="price_after_type" class="form-select" style="max-width: 200px;">
                         <option value="">선택하세요</option>
-                        <option value="free" <?php echo (isset($productData['price_after']) && ($productData['price_after'] === null || $productData['price_after'] === 'free')) ? 'selected' : ''; ?>>공짜</option>
-                        <option value="custom" <?php echo (isset($productData['price_after']) && $productData['price_after'] !== null && $productData['price_after'] !== '' && $productData['price_after'] !== 'free') ? 'selected' : ''; ?>>직접입력</option>
+                        <option value="free" <?php echo (isset($productData['price_after']) && ($productData['price_after'] === null || $productData['price_after'] === 'free' || $productData['price_after'] === 'null')) ? 'selected' : ''; ?>>공짜</option>
+                        <option value="custom" <?php echo (isset($productData['price_after']) && $productData['price_after'] !== null && $productData['price_after'] !== '' && $productData['price_after'] !== 'free' && $productData['price_after'] !== 'null') ? 'selected' : ''; ?>>직접입력</option>
                     </select>
-                    <div id="price_after_input" style="display: <?php echo (isset($productData['price_after']) && $productData['price_after'] !== null && $productData['price_after'] !== '' && $productData['price_after'] !== 'free') ? 'block' : 'none'; ?>; margin-top: 12px;">
+                    <div id="price_after_input" style="display: <?php echo (isset($productData['price_after']) && $productData['price_after'] !== null && $productData['price_after'] !== '' && $productData['price_after'] !== 'free' && $productData['price_after'] !== 'null') ? 'block' : 'none'; ?>; margin-top: 12px;">
                         <div class="input-with-unit" style="max-width: 200px;">
-                            <input type="text" id="price_after" class="form-control" placeholder="500" maxlength="5" value="<?php echo (isset($productData['price_after']) && $productData['price_after'] !== null && $productData['price_after'] !== '' && $productData['price_after'] !== 'free') ? htmlspecialchars(formatIntegerForInput($productData['price_after'])) : ''; ?>">
+                            <input type="text" id="price_after" class="form-control" placeholder="500" maxlength="5" value="<?php echo (isset($productData['price_after']) && $productData['price_after'] !== null && $productData['price_after'] !== '' && $productData['price_after'] !== 'free' && $productData['price_after'] !== 'null') ? htmlspecialchars(formatIntegerForInput($productData['price_after'])) : ''; ?>">
                             <span class="unit">원</span>
                         </div>
                     </div>
-                    <input type="hidden" name="price_after" id="price_after_hidden" value="<?php echo (isset($productData['price_after']) && $productData['price_after'] !== null && $productData['price_after'] !== 'free') ? htmlspecialchars(formatIntegerForInput($productData['price_after'])) : ''; ?>">
+                    <input type="hidden" name="price_after" id="price_after_hidden" value="<?php echo (isset($productData['price_after']) && $productData['price_after'] !== null && $productData['price_after'] !== '' && $productData['price_after'] !== 'free' && $productData['price_after'] !== 'null') ? htmlspecialchars(formatIntegerForInput($productData['price_after'])) : ''; ?>">
                     <input type="hidden" name="price_after_type_hidden" id="price_after_type_hidden" value="<?php echo isset($productData['price_after_type_hidden']) ? htmlspecialchars($productData['price_after_type_hidden']) : ''; ?>">
                 </div>
             </div>
@@ -823,9 +831,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         <?php foreach ($productData['benefits'] as $index => $benefit): ?>
                             <div class="gift-input-group">
                                 <textarea name="benefits[]" class="form-textarea" style="min-height: 80px;" placeholder="혜택 및 유의사항을 입력하세요"><?php echo htmlspecialchars($benefit); ?></textarea>
-                                <?php if ($index > 0): ?>
-                                    <button type="button" class="btn-remove" onclick="removeBenefitField(this)">삭제</button>
-                                <?php endif; ?>
                             </div>
                         <?php endforeach; ?>
                     <?php else: ?>
@@ -857,21 +862,32 @@ document.addEventListener('DOMContentLoaded', function() {
     function toggleInputField(selectId, inputContainerId, triggerValue, inputId = null, additionalSelectId = null) {
         const select = document.getElementById(selectId);
         const container = document.getElementById(inputContainerId);
-        if (!select || !container) return;
+        if (!select || !container) {
+            console.log('toggleInputField: 요소를 찾을 수 없음', selectId, inputContainerId);
+            return;
+        }
         
         // 초기 상태 설정
         const initialValue = select.value;
         const isInitiallyShow = initialValue === triggerValue;
-        container.style.display = isInitiallyShow ? 'block' : 'none';
+        // display 속성만 업데이트 (margin-top 등 다른 스타일 유지)
+        if (isInitiallyShow) {
+            container.style.display = 'block';
+        } else {
+            container.style.display = 'none';
+        }
+        console.log('toggleInputField init:', selectId, 'value:', initialValue, 'triggerValue:', triggerValue, 'isShow:', isInitiallyShow, 'display:', container.style.display, 'computed:', window.getComputedStyle(container).display);
         
         if (inputId) {
             const input = document.getElementById(inputId);
             if (input) {
-                input.disabled = !isInitiallyShow;
-                if (!isInitiallyShow) {
-                    input.setAttribute('disabled', 'disabled');
-                } else {
+                // 필드가 표시되어 있으면 항상 활성화 (수정 모드에서도 입력 가능하도록)
+                if (isInitiallyShow) {
                     input.removeAttribute('disabled');
+                    input.disabled = false;
+                } else {
+                    input.setAttribute('disabled', 'disabled');
+                    input.disabled = true;
                 }
             }
         }
@@ -891,18 +907,28 @@ document.addEventListener('DOMContentLoaded', function() {
         // change 이벤트 리스너
         select.addEventListener('change', function() {
             const isShow = this.value === triggerValue;
+            console.log('toggleInputField change:', selectId, 'value:', this.value, 'triggerValue:', triggerValue, 'isShow:', isShow);
+            console.log('container:', container, 'display before:', container.style.display);
+            // display 속성만 업데이트 (margin-top 등 다른 스타일 유지)
             container.style.display = isShow ? 'block' : 'none';
+            console.log('container display after:', container.style.display);
             
             if (inputId) {
                 const input = document.getElementById(inputId);
                 if (input) {
                     if (isShow) {
                         input.removeAttribute('disabled');
+                        input.disabled = false; // 명시적으로 활성화
                         input.focus();
+                        console.log('Input enabled:', inputId);
                     } else {
                         input.setAttribute('disabled', 'disabled');
+                        input.disabled = true; // 명시적으로 비활성화
                         input.value = '';
+                        console.log('Input disabled:', inputId);
                     }
+                } else {
+                    console.log('Input not found:', inputId);
                 }
             }
             
@@ -987,11 +1013,16 @@ document.addEventListener('DOMContentLoaded', function() {
         
         input.addEventListener('blur', function() {
             if (this.value) {
-                this.value = parseInt(this.value).toLocaleString('ko-KR');
+                // 천단위 구분자 제거 후 숫자로 변환
+                const numValue = parseInt(this.value.replace(/,/g, ''));
+                if (!isNaN(numValue)) {
+                    this.value = numValue.toLocaleString('ko-KR');
+                }
             }
         });
         
         input.addEventListener('focus', function() {
+            // 천단위 구분자 제거
             this.value = this.value.replace(/,/g, '');
         });
     }
@@ -1038,15 +1069,46 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 일반 유심
     toggleInputField('regular_sim_available', 'regular_sim_price_input', '배송가능', 'regular_sim_price');
-    setupPriceInput('regular_sim_price', true);
+    const regularSimPriceInput = document.getElementById('regular_sim_price');
+    if (regularSimPriceInput) {
+        // 필드가 표시되어 있으면 활성화
+        if (regularSimPriceInput.closest('#regular_sim_price_input').style.display !== 'none') {
+            regularSimPriceInput.removeAttribute('disabled');
+        }
+        setupPriceInput('regular_sim_price', false);
+        // 페이지 로드 시 천단위 구분자 제거 (입력 필드는 숫자만 표시)
+        if (regularSimPriceInput.value) {
+            regularSimPriceInput.value = regularSimPriceInput.value.replace(/,/g, '');
+        }
+    }
     
     // NFC 유심
     toggleInputField('nfc_sim_available', 'nfc_sim_price_input', '배송가능', 'nfc_sim_price');
-    setupPriceInput('nfc_sim_price', true);
+    const nfcSimPriceInput = document.getElementById('nfc_sim_price');
+    if (nfcSimPriceInput) {
+        // 필드가 표시되어 있으면 활성화
+        if (nfcSimPriceInput.closest('#nfc_sim_price_input').style.display !== 'none') {
+            nfcSimPriceInput.removeAttribute('disabled');
+        }
+        setupPriceInput('nfc_sim_price', false);
+        if (nfcSimPriceInput.value) {
+            nfcSimPriceInput.value = nfcSimPriceInput.value.replace(/,/g, '');
+        }
+    }
     
     // eSIM
     toggleInputField('esim_available', 'esim_price_input', '개통가능', 'esim_price');
-    setupPriceInput('esim_price', true);
+    const esimPriceInput = document.getElementById('esim_price');
+    if (esimPriceInput) {
+        // 필드가 표시되어 있으면 활성화
+        if (esimPriceInput.closest('#esim_price_input').style.display !== 'none') {
+            esimPriceInput.removeAttribute('disabled');
+        }
+        setupPriceInput('esim_price', false);
+        if (esimPriceInput.value) {
+            esimPriceInput.value = esimPriceInput.value.replace(/,/g, '');
+        }
+    }
     
     // 기본 제공 초과 시 가격
     limitDecimalInput('over_data_price');
@@ -1079,9 +1141,9 @@ document.addEventListener('DOMContentLoaded', function() {
         
         priceAfterType.addEventListener('change', function() {
             if (this.value === 'free') {
-                // 공짜 선택 시 'free'로 설정
+                // 공짜 선택 시: hidden 필드는 빈 문자열로 설정 (API에서 price_after_type_hidden으로 판단)
                 priceAfterInput.style.display = 'none';
-                priceAfterHidden.value = 'free';
+                priceAfterHidden.value = '';
                 priceAfterTypeHidden.value = 'free';
                 if (priceAfterField) priceAfterField.value = '';
             } else if (this.value === 'custom') {
@@ -1225,29 +1287,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         
-        // 할인 후 요금 값 최종 처리
-        const priceAfterType = document.getElementById('price_after_type');
-        const priceAfterHidden = document.getElementById('price_after_hidden');
-        const priceAfterTypeHidden = document.getElementById('price_after_type_hidden');
-        const priceAfterField = document.getElementById('price_after');
-        
-        if (priceAfterType && priceAfterHidden && priceAfterTypeHidden) {
-            if (priceAfterType.value === 'free') {
-                // 공짜 선택 시 특별한 값으로 설정
-                priceAfterHidden.value = 'free';
-                priceAfterTypeHidden.value = 'free';
-            } else if (priceAfterType.value === 'custom' && priceAfterField) {
-                // 직접입력 시 입력값 사용 (0도 가능)
-                const inputValue = priceAfterField.value.replace(/[^0-9]/g, '');
-                priceAfterHidden.value = inputValue;
-                priceAfterTypeHidden.value = 'custom';
-            } else {
-                // 선택 안함
-                priceAfterHidden.value = '';
-                priceAfterTypeHidden.value = '';
-            }
-        }
-        
         // plan_name 필드 확인
         const planNameField = document.getElementById('plan_name');
         if (planNameField && !planNameField.value.trim()) {
@@ -1261,42 +1300,88 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        const formData = new FormData(this);
+        // 할인 후 요금 값 최종 처리 (FormData 생성 전에 실행)
+        const priceAfterType = document.getElementById('price_after_type');
+        const priceAfterHidden = document.getElementById('price_after_hidden');
+        const priceAfterTypeHidden = document.getElementById('price_after_type_hidden');
+        const priceAfterField = document.getElementById('price_after');
         
-        // 디버깅: 전송되는 모든 데이터 확인
-        console.log('=== Form Data ===');
-        console.log('product_id:', formData.get('product_id'));
-        console.log('plan_name:', formData.get('plan_name'));
-        console.log('price_after_type_hidden:', formData.get('price_after_type_hidden'));
-        console.log('price_after:', formData.get('price_after'));
-        for (let [key, value] of formData.entries()) {
-            console.log(key + ':', value);
+        if (priceAfterType && priceAfterHidden && priceAfterTypeHidden) {
+            // 현재 선택된 값을 다시 확인하여 설정
+            if (priceAfterType.value === 'free') {
+                // 공짜 선택 시: hidden 필드는 빈 문자열로 설정 (API에서 price_after_type_hidden으로 판단)
+                priceAfterHidden.value = '';
+                priceAfterTypeHidden.value = 'free';
+                if (priceAfterField) priceAfterField.value = '';
+            } else if (priceAfterType.value === 'custom' && priceAfterField) {
+                // 직접입력 시 입력값 사용 (0도 가능)
+                const inputValue = priceAfterField.value.replace(/[^0-9]/g, '');
+                priceAfterHidden.value = inputValue || '0';
+                priceAfterTypeHidden.value = 'custom';
+            } else {
+                // 선택 안함
+                priceAfterHidden.value = '';
+                priceAfterTypeHidden.value = '';
+            }
         }
         
-        fetch('/MVNO/api/product-register-mvno.php', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                window.location.href = '/MVNO/seller/products/mvno.php?success=1';
-            } else {
-                if (typeof showAlert === 'function') {
-                    showAlert(data.message || '상품 등록에 실패했습니다.', '오류', true);
+        const formData = new FormData(this);
+        
+        // 실제 제출 함수
+        const submitForm = function() {
+            fetch('/MVNO/api/product-register-mvno.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // 수정 모드면 등록 상품 리스트로, 등록 모드면 등록 페이지로
+                    const productId = formData.get('product_id');
+                    if (productId && productId !== '0') {
+                        // 수정 모드: 등록 상품 리스트로 리다이렉트
+                        window.location.href = '/MVNO/seller/products/mvno-list.php?success=1';
+                    } else {
+                        // 등록 모드: 등록 페이지로 리다이렉트
+                        window.location.href = '/MVNO/seller/products/mvno.php?success=1';
+                    }
                 } else {
-                    alert(data.message || '상품 등록에 실패했습니다.');
+                    if (typeof showAlert === 'function') {
+                        showAlert(data.message || '상품 등록에 실패했습니다.', '오류', true);
+                    } else {
+                        alert(data.message || '상품 등록에 실패했습니다.');
+                    }
+                }
+            })
+            .catch(error => {
+                const errorMessage = '상품 등록 중 오류가 발생했습니다.';
+                if (typeof showAlert === 'function') {
+                    showAlert(errorMessage, '오류', true);
+                } else {
+                    alert(errorMessage);
+                }
+            });
+        };
+        
+        // 수정 모드일 때 확인 모달 띄우기
+        const productId = formData.get('product_id');
+        if (productId && productId !== '0') {
+            // 수정 모드: 확인 모달 띄우기
+            if (typeof showConfirm === 'function') {
+                showConfirm('상품을 수정하시겠습니까?', '수정 확인', true).then(function(confirmed) {
+                    if (confirmed) {
+                        submitForm();
+                    }
+                });
+            } else {
+                if (confirm('상품을 수정하시겠습니까?')) {
+                    submitForm();
                 }
             }
-        })
-        .catch(error => {
-            const errorMessage = '상품 등록 중 오류가 발생했습니다.';
-            if (typeof showAlert === 'function') {
-                showAlert(errorMessage, '오류', true);
-            } else {
-                alert(errorMessage);
-            }
-        });
+        } else {
+            // 등록 모드: 바로 제출
+            submitForm();
+        }
     });
 });
 
@@ -1315,6 +1400,26 @@ function addPromotionField() {
 
 function removePromotionField(button) {
     const container = document.getElementById('promotion-container');
+    if (container && container.children.length > 1) {
+        button.parentElement.remove();
+    }
+}
+
+// 혜택 필드 추가/삭제 함수
+function addBenefitField() {
+    const container = document.getElementById('benefits-container');
+    if (!container) return;
+    const newField = document.createElement('div');
+    newField.className = 'gift-input-group';
+    newField.innerHTML = `
+        <textarea name="benefits[]" class="form-textarea" style="min-height: 80px;" placeholder="혜택 및 유의사항을 입력하세요"></textarea>
+        <button type="button" class="btn-remove" onclick="removeBenefitField(this)">삭제</button>
+    `;
+    container.appendChild(newField);
+}
+
+function removeBenefitField(button) {
+    const container = document.getElementById('benefits-container');
     if (container && container.children.length > 1) {
         button.parentElement.remove();
     }

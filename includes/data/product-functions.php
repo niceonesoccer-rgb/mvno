@@ -22,27 +22,39 @@ function saveMvnoProduct($productData) {
         $isEditMode = isset($productData['product_id']) && $productData['product_id'] > 0;
         $productId = $isEditMode ? $productData['product_id'] : null;
         
-        if ($isEditMode) {
-            // 수정 모드: 기존 상품 정보 업데이트
-            $stmt = $pdo->prepare("
-                UPDATE products 
-                SET seller_id = :seller_id, product_type = 'mvno'
-                WHERE id = :product_id AND seller_id = :seller_id
-            ");
-            $stmt->execute([
-                ':seller_id' => $productData['seller_id'],
-                ':product_id' => $productId
-            ]);
-        } else {
-            // 등록 모드: 새 상품 정보 저장
-            $stmt = $pdo->prepare("
-                INSERT INTO products (seller_id, product_type, status, view_count)
-                VALUES (:seller_id, 'mvno', 'active', 0)
-            ");
-            $stmt->execute([
-                ':seller_id' => $productData['seller_id']
-            ]);
-            $productId = $pdo->lastInsertId();
+        try {
+            if ($isEditMode) {
+                // 수정 모드: 기존 상품 정보 업데이트
+                $stmt = $pdo->prepare("
+                    UPDATE products 
+                    SET seller_id = :seller_id, product_type = 'mvno'
+                    WHERE id = :product_id AND seller_id = :seller_id_check
+                ");
+                $stmt->execute([
+                    ':seller_id' => $productData['seller_id'],
+                    ':product_id' => $productId,
+                    ':seller_id_check' => $productData['seller_id']
+                ]);
+            } else {
+                // 등록 모드: 새 상품 정보 저장
+                $stmt = $pdo->prepare("
+                    INSERT INTO products (seller_id, product_type, status, view_count)
+                    VALUES (:seller_id, 'mvno', 'active', 0)
+                ");
+                $stmt->execute([
+                    ':seller_id' => $productData['seller_id']
+                ]);
+                $productId = $pdo->lastInsertId();
+            }
+        } catch (PDOException $e) {
+            $errorMsg = "Error in first query (products table): " . $e->getMessage();
+            $errorMsg .= "\nQuery type: " . ($isEditMode ? "UPDATE" : "INSERT");
+            $errorMsg .= "\nProduct ID: " . $productId;
+            error_log($errorMsg);
+            
+            global $lastDbError;
+            $lastDbError = $errorMsg;
+            throw $e;
         }
         
         // 상세 정보 존재 여부 확인 (수정 모드일 경우)
@@ -51,6 +63,16 @@ function saveMvnoProduct($productData) {
             $checkStmt = $pdo->prepare("SELECT COUNT(*) FROM product_mvno_details WHERE product_id = :product_id");
             $checkStmt->execute([':product_id' => $productId]);
             $detailExists = $checkStmt->fetchColumn() > 0;
+        }
+        
+        // price_after 처리: price_after_type_hidden이 'free'이면 null, 그 외에는 숫자로 변환 (0도 포함)
+        $priceAfterValue = null;
+        if (isset($productData['price_after_type_hidden']) && $productData['price_after_type_hidden'] === 'free') {
+            // 공짜 선택 시 null로 저장
+            $priceAfterValue = null;
+        } elseif (isset($productData['price_after']) && $productData['price_after'] !== '' && $productData['price_after'] !== null && $productData['price_after'] !== 'free') {
+            // 직접입력 시 숫자로 변환 (0도 포함)
+            $priceAfterValue = floatval($productData['price_after']);
         }
         
         // 파라미터 배열 준비 (공통)
@@ -62,7 +84,7 @@ function saveMvnoProduct($productData) {
             ':contract_period_days' => $productData['contract_period_days'] ?? null,
             ':discount_period' => $productData['discount_period'] ?? null,
             ':price_main' => isset($productData['price_main']) ? floatval($productData['price_main']) : 0,
-            ':price_after' => (isset($productData['price_after']) && $productData['price_after'] !== '' && $productData['price_after'] !== null && $productData['price_after'] !== 'free') ? floatval($productData['price_after']) : null,
+            ':price_after' => $priceAfterValue,
             ':data_amount' => $productData['data_amount'] ?? null,
             ':data_amount_value' => $productData['data_amount_value'] ?? null,
             ':data_unit' => $productData['data_unit'] ?? null,
@@ -98,8 +120,7 @@ function saveMvnoProduct($productData) {
         // 쿼리별 파라미터 배열 준비
         if ($isEditMode && $detailExists) {
             // 수정 모드: 상세 정보 업데이트
-            $updateParams = $params;
-            $updateParams[':product_id'] = $productId;
+            $updateParams = array_merge($params, [':product_id' => $productId]);
             $queryString = "
                 UPDATE product_mvno_details SET
                 provider = :provider, service_type = :service_type, plan_name = :plan_name, contract_period = :contract_period,
@@ -117,8 +138,7 @@ function saveMvnoProduct($productData) {
             $executeParams = $updateParams;
         } else {
             // 등록 모드: 상세 정보 저장
-            $insertParams = $params;
-            $insertParams[':product_id'] = $productId;
+            $insertParams = array_merge($params, [':product_id' => $productId]);
             $queryString = "
                 INSERT INTO product_mvno_details (
                 product_id, provider, service_type, plan_name, contract_period,
@@ -149,7 +169,10 @@ function saveMvnoProduct($productData) {
         // 쿼리에서 사용하는 파라미터 추출하여 검증
         preg_match_all('/:(\w+)/', $queryString, $matches);
         $requiredParams = array_unique($matches[1]);
-        $providedParams = array_map(function($key) { return substr($key, 1); }, array_keys($executeParams));
+        // executeParams의 키에서 : 제거하여 비교
+        $providedParams = array_map(function($key) { 
+            return (strpos($key, ':') === 0) ? substr($key, 1) : $key; 
+        }, array_keys($executeParams));
         
         $missingParams = array_diff($requiredParams, $providedParams);
         $extraParams = array_diff($providedParams, $requiredParams);
@@ -181,6 +204,8 @@ function saveMvnoProduct($productData) {
                 $errorMsg .= "Extra: " . implode(", ", $extraParams) . "\n";
             }
             $errorMsg .= "\nDebug info: " . json_encode($debugInfo, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+            $errorMsg .= "\nQuery string: " . $queryString;
+            $errorMsg .= "\nExecute params keys: " . implode(", ", array_keys($executeParams));
             error_log($errorMsg);
             
             // 전역 변수에 저장
@@ -255,15 +280,16 @@ function saveMvnoProduct($productData) {
         if (isset($pdo)) {
             $pdo->rollBack();
         }
-        $errorMsg = "Error saving MVNO product: " . $e->getMessage();
-        $errorMsg .= "\nSQL State: " . $e->getCode();
-        $errorMsg .= "\nStack trace: " . $e->getTraceAsString();
-        $errorMsg .= "\nProduct data: " . json_encode($productData);
-        error_log($errorMsg);
-        
-        // 에러 정보를 전역 변수에 저장 (디버깅용)
         global $lastDbError;
-        $lastDbError = $e->getMessage();
+        // $lastDbError가 이미 상세 정보로 설정되어 있으면 그대로 사용
+        if (!isset($lastDbError) || empty($lastDbError) || $lastDbError === $e->getMessage()) {
+            $errorMsg = "Error saving MVNO product: " . $e->getMessage();
+            $errorMsg .= "\nSQL State: " . $e->getCode();
+            $errorMsg .= "\nStack trace: " . $e->getTraceAsString();
+            $errorMsg .= "\nProduct data: " . json_encode($productData);
+            error_log($errorMsg);
+            $lastDbError = $errorMsg;
+        }
         
         return false;
     } catch (Exception $e) {
