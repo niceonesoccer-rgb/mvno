@@ -28,7 +28,16 @@ function getDBConnection() {
             
             $pdo = new PDO($dsn, DB_USER, DB_PASS, $options);
         } catch (PDOException $e) {
-            error_log("Database connection failed: " . $e->getMessage());
+            $errorMsg = "Database connection failed: " . $e->getMessage();
+            $errorMsg .= "\nHost: " . DB_HOST;
+            $errorMsg .= "\nDatabase: " . DB_NAME;
+            $errorMsg .= "\nUser: " . DB_USER;
+            error_log($errorMsg);
+            
+            // 전역 변수에 에러 저장 (API에서 사용)
+            global $lastDbConnectionError;
+            $lastDbConnectionError = $e->getMessage();
+            
             return null;
         }
     }
@@ -53,4 +62,5 @@ function testDBConnection() {
         return false;
     }
 }
+
 

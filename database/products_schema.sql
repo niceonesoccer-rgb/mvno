@@ -3,8 +3,13 @@
 -- 생성일: 2025-01-XX
 -- ============================================
 
--- 데이터베이스 선택 (필요시)
--- USE mvno_db;
+-- 데이터베이스 생성 (없는 경우)
+CREATE DATABASE IF NOT EXISTS `mvno_db` 
+CHARACTER SET utf8mb4 
+COLLATE utf8mb4_unicode_ci;
+
+-- 데이터베이스 선택
+USE `mvno_db`;
 
 -- ============================================
 -- 1. 상품 기본 테이블 (products)

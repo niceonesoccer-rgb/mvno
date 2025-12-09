@@ -6,6 +6,7 @@
  */
 
 require_once __DIR__ . '/../../includes/data/auth-functions.php';
+require_once __DIR__ . '/../../includes/data/db-config.php';
 
 // 세션 시작
 if (session_status() === PHP_SESSION_NONE) {
@@ -37,6 +38,93 @@ if (isset($currentUser['withdrawal_requested']) && $currentUser['withdrawal_requ
 $hasPermission = hasSellerPermission($currentUser['user_id'], 'mvno');
 if (!$hasPermission) {
     $noPermission = true;
+}
+
+// 정수 필드 포맷팅 함수: 소수점 제거하고 정수로만 표시
+function formatIntegerForInput($value) {
+    if ($value === null || $value === '') {
+        return '';
+    }
+    return (string)intval(floatval($value));
+}
+
+// 소수 가능 필드 포맷팅 함수: 소수점이 0이면 정수로, 있으면 소수점 유지
+function formatDecimalForInput($value) {
+    if ($value === null || $value === '') {
+        return '';
+    }
+    $floatValue = floatval($value);
+    // 소수점 부분이 0이면 정수로 반환
+    if ($floatValue == intval($floatValue)) {
+        return (string)intval($floatValue);
+    }
+    // 소수점이 있으면 그대로 반환 (불필요한 0 제거)
+    $str = (string)$floatValue;
+    // 끝의 불필요한 0과 소수점 제거
+    return rtrim(rtrim($str, '0'), '.');
+}
+
+// 수정 모드: 상품 데이터 불러오기
+$productId = isset($_GET['id']) ? intval($_GET['id']) : 0;
+$productData = null;
+$isEditMode = false;
+
+if ($productId > 0) {
+    try {
+        $pdo = getDBConnection();
+        if ($pdo) {
+            $sellerId = (string)$currentUser['user_id'];
+            
+            // 기본 상품 정보 조회
+            $stmt = $pdo->prepare("
+                SELECT * FROM products 
+                WHERE id = :product_id AND seller_id = :seller_id AND product_type = 'mvno' AND status != 'deleted'
+            ");
+            $stmt->execute([
+                ':product_id' => $productId,
+                ':seller_id' => $sellerId
+            ]);
+            $product = $stmt->fetch();
+            
+            if ($product) {
+                // MVNO 상세 정보 조회
+                $detailStmt = $pdo->prepare("
+                    SELECT * FROM product_mvno_details 
+                    WHERE product_id = :product_id
+                ");
+                $detailStmt->execute([':product_id' => $productId]);
+                $productDetail = $detailStmt->fetch();
+                
+                if ($productDetail) {
+                    $isEditMode = true;
+                    $productData = array_merge($product, $productDetail);
+                    
+                    // price_after 처리: null이면 'free', 0이면 실제 0, 그 외는 숫자값
+                    if ($productData['price_after'] === null) {
+                        $productData['price_after'] = 'free';
+                        $productData['price_after_type_hidden'] = 'free';
+                    } else {
+                        $productData['price_after_type_hidden'] = 'custom';
+                    }
+                    
+                    // JSON 필드 디코딩
+                    if (!empty($productData['promotions'])) {
+                        $productData['promotions'] = json_decode($productData['promotions'], true) ?: [];
+                    } else {
+                        $productData['promotions'] = [];
+                    }
+                    
+                    if (!empty($productData['benefits'])) {
+                        $productData['benefits'] = json_decode($productData['benefits'], true) ?: [];
+                    } else {
+                        $productData['benefits'] = [];
+                    }
+                }
+            }
+        }
+    } catch (PDOException $e) {
+        error_log("Error loading product: " . $e->getMessage());
+    }
 }
 
 // 페이지별 스타일
@@ -319,8 +407,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <div class="product-register-container">
     <div class="page-header">
-        <h1>알뜰폰 상품 등록</h1>
-        <p>새로운 알뜰폰 요금제를 등록하세요</p>
+        <h1><?php echo $isEditMode ? '알뜰폰 상품 수정' : '알뜰폰 상품 등록'; ?></h1>
+        <p><?php echo $isEditMode ? '알뜰폰 요금제 정보를 수정하세요' : '새로운 알뜰폰 요금제를 등록하세요'; ?></p>
     </div>
     
     <?php if (isset($_GET['success'])): ?>
@@ -336,6 +424,9 @@ document.addEventListener('DOMContentLoaded', function() {
     <?php endif; ?>
     
     <form id="productForm" class="product-form" method="POST" action="/MVNO/api/product-register-mvno.php">
+        <?php if ($isEditMode): ?>
+            <input type="hidden" name="product_id" value="<?php echo $productId; ?>">
+        <?php endif; ?>
         
         <!-- 기본 정보 -->
         <div class="form-section">
@@ -348,9 +439,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     </label>
                     <select name="provider" id="provider" class="form-select" required>
                         <option value="">선택하세요</option>
-                        <option value="KT알뜰폰">KT알뜰폰</option>
-                        <option value="SK알뜰폰">SK알뜰폰</option>
-                        <option value="LG알뜰폰">LG알뜰폰</option>
+                        <option value="KT알뜰폰" <?php echo (isset($productData['provider']) && $productData['provider'] === 'KT알뜰폰') ? 'selected' : ''; ?>>KT알뜰폰</option>
+                        <option value="SK알뜰폰" <?php echo (isset($productData['provider']) && $productData['provider'] === 'SK알뜰폰') ? 'selected' : ''; ?>>SK알뜰폰</option>
+                        <option value="LG알뜰폰" <?php echo (isset($productData['provider']) && $productData['provider'] === 'LG알뜰폰') ? 'selected' : ''; ?>>LG알뜰폰</option>
                     </select>
                 </div>
                 
@@ -360,9 +451,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     </label>
                     <select name="service_type" id="service_type" class="form-select" required>
                         <option value="">선택하세요</option>
-                        <option value="LTE">LTE</option>
-                        <option value="5G">5G</option>
-                        <option value="6G">6G</option>
+                        <option value="LTE" <?php echo (isset($productData['service_type']) && $productData['service_type'] === 'LTE') ? 'selected' : ''; ?>>LTE</option>
+                        <option value="5G" <?php echo (isset($productData['service_type']) && $productData['service_type'] === '5G') ? 'selected' : ''; ?>>5G</option>
+                        <option value="6G" <?php echo (isset($productData['service_type']) && $productData['service_type'] === '6G') ? 'selected' : ''; ?>>6G</option>
                     </select>
                 </div>
             </div>
@@ -371,7 +462,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <label class="form-label" for="plan_name">
                     요금제명
                 </label>
-                <input type="text" name="plan_name" id="plan_name" class="form-control" required placeholder="데이터 100G 평생요금" maxlength="30">
+                <input type="text" name="plan_name" id="plan_name" class="form-control" required placeholder="데이터 100G 평생요금" maxlength="30" value="<?php echo isset($productData['plan_name']) ? htmlspecialchars($productData['plan_name']) : ''; ?>">
             </div>
             
             <div class="form-group" style="display: flex; gap: 16px; align-items: flex-start;">
@@ -380,12 +471,12 @@ document.addEventListener('DOMContentLoaded', function() {
                         약정기간
                     </label>
                     <select name="contract_period" id="contract_period" class="form-select">
-                        <option value="무약정">무약정</option>
-                        <option value="직접입력">직접입력</option>
+                        <option value="무약정" <?php echo (isset($productData['contract_period']) && $productData['contract_period'] === '무약정') ? 'selected' : ''; ?>>무약정</option>
+                        <option value="직접입력" <?php echo (isset($productData['contract_period']) && $productData['contract_period'] === '직접입력') ? 'selected' : ''; ?>>직접입력</option>
                     </select>
-                    <div id="contract_period_input" style="display: none; margin-top: 12px;">
+                    <div id="contract_period_input" style="display: <?php echo (isset($productData['contract_period']) && $productData['contract_period'] === '직접입력') ? 'block' : 'none'; ?>; margin-top: 12px;">
                         <div class="input-with-unit" style="max-width: 200px;">
-                            <input type="number" name="contract_period_days" id="contract_period_days" class="form-control" placeholder="일 수 입력" min="1" max="99999" maxlength="5">
+                            <input type="number" name="contract_period_days" id="contract_period_days" class="form-control" placeholder="일 수 입력" min="1" max="99999" maxlength="5" value="<?php echo isset($productData['contract_period_days']) ? htmlspecialchars($productData['contract_period_days']) : ''; ?>">
                             <span class="unit">일</span>
                         </div>
                     </div>
@@ -395,7 +486,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <label class="form-label" for="discount_period">
                         할인기간(프로모션기간)
                     </label>
-                    <input type="text" name="discount_period" id="discount_period" class="form-control" placeholder="7개월" maxlength="10">
+                    <input type="text" name="discount_period" id="discount_period" class="form-control" placeholder="7개월" maxlength="10" value="<?php echo isset($productData['discount_period']) ? htmlspecialchars($productData['discount_period']) : ''; ?>">
                 </div>
             </div>
             
@@ -405,7 +496,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         월 요금 <span class="required">*</span>
                     </label>
                     <div class="input-with-unit" style="max-width: 200px;">
-                        <input type="text" name="price_main" id="price_main" class="form-control" required placeholder="1500" maxlength="5">
+                        <input type="text" name="price_main" id="price_main" class="form-control" required placeholder="1500" maxlength="5" value="<?php echo isset($productData['price_main']) ? htmlspecialchars(formatIntegerForInput($productData['price_main'])) : ''; ?>">
                         <span class="unit">원</span>
                     </div>
                 </div>
@@ -416,16 +507,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     </label>
                     <select name="price_after_type" id="price_after_type" class="form-select" style="max-width: 200px;">
                         <option value="">선택하세요</option>
-                        <option value="free">공짜</option>
-                        <option value="custom">직접입력</option>
+                        <option value="free" <?php echo (isset($productData['price_after']) && ($productData['price_after'] === null || $productData['price_after'] === 'free')) ? 'selected' : ''; ?>>공짜</option>
+                        <option value="custom" <?php echo (isset($productData['price_after']) && $productData['price_after'] !== null && $productData['price_after'] !== '' && $productData['price_after'] !== 'free') ? 'selected' : ''; ?>>직접입력</option>
                     </select>
-                    <div id="price_after_input" style="display: none; margin-top: 12px;">
+                    <div id="price_after_input" style="display: <?php echo (isset($productData['price_after']) && $productData['price_after'] !== null && $productData['price_after'] !== '' && $productData['price_after'] !== 'free') ? 'block' : 'none'; ?>; margin-top: 12px;">
                         <div class="input-with-unit" style="max-width: 200px;">
-                            <input type="text" id="price_after" class="form-control" placeholder="500" maxlength="5">
+                            <input type="text" id="price_after" class="form-control" placeholder="500" maxlength="5" value="<?php echo (isset($productData['price_after']) && $productData['price_after'] !== null && $productData['price_after'] !== '' && $productData['price_after'] !== 'free') ? htmlspecialchars(formatIntegerForInput($productData['price_after'])) : ''; ?>">
                             <span class="unit">원</span>
                         </div>
                     </div>
-                    <input type="hidden" name="price_after" id="price_after_hidden" value="">
+                    <input type="hidden" name="price_after" id="price_after_hidden" value="<?php echo (isset($productData['price_after']) && $productData['price_after'] !== null && $productData['price_after'] !== 'free') ? htmlspecialchars(formatIntegerForInput($productData['price_after'])) : ''; ?>">
+                    <input type="hidden" name="price_after_type_hidden" id="price_after_type_hidden" value="<?php echo isset($productData['price_after_type_hidden']) ? htmlspecialchars($productData['price_after_type_hidden']) : ''; ?>">
                 </div>
             </div>
         </div>
@@ -441,15 +533,15 @@ document.addEventListener('DOMContentLoaded', function() {
                     </label>
                     <select name="data_amount" id="data_amount" class="form-select" required>
                         <option value="">선택하세요</option>
-                        <option value="무제한">무제한</option>
-                        <option value="직접입력">직접입력</option>
+                        <option value="무제한" <?php echo (isset($productData['data_amount']) && $productData['data_amount'] === '무제한') ? 'selected' : ''; ?>>무제한</option>
+                        <option value="직접입력" <?php echo (isset($productData['data_amount']) && $productData['data_amount'] === '직접입력') ? 'selected' : ''; ?>>직접입력</option>
                     </select>
-                    <div id="data_amount_input" style="display: none; margin-top: 12px;">
+                    <div id="data_amount_input" style="display: <?php echo (isset($productData['data_amount']) && $productData['data_amount'] === '직접입력') ? 'block' : 'none'; ?>; margin-top: 12px;">
                         <div class="input-with-unit" style="max-width: 200px;">
-                            <input type="number" name="data_amount_value" id="data_amount_value" class="form-control" placeholder="100" min="0" max="99999" maxlength="5" style="padding-right: 70px;">
+                            <input type="number" name="data_amount_value" id="data_amount_value" class="form-control" placeholder="100" min="0" max="99999" maxlength="5" style="padding-right: 70px;" value="<?php echo isset($productData['data_amount_value']) ? htmlspecialchars($productData['data_amount_value']) : ''; ?>">
                             <select name="data_unit" id="data_unit" class="form-select" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); width: 60px; height: auto; border: none; background: transparent; padding: 0 20px 0 0; appearance: auto; -webkit-appearance: menulist; -moz-appearance: menulist; cursor: pointer; font-size: 15px; color: #6b7280;">
-                                <option value="GB">GB</option>
-                                <option value="MB">MB</option>
+                                <option value="GB" <?php echo (isset($productData['data_unit']) && $productData['data_unit'] === 'GB') ? 'selected' : ''; ?>>GB</option>
+                                <option value="MB" <?php echo (isset($productData['data_unit']) && $productData['data_unit'] === 'MB') ? 'selected' : ''; ?>>MB</option>
                             </select>
                         </div>
                     </div>
@@ -461,11 +553,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     </label>
                     <select name="data_additional" id="data_additional" class="form-select" required>
                         <option value="">선택하세요</option>
-                        <option value="없음">없음</option>
-                        <option value="직접입력">직접입력</option>
+                        <option value="없음" <?php echo (isset($productData['data_additional']) && $productData['data_additional'] === '없음') ? 'selected' : ''; ?>>없음</option>
+                        <option value="직접입력" <?php echo (isset($productData['data_additional']) && $productData['data_additional'] === '직접입력') ? 'selected' : ''; ?>>직접입력</option>
                     </select>
-                    <div id="data_additional_input" style="display: none; margin-top: 12px;">
-                        <input type="text" name="data_additional_value" id="data_additional_value" class="form-control" placeholder="매일 20GB" maxlength="15">
+                    <div id="data_additional_input" style="display: <?php echo (isset($productData['data_additional']) && $productData['data_additional'] === '직접입력') ? 'block' : 'none'; ?>; margin-top: 12px;">
+                        <input type="text" name="data_additional_value" id="data_additional_value" class="form-control" placeholder="매일 20GB" maxlength="15" value="<?php echo isset($productData['data_additional_value']) ? htmlspecialchars($productData['data_additional_value']) : ''; ?>">
                     </div>
                 </div>
                 
@@ -475,13 +567,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     </label>
                     <select name="data_exhausted" id="data_exhausted" class="form-select">
                         <option value="">선택하세요</option>
-                        <option value="5Mbps 무제한">5Mbps 무제한</option>
-                        <option value="3Mbps 무제한">3Mbps 무제한</option>
-                        <option value="1Mbps 무제한">1Mbps 무제한</option>
-                        <option value="직접입력">직접입력</option>
+                        <option value="5Mbps 무제한" <?php echo (isset($productData['data_exhausted']) && $productData['data_exhausted'] === '5Mbps 무제한') ? 'selected' : ''; ?>>5Mbps 무제한</option>
+                        <option value="3Mbps 무제한" <?php echo (isset($productData['data_exhausted']) && $productData['data_exhausted'] === '3Mbps 무제한') ? 'selected' : ''; ?>>3Mbps 무제한</option>
+                        <option value="1Mbps 무제한" <?php echo (isset($productData['data_exhausted']) && $productData['data_exhausted'] === '1Mbps 무제한') ? 'selected' : ''; ?>>1Mbps 무제한</option>
+                        <option value="직접입력" <?php echo (isset($productData['data_exhausted']) && $productData['data_exhausted'] === '직접입력') ? 'selected' : ''; ?>>직접입력</option>
                     </select>
-                    <div id="data_exhausted_input" style="display: none; margin-top: 12px;">
-                        <input type="text" name="data_exhausted_value" id="data_exhausted_value" class="form-control" placeholder="10Mbps 무제한" maxlength="50">
+                    <div id="data_exhausted_input" style="display: <?php echo (isset($productData['data_exhausted']) && $productData['data_exhausted'] === '직접입력') ? 'block' : 'none'; ?>; margin-top: 12px;">
+                        <input type="text" name="data_exhausted_value" id="data_exhausted_value" class="form-control" placeholder="10Mbps 무제한" maxlength="50" value="<?php echo isset($productData['data_exhausted_value']) ? htmlspecialchars($productData['data_exhausted_value']) : ''; ?>">
                     </div>
                 </div>
             </div>
@@ -493,13 +585,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     </label>
                     <select name="call_type" id="call_type" class="form-select" required>
                         <option value="">선택하세요</option>
-                        <option value="무제한">무제한</option>
-                        <option value="기본제공">기본제공</option>
-                        <option value="직접입력">직접입력</option>
+                        <option value="무제한" <?php echo (isset($productData['call_type']) && $productData['call_type'] === '무제한') ? 'selected' : ''; ?>>무제한</option>
+                        <option value="기본제공" <?php echo (isset($productData['call_type']) && $productData['call_type'] === '기본제공') ? 'selected' : ''; ?>>기본제공</option>
+                        <option value="직접입력" <?php echo (isset($productData['call_type']) && $productData['call_type'] === '직접입력') ? 'selected' : ''; ?>>직접입력</option>
                     </select>
-                    <div id="call_type_input" style="display: none; margin-top: 12px;">
+                    <div id="call_type_input" style="display: <?php echo (isset($productData['call_type']) && $productData['call_type'] === '직접입력') ? 'block' : 'none'; ?>; margin-top: 12px;">
                         <div class="input-with-unit" style="max-width: 200px;">
-                            <input type="number" name="call_amount" id="call_amount" class="form-control" placeholder="300" min="0" max="99999" maxlength="5">
+                            <input type="number" name="call_amount" id="call_amount" class="form-control" placeholder="300" min="0" max="99999" maxlength="5" value="<?php echo isset($productData['call_amount']) ? htmlspecialchars($productData['call_amount']) : ''; ?>">
                             <span class="unit">분</span>
                         </div>
                     </div>
@@ -511,13 +603,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     </label>
                     <select name="additional_call_type" id="additional_call_type" class="form-select" required>
                         <option value="">선택하세요</option>
-                        <option value="무제한">무제한</option>
-                        <option value="기본제공">기본제공</option>
-                        <option value="직접입력">직접입력</option>
+                        <option value="무제한" <?php echo (isset($productData['additional_call_type']) && $productData['additional_call_type'] === '무제한') ? 'selected' : ''; ?>>무제한</option>
+                        <option value="기본제공" <?php echo (isset($productData['additional_call_type']) && $productData['additional_call_type'] === '기본제공') ? 'selected' : ''; ?>>기본제공</option>
+                        <option value="직접입력" <?php echo (isset($productData['additional_call_type']) && $productData['additional_call_type'] === '직접입력') ? 'selected' : ''; ?>>직접입력</option>
                     </select>
-                    <div id="additional_call_input" style="display: none; margin-top: 12px;">
+                    <div id="additional_call_input" style="display: <?php echo (isset($productData['additional_call_type']) && $productData['additional_call_type'] === '직접입력') ? 'block' : 'none'; ?>; margin-top: 12px;">
                         <div class="input-with-unit" style="max-width: 200px;">
-                            <input type="number" name="additional_call" id="additional_call" class="form-control" placeholder="300" min="0" max="99999" maxlength="5">
+                            <input type="number" name="additional_call" id="additional_call" class="form-control" placeholder="300" min="0" max="99999" maxlength="5" value="<?php echo isset($productData['additional_call']) ? htmlspecialchars($productData['additional_call']) : ''; ?>">
                             <span class="unit">분</span>
                         </div>
                     </div>
@@ -531,13 +623,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     </label>
                     <select name="sms_type" id="sms_type" class="form-select" required>
                         <option value="">선택하세요</option>
-                        <option value="무제한">무제한</option>
-                        <option value="기본제공">기본제공</option>
-                        <option value="직접입력">직접입력</option>
+                        <option value="무제한" <?php echo (isset($productData['sms_type']) && $productData['sms_type'] === '무제한') ? 'selected' : ''; ?>>무제한</option>
+                        <option value="기본제공" <?php echo (isset($productData['sms_type']) && $productData['sms_type'] === '기본제공') ? 'selected' : ''; ?>>기본제공</option>
+                        <option value="직접입력" <?php echo (isset($productData['sms_type']) && $productData['sms_type'] === '직접입력') ? 'selected' : ''; ?>>직접입력</option>
                     </select>
-                    <div id="sms_type_input" style="display: none; margin-top: 12px;">
+                    <div id="sms_type_input" style="display: <?php echo (isset($productData['sms_type']) && $productData['sms_type'] === '직접입력') ? 'block' : 'none'; ?>; margin-top: 12px;">
                         <div class="input-with-unit" style="max-width: 200px;">
-                            <input type="number" name="sms_amount" id="sms_amount" class="form-control" placeholder="300" min="0" max="99999" maxlength="5">
+                            <input type="number" name="sms_amount" id="sms_amount" class="form-control" placeholder="300" min="0" max="99999" maxlength="5" value="<?php echo isset($productData['sms_amount']) ? htmlspecialchars($productData['sms_amount']) : ''; ?>">
                             <span class="unit">건</span>
                         </div>
                     </div>
@@ -549,11 +641,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     </label>
                     <select name="mobile_hotspot" id="mobile_hotspot" class="form-select" required>
                         <option value="">선택하세요</option>
-                        <option value="기본 제공량 내에서 사용">기본 제공량 내에서 사용</option>
-                        <option value="직접선택">직접선택</option>
+                        <option value="기본 제공량 내에서 사용" <?php echo (isset($productData['mobile_hotspot']) && $productData['mobile_hotspot'] === '기본 제공량 내에서 사용') ? 'selected' : ''; ?>>기본 제공량 내에서 사용</option>
+                        <option value="직접선택" <?php echo (isset($productData['mobile_hotspot']) && $productData['mobile_hotspot'] === '직접선택') ? 'selected' : ''; ?>>직접선택</option>
                     </select>
-                    <div id="mobile_hotspot_input" style="display: none; margin-top: 12px;">
-                        <input type="text" name="mobile_hotspot_value" id="mobile_hotspot_value" class="form-control" placeholder="50GB" maxlength="10">
+                    <div id="mobile_hotspot_input" style="display: <?php echo (isset($productData['mobile_hotspot']) && $productData['mobile_hotspot'] === '직접선택') ? 'block' : 'none'; ?>; margin-top: 12px;">
+                        <input type="text" name="mobile_hotspot_value" id="mobile_hotspot_value" class="form-control" placeholder="50GB" maxlength="10" value="<?php echo isset($productData['mobile_hotspot_value']) ? htmlspecialchars($productData['mobile_hotspot_value']) : ''; ?>">
                     </div>
                 </div>
             </div>
@@ -570,12 +662,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     </label>
                     <select name="regular_sim_available" id="regular_sim_available" class="form-select">
                         <option value="">선택</option>
-                        <option value="배송불가">배송불가</option>
-                        <option value="배송가능">배송가능</option>
+                        <option value="배송불가" <?php echo (isset($productData['regular_sim_available']) && $productData['regular_sim_available'] === '배송불가') ? 'selected' : ''; ?>>배송불가</option>
+                        <option value="배송가능" <?php echo (isset($productData['regular_sim_available']) && $productData['regular_sim_available'] === '배송가능') ? 'selected' : ''; ?>>배송가능</option>
                     </select>
-                    <div id="regular_sim_price_input" style="display: none; margin-top: 12px;">
+                    <div id="regular_sim_price_input" style="display: <?php echo (isset($productData['regular_sim_available']) && $productData['regular_sim_available'] === '배송가능') ? 'block' : 'none'; ?>; margin-top: 12px;">
                         <div class="input-with-unit" style="max-width: 200px;">
-                            <input type="text" name="regular_sim_price" id="regular_sim_price" class="form-control" placeholder="2200" maxlength="5">
+                            <input type="text" name="regular_sim_price" id="regular_sim_price" class="form-control" placeholder="2200" maxlength="5" value="<?php echo isset($productData['regular_sim_price']) ? htmlspecialchars(formatIntegerForInput($productData['regular_sim_price'])) : ''; ?>">
                             <span class="unit">원</span>
                         </div>
                     </div>
@@ -587,12 +679,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     </label>
                     <select name="nfc_sim_available" id="nfc_sim_available" class="form-select">
                         <option value="">선택</option>
-                        <option value="배송불가">배송불가</option>
-                        <option value="배송가능">배송가능</option>
+                        <option value="배송불가" <?php echo (isset($productData['nfc_sim_available']) && $productData['nfc_sim_available'] === '배송불가') ? 'selected' : ''; ?>>배송불가</option>
+                        <option value="배송가능" <?php echo (isset($productData['nfc_sim_available']) && $productData['nfc_sim_available'] === '배송가능') ? 'selected' : ''; ?>>배송가능</option>
                     </select>
-                    <div id="nfc_sim_price_input" style="display: none; margin-top: 12px;">
+                    <div id="nfc_sim_price_input" style="display: <?php echo (isset($productData['nfc_sim_available']) && $productData['nfc_sim_available'] === '배송가능') ? 'block' : 'none'; ?>; margin-top: 12px;">
                         <div class="input-with-unit" style="max-width: 200px;">
-                            <input type="text" name="nfc_sim_price" id="nfc_sim_price" class="form-control" placeholder="4400" maxlength="5">
+                            <input type="text" name="nfc_sim_price" id="nfc_sim_price" class="form-control" placeholder="4400" maxlength="5" value="<?php echo isset($productData['nfc_sim_price']) ? htmlspecialchars(formatIntegerForInput($productData['nfc_sim_price'])) : ''; ?>">
                             <span class="unit">원</span>
                         </div>
                     </div>
@@ -604,12 +696,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     </label>
                     <select name="esim_available" id="esim_available" class="form-select">
                         <option value="">선택</option>
-                        <option value="개통불가">개통불가</option>
-                        <option value="개통가능">개통가능</option>
+                        <option value="개통불가" <?php echo (isset($productData['esim_available']) && $productData['esim_available'] === '개통불가') ? 'selected' : ''; ?>>개통불가</option>
+                        <option value="개통가능" <?php echo (isset($productData['esim_available']) && $productData['esim_available'] === '개통가능') ? 'selected' : ''; ?>>개통가능</option>
                     </select>
-                    <div id="esim_price_input" style="display: none; margin-top: 12px;">
+                    <div id="esim_price_input" style="display: <?php echo (isset($productData['esim_available']) && $productData['esim_available'] === '개통가능') ? 'block' : 'none'; ?>; margin-top: 12px;">
                         <div class="input-with-unit" style="max-width: 200px;">
-                            <input type="text" name="esim_price" id="esim_price" class="form-control" placeholder="2750" maxlength="5">
+                            <input type="text" name="esim_price" id="esim_price" class="form-control" placeholder="2750" maxlength="5" value="<?php echo isset($productData['esim_price']) ? htmlspecialchars(formatIntegerForInput($productData['esim_price'])) : ''; ?>">
                             <span class="unit">원</span>
                         </div>
                     </div>
@@ -627,7 +719,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         데이터
                     </label>
                     <div class="input-with-unit" style="max-width: 200px;">
-                        <input type="text" name="over_data_price" id="over_data_price" class="form-control" placeholder="22.53" maxlength="6">
+                        <input type="text" name="over_data_price" id="over_data_price" class="form-control" placeholder="22.53" maxlength="6" value="<?php echo isset($productData['over_data_price']) ? htmlspecialchars(formatDecimalForInput($productData['over_data_price'])) : ''; ?>">
                         <span class="unit">원/MB</span>
                     </div>
                 </div>
@@ -637,7 +729,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         음성
                     </label>
                     <div class="input-with-unit" style="max-width: 200px;">
-                        <input type="text" name="over_voice_price" id="over_voice_price" class="form-control" placeholder="1.98" maxlength="6">
+                        <input type="text" name="over_voice_price" id="over_voice_price" class="form-control" placeholder="1.98" maxlength="6" value="<?php echo isset($productData['over_voice_price']) ? htmlspecialchars(formatDecimalForInput($productData['over_voice_price'])) : ''; ?>">
                         <span class="unit">원/MB</span>
                     </div>
                 </div>
@@ -647,7 +739,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         영상통화
                     </label>
                     <div class="input-with-unit" style="max-width: 200px;">
-                        <input type="text" name="over_video_price" id="over_video_price" class="form-control" placeholder="3.3" maxlength="6">
+                        <input type="text" name="over_video_price" id="over_video_price" class="form-control" placeholder="3.3" maxlength="6" value="<?php echo isset($productData['over_video_price']) ? htmlspecialchars(formatDecimalForInput($productData['over_video_price'])) : ''; ?>">
                         <span class="unit">원/초</span>
                     </div>
                 </div>
@@ -659,7 +751,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         단문메시지(SMS)
                     </label>
                     <div class="input-with-unit" style="max-width: 200px;">
-                        <input type="text" name="over_sms_price" id="over_sms_price" class="form-control" placeholder="22" maxlength="5">
+                        <input type="text" name="over_sms_price" id="over_sms_price" class="form-control" placeholder="22" maxlength="5" value="<?php echo isset($productData['over_sms_price']) ? htmlspecialchars(formatIntegerForInput($productData['over_sms_price'])) : ''; ?>">
                         <span class="unit">원/건</span>
                     </div>
                 </div>
@@ -669,7 +761,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         텍스트형(LMS,MMS)
                     </label>
                     <div class="input-with-unit" style="max-width: 200px;">
-                        <input type="text" name="over_lms_price" id="over_lms_price" class="form-control" placeholder="33" maxlength="5">
+                        <input type="text" name="over_lms_price" id="over_lms_price" class="form-control" placeholder="33" maxlength="5" value="<?php echo isset($productData['over_lms_price']) ? htmlspecialchars(formatIntegerForInput($productData['over_lms_price'])) : ''; ?>">
                         <span class="unit">원/건</span>
                     </div>
                 </div>
@@ -679,7 +771,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         멀티미디어형(MMS)
                     </label>
                     <div class="input-with-unit" style="max-width: 200px;">
-                        <input type="text" name="over_mms_price" id="over_mms_price" class="form-control" placeholder="110" maxlength="5">
+                        <input type="text" name="over_mms_price" id="over_mms_price" class="form-control" placeholder="110" maxlength="5" value="<?php echo isset($productData['over_mms_price']) ? htmlspecialchars(formatIntegerForInput($productData['over_mms_price'])) : ''; ?>">
                         <span class="unit">원/건</span>
                     </div>
                 </div>
@@ -694,16 +786,29 @@ document.addEventListener('DOMContentLoaded', function() {
                 <label class="form-label" for="promotion_title">
                     제목
                 </label>
-                <input type="text" name="promotion_title" id="promotion_title" class="form-control" placeholder="쿠폰북 최대 5만원 지급" maxlength="100">
+                <input type="text" name="promotion_title" id="promotion_title" class="form-control" placeholder="쿠폰북 최대 5만원 지급" maxlength="100" value="<?php echo isset($productData['promotion_title']) ? htmlspecialchars($productData['promotion_title']) : ''; ?>">
             </div>
             
             <div class="form-group">
                 <label class="form-label">항목</label>
                 <div id="promotion-container">
-                    <div class="gift-input-group">
-                        <input type="text" name="promotions[]" class="form-control" placeholder="Npay 2,000" maxlength="30">
-                        <button type="button" class="btn-add-item" onclick="addPromotionField()">추가</button>
-                    </div>
+                    <?php if (!empty($productData['promotions']) && is_array($productData['promotions'])): ?>
+                        <?php foreach ($productData['promotions'] as $index => $promotion): ?>
+                            <div class="gift-input-group">
+                                <input type="text" name="promotions[]" class="form-control" placeholder="Npay 2,000" maxlength="30" value="<?php echo htmlspecialchars($promotion); ?>">
+                                <?php if ($index === 0): ?>
+                                    <button type="button" class="btn-add-item" onclick="addPromotionField()">추가</button>
+                                <?php else: ?>
+                                    <button type="button" class="btn-remove" onclick="removePromotionField(this)">삭제</button>
+                                <?php endif; ?>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <div class="gift-input-group">
+                            <input type="text" name="promotions[]" class="form-control" placeholder="Npay 2,000" maxlength="30">
+                            <button type="button" class="btn-add-item" onclick="addPromotionField()">추가</button>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
@@ -714,36 +819,45 @@ document.addEventListener('DOMContentLoaded', function() {
             
             <div class="form-group">
                 <div id="benefits-container">
-                    <div class="gift-input-group">
-                        <textarea name="benefits[]" class="form-textarea" style="min-height: 80px;" placeholder="혜택 및 유의사항을 입력하세요"></textarea>
-                    </div>
+                    <?php if (!empty($productData['benefits']) && is_array($productData['benefits'])): ?>
+                        <?php foreach ($productData['benefits'] as $index => $benefit): ?>
+                            <div class="gift-input-group">
+                                <textarea name="benefits[]" class="form-textarea" style="min-height: 80px;" placeholder="혜택 및 유의사항을 입력하세요"><?php echo htmlspecialchars($benefit); ?></textarea>
+                                <?php if ($index > 0): ?>
+                                    <button type="button" class="btn-remove" onclick="removeBenefitField(this)">삭제</button>
+                                <?php endif; ?>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <div class="gift-input-group">
+                            <textarea name="benefits[]" class="form-textarea" style="min-height: 80px;" placeholder="혜택 및 유의사항을 입력하세요"></textarea>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
         
         <!-- 제출 버튼 -->
         <div class="form-actions">
-            <a href="/MVNO/seller/products/list.php" class="btn btn-secondary">취소</a>
+            <a href="/MVNO/seller/products/mvno-list.php" class="btn btn-secondary">취소</a>
             <button type="submit" class="btn btn-primary">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M5 13l4 4L19 7"/>
                 </svg>
-                등록하기
+                <?php echo $isEditMode ? '수정하기' : '등록하기'; ?>
             </button>
         </div>
     </form>
 </div>
 
 <script>
+
 document.addEventListener('DOMContentLoaded', function() {
     // 헬퍼 함수: 직접입력 필드 토글
     function toggleInputField(selectId, inputContainerId, triggerValue, inputId = null, additionalSelectId = null) {
         const select = document.getElementById(selectId);
         const container = document.getElementById(inputContainerId);
-        if (!select || !container) {
-            console.error('toggleInputField: 요소를 찾을 수 없습니다.', selectId, inputContainerId);
-            return;
-        }
+        if (!select || !container) return;
         
         // 초기 상태 설정
         const initialValue = select.value;
@@ -953,17 +1067,28 @@ document.addEventListener('DOMContentLoaded', function() {
     const priceAfterField = document.getElementById('price_after');
     const priceAfterHidden = document.getElementById('price_after_hidden');
     
-    if (priceAfterType && priceAfterInput && priceAfterHidden) {
+    const priceAfterTypeHidden = document.getElementById('price_after_type_hidden');
+    
+    if (priceAfterType && priceAfterInput && priceAfterHidden && priceAfterTypeHidden) {
+        // 페이지 로드 시 초기값 설정
+        if (priceAfterType.value === 'free') {
+            priceAfterTypeHidden.value = 'free';
+        } else if (priceAfterType.value === 'custom') {
+            priceAfterTypeHidden.value = 'custom';
+        }
+        
         priceAfterType.addEventListener('change', function() {
             if (this.value === 'free') {
-                // 공짜 선택 시
+                // 공짜 선택 시 'free'로 설정
                 priceAfterInput.style.display = 'none';
-                priceAfterHidden.value = '0';
+                priceAfterHidden.value = 'free';
+                priceAfterTypeHidden.value = 'free';
                 if (priceAfterField) priceAfterField.value = '';
             } else if (this.value === 'custom') {
                 // 직접입력 선택 시
                 priceAfterInput.style.display = 'block';
                 priceAfterHidden.value = '';
+                priceAfterTypeHidden.value = 'custom';
                 if (priceAfterField) {
                     priceAfterField.focus();
                 }
@@ -971,15 +1096,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 // 선택 안함
                 priceAfterInput.style.display = 'none';
                 priceAfterHidden.value = '';
+                priceAfterTypeHidden.value = '';
                 if (priceAfterField) priceAfterField.value = '';
             }
         });
         
-        // 직접입력 필드 값 변경 시 hidden 필드 업데이트
+        // 직접입력 필드 값 변경 시 hidden 필드 업데이트 (0도 가능)
         if (priceAfterField) {
             priceAfterField.addEventListener('input', function() {
                 if (priceAfterType.value === 'custom') {
-                    priceAfterHidden.value = this.value.replace(/[^0-9]/g, '');
+                    const value = this.value.replace(/[^0-9]/g, '');
+                    priceAfterHidden.value = value;
+                    priceAfterTypeHidden.value = 'custom';
                 }
             });
         }
@@ -994,7 +1122,11 @@ document.addEventListener('DOMContentLoaded', function() {
         const callAmount = document.getElementById('call_amount');
         if (callType && callType.value === '직접입력') {
             if (!callAmount || !callAmount.value.trim()) {
-                alert('통화를 입력해주세요.');
+                if (typeof showAlert === 'function') {
+                    showAlert('통화를 입력해주세요.', '입력 오류');
+                } else {
+                    alert('통화를 입력해주세요.');
+                }
                 if (callAmount) callAmount.focus();
                 return;
             }
@@ -1004,7 +1136,11 @@ document.addEventListener('DOMContentLoaded', function() {
         const smsAmount = document.getElementById('sms_amount');
         if (smsType && smsType.value === '직접입력') {
             if (!smsAmount || !smsAmount.value.trim()) {
-                alert('문자를 입력해주세요.');
+                if (typeof showAlert === 'function') {
+                    showAlert('문자를 입력해주세요.', '입력 오류');
+                } else {
+                    alert('문자를 입력해주세요.');
+                }
                 if (smsAmount) smsAmount.focus();
                 return;
             }
@@ -1014,7 +1150,11 @@ document.addEventListener('DOMContentLoaded', function() {
         const dataAmountValue = document.getElementById('data_amount_value');
         if (dataAmount && dataAmount.value === '직접입력') {
             if (!dataAmountValue || !dataAmountValue.value.trim()) {
-                alert('데이터 제공량을 입력해주세요.');
+                if (typeof showAlert === 'function') {
+                    showAlert('데이터 제공량을 입력해주세요.', '입력 오류');
+                } else {
+                    alert('데이터 제공량을 입력해주세요.');
+                }
                 if (dataAmountValue) dataAmountValue.focus();
                 return;
             }
@@ -1024,7 +1164,11 @@ document.addEventListener('DOMContentLoaded', function() {
         const dataAdditionalValue = document.getElementById('data_additional_value');
         if (dataAdditional && dataAdditional.value === '직접입력') {
             if (!dataAdditionalValue || !dataAdditionalValue.value.trim()) {
-                alert('데이터 추가제공을 입력해주세요.');
+                if (typeof showAlert === 'function') {
+                    showAlert('데이터 추가제공을 입력해주세요.', '입력 오류');
+                } else {
+                    alert('데이터 추가제공을 입력해주세요.');
+                }
                 if (dataAdditionalValue) dataAdditionalValue.focus();
                 return;
             }
@@ -1034,7 +1178,11 @@ document.addEventListener('DOMContentLoaded', function() {
         const additionalCallInput = document.getElementById('additional_call');
         if (additionalCallType && additionalCallType.value === '직접입력') {
             if (!additionalCallInput || !additionalCallInput.value.trim()) {
-                alert('부가·영상통화를 입력해주세요.');
+                if (typeof showAlert === 'function') {
+                    showAlert('부가·영상통화를 입력해주세요.', '입력 오류');
+                } else {
+                    alert('부가·영상통화를 입력해주세요.');
+                }
                 if (additionalCallInput) additionalCallInput.focus();
                 return;
             }
@@ -1044,26 +1192,29 @@ document.addEventListener('DOMContentLoaded', function() {
         const mobileHotspotInput = document.getElementById('mobile_hotspot_value');
         if (mobileHotspot && mobileHotspot.value === '직접선택') {
             if (!mobileHotspotInput || !mobileHotspotInput.value.trim()) {
-                alert('테더링(핫스팟)을 입력해주세요.');
+                if (typeof showAlert === 'function') {
+                    showAlert('테더링(핫스팟)을 입력해주세요.', '입력 오류');
+                } else {
+                    alert('테더링(핫스팟)을 입력해주세요.');
+                }
                 if (mobileHotspotInput) mobileHotspotInput.focus();
                 return;
             }
         }
         
         // 데이터 추가제공 값 최종 처리
-        const dataAdditional = document.getElementById('data_additional');
-        const dataAdditionalValue = document.getElementById('data_additional_value');
         if (dataAdditional) {
+            const dataAdditionalValue = document.getElementById('data_additional_value');
             if (dataAdditional.value === '없음') {
                 // "없음" 선택 시 값 초기화
                 if (dataAdditionalValue) {
                     dataAdditionalValue.value = '';
-                    dataAdditionalValue.disabled = false; // 제출을 위해 활성화
+                    dataAdditionalValue.disabled = false;
                 }
             } else if (dataAdditional.value === '직접입력') {
                 // "직접입력" 선택 시 입력값 사용 (이미 검증됨)
                 if (dataAdditionalValue) {
-                    dataAdditionalValue.disabled = false; // 제출을 위해 활성화
+                    dataAdditionalValue.disabled = false;
                 }
             } else {
                 // 선택 안함
@@ -1077,22 +1228,50 @@ document.addEventListener('DOMContentLoaded', function() {
         // 할인 후 요금 값 최종 처리
         const priceAfterType = document.getElementById('price_after_type');
         const priceAfterHidden = document.getElementById('price_after_hidden');
+        const priceAfterTypeHidden = document.getElementById('price_after_type_hidden');
         const priceAfterField = document.getElementById('price_after');
         
-        if (priceAfterType && priceAfterHidden) {
+        if (priceAfterType && priceAfterHidden && priceAfterTypeHidden) {
             if (priceAfterType.value === 'free') {
-                // 공짜 선택 시 0으로 설정
-                priceAfterHidden.value = '0';
+                // 공짜 선택 시 특별한 값으로 설정
+                priceAfterHidden.value = 'free';
+                priceAfterTypeHidden.value = 'free';
             } else if (priceAfterType.value === 'custom' && priceAfterField) {
-                // 직접입력 시 입력값 사용
-                priceAfterHidden.value = priceAfterField.value.replace(/[^0-9]/g, '');
+                // 직접입력 시 입력값 사용 (0도 가능)
+                const inputValue = priceAfterField.value.replace(/[^0-9]/g, '');
+                priceAfterHidden.value = inputValue;
+                priceAfterTypeHidden.value = 'custom';
             } else {
                 // 선택 안함
                 priceAfterHidden.value = '';
+                priceAfterTypeHidden.value = '';
             }
         }
         
+        // plan_name 필드 확인
+        const planNameField = document.getElementById('plan_name');
+        if (planNameField && !planNameField.value.trim()) {
+            if (typeof showAlert === 'function') {
+                showAlert('요금제명을 입력해주세요.', '오류', true);
+            } else {
+                alert('요금제명을 입력해주세요.');
+            }
+            planNameField.focus();
+            e.preventDefault();
+            return;
+        }
+        
         const formData = new FormData(this);
+        
+        // 디버깅: 전송되는 모든 데이터 확인
+        console.log('=== Form Data ===');
+        console.log('product_id:', formData.get('product_id'));
+        console.log('plan_name:', formData.get('plan_name'));
+        console.log('price_after_type_hidden:', formData.get('price_after_type_hidden'));
+        console.log('price_after:', formData.get('price_after'));
+        for (let [key, value] of formData.entries()) {
+            console.log(key + ':', value);
+        }
         
         fetch('/MVNO/api/product-register-mvno.php', {
             method: 'POST',
@@ -1103,23 +1282,28 @@ document.addEventListener('DOMContentLoaded', function() {
             if (data.success) {
                 window.location.href = '/MVNO/seller/products/mvno.php?success=1';
             } else {
-                alert(data.message || '상품 등록에 실패했습니다.');
+                if (typeof showAlert === 'function') {
+                    showAlert(data.message || '상품 등록에 실패했습니다.', '오류', true);
+                } else {
+                    alert(data.message || '상품 등록에 실패했습니다.');
+                }
             }
         })
         .catch(error => {
-            console.error('Error:', error);
-            alert('상품 등록 중 오류가 발생했습니다.');
+            const errorMessage = '상품 등록 중 오류가 발생했습니다.';
+            if (typeof showAlert === 'function') {
+                showAlert(errorMessage, '오류', true);
+            } else {
+                alert(errorMessage);
+            }
         });
     });
 });
 
-// 전역 함수로 선언 (onclick에서 호출 가능하도록)
-window.addPromotionField = function() {
+// 프로모션 필드 추가/삭제 함수 (mno.php 방식 참조)
+function addPromotionField() {
     const container = document.getElementById('promotion-container');
-    if (!container) {
-        console.error('promotion-container를 찾을 수 없습니다.');
-        return;
-    }
+    if (!container) return;
     const newField = document.createElement('div');
     newField.className = 'gift-input-group';
     newField.innerHTML = `
@@ -1127,18 +1311,15 @@ window.addPromotionField = function() {
         <button type="button" class="btn-remove" onclick="removePromotionField(this)">삭제</button>
     `;
     container.appendChild(newField);
-};
+}
 
-window.removePromotionField = function(button) {
+function removePromotionField(button) {
     const container = document.getElementById('promotion-container');
-    if (!container) {
-        console.error('promotion-container를 찾을 수 없습니다.');
-        return;
-    }
-    if (container.children.length > 1) {
+    if (container && container.children.length > 1) {
         button.parentElement.remove();
     }
-};
+}
+
 </script>
 
 <?php include __DIR__ . '/../includes/seller-footer.php'; ?>

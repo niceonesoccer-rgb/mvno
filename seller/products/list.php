@@ -41,8 +41,12 @@ if (!in_array($activeTab, $validTabs)) {
     $activeTab = 'all';
 }
 
-// 상태 필터
+// 상태 필터 (기본값: 빈 문자열 = 전체)
 $status = $_GET['status'] ?? '';
+// status가 명시적으로 전달되지 않았거나 빈 문자열이면 전체 표시
+if ($status === '') {
+    $status = null; // null로 설정하여 전체 상태 표시
+}
 $page = max(1, intval($_GET['page'] ?? 1));
 $perPage = 20;
 
@@ -55,8 +59,10 @@ try {
     $pdo = getDBConnection();
     if ($pdo) {
         // WHERE 조건 구성
+        // seller_id는 문자열로 저장되어 있으므로 문자열로 비교
+        $sellerId = (string)$currentUser['user_id'];
         $whereConditions = ['p.seller_id = :seller_id'];
-        $params = [':seller_id' => $currentUser['user_id']];
+        $params = [':seller_id' => $sellerId];
         
         // 탭 필터
         if ($activeTab !== 'all') {
@@ -65,10 +71,11 @@ try {
         }
         
         // 상태 필터
-        if ($status) {
+        if ($status && $status !== '') {
             $whereConditions[] = 'p.status = :status';
             $params[':status'] = $status;
         } else {
+            // 상태 필터가 없으면 active와 inactive 모두 표시 (deleted 제외)
             $whereConditions[] = "p.status != 'deleted'";
         }
         
@@ -121,9 +128,16 @@ try {
         $stmt->execute();
         
         $products = $stmt->fetchAll();
+        
+        // 디버깅: 쿼리 결과 확인
+        error_log("Product list query - seller_id: " . $currentUser['user_id'] . ", activeTab: " . $activeTab . ", status: " . ($status ?? 'null') . ", totalProducts: " . $totalProducts . ", products count: " . count($products));
+        if (count($products) > 0) {
+            error_log("First product: " . json_encode($products[0]));
+        }
     }
 } catch (PDOException $e) {
     error_log("Error fetching products: " . $e->getMessage());
+    error_log("Stack trace: " . $e->getTraceAsString());
 }
 
 // 페이지별 스타일
@@ -362,6 +376,15 @@ $pageStyles = '
         background: #2563eb;
     }
     
+    .btn-copy {
+        background: #10b981;
+        color: white;
+    }
+    
+    .btn-copy:hover {
+        background: #059669;
+    }
+    
     .btn-delete {
         background: #ef4444;
         color: white;
@@ -467,7 +490,8 @@ try {
             WHERE seller_id = :seller_id AND status != 'deleted'
             GROUP BY product_type
         ");
-        $countStmt->execute([':seller_id' => $currentUser['user_id']]);
+        $sellerId = (string)$currentUser['user_id'];
+        $countStmt->execute([':seller_id' => $sellerId]);
         $typeCounts = $countStmt->fetchAll(PDO::FETCH_KEY_PAIR);
         
         $tabCounts['mvno'] = $typeCounts['mvno'] ?? 0;
@@ -483,7 +507,7 @@ try {
 <div class="product-list-container">
     <div class="page-header">
         <div>
-            <h1>상품 목록</h1>
+            <h1>등록 상품</h1>
             <p>등록한 상품을 관리하세요</p>
         </div>
         <div style="display: flex; gap: 12px; flex-wrap: wrap;">
@@ -550,6 +574,12 @@ try {
             <table class="product-table">
                 <thead>
                     <tr>
+                        <th style="width: 60px;">
+                            <div style="display: flex; flex-direction: column; gap: 8px; align-items: center;">
+                                <button class="btn btn-sm" onclick="bulkInactive()" style="background: #ef4444; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer;">판매종료</button>
+                                <input type="checkbox" id="selectAll" onchange="toggleSelectAll()" style="cursor: pointer;">
+                            </div>
+                        </th>
                         <th>번호</th>
                         <th>타입</th>
                         <th>상품명</th>
@@ -567,6 +597,9 @@ try {
                 <tbody>
                     <?php foreach ($products as $index => $product): ?>
                         <tr>
+                            <td style="text-align: center;">
+                                <input type="checkbox" class="product-checkbox" value="<?php echo $product['id']; ?>" style="cursor: pointer;">
+                            </td>
                             <td><?php echo ($page - 1) * $perPage + $index + 1; ?></td>
                             <td>
                                 <?php
@@ -596,7 +629,6 @@ try {
                             <td>
                                 <div class="action-buttons">
                                     <button class="btn btn-sm btn-edit" onclick="editProduct(<?php echo $product['id']; ?>, '<?php echo $product['product_type']; ?>')">수정</button>
-                                    <button class="btn btn-sm btn-delete" onclick="deleteProduct(<?php echo $product['id']; ?>)">삭제</button>
                                 </div>
                             </td>
                         </tr>
@@ -628,6 +660,8 @@ function switchTab(tab) {
     const params = new URLSearchParams(window.location.search);
     params.set('tab', tab);
     params.delete('page'); // 탭 변경 시 첫 페이지로
+    // 탭 변경 시 상태 필터 초기화 (전체로)
+    params.delete('status');
     window.location.href = '?' + params.toString();
 }
 
@@ -635,7 +669,11 @@ function applyFilters() {
     const status = document.getElementById('filter_status').value;
     const params = new URLSearchParams(window.location.search);
     
-    if (status) {
+    // tab 파라미터 유지
+    const tab = params.get('tab') || 'all';
+    params.set('tab', tab);
+    
+    if (status && status !== '') {
         params.set('status', status);
     } else {
         params.delete('status');
@@ -660,33 +698,79 @@ function editProduct(productId, productType) {
     }
 }
 
-function deleteProduct(productId) {
-    if (confirm('정말로 이 상품을 삭제하시겠습니까?\n삭제된 상품은 복구할 수 없습니다.')) {
-        // TODO: 상품 삭제 API 호출
-        fetch('/MVNO/api/product-delete.php', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                product_id: productId
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('상품이 삭제되었습니다.');
-                location.reload();
-            } else {
-                alert(data.message || '상품 삭제에 실패했습니다.');
+function toggleSelectAll() {
+    const selectAll = document.getElementById('selectAll');
+    const checkboxes = document.querySelectorAll('.product-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = selectAll.checked;
+    });
+}
+
+function bulkInactive() {
+    const checkboxes = document.querySelectorAll('.product-checkbox:checked');
+    if (checkboxes.length === 0) {
+        if (typeof showAlert === 'function') {
+            showAlert('선택된 상품이 없습니다.', '알림');
+        } else {
+            alert('선택된 상품이 없습니다.');
+        }
+        return;
+    }
+    
+    const productCount = checkboxes.length;
+    const message = '선택한 ' + productCount + '개의 상품을 판매종료 처리하시겠습니까?';
+    
+    if (typeof showConfirm === 'function') {
+        showConfirm(message, '판매종료 확인').then(confirmed => {
+            if (confirmed) {
+                processBulkInactive(checkboxes);
             }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('상품 삭제 중 오류가 발생했습니다.');
         });
+    } else if (confirm(message)) {
+        processBulkInactive(checkboxes);
     }
 }
+
+function processBulkInactive(checkboxes) {
+    const productIds = Array.from(checkboxes).map(cb => cb.value);
+    
+    fetch('/MVNO/api/product-bulk-update.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            product_ids: productIds,
+            status: 'inactive'
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            if (typeof showAlert === 'function') {
+                showAlert('선택한 상품이 판매종료 처리되었습니다.', '완료');
+            } else {
+                alert('선택한 상품이 판매종료 처리되었습니다.');
+            }
+            location.reload();
+        } else {
+            if (typeof showAlert === 'function') {
+                showAlert(data.message || '상품 상태 변경에 실패했습니다.', '오류', true);
+            } else {
+                alert(data.message || '상품 상태 변경에 실패했습니다.');
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        if (typeof showAlert === 'function') {
+            showAlert('상품 상태 변경 중 오류가 발생했습니다.', '오류', true);
+        } else {
+            alert('상품 상태 변경 중 오류가 발생했습니다.');
+        }
+    });
+}
+
 </script>
 
 <?php include __DIR__ . '/../includes/seller-footer.php'; ?>

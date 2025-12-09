@@ -13,17 +13,29 @@ MVNO, MNO, Internet 상품을 관리하기 위한 데이터베이스 스키마�
 
 ## 설치 방법
 
-### 1. 데이터베이스 생성
-```sql
-CREATE DATABASE mvno_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-```
+### 방법 1: phpMyAdmin 사용 (권장)
+1. 브라우저에서 `http://localhost/phpmyadmin` 접속
+2. 왼쪽 상단 "새로 만들기" 클릭
+3. 데이터베이스 이름: `mvno_db`
+4. 정렬 규칙: `utf8mb4_unicode_ci`
+5. "만들기" 클릭
+6. 생성된 `mvno_db` 선택
+7. 상단 "가져오기" 탭 클릭
+8. `products_schema.sql` 파일 선택 후 "실행" 클릭
 
-### 2. 스키마 실행
+### 방법 2: 명령줄 사용
 ```bash
-mysql -u root -p mvno_db < products_schema.sql
+# Windows (XAMPP)
+C:\xampp\mysql\bin\mysql.exe -u root -e "CREATE DATABASE IF NOT EXISTS mvno_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+C:\xampp\mysql\bin\mysql.exe -u root mvno_db < products_schema.sql
+
+# 또는 install.bat 파일 실행
+install.bat
 ```
 
-또는 phpMyAdmin에서 `products_schema.sql` 파일을 import하세요.
+### 방법 3: products_schema.sql 파일 직접 실행
+`products_schema.sql` 파일에는 데이터베이스 생성 명령이 포함되어 있습니다.
+phpMyAdmin에서 이 파일을 직접 import하면 데이터베이스와 모든 테이블이 자동으로 생성됩니다.
 
 ## 테이블 구조
 
@@ -181,4 +193,5 @@ INNER JOIN products p ON a.product_id = p.id
 WHERE a.seller_id = 1
 ORDER BY a.created_at DESC;
 ```
+
 

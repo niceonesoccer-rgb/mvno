@@ -216,18 +216,23 @@ function initModal() {
     };
     
     closeBtn.addEventListener('click', closeModal);
-    overlay.addEventListener('click', closeModal);
+    // overlay 클릭 시 닫기 (에러 모달의 경우는 preventClose 플래그로 제어)
+    overlay.addEventListener('click', (e) => {
+        if (!modal.dataset.preventClose && !modal.dataset.isConfirm) {
+            closeModal();
+        }
+    });
     
-    // ESC 키로 닫기
+    // ESC 키로 닫기 (에러 모달 및 확인 모달 제외)
     document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && modal.style.display !== 'none') {
+        if (e.key === 'Escape' && modal.style.display !== 'none' && !modal.dataset.preventClose && !modal.dataset.isConfirm) {
             closeModal();
         }
     });
 }
 
 // Alert 모달
-function showAlert(message, title = '알림') {
+function showAlert(message, title = '알림', preventClose = false) {
     return new Promise((resolve) => {
         initModal();
         
@@ -238,7 +243,15 @@ function showAlert(message, title = '알림') {
         const confirmBtn = document.getElementById('modal-confirm');
         
         modalTitle.textContent = title;
-        modalMessage.textContent = message;
+        // 줄바꿈 처리
+        modalMessage.innerHTML = message.replace(/\n/g, '<br>');
+        
+        // 에러 모달의 경우 뒷배경 클릭 방지
+        if (preventClose || title === '오류' || title === '에러') {
+            modal.dataset.preventClose = 'true';
+        } else {
+            delete modal.dataset.preventClose;
+        }
         
         modalFooter.innerHTML = `
             <button class="common-modal-btn common-modal-btn-primary" id="modal-confirm">확인</button>
@@ -249,13 +262,14 @@ function showAlert(message, title = '알림') {
         // 확인 버튼 클릭
         document.getElementById('modal-confirm').addEventListener('click', () => {
             modal.style.display = 'none';
+            delete modal.dataset.preventClose;
             resolve(true);
         });
     });
 }
 
 // Confirm 모달
-function showConfirm(message, title = '확인') {
+function showConfirm(message, title = '확인', preventClose = true) {
     return new Promise((resolve) => {
         initModal();
         
@@ -265,7 +279,17 @@ function showConfirm(message, title = '확인') {
         const modalFooter = document.getElementById('modal-footer');
         
         modalTitle.textContent = title;
-        modalMessage.textContent = message;
+        // 줄바꿈 처리
+        modalMessage.innerHTML = message.replace(/\n/g, '<br>');
+        
+        // 확인 모달의 경우 뒷배경 클릭 방지
+        if (preventClose) {
+            modal.dataset.isConfirm = 'true';
+            modal.dataset.preventClose = 'true';
+        } else {
+            delete modal.dataset.isConfirm;
+            delete modal.dataset.preventClose;
+        }
         
         modalFooter.innerHTML = `
             <button class="common-modal-btn common-modal-btn-secondary" id="modal-cancel">취소</button>
@@ -277,12 +301,16 @@ function showConfirm(message, title = '확인') {
         // 취소 버튼
         document.getElementById('modal-cancel').addEventListener('click', () => {
             modal.style.display = 'none';
+            delete modal.dataset.isConfirm;
+            delete modal.dataset.preventClose;
             resolve(false);
         });
         
         // 확인 버튼
         document.getElementById('modal-confirm').addEventListener('click', () => {
             modal.style.display = 'none';
+            delete modal.dataset.isConfirm;
+            delete modal.dataset.preventClose;
             resolve(true);
         });
     });
@@ -298,6 +326,7 @@ if (document.readyState === 'loading') {
 } else {
     initModal();
 }
+
 
 
 

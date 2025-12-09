@@ -37,7 +37,7 @@ if (!hasSellerPermission($currentUser['user_id'], 'mvno')) {
 // 알뜰폰 상품 데이터 수집
 $productData = [
     'seller_id' => $currentUser['user_id'],
-    'board_type' => 'mvno', // 고정값
+    'product_id' => isset($_POST['product_id']) ? intval($_POST['product_id']) : 0,
     'provider' => $_POST['provider'] ?? '',
     'service_type' => $_POST['service_type'] ?? '',
     'plan_name' => $_POST['plan_name'] ?? '',
@@ -45,7 +45,7 @@ $productData = [
     'contract_period_days' => $_POST['contract_period_days'] ?? '',
     'discount_period' => $_POST['discount_period'] ?? '',
     'price_main' => !empty($_POST['price_main']) ? floatval(str_replace(',', '', $_POST['price_main'])) : 0,
-    'price_after' => !empty($_POST['price_after']) ? floatval(str_replace(',', '', $_POST['price_after'])) : 0,
+    'price_after' => ($_POST['price_after_type_hidden'] ?? '') === 'free' ? null : (!empty($_POST['price_after']) ? floatval(str_replace(',', '', $_POST['price_after'])) : null),
     'data_amount' => $_POST['data_amount'] ?? '',
     'data_amount_value' => $_POST['data_amount_value'] ?? '',
     'data_unit' => $_POST['data_unit'] ?? '',
@@ -75,8 +75,7 @@ $productData = [
     'over_mms_price' => $_POST['over_mms_price'] ?? '',
     'promotion_title' => $_POST['promotion_title'] ?? '',
     'promotions' => $_POST['promotions'] ?? [],
-    'benefits' => $_POST['benefits'] ?? [],
-    'created_at' => date('Y-m-d H:i:s')
+    'benefits' => $_POST['benefits'] ?? []
 ];
 
 // 필수 필드 검증
@@ -98,27 +97,80 @@ if (empty($productData['provider'])) {
 
 // 알뜰폰 상품 데이터 저장
 try {
+    // DB 연결 테스트
+    $pdo = getDBConnection();
+    if (!$pdo) {
+        global $lastDbConnectionError;
+        $errorMessage = '데이터베이스 연결에 실패했습니다.';
+        
+        // 상세 에러 정보 추가
+        if (isset($lastDbConnectionError)) {
+            $errorMessage .= "\n\n오류 내용: " . htmlspecialchars($lastDbConnectionError);
+            $errorMessage .= "\n\n확인 사항:";
+            $errorMessage .= "\n1. MySQL 서버가 실행 중인지 확인하세요.";
+            $errorMessage .= "\n2. 데이터베이스 '" . DB_NAME . "'가 존재하는지 확인하세요.";
+            $errorMessage .= "\n3. DB 설정 파일을 확인하세요.";
+        }
+        
+        echo json_encode([
+            'success' => false,
+            'message' => $errorMessage
+        ]);
+        exit;
+    }
+    
     $productId = saveMvnoProduct($productData);
     
     if ($productId === false) {
+        global $lastDbError;
+        $errorMessage = '상품 등록에 실패했습니다.';
+        
+        // 개발 환경에서는 상세 에러 표시
+        if (isset($lastDbError)) {
+            $errorMessage .= "\n\n오류: " . htmlspecialchars($lastDbError);
+        } else {
+            $errorMessage .= ' 데이터베이스 연결을 확인해주세요.';
+        }
+        
+        // POST 데이터도 로깅
+        error_log("Failed product registration. POST data: " . json_encode($_POST, JSON_UNESCAPED_UNICODE));
+        
+        // 디버깅 정보를 응답에 포함
+        $debugInfo = [
+            'lastDbError' => isset($lastDbError) ? $lastDbError : null,
+            'postDataKeys' => array_keys($_POST),
+            'productId' => $_POST['product_id'] ?? 'not set'
+        ];
+        
         echo json_encode([
             'success' => false,
-            'message' => '상품 등록에 실패했습니다. 데이터베이스 연결을 확인해주세요.'
-        ]);
+            'message' => $errorMessage,
+            'debug' => $debugInfo
+        ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
         exit;
     }
 } catch (Exception $e) {
     error_log("Product registration error: " . $e->getMessage());
+    error_log("Stack trace: " . $e->getTraceAsString());
+    error_log("POST data: " . json_encode($_POST));
+    
+    // 개발 환경에서는 상세 에러 표시
+    $errorMessage = '상품 등록 중 오류가 발생했습니다: ' . $e->getMessage();
+    if (defined('DEBUG') && DEBUG) {
+        $errorMessage .= "\n\nStack trace:\n" . $e->getTraceAsString();
+    }
+    
     echo json_encode([
         'success' => false,
-        'message' => '상품 등록 중 오류가 발생했습니다: ' . $e->getMessage()
+        'message' => $errorMessage
     ]);
     exit;
 }
 
+$isEditMode = isset($productData['product_id']) && $productData['product_id'] > 0;
 echo json_encode([
     'success' => true, 
-    'message' => '알뜰폰 상품이 등록되었습니다.',
+    'message' => $isEditMode ? '알뜰폰 상품이 수정되었습니다.' : '알뜰폰 상품이 등록되었습니다.',
     'product_id' => $productId
 ]);
 

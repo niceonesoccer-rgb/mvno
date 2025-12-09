@@ -19,43 +19,42 @@ function saveMvnoProduct($productData) {
     try {
         $pdo->beginTransaction();
         
-        // 1. 기본 상품 정보 저장
-        $stmt = $pdo->prepare("
-            INSERT INTO products (seller_id, product_type, status)
-            VALUES (:seller_id, 'mvno', 'active')
-        ");
-        $stmt->execute([
-            ':seller_id' => $productData['seller_id']
-        ]);
-        $productId = $pdo->lastInsertId();
+        $isEditMode = isset($productData['product_id']) && $productData['product_id'] > 0;
+        $productId = $isEditMode ? $productData['product_id'] : null;
         
-        // 2. MVNO 상세 정보 저장
-        $stmt = $pdo->prepare("
-            INSERT INTO product_mvno_details (
-                product_id, provider, service_type, plan_name, contract_period,
-                contract_period_days, discount_period, price_main, price_after,
-                data_amount, data_amount_value, data_unit, data_additional, data_additional_value, data_exhausted, data_exhausted_value,
-                call_type, call_amount, additional_call_type, additional_call,
-                sms_type, sms_amount, mobile_hotspot, mobile_hotspot_value,
-                regular_sim_available, regular_sim_price, nfc_sim_available, nfc_sim_price,
-                esim_available, esim_price, over_data_price, over_voice_price,
-                over_video_price, over_sms_price, over_lms_price, over_mms_price,
-                promotion_title, promotions, benefits
-            ) VALUES (
-                :product_id, :provider, :service_type, :plan_name, :contract_period,
-                :contract_period_days, :discount_period, :price_main, :price_after,
-                :data_amount, :data_amount_value, :data_unit, :data_additional, :data_additional_value, :data_exhausted, :data_exhausted_value,
-                :call_type, :call_amount, :additional_call_type, :additional_call,
-                :sms_type, :sms_amount, :mobile_hotspot, :mobile_hotspot_value,
-                :regular_sim_available, :regular_sim_price, :nfc_sim_available, :nfc_sim_price,
-                :esim_available, :esim_price, :over_data_price, :over_voice_price,
-                :over_video_price, :over_sms_price, :over_lms_price, :over_mms_price,
-                :promotion_title, :promotions, :benefits
-            )
-        ");
+        if ($isEditMode) {
+            // 수정 모드: 기존 상품 정보 업데이트
+            $stmt = $pdo->prepare("
+                UPDATE products 
+                SET seller_id = :seller_id, product_type = 'mvno'
+                WHERE id = :product_id AND seller_id = :seller_id
+            ");
+            $stmt->execute([
+                ':seller_id' => $productData['seller_id'],
+                ':product_id' => $productId
+            ]);
+        } else {
+            // 등록 모드: 새 상품 정보 저장
+            $stmt = $pdo->prepare("
+                INSERT INTO products (seller_id, product_type, status, view_count)
+                VALUES (:seller_id, 'mvno', 'active', 0)
+            ");
+            $stmt->execute([
+                ':seller_id' => $productData['seller_id']
+            ]);
+            $productId = $pdo->lastInsertId();
+        }
         
-        $stmt->execute([
-            ':product_id' => $productId,
+        // 상세 정보 존재 여부 확인 (수정 모드일 경우)
+        $detailExists = false;
+        if ($isEditMode) {
+            $checkStmt = $pdo->prepare("SELECT COUNT(*) FROM product_mvno_details WHERE product_id = :product_id");
+            $checkStmt->execute([':product_id' => $productId]);
+            $detailExists = $checkStmt->fetchColumn() > 0;
+        }
+        
+        // 파라미터 배열 준비 (공통)
+        $params = [
             ':provider' => $productData['provider'] ?? '',
             ':service_type' => $productData['service_type'] ?? null,
             ':plan_name' => $productData['plan_name'] ?? '',
@@ -63,7 +62,7 @@ function saveMvnoProduct($productData) {
             ':contract_period_days' => $productData['contract_period_days'] ?? null,
             ':discount_period' => $productData['discount_period'] ?? null,
             ':price_main' => isset($productData['price_main']) ? floatval($productData['price_main']) : 0,
-            ':price_after' => isset($productData['price_after']) && $productData['price_after'] !== '' ? floatval($productData['price_after']) : 0,
+            ':price_after' => (isset($productData['price_after']) && $productData['price_after'] !== '' && $productData['price_after'] !== null && $productData['price_after'] !== 'free') ? floatval($productData['price_after']) : null,
             ':data_amount' => $productData['data_amount'] ?? null,
             ':data_amount_value' => $productData['data_amount_value'] ?? null,
             ':data_unit' => $productData['data_unit'] ?? null,
@@ -94,7 +93,161 @@ function saveMvnoProduct($productData) {
             ':promotion_title' => $productData['promotion_title'] ?? null,
             ':promotions' => !empty($productData['promotions']) ? json_encode($productData['promotions']) : null,
             ':benefits' => !empty($productData['benefits']) ? json_encode($productData['benefits']) : null,
-        ]);
+        ];
+        
+        // 쿼리별 파라미터 배열 준비
+        if ($isEditMode && $detailExists) {
+            // 수정 모드: 상세 정보 업데이트
+            $updateParams = $params;
+            $updateParams[':product_id'] = $productId;
+            $queryString = "
+                UPDATE product_mvno_details SET
+                provider = :provider, service_type = :service_type, plan_name = :plan_name, contract_period = :contract_period,
+                contract_period_days = :contract_period_days, discount_period = :discount_period, price_main = :price_main, price_after = :price_after,
+                data_amount = :data_amount, data_amount_value = :data_amount_value, data_unit = :data_unit, data_additional = :data_additional, data_additional_value = :data_additional_value, data_exhausted = :data_exhausted, data_exhausted_value = :data_exhausted_value,
+                call_type = :call_type, call_amount = :call_amount, additional_call_type = :additional_call_type, additional_call = :additional_call,
+                sms_type = :sms_type, sms_amount = :sms_amount, mobile_hotspot = :mobile_hotspot, mobile_hotspot_value = :mobile_hotspot_value,
+                regular_sim_available = :regular_sim_available, regular_sim_price = :regular_sim_price, nfc_sim_available = :nfc_sim_available, nfc_sim_price = :nfc_sim_price,
+                esim_available = :esim_available, esim_price = :esim_price, over_data_price = :over_data_price, over_voice_price = :over_voice_price,
+                over_video_price = :over_video_price, over_sms_price = :over_sms_price, over_lms_price = :over_lms_price, over_mms_price = :over_mms_price,
+                promotion_title = :promotion_title, promotions = :promotions, benefits = :benefits
+                WHERE product_id = :product_id
+            ";
+            $stmt = $pdo->prepare($queryString);
+            $executeParams = $updateParams;
+        } else {
+            // 등록 모드: 상세 정보 저장
+            $insertParams = $params;
+            $insertParams[':product_id'] = $productId;
+            $queryString = "
+                INSERT INTO product_mvno_details (
+                product_id, provider, service_type, plan_name, contract_period,
+                contract_period_days, discount_period, price_main, price_after,
+                data_amount, data_amount_value, data_unit, data_additional, data_additional_value, data_exhausted, data_exhausted_value,
+                call_type, call_amount, additional_call_type, additional_call,
+                sms_type, sms_amount, mobile_hotspot, mobile_hotspot_value,
+                regular_sim_available, regular_sim_price, nfc_sim_available, nfc_sim_price,
+                esim_available, esim_price, over_data_price, over_voice_price,
+                over_video_price, over_sms_price, over_lms_price, over_mms_price,
+                promotion_title, promotions, benefits
+            ) VALUES (
+                :product_id, :provider, :service_type, :plan_name, :contract_period,
+                :contract_period_days, :discount_period, :price_main, :price_after,
+                :data_amount, :data_amount_value, :data_unit, :data_additional, :data_additional_value, :data_exhausted, :data_exhausted_value,
+                :call_type, :call_amount, :additional_call_type, :additional_call,
+                :sms_type, :sms_amount, :mobile_hotspot, :mobile_hotspot_value,
+                :regular_sim_available, :regular_sim_price, :nfc_sim_available, :nfc_sim_price,
+                :esim_available, :esim_price, :over_data_price, :over_voice_price,
+                :over_video_price, :over_sms_price, :over_lms_price, :over_mms_price,
+                :promotion_title, :promotions, :benefits
+            )
+        ";
+            $stmt = $pdo->prepare($queryString);
+            $executeParams = $insertParams;
+        }
+        
+        // 쿼리에서 사용하는 파라미터 추출하여 검증
+        preg_match_all('/:(\w+)/', $queryString, $matches);
+        $requiredParams = array_unique($matches[1]);
+        $providedParams = array_map(function($key) { return substr($key, 1); }, array_keys($executeParams));
+        
+        $missingParams = array_diff($requiredParams, $providedParams);
+        $extraParams = array_diff($providedParams, $requiredParams);
+        
+        // 파라미터 검증 및 상세 로깅
+        $debugInfo = [
+            'query_type' => $isEditMode && $detailExists ? "UPDATE" : "INSERT",
+            'required_count' => count($requiredParams),
+            'provided_count' => count($executeParams),
+            'required_params' => $requiredParams,
+            'provided_params' => $providedParams,
+            'missing_params' => $missingParams,
+            'extra_params' => $extraParams,
+            'product_id' => $productId
+        ];
+        
+        // 파라미터 검증 (실제로는 execute 전에 검증하지만, 상세 로깅을 위해)
+        if (!empty($missingParams) || !empty($extraParams)) {
+            $errorMsg = "Parameter mismatch detected before execution!\n";
+            $errorMsg .= "Query type: " . $debugInfo['query_type'] . "\n";
+            $errorMsg .= "Required count: " . $debugInfo['required_count'] . "\n";
+            $errorMsg .= "Provided count: " . $debugInfo['provided_count'] . "\n";
+            $errorMsg .= "Required: " . implode(", ", $requiredParams) . "\n";
+            $errorMsg .= "Provided: " . implode(", ", $providedParams) . "\n";
+            if (!empty($missingParams)) {
+                $errorMsg .= "Missing: " . implode(", ", $missingParams) . "\n";
+            }
+            if (!empty($extraParams)) {
+                $errorMsg .= "Extra: " . implode(", ", $extraParams) . "\n";
+            }
+            $errorMsg .= "\nDebug info: " . json_encode($debugInfo, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+            error_log($errorMsg);
+            
+            // 전역 변수에 저장
+            global $lastDbError;
+            $lastDbError = $errorMsg;
+            
+            throw new PDOException("Parameter mismatch: " . $errorMsg);
+        }
+        
+        // 파라미터 값 확인 (null이나 빈 값이 있는지)
+        $nullParams = [];
+        foreach ($executeParams as $key => $value) {
+            if ($value === null || $value === '') {
+                $nullParams[] = $key . '=' . ($value === null ? 'NULL' : 'EMPTY');
+            }
+        }
+        if (!empty($nullParams)) {
+            error_log("Parameters with null/empty values: " . implode(", ", $nullParams));
+        }
+        
+        try {
+            // 실제 execute 전에 파라미터 키 확인
+            $executeKeys = array_keys($executeParams);
+            $queryParamKeys = array_map(function($p) { return ':' . $p; }, $requiredParams);
+            
+            // 키 비교
+            $keyDiff = array_diff($queryParamKeys, $executeKeys);
+            if (!empty($keyDiff)) {
+                $errorMsg = "Parameter key mismatch!\n";
+                $errorMsg .= "Query expects keys: " . implode(", ", $queryParamKeys) . "\n";
+                $errorMsg .= "Provided keys: " . implode(", ", $executeKeys) . "\n";
+                $errorMsg .= "Missing keys: " . implode(", ", $keyDiff) . "\n";
+                error_log($errorMsg);
+                
+                global $lastDbError;
+                $lastDbError = $errorMsg;
+                throw new PDOException($errorMsg);
+            }
+            
+            $stmt->execute($executeParams);
+        } catch (PDOException $e) {
+            // 파라미터 정보 로깅
+            $errorMsg = "Error executing query: " . $e->getMessage();
+            $errorMsg .= "\nSQL State: " . $e->getCode();
+            $errorMsg .= "\nQuery type: " . ($isEditMode && $detailExists ? "UPDATE" : "INSERT");
+            $errorMsg .= "\nParameters count: " . count($executeParams);
+            $errorMsg .= "\nParameters keys: " . implode(", ", array_keys($executeParams));
+            $errorMsg .= "\nRequired params (" . count($requiredParams) . "): " . implode(", ", $requiredParams);
+            $errorMsg .= "\nProvided params (" . count($providedParams) . "): " . implode(", ", $providedParams);
+            $errorMsg .= "\nProduct ID: " . $productId;
+            if (!empty($missingParams)) {
+                $errorMsg .= "\nMissing params: " . implode(", ", $missingParams);
+            }
+            if (!empty($extraParams)) {
+                $errorMsg .= "\nExtra params: " . implode(", ", $extraParams);
+            }
+            $errorMsg .= "\n\nDebug info: " . json_encode($debugInfo, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+            $errorMsg .= "\n\nQuery string: " . $queryString;
+            $errorMsg .= "\n\nExecute params (first 5): " . json_encode(array_slice($executeParams, 0, 5, true), JSON_UNESCAPED_UNICODE);
+            error_log($errorMsg);
+            
+            // 전역 변수에 저장하여 API에서 접근 가능하도록
+            global $lastDbError;
+            $lastDbError = $errorMsg;
+            
+            throw $e;
+        }
         
         $pdo->commit();
         return $productId;
@@ -102,15 +255,23 @@ function saveMvnoProduct($productData) {
         if (isset($pdo)) {
             $pdo->rollBack();
         }
-        error_log("Error saving MVNO product: " . $e->getMessage());
-        error_log("Stack trace: " . $e->getTraceAsString());
-        error_log("Product data: " . json_encode($productData));
+        $errorMsg = "Error saving MVNO product: " . $e->getMessage();
+        $errorMsg .= "\nSQL State: " . $e->getCode();
+        $errorMsg .= "\nStack trace: " . $e->getTraceAsString();
+        $errorMsg .= "\nProduct data: " . json_encode($productData);
+        error_log($errorMsg);
+        
+        // 에러 정보를 전역 변수에 저장 (디버깅용)
+        global $lastDbError;
+        $lastDbError = $e->getMessage();
+        
         return false;
     } catch (Exception $e) {
         if (isset($pdo)) {
             $pdo->rollBack();
         }
         error_log("Unexpected error saving MVNO product: " . $e->getMessage());
+        error_log("Stack trace: " . $e->getTraceAsString());
         return false;
     }
 }
@@ -131,8 +292,8 @@ function saveMnoProduct($productData) {
         
         // 1. 기본 상품 정보 저장
         $stmt = $pdo->prepare("
-            INSERT INTO products (seller_id, product_type, status)
-            VALUES (:seller_id, 'mno', 'active')
+            INSERT INTO products (seller_id, product_type, status, view_count)
+            VALUES (:seller_id, 'mno', 'active', 0)
         ");
         $stmt->execute([
             ':seller_id' => $productData['seller_id']
@@ -253,8 +414,8 @@ function saveInternetProduct($productData) {
         
         // 1. 기본 상품 정보 저장
         $stmt = $pdo->prepare("
-            INSERT INTO products (seller_id, product_type, status)
-            VALUES (:seller_id, 'internet', 'active')
+            INSERT INTO products (seller_id, product_type, status, view_count)
+            VALUES (:seller_id, 'internet', 'active', 0)
         ");
         $stmt->execute([
             ':seller_id' => $productData['seller_id']

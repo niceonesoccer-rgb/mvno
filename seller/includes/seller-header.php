@@ -119,7 +119,16 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         .seller-top-header-right {
             display: flex;
             align-items: center;
-            gap: 24px;
+            gap: 16px;
+        }
+        
+        .seller-info {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.95);
+            font-weight: 500;
+            padding: 6px 12px;
+            border-right: 1px solid rgba(255, 255, 255, 0.3);
+            margin-right: 8px;
         }
         
         .seller-top-header-link {
@@ -203,6 +212,17 @@ $currentPage = basename($_SERVER['PHP_SELF']);
             border-left-color: #fbbf24;
         }
         
+        .menu-item-sub {
+            padding-left: 56px;
+            font-size: 13px;
+        }
+        
+        .menu-item-sub.active {
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            border-left-color: #fbbf24;
+        }
+        
         .menu-item-icon {
             width: 20px;
             height: 20px;
@@ -258,6 +278,11 @@ $currentPage = basename($_SERVER['PHP_SELF']);
             <a href="/MVNO/seller/" class="seller-top-header-logo">판매자 센터</a>
         </div>
         <div class="seller-top-header-right">
+            <?php if ($currentUser && isset($currentUser['user_id']) && isset($currentUser['company_name'])): ?>
+                <span class="seller-info">
+                    <?php echo htmlspecialchars($currentUser['company_name']); ?> (<?php echo htmlspecialchars($currentUser['user_id']); ?>)
+                </span>
+            <?php endif; ?>
             <a href="/MVNO/" class="seller-top-header-link">사이트보기</a>
             <a href="/MVNO/seller/logout.php" class="seller-top-header-link">로그아웃</a>
         </div>
@@ -282,49 +307,34 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         
         <div class="menu-section">
             <div class="menu-section-title">상품 관리</div>
-            <a href="/MVNO/seller/products/list.php" class="menu-item <?php echo $currentPage === 'list.php' ? 'active' : ''; ?>">
-                <span class="menu-item-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="8" y1="6" x2="21" y2="6"/>
-                        <line x1="8" y1="12" x2="21" y2="12"/>
-                        <line x1="8" y1="18" x2="21" y2="18"/>
-                        <line x1="3" y1="6" x2="3.01" y2="6"/>
-                        <line x1="3" y1="12" x2="3.01" y2="12"/>
-                        <line x1="3" y1="18" x2="3.01" y2="18"/>
-                    </svg>
-                </span>
-                상품 목록
-            </a>
-            <a href="/MVNO/seller/products/mvno.php" class="menu-item <?php echo $currentPage === 'mvno.php' ? 'active' : ''; ?>">
-                <span class="menu-item-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
-                        <line x1="3" y1="6" x2="21" y2="6"/>
-                        <path d="M16 10a4 4 0 0 1-8 0"/>
-                    </svg>
-                </span>
-                알뜰폰 등록
-            </a>
-            <a href="/MVNO/seller/products/mno.php" class="menu-item <?php echo $currentPage === 'mno.php' ? 'active' : ''; ?>">
-                <span class="menu-item-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
-                        <line x1="3" y1="6" x2="21" y2="6"/>
-                        <path d="M16 10a4 4 0 0 1-8 0"/>
-                    </svg>
-                </span>
-                통신사폰 등록
-            </a>
-            <a href="/MVNO/seller/products/internet.php" class="menu-item <?php echo $currentPage === 'internet.php' ? 'active' : ''; ?>">
-                <span class="menu-item-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
-                        <line x1="3" y1="6" x2="21" y2="6"/>
-                        <path d="M16 10a4 4 0 0 1-8 0"/>
-                    </svg>
-                </span>
-                인터넷 등록
-            </a>
+            <div style="margin-top: 8px;">
+                <div style="padding: 8px 24px; font-size: 12px; color: rgba(255, 255, 255, 0.5); font-weight: 600;">
+                    등록 상품
+                </div>
+                <a href="/MVNO/seller/products/mvno-list.php" class="menu-item menu-item-sub <?php echo $currentPage === 'mvno-list.php' ? 'active' : ''; ?>">
+                    알뜰폰
+                </a>
+                <a href="/MVNO/seller/products/mno-list.php" class="menu-item menu-item-sub <?php echo $currentPage === 'mno-list.php' ? 'active' : ''; ?>">
+                    통신사폰
+                </a>
+                <a href="/MVNO/seller/products/internet-list.php" class="menu-item menu-item-sub <?php echo $currentPage === 'internet-list.php' ? 'active' : ''; ?>">
+                    인터넷
+                </a>
+            </div>
+            <div style="margin-top: 8px;">
+                <div style="padding: 8px 24px; font-size: 12px; color: rgba(255, 255, 255, 0.5); font-weight: 600;">
+                    상품 등록
+                </div>
+                <a href="/MVNO/seller/products/mvno.php" class="menu-item menu-item-sub <?php echo $currentPage === 'mvno.php' ? 'active' : ''; ?>">
+                    알뜰폰
+                </a>
+                <a href="/MVNO/seller/products/mno.php" class="menu-item menu-item-sub <?php echo $currentPage === 'mno.php' ? 'active' : ''; ?>">
+                    통신사폰
+                </a>
+                <a href="/MVNO/seller/products/internet.php" class="menu-item menu-item-sub <?php echo $currentPage === 'internet.php' ? 'active' : ''; ?>">
+                    인터넷
+                </a>
+            </div>
         </div>
         
         <div class="menu-section">
