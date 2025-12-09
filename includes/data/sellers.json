@@ -1106,7 +1106,9 @@
             "withdrawal_completed": true,
             "withdrawal_completed_at": "2025-12-06 17:17:38",
             "scheduled_delete_date": "2025-12-08",
-            "scheduled_delete_time": "2025-12-08 23:59:59"
+            "scheduled_delete_time": "2025-12-08 23:59:59",
+            "scheduled_delete_processed": true,
+            "scheduled_delete_processed_at": "2025-12-10 07:10:41"
         },
         {
             "user_id": "77777822",

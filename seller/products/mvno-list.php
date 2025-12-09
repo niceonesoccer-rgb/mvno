@@ -34,13 +34,28 @@ if (isset($currentUser['withdrawal_requested']) && $currentUser['withdrawal_requ
     exit;
 }
 
-// 상태 필터
+// 검색 필터
 $status = $_GET['status'] ?? '';
 if ($status === '') {
     $status = null;
 }
+$provider = $_GET['provider'] ?? '';
+$plan_name = $_GET['plan_name'] ?? '';
+$contract_period = $_GET['contract_period'] ?? '';
+$contract_period_days_min = $_GET['contract_period_days_min'] ?? '';
+$contract_period_days_max = $_GET['contract_period_days_max'] ?? '';
+$price_after_type = $_GET['price_after_type'] ?? ''; // 'free' or 'amount'
+$price_after_min = $_GET['price_after_min'] ?? '';
+$price_after_max = $_GET['price_after_max'] ?? '';
+$service_type = $_GET['service_type'] ?? '';
+$date_from = $_GET['date_from'] ?? '';
+$date_to = $_GET['date_to'] ?? '';
 $page = max(1, intval($_GET['page'] ?? 1));
-$perPage = 20;
+$perPage = intval($_GET['per_page'] ?? 20);
+// 허용된 per_page 값만 사용 (10, 50, 100)
+if (!in_array($perPage, [10, 50, 100])) {
+    $perPage = 20;
+}
 
 // DB에서 알뜰폰 상품 목록 가져오기
 $products = [];
@@ -63,14 +78,99 @@ try {
             $whereConditions[] = "p.status != 'deleted'";
         }
         
+        // 통신사 필터
+        if ($provider && $provider !== '') {
+            $whereConditions[] = 'mvno.provider = :provider';
+            $params[':provider'] = $provider;
+        }
+        
+        // 요금제명 필터
+        if ($plan_name && $plan_name !== '') {
+            $whereConditions[] = 'mvno.plan_name LIKE :plan_name';
+            $params[':plan_name'] = '%' . $plan_name . '%';
+        }
+        
+        // 약정기간 필터
+        if ($contract_period && $contract_period !== '') {
+            if ($contract_period === '무약정') {
+                $whereConditions[] = 'mvno.contract_period = :contract_period';
+                $params[':contract_period'] = '무약정';
+            } else if ($contract_period === '기간입력') {
+                // 기간입력일 때는 contract_period_days 구간으로 검색
+                $periodConditions = ['mvno.contract_period = :contract_period'];
+                $params[':contract_period'] = '직접입력';
+                
+                if ($contract_period_days_min && $contract_period_days_min !== '') {
+                    $periodConditions[] = 'mvno.contract_period_days >= :contract_period_days_min';
+                    $params[':contract_period_days_min'] = intval($contract_period_days_min);
+                }
+                
+                if ($contract_period_days_max && $contract_period_days_max !== '') {
+                    $periodConditions[] = 'mvno.contract_period_days <= :contract_period_days_max';
+                    $params[':contract_period_days_max'] = intval($contract_period_days_max);
+                }
+                
+                $whereConditions[] = '(' . implode(' AND ', $periodConditions) . ')';
+            }
+        }
+        
+        // 할인 후 요금 필터
+        if ($price_after_type === 'free') {
+            $whereConditions[] = '(mvno.price_after IS NULL OR mvno.price_after = 0)';
+        } else if ($price_after_type === 'amount') {
+            // 금액입력일 때는 구간 검색
+            $priceConditions = ['mvno.price_after IS NOT NULL AND mvno.price_after > 0'];
+            
+            if ($price_after_min && $price_after_min !== '') {
+                $priceConditions[] = 'mvno.price_after >= :price_after_min';
+                $params[':price_after_min'] = floatval($price_after_min);
+            }
+            
+            if ($price_after_max && $price_after_max !== '') {
+                $priceConditions[] = 'mvno.price_after <= :price_after_max';
+                $params[':price_after_max'] = floatval($price_after_max);
+            }
+            
+            $whereConditions[] = '(' . implode(' AND ', $priceConditions) . ')';
+        }
+        
+        // 데이터속도 필터 (service_type)
+        if ($service_type && $service_type !== '') {
+            $whereConditions[] = 'mvno.service_type = :service_type';
+            $params[':service_type'] = $service_type;
+        }
+        
+        // 등록일 구간 필터
+        if ($date_from && $date_from !== '') {
+            $whereConditions[] = 'DATE(p.created_at) >= :date_from';
+            $params[':date_from'] = $date_from;
+        }
+        if ($date_to && $date_to !== '') {
+            $whereConditions[] = 'DATE(p.created_at) <= :date_to';
+            $params[':date_to'] = $date_to;
+        }
+        
         $whereClause = implode(' AND ', $whereConditions);
         
+        // mvno 필터가 있는지 확인
+        $hasMvnoFilters = !empty($provider) || !empty($plan_name) || !empty($contract_period) || 
+                          !empty($price_after_type) || !empty($service_type);
+        
         // 전체 개수 조회
-        $countStmt = $pdo->prepare("
-            SELECT COUNT(*) as total
-            FROM products p
-            WHERE {$whereClause}
-        ");
+        if ($hasMvnoFilters) {
+            $countStmt = $pdo->prepare("
+                SELECT COUNT(DISTINCT p.id) as total
+                FROM products p
+                LEFT JOIN product_mvno_details mvno ON p.id = mvno.product_id
+                WHERE {$whereClause}
+            ");
+        } else {
+            $countStmt = $pdo->prepare("
+                SELECT COUNT(*) as total
+                FROM products p
+                WHERE {$whereClause}
+            ");
+        }
         $countStmt->execute($params);
         $totalProducts = $countStmt->fetch()['total'];
         $totalPages = ceil($totalProducts / $perPage);
@@ -162,9 +262,24 @@ $pageStyles = '
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         border: 1px solid #e5e7eb;
         display: flex;
-        gap: 16px;
-        align-items: center;
-        flex-wrap: wrap;
+        gap: 20px;
+        align-items: flex-start;
+    }
+    
+    .filter-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .filter-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        min-width: 100px;
+        position: sticky;
+        top: 20px;
     }
     
     .filter-group {
@@ -186,6 +301,57 @@ $pageStyles = '
         border-radius: 6px;
         background: white;
         cursor: pointer;
+    }
+    
+    .filter-input {
+        padding: 8px 12px;
+        font-size: 14px;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        background: white;
+    }
+    
+    .filter-input:focus {
+        outline: none;
+        border-color: #10b981;
+    }
+    
+    .search-button {
+        padding: 8px 20px;
+        font-size: 14px;
+        font-weight: 600;
+        border: none;
+        border-radius: 6px;
+        background: #10b981;
+        color: white;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .search-button:hover {
+        background: #059669;
+    }
+    
+    .filter-row {
+        display: flex;
+        gap: 16px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-bottom: 12px;
+    }
+    
+    .filter-row:last-child {
+        margin-bottom: 0;
+    }
+    
+    .filter-input-group {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .filter-input-group .filter-input {
+        width: 120px;
     }
     
     .product-table-wrapper {
@@ -362,24 +528,106 @@ include __DIR__ . '/../includes/seller-header.php';
 ?>
 
 <div class="product-list-container">
-    <div class="page-header">
-        <div>
-            <h1>알뜰폰 등록 상품</h1>
-            <p>등록한 알뜰폰 상품을 관리하세요</p>
+    <!-- 필터 바 -->
+    <div class="filter-bar">
+        <div class="filter-content">
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label class="filter-label">상태:</label>
+                    <select class="filter-select" id="filter_status">
+                        <option value="">전체</option>
+                        <option value="active" <?php echo $status === 'active' ? 'selected' : ''; ?>>판매중</option>
+                        <option value="inactive" <?php echo $status === 'inactive' ? 'selected' : ''; ?>>판매종료</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label class="filter-label">통신사:</label>
+                    <select class="filter-select" id="filter_provider">
+                        <option value="">전체</option>
+                        <option value="SK알뜰폰" <?php echo $provider === 'SK알뜰폰' ? 'selected' : ''; ?>>SK알뜰폰</option>
+                        <option value="KT알뜰폰" <?php echo $provider === 'KT알뜰폰' ? 'selected' : ''; ?>>KT알뜰폰</option>
+                        <option value="LG알뜰폰" <?php echo $provider === 'LG알뜰폰' ? 'selected' : ''; ?>>LG알뜰폰</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label class="filter-label">요금제명:</label>
+                    <input type="text" class="filter-input" id="filter_plan_name" placeholder="요금제명 검색" value="<?php echo htmlspecialchars($plan_name); ?>" style="width: 200px;">
+                </div>
+                
+                <div class="filter-group" style="display: flex; align-items: center; gap: 8px;">
+                    <div>
+                        <label class="filter-label">약정기간:</label>
+                        <select class="filter-select" id="filter_contract_period" onchange="toggleContractPeriodInput()">
+                            <option value="">전체</option>
+                            <option value="무약정" <?php echo $contract_period === '무약정' ? 'selected' : ''; ?>>무약정</option>
+                            <option value="기간입력" <?php echo $contract_period === '기간입력' ? 'selected' : ''; ?>>기간입력</option>
+                        </select>
+                    </div>
+                    <div id="contract_period_days_wrapper" style="display: <?php echo ($contract_period === '기간입력') ? 'flex' : 'none'; ?>; align-items: center; gap: 4px;">
+                        <input type="number" class="filter-input" id="filter_contract_period_days_min" placeholder="최소" value="<?php echo htmlspecialchars($contract_period_days_min); ?>" min="1" max="99999" style="width: 100px;">
+                        <span style="color: #6b7280;">~</span>
+                        <input type="number" class="filter-input" id="filter_contract_period_days_max" placeholder="최대" value="<?php echo htmlspecialchars($contract_period_days_max); ?>" min="1" max="99999" style="width: 100px;">
+                        <span style="color: #6b7280; font-size: 12px;">일</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label class="filter-label">데이터속도:</label>
+                    <select class="filter-select" id="filter_service_type">
+                        <option value="">전체</option>
+                        <option value="LTE" <?php echo $service_type === 'LTE' ? 'selected' : ''; ?>>LTE</option>
+                        <option value="5G" <?php echo $service_type === '5G' ? 'selected' : ''; ?>>5G</option>
+                        <option value="6G" <?php echo $service_type === '6G' ? 'selected' : ''; ?>>6G</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label class="filter-label">등록일:</label>
+                    <div class="filter-input-group">
+                        <input type="date" class="filter-input" id="filter_date_from" value="<?php echo htmlspecialchars($date_from); ?>">
+                        <span style="color: #6b7280;">~</span>
+                        <input type="date" class="filter-input" id="filter_date_to" value="<?php echo htmlspecialchars($date_to); ?>">
+                    </div>
+                </div>
+                
+                <div class="filter-group" style="display: flex; align-items: center; gap: 8px;">
+                    <div>
+                        <label class="filter-label">할인 후 요금:</label>
+                        <select class="filter-select" id="filter_price_after_type" onchange="togglePriceAfterInput()">
+                            <option value="">전체</option>
+                            <option value="free" <?php echo $price_after_type === 'free' ? 'selected' : ''; ?>>공짜</option>
+                            <option value="amount" <?php echo $price_after_type === 'amount' ? 'selected' : ''; ?>>금액입력</option>
+                        </select>
+                    </div>
+                    <div id="price_after_amount_wrapper" style="display: <?php echo ($price_after_type === 'amount') ? 'flex' : 'none'; ?>; align-items: center; gap: 4px;" class="filter-input-group">
+                        <input type="number" class="filter-input" id="filter_price_after_min" placeholder="최소" value="<?php echo htmlspecialchars($price_after_min); ?>" min="0">
+                        <span style="color: #6b7280;">~</span>
+                        <input type="number" class="filter-input" id="filter_price_after_max" placeholder="최대" value="<?php echo htmlspecialchars($price_after_max); ?>" min="0">
+                        <span style="color: #6b7280; font-size: 12px;">원</span>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-            <a href="/MVNO/seller/products/mvno.php" class="btn btn-primary">알뜰폰 등록</a>
+        
+        <div class="filter-buttons">
+            <button class="search-button" onclick="applyFilters()" style="width: 100%;">검색</button>
+            <button class="search-button" onclick="resetFilters()" style="background: #6b7280; width: 100%;">초기화</button>
         </div>
     </div>
     
-    <!-- 필터 바 -->
-    <div class="filter-bar">
-        <div class="filter-group">
-            <label class="filter-label">상태:</label>
-            <select class="filter-select" id="filter_status" onchange="applyFilters()">
-                <option value="">전체</option>
-                <option value="active" <?php echo $status === 'active' ? 'selected' : ''; ?>>판매중</option>
-                <option value="inactive" <?php echo $status === 'inactive' ? 'selected' : ''; ?>>판매종료</option>
+    <!-- 페이지당 표시 선택 -->
+    <div style="display: flex; justify-content: flex-end; margin-bottom: 16px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <label style="font-size: 14px; color: #374151; font-weight: 600;">페이지당 표시:</label>
+            <select class="filter-select" id="per_page_select" onchange="changePerPage()" style="width: 80px;">
+                <option value="10" <?php echo $perPage === 10 ? 'selected' : ''; ?>>10개</option>
+                <option value="20" <?php echo $perPage === 20 ? 'selected' : ''; ?>>20개</option>
+                <option value="50" <?php echo $perPage === 50 ? 'selected' : ''; ?>>50개</option>
+                <option value="100" <?php echo $perPage === 100 ? 'selected' : ''; ?>>100개</option>
             </select>
         </div>
     </div>
@@ -409,17 +657,17 @@ include __DIR__ . '/../includes/seller-header.php';
                                 <input type="checkbox" id="selectAll" onchange="toggleSelectAll()" style="cursor: pointer;">
                             </div>
                         </th>
-                        <th>번호</th>
-                        <th>상품명</th>
+                        <th style="text-align: center;">번호</th>
+                        <th style="text-align: center;">요금제명</th>
                         <th>통신사</th>
-                        <th>월 요금</th>
-                        <th>조회수</th>
-                        <th>찜</th>
-                        <th>리뷰</th>
-                        <th>신청</th>
-                        <th>상태</th>
-                        <th>등록일</th>
-                        <th>관리</th>
+                        <th style="text-align: right;">할인 후 요금</th>
+                        <th style="text-align: right;">조회수</th>
+                        <th style="text-align: right;">찜</th>
+                        <th style="text-align: right;">리뷰</th>
+                        <th style="text-align: right;">신청</th>
+                        <th style="text-align: center;">상태</th>
+                        <th style="text-align: center;">등록일</th>
+                        <th style="text-align: center;">관리</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -428,21 +676,30 @@ include __DIR__ . '/../includes/seller-header.php';
                             <td style="text-align: center;">
                                 <input type="checkbox" class="product-checkbox" value="<?php echo $product['id']; ?>" style="cursor: pointer;">
                             </td>
-                            <td><?php echo $totalProducts - (($page - 1) * $perPage + $index); ?></td>
-                            <td><?php echo htmlspecialchars($product['product_name'] ?? '-'); ?></td>
+                            <td style="text-align: center;"><?php echo $totalProducts - (($page - 1) * $perPage + $index); ?></td>
+                            <td style="text-align: left;"><?php echo htmlspecialchars($product['product_name'] ?? '-'); ?></td>
                             <td><?php echo htmlspecialchars($product['provider'] ?? '-'); ?></td>
-                            <td><?php echo number_format($product['monthly_fee'] ?? 0); ?>원</td>
-                            <td><?php echo number_format($product['view_count'] ?? 0); ?></td>
-                            <td><?php echo number_format($product['favorite_count'] ?? 0); ?></td>
-                            <td><?php echo number_format($product['review_count'] ?? 0); ?></td>
-                            <td><?php echo number_format($product['application_count'] ?? 0); ?></td>
-                            <td>
+                            <td style="text-align: right;">
+                                <?php 
+                                $monthlyFee = $product['monthly_fee'] ?? 0;
+                                if ($monthlyFee == 0 || $monthlyFee == null) {
+                                    echo '<span style="color: #10b981; font-weight: 600;">공짜</span>';
+                                } else {
+                                    echo number_format($monthlyFee, 0, '', '') . '원';
+                                }
+                                ?>
+                            </td>
+                            <td style="text-align: right;"><?php echo number_format($product['view_count'] ?? 0); ?></td>
+                            <td style="text-align: right;"><?php echo number_format($product['favorite_count'] ?? 0); ?></td>
+                            <td style="text-align: right;"><?php echo number_format($product['review_count'] ?? 0); ?></td>
+                            <td style="text-align: right;"><?php echo number_format($product['application_count'] ?? 0); ?></td>
+                            <td style="text-align: center;">
                                 <span class="badge <?php echo ($product['status'] ?? 'active') === 'active' ? 'badge-active' : 'badge-inactive'; ?>">
                                     <?php echo ($product['status'] ?? 'active') === 'active' ? '판매중' : '판매종료'; ?>
                                 </span>
                             </td>
-                            <td><?php echo isset($product['created_at']) ? date('Y-m-d', strtotime($product['created_at'])) : '-'; ?></td>
-                            <td>
+                            <td style="text-align: center;"><?php echo isset($product['created_at']) ? date('Y-m-d', strtotime($product['created_at'])) : '-'; ?></td>
+                            <td style="text-align: center;">
                                 <div class="action-buttons">
                                     <button class="btn btn-sm btn-edit" onclick="editProduct(<?php echo $product['id']; ?>)">수정</button>
                                     <button class="btn btn-sm btn-copy" onclick="copyProduct(<?php echo $product['id']; ?>)">복사</button>
@@ -455,16 +712,33 @@ include __DIR__ . '/../includes/seller-header.php';
             
             <!-- 페이지네이션 -->
             <?php if ($totalPages > 1): ?>
-                <div class="pagination">
-                    <a href="?status=<?php echo htmlspecialchars($status ?? ''); ?>&page=<?php echo max(1, $page - 1); ?>" 
+                <div class="pagination" style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 20px;">
+                    <?php
+                    $queryParams = [];
+                    if ($status) $queryParams['status'] = $status;
+                    if ($provider) $queryParams['provider'] = $provider;
+                    if ($plan_name) $queryParams['plan_name'] = $plan_name;
+                    if ($contract_period) $queryParams['contract_period'] = $contract_period;
+                    if ($contract_period_days_min) $queryParams['contract_period_days_min'] = $contract_period_days_min;
+                    if ($contract_period_days_max) $queryParams['contract_period_days_max'] = $contract_period_days_max;
+                    if ($price_after_type) $queryParams['price_after_type'] = $price_after_type;
+                    if ($price_after_min) $queryParams['price_after_min'] = $price_after_min;
+                    if ($price_after_max) $queryParams['price_after_max'] = $price_after_max;
+                    if ($service_type) $queryParams['service_type'] = $service_type;
+                    if ($date_from) $queryParams['date_from'] = $date_from;
+                    if ($date_to) $queryParams['date_to'] = $date_to;
+                    $queryParams['per_page'] = $perPage;
+                    $queryString = http_build_query($queryParams);
+                    ?>
+                    <a href="?<?php echo $queryString; ?>&page=<?php echo max(1, $page - 1); ?>" 
                        class="pagination-btn <?php echo $page <= 1 ? 'disabled' : ''; ?>">이전</a>
                     
                     <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-                        <a href="?status=<?php echo htmlspecialchars($status ?? ''); ?>&page=<?php echo $i; ?>" 
+                        <a href="?<?php echo $queryString; ?>&page=<?php echo $i; ?>" 
                            class="pagination-btn <?php echo $i === $page ? 'active' : ''; ?>"><?php echo $i; ?></a>
                     <?php endfor; ?>
                     
-                    <a href="?status=<?php echo htmlspecialchars($status ?? ''); ?>&page=<?php echo min($totalPages, $page + 1); ?>" 
+                    <a href="?<?php echo $queryString; ?>&page=<?php echo min($totalPages, $page + 1); ?>" 
                        class="pagination-btn <?php echo $page >= $totalPages ? 'disabled' : ''; ?>">다음</a>
                 </div>
             <?php endif; ?>
@@ -474,16 +748,180 @@ include __DIR__ . '/../includes/seller-header.php';
 
 <script>
 function applyFilters() {
-    const status = document.getElementById('filter_status').value;
     const params = new URLSearchParams();
     
+    // 상태
+    const status = document.getElementById('filter_status').value;
     if (status && status !== '') {
         params.set('status', status);
     }
-    params.delete('page'); // 필터 변경 시 첫 페이지로
+    
+    // 통신사
+    const provider = document.getElementById('filter_provider').value;
+    if (provider && provider !== '') {
+        params.set('provider', provider);
+    }
+    
+    // 요금제명
+    const planName = document.getElementById('filter_plan_name').value.trim();
+    if (planName) {
+        params.set('plan_name', planName);
+    }
+    
+    // 약정기간
+    const contractPeriod = document.getElementById('filter_contract_period').value;
+    if (contractPeriod && contractPeriod !== '') {
+        params.set('contract_period', contractPeriod);
+        
+        // 기간입력일 때 구간 값 추가
+        if (contractPeriod === '기간입력') {
+            const contractPeriodDaysMin = document.getElementById('filter_contract_period_days_min').value.trim();
+            if (contractPeriodDaysMin) {
+                params.set('contract_period_days_min', contractPeriodDaysMin);
+            }
+            
+            const contractPeriodDaysMax = document.getElementById('filter_contract_period_days_max').value.trim();
+            if (contractPeriodDaysMax) {
+                params.set('contract_period_days_max', contractPeriodDaysMax);
+            }
+        }
+    }
+    
+    // 할인 후 요금 타입
+    const priceAfterType = document.getElementById('filter_price_after_type').value;
+    if (priceAfterType && priceAfterType !== '') {
+        params.set('price_after_type', priceAfterType);
+        
+        // 금액입력일 때 구간 값 추가
+        if (priceAfterType === 'amount') {
+            const priceAfterMin = document.getElementById('filter_price_after_min').value.trim();
+            if (priceAfterMin) {
+                params.set('price_after_min', priceAfterMin);
+            }
+            
+            const priceAfterMax = document.getElementById('filter_price_after_max').value.trim();
+            if (priceAfterMax) {
+                params.set('price_after_max', priceAfterMax);
+            }
+        }
+    }
+    
+    // 데이터속도 (service_type)
+    const serviceType = document.getElementById('filter_service_type').value;
+    if (serviceType && serviceType !== '') {
+        params.set('service_type', serviceType);
+    }
+    
+    // 등록일
+    const dateFrom = document.getElementById('filter_date_from').value;
+    if (dateFrom) {
+        params.set('date_from', dateFrom);
+    }
+    
+    const dateTo = document.getElementById('filter_date_to').value;
+    if (dateTo) {
+        params.set('date_to', dateTo);
+    }
+    
+    // per_page 유지
+    const perPage = new URLSearchParams(window.location.search).get('per_page');
+    if (perPage) {
+        params.set('per_page', perPage);
+    }
+    
+    // 필터 변경 시 첫 페이지로
+    params.delete('page');
     
     window.location.href = '?' + params.toString();
 }
+
+function changePerPage() {
+    const perPage = document.getElementById('per_page_select').value;
+    const params = new URLSearchParams(window.location.search);
+    
+    // 모든 필터 파라미터 유지
+    params.set('per_page', perPage);
+    params.set('page', '1'); // 첫 페이지로 이동
+    
+    window.location.href = '?' + params.toString();
+}
+
+function toggleContractPeriodInput() {
+    const contractPeriod = document.getElementById('filter_contract_period').value;
+    const wrapper = document.getElementById('contract_period_days_wrapper');
+    
+    if (contractPeriod === '기간입력') {
+        wrapper.style.display = 'flex';
+    } else {
+        wrapper.style.display = 'none';
+        document.getElementById('filter_contract_period_days_min').value = '';
+        document.getElementById('filter_contract_period_days_max').value = '';
+    }
+}
+
+function togglePriceAfterInput() {
+    const priceAfterType = document.getElementById('filter_price_after_type').value;
+    const wrapper = document.getElementById('price_after_amount_wrapper');
+    
+    if (priceAfterType === 'amount') {
+        wrapper.style.display = 'flex';
+    } else {
+        wrapper.style.display = 'none';
+        document.getElementById('filter_price_after_min').value = '';
+        document.getElementById('filter_price_after_max').value = '';
+    }
+}
+
+function resetFilters() {
+    document.getElementById('filter_status').value = '';
+    document.getElementById('filter_provider').value = '';
+    document.getElementById('filter_plan_name').value = '';
+    document.getElementById('filter_contract_period').value = '';
+    document.getElementById('filter_contract_period_days_min').value = '';
+    document.getElementById('filter_contract_period_days_max').value = '';
+    
+    // 할인 후 요금 셀렉트박스 초기화
+    document.getElementById('filter_price_after_type').value = '';
+    document.getElementById('filter_price_after_min').value = '';
+    document.getElementById('filter_price_after_max').value = '';
+    
+    document.getElementById('filter_service_type').value = '';
+    document.getElementById('filter_date_from').value = '';
+    document.getElementById('filter_date_to').value = '';
+    
+    // 필드 숨기기
+    document.getElementById('contract_period_days_wrapper').style.display = 'none';
+    document.getElementById('price_after_amount_wrapper').style.display = 'none';
+    
+    window.location.href = window.location.pathname;
+}
+
+// Enter 키로 검색
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInputs = [
+        'filter_plan_name',
+        'filter_price_after_min',
+        'filter_price_after_max',
+        'filter_contract_period_days_min',
+        'filter_contract_period_days_max'
+    ];
+    
+    searchInputs.forEach(inputId => {
+        const input = document.getElementById(inputId);
+        if (input) {
+            input.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    applyFilters();
+                }
+            });
+        }
+    });
+    
+    // 페이지 로드 시 필드 표시 여부 확인
+    toggleContractPeriodInput();
+    togglePriceAfterInput();
+});
 
 function editProduct(productId) {
     window.location.href = '/MVNO/seller/products/mvno.php?id=' + productId;

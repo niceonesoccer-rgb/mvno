@@ -690,6 +690,15 @@ if (file_exists($adminsFile)) {
                     </span>
                     홈 관리
                 </a>
+                <a href="/MVNO/admin/settings/device-settings.php" class="menu-item <?php echo $currentPage === 'device-settings.php' ? 'active' : ''; ?>">
+                    <span class="menu-item-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
+                            <line x1="12" y1="18" x2="12.01" y2="18"/>
+                        </svg>
+                    </span>
+                    단말기 설정
+                </a>
             </div>
             
             <!-- 통계 분석 -->

@@ -71,3 +71,4 @@ CREATE TABLE IF NOT EXISTS `product_mvno_details` (
     CONSTRAINT `fk_mvno_product` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+

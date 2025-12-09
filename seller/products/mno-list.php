@@ -362,16 +362,6 @@ include __DIR__ . '/../includes/seller-header.php';
 ?>
 
 <div class="product-list-container">
-    <div class="page-header">
-        <div>
-            <h1>통신사폰 등록 상품</h1>
-            <p>등록한 통신사폰 상품을 관리하세요</p>
-        </div>
-        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-            <a href="/MVNO/seller/products/mno.php" class="btn btn-primary">통신사폰 등록</a>
-        </div>
-    </div>
-    
     <!-- 필터 바 -->
     <div class="filter-bar">
         <div class="filter-group">

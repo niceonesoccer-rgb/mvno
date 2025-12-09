@@ -10,3 +10,4 @@ COLLATE utf8mb4_unicode_ci;
 -- 데이터베이스 선택
 USE `mvno_db`;
 
+
