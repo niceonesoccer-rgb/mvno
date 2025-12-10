@@ -6,8 +6,8 @@
 // 한국 시간대 설정 (KST, UTC+9)
 date_default_timezone_set('Asia/Seoul');
 
-// 세션 시작
-if (session_status() === PHP_SESSION_NONE) {
+// 세션 시작 (헤더가 전송되지 않은 경우에만)
+if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
     session_start();
 }
 

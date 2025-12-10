@@ -278,6 +278,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_seller'])) {
             }
         }
         
+        // 판매자명 중복 검사
+        $sellerName = trim($_POST['seller_name'] ?? ($seller['seller_name'] ?? ''));
+        if (!empty($sellerName)) {
+            // 판매자 데이터 가져오기
+            $sellersFile = getSellersFilePath();
+            $allSellers = [];
+            if (file_exists($sellersFile)) {
+                $data = json_decode(file_get_contents($sellersFile), true) ?: ['sellers' => []];
+                $allSellers = $data['sellers'] ?? [];
+            }
+            
+            // 중복 검사 (대소문자 구분 없이, 자기 자신 제외)
+            $sellerNameLower = mb_strtolower($sellerName, 'UTF-8');
+            foreach ($allSellers as $otherSeller) {
+                if (isset($otherSeller['user_id']) && $otherSeller['user_id'] === $userId) {
+                    continue; // 자기 자신은 제외
+                }
+                if (isset($otherSeller['seller_name']) && !empty($otherSeller['seller_name'])) {
+                    $otherSellerNameLower = mb_strtolower($otherSeller['seller_name'], 'UTF-8');
+                    if ($otherSellerNameLower === $sellerNameLower) {
+                        $error_message = '이미 사용 중인 판매자명입니다.';
+                        break;
+                    }
+                }
+            }
+        }
+        
         // 수정할 정보 수집 (사업자등록번호는 변경 불가)
         if (empty($error_message)) {
             $updateData = [
@@ -288,6 +315,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_seller'])) {
                 'address' => $_POST['address'] ?? ($seller['address'] ?? ''),
                 'address_detail' => $_POST['address_detail'] ?? ($seller['address_detail'] ?? ''),
                 // 'business_number'는 변경 불가이므로 제외
+                'seller_name' => $sellerName, // 판매자명 (사이트에서 사용할 닉네임)
                 'company_name' => $_POST['company_name'] ?? ($seller['company_name'] ?? ''),
                 'company_representative' => $_POST['company_representative'] ?? ($seller['company_representative'] ?? ''),
                 'business_type' => $_POST['business_type'] ?? ($seller['business_type'] ?? ''),
@@ -497,6 +525,33 @@ require_once __DIR__ . '/includes/seller-header.php';
     
     .form-group {
         margin-bottom: 20px;
+    }
+    
+    .check-result {
+        margin-top: 4px;
+        font-size: 13px;
+        font-weight: 500;
+        min-height: 20px;
+    }
+    
+    .check-result.success {
+        color: #10b981;
+    }
+    
+    .check-result.error {
+        color: #ef4444;
+    }
+    
+    .check-result.checking {
+        color: #6b7280;
+    }
+    
+    .form-input.checked-valid {
+        border-color: #10b981;
+    }
+    
+    .form-input.checked-invalid {
+        border-color: #ef4444;
     }
     
     .form-label {
@@ -758,6 +813,12 @@ require_once __DIR__ . '/includes/seller-header.php';
                     <label class="form-label">이름 <span class="required">*</span></label>
                     <input type="text" name="name" class="form-input" value="<?php echo htmlspecialchars($seller['name'] ?? ''); ?>" required>
                 </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">판매자명 (닉네임)</label>
+                <input type="text" name="seller_name" id="seller_name" class="form-input" value="<?php echo htmlspecialchars($seller['seller_name'] ?? ''); ?>" placeholder="사이트에서 사용할 판매자명을 입력하세요" maxlength="50" oninput="checkSellerNameDuplicate()">
+                <div id="sellerNameCheckResult" class="check-result" style="margin-top: 4px;"></div>
+                <small style="display: block; margin-top: 4px; color: #6b7280; font-size: 13px;">사이트에서 활동할 때 표시될 이름입니다. 회사명과 다르게 설정할 수 있습니다.</small>
             </div>
             <div class="form-grid">
                 <div class="form-group">
@@ -1223,6 +1284,95 @@ require_once __DIR__ . '/includes/seller-header.php';
         
         // 초기 이메일 필드 업데이트
         updateEmailField();
+    });
+    
+    // 판매자명 중복 검사 (실시간)
+    let sellerNameCheckTimeout = null;
+    let sellerNameValid = false;
+    
+    function checkSellerNameDuplicate() {
+        const sellerNameInput = document.getElementById('seller_name');
+        const resultDiv = document.getElementById('sellerNameCheckResult');
+        
+        if (!sellerNameInput || !resultDiv) {
+            return;
+        }
+        
+        const value = sellerNameInput.value.trim();
+        
+        // 이전 타이머 취소
+        if (sellerNameCheckTimeout) {
+            clearTimeout(sellerNameCheckTimeout);
+        }
+        
+        // 빈 값이면 결과 초기화
+        if (value === '') {
+            resultDiv.innerHTML = '';
+            resultDiv.className = 'check-result';
+            sellerNameInput.classList.remove('checked-valid', 'checked-invalid');
+            sellerNameValid = false;
+            return;
+        }
+        
+        // 최소 길이 체크
+        if (value.length < 2) {
+            resultDiv.innerHTML = '<span style="color: #ef4444;">판매자명은 최소 2자 이상 입력해주세요.</span>';
+            resultDiv.className = 'check-result error';
+            sellerNameInput.classList.remove('checked-valid');
+            sellerNameInput.classList.add('checked-invalid');
+            sellerNameValid = false;
+            return;
+        }
+        
+        // 500ms 후 검사 (디바운싱)
+        sellerNameCheckTimeout = setTimeout(() => {
+            resultDiv.innerHTML = '<span style="color: #6b7280;">확인 중...</span>';
+            resultDiv.className = 'check-result checking';
+            
+            const currentUserId = '<?php echo htmlspecialchars($seller['user_id'] ?? ''); ?>';
+            fetch(`/MVNO/api/check-seller-duplicate.php?type=seller_name&value=${encodeURIComponent(value)}&current_user_id=${encodeURIComponent(currentUserId)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && !data.duplicate) {
+                        resultDiv.innerHTML = '<span style="color: #10b981;">✓ ' + data.message + '</span>';
+                        resultDiv.className = 'check-result success';
+                        sellerNameInput.classList.remove('checked-invalid');
+                        sellerNameInput.classList.add('checked-valid');
+                        sellerNameValid = true;
+                    } else {
+                        resultDiv.innerHTML = '<span style="color: #ef4444;">✗ ' + data.message + '</span>';
+                        resultDiv.className = 'check-result error';
+                        sellerNameInput.classList.remove('checked-valid');
+                        sellerNameInput.classList.add('checked-invalid');
+                        sellerNameValid = false;
+                    }
+                })
+                .catch(error => {
+                    console.error('판매자명 중복 검사 오류:', error);
+                    resultDiv.innerHTML = '<span style="color: #ef4444;">검사 중 오류가 발생했습니다.</span>';
+                    resultDiv.className = 'check-result error';
+                    sellerNameValid = false;
+                });
+        }, 500);
+    }
+    
+    // 폼 제출 시 판매자명 중복 검사 확인
+    document.addEventListener('DOMContentLoaded', function() {
+        const editForm = document.querySelector('.edit-form-card');
+        if (editForm) {
+            editForm.addEventListener('submit', function(e) {
+                const sellerNameInput = document.getElementById('seller_name');
+                if (sellerNameInput && sellerNameInput.value.trim() !== '') {
+                    // 중복 검사가 완료되지 않았거나 중복인 경우 제출 방지
+                    if (!sellerNameValid) {
+                        e.preventDefault();
+                        alert('판매자명 중복 검사를 완료해주세요.');
+                        sellerNameInput.focus();
+                        return false;
+                    }
+                }
+            });
+        }
     });
     
     // 저장 성공 모달 표시

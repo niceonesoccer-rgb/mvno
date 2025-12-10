@@ -4,24 +4,19 @@ $current_page = 'mvno';
 // 메인 페이지 여부 (하단 메뉴 및 푸터 표시용)
 $is_main_page = true;
 
-// 모니터링 시스템 (선택사항 - 주석 해제하여 사용)
-// require_once 'includes/monitor.php';
-// $monitor = new ConnectionMonitor();
-// $monitor->logConnection();
-
 // 헤더 포함
 include '../includes/header.php';
 
-// 요금제 데이터 가져오기
+// 요금제 데이터 가져오기 (모든 활성 상품)
 require_once '../includes/data/plan-data.php';
-$plans = getPlansData(10);
+// 활성 상태인 모든 알뜰폰 상품 가져오기 (limit을 충분히 크게 설정)
+$plans = getPlansDataFromDB(1000, 'active');
 ?>
 
 <main class="main-content">
     <!-- 필터 섹션 (스크롤 시 상단 고정) -->
     <div class="plans-filter-section">
         <div class="plans-filter-inner">
-
             <!-- 필터 및 정렬 버튼 그룹 -->
             <div class="plans-filter-group">
                 <!-- 첫 번째 행: 필터 + 인터넷 결합 + 해시태그 버튼들 -->
@@ -65,44 +60,12 @@ $plans = getPlansData(10);
 
                     <!-- 요금제 목록 레이아웃 -->
                     <?php
-                    // 요금제 데이터 가져오기
-                    require_once '../includes/data/plan-data.php';
-                    $plans = getPlansData(10);
-                    $section_title = '2,415개의 결과';
+                    $section_title = count($plans) . '개의 결과';
                     include '../includes/layouts/plan-list-layout.php';
                     ?>
                     
                 </section>
 
-                <!-- 페이지네이션 -->
-                <div class="pagination-wrapper" data-sentry-component="LinkPagination" data-sentry-source-file="LinkPagination.tsx">
-                    <ul class="pagination-list">
-                        <li>
-                            <a class="pagination-btn pagination-nav" href="mvno.php?page=10" aria-label="이전 페이지">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M15 18L9 12L15 6"/>
-                                </svg>
-                            </a>
-                        </li>
-                        <li><a class="pagination-btn pagination-page active" href="mvno.php?page=11">11</a></li>
-                        <li><a class="pagination-btn pagination-page" href="mvno.php?page=12">12</a></li>
-                        <li><a class="pagination-btn pagination-page" href="mvno.php?page=13">13</a></li>
-                        <li><a class="pagination-btn pagination-page" href="mvno.php?page=14">14</a></li>
-                        <li><a class="pagination-btn pagination-page" href="mvno.php?page=15">15</a></li>
-                        <li><a class="pagination-btn pagination-page" href="mvno.php?page=16">16</a></li>
-                        <li><a class="pagination-btn pagination-page" href="mvno.php?page=17">17</a></li>
-                        <li><a class="pagination-btn pagination-page" href="mvno.php?page=18">18</a></li>
-                        <li><a class="pagination-btn pagination-page" href="mvno.php?page=19">19</a></li>
-                        <li><a class="pagination-btn pagination-page" href="mvno.php?page=20">20</a></li>
-                        <li>
-                            <a class="pagination-btn pagination-nav" href="mvno.php?page=21" aria-label="다음 페이지">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M9 18L15 12L9 6"/>
-                                </svg>
-                            </a>
-                        </li>
-                    </ul>
-                </div>
             </div>
 
         </div>
@@ -122,7 +85,6 @@ include '../includes/footer.php';
 // 필터가 화면에서 사라질 때 상단에 고정 (요금제 페이지)
 (function() {
     const filterSection = document.querySelector('.plans-filter-section');
-    const header = document.getElementById('mainHeader');
     const resultsCount = document.querySelector('.plans-results-count');
     const themeSection = document.querySelector('.theme-plans-list-section');
     
@@ -165,7 +127,7 @@ include '../includes/footer.php';
         
         // 스크롤이 시작되면 sticky 모드로 전환
         if (scrollTop > 10 && !isFilterSticky) {
-            calculateFilterHeight(); // 필터 높이 재계산
+            calculateFilterHeight();
             filterSection.classList.add('filter-sticky');
             if (resultsCount) resultsCount.classList.add('filter-active');
             if (themeSection) themeSection.classList.add('filter-active');
@@ -174,23 +136,20 @@ include '../includes/footer.php';
         
         // 필터가 화면 상단 밖으로 나갔는지 확인 (위로 스크롤해서 사라짐)
         if (filterTop < 0 && isFilterSticky && !isFilterFixed) {
-            // 필터가 사라졌으므로 상단에 고정
-            calculateFilterHeight(); // 필터 높이 재계산
+            calculateFilterHeight();
             filterSection.classList.remove('filter-sticky');
             filterSection.classList.add('filter-fixed');
             isFilterFixed = true;
         } 
         // 스크롤이 다시 위로 올라가서 필터의 원래 위치 근처에 도달했는지 확인
         else if (scrollTop < filterOriginalTop - 50 && isFilterFixed) {
-            // 필터를 sticky 모드로 복원
-            calculateFilterHeight(); // 필터 높이 재계산
+            calculateFilterHeight();
             filterSection.classList.remove('filter-fixed');
             filterSection.classList.add('filter-sticky');
             isFilterFixed = false;
         }
         // 스크롤이 맨 위로 돌아갔을 때
         else if (scrollTop <= 10 && isFilterSticky) {
-            // 필터를 원래 위치로 복원
             filterSection.classList.remove('filter-sticky');
             filterSection.classList.remove('filter-fixed');
             if (resultsCount) resultsCount.classList.remove('filter-active');
@@ -228,9 +187,8 @@ include '../includes/footer.php';
     
     filterButtons.forEach(button => {
         button.addEventListener('click', function() {
-            // 필터 버튼은 토글하지 않음 (검색용)
             const filterValue = this.getAttribute('data-filter');
-            if (!filterValue) return; // 필터 버튼이 아니면 무시
+            if (!filterValue) return;
             
             // 클릭된 버튼의 active 상태 토글
             if (this.classList.contains('active')) {
@@ -274,5 +232,4 @@ include '../includes/footer.php';
         });
     }
 })();
-
 </script>

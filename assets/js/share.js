@@ -10,15 +10,18 @@
      * 클립보드에 텍스트 복사
      */
     function copyToClipboard(text) {
+        // 클립보드 API 사용 시도
         if (navigator.clipboard && navigator.clipboard.writeText) {
             return navigator.clipboard.writeText(text).then(() => {
                 return true;
-            }).catch(() => {
+            }).catch((err) => {
+                console.warn('클립보드 API 실패, fallback 사용:', err);
                 // 클립보드 API 실패 시 fallback 사용
                 return fallbackCopyToClipboard(text);
             });
         } else {
-            return Promise.resolve(fallbackCopyToClipboard(text));
+            // 클립보드 API 미지원 시 fallback 사용
+            return fallbackCopyToClipboard(text);
         }
     }
 
@@ -26,23 +29,38 @@
      * 클립보드 복사 fallback (구형 브라우저용)
      */
     function fallbackCopyToClipboard(text) {
-        const textArea = document.createElement('textarea');
-        textArea.value = text;
-        textArea.style.position = 'fixed';
-        textArea.style.left = '-999999px';
-        textArea.style.top = '-999999px';
-        document.body.appendChild(textArea);
-        textArea.focus();
-        textArea.select();
-        
-        try {
-            const successful = document.execCommand('copy');
-            document.body.removeChild(textArea);
-            return successful;
-        } catch (err) {
-            document.body.removeChild(textArea);
-            return false;
-        }
+        return new Promise((resolve) => {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-999999px';
+            textArea.style.top = '-999999px';
+            textArea.style.opacity = '0';
+            textArea.setAttribute('readonly', '');
+            document.body.appendChild(textArea);
+            
+            // iOS Safari에서 선택을 위해 범위 설정
+            if (navigator.userAgent.match(/ipad|iphone/i)) {
+                const range = document.createRange();
+                range.selectNodeContents(textArea);
+                const selection = window.getSelection();
+                selection.removeAllRanges();
+                selection.addRange(range);
+                textArea.setSelectionRange(0, 999999);
+            } else {
+                textArea.select();
+            }
+            
+            try {
+                const successful = document.execCommand('copy');
+                document.body.removeChild(textArea);
+                resolve(successful);
+            } catch (err) {
+                console.error('클립보드 복사 실패:', err);
+                document.body.removeChild(textArea);
+                resolve(false);
+            }
+        });
     }
 
     /**
@@ -113,12 +131,29 @@
      * 클립보드에 복사하고 메시지 표시
      */
     function copyToClipboardAndShowMessage(url, buttonElement) {
-        copyToClipboard(url).then((success) => {
+        if (!url || url.trim() === '') {
+            console.error('공유할 URL이 없습니다.');
+            showToastMessage('공유할 링크가 없습니다.', buttonElement);
+            return;
+        }
+        
+        // 상대 경로를 절대 경로로 변환
+        let absoluteUrl = url;
+        if (url.startsWith('/')) {
+            absoluteUrl = window.location.origin + url;
+        } else if (!url.startsWith('http://') && !url.startsWith('https://')) {
+            absoluteUrl = window.location.origin + '/' + url;
+        }
+        
+        copyToClipboard(absoluteUrl).then((success) => {
             if (success) {
                 showToastMessage('공유 링크를 복사했어요', buttonElement);
             } else {
                 showToastMessage('링크 복사에 실패했습니다. 브라우저를 확인해주세요.', buttonElement);
             }
+        }).catch((err) => {
+            console.error('클립보드 복사 오류:', err);
+            showToastMessage('링크 복사에 실패했습니다. 브라우저를 확인해주세요.', buttonElement);
         });
     }
 
@@ -240,7 +275,8 @@
                 
                 const urlToShare = shareButton.getAttribute('data-share-url');
                 
-                if (urlToShare) {
+                if (urlToShare && urlToShare.trim() !== '') {
+                    console.log('공유 버튼 클릭, URL:', urlToShare);
                     // 위시리스트 공유 버튼인 경우
                     if (shareButton.id === 'wishlistShareBtn') {
                         const pageTitle = document.querySelector('h1')?.textContent || '위시리스트';
@@ -250,6 +286,7 @@
                     }
                 } else {
                     console.warn('공유 버튼에 URL이 없습니다:', shareButton);
+                    showToastMessage('공유할 링크가 없습니다.', shareButton);
                 }
                 
                 return false;

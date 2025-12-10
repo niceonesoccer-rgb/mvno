@@ -13,6 +13,10 @@ include '../includes/header.php';
 // 요금제 데이터 가져오기
 require_once '../includes/data/plan-data.php';
 $plan = getPlanDetailData($plan_id);
+$rawData = $plan['_raw_data'] ?? []; // 원본 DB 데이터 (null 대신 빈 배열로 초기화)
+
+// 리뷰 목록 가져오기
+$reviews = getProductReviews($plan_id, 'mvno', 10);
 if (!$plan) {
     // 데이터가 없으면 기본값 사용
     $plan = [
@@ -40,6 +44,7 @@ if (!$plan) {
             ['src' => 'https://assets.moyoplan.com/image/mvno-gifts/badge/subscription.svg', 'alt' => 'SOLO결합(+20GB)']
         ]
     ];
+    $rawData = []; // 기본값 사용 시에도 빈 배열로 초기화
 }
 ?>
 
@@ -60,20 +65,33 @@ if (!$plan) {
                         <div class="plan-detail-item">
                             <div class="plan-detail-label">요금제 이름</div>
                             <div class="plan-detail-value">
-                                11월한정 LTE 100GB+밀리+Data쿠폰60GB
+                                <?php echo htmlspecialchars($plan['title'] ?? ($rawData['plan_name'] ?? '요금제명 없음')); ?>
                             </div>
                         </div>
                         <div class="plan-detail-item">
                             <div class="plan-detail-label">통신사 약정</div>
-                            <div class="plan-detail-value">없음</div>
+                            <div class="plan-detail-value">
+                                <?php 
+                                $contractPeriod = $rawData['contract_period'] ?? '';
+                                echo htmlspecialchars($contractPeriod ?: '없음'); 
+                                ?>
+                            </div>
                         </div>
                         <div class="plan-detail-item">
                             <div class="plan-detail-label">통신망</div>
-                            <div class="plan-detail-value">KT망</div>
+                            <div class="plan-detail-value">
+                                <?php 
+                                $provider = $rawData['provider'] ?? '';
+                                // provider 값 그대로 표시 (예: "KT알뜰폰", "SK알뜰폰", "LG알뜰폰")
+                                echo htmlspecialchars($provider ?: '통신망 정보 없음'); 
+                                ?>
+                            </div>
                         </div>
                         <div class="plan-detail-item">
                             <div class="plan-detail-label">통신 기술</div>
-                            <div class="plan-detail-value">LTE</div>
+                            <div class="plan-detail-value">
+                                <?php echo htmlspecialchars($rawData['service_type'] ?? 'LTE'); ?>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -86,33 +104,112 @@ if (!$plan) {
                     <div class="plan-detail-grid">
                         <div class="plan-detail-item">
                             <div class="plan-detail-label">통화</div>
-                            <div class="plan-detail-value">무제한</div>
+                            <div class="plan-detail-value">
+                                <?php
+                                $callType = $rawData['call_type'] ?? '';
+                                $callAmount = $rawData['call_amount'] ?? '';
+                                if ($callType === '무제한') {
+                                    echo '무제한';
+                                } elseif ($callType === '기본제공') {
+                                    echo '기본제공';
+                                } elseif ($callType === '직접입력' && !empty($callAmount)) {
+                                    echo number_format((float)$callAmount) . '분';
+                                } else {
+                                    echo htmlspecialchars($callType ?: '정보 없음');
+                                }
+                                ?>
+                            </div>
                         </div>
                         <div class="plan-detail-item">
                             <div class="plan-detail-label">문자</div>
-                            <div class="plan-detail-value">무제한</div>
+                            <div class="plan-detail-value">
+                                <?php
+                                $smsType = $rawData['sms_type'] ?? '';
+                                $smsAmount = $rawData['sms_amount'] ?? '';
+                                if ($smsType === '무제한') {
+                                    echo '무제한';
+                                } elseif ($smsType === '기본제공') {
+                                    echo '기본제공';
+                                } elseif ($smsType === '직접입력' && !empty($smsAmount)) {
+                                    echo number_format((float)$smsAmount) . '건';
+                                } else {
+                                    echo htmlspecialchars($smsType ?: '정보 없음');
+                                }
+                                ?>
+                            </div>
                         </div>
                         <div class="plan-detail-item">
                             <div class="plan-detail-label">데이터 제공량</div>
-                            <div class="plan-detail-value">월 100GB</div>
+                            <div class="plan-detail-value">
+                                <?php
+                                $dataAmount = $rawData['data_amount'] ?? '';
+                                $dataAmountValue = $rawData['data_amount_value'] ?? '';
+                                $dataUnit = $rawData['data_unit'] ?? '';
+                                if ($dataAmount === '무제한') {
+                                    echo '무제한';
+                                } elseif ($dataAmount === '직접입력' && !empty($dataAmountValue)) {
+                                    // 직접입력인 경우: 값 + 단위 표시
+                                    $displayValue = '월 ' . number_format((float)$dataAmountValue);
+                                    if (!empty($dataUnit)) {
+                                        $displayValue .= $dataUnit;
+                                    }
+                                    echo $displayValue;
+                                } else {
+                                    // 선택 옵션인 경우에도 단위 표시
+                                    $displayValue = htmlspecialchars($dataAmount ?: '정보 없음');
+                                    if (!empty($dataUnit) && $dataAmount !== '무제한' && $dataAmount !== '') {
+                                        $displayValue .= ' ' . htmlspecialchars($dataUnit);
+                                    }
+                                    echo $displayValue;
+                                }
+                                ?>
+                            </div>
                         </div>
                         <div class="plan-detail-item">
                             <div class="plan-detail-label">데이터 소진시</div>
                             <div class="plan-detail-value">
-                                5mbps 속도로 무제한
+                                <?php
+                                $dataExhausted = $rawData['data_exhausted'] ?? '';
+                                $dataExhaustedValue = $rawData['data_exhausted_value'] ?? '';
+                                if ($dataExhausted === '직접입력' && !empty($dataExhaustedValue)) {
+                                    echo htmlspecialchars($dataExhaustedValue);
+                                } elseif (!empty($dataExhausted)) {
+                                    echo htmlspecialchars($dataExhausted);
+                                } else {
+                                    echo '정보 없음';
+                                }
+                                ?>
                             </div>
                         </div>
                         <div class="plan-detail-item">
                             <div class="plan-detail-label">부가통화</div>
-                            <div class="plan-detail-value">300분</div>
+                            <div class="plan-detail-value">
+                                <?php
+                                $additionalCallType = $rawData['additional_call_type'] ?? '';
+                                $additionalCall = $rawData['additional_call'] ?? '';
+                                if (!empty($additionalCallType) && !empty($additionalCall)) {
+                                    echo number_format((float)$additionalCall) . '분';
+                                } else {
+                                    echo '없음';
+                                }
+                                ?>
+                            </div>
                         </div>
                         <div class="plan-detail-item">
-                            <div class="plan-detail-label">모바일 핫스팟</div>
-                            <div class="plan-detail-value">데이터 제공량 내</div>
-                        </div>
-                        <div class="plan-detail-item">
-                            <div class="plan-detail-label">데이터 쉐어링</div>
-                            <div class="plan-detail-value">데이터 제공량 내</div>
+                            <div class="plan-detail-label">테더링(핫스팟)</div>
+                            <div class="plan-detail-value">
+                                <?php
+                                $mobileHotspot = $rawData['mobile_hotspot'] ?? '';
+                                $mobileHotspotValue = $rawData['mobile_hotspot_value'] ?? '';
+                                if ($mobileHotspot === '직접선택' && !empty($mobileHotspotValue)) {
+                                    echo htmlspecialchars($mobileHotspotValue);
+                                } elseif (!empty($mobileHotspot)) {
+                                    echo htmlspecialchars($mobileHotspot);
+                                } else {
+                                    echo '기본 제공량 내에서 사용';
+                                }
+                                ?>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -125,15 +222,51 @@ if (!$plan) {
                     <div class="plan-detail-grid">
                         <div class="plan-detail-item">
                             <div class="plan-detail-label">일반 유심</div>
-                            <div class="plan-detail-value">배송가능 (6,600원)</div>
+                            <div class="plan-detail-value">
+                                <?php
+                                $regularSimAvailable = $rawData['regular_sim_available'] ?? '';
+                                $regularSimPrice = $rawData['regular_sim_price'] ?? '';
+                                if ($regularSimAvailable === '배송가능' && !empty($regularSimPrice)) {
+                                    echo '배송가능 (' . number_format((float)$regularSimPrice) . '원)';
+                                } elseif ($regularSimAvailable === '배송가능') {
+                                    echo '배송가능';
+                                } else {
+                                    echo '배송불가';
+                                }
+                                ?>
+                            </div>
                         </div>
                         <div class="plan-detail-item">
                             <div class="plan-detail-label">NFC 유심</div>
-                            <div class="plan-detail-value">배송불가</div>
+                            <div class="plan-detail-value">
+                                <?php
+                                $nfcSimAvailable = $rawData['nfc_sim_available'] ?? '';
+                                $nfcSimPrice = $rawData['nfc_sim_price'] ?? '';
+                                if ($nfcSimAvailable === '배송가능' && !empty($nfcSimPrice)) {
+                                    echo '배송가능 (' . number_format((float)$nfcSimPrice) . '원)';
+                                } elseif ($nfcSimAvailable === '배송가능') {
+                                    echo '배송가능';
+                                } else {
+                                    echo '배송불가';
+                                }
+                                ?>
+                            </div>
                         </div>
                         <div class="plan-detail-item">
                             <div class="plan-detail-label">eSIM</div>
-                            <div class="plan-detail-value">개통가능 (2,750원)</div>
+                            <div class="plan-detail-value">
+                                <?php
+                                $esimAvailable = $rawData['esim_available'] ?? '';
+                                $esimPrice = $rawData['esim_price'] ?? '';
+                                if ($esimAvailable === '개통가능' && !empty($esimPrice)) {
+                                    echo '개통가능 (' . number_format((float)$esimPrice) . '원)';
+                                } elseif ($esimAvailable === '개통가능') {
+                                    echo '개통가능';
+                                } else {
+                                    echo '개통불가';
+                                }
+                                ?>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -152,24 +285,104 @@ if (!$plan) {
                         <div class="plan-detail-item">
                             <div class="plan-detail-label">데이터</div>
                             <div class="plan-detail-value">
-                                22.53원/MB
+                                <?php
+                                $overDataPrice = $rawData['over_data_price'] ?? '';
+                                if (!empty($overDataPrice)) {
+                                    // 숫자 값만 추출 (단위 제거)
+                                    preg_match('/[\d.]+/', $overDataPrice, $matches);
+                                    $value = $matches[0] ?? $overDataPrice;
+                                    echo htmlspecialchars($value) . '원/MB';
+                                } else {
+                                    echo '정보 없음';
+                                }
+                                ?>
                             </div>
                         </div>
                         <div class="plan-detail-item">
-                            <div class="plan-detail-label">음성 통화</div>
-                            <div class="plan-detail-value">1.98원/초</div>
+                            <div class="plan-detail-label">음성</div>
+                            <div class="plan-detail-value">
+                                <?php
+                                $overVoicePrice = $rawData['over_voice_price'] ?? '';
+                                if (!empty($overVoicePrice)) {
+                                    // 숫자 값만 추출 (단위 제거)
+                                    preg_match('/[\d.]+/', $overVoicePrice, $matches);
+                                    $value = $matches[0] ?? $overVoicePrice;
+                                    echo htmlspecialchars($value) . '원/초';
+                                } else {
+                                    echo '정보 없음';
+                                }
+                                ?>
+                            </div>
                         </div>
                         <div class="plan-detail-item">
-                            <div class="plan-detail-label">부가/영상통화</div>
-                            <div class="plan-detail-value">3.3원/초</div>
+                            <div class="plan-detail-label">영상통화</div>
+                            <div class="plan-detail-value">
+                                <?php
+                                $overVideoPrice = $rawData['over_video_price'] ?? '';
+                                if (!empty($overVideoPrice)) {
+                                    // 숫자 값만 추출 (단위 제거)
+                                    preg_match('/[\d.]+/', $overVideoPrice, $matches);
+                                    $value = $matches[0] ?? $overVideoPrice;
+                                    echo htmlspecialchars($value) . '원/초';
+                                } else {
+                                    echo '정보 없음';
+                                }
+                                ?>
+                            </div>
                         </div>
                         <div class="plan-detail-item">
                             <div class="plan-detail-label">단문메시지(SMS)</div>
-                            <div class="plan-detail-value">22원/개</div>
+                            <div class="plan-detail-value">
+                                <?php
+                                $overSmsPrice = $rawData['over_sms_price'] ?? '';
+                                if (!empty($overSmsPrice)) {
+                                    // 숫자 값만 추출 (단위 제거)
+                                    preg_match('/[\d.]+/', $overSmsPrice, $matches);
+                                    $value = $matches[0] ?? $overSmsPrice;
+                                    echo htmlspecialchars($value) . '원/건';
+                                } else {
+                                    echo '정보 없음';
+                                }
+                                ?>
+                            </div>
                         </div>
                         <div class="plan-detail-item">
-                            <div class="plan-detail-label">장문 텍스트형(MMS)</div>
-                            <div class="plan-detail-value">44원/개</div>
+                            <div class="plan-detail-label">텍스트형(LMS,MMS)</div>
+                            <div class="plan-detail-value">
+                                <?php
+                                $overLmsPrice = $rawData['over_lms_price'] ?? '';
+                                // 디버깅: 값 확인
+                                // echo "<!-- Debug: over_lms_price = " . var_export($overLmsPrice, true) . " -->";
+                                if (!empty($overLmsPrice) && trim($overLmsPrice) !== '') {
+                                    // 숫자 값만 추출 (단위 제거)
+                                    preg_match('/[\d.]+/', $overLmsPrice, $matches);
+                                    $value = $matches[0] ?? $overLmsPrice;
+                                    if (!empty($value)) {
+                                        echo htmlspecialchars($value) . '원/건';
+                                    } else {
+                                        echo '정보 없음';
+                                    }
+                                } else {
+                                    echo '정보 없음';
+                                }
+                                ?>
+                            </div>
+                        </div>
+                        <div class="plan-detail-item">
+                            <div class="plan-detail-label">멀티미디어형(MMS)</div>
+                            <div class="plan-detail-value">
+                                <?php
+                                $overMmsPrice = $rawData['over_mms_price'] ?? '';
+                                if (!empty($overMmsPrice)) {
+                                    // 숫자 값만 추출 (단위 제거)
+                                    preg_match('/[\d.]+/', $overMmsPrice, $matches);
+                                    $value = $matches[0] ?? $overMmsPrice;
+                                    echo htmlspecialchars($value) . '원/건';
+                                } else {
+                                    echo '정보 없음';
+                                }
+                                ?>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -187,7 +400,25 @@ if (!$plan) {
                 <h3 class="plan-info-card-title">혜택 및 유의사항</h3>
                 <div class="plan-info-card-content">
                     <div class="plan-seller-additional-text">
-                        여기 추가내용
+                        <?php
+                        $benefits = $rawData['benefits'] ?? '';
+                        if (!empty($benefits)) {
+                            $benefitsArray = json_decode($benefits, true);
+                            if (is_array($benefitsArray)) {
+                                echo '<ul>';
+                                foreach ($benefitsArray as $benefit) {
+                                    if (!empty(trim($benefit))) {
+                                        echo '<li>' . htmlspecialchars($benefit) . '</li>';
+                                    }
+                                }
+                                echo '</ul>';
+                            } else {
+                                echo htmlspecialchars($benefits);
+                            }
+                        } else {
+                            echo '추가 정보 없음';
+                        }
+                        ?>
                     </div>
                 </div>
             </div>
@@ -198,18 +429,23 @@ if (!$plan) {
     <section class="plan-review-section" id="planReviewSection">
         <div class="content-layout">
             <div class="plan-review-header">
-                <a href="/mvnos/쉐이크모바일?from=요금제상세" class="plan-review-mvno-link">
-                    <span class="plan-review-logo-text">쉐이크모바일</span>
+                <a href="/mvnos/<?php echo urlencode($plan['provider'] ?? '쉐이크모바일'); ?>?from=요금제상세" class="plan-review-mvno-link">
+                    <span class="plan-review-logo-text"><?php echo htmlspecialchars($plan['provider'] ?? '쉐이크모바일'); ?></span>
                 </a>
                 <h2 class="section-title">리뷰</h2>
             </div>
             
+            <?php
+            $reviewCount = $rawData['review_count'] ?? 0;
+            $hasReviews = $reviewCount > 0;
+            ?>
+            <?php if ($hasReviews): ?>
             <div class="plan-review-summary">
                 <div class="plan-review-rating">
                     <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M13.1479 3.1366C12.7138 2.12977 11.2862 2.12977 10.8521 3.1366L8.75804 7.99389L3.48632 8.48228C2.3937 8.58351 1.9524 9.94276 2.77717 10.6665L6.75371 14.156L5.58995 19.3138C5.34855 20.3837 6.50365 21.2235 7.44697 20.664L12 17.9635L16.553 20.664C17.4963 21.2235 18.6514 20.3837 18.4101 19.3138L17.2463 14.156L21.2228 10.6665C22.0476 9.94276 21.6063 8.58351 20.5137 8.48228L15.242 7.99389L13.1479 3.1366Z" fill="#FAB005"/>
                     </svg>
-                    <span class="plan-review-rating-score">4.3</span>
+                    <span class="plan-review-rating-score"><?php echo htmlspecialchars($plan['rating'] ?? '0.0'); ?></span>
                 </div>
                 <div class="plan-review-categories">
                     <div class="plan-review-category">
@@ -228,242 +464,36 @@ if (!$plan) {
                     </div>
                 </div>
             </div>
+            <?php endif; ?>
 
             <div class="plan-review-count-section">
-                <span class="plan-review-count">11,533개</span>
+                <span class="plan-review-count">
+                    <?php
+                    $reviewCount = $rawData['review_count'] ?? 0;
+                    echo number_format($reviewCount) . '개';
+                    ?>
+                </span>
             </div>
 
             <div class="plan-review-list">
-                <div class="plan-review-item">
-                    <div class="plan-review-item-header">
-                        <span class="plan-review-author">전*한</span>
-                        <div class="plan-review-stars">
-                            <span>★★★★★</span>
+                <?php if (!empty($reviews)): ?>
+                    <?php foreach ($reviews as $review): ?>
+                        <div class="plan-review-item">
+                            <div class="plan-review-item-header">
+                                <span class="plan-review-author"><?php echo htmlspecialchars($review['author_name'] ?? '익명'); ?></span>
+                                <div class="plan-review-stars">
+                                    <span><?php echo htmlspecialchars($review['stars'] ?? '★★★★★'); ?></span>
+                                </div>
+                                <span class="plan-review-date"><?php echo htmlspecialchars($review['date_ago'] ?? ''); ?></span>
+                            </div>
+                            <p class="plan-review-content"><?php echo nl2br(htmlspecialchars($review['content'] ?? '')); ?></p>
                         </div>
-                        <span class="plan-review-date">24일 전</span>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <div class="plan-review-item">
+                        <p class="plan-review-content" style="text-align: center; color: #868e96; padding: 40px 0;">등록된 리뷰가 없습니다.</p>
                     </div>
-                    <p class="plan-review-content">개통이 다른 회사 보다 빠르고 좋습니다. 요금제 너무 좋아서 계속 사용할 예정 입니다. 친구, 가족 들에게 소개해주고 같이 사용 하는 중입니다. 강력 추천 합니다.</p>
-                </div>
-                <div class="plan-review-item">
-                    <div class="plan-review-item-header">
-                        <span class="plan-review-author">오*열</span>
-                        <div class="plan-review-stars">
-                            <span>★★★★★</span>
-                        </div>
-                        <span class="plan-review-date">29일 전</span>
-                    </div>
-                    <p class="plan-review-content">번호 이동이나 이동 후 개통도 휴일임에도 신청서 작성하고 쓰고 있던 esim으로 안내 문자에 따라 바로 즉시 개통할 수 있어 편리했습니다.(KT알띁A → KT알띁B)</p>
-                </div>
-                <div class="plan-review-item">
-                    <div class="plan-review-item-header">
-                        <span class="plan-review-author">최*연</span>
-                        <div class="plan-review-stars">
-                            <span>★★★★★</span>
-                        </div>
-                        <span class="plan-review-date">41일 전</span>
-                    </div>
-                    <p class="plan-review-content">고객센터 개통 전화없이 모요 통해서 개통신청하고 편의점 바로유심 사서 끼우면 바로 개통됨..타 알뜰폰 통신사보다 개통과정, 통신속도,데이터량 불편함없이 사용함..쉐이크모바일 강추</p>
-                </div>
-                <div class="plan-review-item">
-                    <div class="plan-review-item-header">
-                        <span class="plan-review-author">김*수</span>
-                        <div class="plan-review-stars">
-                            <span>★★★★★</span>
-                        </div>
-                        <span class="plan-review-date">52일 전</span>
-                    </div>
-                    <p class="plan-review-content">데이터 속도도 빠르고 가격도 합리적이에요. 특히 100GB 제공량이 넉넉해서 매달 데이터 걱정 없이 사용하고 있습니다. 주변 사람들한테도 추천했어요.</p>
-                </div>
-                <div class="plan-review-item">
-                    <div class="plan-review-item-header">
-                        <span class="plan-review-author">이*민</span>
-                        <div class="plan-review-stars">
-                            <span>★★★★☆</span>
-                        </div>
-                        <span class="plan-review-date">58일 전</span>
-                    </div>
-                    <p class="plan-review-content">번호이동 과정이 생각보다 간단했어요. 고객센터 상담도 친절하고 개통도 빠르게 진행되었습니다. 다만 초기 설정할 때 조금 헷갈렸지만 지금은 잘 사용 중입니다.</p>
-                </div>
-                <div class="plan-review-item">
-                    <div class="plan-review-item-header">
-                        <span class="plan-review-author">박*준</span>
-                        <div class="plan-review-stars">
-                            <span>★★★★★</span>
-                        </div>
-                        <span class="plan-review-date">65일 전</span>
-                    </div>
-                    <p class="plan-review-content">eSIM으로 개통했는데 정말 편리했어요. 유심 카드 교체 없이 바로 사용할 수 있어서 좋았습니다. 통화 품질도 깨끗하고 데이터 속도도 만족스러워요.</p>
-                </div>
-                <div class="plan-review-item">
-                    <div class="plan-review-item-header">
-                        <span class="plan-review-author">정*호</span>
-                        <div class="plan-review-stars">
-                            <span>★★★★★</span>
-                        </div>
-                        <span class="plan-review-date">72일 전</span>
-                    </div>
-                    <p class="plan-review-content">기존 통신사보다 월 요금이 훨씬 저렴한데 데이터 제공량은 더 많아서 만족합니다. 사은품도 받고 가격도 좋고 일석이조네요. 강력 추천합니다!</p>
-                </div>
-                <div class="plan-review-item">
-                    <div class="plan-review-item-header">
-                        <span class="plan-review-author">강*영</span>
-                        <div class="plan-review-stars">
-                            <span>★★★★☆</span>
-                        </div>
-                        <span class="plan-review-date">78일 전</span>
-                    </div>
-                    <p class="plan-review-content">처음 알뜰폰 사용인데 걱정했지만 생각보다 괜찮아요. 통신 품질도 나쁘지 않고 가격 대비 만족도가 높습니다. 다만 앱이 조금 불편한 점이 있어요.</p>
-                </div>
-                <div class="plan-review-item">
-                    <div class="plan-review-item-header">
-                        <span class="plan-review-author">윤*서</span>
-                        <div class="plan-review-stars">
-                            <span>★★★★★</span>
-                        </div>
-                        <span class="plan-review-date">85일 전</span>
-                    </div>
-                    <p class="plan-review-content">밀리의 서재 무료 구독권 받아서 너무 좋아요! 요금제도 저렴하고 부가 서비스까지 받을 수 있어서 정말 만족합니다. 친구들한테도 자랑했어요.</p>
-                </div>
-                <div class="plan-review-item">
-                    <div class="plan-review-item-header">
-                        <span class="plan-review-author">장*우</span>
-                        <div class="plan-review-stars">
-                            <span>★★★★★</span>
-                        </div>
-                        <span class="plan-review-date">91일 전</span>
-                    </div>
-                    <p class="plan-review-content">KT망이라서 통신 품질이 안정적이에요. 지하철이나 건물 안에서도 끊김 없이 잘 사용하고 있습니다. 데이터 소진 후에도 5Mbps로 계속 사용할 수 있어서 좋아요.</p>
-                </div>
-                <div class="plan-review-item">
-                    <div class="plan-review-item-header">
-                        <span class="plan-review-author">임*진</span>
-                        <div class="plan-review-stars">
-                            <span>★★★★☆</span>
-                        </div>
-                        <span class="plan-review-date">98일 전</span>
-                    </div>
-                    <p class="plan-review-content">신규 가입으로 진행했는데 번호도 마음에 들고 개통도 빠르게 되었어요. 고객센터 응대도 친절하고 전체적으로 만족합니다. 다만 약정 기간이 있으면 더 좋을 것 같아요.</p>
-                </div>
-                <div class="plan-review-item">
-                    <div class="plan-review-item-header">
-                        <span class="plan-review-author">한*지</span>
-                        <div class="plan-review-stars">
-                            <span>★★★★★</span>
-                        </div>
-                        <span class="plan-review-date">105일 전</span>
-                    </div>
-                    <p class="plan-review-content">데이터 쿠폰 60GB까지 받아서 총 160GB나 사용할 수 있어요! 유튜브, 넷플릭스 마음껏 보고 다니는데도 부족함이 없습니다. 정말 추천해요.</p>
-                </div>
-                <div class="plan-review-item">
-                    <div class="plan-review-item-header">
-                        <span class="plan-review-author">송*현</span>
-                        <div class="plan-review-stars">
-                            <span>★★★★★</span>
-                        </div>
-                        <span class="plan-review-date">112일 전</span>
-                    </div>
-                    <p class="plan-review-content">모요 사이트에서 비교하고 신청했는데 정말 편리했어요. 여러 통신사 요금제를 한눈에 비교할 수 있어서 좋았습니다. 쉐이크모바일 선택한 거 후회 없어요.</p>
-                </div>
-                <div class="plan-review-item">
-                    <div class="plan-review-item-header">
-                        <span class="plan-review-author">조*혁</span>
-                        <div class="plan-review-stars">
-                            <span>★★★★☆</span>
-                        </div>
-                        <span class="plan-review-date">119일 전</span>
-                    </div>
-                    <p class="plan-review-content">번호이동 수수료가 없어서 좋았어요. 다른 통신사는 수수료 받는데 여기는 없어서 부담이 적었습니다. 통화 품질도 깨끗하고 만족합니다.</p>
-                </div>
-                <div class="plan-review-item">
-                    <div class="plan-review-item-header">
-                        <span class="plan-review-author">배*수</span>
-                        <div class="plan-review-stars">
-                            <span>★★★★★</span>
-                        </div>
-                        <span class="plan-review-date">126일 전</span>
-                    </div>
-                    <p class="plan-review-content">휴일에도 개통이 가능해서 정말 편리했어요. 주말에 신청했는데 월요일 오전에 바로 개통되었습니다. 고객센터도 친절하게 안내해주셨어요.</p>
-                </div>
-                <div class="plan-review-item">
-                    <div class="plan-review-item-header">
-                        <span class="plan-review-author">신*아</span>
-                        <div class="plan-review-stars">
-                            <span>★★★★★</span>
-                        </div>
-                        <span class="plan-review-date">133일 전</span>
-                    </div>
-                    <p class="plan-review-content">네이버페이 1만원 상품권 받아서 기분 좋았어요. 요금제도 저렴하고 사은품도 받고 일석이조입니다. 가족들도 모두 여기로 바꿨어요.</p>
-                </div>
-                <div class="plan-review-item">
-                    <div class="plan-review-item-header">
-                        <span class="plan-review-author">오*성</span>
-                        <div class="plan-review-stars">
-                            <span>★★★★☆</span>
-                        </div>
-                        <span class="plan-review-date">140일 전</span>
-                    </div>
-                    <p class="plan-review-content">유심 배송도 빠르고 개통도 신속하게 진행되었어요. 처음 사용해보는 알뜰폰이라 걱정했는데 생각보다 괜찮습니다. 다만 앱 UI가 조금 아쉬워요.</p>
-                </div>
-                <div class="plan-review-item">
-                    <div class="plan-review-item-header">
-                        <span class="plan-review-author">류*호</span>
-                        <div class="plan-review-stars">
-                            <span>★★★★★</span>
-                        </div>
-                        <span class="plan-review-date">147일 전</span>
-                    </div>
-                    <p class="plan-review-content">데이터 제공량이 넉넉해서 매달 걱정 없이 사용하고 있어요. 핫스팟도 데이터 제공량 내에서 사용 가능해서 노트북 연결해서도 잘 쓰고 있습니다.</p>
-                </div>
-                <div class="plan-review-item">
-                    <div class="plan-review-item-header">
-                        <span class="plan-review-author">문*희</span>
-                        <div class="plan-review-stars">
-                            <span>★★★★★</span>
-                        </div>
-                        <span class="plan-review-date">154일 전</span>
-                    </div>
-                    <p class="plan-review-content">SOLO 결합으로 추가 20GB 받아서 총 120GB 사용 중이에요! 데이터 걱정 전혀 없이 사용하고 있습니다. 가격 대비 정말 최고의 요금제인 것 같아요.</p>
-                </div>
-                <div class="plan-review-item">
-                    <div class="plan-review-item-header">
-                        <span class="plan-review-author">양*준</span>
-                        <div class="plan-review-stars">
-                            <span>★★★★☆</span>
-                        </div>
-                        <span class="plan-review-date">161일 전</span>
-                    </div>
-                    <p class="plan-review-content">고객센터 상담이 친절하고 전문적이에요. 문의사항도 빠르게 해결해주시고 개통 과정도 원활하게 진행되었습니다. 전체적으로 만족합니다.</p>
-                </div>
-                <div class="plan-review-item">
-                    <div class="plan-review-item-header">
-                        <span class="plan-review-author">홍*영</span>
-                        <div class="plan-review-stars">
-                            <span>★★★★★</span>
-                        </div>
-                        <span class="plan-review-date">168일 전</span>
-                    </div>
-                    <p class="plan-review-content">이마트 상품권 2만원 받아서 기분 좋았어요! 요금제도 저렴하고 사은품도 다양하게 받을 수 있어서 정말 만족합니다. 주변 사람들한테도 추천했어요.</p>
-                </div>
-                <div class="plan-review-item">
-                    <div class="plan-review-item-header">
-                        <span class="plan-review-author">서*우</span>
-                        <div class="plan-review-stars">
-                            <span>★★★★★</span>
-                        </div>
-                        <span class="plan-review-date">175일 전</span>
-                    </div>
-                    <p class="plan-review-content">기존 통신사에서 번호이동 했는데 전혀 문제없이 잘 사용하고 있어요. 통신 품질도 동일하고 가격은 훨씬 저렴해서 만족합니다. 계속 사용할 예정이에요.</p>
-                </div>
-                <div class="plan-review-item">
-                    <div class="plan-review-item-header">
-                        <span class="plan-review-author">노*진</span>
-                        <div class="plan-review-stars">
-                            <span>★★★★☆</span>
-                        </div>
-                        <span class="plan-review-date">182일 전</span>
-                    </div>
-                    <p class="plan-review-content">데이터 속도가 안정적이에요. 지하철이나 지하에서도 끊김 없이 잘 사용하고 있습니다. 가격 대비 품질이 정말 좋은 것 같아요. 추천합니다!</p>
-                </div>
+                <?php endif; ?>
             </div>
             <button class="plan-review-more-btn" id="planReviewMoreBtn">리뷰 더보기</button>
         </div>
@@ -475,7 +505,7 @@ if (!$plan) {
     <div class="review-modal-overlay" id="reviewModalOverlay"></div>
     <div class="review-modal-content">
         <div class="review-modal-header">
-            <h3 class="review-modal-title">쉐이크모바일</h3>
+            <h3 class="review-modal-title"><?php echo htmlspecialchars($plan['provider'] ?? '쉐이크모바일'); ?></h3>
             <button class="review-modal-close" aria-label="닫기" id="reviewModalClose">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M18 6L6 18M6 6L18 18" stroke="#868E96" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -488,7 +518,7 @@ if (!$plan) {
                     <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M13.1479 3.1366C12.7138 2.12977 11.2862 2.12977 10.8521 3.1366L8.75804 7.99389L3.48632 8.48228C2.3937 8.58351 1.9524 9.94276 2.77717 10.6665L6.75371 14.156L5.58995 19.3138C5.34855 20.3837 6.50365 21.2235 7.44697 20.664L12 17.9635L16.553 20.664C17.4963 21.2235 18.6514 20.3837 18.4101 19.3138L17.2463 14.156L21.2228 10.6665C22.0476 9.94276 21.6063 8.58351 20.5137 8.48228L15.242 7.99389L13.1479 3.1366Z" fill="#FAB005"/>
                     </svg>
-                    <span class="review-modal-rating-score">4.3</span>
+                    <span class="review-modal-rating-score"><?php echo htmlspecialchars($plan['rating'] ?? '4.3'); ?></span>
                 </div>
                 <div class="review-modal-categories">
                     <div class="review-modal-category">
@@ -509,7 +539,12 @@ if (!$plan) {
             </div>
             <div class="review-modal-sort">
                 <div class="review-modal-sort-wrapper">
-                    <span class="review-modal-total">총 11,539개</span>
+                    <span class="review-modal-total">
+                        총 <?php 
+                        $reviewCount = $rawData['review_count'] ?? 0;
+                        echo number_format($reviewCount);
+                        ?>개
+                    </span>
                     <div class="review-modal-sort-select-wrapper">
                         <select class="review-modal-sort-select" id="reviewSortSelect" aria-label="리뷰 정렬 방식 선택">
                             <option value="SCORE_DESC">높은 평점순</option>

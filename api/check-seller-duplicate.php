@@ -1,6 +1,6 @@
 <?php
 /**
- * 판매자 아이디/이메일 중복확인 API
+ * 판매자 아이디/이메일/판매자명 중복확인 API
  */
 
 header('Content-Type: application/json; charset=utf-8');
@@ -8,13 +8,14 @@ require_once __DIR__ . '/../includes/data/auth-functions.php';
 
 $type = $_GET['type'] ?? '';
 $value = trim($_GET['value'] ?? '');
+$currentUserId = $_GET['current_user_id'] ?? ''; // 현재 수정 중인 사용자 ID (자기 자신 제외용)
 
 if (empty($type) || empty($value)) {
     echo json_encode(['success' => false, 'message' => '파라미터가 올바르지 않습니다.']);
     exit;
 }
 
-if ($type !== 'user_id' && $type !== 'email') {
+if ($type !== 'user_id' && $type !== 'email' && $type !== 'seller_name') {
     echo json_encode(['success' => false, 'message' => '잘못된 타입입니다.']);
     exit;
 }
@@ -83,24 +84,54 @@ if ($type === 'user_id') {
 } elseif ($type === 'email') {
     // 이메일 중복확인 (판매자만, 일반회원과는 별도)
     foreach ($sellers as $seller) {
+        // 현재 수정 중인 사용자는 제외
+        if (!empty($currentUserId) && isset($seller['user_id']) && $seller['user_id'] === $currentUserId) {
+            continue;
+        }
         if (isset($seller['email']) && strtolower($seller['email']) === strtolower($value)) {
             $isDuplicate = true;
             break;
         }
     }
+} elseif ($type === 'seller_name') {
+    // 판매자명 중복확인 (대소문자 구분 없이)
+    $valueLower = mb_strtolower($value, 'UTF-8');
+    foreach ($sellers as $seller) {
+        // 현재 수정 중인 사용자는 제외
+        if (!empty($currentUserId) && isset($seller['user_id']) && $seller['user_id'] === $currentUserId) {
+            continue;
+        }
+        if (isset($seller['seller_name']) && !empty($seller['seller_name'])) {
+            $sellerNameLower = mb_strtolower($seller['seller_name'], 'UTF-8');
+            if ($sellerNameLower === $valueLower) {
+                $isDuplicate = true;
+                break;
+            }
+        }
+    }
 }
 
 if ($isDuplicate) {
+    $messages = [
+        'user_id' => '이미 사용 중인 아이디입니다.',
+        'email' => '이미 사용 중인 이메일입니다.',
+        'seller_name' => '이미 사용 중인 판매자명입니다.'
+    ];
     echo json_encode([
         'success' => false,
         'duplicate' => true,
-        'message' => $type === 'user_id' ? '이미 사용 중인 아이디입니다.' : '이미 사용 중인 이메일입니다.'
+        'message' => $messages[$type] ?? '이미 사용 중입니다.'
     ]);
 } else {
+    $messages = [
+        'user_id' => '사용 가능한 아이디입니다.',
+        'email' => '사용 가능한 이메일입니다.',
+        'seller_name' => '사용 가능한 판매자명입니다.'
+    ];
     echo json_encode([
         'success' => true,
         'duplicate' => false,
-        'message' => $type === 'user_id' ? '사용 가능한 아이디입니다.' : '사용 가능한 이메일입니다.'
+        'message' => $messages[$type] ?? '사용 가능합니다.'
     ]);
 }
 

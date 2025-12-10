@@ -362,6 +362,29 @@ include 'includes/seller-header.php';
         <div class="detail-card">
             <h2 class="detail-card-title">판매자 상태</h2>
             <div class="detail-item">
+                <div class="detail-label">판매자명</div>
+                <div class="detail-value">
+                    <?php 
+                    // 판매자명: 사이트에서 활동할 때 사용하는 별도 이름 (닉네임)
+                    // seller_name이 있으면 우선 사용, 없으면 company_name 또는 name 사용
+                    $sellerName = '';
+                    if (!empty($currentUser['seller_name'])) {
+                        $sellerName = $currentUser['seller_name'];
+                    } elseif (!empty($currentUser['company_name'])) {
+                        $sellerName = $currentUser['company_name'];
+                    } elseif (!empty($currentUser['name'])) {
+                        $sellerName = $currentUser['name'];
+                    }
+                    
+                    if (empty($sellerName)) {
+                        echo '<span style="color: #9ca3af; font-style: italic;">미설정</span>';
+                    } else {
+                        echo htmlspecialchars($sellerName);
+                    }
+                    ?>
+                </div>
+            </div>
+            <div class="detail-item">
                 <div class="detail-label">승인 상태</div>
                 <div class="detail-value" style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
                     <?php 

@@ -6,6 +6,42 @@
 require_once __DIR__ . '/db-config.php';
 
 /**
+ * products 테이블 생성 (공통 함수)
+ * @param PDO $pdo 데이터베이스 연결
+ * @return bool 성공 여부
+ */
+function ensureProductsTable($pdo) {
+    try {
+        if (!$pdo->query("SHOW TABLES LIKE 'products'")->fetch()) {
+            $pdo->exec("
+                CREATE TABLE IF NOT EXISTS `products` (
+                    `id` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+                    `seller_id` INT(11) UNSIGNED NOT NULL COMMENT '판매자 ID',
+                    `product_type` ENUM('mvno', 'mno', 'internet') NOT NULL COMMENT '상품 타입',
+                    `status` ENUM('active', 'inactive', 'deleted') NOT NULL DEFAULT 'active' COMMENT '상품 상태',
+                    `view_count` INT(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT '조회수',
+                    `favorite_count` INT(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT '찜 수',
+                    `review_count` INT(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT '리뷰 수',
+                    `share_count` INT(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT '공유 수',
+                    `application_count` INT(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT '신청 수',
+                    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '생성일시',
+                    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정일시',
+                    PRIMARY KEY (`id`),
+                    KEY `idx_seller_id` (`seller_id`),
+                    KEY `idx_product_type` (`product_type`),
+                    KEY `idx_status` (`status`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='상품 기본 정보'
+            ");
+            error_log("products 테이블이 자동으로 생성되었습니다.");
+        }
+        return true;
+    } catch (PDOException $e) {
+        error_log("products 테이블 생성 중 오류: " . $e->getMessage());
+        return false;
+    }
+}
+
+/**
  * MVNO 상품 저장
  * @param array $productData 상품 데이터
  * @return int|false 상품 ID 또는 false
@@ -166,105 +202,14 @@ function saveMvnoProduct($productData) {
             $executeParams = $insertParams;
         }
         
-        // 쿼리에서 사용하는 파라미터 추출하여 검증
-        preg_match_all('/:(\w+)/', $queryString, $matches);
-        $requiredParams = array_unique($matches[1]);
-        // executeParams의 키에서 : 제거하여 비교
-        $providedParams = array_map(function($key) { 
-            return (strpos($key, ':') === 0) ? substr($key, 1) : $key; 
-        }, array_keys($executeParams));
-        
-        $missingParams = array_diff($requiredParams, $providedParams);
-        $extraParams = array_diff($providedParams, $requiredParams);
-        
-        // 파라미터 검증 및 상세 로깅
-        $debugInfo = [
-            'query_type' => $isEditMode && $detailExists ? "UPDATE" : "INSERT",
-            'required_count' => count($requiredParams),
-            'provided_count' => count($executeParams),
-            'required_params' => $requiredParams,
-            'provided_params' => $providedParams,
-            'missing_params' => $missingParams,
-            'extra_params' => $extraParams,
-            'product_id' => $productId
-        ];
-        
-        // 파라미터 검증 (실제로는 execute 전에 검증하지만, 상세 로깅을 위해)
-        if (!empty($missingParams) || !empty($extraParams)) {
-            $errorMsg = "Parameter mismatch detected before execution!\n";
-            $errorMsg .= "Query type: " . $debugInfo['query_type'] . "\n";
-            $errorMsg .= "Required count: " . $debugInfo['required_count'] . "\n";
-            $errorMsg .= "Provided count: " . $debugInfo['provided_count'] . "\n";
-            $errorMsg .= "Required: " . implode(", ", $requiredParams) . "\n";
-            $errorMsg .= "Provided: " . implode(", ", $providedParams) . "\n";
-            if (!empty($missingParams)) {
-                $errorMsg .= "Missing: " . implode(", ", $missingParams) . "\n";
-            }
-            if (!empty($extraParams)) {
-                $errorMsg .= "Extra: " . implode(", ", $extraParams) . "\n";
-            }
-            $errorMsg .= "\nDebug info: " . json_encode($debugInfo, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
-            $errorMsg .= "\nQuery string: " . $queryString;
-            $errorMsg .= "\nExecute params keys: " . implode(", ", array_keys($executeParams));
-            error_log($errorMsg);
-            
-            // 전역 변수에 저장
-            global $lastDbError;
-            $lastDbError = $errorMsg;
-            
-            throw new PDOException("Parameter mismatch: " . $errorMsg);
-        }
-        
-        // 파라미터 값 확인 (null이나 빈 값이 있는지)
-        $nullParams = [];
-        foreach ($executeParams as $key => $value) {
-            if ($value === null || $value === '') {
-                $nullParams[] = $key . '=' . ($value === null ? 'NULL' : 'EMPTY');
-            }
-        }
-        if (!empty($nullParams)) {
-            error_log("Parameters with null/empty values: " . implode(", ", $nullParams));
-        }
-        
         try {
-            // 실제 execute 전에 파라미터 키 확인
-            $executeKeys = array_keys($executeParams);
-            $queryParamKeys = array_map(function($p) { return ':' . $p; }, $requiredParams);
-            
-            // 키 비교
-            $keyDiff = array_diff($queryParamKeys, $executeKeys);
-            if (!empty($keyDiff)) {
-                $errorMsg = "Parameter key mismatch!\n";
-                $errorMsg .= "Query expects keys: " . implode(", ", $queryParamKeys) . "\n";
-                $errorMsg .= "Provided keys: " . implode(", ", $executeKeys) . "\n";
-                $errorMsg .= "Missing keys: " . implode(", ", $keyDiff) . "\n";
-                error_log($errorMsg);
-                
-                global $lastDbError;
-                $lastDbError = $errorMsg;
-                throw new PDOException($errorMsg);
-            }
-            
             $stmt->execute($executeParams);
         } catch (PDOException $e) {
-            // 파라미터 정보 로깅
+            // 에러 정보 로깅
             $errorMsg = "Error executing query: " . $e->getMessage();
             $errorMsg .= "\nSQL State: " . $e->getCode();
             $errorMsg .= "\nQuery type: " . ($isEditMode && $detailExists ? "UPDATE" : "INSERT");
-            $errorMsg .= "\nParameters count: " . count($executeParams);
-            $errorMsg .= "\nParameters keys: " . implode(", ", array_keys($executeParams));
-            $errorMsg .= "\nRequired params (" . count($requiredParams) . "): " . implode(", ", $requiredParams);
-            $errorMsg .= "\nProvided params (" . count($providedParams) . "): " . implode(", ", $providedParams);
             $errorMsg .= "\nProduct ID: " . $productId;
-            if (!empty($missingParams)) {
-                $errorMsg .= "\nMissing params: " . implode(", ", $missingParams);
-            }
-            if (!empty($extraParams)) {
-                $errorMsg .= "\nExtra params: " . implode(", ", $extraParams);
-            }
-            $errorMsg .= "\n\nDebug info: " . json_encode($debugInfo, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
-            $errorMsg .= "\n\nQuery string: " . $queryString;
-            $errorMsg .= "\n\nExecute params (first 5): " . json_encode(array_slice($executeParams, 0, 5, true), JSON_UNESCAPED_UNICODE);
             error_log($errorMsg);
             
             // 전역 변수에 저장하여 API에서 접근 가능하도록
@@ -392,31 +337,8 @@ function saveMnoProduct($productData) {
             error_log("product_mno_details 테이블이 자동으로 생성되었습니다.");
         }
         
-        // products 테이블도 확인
-        $checkProducts = $pdo->query("SHOW TABLES LIKE 'products'");
-        if (!$checkProducts->fetch()) {
-            $createProductsSQL = "
-            CREATE TABLE IF NOT EXISTS `products` (
-                `id` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
-                `seller_id` INT(11) UNSIGNED NOT NULL COMMENT '판매자 ID',
-                `product_type` ENUM('mvno', 'mno', 'internet') NOT NULL COMMENT '상품 타입',
-                `status` ENUM('active', 'inactive', 'deleted') NOT NULL DEFAULT 'active' COMMENT '상품 상태',
-                `view_count` INT(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT '조회수',
-                `favorite_count` INT(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT '찜 수',
-                `review_count` INT(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT '리뷰 수',
-                `share_count` INT(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT '공유 수',
-                `application_count` INT(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT '신청 수',
-                `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '생성일시',
-                `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정일시',
-                PRIMARY KEY (`id`),
-                KEY `idx_seller_id` (`seller_id`),
-                KEY `idx_product_type` (`product_type`),
-                KEY `idx_status` (`status`)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='상품 기본 정보';
-            ";
-            $pdo->exec($createProductsSQL);
-            error_log("products 테이블이 자동으로 생성되었습니다.");
-        }
+        // products 테이블 확인 및 생성
+        ensureProductsTable($pdo);
     } catch (PDOException $e) {
         error_log("테이블 생성 중 오류: " . $e->getMessage());
         // 테이블 생성 실패해도 계속 진행 (외래키 제약조건이 있을 수 있음)
@@ -669,27 +591,8 @@ function saveInternetProduct($productData) {
             ");
         }
         
-        if (!$pdo->query("SHOW TABLES LIKE 'products'")->fetch()) {
-            $pdo->exec("
-                CREATE TABLE IF NOT EXISTS `products` (
-                    `id` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
-                    `seller_id` INT(11) UNSIGNED NOT NULL COMMENT '판매자 ID',
-                    `product_type` ENUM('mvno', 'mno', 'internet') NOT NULL COMMENT '상품 타입',
-                    `status` ENUM('active', 'inactive', 'deleted') NOT NULL DEFAULT 'active' COMMENT '상품 상태',
-                    `view_count` INT(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT '조회수',
-                    `favorite_count` INT(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT '찜 수',
-                    `review_count` INT(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT '리뷰 수',
-                    `share_count` INT(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT '공유 수',
-                    `application_count` INT(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT '신청 수',
-                    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '생성일시',
-                    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정일시',
-                    PRIMARY KEY (`id`),
-                    KEY `idx_seller_id` (`seller_id`),
-                    KEY `idx_product_type` (`product_type`),
-                    KEY `idx_status` (`status`)
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='상품 기본 정보'
-            ");
-        }
+        // products 테이블 확인 및 생성
+        ensureProductsTable($pdo);
     } catch (PDOException $e) {
         error_log("테이블 생성 중 오류: " . $e->getMessage());
     }

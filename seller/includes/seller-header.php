@@ -38,6 +38,10 @@ if ($skipAuthCheck === true) {
         $currentUser = null;
     }
     // seller-edit.php에서 이미 인증 및 승인 체크를 완료했으므로 추가 체크 불필요
+    // 판매자명 체크 (seller-edit.php에서 체크한 경우에도 판매자명 확인)
+    $sellerName = $currentUser['seller_name'] ?? '';
+    $hasSellerName = !empty(trim($sellerName));
+    $showSellerNameModal = !$hasSellerName;
 } else {
     // 일반적인 경우: 인증 체크 수행
     $currentUser = getCurrentUser();
@@ -59,6 +63,11 @@ if ($skipAuthCheck === true) {
         header('Location: /MVNO/seller/waiting.php');
         exit;
     }
+    
+    // 판매자명 체크 (승인된 판매자만)
+    $sellerName = $currentUser['seller_name'] ?? '';
+    $hasSellerName = !empty(trim($sellerName));
+    $showSellerNameModal = !$hasSellerName;
 }
 
 $currentPage = basename($_SERVER['PHP_SELF']);
@@ -264,6 +273,153 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                 margin-left: 0;
             }
         }
+        
+        /* 판매자명 입력 모달 */
+        .seller-name-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 10000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .seller-name-modal {
+            background: white;
+            border-radius: 16px;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+        
+        .seller-name-modal-header {
+            padding: 24px 24px 16px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .seller-name-modal-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #1f2937;
+            margin: 0;
+        }
+        
+        .seller-name-modal-body {
+            padding: 24px;
+        }
+        
+        .seller-name-modal-description {
+            font-size: 14px;
+            color: #6b7280;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+        
+        .seller-name-modal-description strong {
+            color: #1f2937;
+            font-weight: 600;
+        }
+        
+        .seller-name-form-group {
+            margin-bottom: 0;
+        }
+        
+        .seller-name-form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 8px;
+        }
+        
+        .seller-name-form-label .required {
+            color: #ef4444;
+            margin-left: 4px;
+        }
+        
+        .seller-name-form-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        
+        .seller-name-form-input:focus {
+            outline: none;
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+        
+        .seller-name-form-input.checked-valid {
+            border-color: #10b981;
+        }
+        
+        .seller-name-form-input.checked-invalid {
+            border-color: #ef4444;
+        }
+        
+        .seller-name-form-help {
+            display: block;
+            margin-top: 6px;
+            font-size: 12px;
+            color: #9ca3af;
+        }
+        
+        .seller-name-modal-footer {
+            padding: 16px 24px 24px;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: flex-end;
+        }
+        
+        .seller-name-modal-btn {
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+        }
+        
+        .seller-name-modal-btn-primary {
+            background: #6366f1;
+            color: white;
+        }
+        
+        .seller-name-modal-btn-primary:hover {
+            background: #4f46e5;
+        }
+        
+        .seller-name-modal-btn-primary:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+        
+        .check-result {
+            font-size: 13px;
+            font-weight: 500;
+            min-height: 20px;
+        }
+        
+        .check-result.success {
+            color: #10b981;
+        }
+        
+        .check-result.error {
+            color: #ef4444;
+        }
+        
+        .check-result.checking {
+            color: #6b7280;
+        }
     </style>
     <?php if (isset($pageStyles) && !empty($pageStyles)): ?>
     <style>
@@ -378,6 +534,32 @@ $currentPage = basename($_SERVER['PHP_SELF']);
             </a>
         </div>
     </aside>
+    
+    <!-- 판매자명 입력 모달 -->
+    <?php if (isset($showSellerNameModal) && $showSellerNameModal): ?>
+    <div class="seller-name-modal-overlay" id="sellerNameModal" style="display: flex;">
+        <div class="seller-name-modal">
+            <div class="seller-name-modal-header">
+                <h2 class="seller-name-modal-title">판매자명 설정 필요</h2>
+            </div>
+            <div class="seller-name-modal-body">
+                <p class="seller-name-modal-description">
+                    사이트에서 판매 시 사용할 <strong>판매자명(닉네임)</strong>을 설정해주세요.<br>
+                    판매자명은 고객에게 표시되며, 회원정보 수정 페이지에서 언제든지 변경할 수 있습니다.
+                </p>
+                <div class="seller-name-form-group">
+                    <label for="modalSellerName" class="seller-name-form-label">판매자명 (닉네임) <span class="required">*</span></label>
+                    <input type="text" id="modalSellerName" class="seller-name-form-input" placeholder="사이트에서 사용할 판매자명을 입력하세요" maxlength="50" autocomplete="off">
+                    <div id="modalSellerNameCheckResult" class="check-result" style="margin-top: 8px;"></div>
+                    <small class="seller-name-form-help">최소 2자 이상, 최대 50자까지 입력 가능합니다.</small>
+                </div>
+            </div>
+            <div class="seller-name-modal-footer">
+                <button type="button" class="seller-name-modal-btn seller-name-modal-btn-primary" id="saveSellerNameBtn" onclick="saveSellerName()">저장</button>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
     
     <!-- 메인 컨텐츠 영역 -->
     <div class="seller-content-wrapper">

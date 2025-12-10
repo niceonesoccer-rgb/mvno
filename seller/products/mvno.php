@@ -738,7 +738,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     </label>
                     <div class="input-with-unit" style="max-width: 200px;">
                         <input type="text" name="over_voice_price" id="over_voice_price" class="form-control" placeholder="1.98" maxlength="6" value="<?php echo isset($productData['over_voice_price']) ? htmlspecialchars(formatDecimalForInput($productData['over_voice_price'])) : ''; ?>">
-                        <span class="unit">원/MB</span>
+                        <span class="unit">원/초</span>
                     </div>
                 </div>
                 

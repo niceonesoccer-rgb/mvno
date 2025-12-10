@@ -2737,7 +2737,7 @@ button:focus {
 .plan-card-header-body-frame {
     display: flex;
     flex-direction: column;
-    gap: calc(var(--spacing-md) * 0.5);
+    gap: calc(var(--spacing-md) * 0.25);
 }
 
 .plan-card-top-header {
@@ -2889,7 +2889,7 @@ button:focus {
     justify-content: space-between;
     align-items: flex-start;
     gap: var(--spacing-sm);
-    margin-bottom: calc(var(--spacing-md) * 0.25);
+    margin-bottom: calc(var(--spacing-md) * 0.125);
 }
 
 .plan-title-text {
@@ -3004,7 +3004,7 @@ button:focus {
 .plan-info-section {
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-sm);
+    gap: calc(var(--spacing-xs) * 0.5);
 }
 
 .plan-data-row {
@@ -3038,13 +3038,14 @@ button:focus {
     display: flex;
     align-items: center;
     justify-content: flex-start; /* 왼쪽 정렬 */
-    gap: var(--spacing-md);
+    gap: var(--spacing-xs);
     flex-wrap: wrap;
     width: 100%; /* 전체 너비 사용 */
     margin-left: calc(-1 * var(--spacing-lg)); /* 왼쪽 패딩 상쇄 */
     margin-right: calc(-1 * var(--spacing-lg)); /* 오른쪽 패딩 상쇄 */
     padding-left: var(--spacing-lg);
     padding-right: var(--spacing-lg);
+    margin-top: calc(var(--spacing-xs) * 0.5);
 }
 
 .plan-feature-item {
@@ -3318,6 +3319,7 @@ button:focus {
     align-items: flex-end;
     justify-content: space-between;
     gap: var(--spacing-md);
+    margin-top: calc(var(--spacing-xs) * 0.5);
 }
 
 .plan-price-left {
@@ -3419,7 +3421,7 @@ button:focus {
     flex-shrink: 0;
     position: relative;
     border: 2px solid var(--color-white); /* 테두리 */
-    margin-left: -6px; /* 덜 겹치도록 왼쪽으로 이동 */
+    margin-left: -8px; /* 겹치도록 왼쪽으로 이동 */
     /* 인라인 스타일로 배경색 지정 가능하도록 !important 제거 */
 }
 
@@ -3433,7 +3435,23 @@ button:focus {
 }
 
 .plan-gift-indicator-dot:nth-child(3) {
-    z-index: 3; /* 세 번째 (가장 앞에 표시) */
+    z-index: 3; /* 세 번째 */
+}
+
+.plan-gift-indicator-dot:nth-child(4) {
+    z-index: 4; /* 네 번째 */
+}
+
+.plan-gift-indicator-dot:nth-child(5) {
+    z-index: 5; /* 다섯 번째 */
+}
+
+.plan-gift-indicator-dot:nth-child(6) {
+    z-index: 6; /* 여섯 번째 */
+}
+
+.plan-gift-indicator-dot:nth-child(n+7) {
+    z-index: 7; /* 일곱 번째 이상 (가장 앞에 표시) */
 }
 
 .plan-gift-indicator-text {

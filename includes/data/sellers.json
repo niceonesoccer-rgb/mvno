@@ -2810,10 +2810,11 @@
             "approved_at": "2025-12-07 14:37:43",
             "held_at": "2025-12-07 12:16:16",
             "permissions_updated_at": "2025-12-07 16:19:18",
-            "updated_at": "2025-12-09 22:02:52",
+            "updated_at": "2025-12-11 06:52:12",
             "info_updated": true,
-            "info_updated_at": "2025-12-09 22:02:52",
-            "info_checked_by_admin": false
+            "info_updated_at": "2025-12-11 06:52:12",
+            "info_checked_by_admin": false,
+            "seller_name": "스마트"
         },
         {
             "user_id": "12345678",
@@ -2898,6 +2899,35 @@
             "permissions_updated_at": "2025-12-07 15:21:24",
             "approved_at": "2025-12-07 14:41:21",
             "held_at": "2025-12-07 15:21:20"
+        },
+        {
+            "user_id": "54545454",
+            "email": "54545454@nate.com",
+            "name": "54545454",
+            "password": "$2y$10$I0GzJ1OEQD0BArWU\/M4A4OwPMMOsCseS2Mm09lDe\/amlM7ClRwldO",
+            "role": "seller",
+            "created_at": "2025-12-11 06:57:35",
+            "seller_approved": true,
+            "permissions": [
+                "mvno"
+            ],
+            "approval_status": "approved",
+            "phone": "010-2222-3333",
+            "mobile": "010-2222-2222",
+            "address": "서울 구로구 오리로 1063-2",
+            "address_detail": "125번지",
+            "business_number": "545-45-45454",
+            "company_name": "54545454",
+            "company_representative": "54545454",
+            "business_type": "54545454",
+            "business_item": "54545454",
+            "business_license_image": "\/MVNO\/uploads\/sellers\/54545454_license_1765403855.png",
+            "approved_at": "2025-12-11 07:00:33",
+            "seller_name": "걸스카이",
+            "updated_at": "2025-12-11 07:05:03",
+            "info_updated": true,
+            "info_updated_at": "2025-12-11 07:05:03",
+            "info_checked_by_admin": false
         }
     ]
 }

@@ -253,11 +253,11 @@ $activeTab = $_GET['tab'] ?? 'all';
 // 검색어 가져오기
 $searchQuery = isset($_GET['search']) ? trim($_GET['search']) : '';
 
-// 표시 개수 선택 (기본값: 50)
-$perPage = isset($_GET['per_page']) ? (int)$_GET['per_page'] : 50;
+// 표시 개수 선택 (기본값: 10)
+$perPage = isset($_GET['per_page']) ? (int)$_GET['per_page'] : 10;
 $perPageOptions = [10, 50, 100, 500];
 if (!in_array($perPage, $perPageOptions)) {
-    $perPage = 50;
+    $perPage = 10;
 }
 
 // 현재 페이지 (기본값: 1)
@@ -1031,8 +1031,8 @@ $paginatedSellers = array_slice($currentSellers, $offset, $perPage);
         <?php endif; ?>
         
         <!-- 검색 및 표시 개수 선택 -->
-        <div class="table-controls">
-            <form method="GET" class="search-box" style="margin: 0;">
+        <div class="table-controls" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; gap: 16px; flex-wrap: wrap;">
+            <form method="GET" class="search-box" style="margin: 0; flex: 1; min-width: 300px;">
                 <input type="hidden" name="tab" value="<?php echo htmlspecialchars($activeTab); ?>">
                 <input type="hidden" name="per_page" value="<?php echo $perPage; ?>">
                 <input type="text" name="search" placeholder="아이디, 회사명, 이메일, 전화번호, 대표자명으로 검색..." value="<?php echo htmlspecialchars($searchQuery); ?>">
@@ -1040,17 +1040,17 @@ $paginatedSellers = array_slice($currentSellers, $offset, $perPage);
                 <?php if (!empty($searchQuery)): ?>
                     <a href="?tab=<?php echo htmlspecialchars($activeTab); ?>&per_page=<?php echo $perPage; ?>" style="padding: 8px 16px; background: #ef4444; color: white; border-radius: 6px; text-decoration: none; font-size: 14px; font-weight: 500;">초기화</a>
                 <?php endif; ?>
-                <div class="per-page-selector" style="margin-left: 16px;">
-                    <label for="per-page">표시 개수:</label>
-                    <select id="per-page" onchange="changePerPage(this.value)">
-                        <?php foreach ($perPageOptions as $option): ?>
-                            <option value="<?php echo $option; ?>" <?php echo $perPage === $option ? 'selected' : ''; ?>>
-                                <?php echo $option; ?>명
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
             </form>
+            <div class="per-page-selector" style="margin-left: auto;">
+                <label for="per-page">표시 개수:</label>
+                <select id="per-page" onchange="changePerPage(this.value)">
+                    <?php foreach ($perPageOptions as $option): ?>
+                        <option value="<?php echo $option; ?>" <?php echo $perPage === $option ? 'selected' : ''; ?>>
+                            <?php echo $option; ?>명
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
         </div>
         
         <!-- 탭 메뉴 -->
@@ -1086,9 +1086,10 @@ $paginatedSellers = array_slice($currentSellers, $offset, $perPage);
                             <tr>
                                 <th>번호</th>
                                 <th>아이디</th>
-                                <th>이름</th>
-                                <th>이메일</th>
-                                <th>가입일</th>
+                                <th>판매자명</th>
+                                <th>회사명</th>
+                                <th>대표자명</th>
+                                <th>연락처</th>
                                 <th>상태</th>
                                 <th>권한</th>
                                 <th>작업</th>
@@ -1127,13 +1128,27 @@ $paginatedSellers = array_slice($currentSellers, $offset, $perPage);
                                 if (in_array('mvno', $permissions)) $permissionLabels[] = '알뜰폰';
                                 if (in_array('mno', $permissions)) $permissionLabels[] = '통신사폰';
                                 if (in_array('internet', $permissions)) $permissionLabels[] = '인터넷';
+                                
+                                // 판매자명
+                                $sellerName = $seller['seller_name'] ?? $seller['company_name'] ?? $seller['name'] ?? '-';
+                                
+                                // 연락처 (휴대폰 우선, 없으면 전화번호)
+                                $contact = '';
+                                if (!empty($seller['mobile'])) {
+                                    $contact = $seller['mobile'];
+                                } elseif (!empty($seller['phone'])) {
+                                    $contact = $seller['phone'];
+                                } else {
+                                    $contact = '-';
+                                }
                                 ?>
                                 <tr>
                                     <td><?php echo $rowNumber; ?></td>
                                     <td><?php echo htmlspecialchars($seller['user_id']); ?></td>
-                                    <td><?php echo htmlspecialchars($seller['name'] ?? '-'); ?></td>
-                                    <td><?php echo htmlspecialchars($seller['email'] ?? '-'); ?></td>
-                                    <td><?php echo htmlspecialchars($seller['created_at'] ?? '-'); ?></td>
+                                    <td><?php echo htmlspecialchars($sellerName); ?></td>
+                                    <td><?php echo htmlspecialchars($seller['company_name'] ?? '-'); ?></td>
+                                    <td><?php echo htmlspecialchars($seller['company_representative'] ?? '-'); ?></td>
+                                    <td><?php echo htmlspecialchars($contact); ?></td>
                                     <td>
                                         <span class="badge <?php echo $statusBadge; ?>"><?php echo $statusText; ?></span>
                                     </td>
@@ -1249,9 +1264,10 @@ $paginatedSellers = array_slice($currentSellers, $offset, $perPage);
                             <tr>
                                 <th>번호</th>
                                 <th>아이디</th>
-                                <th>이름</th>
-                                <th>이메일</th>
-                                <th>가입일</th>
+                                <th>판매자명</th>
+                                <th>회사명</th>
+                                <th>대표자명</th>
+                                <th>연락처</th>
                                 <th>상태</th>
                                 <th>작업</th>
                             </tr>
@@ -1259,12 +1275,27 @@ $paginatedSellers = array_slice($currentSellers, $offset, $perPage);
                         <tbody>
                             <?php foreach ($pendingPaginated as $index => $seller): ?>
                                 <?php $rowNumber = $pendingCount - ($pendingOffset + $index); ?>
+                                <?php
+                                // 판매자명
+                                $sellerName = $seller['seller_name'] ?? $seller['company_name'] ?? $seller['name'] ?? '-';
+                                
+                                // 연락처 (휴대폰 우선, 없으면 전화번호)
+                                $contact = '';
+                                if (!empty($seller['mobile'])) {
+                                    $contact = $seller['mobile'];
+                                } elseif (!empty($seller['phone'])) {
+                                    $contact = $seller['phone'];
+                                } else {
+                                    $contact = '-';
+                                }
+                                ?>
                                 <tr>
                                     <td><?php echo $rowNumber; ?></td>
                                     <td><?php echo htmlspecialchars($seller['user_id']); ?></td>
-                                    <td><?php echo htmlspecialchars($seller['name'] ?? '-'); ?></td>
-                                    <td><?php echo htmlspecialchars($seller['email'] ?? '-'); ?></td>
-                                    <td><?php echo htmlspecialchars($seller['created_at'] ?? '-'); ?></td>
+                                    <td><?php echo htmlspecialchars($sellerName); ?></td>
+                                    <td><?php echo htmlspecialchars($seller['company_name'] ?? '-'); ?></td>
+                                    <td><?php echo htmlspecialchars($seller['company_representative'] ?? '-'); ?></td>
+                                    <td><?php echo htmlspecialchars($contact); ?></td>
                                     <td>
                                         <span class="badge badge-pending">신청자</span>
                                     </td>
@@ -1373,10 +1404,10 @@ $paginatedSellers = array_slice($currentSellers, $offset, $perPage);
                             <tr>
                                 <th>번호</th>
                                 <th>아이디</th>
-                                <th>이름</th>
-                                <th>이메일</th>
-                                <th>가입일</th>
-                                <th>승인일</th>
+                                <th>판매자명</th>
+                                <th>회사명</th>
+                                <th>대표자명</th>
+                                <th>연락처</th>
                                 <th>권한</th>
                                 <th>상태</th>
                                 <th>작업</th>
@@ -1385,22 +1416,35 @@ $paginatedSellers = array_slice($currentSellers, $offset, $perPage);
                         <tbody>
                             <?php foreach ($approvedPaginated as $index => $seller): ?>
                                 <?php $rowNumber = $approvedCount - ($approvedOffset + $index); ?>
+                                <?php
+                                // 판매자명
+                                $sellerName = $seller['seller_name'] ?? $seller['company_name'] ?? $seller['name'] ?? '-';
+                                
+                                // 연락처 (휴대폰 우선, 없으면 전화번호)
+                                $contact = '';
+                                if (!empty($seller['mobile'])) {
+                                    $contact = $seller['mobile'];
+                                } elseif (!empty($seller['phone'])) {
+                                    $contact = $seller['phone'];
+                                } else {
+                                    $contact = '-';
+                                }
+                                
+                                $permissions = $seller['permissions'] ?? [];
+                                $permissionLabels = [];
+                                if (in_array('mvno', $permissions)) $permissionLabels[] = '알뜰폰';
+                                if (in_array('mno', $permissions)) $permissionLabels[] = '통신사폰';
+                                if (in_array('internet', $permissions)) $permissionLabels[] = '인터넷';
+                                ?>
                                 <tr>
                                     <td><?php echo $rowNumber; ?></td>
                                     <td><?php echo htmlspecialchars($seller['user_id']); ?></td>
-                                    <td><?php echo htmlspecialchars($seller['name'] ?? '-'); ?></td>
-                                    <td><?php echo htmlspecialchars($seller['email'] ?? '-'); ?></td>
-                                    <td><?php echo htmlspecialchars($seller['created_at'] ?? '-'); ?></td>
-                                    <td><?php echo htmlspecialchars($seller['approved_at'] ?? '-'); ?></td>
+                                    <td><?php echo htmlspecialchars($sellerName); ?></td>
+                                    <td><?php echo htmlspecialchars($seller['company_name'] ?? '-'); ?></td>
+                                    <td><?php echo htmlspecialchars($seller['company_representative'] ?? '-'); ?></td>
+                                    <td><?php echo htmlspecialchars($contact); ?></td>
                                     <td>
-                                        <?php 
-                                        $permissions = $seller['permissions'] ?? [];
-                                        $permissionLabels = [];
-                                        if (in_array('mvno', $permissions)) $permissionLabels[] = '알뜰폰';
-                                        if (in_array('mno', $permissions)) $permissionLabels[] = '통신사폰';
-                                        if (in_array('internet', $permissions)) $permissionLabels[] = '인터넷';
-                                        echo !empty($permissionLabels) ? implode(', ', $permissionLabels) : '<span style="color: #9ca3af;">권한 없음</span>';
-                                        ?>
+                                        <?php echo !empty($permissionLabels) ? implode(', ', $permissionLabels) : '<span style="color: #9ca3af;">권한 없음</span>'; ?>
                                     </td>
                                     <td>
                                         <span class="badge badge-approved">승인</span>
@@ -1510,8 +1554,10 @@ $paginatedSellers = array_slice($currentSellers, $offset, $perPage);
                             <tr>
                                 <th>번호</th>
                                 <th>아이디</th>
-                                <th>이름</th>
-                                <th>이메일</th>
+                                <th>판매자명</th>
+                                <th>회사명</th>
+                                <th>대표자명</th>
+                                <th>연락처</th>
                                 <th>업데이트일</th>
                                 <th>상태</th>
                                 <th>작업</th>
@@ -1520,11 +1566,27 @@ $paginatedSellers = array_slice($currentSellers, $offset, $perPage);
                         <tbody>
                             <?php foreach ($updatedPaginated as $index => $seller): ?>
                                 <?php $rowNumber = $updatedCount - ($updatedOffset + $index); ?>
+                                <?php
+                                // 판매자명
+                                $sellerName = $seller['seller_name'] ?? $seller['company_name'] ?? $seller['name'] ?? '-';
+                                
+                                // 연락처 (휴대폰 우선, 없으면 전화번호)
+                                $contact = '';
+                                if (!empty($seller['mobile'])) {
+                                    $contact = $seller['mobile'];
+                                } elseif (!empty($seller['phone'])) {
+                                    $contact = $seller['phone'];
+                                } else {
+                                    $contact = '-';
+                                }
+                                ?>
                                 <tr>
                                     <td><?php echo $rowNumber; ?></td>
                                     <td><?php echo htmlspecialchars($seller['user_id']); ?></td>
-                                    <td><?php echo htmlspecialchars($seller['name'] ?? '-'); ?></td>
-                                    <td><?php echo htmlspecialchars($seller['email'] ?? '-'); ?></td>
+                                    <td><?php echo htmlspecialchars($sellerName); ?></td>
+                                    <td><?php echo htmlspecialchars($seller['company_name'] ?? '-'); ?></td>
+                                    <td><?php echo htmlspecialchars($seller['company_representative'] ?? '-'); ?></td>
+                                    <td><?php echo htmlspecialchars($contact); ?></td>
                                     <td><?php echo htmlspecialchars($seller['info_updated_at'] ?? '-'); ?></td>
                                     <td>
                                         <span class="badge badge-pending">정보 업데이트</span>
@@ -1634,8 +1696,10 @@ $paginatedSellers = array_slice($currentSellers, $offset, $perPage);
                             <tr>
                                 <th>번호</th>
                                 <th>아이디</th>
-                                <th>이름</th>
-                                <th>이메일</th>
+                                <th>판매자명</th>
+                                <th>회사명</th>
+                                <th>대표자명</th>
+                                <th>연락처</th>
                                 <th>탈퇴 요청일</th>
                                 <th>탈퇴 사유</th>
                                 <th>작업</th>
@@ -1644,11 +1708,27 @@ $paginatedSellers = array_slice($currentSellers, $offset, $perPage);
                         <tbody>
                             <?php foreach ($withdrawalPaginated as $index => $seller): ?>
                                 <?php $rowNumber = $withdrawalCount - ($withdrawalOffset + $index); ?>
+                                <?php
+                                // 판매자명
+                                $sellerName = $seller['seller_name'] ?? $seller['company_name'] ?? $seller['name'] ?? '-';
+                                
+                                // 연락처 (휴대폰 우선, 없으면 전화번호)
+                                $contact = '';
+                                if (!empty($seller['mobile'])) {
+                                    $contact = $seller['mobile'];
+                                } elseif (!empty($seller['phone'])) {
+                                    $contact = $seller['phone'];
+                                } else {
+                                    $contact = '-';
+                                }
+                                ?>
                                 <tr>
                                     <td><?php echo $rowNumber; ?></td>
                                     <td><?php echo htmlspecialchars($seller['user_id']); ?></td>
-                                    <td><?php echo htmlspecialchars($seller['name'] ?? '-'); ?></td>
-                                    <td><?php echo htmlspecialchars($seller['email'] ?? '-'); ?></td>
+                                    <td><?php echo htmlspecialchars($sellerName); ?></td>
+                                    <td><?php echo htmlspecialchars($seller['company_name'] ?? '-'); ?></td>
+                                    <td><?php echo htmlspecialchars($seller['company_representative'] ?? '-'); ?></td>
+                                    <td><?php echo htmlspecialchars($contact); ?></td>
                                     <td><?php echo htmlspecialchars($seller['withdrawal_requested_at'] ?? '-'); ?></td>
                                     <td><?php echo htmlspecialchars($seller['withdrawal_reason'] ?? '사유 없음'); ?></td>
                                     <td>
