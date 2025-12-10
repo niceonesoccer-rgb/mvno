@@ -641,49 +641,179 @@ function saveInternetProduct($productData) {
         return false;
     }
     
+    // 테이블 자동 생성
+    try {
+        if (!$pdo->query("SHOW TABLES LIKE 'product_internet_details'")->fetch()) {
+            $pdo->exec("
+                CREATE TABLE IF NOT EXISTS `product_internet_details` (
+                    `id` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+                    `product_id` INT(11) UNSIGNED NOT NULL COMMENT '상품 ID',
+                    `registration_place` VARCHAR(50) NOT NULL COMMENT '인터넷가입처',
+                    `speed_option` VARCHAR(20) DEFAULT NULL COMMENT '가입속도',
+                    `monthly_fee` DECIMAL(10,2) NOT NULL DEFAULT 0.00 COMMENT '월 요금제',
+                    `cash_payment_names` TEXT DEFAULT NULL COMMENT '현금지급 항목명 (JSON)',
+                    `cash_payment_prices` TEXT DEFAULT NULL COMMENT '현금지급 가격 (JSON)',
+                    `gift_card_names` TEXT DEFAULT NULL COMMENT '상품권 지급 항목명 (JSON)',
+                    `gift_card_prices` TEXT DEFAULT NULL COMMENT '상품권 지급 가격 (JSON)',
+                    `equipment_names` TEXT DEFAULT NULL COMMENT '장비 제공 항목명 (JSON)',
+                    `equipment_prices` TEXT DEFAULT NULL COMMENT '장비 제공 가격 (JSON)',
+                    `installation_names` TEXT DEFAULT NULL COMMENT '설치 및 기타 서비스 항목명 (JSON)',
+                    `installation_prices` TEXT DEFAULT NULL COMMENT '설치 및 기타 서비스 가격 (JSON)',
+                    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    PRIMARY KEY (`id`),
+                    UNIQUE KEY `uk_product_id` (`product_id`),
+                    KEY `idx_registration_place` (`registration_place`),
+                    KEY `idx_speed_option` (`speed_option`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Internet 상품 상세 정보'
+            ");
+        }
+        
+        if (!$pdo->query("SHOW TABLES LIKE 'products'")->fetch()) {
+            $pdo->exec("
+                CREATE TABLE IF NOT EXISTS `products` (
+                    `id` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+                    `seller_id` INT(11) UNSIGNED NOT NULL COMMENT '판매자 ID',
+                    `product_type` ENUM('mvno', 'mno', 'internet') NOT NULL COMMENT '상품 타입',
+                    `status` ENUM('active', 'inactive', 'deleted') NOT NULL DEFAULT 'active' COMMENT '상품 상태',
+                    `view_count` INT(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT '조회수',
+                    `favorite_count` INT(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT '찜 수',
+                    `review_count` INT(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT '리뷰 수',
+                    `share_count` INT(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT '공유 수',
+                    `application_count` INT(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT '신청 수',
+                    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '생성일시',
+                    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정일시',
+                    PRIMARY KEY (`id`),
+                    KEY `idx_seller_id` (`seller_id`),
+                    KEY `idx_product_type` (`product_type`),
+                    KEY `idx_status` (`status`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='상품 기본 정보'
+            ");
+        }
+    } catch (PDOException $e) {
+        error_log("테이블 생성 중 오류: " . $e->getMessage());
+    }
+    
     try {
         $pdo->beginTransaction();
         
-        // 1. 기본 상품 정보 저장
-        $stmt = $pdo->prepare("
-            INSERT INTO products (seller_id, product_type, status, view_count)
-            VALUES (:seller_id, 'internet', 'active', 0)
-        ");
-        $stmt->execute([
-            ':seller_id' => $productData['seller_id']
-        ]);
-        $productId = $pdo->lastInsertId();
+        $isEditMode = isset($productData['product_id']) && $productData['product_id'] > 0;
+        $productId = $isEditMode ? $productData['product_id'] : null;
         
-        // 2. Internet 상세 정보 저장
-        $stmt = $pdo->prepare("
-            INSERT INTO product_internet_details (
-                product_id, registration_place, speed_option, monthly_fee,
-                cash_payment_names, cash_payment_prices,
-                gift_card_names, gift_card_prices,
-                equipment_names, equipment_prices,
-                installation_names, installation_prices
-            ) VALUES (
-                :product_id, :registration_place, :speed_option, :monthly_fee,
-                :cash_payment_names, :cash_payment_prices,
-                :gift_card_names, :gift_card_prices,
-                :equipment_names, :equipment_prices,
-                :installation_names, :installation_prices
-            )
-        ");
+        if ($isEditMode) {
+            $status = isset($productData['status']) && in_array($productData['status'], ['active', 'inactive']) ? $productData['status'] : 'active';
+            
+            $checkStmt = $pdo->prepare("SELECT id FROM products WHERE id = ? AND seller_id = ? AND product_type = 'internet'");
+            $checkStmt->execute([$productId, $productData['seller_id']]);
+            if (!$checkStmt->fetch()) {
+                throw new Exception("상품을 찾을 수 없거나 수정 권한이 없습니다.");
+            }
+            
+            $stmt = $pdo->prepare("UPDATE products SET status = :status WHERE id = :product_id AND seller_id = :seller_id");
+            $stmt->execute([
+                ':status' => $status,
+                ':product_id' => $productId,
+                ':seller_id' => $productData['seller_id']
+            ]);
+        } else {
+            $stmt = $pdo->prepare("INSERT INTO products (seller_id, product_type, status, view_count) VALUES (:seller_id, 'internet', 'active', 0)");
+            $stmt->execute([':seller_id' => $productData['seller_id']]);
+            $productId = $pdo->lastInsertId();
+        }
+        
+        // 가격 데이터 처리 및 필터링
+        $processPrices = function($prices) {
+            if (empty($prices) || !is_array($prices)) return [];
+            return array_map(function($price) {
+                if (empty($price)) return '';
+                return preg_replace('/[^0-9.-]/', '', str_replace(',', '', $price)) ?: '';
+            }, $prices);
+        };
+        
+        $filterArrays = function($names, $prices) {
+            $filtered = ['names' => [], 'prices' => []];
+            if (empty($names) || !is_array($names)) return $filtered;
+            foreach ($names as $index => $name) {
+                if (!empty(trim($name))) {
+                    $filtered['names'][] = trim($name);
+                    $filtered['prices'][] = $prices[$index] ?? '';
+                }
+            }
+            return $filtered;
+        };
+        
+        $cashData = $filterArrays(
+            $productData['cash_payment_names'] ?? [],
+            $processPrices($productData['cash_payment_prices'] ?? [])
+        );
+        $giftCardData = $filterArrays(
+            $productData['gift_card_names'] ?? [],
+            $processPrices($productData['gift_card_prices'] ?? [])
+        );
+        $equipmentData = $filterArrays(
+            $productData['equipment_names'] ?? [],
+            $processPrices($productData['equipment_prices'] ?? [])
+        );
+        $installationData = $filterArrays(
+            $productData['installation_names'] ?? [],
+            $processPrices($productData['installation_prices'] ?? [])
+        );
+        
+        // 상세 정보 저장/업데이트
+        $detailExists = false;
+        if ($isEditMode) {
+            $checkStmt = $pdo->prepare("SELECT COUNT(*) FROM product_internet_details WHERE product_id = :product_id");
+            $checkStmt->execute([':product_id' => $productId]);
+            $detailExists = $checkStmt->fetchColumn() > 0;
+        }
+        
+        if ($isEditMode && $detailExists) {
+            $stmt = $pdo->prepare("
+                UPDATE product_internet_details SET
+                    registration_place = :registration_place,
+                    speed_option = :speed_option,
+                    monthly_fee = :monthly_fee,
+                    cash_payment_names = :cash_payment_names,
+                    cash_payment_prices = :cash_payment_prices,
+                    gift_card_names = :gift_card_names,
+                    gift_card_prices = :gift_card_prices,
+                    equipment_names = :equipment_names,
+                    equipment_prices = :equipment_prices,
+                    installation_names = :installation_names,
+                    installation_prices = :installation_prices
+                WHERE product_id = :product_id
+            ");
+        } else {
+            $stmt = $pdo->prepare("
+                INSERT INTO product_internet_details (
+                    product_id, registration_place, speed_option, monthly_fee,
+                    cash_payment_names, cash_payment_prices,
+                    gift_card_names, gift_card_prices,
+                    equipment_names, equipment_prices,
+                    installation_names, installation_prices
+                ) VALUES (
+                    :product_id, :registration_place, :speed_option, :monthly_fee,
+                    :cash_payment_names, :cash_payment_prices,
+                    :gift_card_names, :gift_card_prices,
+                    :equipment_names, :equipment_prices,
+                    :installation_names, :installation_prices
+                )
+            ");
+        }
         
         $stmt->execute([
             ':product_id' => $productId,
             ':registration_place' => $productData['registration_place'] ?? '',
             ':speed_option' => $productData['speed_option'] ?? null,
             ':monthly_fee' => $productData['monthly_fee'] ?? 0,
-            ':cash_payment_names' => !empty($productData['cash_payment_names']) ? json_encode($productData['cash_payment_names']) : null,
-            ':cash_payment_prices' => !empty($productData['cash_payment_prices']) ? json_encode($productData['cash_payment_prices']) : null,
-            ':gift_card_names' => !empty($productData['gift_card_names']) ? json_encode($productData['gift_card_names']) : null,
-            ':gift_card_prices' => !empty($productData['gift_card_prices']) ? json_encode($productData['gift_card_prices']) : null,
-            ':equipment_names' => !empty($productData['equipment_names']) ? json_encode($productData['equipment_names']) : null,
-            ':equipment_prices' => !empty($productData['equipment_prices']) ? json_encode($productData['equipment_prices']) : null,
-            ':installation_names' => !empty($productData['installation_names']) ? json_encode($productData['installation_names']) : null,
-            ':installation_prices' => !empty($productData['installation_prices']) ? json_encode($productData['installation_prices']) : null,
+            ':cash_payment_names' => json_encode($cashData['names'] ?? [], JSON_UNESCAPED_UNICODE),
+            ':cash_payment_prices' => json_encode($cashData['prices'] ?? [], JSON_UNESCAPED_UNICODE),
+            ':gift_card_names' => json_encode($giftCardData['names'] ?? [], JSON_UNESCAPED_UNICODE),
+            ':gift_card_prices' => json_encode($giftCardData['prices'] ?? [], JSON_UNESCAPED_UNICODE),
+            ':equipment_names' => json_encode($equipmentData['names'] ?? [], JSON_UNESCAPED_UNICODE),
+            ':equipment_prices' => json_encode($equipmentData['prices'] ?? [], JSON_UNESCAPED_UNICODE),
+            ':installation_names' => json_encode($installationData['names'] ?? [], JSON_UNESCAPED_UNICODE),
+            ':installation_prices' => json_encode($installationData['prices'] ?? [], JSON_UNESCAPED_UNICODE),
         ]);
         
         $pdo->commit();
@@ -692,15 +822,25 @@ function saveInternetProduct($productData) {
         if (isset($pdo)) {
             $pdo->rollBack();
         }
-        error_log("Error saving Internet product: " . $e->getMessage());
-        error_log("Stack trace: " . $e->getTraceAsString());
-        error_log("Product data: " . json_encode($productData));
+        $errorMsg = "Error saving Internet product: " . $e->getMessage();
+        $errorMsg .= "\nSQL State: " . $e->getCode();
+        $errorMsg .= "\nError Info: " . json_encode($pdo->errorInfo() ?? []);
+        $errorMsg .= "\nStack trace: " . $e->getTraceAsString();
+        error_log($errorMsg);
+        
+        global $lastDbError;
+        $lastDbError = "PDO 오류: " . $e->getMessage();
+        
         return false;
     } catch (Exception $e) {
         if (isset($pdo)) {
             $pdo->rollBack();
         }
         error_log("Unexpected error saving Internet product: " . $e->getMessage());
+        
+        global $lastDbError;
+        $lastDbError = "예외 발생: " . $e->getMessage();
+        
         return false;
     }
 }

@@ -37,18 +37,23 @@ if (!hasSellerPermission($currentUser['user_id'], 'internet')) {
 // 인터넷 상품 데이터 수집
 $productData = [
     'seller_id' => $currentUser['user_id'],
-    'registration_place' => $_POST['registration_place'] ?? '',
-    'speed_option' => $_POST['speed_option'] ?? '',
+    'product_id' => isset($_POST['product_id']) ? intval($_POST['product_id']) : 0,
+    'status' => isset($_POST['status']) ? $_POST['status'] : 'active',
+    'registration_place' => trim($_POST['registration_place'] ?? ''),
+    'speed_option' => trim($_POST['speed_option'] ?? ''),
     'monthly_fee' => floatval(str_replace(',', '', $_POST['monthly_fee'] ?? 0)),
-    'cash_payment_names' => $_POST['cash_payment_names'] ?? [],
-    'cash_payment_prices' => $_POST['cash_payment_prices'] ?? [],
-    'gift_card_names' => $_POST['gift_card_names'] ?? [],
-    'gift_card_prices' => $_POST['gift_card_prices'] ?? [],
-    'equipment_names' => $_POST['equipment_names'] ?? [],
-    'equipment_prices' => $_POST['equipment_prices'] ?? [],
-    'installation_names' => $_POST['installation_names'] ?? [],
-    'installation_prices' => $_POST['installation_prices'] ?? []
+    'cash_payment_names' => isset($_POST['cash_payment_names']) && is_array($_POST['cash_payment_names']) ? $_POST['cash_payment_names'] : [],
+    'cash_payment_prices' => isset($_POST['cash_payment_prices']) && is_array($_POST['cash_payment_prices']) ? $_POST['cash_payment_prices'] : [],
+    'gift_card_names' => isset($_POST['gift_card_names']) && is_array($_POST['gift_card_names']) ? $_POST['gift_card_names'] : [],
+    'gift_card_prices' => isset($_POST['gift_card_prices']) && is_array($_POST['gift_card_prices']) ? $_POST['gift_card_prices'] : [],
+    'equipment_names' => isset($_POST['equipment_names']) && is_array($_POST['equipment_names']) ? $_POST['equipment_names'] : [],
+    'equipment_prices' => isset($_POST['equipment_prices']) && is_array($_POST['equipment_prices']) ? $_POST['equipment_prices'] : [],
+    'installation_names' => isset($_POST['installation_names']) && is_array($_POST['installation_names']) ? $_POST['installation_names'] : [],
+    'installation_prices' => isset($_POST['installation_prices']) && is_array($_POST['installation_prices']) ? $_POST['installation_prices'] : []
 ];
+
+// 디버깅: installation 데이터 확인
+error_log("Installation data received - names: " . json_encode($productData['installation_names']) . ", prices: " . json_encode($productData['installation_prices']));
 
 // 필수 필드 검증
 if (empty($productData['registration_place'])) {
@@ -62,7 +67,7 @@ if (empty($productData['registration_place'])) {
 if (empty($productData['speed_option'])) {
     echo json_encode([
         'success' => false,
-        'message' => '가입속도를 선택해주세요.'
+        'message' => '인터넷속도를 선택해주세요.'
     ]);
     exit;
 }
@@ -72,24 +77,33 @@ try {
     $productId = saveInternetProduct($productData);
     
     if ($productId === false) {
+        global $lastDbError;
+        $errorMessage = '상품 등록에 실패했습니다.';
+        if (isset($lastDbError) && !empty($lastDbError)) {
+            error_log("DB Error: " . $lastDbError);
+            // 사용자에게는 간단한 메시지만 표시
+            $errorMessage = '상품 등록에 실패했습니다. 입력 정보를 확인해주세요.';
+        }
+        
         echo json_encode([
             'success' => false,
-            'message' => '상품 등록에 실패했습니다. 데이터베이스 연결을 확인해주세요.'
+            'message' => $errorMessage
         ]);
         exit;
     }
 } catch (Exception $e) {
     error_log("Product registration error: " . $e->getMessage());
+    error_log("Stack trace: " . $e->getTraceAsString());
     echo json_encode([
         'success' => false,
-        'message' => '상품 등록 중 오류가 발생했습니다: ' . $e->getMessage()
+        'message' => '상품 등록 중 오류가 발생했습니다. 다시 시도해주세요.'
     ]);
     exit;
 }
 
 echo json_encode([
     'success' => true, 
-    'message' => '인터넷 상품이 등록되었습니다.',
+    'message' => isset($productData['product_id']) && $productData['product_id'] > 0 ? '인터넷 상품이 수정되었습니다.' : '인터넷 상품이 등록되었습니다.',
     'product_id' => $productId
 ]);
 

@@ -5,6 +5,7 @@
  */
 
 require_once __DIR__ . '/../../includes/data/auth-functions.php';
+require_once __DIR__ . '/../../includes/data/db-config.php';
 
 // 세션 시작
 if (session_status() === PHP_SESSION_NONE) {
@@ -36,6 +37,66 @@ if (isset($currentUser['withdrawal_requested']) && $currentUser['withdrawal_requ
 $hasPermission = hasSellerPermission($currentUser['user_id'], 'internet');
 if (!$hasPermission) {
     $noPermission = true;
+}
+
+// 수정 모드: 상품 데이터 불러오기
+$productId = isset($_GET['id']) ? intval($_GET['id']) : 0;
+$productData = null;
+$isEditMode = false;
+
+if ($productId > 0) {
+    try {
+        $pdo = getDBConnection();
+        if ($pdo) {
+            $sellerId = (string)$currentUser['user_id'];
+            
+            // 기본 상품 정보 조회
+            $stmt = $pdo->prepare("
+                SELECT * FROM products 
+                WHERE id = :product_id AND seller_id = :seller_id AND product_type = 'internet' AND status != 'deleted'
+            ");
+            $stmt->execute([
+                ':product_id' => $productId,
+                ':seller_id' => $sellerId
+            ]);
+            $product = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($product) {
+                // Internet 상세 정보 조회
+                $detailStmt = $pdo->prepare("
+                    SELECT * FROM product_internet_details 
+                    WHERE product_id = :product_id
+                ");
+                $detailStmt->execute([':product_id' => $productId]);
+                $detailStmt->setFetchMode(PDO::FETCH_ASSOC);
+                $productDetail = $detailStmt->fetch();
+                
+                if ($productDetail) {
+                    $isEditMode = true;
+                    $productData = array_merge($product, $productDetail);
+                    
+                    // JSON 필드 디코딩
+                    $jsonFields = [
+                        'cash_payment_names', 'cash_payment_prices',
+                        'gift_card_names', 'gift_card_prices',
+                        'equipment_names', 'equipment_prices',
+                        'installation_names', 'installation_prices'
+                    ];
+                    
+                    foreach ($jsonFields as $field) {
+                        if (!empty($productData[$field])) {
+                            $decoded = json_decode($productData[$field], true);
+                            $productData[$field] = is_array($decoded) ? $decoded : [];
+                        } else {
+                            $productData[$field] = [];
+                        }
+                    }
+                }
+            }
+        }
+    } catch (PDOException $e) {
+        error_log("Error loading product: " . $e->getMessage());
+    }
 }
 
 // 페이지별 스타일
@@ -178,24 +239,6 @@ $pageStyles = '
         box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
     }
     
-    .form-textarea {
-        width: 100%;
-        padding: 12px 16px;
-        font-size: 15px;
-        border: 1px solid #d1d5db;
-        border-radius: 8px;
-        min-height: 120px;
-        resize: vertical;
-        font-family: inherit;
-        transition: all 0.2s;
-    }
-    
-    .form-textarea:focus {
-        outline: none;
-        border-color: #10b981;
-        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
-    }
-    
     .form-help {
         font-size: 13px;
         color: #6b7280;
@@ -229,25 +272,6 @@ $pageStyles = '
         display: flex;
         align-items: center;
         gap: 8px;
-    }
-    
-    .registration-logo {
-        width: 100px;
-        height: 40px;
-        object-fit: contain;
-        display: inline-block;
-    }
-    
-    .registration-logo-dlive {
-        object-fit: cover;
-        padding: 0;
-        margin: 0;
-        width: 120px;
-        height: 35px;
-    }
-    
-    .registration-logo-kt {
-        height: 24px;
     }
     
     .custom-select-wrapper {
@@ -557,46 +581,90 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <div class="product-register-container">
     <div class="page-header">
-        <h1>인터넷 상품 등록</h1>
-        <p>새로운 인터넷 상품을 등록하세요</p>
+        <h1><?php echo $isEditMode ? '인터넷 상품 수정' : '인터넷 상품 등록'; ?></h1>
+        <p><?php echo $isEditMode ? '인터넷 상품 정보를 수정하세요' : '새로운 인터넷 상품을 등록하세요'; ?></p>
     </div>
     
     <?php if (isset($_GET['success'])): ?>
         <div class="alert alert-success">
-            상품이 성공적으로 등록되었습니다.
+            상품이 성공적으로 <?php echo $isEditMode ? '수정' : '등록'; ?>되었습니다.
         </div>
     <?php endif; ?>
     
     <?php if (isset($_GET['error'])): ?>
         <div class="alert alert-error">
-            상품 등록 중 오류가 발생했습니다. 다시 시도해주세요.
+            상품 <?php echo $isEditMode ? '수정' : '등록'; ?> 중 오류가 발생했습니다. 다시 시도해주세요.
         </div>
     <?php endif; ?>
     
     <form id="productForm" class="product-form" method="POST" action="/MVNO/api/product-register-internet.php">
+        <?php if ($isEditMode): ?>
+            <input type="hidden" name="product_id" value="<?php echo htmlspecialchars($productId); ?>">
+        <?php endif; ?>
         
-        <!-- 인터넷가입처 / 가입속도 / 사용요금 한 줄 -->
+        <!-- 판매 상태 선택 (수정 모드일 때만 표시) -->
+        <?php if ($isEditMode): ?>
+        <div class="form-section">
+            <div class="form-section-title">판매 상태</div>
+            <div class="form-group">
+                <label class="form-label">상태 선택</label>
+                <div class="form-checkbox-group">
+                    <div class="form-checkbox">
+                        <input type="radio" name="status" id="status_active" value="active" <?php echo (!isset($productData['status']) || $productData['status'] === 'active') ? 'checked' : ''; ?>>
+                        <label for="status_active">판매중</label>
+                    </div>
+                    <div class="form-checkbox">
+                        <input type="radio" name="status" id="status_inactive" value="inactive" <?php echo (isset($productData['status']) && $productData['status'] === 'inactive') ? 'checked' : ''; ?>>
+                        <label for="status_inactive">판매종료</label>
+                    </div>
+                </div>
+                <div class="form-help">상품의 판매 상태를 선택하세요</div>
+            </div>
+        </div>
+        <?php endif; ?>
+        
+        <!-- 인터넷가입처 / 인터넷속도 / 사용요금 한 줄 -->
         <div class="form-section-row">
             <!-- 인터넷가입처 -->
             <div class="form-section-item">
                 <div class="form-section-title">인터넷가입처</div>
                 <div class="form-group">
-                    <label class="form-label" for="registration_place">가입처 업체</label>
                     <div class="custom-select-wrapper">
                         <select name="registration_place" id="registration_place" class="custom-select">
                             <option value="">선택하세요</option>
-                            <option value="KT">KT</option>
-                            <option value="SKT">SKT</option>
-                            <option value="LG U+">LG U+</option>
-                            <option value="KT skylife">KT skylife</option>
-                            <option value="LG헬로비전">LG헬로비전</option>
-                            <option value="BTV">BTV</option>
-                            <option value="DLIVE">DLIVE</option>
-                            <option value="기타">기타</option>
+                            <option value="KT" <?php echo (isset($productData['registration_place']) && $productData['registration_place'] === 'KT') ? 'selected' : ''; ?>>KT</option>
+                            <option value="SKT" <?php echo (isset($productData['registration_place']) && $productData['registration_place'] === 'SKT') ? 'selected' : ''; ?>>SKT</option>
+                            <option value="LG U+" <?php echo (isset($productData['registration_place']) && $productData['registration_place'] === 'LG U+') ? 'selected' : ''; ?>>LG U+</option>
+                            <option value="KT skylife" <?php echo (isset($productData['registration_place']) && $productData['registration_place'] === 'KT skylife') ? 'selected' : ''; ?>>KT skylife</option>
+                            <option value="LG헬로비전" <?php echo (isset($productData['registration_place']) && $productData['registration_place'] === 'LG헬로비전') ? 'selected' : ''; ?>>LG헬로비전</option>
+                            <option value="BTV" <?php echo (isset($productData['registration_place']) && $productData['registration_place'] === 'BTV') ? 'selected' : ''; ?>>BTV</option>
+                            <option value="DLIVE" <?php echo (isset($productData['registration_place']) && $productData['registration_place'] === 'DLIVE') ? 'selected' : ''; ?>>DLIVE</option>
+                            <option value="기타" <?php echo (isset($productData['registration_place']) && $productData['registration_place'] === '기타') ? 'selected' : ''; ?>>기타</option>
                         </select>
                         <div class="custom-select-trigger" id="custom-select-trigger">
                             <div class="selected-value">
-                                <span>선택하세요</span>
+                                <?php if (isset($productData['registration_place']) && !empty($productData['registration_place'])): ?>
+                                    <?php
+                                    $selectedPlace = $productData['registration_place'];
+                                    $logoPath = '';
+                                    switch($selectedPlace) {
+                                        case 'KT': $logoPath = '/MVNO/assets/images/internets/kt.svg'; break;
+                                        case 'SKT': $logoPath = '/MVNO/assets/images/internets/broadband.svg'; break;
+                                        case 'LG U+': $logoPath = '/MVNO/assets/images/internets/lgu.svg'; break;
+                                        case 'KT skylife': $logoPath = '/MVNO/assets/images/internets/ktskylife.svg'; break;
+                                        case 'LG헬로비전': $logoPath = '/MVNO/assets/images/internets/hellovision.svg'; break;
+                                        case 'BTV': $logoPath = '/MVNO/assets/images/internets/btv.svg'; break;
+                                        case 'DLIVE': $logoPath = '/MVNO/assets/images/internets/dlive.svg'; break;
+                                    }
+                                    ?>
+                                    <?php if ($logoPath): ?>
+                                        <img src="<?php echo htmlspecialchars($logoPath); ?>" alt="<?php echo htmlspecialchars($selectedPlace); ?>" style="max-width: 100px; max-height: 40px; object-fit: contain; <?php echo $selectedPlace === 'KT' ? 'height: 24px;' : ($selectedPlace === 'DLIVE' ? 'height: 35px; object-fit: cover;' : ''); ?>">
+                                    <?php else: ?>
+                                        <span><?php echo htmlspecialchars($selectedPlace); ?></span>
+                                    <?php endif; ?>
+                                <?php else: ?>
+                                    <span>선택하세요</span>
+                                <?php endif; ?>
                             </div>
                             <div class="arrow"></div>
                         </div>
@@ -634,18 +702,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             </div>
             
-            <!-- 가입속도 -->
+            <!-- 인터넷속도 -->
             <div class="form-section-item">
-                <div class="form-section-title">가입속도</div>
+                <div class="form-section-title">인터넷속도</div>
                 <div class="form-group">
-                    <label class="form-label" for="speed_option">속도 선택</label>
                     <select name="speed_option" id="speed_option" class="form-select">
                         <option value="">선택하세요</option>
-                        <option value="100M">100M</option>
-                        <option value="500M">500M</option>
-                        <option value="1G">1G</option>
+                        <option value="100M" <?php echo (isset($productData['speed_option']) && $productData['speed_option'] === '100M') ? 'selected' : ''; ?>>100M</option>
+                        <option value="500M" <?php echo (isset($productData['speed_option']) && $productData['speed_option'] === '500M') ? 'selected' : ''; ?>>500M</option>
+                        <option value="1G" <?php echo (isset($productData['speed_option']) && $productData['speed_option'] === '1G') ? 'selected' : ''; ?>>1G</option>
+                        <option value="2.5G" <?php echo (isset($productData['speed_option']) && $productData['speed_option'] === '2.5G') ? 'selected' : ''; ?>>2.5G</option>
+                        <option value="5G" <?php echo (isset($productData['speed_option']) && $productData['speed_option'] === '5G') ? 'selected' : ''; ?>>5G</option>
+                        <option value="10G" <?php echo (isset($productData['speed_option']) && $productData['speed_option'] === '10G') ? 'selected' : ''; ?>>10G</option>
                     </select>
-                    <div class="form-help">가입 속도를 선택하세요</div>
+                    <div class="form-help">인터넷 속도를 선택하세요</div>
                 </div>
             </div>
             
@@ -653,9 +723,8 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="form-section-item">
                 <div class="form-section-title">사용요금</div>
                 <div class="form-group">
-                    <label class="form-label" for="monthly_fee">월 요금제</label>
                     <div class="price-input-wrapper">
-                        <input type="text" name="monthly_fee" id="monthly_fee" class="form-control" placeholder="0" maxlength="10" data-suffix="원">
+                        <input type="text" name="monthly_fee" id="monthly_fee" class="form-control" placeholder="0" maxlength="10" data-suffix="원" value="<?php echo isset($productData['monthly_fee']) ? number_format($productData['monthly_fee']) : ''; ?>">
                         <span class="price-input-suffix">원</span>
                     </div>
                     <div class="form-help">월 요금제 금액을 입력하세요 (최대 10자)</div>
@@ -673,17 +742,28 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="form-group">
                 <label class="form-label">항목</label>
                 <div id="cash-payment-container">
+                    <?php 
+                    $cashNames = $productData['cash_payment_names'] ?? [];
+                    $cashPrices = $productData['cash_payment_prices'] ?? [];
+                    $cashCount = max(1, count($cashNames));
+                    for ($i = 0; $i < $cashCount; $i++): 
+                    ?>
                     <div class="gift-input-group">
                         <div class="item-icon-wrapper">
                             <img src="/MVNO/assets/images/icons/cash.svg" alt="현금" style="width: 20px; height: 20px; object-fit: contain;">
                         </div>
-                        <input type="text" name="cash_payment_names[]" class="form-control item-name-input" placeholder="현금" maxlength="30">
+                        <input type="text" name="cash_payment_names[]" class="form-control item-name-input" placeholder="현금" maxlength="30" value="<?php echo htmlspecialchars($cashNames[$i] ?? ''); ?>">
                         <div class="item-price-input-wrapper">
-                            <input type="text" name="cash_payment_prices[]" class="form-control" placeholder="50,000원">
+                            <input type="text" name="cash_payment_prices[]" class="form-control" placeholder="50,000원" value="<?php echo isset($cashPrices[$i]) && !empty($cashPrices[$i]) ? number_format($cashPrices[$i]) : ''; ?>">
                             <span class="item-price-suffix">원</span>
                         </div>
-                        <button type="button" class="btn-add" onclick="addCashPaymentField()" style="margin-top: 0;">추가</button>
+                        <?php if ($i === 0): ?>
+                            <button type="button" class="btn-add" onclick="addCashPaymentField()" style="margin-top: 0;">추가</button>
+                        <?php else: ?>
+                            <button type="button" class="btn-remove" onclick="removeField('cash', this)">삭제</button>
+                        <?php endif; ?>
                     </div>
+                    <?php endfor; ?>
                 </div>
             </div>
         </div>
@@ -698,17 +778,28 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="form-group">
                 <label class="form-label">항목</label>
                 <div id="gift-card-container">
+                    <?php 
+                    $giftNames = $productData['gift_card_names'] ?? [];
+                    $giftPrices = $productData['gift_card_prices'] ?? [];
+                    $giftCount = max(1, count($giftNames));
+                    for ($i = 0; $i < $giftCount; $i++): 
+                    ?>
                     <div class="gift-input-group">
                         <div class="item-icon-wrapper">
                             <img src="/MVNO/assets/images/icons/gift-card.svg" alt="상품권" style="width: 20px; height: 20px; object-fit: contain;">
                         </div>
-                        <input type="text" name="gift_card_names[]" class="form-control item-name-input" placeholder="상품권" maxlength="30">
+                        <input type="text" name="gift_card_names[]" class="form-control item-name-input" placeholder="상품권" maxlength="30" value="<?php echo htmlspecialchars($giftNames[$i] ?? ''); ?>">
                         <div class="item-price-input-wrapper">
-                            <input type="text" name="gift_card_prices[]" class="form-control" placeholder="170,000원">
+                            <input type="text" name="gift_card_prices[]" class="form-control" placeholder="170,000원" value="<?php echo isset($giftPrices[$i]) && !empty($giftPrices[$i]) ? number_format($giftPrices[$i]) : ''; ?>">
                             <span class="item-price-suffix">원</span>
                         </div>
-                        <button type="button" class="btn-add" onclick="addGiftCardField()" style="margin-top: 0;">추가</button>
+                        <?php if ($i === 0): ?>
+                            <button type="button" class="btn-add" onclick="addGiftCardField()" style="margin-top: 0;">추가</button>
+                        <?php else: ?>
+                            <button type="button" class="btn-remove" onclick="removeField('giftCard', this)">삭제</button>
+                        <?php endif; ?>
                     </div>
+                    <?php endfor; ?>
                 </div>
             </div>
         </div>
@@ -723,46 +814,68 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="form-group">
                 <label class="form-label">장비 제공</label>
                 <div id="equipment-container">
+                    <?php 
+                    $equipNames = $productData['equipment_names'] ?? [];
+                    $equipPrices = $productData['equipment_prices'] ?? [];
+                    $equipCount = max(1, count($equipNames));
+                    for ($i = 0; $i < $equipCount; $i++): 
+                    ?>
                     <div class="gift-input-group">
                         <div class="item-icon-wrapper">
                             <img src="/MVNO/assets/images/icons/equipment.svg" alt="장비" style="width: 20px; height: 20px; object-fit: contain;">
                         </div>
-                        <input type="text" name="equipment_names[]" class="form-control item-name-input" placeholder="와이파이 공유기" maxlength="30">
+                        <input type="text" name="equipment_names[]" class="form-control item-name-input" placeholder="와이파이 공유기" maxlength="30" value="<?php echo htmlspecialchars($equipNames[$i] ?? ''); ?>">
                         <div class="item-price-input-wrapper">
-                            <input type="text" name="equipment_prices[]" class="form-control" placeholder="무료(월1,100원 상당)">
+                            <input type="text" name="equipment_prices[]" class="form-control" placeholder="무료(월1,100원 상당)" value="<?php echo isset($equipPrices[$i]) && !empty($equipPrices[$i]) ? number_format($equipPrices[$i]) : ''; ?>">
                             <span class="item-price-suffix">원</span>
                         </div>
-                        <button type="button" class="btn-add" onclick="addEquipmentField()" style="margin-top: 0;">추가</button>
+                        <?php if ($i === 0): ?>
+                            <button type="button" class="btn-add" onclick="addEquipmentField()" style="margin-top: 0;">추가</button>
+                        <?php else: ?>
+                            <button type="button" class="btn-remove" onclick="removeField('equipment', this)">삭제</button>
+                        <?php endif; ?>
                     </div>
+                    <?php endfor; ?>
                 </div>
             </div>
             
             <div class="form-group">
                 <label class="form-label">설치 및 기타 서비스</label>
                 <div id="installation-container">
+                    <?php 
+                    $installNames = $productData['installation_names'] ?? [];
+                    $installPrices = $productData['installation_prices'] ?? [];
+                    $installCount = max(1, count($installNames));
+                    for ($i = 0; $i < $installCount; $i++): 
+                    ?>
                     <div class="gift-input-group">
                         <div class="item-icon-wrapper">
                             <img src="/MVNO/assets/images/icons/installation.svg" alt="설치" style="width: 20px; height: 20px; object-fit: contain;">
                         </div>
-                        <input type="text" name="installation_names[]" class="form-control item-name-input" placeholder="인터넷,TV설치비" maxlength="30">
+                        <input type="text" name="installation_names[]" class="form-control item-name-input" placeholder="인터넷,TV설치비" maxlength="30" value="<?php echo htmlspecialchars($installNames[$i] ?? ''); ?>">
                         <div class="item-price-input-wrapper">
-                            <input type="text" name="installation_prices[]" class="form-control" placeholder="무료(36,000원 상당)">
+                            <input type="text" name="installation_prices[]" class="form-control" placeholder="무료(36,000원 상당)" value="<?php echo isset($installPrices[$i]) && !empty($installPrices[$i]) ? number_format($installPrices[$i]) : ''; ?>">
                             <span class="item-price-suffix">원</span>
                         </div>
-                        <button type="button" class="btn-add" onclick="addInstallationField()" style="margin-top: 0;">추가</button>
+                        <?php if ($i === 0): ?>
+                            <button type="button" class="btn-add" onclick="addInstallationField()" style="margin-top: 0;">추가</button>
+                        <?php else: ?>
+                            <button type="button" class="btn-remove" onclick="removeField('installation', this)">삭제</button>
+                        <?php endif; ?>
                     </div>
+                    <?php endfor; ?>
                 </div>
             </div>
         </div>
         
         <!-- 제출 버튼 -->
         <div class="form-actions">
-            <a href="/MVNO/seller/products/list.php" class="btn btn-secondary">취소</a>
+            <a href="/MVNO/seller/products/internet-list.php" class="btn btn-secondary">취소</a>
             <button type="submit" class="btn btn-primary">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M5 13l4 4L19 7"/>
                 </svg>
-                등록하기
+                <?php echo $isEditMode ? '수정하기' : '등록하기'; ?>
             </button>
         </div>
     </form>
@@ -815,13 +928,11 @@ document.addEventListener('DOMContentLoaded', function() {
         options.forEach(option => {
             option.addEventListener('click', function() {
                 const value = this.getAttribute('data-value');
-                const hiddenSelect = customSelect;
                 
                 // hidden select 업데이트
-                hiddenSelect.value = value;
+                customSelect.value = value;
                 
                 // 트리거 업데이트
-                const selectedOption = this.cloneNode(true);
                 const selectedValueDiv = customTrigger.querySelector('.selected-value');
                 selectedValueDiv.innerHTML = '';
                 
@@ -856,8 +967,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 customOptions.classList.remove('open');
                 
                 // change 이벤트 트리거
-                const event = new Event('change', { bubbles: true });
-                hiddenSelect.dispatchEvent(event);
+                customSelect.dispatchEvent(new Event('change', { bubbles: true }));
             });
         });
         
@@ -868,129 +978,195 @@ document.addEventListener('DOMContentLoaded', function() {
                 customOptions.classList.remove('open');
             }
         });
+        
+        // 수정 모드일 때 초기값 설정
+        <?php if ($isEditMode && isset($productData['registration_place']) && !empty($productData['registration_place'])): ?>
+        const initialValue = '<?php echo htmlspecialchars($productData['registration_place'], ENT_QUOTES); ?>';
+        customSelect.value = initialValue;
+        const selectedOption = customOptions.querySelector('[data-value="' + initialValue + '"]');
+        if (selectedOption) {
+            const selectedValueDiv = customTrigger.querySelector('.selected-value');
+            selectedValueDiv.innerHTML = '';
+            
+            if (initialValue && registrationLogos[initialValue]) {
+                const img = document.createElement('img');
+                img.src = registrationLogos[initialValue];
+                img.alt = initialValue;
+                
+                if (initialValue === 'DLIVE') {
+                    img.style.height = '35px';
+                    img.style.objectFit = 'cover';
+                } else if (initialValue === 'KT') {
+                    img.style.height = '24px';
+                } else {
+                    img.style.height = '40px';
+                    img.style.objectFit = 'contain';
+                }
+                
+                selectedValueDiv.appendChild(img);
+            } else {
+                const span = document.createElement('span');
+                span.textContent = initialValue || '선택하세요';
+                selectedValueDiv.appendChild(span);
+            }
+            
+            options.forEach(opt => opt.classList.remove('selected'));
+            selectedOption.classList.add('selected');
+        }
+        <?php endif; ?>
     }
 });
 
-function addCashPaymentField() {
-    const container = document.getElementById('cash-payment-container');
+// 필드 추가/삭제 함수
+const fieldConfigs = {
+    cash: {
+        container: 'cash-payment-container',
+        icon: '/MVNO/assets/images/icons/cash.svg',
+        iconAlt: '현금',
+        nameField: 'cash_payment_names[]',
+        priceField: 'cash_payment_prices[]',
+        namePlaceholder: '현금',
+        pricePlaceholder: '50,000원'
+    },
+    giftCard: {
+        container: 'gift-card-container',
+        icon: '/MVNO/assets/images/icons/gift-card.svg',
+        iconAlt: '상품권',
+        nameField: 'gift_card_names[]',
+        priceField: 'gift_card_prices[]',
+        namePlaceholder: '상품권',
+        pricePlaceholder: '170,000원'
+    },
+    equipment: {
+        container: 'equipment-container',
+        icon: '/MVNO/assets/images/icons/equipment.svg',
+        iconAlt: '장비',
+        nameField: 'equipment_names[]',
+        priceField: 'equipment_prices[]',
+        namePlaceholder: '와이파이 공유기',
+        pricePlaceholder: '무료(월1,100원 상당)'
+    },
+    installation: {
+        container: 'installation-container',
+        icon: '/MVNO/assets/images/icons/installation.svg',
+        iconAlt: '설치',
+        nameField: 'installation_names[]',
+        priceField: 'installation_prices[]',
+        namePlaceholder: '인터넷,TV설치비',
+        pricePlaceholder: '무료(36,000원 상당)'
+    }
+};
+
+function addField(type) {
+    const config = fieldConfigs[type];
+    if (!config) return;
+    
+    const container = document.getElementById(config.container);
     const newField = document.createElement('div');
     newField.className = 'gift-input-group';
     newField.innerHTML = `
         <div class="item-icon-wrapper">
-            <img src="/MVNO/assets/images/icons/cash.svg" alt="현금" style="width: 20px; height: 20px; object-fit: contain;">
+            <img src="${config.icon}" alt="${config.iconAlt}" style="width: 20px; height: 20px; object-fit: contain;">
         </div>
-        <input type="text" name="cash_payment_names[]" class="form-control item-name-input" placeholder="현금" maxlength="30">
+        <input type="text" name="${config.nameField}" class="form-control item-name-input" placeholder="${config.namePlaceholder}" maxlength="30">
         <div class="item-price-input-wrapper">
-            <input type="text" name="cash_payment_prices[]" class="form-control" placeholder="50,000원">
+            <input type="text" name="${config.priceField}" class="form-control" placeholder="${config.pricePlaceholder}">
             <span class="item-price-suffix">원</span>
         </div>
-        <button type="button" class="btn-remove" onclick="removeCashPaymentField(this)">삭제</button>
+        <button type="button" class="btn-remove" onclick="removeField('${type}', this)">삭제</button>
     `;
     container.appendChild(newField);
 }
 
-function removeCashPaymentField(button) {
-    const container = document.getElementById('cash-payment-container');
+function removeField(type, button) {
+    const config = fieldConfigs[type];
+    if (!config) return;
+    
+    const container = document.getElementById(config.container);
     if (container.children.length > 1) {
         button.parentElement.remove();
     }
 }
 
-function addGiftCardField() {
-    const container = document.getElementById('gift-card-container');
-    const newField = document.createElement('div');
-    newField.className = 'gift-input-group';
-    newField.innerHTML = `
-        <div class="item-icon-wrapper">
-            <img src="/MVNO/assets/images/icons/gift-card.svg" alt="상품권" style="width: 20px; height: 20px; object-fit: contain;">
-        </div>
-        <input type="text" name="gift_card_names[]" class="form-control item-name-input" placeholder="상품권" maxlength="30">
-        <div class="item-price-input-wrapper">
-            <input type="text" name="gift_card_prices[]" class="form-control" placeholder="170,000원">
-            <span class="item-price-suffix">원</span>
-        </div>
-        <button type="button" class="btn-remove" onclick="removeGiftCardField(this)">삭제</button>
-    `;
-    container.appendChild(newField);
-}
-
-function removeGiftCardField(button) {
-    const container = document.getElementById('gift-card-container');
-    if (container.children.length > 1) {
-        button.parentElement.remove();
+// 월 요금제 필드 숫자만 입력되도록 설정
+document.addEventListener('DOMContentLoaded', function() {
+    const monthlyFeeInput = document.getElementById('monthly_fee');
+    if (monthlyFeeInput) {
+        // 입력 시 숫자만 허용
+        monthlyFeeInput.addEventListener('input', function() {
+            let value = this.value.replace(/[^0-9]/g, '');
+            this.value = value;
+        });
+        
+        // 포커스 시 쉼표 제거
+        monthlyFeeInput.addEventListener('focus', function() {
+            this.value = this.value.replace(/,/g, '');
+        });
+        
+        // 블러 시 천단위 구분자 추가
+        monthlyFeeInput.addEventListener('blur', function() {
+            if (this.value) {
+                const numValue = parseInt(this.value.replace(/,/g, ''));
+                if (!isNaN(numValue)) {
+                    this.value = numValue.toLocaleString('ko-KR');
+                }
+            }
+        });
     }
-}
+});
 
-function addEquipmentField() {
-    const container = document.getElementById('equipment-container');
-    const newField = document.createElement('div');
-    newField.className = 'gift-input-group';
-    newField.innerHTML = `
-        <div class="item-icon-wrapper">
-            <img src="/MVNO/assets/images/icons/equipment.svg" alt="장비" style="width: 20px; height: 20px; object-fit: contain;">
-        </div>
-        <input type="text" name="equipment_names[]" class="form-control item-name-input" placeholder="와이파이 공유기" maxlength="30">
-        <div class="item-price-input-wrapper">
-            <input type="text" name="equipment_prices[]" class="form-control" placeholder="무료(월1,100원 상당)">
-            <span class="item-price-suffix">원</span>
-        </div>
-        <button type="button" class="btn-remove" onclick="removeEquipmentField(this)">삭제</button>
-    `;
-    container.appendChild(newField);
-}
-
-function removeEquipmentField(button) {
-    const container = document.getElementById('equipment-container');
-    if (container.children.length > 1) {
-        button.parentElement.remove();
-    }
-}
-
-function addInstallationField() {
-    const container = document.getElementById('installation-container');
-    const newField = document.createElement('div');
-    newField.className = 'gift-input-group';
-    newField.innerHTML = `
-        <div class="item-icon-wrapper">
-            <img src="/MVNO/assets/images/icons/installation.svg" alt="설치" style="width: 20px; height: 20px; object-fit: contain;">
-        </div>
-        <input type="text" name="installation_names[]" class="form-control item-name-input" placeholder="인터넷,TV설치비" maxlength="30">
-        <div class="item-price-input-wrapper">
-            <input type="text" name="installation_prices[]" class="form-control" placeholder="무료(36,000원 상당)">
-            <span class="item-price-suffix">원</span>
-        </div>
-        <button type="button" class="btn-remove" onclick="removeInstallationField(this)">삭제</button>
-    `;
-    container.appendChild(newField);
-}
-
-function removeInstallationField(button) {
-    const container = document.getElementById('installation-container');
-    if (container.children.length > 1) {
-        button.parentElement.remove();
-    }
-}
+// 필드 추가 함수 (기존 호출 호환성 유지)
+function addCashPaymentField() { addField('cash'); }
+function addGiftCardField() { addField('giftCard'); }
+function addEquipmentField() { addField('equipment'); }
+function addInstallationField() { addField('installation'); }
 
 document.getElementById('productForm').addEventListener('submit', function(e) {
     e.preventDefault();
     
-    const formData = new FormData(this);
+    const isEditMode = <?php echo $isEditMode ? 'true' : 'false'; ?>;
+    
+    // 월 요금제 필드에서 쉼표 제거
+    const monthlyFeeInput = document.getElementById('monthly_fee');
+    if (monthlyFeeInput && monthlyFeeInput.value) {
+        monthlyFeeInput.value = monthlyFeeInput.value.replace(/,/g, '');
+    }
+    
+    // 가격 필드들에서 쉼표 제거 (현금지급, 상품권, 장비, 설치)
+    document.querySelectorAll('input[name*="_prices[]"]').forEach(input => {
+        if (input.value) {
+            input.value = input.value.replace(/,/g, '');
+        }
+    });
     
     fetch('/MVNO/api/product-register-internet.php', {
         method: 'POST',
-        body: formData
+        body: new FormData(this)
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            window.location.href = '/MVNO/seller/products/internet.php?success=1';
+            if (isEditMode) {
+                // 수정 모드: 성공 메시지와 함께 리스트 페이지로 이동
+                if (typeof showAlert === 'function') {
+                    showAlert('상품이 성공적으로 수정되었습니다.', '완료').then(() => {
+                        window.location.href = '/MVNO/seller/products/internet-list.php?success=1';
+                    });
+                } else {
+                    alert('상품이 성공적으로 수정되었습니다.');
+                    window.location.href = '/MVNO/seller/products/internet-list.php?success=1';
+                }
+            } else {
+                // 등록 모드: 리스트 페이지로 이동
+                window.location.href = '/MVNO/seller/products/internet-list.php?success=1';
+            }
         } else {
-            alert(data.message || '상품 등록에 실패했습니다.');
+            alert(data.message || (isEditMode ? '상품 수정에 실패했습니다.' : '상품 등록에 실패했습니다.'));
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('상품 등록 중 오류가 발생했습니다.');
+        alert(isEditMode ? '상품 수정 중 오류가 발생했습니다.' : '상품 등록 중 오류가 발생했습니다.');
     });
 });
 </script>
