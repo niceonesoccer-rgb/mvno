@@ -313,50 +313,155 @@ function saveMnoProduct($productData) {
         return false;
     }
     
+    // 테이블 존재 여부 확인 및 생성
+    try {
+        $checkTable = $pdo->query("SHOW TABLES LIKE 'product_mno_details'");
+        $tableExists = $checkTable->fetch();
+        
+        // 테이블이 존재하면 device_id 컬럼 확인 및 추가
+        if ($tableExists) {
+            $checkColumn = $pdo->query("SHOW COLUMNS FROM product_mno_details LIKE 'device_id'");
+            if (!$checkColumn->fetch()) {
+                // device_id 컬럼 추가
+                $pdo->exec("ALTER TABLE product_mno_details ADD COLUMN device_id INT(11) UNSIGNED DEFAULT NULL COMMENT '단말기 ID' AFTER product_id");
+                error_log("product_mno_details 테이블에 device_id 컬럼이 추가되었습니다.");
+            }
+        }
+        
+        if (!$tableExists) {
+            // product_mno_details 테이블 생성
+            $createTableSQL = "
+            CREATE TABLE IF NOT EXISTS `product_mno_details` (
+                `id` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+                `product_id` INT(11) UNSIGNED NOT NULL COMMENT '상품 ID',
+                `device_id` INT(11) UNSIGNED DEFAULT NULL COMMENT '단말기 ID',
+                `device_name` VARCHAR(100) NOT NULL COMMENT '단말기명',
+                `device_price` DECIMAL(12,2) DEFAULT NULL COMMENT '단말기 출고가',
+                `device_capacity` VARCHAR(20) DEFAULT NULL COMMENT '용량',
+                `device_colors` TEXT DEFAULT NULL COMMENT '단말기 색상 목록 (JSON)',
+                `common_provider` TEXT DEFAULT NULL COMMENT '공통지원할인 통신사 (JSON)',
+                `common_discount_new` TEXT DEFAULT NULL COMMENT '공통지원할인 신규가입 (JSON)',
+                `common_discount_port` TEXT DEFAULT NULL COMMENT '공통지원할인 번호이동 (JSON)',
+                `common_discount_change` TEXT DEFAULT NULL COMMENT '공통지원할인 기기변경 (JSON)',
+                `contract_provider` TEXT DEFAULT NULL COMMENT '선택약정할인 통신사 (JSON)',
+                `contract_discount_new` TEXT DEFAULT NULL COMMENT '선택약정할인 신규가입 (JSON)',
+                `contract_discount_port` TEXT DEFAULT NULL COMMENT '선택약정할인 번호이동 (JSON)',
+                `contract_discount_change` TEXT DEFAULT NULL COMMENT '선택약정할인 기기변경 (JSON)',
+                `service_type` VARCHAR(50) DEFAULT NULL COMMENT '서비스 타입',
+                `contract_period` VARCHAR(50) DEFAULT NULL COMMENT '약정기간',
+                `contract_period_value` VARCHAR(20) DEFAULT NULL COMMENT '약정기간 값',
+                `price_main` DECIMAL(10,2) DEFAULT NULL COMMENT '기본 요금',
+                `data_amount` VARCHAR(50) DEFAULT NULL COMMENT '데이터량',
+                `data_amount_value` VARCHAR(20) DEFAULT NULL COMMENT '데이터량 값',
+                `data_unit` VARCHAR(10) DEFAULT NULL COMMENT '데이터 단위',
+                `data_exhausted` VARCHAR(50) DEFAULT NULL COMMENT '데이터 소진 시',
+                `data_exhausted_value` VARCHAR(50) DEFAULT NULL COMMENT '데이터 소진 시 값',
+                `call_type` VARCHAR(50) DEFAULT NULL COMMENT '통화 타입',
+                `call_amount` VARCHAR(20) DEFAULT NULL COMMENT '통화량',
+                `additional_call_type` VARCHAR(50) DEFAULT NULL COMMENT '추가 통화 타입',
+                `additional_call` VARCHAR(20) DEFAULT NULL COMMENT '추가 통화량',
+                `sms_type` VARCHAR(50) DEFAULT NULL COMMENT 'SMS 타입',
+                `sms_amount` VARCHAR(20) DEFAULT NULL COMMENT 'SMS량',
+                `mobile_hotspot` VARCHAR(50) DEFAULT NULL COMMENT '모바일 핫스팟',
+                `mobile_hotspot_value` VARCHAR(20) DEFAULT NULL COMMENT '모바일 핫스팟 값',
+                `regular_sim_available` VARCHAR(10) DEFAULT NULL COMMENT '일반 SIM 가능 여부',
+                `regular_sim_price` VARCHAR(20) DEFAULT NULL COMMENT '일반 SIM 가격',
+                `nfc_sim_available` VARCHAR(10) DEFAULT NULL COMMENT 'NFC SIM 가능 여부',
+                `nfc_sim_price` VARCHAR(20) DEFAULT NULL COMMENT 'NFC SIM 가격',
+                `esim_available` VARCHAR(10) DEFAULT NULL COMMENT 'eSIM 가능 여부',
+                `esim_price` VARCHAR(20) DEFAULT NULL COMMENT 'eSIM 가격',
+                `over_data_price` VARCHAR(20) DEFAULT NULL COMMENT '데이터 초과 시 가격',
+                `over_voice_price` VARCHAR(20) DEFAULT NULL COMMENT '음성 초과 시 가격',
+                `over_video_price` VARCHAR(20) DEFAULT NULL COMMENT '영상통화 초과 시 가격',
+                `over_sms_price` VARCHAR(20) DEFAULT NULL COMMENT 'SMS 초과 시 가격',
+                `over_lms_price` VARCHAR(20) DEFAULT NULL COMMENT 'LMS 초과 시 가격',
+                `over_mms_price` VARCHAR(20) DEFAULT NULL COMMENT 'MMS 초과 시 가격',
+                `promotion_title` VARCHAR(200) DEFAULT NULL COMMENT '프로모션 제목',
+                `promotions` TEXT DEFAULT NULL COMMENT '프로모션 목록 (JSON)',
+                `benefits` TEXT DEFAULT NULL COMMENT '혜택 목록 (JSON)',
+                `delivery_method` VARCHAR(20) DEFAULT 'delivery' COMMENT '배송 방법',
+                `visit_region` VARCHAR(50) DEFAULT NULL COMMENT '방문 지역',
+                `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                PRIMARY KEY (`id`),
+                UNIQUE KEY `uk_product_id` (`product_id`),
+                KEY `idx_device_name` (`device_name`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='MNO 상품 상세 정보';
+            ";
+            $pdo->exec($createTableSQL);
+            error_log("product_mno_details 테이블이 자동으로 생성되었습니다.");
+        }
+        
+        // products 테이블도 확인
+        $checkProducts = $pdo->query("SHOW TABLES LIKE 'products'");
+        if (!$checkProducts->fetch()) {
+            $createProductsSQL = "
+            CREATE TABLE IF NOT EXISTS `products` (
+                `id` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+                `seller_id` INT(11) UNSIGNED NOT NULL COMMENT '판매자 ID',
+                `product_type` ENUM('mvno', 'mno', 'internet') NOT NULL COMMENT '상품 타입',
+                `status` ENUM('active', 'inactive', 'deleted') NOT NULL DEFAULT 'active' COMMENT '상품 상태',
+                `view_count` INT(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT '조회수',
+                `favorite_count` INT(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT '찜 수',
+                `review_count` INT(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT '리뷰 수',
+                `share_count` INT(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT '공유 수',
+                `application_count` INT(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT '신청 수',
+                `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '생성일시',
+                `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정일시',
+                PRIMARY KEY (`id`),
+                KEY `idx_seller_id` (`seller_id`),
+                KEY `idx_product_type` (`product_type`),
+                KEY `idx_status` (`status`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='상품 기본 정보';
+            ";
+            $pdo->exec($createProductsSQL);
+            error_log("products 테이블이 자동으로 생성되었습니다.");
+        }
+    } catch (PDOException $e) {
+        error_log("테이블 생성 중 오류: " . $e->getMessage());
+        // 테이블 생성 실패해도 계속 진행 (외래키 제약조건이 있을 수 있음)
+    }
+    
     try {
         $pdo->beginTransaction();
         
-        // 1. 기본 상품 정보 저장
-        $stmt = $pdo->prepare("
-            INSERT INTO products (seller_id, product_type, status, view_count)
-            VALUES (:seller_id, 'mno', 'active', 0)
-        ");
-        $stmt->execute([
-            ':seller_id' => $productData['seller_id']
-        ]);
-        $productId = $pdo->lastInsertId();
+        $isEditMode = isset($productData['product_id']) && $productData['product_id'] > 0;
         
-        // 2. MNO 상세 정보 저장
-        $stmt = $pdo->prepare("
-            INSERT INTO product_mno_details (
-                product_id, device_name, device_price, device_capacity, device_colors,
-                common_provider, common_discount_new, common_discount_port, common_discount_change,
-                contract_provider, contract_discount_new, contract_discount_port, contract_discount_change,
-                service_type, contract_period, contract_period_value, price_main,
-                data_amount, data_amount_value, data_unit, data_exhausted, data_exhausted_value,
-                call_type, call_amount, additional_call_type, additional_call,
-                sms_type, sms_amount, mobile_hotspot, mobile_hotspot_value,
-                regular_sim_available, regular_sim_price, nfc_sim_available, nfc_sim_price,
-                esim_available, esim_price, over_data_price, over_voice_price,
-                over_video_price, over_sms_price, over_lms_price, over_mms_price,
-                promotion_title, promotions, benefits, delivery_method, visit_region
-            ) VALUES (
-                :product_id, :device_name, :device_price, :device_capacity, :device_colors,
-                :common_provider, :common_discount_new, :common_discount_port, :common_discount_change,
-                :contract_provider, :contract_discount_new, :contract_discount_port, :contract_discount_change,
-                :service_type, :contract_period, :contract_period_value, :price_main,
-                :data_amount, :data_amount_value, :data_unit, :data_exhausted, :data_exhausted_value,
-                :call_type, :call_amount, :additional_call_type, :additional_call,
-                :sms_type, :sms_amount, :mobile_hotspot, :mobile_hotspot_value,
-                :regular_sim_available, :regular_sim_price, :nfc_sim_available, :nfc_sim_price,
-                :esim_available, :esim_price, :over_data_price, :over_voice_price,
-                :over_video_price, :over_sms_price, :over_lms_price, :over_mms_price,
-                :promotion_title, :promotions, :benefits, :delivery_method, :visit_region
-            )
-        ");
+        if ($isEditMode) {
+            // 수정 모드: 기존 상품 업데이트
+            $productId = $productData['product_id'];
+            
+            // 상품 소유권 확인
+            $checkStmt = $pdo->prepare("SELECT id FROM products WHERE id = ? AND seller_id = ? AND product_type = 'mno'");
+            $checkStmt->execute([$productId, $productData['seller_id']]);
+            if (!$checkStmt->fetch()) {
+                throw new Exception("상품을 찾을 수 없거나 수정 권한이 없습니다.");
+            }
+            
+            // 상태 업데이트 (제공된 경우)
+            if (isset($productData['status']) && in_array($productData['status'], ['active', 'inactive'])) {
+                $statusStmt = $pdo->prepare("UPDATE products SET status = ? WHERE id = ?");
+                $statusStmt->execute([$productData['status'], $productId]);
+            }
+        } else {
+            // 1. 기본 상품 정보 저장
+            $status = isset($productData['status']) && in_array($productData['status'], ['active', 'inactive']) ? $productData['status'] : 'active';
+            $stmt = $pdo->prepare("
+                INSERT INTO products (seller_id, product_type, status, view_count)
+                VALUES (:seller_id, 'mno', :status, 0)
+            ");
+            $stmt->execute([
+                ':seller_id' => $productData['seller_id'],
+                ':status' => $status
+            ]);
+            $productId = $pdo->lastInsertId();
+        }
         
-        $stmt->execute([
+        // 2. MNO 상세 정보 저장/업데이트
+        // 공통 파라미터 배열 생성
+        $executeParams = [
             ':product_id' => $productId,
+            ':device_id' => $productData['device_id'] ?? null,
             ':device_name' => $productData['device_name'] ?? '',
             ':device_price' => isset($productData['device_price']) && $productData['device_price'] !== '' ? floatval($productData['device_price']) : null,
             ':device_capacity' => $productData['device_capacity'] ?? null,
@@ -403,7 +508,93 @@ function saveMnoProduct($productData) {
             ':benefits' => !empty($productData['benefits']) ? json_encode($productData['benefits']) : null,
             ':delivery_method' => $productData['delivery_method'] ?? 'delivery',
             ':visit_region' => $productData['visit_region'] ?? null,
-        ]);
+        ];
+        
+        if ($isEditMode) {
+            // 업데이트
+            $stmt = $pdo->prepare("
+                UPDATE product_mno_details SET
+                    device_id = :device_id,
+                    device_name = :device_name,
+                    device_price = :device_price,
+                    device_capacity = :device_capacity,
+                    device_colors = :device_colors,
+                    common_provider = :common_provider,
+                    common_discount_new = :common_discount_new,
+                    common_discount_port = :common_discount_port,
+                    common_discount_change = :common_discount_change,
+                    contract_provider = :contract_provider,
+                    contract_discount_new = :contract_discount_new,
+                    contract_discount_port = :contract_discount_port,
+                    contract_discount_change = :contract_discount_change,
+                    service_type = :service_type,
+                    contract_period = :contract_period,
+                    contract_period_value = :contract_period_value,
+                    price_main = :price_main,
+                    data_amount = :data_amount,
+                    data_amount_value = :data_amount_value,
+                    data_unit = :data_unit,
+                    data_exhausted = :data_exhausted,
+                    data_exhausted_value = :data_exhausted_value,
+                    call_type = :call_type,
+                    call_amount = :call_amount,
+                    additional_call_type = :additional_call_type,
+                    additional_call = :additional_call,
+                    sms_type = :sms_type,
+                    sms_amount = :sms_amount,
+                    mobile_hotspot = :mobile_hotspot,
+                    mobile_hotspot_value = :mobile_hotspot_value,
+                    regular_sim_available = :regular_sim_available,
+                    regular_sim_price = :regular_sim_price,
+                    nfc_sim_available = :nfc_sim_available,
+                    nfc_sim_price = :nfc_sim_price,
+                    esim_available = :esim_available,
+                    esim_price = :esim_price,
+                    over_data_price = :over_data_price,
+                    over_voice_price = :over_voice_price,
+                    over_video_price = :over_video_price,
+                    over_sms_price = :over_sms_price,
+                    over_lms_price = :over_lms_price,
+                    over_mms_price = :over_mms_price,
+                    promotion_title = :promotion_title,
+                    promotions = :promotions,
+                    benefits = :benefits,
+                    delivery_method = :delivery_method,
+                    visit_region = :visit_region
+                WHERE product_id = :product_id
+            ");
+            $stmt->execute($executeParams);
+        } else {
+            // 신규 등록
+            $stmt = $pdo->prepare("
+                INSERT INTO product_mno_details (
+                product_id, device_id, device_name, device_price, device_capacity, device_colors,
+                common_provider, common_discount_new, common_discount_port, common_discount_change,
+                contract_provider, contract_discount_new, contract_discount_port, contract_discount_change,
+                service_type, contract_period, contract_period_value, price_main,
+                data_amount, data_amount_value, data_unit, data_exhausted, data_exhausted_value,
+                call_type, call_amount, additional_call_type, additional_call,
+                sms_type, sms_amount, mobile_hotspot, mobile_hotspot_value,
+                regular_sim_available, regular_sim_price, nfc_sim_available, nfc_sim_price,
+                esim_available, esim_price, over_data_price, over_voice_price,
+                over_video_price, over_sms_price, over_lms_price, over_mms_price,
+                promotion_title, promotions, benefits, delivery_method, visit_region
+            ) VALUES (
+                :product_id, :device_id, :device_name, :device_price, :device_capacity, :device_colors,
+                :common_provider, :common_discount_new, :common_discount_port, :common_discount_change,
+                :contract_provider, :contract_discount_new, :contract_discount_port, :contract_discount_change,
+                :service_type, :contract_period, :contract_period_value, :price_main,
+                :data_amount, :data_amount_value, :data_unit, :data_exhausted, :data_exhausted_value,
+                :call_type, :call_amount, :additional_call_type, :additional_call,
+                :sms_type, :sms_amount, :mobile_hotspot, :mobile_hotspot_value,
+                :regular_sim_available, :regular_sim_price, :nfc_sim_available, :nfc_sim_price,
+                :esim_available, :esim_price, :over_data_price, :over_voice_price,
+                :over_video_price, :over_sms_price, :over_lms_price, :over_mms_price,
+                :promotion_title, :promotions, :benefits, :delivery_method, :visit_region
+            )
+        ");
+            $stmt->execute($executeParams);
+        }
         
         $pdo->commit();
         return $productId;
@@ -411,15 +602,30 @@ function saveMnoProduct($productData) {
         if (isset($pdo)) {
             $pdo->rollBack();
         }
-        error_log("Error saving MNO product: " . $e->getMessage());
-        error_log("Stack trace: " . $e->getTraceAsString());
-        error_log("Product data: " . json_encode($productData));
+        $errorMsg = "Error saving MNO product: " . $e->getMessage();
+        $errorMsg .= "\nSQL State: " . $e->getCode();
+        $errorMsg .= "\nError Info: " . json_encode($pdo->errorInfo() ?? []);
+        $errorMsg .= "\nStack trace: " . $e->getTraceAsString();
+        $errorMsg .= "\nProduct data: " . json_encode($productData);
+        
+        error_log($errorMsg);
+        
+        // 전역 변수에 에러 정보 저장
+        global $lastDbError;
+        $lastDbError = "PDO 오류: " . $e->getMessage() . " (SQL State: " . $e->getCode() . ")";
+        
         return false;
     } catch (Exception $e) {
         if (isset($pdo)) {
             $pdo->rollBack();
         }
-        error_log("Unexpected error saving MNO product: " . $e->getMessage());
+        $errorMsg = "Unexpected error saving MNO product: " . $e->getMessage();
+        $errorMsg .= "\nStack trace: " . $e->getTraceAsString();
+        error_log($errorMsg);
+        
+        global $lastDbError;
+        $lastDbError = "예외 발생: " . $e->getMessage();
+        
         return false;
     }
 }

@@ -273,7 +273,12 @@ try {
             throw new Exception('잘못된 요청입니다.');
     }
 } catch (Exception $e) {
-    header('Location: /MVNO/admin/settings/device-settings.php?error=' . urlencode($e->getMessage()));
+    $tab = $_GET['tab'] ?? $_POST['tab'] ?? '';
+    $redirectUrl = '/MVNO/admin/settings/device-settings.php?error=' . urlencode($e->getMessage());
+    if ($tab) {
+        $redirectUrl .= '&tab=' . urlencode($tab);
+    }
+    header('Location: ' . $redirectUrl);
     exit;
 }
 

@@ -488,13 +488,14 @@ function editProduct(productId) {
 }
 
 function copyProduct(productId) {
+    const message = '이 상품을 복사하시겠습니까?\n\n※ 복사된 상품은 판매종료 상태로 설정됩니다.';
     if (typeof showConfirm === 'function') {
-        showConfirm('이 상품을 복사하시겠습니까?', '상품 복사').then(confirmed => {
+        showConfirm(message, '상품 복사').then(confirmed => {
             if (confirmed) {
                 processCopyProduct(productId);
             }
         });
-    } else if (confirm('이 상품을 복사하시겠습니까?')) {
+    } else if (confirm(message)) {
         processCopyProduct(productId);
     }
 }
@@ -514,9 +515,9 @@ function processCopyProduct(productId) {
     .then(data => {
         if (data.success) {
             if (typeof showAlert === 'function') {
-                showAlert('상품이 복사되었습니다.', '완료');
+                showAlert('상품이 복사되었습니다.\n복사된 상품은 판매종료 상태로 설정되었습니다.', '완료');
             } else {
-                alert('상품이 복사되었습니다.');
+                alert('상품이 복사되었습니다.\n복사된 상품은 판매종료 상태로 설정되었습니다.');
             }
             location.reload();
         } else {

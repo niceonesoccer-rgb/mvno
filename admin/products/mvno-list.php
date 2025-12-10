@@ -1,38 +1,12 @@
 <?php
 /**
- * 알뜰폰 상품 목록 페이지
- * 경로: /seller/products/mvno-list.php
+ * 알뜰폰 상품 목록 페이지 (관리자)
+ * 경로: /admin/products/mvno-list.php
  */
 
-require_once __DIR__ . '/../../includes/data/auth-functions.php';
+require_once __DIR__ . '/../includes/admin-header.php';
 require_once __DIR__ . '/../../includes/data/db-config.php';
 require_once __DIR__ . '/../../includes/data/product-functions.php';
-
-// 세션 시작
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-$currentUser = getCurrentUser();
-
-// 판매자 로그인 체크
-if (!$currentUser || $currentUser['role'] !== 'seller') {
-    header('Location: /MVNO/seller/login.php');
-    exit;
-}
-
-// 판매자 승인 체크
-$approvalStatus = $currentUser['approval_status'] ?? 'pending';
-if ($approvalStatus !== 'approved') {
-    header('Location: /MVNO/seller/waiting.php');
-    exit;
-}
-
-// 탈퇴 요청 상태 확인
-if (isset($currentUser['withdrawal_requested']) && $currentUser['withdrawal_requested'] === true) {
-    header('Location: /MVNO/seller/waiting.php');
-    exit;
-}
 
 // 검색 필터
 $status = $_GET['status'] ?? '';
@@ -50,11 +24,12 @@ $price_after_max = $_GET['price_after_max'] ?? '';
 $service_type = $_GET['service_type'] ?? '';
 $date_from = $_GET['date_from'] ?? '';
 $date_to = $_GET['date_to'] ?? '';
+$seller_id = $_GET['seller_id'] ?? '';
 $page = max(1, intval($_GET['page'] ?? 1));
-$perPage = intval($_GET['per_page'] ?? 10);
-// 허용된 per_page 값만 사용 (10, 20, 50, 100)
-if (!in_array($perPage, [10, 20, 50, 100])) {
-    $perPage = 10;
+$perPage = intval($_GET['per_page'] ?? 20);
+// 허용된 per_page 값만 사용 (10, 50, 100)
+if (!in_array($perPage, [10, 50, 100])) {
+    $perPage = 20;
 }
 
 // DB에서 알뜰폰 상품 목록 가져오기
@@ -66,9 +41,8 @@ try {
     $pdo = getDBConnection();
     if ($pdo) {
         // WHERE 조건 구성
-        $sellerId = (string)$currentUser['user_id'];
-        $whereConditions = ['p.seller_id = :seller_id', "p.product_type = 'mvno'"];
-        $params = [':seller_id' => $sellerId];
+        $whereConditions = ["p.product_type = 'mvno'"];
+        $params = [];
         
         // 상태 필터
         if ($status && $status !== '') {
@@ -76,6 +50,12 @@ try {
             $params[':status'] = $status;
         } else {
             $whereConditions[] = "p.status != 'deleted'";
+        }
+        
+        // 판매자 필터
+        if ($seller_id && $seller_id !== '') {
+            $whereConditions[] = 'p.seller_id = :seller_id';
+            $params[':seller_id'] = $seller_id;
         }
         
         // 통신사 필터
@@ -182,9 +162,12 @@ try {
                 p.*,
                 mvno.plan_name AS product_name,
                 mvno.provider,
-                mvno.price_after AS monthly_fee
+                mvno.price_after AS monthly_fee,
+                u.name AS seller_name,
+                u.user_id AS seller_user_id
             FROM products p
             LEFT JOIN product_mvno_details mvno ON p.id = mvno.product_id
+            LEFT JOIN users u ON p.seller_id = u.user_id
             WHERE {$whereClause}
             ORDER BY p.created_at DESC
             LIMIT :limit OFFSET :offset
@@ -203,10 +186,28 @@ try {
     error_log("Error fetching MVNO products: " . $e->getMessage());
 }
 
-// 페이지별 스타일
-$pageStyles = '
+// 판매자 목록 가져오기 (필터용)
+$sellers = [];
+try {
+    if ($pdo) {
+        $sellerStmt = $pdo->prepare("
+            SELECT DISTINCT u.user_id, u.name, u.company_name
+            FROM products p
+            LEFT JOIN users u ON p.seller_id = u.user_id
+            WHERE p.product_type = 'mvno' AND p.status != 'deleted'
+            ORDER BY u.name
+        ");
+        $sellerStmt->execute();
+        $sellers = $sellerStmt->fetchAll();
+    }
+} catch (PDOException $e) {
+    error_log("Error fetching sellers: " . $e->getMessage());
+}
+?>
+
+<style>
     .product-list-container {
-        max-width: 1200px;
+        max-width: 1400px;
         margin: 0 auto;
     }
     
@@ -292,6 +293,7 @@ $pageStyles = '
         font-size: 14px;
         font-weight: 600;
         color: #374151;
+        min-width: 80px;
     }
     
     .filter-select {
@@ -433,15 +435,6 @@ $pageStyles = '
         background: #2563eb;
     }
     
-    .btn-copy {
-        background: #10b981;
-        color: white;
-    }
-    
-    .btn-copy:hover {
-        background: #059669;
-    }
-    
     .btn-delete {
         background: #ef4444;
         color: white;
@@ -482,7 +475,6 @@ $pageStyles = '
         gap: 8px;
         margin-top: 24px;
         padding: 20px;
-        background: transparent;
     }
     
     .pagination-btn {
@@ -495,12 +487,6 @@ $pageStyles = '
         cursor: pointer;
         text-decoration: none;
         transition: all 0.2s;
-        white-space: nowrap;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        line-height: 1;
-        min-width: 40px;
     }
     
     .pagination-btn:hover {
@@ -529,12 +515,16 @@ $pageStyles = '
             padding: 12px 8px;
         }
     }
-';
-
-include __DIR__ . '/../includes/seller-header.php';
-?>
+</style>
 
 <div class="product-list-container">
+    <div class="page-header">
+        <div>
+            <h1>알뜰폰 상품 관리</h1>
+            <p>전체 알뜰폰 상품을 관리할 수 있습니다.</p>
+        </div>
+    </div>
+    
     <!-- 필터 바 -->
     <div class="filter-bar">
         <div class="filter-content">
@@ -545,6 +535,18 @@ include __DIR__ . '/../includes/seller-header.php';
                         <option value="">전체</option>
                         <option value="active" <?php echo $status === 'active' ? 'selected' : ''; ?>>판매중</option>
                         <option value="inactive" <?php echo $status === 'inactive' ? 'selected' : ''; ?>>판매종료</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label class="filter-label">판매자:</label>
+                    <select class="filter-select" id="filter_seller_id">
+                        <option value="">전체</option>
+                        <?php foreach ($sellers as $seller): ?>
+                            <option value="<?php echo htmlspecialchars($seller['user_id']); ?>" <?php echo $seller_id === $seller['user_id'] ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($seller['company_name'] ? $seller['company_name'] : ($seller['name'] ?? $seller['user_id'])); ?>
+                            </option>
+                        <?php endforeach; ?>
                     </select>
                 </div>
                 
@@ -562,7 +564,9 @@ include __DIR__ . '/../includes/seller-header.php';
                     <label class="filter-label">요금제명:</label>
                     <input type="text" class="filter-input" id="filter_plan_name" placeholder="요금제명 검색" value="<?php echo htmlspecialchars($plan_name); ?>" style="width: 200px;">
                 </div>
-                
+            </div>
+            
+            <div class="filter-row">
                 <div class="filter-group" style="display: flex; align-items: center; gap: 8px;">
                     <div>
                         <label class="filter-label">약정기간:</label>
@@ -579,9 +583,7 @@ include __DIR__ . '/../includes/seller-header.php';
                         <span style="color: #6b7280; font-size: 12px;">일</span>
                     </div>
                 </div>
-            </div>
-            
-            <div class="filter-row">
+                
                 <div class="filter-group">
                     <label class="filter-label">데이터속도:</label>
                     <select class="filter-select" id="filter_service_type">
@@ -649,24 +651,16 @@ include __DIR__ . '/../includes/seller-header.php';
                     <path d="M16 10a4 4 0 0 1-8 0"/>
                 </svg>
                 <div class="empty-state-title">등록된 상품이 없습니다</div>
-                <div class="empty-state-text">새로운 알뜰폰 상품을 등록해보세요</div>
-                <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
-                    <a href="/MVNO/seller/products/mvno.php" class="btn btn-primary">알뜰폰 등록</a>
-                </div>
+                <div class="empty-state-text">검색 조건을 변경해보세요</div>
             </div>
         <?php else: ?>
             <table class="product-table">
                 <thead>
                     <tr>
-                        <th style="width: 60px;">
-                            <div style="display: flex; flex-direction: column; gap: 8px; align-items: center;">
-                                <button class="btn btn-sm" onclick="bulkInactive()" style="background: #ef4444; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; width: 60px; white-space: nowrap;">판매종료</button>
-                                <input type="checkbox" id="selectAll" onchange="toggleSelectAll()" style="cursor: pointer;">
-                            </div>
-                        </th>
                         <th style="text-align: center;">번호</th>
                         <th style="text-align: center;">요금제명</th>
                         <th>통신사</th>
+                        <th>판매자</th>
                         <th style="text-align: right;">할인 후 요금</th>
                         <th style="text-align: right;">조회수</th>
                         <th style="text-align: right;">찜</th>
@@ -680,12 +674,19 @@ include __DIR__ . '/../includes/seller-header.php';
                 <tbody>
                     <?php foreach ($products as $index => $product): ?>
                         <tr>
-                            <td style="text-align: center;">
-                                <input type="checkbox" class="product-checkbox" value="<?php echo $product['id']; ?>" style="cursor: pointer;">
-                            </td>
                             <td style="text-align: center;"><?php echo $totalProducts - (($page - 1) * $perPage + $index); ?></td>
                             <td style="text-align: left;"><?php echo htmlspecialchars($product['product_name'] ?? '-'); ?></td>
                             <td><?php echo htmlspecialchars($product['provider'] ?? '-'); ?></td>
+                            <td>
+                                <?php 
+                                $sellerDisplay = $product['seller_name'] ?? $product['seller_user_id'] ?? '-';
+                                if ($product['seller_user_id']) {
+                                    echo '<a href="/MVNO/admin/users/member-detail.php?user_id=' . urlencode($product['seller_user_id']) . '" style="color: #3b82f6; text-decoration: none;">' . htmlspecialchars($sellerDisplay) . '</a>';
+                                } else {
+                                    echo htmlspecialchars($sellerDisplay);
+                                }
+                                ?>
+                            </td>
                             <td style="text-align: right;">
                                 <?php 
                                 $monthlyFee = $product['monthly_fee'] ?? 0;
@@ -708,8 +709,7 @@ include __DIR__ . '/../includes/seller-header.php';
                             <td style="text-align: center;"><?php echo isset($product['created_at']) ? date('Y-m-d', strtotime($product['created_at'])) : '-'; ?></td>
                             <td style="text-align: center;">
                                 <div class="action-buttons">
-                                    <button class="btn btn-sm btn-edit" onclick="editProduct(<?php echo $product['id']; ?>)">수정</button>
-                                    <button class="btn btn-sm btn-copy" onclick="copyProduct(<?php echo $product['id']; ?>)">복사</button>
+                                    <a href="/MVNO/mvno/mvno-plan-detail.php?id=<?php echo $product['id']; ?>" target="_blank" class="btn btn-sm btn-edit">보기</a>
                                 </div>
                             </td>
                         </tr>
@@ -723,6 +723,7 @@ include __DIR__ . '/../includes/seller-header.php';
                     <?php
                     $queryParams = [];
                     if ($status) $queryParams['status'] = $status;
+                    if ($seller_id) $queryParams['seller_id'] = $seller_id;
                     if ($provider) $queryParams['provider'] = $provider;
                     if ($plan_name) $queryParams['plan_name'] = $plan_name;
                     if ($contract_period) $queryParams['contract_period'] = $contract_period;
@@ -761,6 +762,12 @@ function applyFilters() {
     const status = document.getElementById('filter_status').value;
     if (status && status !== '') {
         params.set('status', status);
+    }
+    
+    // 판매자
+    const sellerId = document.getElementById('filter_seller_id').value;
+    if (sellerId && sellerId !== '') {
+        params.set('seller_id', sellerId);
     }
     
     // 통신사
@@ -881,6 +888,7 @@ function togglePriceAfterInput() {
 
 function resetFilters() {
     document.getElementById('filter_status').value = '';
+    document.getElementById('filter_seller_id').value = '';
     document.getElementById('filter_provider').value = '';
     document.getElementById('filter_plan_name').value = '';
     document.getElementById('filter_contract_period').value = '';
@@ -929,135 +937,7 @@ document.addEventListener('DOMContentLoaded', function() {
     toggleContractPeriodInput();
     togglePriceAfterInput();
 });
-
-function editProduct(productId) {
-    window.location.href = '/MVNO/seller/products/mvno.php?id=' + productId;
-}
-
-function copyProduct(productId) {
-    const message = '이 상품을 복사하시겠습니까?\n\n※ 복사된 상품은 판매종료 상태로 설정됩니다.';
-    if (typeof showConfirm === 'function') {
-        showConfirm(message, '상품 복사').then(confirmed => {
-            if (confirmed) {
-                processCopyProduct(productId);
-            }
-        });
-    } else if (confirm(message)) {
-        processCopyProduct(productId);
-    }
-}
-
-function processCopyProduct(productId) {
-    fetch('/MVNO/api/product-copy.php', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            product_id: productId,
-            product_type: 'mvno'
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            if (typeof showAlert === 'function') {
-                showAlert('상품이 복사되었습니다.\n복사된 상품은 판매종료 상태로 설정되었습니다.', '완료');
-            } else {
-                alert('상품이 복사되었습니다.\n복사된 상품은 판매종료 상태로 설정되었습니다.');
-            }
-            location.reload();
-        } else {
-            if (typeof showAlert === 'function') {
-                showAlert(data.message || '상품 복사에 실패했습니다.', '오류', true);
-            } else {
-                alert(data.message || '상품 복사에 실패했습니다.');
-            }
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        if (typeof showAlert === 'function') {
-            showAlert('상품 복사 중 오류가 발생했습니다.', '오류', true);
-        } else {
-            alert('상품 복사 중 오류가 발생했습니다.');
-        }
-    });
-}
-
-function toggleSelectAll() {
-    const selectAll = document.getElementById('selectAll');
-    const checkboxes = document.querySelectorAll('.product-checkbox');
-    checkboxes.forEach(checkbox => {
-        checkbox.checked = selectAll.checked;
-    });
-}
-
-function bulkInactive() {
-    const checkboxes = document.querySelectorAll('.product-checkbox:checked');
-    if (checkboxes.length === 0) {
-        if (typeof showAlert === 'function') {
-            showAlert('선택된 상품이 없습니다.', '알림');
-        } else {
-            alert('선택된 상품이 없습니다.');
-        }
-        return;
-    }
-    
-    const productCount = checkboxes.length;
-    const message = '선택한 ' + productCount + '개의 상품을 판매종료 처리하시겠습니까?';
-    
-    if (typeof showConfirm === 'function') {
-        showConfirm(message, '판매종료 확인').then(confirmed => {
-            if (confirmed) {
-                processBulkInactive(checkboxes);
-            }
-        });
-    } else if (confirm(message)) {
-        processBulkInactive(checkboxes);
-    }
-}
-
-function processBulkInactive(checkboxes) {
-    const productIds = Array.from(checkboxes).map(cb => cb.value);
-    
-    fetch('/MVNO/api/product-bulk-update.php', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            product_ids: productIds,
-            status: 'inactive'
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            if (typeof showAlert === 'function') {
-                showAlert('선택한 상품이 판매종료 처리되었습니다.', '완료');
-            } else {
-                alert('선택한 상품이 판매종료 처리되었습니다.');
-            }
-            location.reload();
-        } else {
-            if (typeof showAlert === 'function') {
-                showAlert(data.message || '상품 상태 변경에 실패했습니다.', '오류', true);
-            } else {
-                alert(data.message || '상품 상태 변경에 실패했습니다.');
-            }
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        if (typeof showAlert === 'function') {
-            showAlert('상품 상태 변경 중 오류가 발생했습니다.', '오류', true);
-        } else {
-            alert('상품 상태 변경 중 오류가 발생했습니다.');
-        }
-    });
-}
 </script>
 
-<?php include __DIR__ . '/../includes/seller-footer.php'; ?>
+<?php require_once __DIR__ . '/../includes/admin-footer.php'; ?>
 

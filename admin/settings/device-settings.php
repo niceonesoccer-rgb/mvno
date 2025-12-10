@@ -22,6 +22,20 @@ try {
     error_log("Error fetching manufacturers: " . $e->getMessage());
 }
 
+
+// 단말기 관리 탭용 필터 파라미터
+$deviceFilterManufacturer = $_GET['device_filter_manufacturer'] ?? '';
+$deviceFilterStorage = $_GET['device_filter_storage'] ?? '';
+$deviceFilterDateFrom = $_GET['device_filter_date_from'] ?? '';
+$deviceFilterDateTo = $_GET['device_filter_date_to'] ?? '';
+$devicePerPage = isset($_GET['device_per_page']) ? intval($_GET['device_per_page']) : 30;
+$devicePage = isset($_GET['device_page']) ? max(1, intval($_GET['device_page'])) : 1;
+
+// 허용된 per_page 값만 사용 (10, 30, 50, 100, 300)
+if (!in_array($devicePerPage, [10, 30, 50, 100, 300])) {
+    $devicePerPage = 30;
+}
+
 // 단말기 목록 가져오기 (제조사 정보 포함)
 $devices = [];
 $dbError = null;
@@ -31,19 +45,83 @@ try {
     $tableExists = $stmt->fetch();
     
     if ($tableExists) {
-        $stmt = $pdo->query("
+        // WHERE 조건 구성
+        $whereConditions = [];
+        $params = [];
+        
+        // 제조사 필터
+        if ($deviceFilterManufacturer && $deviceFilterManufacturer !== '') {
+            $whereConditions[] = 'd.manufacturer_id = :manufacturer_id';
+            $params[':manufacturer_id'] = $deviceFilterManufacturer;
+        }
+        
+        // 용량 필터
+        if ($deviceFilterStorage && $deviceFilterStorage !== '') {
+            $whereConditions[] = 'd.storage LIKE :storage';
+            $params[':storage'] = '%' . $deviceFilterStorage . '%';
+        }
+        
+        // 출시일 필터 (시작일)
+        if ($deviceFilterDateFrom && $deviceFilterDateFrom !== '') {
+            $whereConditions[] = 'DATE(d.release_date) >= :date_from';
+            $params[':date_from'] = $deviceFilterDateFrom;
+        }
+        
+        // 출시일 필터 (종료일)
+        if ($deviceFilterDateTo && $deviceFilterDateTo !== '') {
+            $whereConditions[] = 'DATE(d.release_date) <= :date_to';
+            $params[':date_to'] = $deviceFilterDateTo;
+        }
+        
+        $whereClause = !empty($whereConditions) ? 'WHERE ' . implode(' AND ', $whereConditions) : '';
+        
+        // 전체 개수 조회
+        $countSql = "
+            SELECT COUNT(*) as total
+            FROM devices d 
+            LEFT JOIN device_manufacturers m ON d.manufacturer_id = m.id 
+            {$whereClause}
+        ";
+        $countStmt = $pdo->prepare($countSql);
+        foreach ($params as $key => $value) {
+            $countStmt->bindValue($key, $value);
+        }
+        $countStmt->execute();
+        $totalDevices = $countStmt->fetch()['total'];
+        $totalPages = ceil($totalDevices / $devicePerPage);
+        
+        // 페이지네이션을 위한 LIMIT과 OFFSET 계산
+        $offset = ($devicePage - 1) * $devicePerPage;
+        
+        $sql = "
             SELECT d.*, m.name as manufacturer_name 
             FROM devices d 
             LEFT JOIN device_manufacturers m ON d.manufacturer_id = m.id 
+            {$whereClause}
             ORDER BY d.release_date DESC, m.display_order ASC, m.name ASC, d.name ASC
-        ");
+            LIMIT :limit OFFSET :offset
+        ";
+        
+        $stmt = $pdo->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value);
+        }
+        $stmt->bindValue(':limit', $devicePerPage, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
         $devices = $stmt->fetchAll();
     } else {
         $dbError = "devices 테이블이 존재하지 않습니다. database/device_tables.sql 파일을 실행하세요.";
+        $totalDevices = 0;
+        $totalPages = 0;
+        $offset = 0;
     }
 } catch (PDOException $e) {
     $dbError = "데이터베이스 오류: " . $e->getMessage();
     error_log("Error fetching devices: " . $e->getMessage());
+    $totalDevices = 0;
+    $totalPages = 0;
+    $offset = 0;
 }
 
 // 성공/에러 메시지
@@ -467,14 +545,230 @@ $errorMsg = $_GET['error'] ?? '';
     <?php endif; ?>
     
     <!-- 탭 메뉴 -->
+    <?php 
+    $currentTab = $_GET['tab'] ?? 'devices';
+    ?>
     <div class="tabs">
-        <button class="tab active" onclick="switchTab('manufacturers')">제조사 관리</button>
-        <button class="tab" onclick="switchTab('devices')">단말기 관리</button>
-        <button class="tab" onclick="switchTab('device-list')">등록된 단말기 확인</button>
+        <button class="tab <?php echo $currentTab === 'devices' ? 'active' : ''; ?>" onclick="switchTab('devices')">단말기 관리</button>
+        <button class="tab <?php echo $currentTab === 'manufacturers' ? 'active' : ''; ?>" onclick="switchTab('manufacturers')">제조사 관리</button>
+    </div>
+    
+    <!-- 단말기 관리 탭 -->
+    <div id="tab-devices" class="tab-content <?php echo $currentTab === 'devices' ? 'active' : ''; ?>">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">단말기 목록</h2>
+                <button class="btn btn-primary" onclick="openDeviceModal()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    단말기 추가
+                </button>
+            </div>
+            
+            <!-- 검색 필터 -->
+            <div style="padding: 20px; background: #f9fafb; border-radius: 8px; margin-bottom: 20px;">
+                <form method="GET" id="deviceFilterForm" style="display: flex; gap: 12px; flex-wrap: wrap; align-items: end;" onsubmit="document.getElementById('deviceFilterForm').querySelector('input[name=device_page]').value = '1';">
+                    <input type="hidden" name="tab" value="devices">
+                    <input type="hidden" name="device_page" value="1">
+                    <input type="hidden" name="device_per_page" value="<?php echo $devicePerPage; ?>">
+                    <div style="min-width: 180px;">
+                        <label style="display: block; font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 8px;">제조사</label>
+                        <select name="device_filter_manufacturer" style="width: 100%; padding: 10px 16px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px;">
+                            <option value="">전체</option>
+                            <?php foreach ($manufacturers as $m): ?>
+                                <option value="<?php echo $m['id']; ?>" <?php echo $deviceFilterManufacturer == $m['id'] ? 'selected' : ''; ?>>
+                                    <?php echo htmlspecialchars($m['name']); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div style="min-width: 150px;">
+                        <label style="display: block; font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 8px;">용량</label>
+                        <input type="text" name="device_filter_storage" value="<?php echo htmlspecialchars($deviceFilterStorage); ?>" placeholder="예: 128GB, 256GB" style="width: 100%; padding: 10px 16px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px;">
+                    </div>
+                    <div style="min-width: 200px;">
+                        <label style="display: block; font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 8px;">출시일</label>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <input type="date" name="device_filter_date_from" value="<?php echo htmlspecialchars($deviceFilterDateFrom); ?>" style="flex: 1; padding: 10px 16px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px;">
+                            <span style="font-size: 14px; color: #6b7280; white-space: nowrap;">~</span>
+                            <input type="date" name="device_filter_date_to" value="<?php echo htmlspecialchars($deviceFilterDateTo); ?>" style="flex: 1; padding: 10px 16px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px;">
+                            <span style="font-size: 14px; color: #6b7280; white-space: nowrap;">이전</span>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 8px; align-items: end;">
+                        <button type="submit" class="btn btn-primary" style="padding: 10px 20px;">검색</button>
+                        <a href="/MVNO/admin/settings/device-settings.php?tab=devices" class="btn btn-secondary" style="padding: 10px 20px; text-decoration: none;">초기화</a>
+                    </div>
+                </form>
+            </div>
+            
+            <div class="table-container">
+                <?php 
+                $hasDeviceFilter = !empty($deviceFilterManufacturer) || !empty($deviceFilterStorage) || !empty($deviceFilterDateFrom) || !empty($deviceFilterDateTo);
+                ?>
+                <?php if (empty($devices)): ?>
+                    <div class="empty-state">
+                        <?php if ($hasDeviceFilter): ?>
+                            <p style="font-size: 16px; margin-bottom: 16px;">검색 결과가 없습니다.</p>
+                            <p style="font-size: 14px; color: #6b7280; margin-bottom: 20px;">
+                                검색 조건을 변경하거나 필터를 초기화해보세요.
+                            </p>
+                            <a href="/MVNO/admin/settings/device-settings.php?tab=devices" class="btn btn-secondary" style="text-decoration: none;">필터 초기화</a>
+                        <?php else: ?>
+                            <p style="font-size: 16px; margin-bottom: 16px; color: #ef4444;">⚠️ 등록된 단말기가 없습니다.</p>
+                            <p style="font-size: 14px; color: #6b7280; margin-bottom: 20px;">
+                                데이터를 추가하려면 <strong>database/insert_devices.sql</strong> 파일을 실행하거나<br>
+                                위의 "단말기 추가" 버튼을 클릭하여 직접 추가할 수 있습니다.
+                            </p>
+                            <a href="/MVNO/database/check_devices.php" target="_blank" class="btn btn-secondary" style="text-decoration: none;">
+                                데이터베이스 상태 확인
+                            </a>
+                        <?php endif; ?>
+                    </div>
+                <?php else: ?>
+                    <div style="margin-bottom: 16px; padding: 12px; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #3b82f6; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                        <div>
+                            <?php if ($hasDeviceFilter): ?>
+                                <strong>검색 결과: <?php echo number_format($totalDevices); ?>개</strong>
+                            <?php else: ?>
+                                <strong>총 <?php echo number_format($totalDevices); ?>개의 단말기가 등록되어 있습니다.</strong>
+                            <?php endif; ?>
+                            <?php if ($totalPages > 1): ?>
+                                <span style="color: #6b7280; font-size: 14px; margin-left: 8px;">
+                                    (<?php echo number_format($offset + 1); ?>-<?php echo number_format(min($offset + $devicePerPage, $totalDevices)); ?> / <?php echo number_format($totalDevices); ?>)
+                                </span>
+                            <?php endif; ?>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <label style="font-size: 14px; color: #374151; font-weight: 600;">페이지당 표시:</label>
+                            <select id="devicePerPageSelect" onchange="changeDevicePerPage(this.value)" style="padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; cursor: pointer;">
+                                <option value="10" <?php echo $devicePerPage === 10 ? 'selected' : ''; ?>>10개</option>
+                                <option value="30" <?php echo $devicePerPage === 30 ? 'selected' : ''; ?>>30개</option>
+                                <option value="50" <?php echo $devicePerPage === 50 ? 'selected' : ''; ?>>50개</option>
+                                <option value="100" <?php echo $devicePerPage === 100 ? 'selected' : ''; ?>>100개</option>
+                                <option value="300" <?php echo $devicePerPage === 300 ? 'selected' : ''; ?>>300개</option>
+                            </select>
+                        </div>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>번호</th>
+                                <th>제조사</th>
+                                <th>단말기명</th>
+                                <th>용량</th>
+                                <th>출고가</th>
+                                <th>색상</th>
+                                <th>출시일</th>
+                                <th>상태</th>
+                                <th>작업</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($devices as $index => $device): ?>
+                                <tr>
+                                    <td><?php echo $totalDevices - ($offset + $index); ?></td>
+                                    <td><strong><?php echo htmlspecialchars($device['manufacturer_name'] ?? '-'); ?></strong></td>
+                                    <td><strong><?php echo htmlspecialchars($device['name']); ?></strong></td>
+                                    <td><?php echo htmlspecialchars($device['storage'] ?? '-'); ?></td>
+                                    <td><?php echo $device['release_price'] ? number_format($device['release_price']) . '원' : '-'; ?></td>
+                                    <td><?php echo htmlspecialchars($device['color'] ?? '-'); ?></td>
+                                    <td><?php echo $device['release_date'] ? date('Y-m-d', strtotime($device['release_date'])) : '-'; ?></td>
+                                    <td>
+                                        <span class="status-badge <?php echo $device['status']; ?>">
+                                            <?php echo $device['status'] === 'active' ? '활성' : '비활성'; ?>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <button class="btn btn-secondary" onclick="editDevice(<?php echo htmlspecialchars(json_encode($device)); ?>)">수정</button>
+                                            <button class="btn btn-danger" onclick="deleteDevice(<?php echo $device['id']; ?>, '<?php echo htmlspecialchars($device['name']); ?>')">삭제</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                    
+                    <!-- 페이지네이션 -->
+                    <?php if ($totalPages > 1): ?>
+                        <?php
+                        // 쿼리 파라미터 구성
+                        $queryParams = ['tab' => 'devices'];
+                        if ($deviceFilterManufacturer) $queryParams['device_filter_manufacturer'] = $deviceFilterManufacturer;
+                        if ($deviceFilterStorage) $queryParams['device_filter_storage'] = $deviceFilterStorage;
+                        if ($deviceFilterDateFrom) $queryParams['device_filter_date_from'] = $deviceFilterDateFrom;
+                        if ($deviceFilterDateTo) $queryParams['device_filter_date_to'] = $deviceFilterDateTo;
+                        $queryParams['device_per_page'] = $devicePerPage;
+                        $baseQueryString = http_build_query($queryParams);
+                        ?>
+                        <div style="display: flex; flex-direction: row; justify-content: center; align-items: center; gap: 8px; margin-top: 24px; padding: 20px; flex-wrap: nowrap;">
+                            <!-- 이전 버튼 -->
+                            <?php if ($devicePage > 1): ?>
+                                <a href="?<?php echo $baseQueryString; ?>&device_page=<?php echo $devicePage - 1; ?>" 
+                                   style="padding: 8px 16px; font-size: 14px; border: 1px solid #d1d5db; border-radius: 6px; background: white; color: #374151; cursor: pointer; text-decoration: none; transition: all 0.2s; white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; line-height: 1;">
+                                    이전
+                                </a>
+                            <?php else: ?>
+                                <span style="padding: 8px 16px; font-size: 14px; border: 1px solid #d1d5db; border-radius: 6px; background: #f3f4f6; color: #9ca3af; cursor: not-allowed; opacity: 0.5; white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; line-height: 1;">
+                                    이전
+                                </span>
+                            <?php endif; ?>
+                            
+                            <!-- 페이지 번호 -->
+                            <?php
+                            $startPage = max(1, $devicePage - 2);
+                            $endPage = min($totalPages, $devicePage + 2);
+                            
+                            if ($startPage > 1): ?>
+                                <a href="?<?php echo $baseQueryString; ?>&device_page=1" 
+                                   style="padding: 8px 16px; font-size: 14px; border: 1px solid #d1d5db; border-radius: 6px; background: white; color: #374151; cursor: pointer; text-decoration: none; transition: all 0.2s; white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; line-height: 1; min-width: 40px;">
+                                    1
+                                </a>
+                                <?php if ($startPage > 2): ?>
+                                    <span style="padding: 8px 4px; color: #6b7280; white-space: nowrap; display: inline-flex; align-items: center; line-height: 1;">...</span>
+                                <?php endif; ?>
+                            <?php endif; ?>
+                            
+                            <?php for ($i = $startPage; $i <= $endPage; $i++): ?>
+                                <a href="?<?php echo $baseQueryString; ?>&device_page=<?php echo $i; ?>" 
+                                   style="padding: 8px 16px; font-size: 14px; border: 1px solid #d1d5db; border-radius: 6px; background: <?php echo $i === $devicePage ? '#10b981' : 'white'; ?>; color: <?php echo $i === $devicePage ? 'white' : '#374151'; ?>; cursor: pointer; text-decoration: none; transition: all 0.2s; font-weight: <?php echo $i === $devicePage ? '600' : 'normal'; ?>; white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; line-height: 1; min-width: 40px;">
+                                    <?php echo $i; ?>
+                                </a>
+                            <?php endfor; ?>
+                            
+                            <?php if ($endPage < $totalPages): ?>
+                                <?php if ($endPage < $totalPages - 1): ?>
+                                    <span style="padding: 8px 4px; color: #6b7280; white-space: nowrap; display: inline-flex; align-items: center; line-height: 1;">...</span>
+                                <?php endif; ?>
+                                <a href="?<?php echo $baseQueryString; ?>&device_page=<?php echo $totalPages; ?>" 
+                                   style="padding: 8px 16px; font-size: 14px; border: 1px solid #d1d5db; border-radius: 6px; background: white; color: #374151; cursor: pointer; text-decoration: none; transition: all 0.2s; white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; line-height: 1; min-width: 40px;">
+                                    <?php echo $totalPages; ?>
+                                </a>
+                            <?php endif; ?>
+                            
+                            <!-- 다음 버튼 -->
+                            <?php if ($devicePage < $totalPages): ?>
+                                <a href="?<?php echo $baseQueryString; ?>&device_page=<?php echo $devicePage + 1; ?>" 
+                                   style="padding: 8px 16px; font-size: 14px; border: 1px solid #d1d5db; border-radius: 6px; background: white; color: #374151; cursor: pointer; text-decoration: none; transition: all 0.2s; white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; line-height: 1;">
+                                    다음
+                                </a>
+                            <?php else: ?>
+                                <span style="padding: 8px 16px; font-size: 14px; border: 1px solid #d1d5db; border-radius: 6px; background: #f3f4f6; color: #9ca3af; cursor: not-allowed; opacity: 0.5; white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; line-height: 1;">
+                                    다음
+                                </span>
+                            <?php endif; ?>
+                        </div>
+                    <?php endif; ?>
+                <?php endif; ?>
+            </div>
+        </div>
     </div>
     
     <!-- 제조사 관리 탭 -->
-    <div id="tab-manufacturers" class="tab-content active">
+    <div id="tab-manufacturers" class="tab-content <?php echo $currentTab === 'manufacturers' ? 'active' : ''; ?>">
         <div class="card">
             <div class="card-header">
                 <h2 class="card-title">제조사 목록</h2>
@@ -537,282 +831,6 @@ $errorMsg = $_GET['error'] ?? '';
         </div>
     </div>
     
-    <!-- 등록된 단말기 확인 탭 -->
-    <div id="tab-device-list" class="tab-content">
-        <?php if ($dbError): ?>
-            <div class="card">
-                <div class="alert alert-error">
-                    <strong>⚠️ <?php echo htmlspecialchars($dbError); ?></strong>
-                    <div style="margin-top: 16px;">
-                        <p style="margin-bottom: 12px;">다음 방법 중 하나를 선택하세요:</p>
-                        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-                            <a href="/MVNO/database/install_devices.php" target="_blank" class="btn btn-primary" style="text-decoration: none;">
-                                🔧 자동 설치 (권장)
-                            </a>
-                            <a href="/MVNO/database/check_devices.php" target="_blank" class="btn btn-secondary" style="text-decoration: none;">
-                                📊 데이터베이스 상태 확인
-                            </a>
-                        </div>
-                        <div style="margin-top: 16px; padding: 12px; background: #f9fafb; border-radius: 8px; font-size: 13px; color: #6b7280;">
-                            <strong>수동 설치:</strong> phpMyAdmin에서 <code>database/device_tables.sql</code> 파일을 실행하세요.
-                        </div>
-                    </div>
-                </div>
-            </div>
-        <?php else: ?>
-        <div class="card">
-            <div class="card-header">
-                <h2 class="card-title">등록된 단말기 목록</h2>
-                <div style="display: flex; gap: 12px; align-items: center;">
-                    <div style="padding: 8px 16px; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #3b82f6;">
-                        <strong style="color: #1e40af;">총 <?php echo count($devices); ?>개</strong>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- 검색 및 필터 -->
-            <div style="padding: 20px; background: #f9fafb; border-radius: 8px; margin-bottom: 20px;">
-                <form method="GET" id="searchForm" style="display: flex; gap: 12px; flex-wrap: wrap; align-items: end;">
-                    <div style="flex: 1; min-width: 200px;">
-                        <label style="display: block; font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 8px;">검색</label>
-                        <input type="text" id="searchInput" name="search" value="<?php echo htmlspecialchars($_GET['search'] ?? ''); ?>" placeholder="단말기명, 제조사, 용량 검색..." style="width: 100%; padding: 10px 16px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px;">
-                    </div>
-                    <div style="min-width: 150px;">
-                        <label style="display: block; font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 8px;">제조사</label>
-                        <select id="manufacturerFilter" name="manufacturer" style="width: 100%; padding: 10px 16px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px;">
-                            <option value="">전체</option>
-                            <?php foreach ($manufacturers as $m): ?>
-                                <option value="<?php echo $m['id']; ?>" <?php echo (isset($_GET['manufacturer']) && $_GET['manufacturer'] == $m['id']) ? 'selected' : ''; ?>>
-                                    <?php echo htmlspecialchars($m['name']); ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    <div style="min-width: 120px;">
-                        <label style="display: block; font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 8px;">상태</label>
-                        <select id="statusFilter" name="status" style="width: 100%; padding: 10px 16px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px;">
-                            <option value="">전체</option>
-                            <option value="active" <?php echo (isset($_GET['status']) && $_GET['status'] == 'active') ? 'selected' : ''; ?>>활성</option>
-                            <option value="inactive" <?php echo (isset($_GET['status']) && $_GET['status'] == 'inactive') ? 'selected' : ''; ?>>비활성</option>
-                        </select>
-                    </div>
-                    <div style="display: flex; gap: 8px;">
-                        <button type="submit" class="btn btn-primary" style="padding: 10px 20px;">검색</button>
-                        <a href="/MVNO/admin/settings/device-settings.php" class="btn btn-secondary" style="padding: 10px 20px; text-decoration: none;">초기화</a>
-                    </div>
-                </form>
-            </div>
-            
-            <?php
-            // 필터링된 단말기 목록 (기본값: 모든 단말기)
-            $filteredDevices = $devices;
-            $searchQuery = $_GET['search'] ?? '';
-            $manufacturerFilter = $_GET['manufacturer'] ?? '';
-            $statusFilter = $_GET['status'] ?? '';
-            $hasFilter = !empty($searchQuery) || !empty($manufacturerFilter) || !empty($statusFilter);
-            
-            if ($hasFilter) {
-                $filteredDevices = array_filter($devices, function($device) use ($searchQuery, $manufacturerFilter, $statusFilter) {
-                    $match = true;
-                    
-                    // 검색어 필터
-                    if (!empty($searchQuery)) {
-                        $searchLower = mb_strtolower($searchQuery, 'UTF-8');
-                        $nameMatch = mb_strpos(mb_strtolower($device['name'], 'UTF-8'), $searchLower) !== false;
-                        $manufacturerMatch = mb_strpos(mb_strtolower($device['manufacturer_name'] ?? '', 'UTF-8'), $searchLower) !== false;
-                        $storageMatch = mb_strpos(mb_strtolower($device['storage'] ?? '', 'UTF-8'), $searchLower) !== false;
-                        
-                        if (!$nameMatch && !$manufacturerMatch && !$storageMatch) {
-                            $match = false;
-                        }
-                    }
-                    
-                    // 제조사 필터
-                    if (!empty($manufacturerFilter) && $device['manufacturer_id'] != $manufacturerFilter) {
-                        $match = false;
-                    }
-                    
-                    // 상태 필터
-                    if (!empty($statusFilter) && $device['status'] != $statusFilter) {
-                        $match = false;
-                    }
-                    
-                    return $match;
-                });
-                $filteredDevices = array_values($filteredDevices);
-            }
-            
-            // 제조사별 통계
-            $statsByManufacturer = [];
-            foreach ($filteredDevices as $device) {
-                $mfgName = $device['manufacturer_name'] ?? '기타';
-                if (!isset($statsByManufacturer[$mfgName])) {
-                    $statsByManufacturer[$mfgName] = 0;
-                }
-                $statsByManufacturer[$mfgName]++;
-            }
-            ?>
-            
-            <!-- 통계 카드 -->
-            <?php if (!empty($statsByManufacturer)): ?>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 20px;">
-                <?php foreach ($statsByManufacturer as $mfgName => $count): ?>
-                    <div style="padding: 16px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; color: white;">
-                        <div style="font-size: 12px; opacity: 0.9; margin-bottom: 4px;"><?php echo htmlspecialchars($mfgName); ?></div>
-                        <div style="font-size: 24px; font-weight: 700;"><?php echo $count; ?>개</div>
-                    </div>
-                <?php endforeach; ?>
-            </div>
-            <?php endif; ?>
-            
-            <div class="table-container">
-                <?php if ($dbError): ?>
-                    <div class="empty-state">
-                        <p style="font-size: 16px; margin-bottom: 16px; color: #ef4444;">⚠️ <?php echo htmlspecialchars($dbError); ?></p>
-                        <p style="font-size: 14px; color: #6b7280; margin-bottom: 20px;">
-                            데이터베이스 설정을 확인하세요.
-                        </p>
-                    </div>
-                <?php elseif (empty($devices)): ?>
-                    <div class="empty-state">
-                        <p style="font-size: 16px; margin-bottom: 16px; color: #ef4444;">⚠️ 등록된 단말기가 없습니다.</p>
-                        <p style="font-size: 14px; color: #6b7280; margin-bottom: 20px;">
-                            데이터베이스에 단말기 데이터를 추가하려면:<br>
-                            1. <strong>database/insert_devices.sql</strong> 파일을 실행하거나<br>
-                            2. 위의 "단말기 관리" 탭에서 직접 추가할 수 있습니다.
-                        </p>
-                        <a href="/MVNO/admin/settings/device-settings.php" onclick="switchTab('devices'); return false;" class="btn btn-primary" style="text-decoration: none;">단말기 추가하기</a>
-                    </div>
-                <?php elseif (empty($filteredDevices)): ?>
-                    <div class="empty-state">
-                        <p style="font-size: 16px; margin-bottom: 16px;">검색 결과가 없습니다.</p>
-                        <p style="font-size: 14px; color: #6b7280; margin-bottom: 20px;">
-                            검색 조건을 변경하거나 필터를 초기화해보세요.
-                        </p>
-                        <a href="/MVNO/admin/settings/device-settings.php" class="btn btn-secondary" style="text-decoration: none;">전체 목록 보기</a>
-                    </div>
-                <?php else: ?>
-                    <div style="margin-bottom: 16px; padding: 12px; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #3b82f6;">
-                        <?php if ($hasFilter): ?>
-                            <strong>검색 결과: <?php echo count($filteredDevices); ?>개</strong>
-                        <?php else: ?>
-                            <strong>전체 등록된 단말기: <?php echo count($filteredDevices); ?>개</strong>
-                            <span style="color: #6b7280; font-size: 13px; margin-left: 12px;">(검색 또는 필터를 사용하여 원하는 단말기를 찾을 수 있습니다)</span>
-                        <?php endif; ?>
-                    </div>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>번호</th>
-                                <th>제조사</th>
-                                <th>단말기명</th>
-                                <th>용량</th>
-                                <th>출고가</th>
-                                <th>색상</th>
-                                <th>출시일</th>
-                                <th>모델코드</th>
-                                <th>상태</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($filteredDevices as $index => $device): ?>
-                                <tr>
-                                    <td><?php echo $index + 1; ?></td>
-                                    <td><strong style="color: #3b82f6;"><?php echo htmlspecialchars($device['manufacturer_name'] ?? '-'); ?></strong></td>
-                                    <td><strong><?php echo htmlspecialchars($device['name']); ?></strong></td>
-                                    <td><?php echo htmlspecialchars($device['storage'] ?? '-'); ?></td>
-                                    <td><?php echo $device['release_price'] ? number_format($device['release_price']) . '원' : '-'; ?></td>
-                                    <td><?php echo htmlspecialchars($device['color'] ?? '-'); ?></td>
-                                    <td><?php echo $device['release_date'] ? date('Y-m-d', strtotime($device['release_date'])) : '-'; ?></td>
-                                    <td><?php echo htmlspecialchars($device['model_code'] ?? '-'); ?></td>
-                                    <td>
-                                        <span class="status-badge <?php echo $device['status']; ?>">
-                                            <?php echo $device['status'] === 'active' ? '활성' : '비활성'; ?>
-                                        </span>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                <?php endif; ?>
-            </div>
-        </div>
-        <?php endif; ?>
-    </div>
-    
-    <!-- 단말기 관리 탭 -->
-    <div id="tab-devices" class="tab-content">
-        <div class="card">
-            <div class="card-header">
-                <h2 class="card-title">단말기 목록</h2>
-                <button class="btn btn-primary" onclick="openDeviceModal()">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="12" y1="5" x2="12" y2="19"></line>
-                        <line x1="5" y1="12" x2="19" y2="12"></line>
-                    </svg>
-                    단말기 추가
-                </button>
-            </div>
-            
-            <div class="table-container">
-                <?php if (empty($devices)): ?>
-                    <div class="empty-state">
-                        <p style="font-size: 16px; margin-bottom: 16px;">등록된 단말기가 없습니다.</p>
-                        <p style="font-size: 14px; color: #6b7280; margin-bottom: 20px;">
-                            데이터를 추가하려면 <strong>database/insert_devices.sql</strong> 파일을 실행하거나<br>
-                            위의 "단말기 추가" 버튼을 클릭하여 직접 추가할 수 있습니다.
-                        </p>
-                        <a href="/MVNO/database/check_devices.php" target="_blank" class="btn btn-secondary" style="text-decoration: none;">
-                            데이터베이스 상태 확인
-                        </a>
-                    </div>
-                <?php else: ?>
-                    <div style="margin-bottom: 16px; padding: 12px; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #3b82f6;">
-                        <strong>총 <?php echo count($devices); ?>개의 단말기가 등록되어 있습니다.</strong>
-                    </div>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>번호</th>
-                                <th>제조사</th>
-                                <th>단말기명</th>
-                                <th>용량</th>
-                                <th>출고가</th>
-                                <th>색상</th>
-                                <th>출시일</th>
-                                <th>상태</th>
-                                <th>작업</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($devices as $index => $device): ?>
-                                <tr>
-                                    <td><?php echo $index + 1; ?></td>
-                                    <td><strong><?php echo htmlspecialchars($device['manufacturer_name'] ?? '-'); ?></strong></td>
-                                    <td><strong><?php echo htmlspecialchars($device['name']); ?></strong></td>
-                                    <td><?php echo htmlspecialchars($device['storage'] ?? '-'); ?></td>
-                                    <td><?php echo $device['release_price'] ? number_format($device['release_price']) . '원' : '-'; ?></td>
-                                    <td><?php echo htmlspecialchars($device['color'] ?? '-'); ?></td>
-                                    <td><?php echo $device['release_date'] ? date('Y-m-d', strtotime($device['release_date'])) : '-'; ?></td>
-                                    <td>
-                                        <span class="status-badge <?php echo $device['status']; ?>">
-                                            <?php echo $device['status'] === 'active' ? '활성' : '비활성'; ?>
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <div class="action-buttons">
-                                            <button class="btn btn-secondary" onclick="editDevice(<?php echo htmlspecialchars(json_encode($device)); ?>)">수정</button>
-                                            <button class="btn btn-danger" onclick="deleteDevice(<?php echo $device['id']; ?>, '<?php echo htmlspecialchars($device['name']); ?>')">삭제</button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                <?php endif; ?>
-            </div>
-        </div>
-    </div>
 </div>
 
 <!-- 제조사 삭제 확인 모달 -->
@@ -956,17 +974,18 @@ $errorMsg = $_GET['error'] ?? '';
 
 <script>
 function switchTab(tabName) {
-    // 탭 버튼 활성화
-    document.querySelectorAll('.tab').forEach(tab => {
-        tab.classList.remove('active');
-    });
-    event.target.classList.add('active');
-    
-    // 탭 콘텐츠 표시
-    document.querySelectorAll('.tab-content').forEach(content => {
-        content.classList.remove('active');
-    });
-    document.getElementById('tab-' + tabName).classList.add('active');
+    // URL 파라미터 유지하면서 탭 전환
+    const url = new URL(window.location.href);
+    url.searchParams.set('tab', tabName);
+    window.location.href = url.toString();
+}
+
+// 페이지당 표시 개수 변경
+function changeDevicePerPage(perPage) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('device_per_page', perPage);
+    url.searchParams.set('device_page', '1'); // 첫 페이지로 이동
+    window.location.href = url.toString();
 }
 
 // 제조사 모달
@@ -1000,11 +1019,15 @@ function openManufacturerModal(manufacturer = null) {
     }
     
     modal.classList.add('active');
+    // 모달이 열릴 때 body 스크롤 잠금
+    document.body.style.overflow = 'hidden';
 }
 
 function closeManufacturerModal() {
     document.getElementById('manufacturerModal').classList.remove('active');
     document.getElementById('manufacturerForm').reset();
+    // 모달이 닫힐 때 body 스크롤 복원
+    document.body.style.overflow = '';
 }
 
 function editManufacturer(manufacturer) {
@@ -1075,57 +1098,58 @@ function deleteManufacturer() {
 let draggedRow = null;
 
 document.addEventListener('DOMContentLoaded', function() {
-    const tableBody = document.getElementById('manufacturerTableBody');
-    if (!tableBody) return;
-    
-    const rows = tableBody.querySelectorAll('.draggable-row');
-    
-    rows.forEach(row => {
-        row.addEventListener('dragstart', function(e) {
-            draggedRow = this;
-            this.classList.add('dragging');
-            e.dataTransfer.effectAllowed = 'move';
-            e.dataTransfer.setData('text/html', this.innerHTML);
-        });
+    // 제조사 테이블 드래그 앤 드롭
+    const manufacturerTableBody = document.getElementById('manufacturerTableBody');
+    if (manufacturerTableBody) {
+        const rows = manufacturerTableBody.querySelectorAll('.draggable-row');
         
-        row.addEventListener('dragend', function(e) {
-            this.classList.remove('dragging');
-            rows.forEach(r => r.classList.remove('drag-over'));
-        });
-        
-        row.addEventListener('dragover', function(e) {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = 'move';
+        rows.forEach(row => {
+            row.addEventListener('dragstart', function(e) {
+                draggedRow = this;
+                this.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/html', this.innerHTML);
+            });
             
-            if (this !== draggedRow) {
-                this.classList.add('drag-over');
-            }
-        });
-        
-        row.addEventListener('dragleave', function(e) {
-            this.classList.remove('drag-over');
-        });
-        
-        row.addEventListener('drop', function(e) {
-            e.preventDefault();
-            this.classList.remove('drag-over');
+            row.addEventListener('dragend', function(e) {
+                this.classList.remove('dragging');
+                rows.forEach(r => r.classList.remove('drag-over'));
+            });
             
-            if (this !== draggedRow && draggedRow) {
-                const allRows = Array.from(tableBody.querySelectorAll('.draggable-row'));
-                const draggedIndex = allRows.indexOf(draggedRow);
-                const targetIndex = allRows.indexOf(this);
+            row.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
                 
-                if (draggedIndex < targetIndex) {
-                    tableBody.insertBefore(draggedRow, this.nextSibling);
-                } else {
-                    tableBody.insertBefore(draggedRow, this);
+                if (this !== draggedRow) {
+                    this.classList.add('drag-over');
                 }
+            });
+            
+            row.addEventListener('dragleave', function(e) {
+                this.classList.remove('drag-over');
+            });
+            
+            row.addEventListener('drop', function(e) {
+                e.preventDefault();
+                this.classList.remove('drag-over');
                 
-                // 순서 업데이트
-                updateManufacturerOrder();
-            }
+                if (this !== draggedRow && draggedRow) {
+                    const allRows = Array.from(manufacturerTableBody.querySelectorAll('.draggable-row'));
+                    const draggedIndex = allRows.indexOf(draggedRow);
+                    const targetIndex = allRows.indexOf(this);
+                    
+                    if (draggedIndex < targetIndex) {
+                        manufacturerTableBody.insertBefore(draggedRow, this.nextSibling);
+                    } else {
+                        manufacturerTableBody.insertBefore(draggedRow, this);
+                    }
+                    
+                    // 순서 업데이트
+                    updateManufacturerOrder();
+                }
+            });
         });
-    });
+    }
 });
 
 // 제조사 순서 업데이트
@@ -1155,6 +1179,50 @@ function updateManufacturerOrder() {
             // 페이지 새로고침 없이 순서만 업데이트
             rows.forEach((row, index) => {
                 const orderCell = row.querySelector('td:nth-child(4)');
+                if (orderCell) {
+                    orderCell.textContent = index + 1;
+                }
+                row.setAttribute('data-order', index + 1);
+            });
+        } else {
+            alert('순서 업데이트에 실패했습니다: ' + (data.message || '알 수 없는 오류'));
+            location.reload();
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('순서 업데이트 중 오류가 발생했습니다.');
+        location.reload();
+    });
+}
+
+// 용량 순서 업데이트
+function updateStorageOrder() {
+    const rows = document.querySelectorAll('#storageTableBody .draggable-row');
+    const orders = [];
+    
+    rows.forEach((row, index) => {
+        const id = row.getAttribute('data-id');
+        const newOrder = index + 1;
+        orders.push({ id: id, order: newOrder });
+    });
+    
+    // 서버에 순서 업데이트 요청
+    fetch('/MVNO/api/device-manage.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: 'action=update_storage_order&orders=' + encodeURIComponent(JSON.stringify(orders))
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // 성공 메시지 표시 (선택사항)
+            console.log('순서가 업데이트되었습니다.');
+            // 페이지 새로고침 없이 순서만 업데이트
+            rows.forEach((row, index) => {
+                const orderCell = row.querySelector('td:nth-child(3)'); // 표시순서 컬럼 (순서, 용량명, 표시순서)
                 if (orderCell) {
                     orderCell.textContent = index + 1;
                 }
@@ -1228,11 +1296,15 @@ function openDeviceModal(device = null) {
     }
     
     modal.classList.add('active');
+    // 모달이 열릴 때 body 스크롤 잠금
+    document.body.style.overflow = 'hidden';
 }
 
 function closeDeviceModal() {
     document.getElementById('deviceModal').classList.remove('active');
     document.getElementById('deviceForm').reset();
+    // 모달이 닫힐 때 body 스크롤 복원
+    document.body.style.overflow = '';
 }
 
 function editDevice(device) {

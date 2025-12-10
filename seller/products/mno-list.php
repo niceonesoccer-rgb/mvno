@@ -34,13 +34,18 @@ if (isset($currentUser['withdrawal_requested']) && $currentUser['withdrawal_requ
     exit;
 }
 
-// 상태 필터
+// 필터 파라미터
 $status = $_GET['status'] ?? '';
 if ($status === '') {
     $status = null;
 }
+$searchDeviceName = $_GET['search_device_name'] ?? '';
+$searchDeliveryMethod = $_GET['search_delivery_method'] ?? '';
 $page = max(1, intval($_GET['page'] ?? 1));
-$perPage = 20;
+$perPage = isset($_GET['per_page']) ? intval($_GET['per_page']) : 10;
+if (!in_array($perPage, [10, 30, 50, 100, 500])) {
+    $perPage = 10;
+}
 
 // DB에서 통신사폰 상품 목록 가져오기
 $products = [];
@@ -63,12 +68,33 @@ try {
             $whereConditions[] = "p.status != 'deleted'";
         }
         
+        // 단말기명 검색
+        if ($searchDeviceName && $searchDeviceName !== '') {
+            $whereConditions[] = '(mno.device_name IS NOT NULL AND mno.device_name LIKE :search_device_name)';
+            $params[':search_device_name'] = '%' . $searchDeviceName . '%';
+        }
+        
+        // 단말기 수령방법 검색
+        if ($searchDeliveryMethod && $searchDeliveryMethod !== '') {
+            $searchLower = strtolower($searchDeliveryMethod);
+            if ($searchLower === '택배' || $searchLower === 'delivery') {
+                $whereConditions[] = "mno.delivery_method = 'delivery'";
+            } else if ($searchLower === '내방' || $searchLower === 'visit') {
+                $whereConditions[] = "mno.delivery_method = 'visit'";
+            } else {
+                // 텍스트로 검색 (내방 지역명 포함)
+                $whereConditions[] = "(mno.delivery_method = 'visit' AND mno.visit_region IS NOT NULL AND mno.visit_region LIKE :search_delivery_method)";
+                $params[':search_delivery_method'] = '%' . $searchDeliveryMethod . '%';
+            }
+        }
+        
         $whereClause = implode(' AND ', $whereConditions);
         
         // 전체 개수 조회
         $countStmt = $pdo->prepare("
             SELECT COUNT(*) as total
             FROM products p
+            LEFT JOIN product_mno_details mno ON p.id = mno.product_id
             WHERE {$whereClause}
         ");
         $countStmt->execute($params);
@@ -81,8 +107,8 @@ try {
             SELECT 
                 p.*,
                 mno.device_name AS product_name,
-                'SKT/KT/LG U+' AS provider,
-                mno.price_main AS monthly_fee
+                mno.delivery_method,
+                mno.visit_region
             FROM products p
             LEFT JOIN product_mno_details mno ON p.id = mno.product_id
             WHERE {$whereClause}
@@ -186,6 +212,55 @@ $pageStyles = '
         border-radius: 6px;
         background: white;
         cursor: pointer;
+    }
+    
+    .filter-input {
+        padding: 8px 12px;
+        font-size: 14px;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        background: white;
+        min-width: 200px;
+    }
+    
+    .filter-input:focus {
+        outline: none;
+        border-color: #10b981;
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+    }
+    
+    .per-page-selector {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 12px;
+        padding: 12px 20px;
+        background: #f3f4f6;
+        border-bottom: 1px solid #e5e7eb;
+        margin-bottom: 0;
+    }
+    
+    .per-page-label {
+        font-size: 14px;
+        font-weight: 600;
+        color: #374151;
+    }
+    
+    .per-page-select {
+        padding: 6px 12px;
+        font-size: 14px;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        background: white;
+        color: #374151;
+        cursor: pointer;
+        min-width: 80px;
+    }
+    
+    .per-page-select:focus {
+        outline: none;
+        border-color: #10b981;
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
     }
     
     .product-table-wrapper {
@@ -310,27 +385,53 @@ $pageStyles = '
         margin-bottom: 24px;
     }
     
+    .page-info {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        padding: 12px 20px;
+        background: white;
+        border-bottom: 1px solid #e5e7eb;
+        font-size: 14px;
+        color: #6b7280;
+    }
+    
+    .page-info strong {
+        color: #374151;
+        margin-left: 4px;
+    }
+    
     .pagination {
         display: flex;
         justify-content: center;
+        align-items: center;
         gap: 8px;
         margin-top: 24px;
-        padding: 20px;
+        padding: 24px 20px;
+        background: transparent;
     }
     
     .pagination-btn {
         padding: 8px 16px;
         font-size: 14px;
         border: 1px solid #d1d5db;
-        border-radius: 6px;
+        border-radius: 8px;
         background: white;
         color: #374151;
         cursor: pointer;
         text-decoration: none;
         transition: all 0.2s;
+        white-space: nowrap;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
+        min-width: 44px;
+        height: 36px;
+        font-weight: 500;
     }
     
-    .pagination-btn:hover {
+    .pagination-btn:hover:not(.disabled):not(.active) {
         background: #f9fafb;
         border-color: #10b981;
     }
@@ -339,11 +440,13 @@ $pageStyles = '
         background: #10b981;
         color: white;
         border-color: #10b981;
+        font-weight: 600;
     }
     
-    .pagination-btn:disabled {
+    .pagination-btn.disabled {
         opacity: 0.5;
         cursor: not-allowed;
+        pointer-events: none;
     }
     
     @media (max-width: 768px) {
@@ -372,6 +475,33 @@ include __DIR__ . '/../includes/seller-header.php';
                 <option value="inactive" <?php echo $status === 'inactive' ? 'selected' : ''; ?>>판매종료</option>
             </select>
         </div>
+        <div class="filter-group">
+            <label class="filter-label">단말기명:</label>
+            <input type="text" class="filter-input" id="filter_device_name" 
+                   placeholder="단말기명 검색" 
+                   value="<?php echo htmlspecialchars($searchDeviceName); ?>"
+                   onkeypress="if(event.key==='Enter') applyFilters()">
+        </div>
+        <div class="filter-group">
+            <label class="filter-label">수령방법:</label>
+            <input type="text" class="filter-input" id="filter_delivery_method" 
+                   placeholder="택배/내방/지역명 검색" 
+                   value="<?php echo htmlspecialchars($searchDeliveryMethod); ?>"
+                   onkeypress="if(event.key==='Enter') applyFilters()">
+        </div>
+        <button class="btn btn-primary" onclick="applyFilters()" style="margin-left: auto;">검색</button>
+    </div>
+    
+    <!-- 페이지당 항목 수 선택 -->
+    <div class="per-page-selector">
+        <span class="per-page-label">페이지당 표시:</span>
+        <select class="per-page-select" id="per_page_select" onchange="changePerPage(this.value)">
+            <option value="10" <?php echo $perPage == 10 ? 'selected' : ''; ?>>10개</option>
+            <option value="30" <?php echo $perPage == 30 ? 'selected' : ''; ?>>30개</option>
+            <option value="50" <?php echo $perPage == 50 ? 'selected' : ''; ?>>50개</option>
+            <option value="100" <?php echo $perPage == 100 ? 'selected' : ''; ?>>100개</option>
+            <option value="500" <?php echo $perPage == 500 ? 'selected' : ''; ?>>500개</option>
+        </select>
     </div>
     
     <!-- 상품 테이블 -->
@@ -401,8 +531,7 @@ include __DIR__ . '/../includes/seller-header.php';
                         </th>
                         <th>번호</th>
                         <th>단말기명</th>
-                        <th>통신사</th>
-                        <th>가격</th>
+                        <th>단말기 수령방법</th>
                         <th>조회수</th>
                         <th>찜</th>
                         <th>리뷰</th>
@@ -420,8 +549,17 @@ include __DIR__ . '/../includes/seller-header.php';
                             </td>
                             <td><?php echo ($page - 1) * $perPage + $index + 1; ?></td>
                             <td><?php echo htmlspecialchars($product['product_name'] ?? '-'); ?></td>
-                            <td><?php echo htmlspecialchars($product['provider'] ?? '-'); ?></td>
-                            <td><?php echo number_format($product['monthly_fee'] ?? 0); ?>원</td>
+                            <td>
+                                <?php 
+                                $deliveryMethod = $product['delivery_method'] ?? 'delivery';
+                                if ($deliveryMethod === 'visit') {
+                                    $visitRegion = htmlspecialchars($product['visit_region'] ?? '');
+                                    echo '내방' . ($visitRegion ? ' (' . $visitRegion . ')' : '');
+                                } else {
+                                    echo '택배';
+                                }
+                                ?>
+                            </td>
                             <td><?php echo number_format($product['view_count'] ?? 0); ?></td>
                             <td><?php echo number_format($product['favorite_count'] ?? 0); ?></td>
                             <td><?php echo number_format($product['review_count'] ?? 0); ?></td>
@@ -442,36 +580,90 @@ include __DIR__ . '/../includes/seller-header.php';
                     <?php endforeach; ?>
                 </tbody>
             </table>
-            
-            <!-- 페이지네이션 -->
-            <?php if ($totalPages > 1): ?>
-                <div class="pagination">
-                    <a href="?status=<?php echo htmlspecialchars($status ?? ''); ?>&page=<?php echo max(1, $page - 1); ?>" 
-                       class="pagination-btn <?php echo $page <= 1 ? 'disabled' : ''; ?>">이전</a>
-                    
-                    <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-                        <a href="?status=<?php echo htmlspecialchars($status ?? ''); ?>&page=<?php echo $i; ?>" 
-                           class="pagination-btn <?php echo $i === $page ? 'active' : ''; ?>"><?php echo $i; ?></a>
-                    <?php endfor; ?>
-                    
-                    <a href="?status=<?php echo htmlspecialchars($status ?? ''); ?>&page=<?php echo min($totalPages, $page + 1); ?>" 
-                       class="pagination-btn <?php echo $page >= $totalPages ? 'disabled' : ''; ?>">다음</a>
-                </div>
-            <?php endif; ?>
         <?php endif; ?>
     </div>
+    
+    <!-- 페이지네이션 (하단) -->
+    <?php if ($totalProducts > 0 && $totalPages > 0): ?>
+        <?php
+        $paginationParams = [];
+        if ($status) $paginationParams['status'] = $status;
+        if ($searchDeviceName) $paginationParams['search_device_name'] = $searchDeviceName;
+        if ($searchDeliveryMethod) $paginationParams['search_delivery_method'] = $searchDeliveryMethod;
+        if ($perPage != 10) $paginationParams['per_page'] = $perPage;
+        $paginationQuery = http_build_query($paginationParams);
+        ?>
+        <div class="pagination">
+            <?php if ($totalPages > 1): ?>
+                <a href="?<?php echo $paginationQuery; ?>&page=<?php echo max(1, $page - 1); ?>" 
+                   class="pagination-btn <?php echo $page <= 1 ? 'disabled' : ''; ?>">이전</a>
+                
+                <?php 
+                $startPage = max(1, $page - 4);
+                $endPage = min($totalPages, $startPage + 9);
+                if ($endPage - $startPage < 9) {
+                    $startPage = max(1, $endPage - 9);
+                }
+                
+                if ($startPage > 1): ?>
+                    <a href="?<?php echo $paginationQuery; ?>&page=1" class="pagination-btn">1</a>
+                    <?php if ($startPage > 2): ?>
+                        <span class="pagination-btn" style="border: none; background: transparent; cursor: default;">...</span>
+                    <?php endif; ?>
+                <?php endif; ?>
+                
+                <?php for ($i = $startPage; $i <= $endPage; $i++): ?>
+                    <a href="?<?php echo $paginationQuery; ?>&page=<?php echo $i; ?>" 
+                       class="pagination-btn <?php echo $i === $page ? 'active' : ''; ?>"><?php echo $i; ?></a>
+                <?php endfor; ?>
+                
+                <?php if ($endPage < $totalPages): ?>
+                    <?php if ($endPage < $totalPages - 1): ?>
+                        <span class="pagination-btn" style="border: none; background: transparent; cursor: default;">...</span>
+                    <?php endif; ?>
+                    <a href="?<?php echo $paginationQuery; ?>&page=<?php echo $totalPages; ?>" class="pagination-btn"><?php echo $totalPages; ?></a>
+                <?php endif; ?>
+                
+                <a href="?<?php echo $paginationQuery; ?>&page=<?php echo min($totalPages, $page + 1); ?>" 
+                   class="pagination-btn <?php echo $page >= $totalPages ? 'disabled' : ''; ?>">다음</a>
+            <?php else: ?>
+                <span class="pagination-btn active">1</span>
+            <?php endif; ?>
+        </div>
+    <?php endif; ?>
 </div>
 
 <script>
 function applyFilters() {
     const status = document.getElementById('filter_status').value;
-    const params = new URLSearchParams();
+    const deviceName = document.getElementById('filter_device_name').value.trim();
+    const deliveryMethod = document.getElementById('filter_delivery_method').value.trim();
+    const params = new URLSearchParams(window.location.search);
     
     if (status && status !== '') {
         params.set('status', status);
+    } else {
+        params.delete('status');
+    }
+    if (deviceName) {
+        params.set('search_device_name', deviceName);
+    } else {
+        params.delete('search_device_name');
+    }
+    if (deliveryMethod) {
+        params.set('search_delivery_method', deliveryMethod);
+    } else {
+        params.delete('search_delivery_method');
     }
     params.delete('page');
     
+    window.location.href = '?' + params.toString();
+}
+
+function changePerPage(perPage) {
+    const params = new URLSearchParams(window.location.search);
+    params.set('per_page', perPage);
+    params.delete('page');
     window.location.href = '?' + params.toString();
 }
 
@@ -480,13 +672,14 @@ function editProduct(productId) {
 }
 
 function copyProduct(productId) {
+    const message = '이 상품을 복사하시겠습니까?\n\n※ 복사된 상품은 판매종료 상태로 설정됩니다.';
     if (typeof showConfirm === 'function') {
-        showConfirm('이 상품을 복사하시겠습니까?', '상품 복사').then(confirmed => {
+        showConfirm(message, '상품 복사').then(confirmed => {
             if (confirmed) {
                 processCopyProduct(productId);
             }
         });
-    } else if (confirm('이 상품을 복사하시겠습니까?')) {
+    } else if (confirm(message)) {
         processCopyProduct(productId);
     }
 }
@@ -506,9 +699,9 @@ function processCopyProduct(productId) {
     .then(data => {
         if (data.success) {
             if (typeof showAlert === 'function') {
-                showAlert('상품이 복사되었습니다.', '완료');
+                showAlert('상품이 복사되었습니다.\n복사된 상품은 판매종료 상태로 설정되었습니다.', '완료');
             } else {
-                alert('상품이 복사되었습니다.');
+                alert('상품이 복사되었습니다.\n복사된 상품은 판매종료 상태로 설정되었습니다.');
             }
             location.reload();
         } else {
@@ -520,7 +713,6 @@ function processCopyProduct(productId) {
         }
     })
     .catch(error => {
-        console.error('Error:', error);
         if (typeof showAlert === 'function') {
             showAlert('상품 복사 중 오류가 발생했습니다.', '오류', true);
         } else {
@@ -593,7 +785,6 @@ function processBulkInactive(checkboxes) {
         }
     })
     .catch(error => {
-        console.error('Error:', error);
         if (typeof showAlert === 'function') {
             showAlert('상품 상태 변경 중 오류가 발생했습니다.', '오류', true);
         } else {

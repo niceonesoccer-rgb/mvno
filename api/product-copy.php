@@ -150,7 +150,7 @@ try {
         $newProductStmt->execute([
             ':seller_id' => $sellerId,
             ':product_type' => $productType,
-            ':status' => 'active'
+            ':status' => 'inactive'
         ]);
         
         $newProductId = $pdo->lastInsertId();

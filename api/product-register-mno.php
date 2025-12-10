@@ -34,10 +34,16 @@ if (!hasSellerPermission($currentUser['user_id'], 'mno')) {
     exit;
 }
 
+// 수정 모드 확인
+$isEditMode = isset($_POST['product_id']) && intval($_POST['product_id']) > 0;
+$productId = $isEditMode ? intval($_POST['product_id']) : 0;
+
 // 통신사폰 상품 데이터 수집
 $productData = [
     'seller_id' => $currentUser['user_id'],
     'board_type' => 'mno', // 고정값
+    'product_id' => $productId,
+    'status' => $_POST['product_status'] ?? ($isEditMode ? null : 'active'),
     'device_name' => $_POST['device_name'] ?? '',
     'device_price' => !empty($_POST['device_price']) ? floatval(str_replace(',', '', $_POST['device_price'])) : null,
     'device_capacity' => $_POST['device_capacity'] ?? '',
@@ -93,27 +99,96 @@ $productData = [
 if (empty($productData['device_name'])) {
     echo json_encode([
         'success' => false,
-        'message' => '단말기명을 입력해주세요.'
+        'message' => '단말기를 선택해주세요.'
     ]);
     exit;
 }
 
+// device_id도 함께 저장할 수 있도록 추가
+if (!empty($_POST['device_id'])) {
+    $productData['device_id'] = intval($_POST['device_id']);
+}
+
+// 디버깅: 저장될 데이터 확인
+error_log("MNO Product Data to Save:");
+error_log("  device_name: " . ($productData['device_name'] ?? '없음'));
+error_log("  device_price: " . ($productData['device_price'] ?? '없음'));
+error_log("  device_capacity: " . ($productData['device_capacity'] ?? '없음'));
+error_log("  seller_id: " . ($productData['seller_id'] ?? '없음'));
+
 // 통신사폰 상품 데이터 저장
 try {
+    // 테이블 존재 여부 확인
+    $pdo = getDBConnection();
+    if ($pdo) {
+        $checkTable = $pdo->query("SHOW TABLES LIKE 'product_mno_details'");
+        if (!$checkTable->fetch()) {
+            // 테이블이 없으면 생성 안내 메시지
+            echo json_encode([
+                'success' => false,
+                'message' => '데이터베이스 테이블이 생성되지 않았습니다.',
+                'error_details' => 'product_mno_details 테이블이 존재하지 않습니다.',
+                'solution' => '다음 URL에서 테이블을 생성하세요: /MVNO/database/install_mno_tables.php',
+                'debug_info' => [
+                    'device_name' => $productData['device_name'] ?? '없음',
+                    'device_price' => $productData['device_price'] ?? '없음',
+                    'device_capacity' => $productData['device_capacity'] ?? '없음',
+                    'seller_id' => $productData['seller_id'] ?? '없음'
+                ]
+            ]);
+            exit;
+        }
+    }
+    
     $productId = saveMnoProduct($productData);
     
     if ($productId === false) {
+        // 상세 에러 정보 가져오기
+        $errorMessage = '상품 등록에 실패했습니다.';
+        $errorDetails = '';
+        
+        // 마지막 DB 에러 확인
+        global $lastDbError;
+        if (isset($lastDbError)) {
+            $errorDetails = $lastDbError;
+        }
+        
+        // PDO 에러 확인
+        if ($pdo) {
+            $errorInfo = $pdo->errorInfo();
+            if (!empty($errorInfo[2])) {
+                $errorDetails = $errorInfo[2];
+            }
+        }
+        
         echo json_encode([
             'success' => false,
-            'message' => '상품 등록에 실패했습니다. 데이터베이스 연결을 확인해주세요.'
+            'message' => $errorMessage,
+            'error_details' => $errorDetails,
+            'debug_info' => [
+                'device_name' => $productData['device_name'] ?? '없음',
+                'device_price' => $productData['device_price'] ?? '없음',
+                'device_capacity' => $productData['device_capacity'] ?? '없음',
+                'seller_id' => $productData['seller_id'] ?? '없음'
+            ]
         ]);
         exit;
     }
 } catch (Exception $e) {
     error_log("Product registration error: " . $e->getMessage());
+    error_log("Stack trace: " . $e->getTraceAsString());
+    
     echo json_encode([
         'success' => false,
-        'message' => '상품 등록 중 오류가 발생했습니다: ' . $e->getMessage()
+        'message' => '상품 등록 중 오류가 발생했습니다.',
+        'error_details' => $e->getMessage(),
+        'error_trace' => $e->getTraceAsString(),
+        'debug_info' => [
+            'device_name' => $productData['device_name'] ?? '없음',
+            'device_price' => $productData['device_price'] ?? '없음',
+            'device_capacity' => $productData['device_capacity'] ?? '없음',
+            'seller_id' => $productData['seller_id'] ?? '없음'
+        ]
     ]);
     exit;
 }
