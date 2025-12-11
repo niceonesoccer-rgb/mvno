@@ -13,15 +13,15 @@ $status = $_GET['status'] ?? '';
 if ($status === '') {
     $status = null;
 }
-$seller_id = $_GET['seller_id'] ?? '';
+$search_query = $_GET['search_query'] ?? ''; // 통합 검색 필드
 $registration_place = $_GET['registration_place'] ?? '';
 $speed_option = $_GET['speed_option'] ?? '';
 $date_from = $_GET['date_from'] ?? '';
 $date_to = $_GET['date_to'] ?? '';
 $page = max(1, intval($_GET['page'] ?? 1));
 $perPage = intval($_GET['per_page'] ?? 20);
-// 허용된 per_page 값만 사용 (10, 50, 100)
-if (!in_array($perPage, [10, 50, 100])) {
+// 허용된 per_page 값만 사용 (10, 20, 50, 100)
+if (!in_array($perPage, [10, 20, 50, 100])) {
     $perPage = 20;
 }
 
@@ -45,10 +45,10 @@ try {
             $whereConditions[] = "p.status != 'deleted'";
         }
         
-        // 판매자 필터
-        if ($seller_id && $seller_id !== '') {
-            $whereConditions[] = 'p.seller_id = :seller_id';
-            $params[':seller_id'] = $seller_id;
+        // 통합 검색 필터 (속도 옵션만 SQL에서 처리)
+        if ($search_query && $search_query !== '') {
+            $whereConditions[] = 'inet.speed_option IS NOT NULL AND inet.speed_option LIKE :search_query';
+            $params[':search_query'] = '%' . $search_query . '%';
         }
         
         // 가입처 필터
@@ -77,9 +77,9 @@ try {
         
         // 전체 개수 조회
         $countStmt = $pdo->prepare("
-            SELECT COUNT(*) as total
+            SELECT COUNT(DISTINCT p.id) as total
             FROM products p
-            LEFT JOIN product_internet_details inet ON p.id = inet.product_id
+            INNER JOIN product_internet_details inet ON p.id = inet.product_id
             WHERE {$whereClause}
         ");
         $countStmt->execute($params);
@@ -87,50 +87,179 @@ try {
         $totalPages = ceil($totalProducts / $perPage);
         
         // 상품 목록 조회
-        $offset = ($page - 1) * $perPage;
-        $stmt = $pdo->prepare("
-            SELECT 
-                p.*,
-                CONCAT(inet.registration_place, ' ', inet.speed_option) AS product_name,
-                inet.registration_place AS provider,
-                inet.monthly_fee AS monthly_fee,
-                inet.speed_option AS speed_option,
-                u.name AS seller_name,
-                u.user_id AS seller_user_id
-            FROM products p
-            LEFT JOIN product_internet_details inet ON p.id = inet.product_id
-            LEFT JOIN users u ON p.seller_id = u.user_id
-            WHERE {$whereClause}
-            ORDER BY p.created_at DESC
-            LIMIT :limit OFFSET :offset
-        ");
-        
-        foreach ($params as $key => $value) {
-            $stmt->bindValue($key, $value);
+        // 통합 검색이 있으면 모든 데이터를 가져온 후 필터링, 없으면 페이지네이션 적용
+        try {
+            if ($search_query && $search_query !== '') {
+                // 통합 검색: 모든 데이터 가져온 후 필터링
+                $stmt = $pdo->prepare("
+                    SELECT 
+                        p.*,
+                        p.seller_id,
+                        CONCAT(inet.registration_place, ' ', inet.speed_option) AS product_name,
+                        inet.registration_place AS provider,
+                        inet.monthly_fee AS monthly_fee,
+                        inet.speed_option AS speed_option
+                    FROM products p
+                    INNER JOIN product_internet_details inet ON p.id = inet.product_id
+                    WHERE {$whereClause}
+                    ORDER BY p.id DESC
+                ");
+                
+                foreach ($params as $key => $value) {
+                    $stmt->bindValue($key, $value);
+                }
+                $stmt->execute();
+                $products = $stmt->fetchAll();
+            } else {
+                // 일반 조회: 페이지네이션 적용
+                $offset = ($page - 1) * $perPage;
+                $stmt = $pdo->prepare("
+                    SELECT 
+                        p.*,
+                        p.seller_id,
+                        CONCAT(inet.registration_place, ' ', inet.speed_option) AS product_name,
+                        inet.registration_place AS provider,
+                        inet.monthly_fee AS monthly_fee,
+                        inet.speed_option AS speed_option
+                    FROM products p
+                    INNER JOIN product_internet_details inet ON p.id = inet.product_id
+                    WHERE {$whereClause}
+                    ORDER BY p.id DESC
+                    LIMIT :limit OFFSET :offset
+                ");
+                
+                foreach ($params as $key => $value) {
+                    $stmt->bindValue($key, $value);
+                }
+                $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
+                $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+                $stmt->execute();
+                $products = $stmt->fetchAll();
+            }
+        } catch (PDOException $e) {
+            error_log("상품 목록 조회 오류: " . $e->getMessage());
+            throw $e;
         }
-        $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
-        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-        $stmt->execute();
         
-        $products = $stmt->fetchAll();
+        // 판매자 정보 매핑
+        $sellersFile = __DIR__ . '/../../includes/data/sellers.json';
+        $sellersData = [];
+        if (file_exists($sellersFile)) {
+            $sellersContent = file_get_contents($sellersFile);
+            $sellersJson = json_decode($sellersContent, true);
+            if ($sellersJson && isset($sellersJson['sellers'])) {
+                foreach ($sellersJson['sellers'] as $seller) {
+                    if (isset($seller['user_id'])) {
+                        $sellersData[(string)$seller['user_id']] = $seller;
+                    }
+                }
+            }
+        }
+        
+        foreach ($products as &$product) {
+            $sellerId = (string)($product['seller_id'] ?? '');
+            if ($sellerId && isset($sellersData[$sellerId])) {
+                $seller = $sellersData[$sellerId];
+                $product['seller_name'] = $seller['seller_name'] ?? $seller['name'] ?? '-';
+                $product['company_name'] = $seller['company_name'] ?? '-';
+                $product['seller_user_id'] = $sellerId;
+            } else {
+                $product['seller_name'] = '-';
+                $product['company_name'] = '-';
+                $product['seller_user_id'] = $sellerId;
+            }
+        }
+        unset($product);
+        
+        // 통합 검색 필터링 (판매자 ID, 판매자명, 회사명 검색)
+        if ($search_query && $search_query !== '') {
+            $searchLower = mb_strtolower($search_query, 'UTF-8');
+            $products = array_filter($products, function($product) use ($searchLower) {
+                // 판매자 ID 검색
+                $sellerId = (string)($product['seller_user_id'] ?? $product['seller_id'] ?? '');
+                if (mb_strpos(mb_strtolower($sellerId, 'UTF-8'), $searchLower) !== false) {
+                    return true;
+                }
+                
+                // 판매자명 검색
+                $sellerName = mb_strtolower($product['seller_name'] ?? '', 'UTF-8');
+                if (mb_strpos($sellerName, $searchLower) !== false) {
+                    return true;
+                }
+                
+                // 회사명 검색
+                $companyName = mb_strtolower($product['company_name'] ?? '', 'UTF-8');
+                if (mb_strpos($companyName, $searchLower) !== false) {
+                    return true;
+                }
+                
+                // 속도 옵션 검색 (이미 SQL에서 처리했지만 추가 검증)
+                $speedOption = mb_strtolower($product['speed_option'] ?? '', 'UTF-8');
+                if (mb_strpos($speedOption, $searchLower) !== false) {
+                    return true;
+                }
+                
+                return false;
+            });
+            $products = array_values($products);
+        }
+        
+        // 통합 검색으로 인한 필터링 후 페이지네이션 재계산
+        if ($search_query && $search_query !== '') {
+            // 판매자 정보로 필터링된 경우 전체 개수 재계산
+            $totalProducts = count($products);
+            $totalPages = ceil($totalProducts / $perPage);
+            
+            // 페이지네이션 적용
+            $offset = ($page - 1) * $perPage;
+            $products = array_slice($products, $offset, $perPage);
+        } else {
+            // 통합 검색이 없는 경우 기존 페이지네이션 사용 (이미 계산됨)
+            // totalPages는 이미 계산되어 있음
+        }
     }
 } catch (PDOException $e) {
     error_log("Error fetching Internet products: " . $e->getMessage());
 }
 
-// 판매자 목록 가져오기 (필터용)
+// 판매자 목록 가져오기 (필터용) - sellers.json에서 가져오기
 $sellers = [];
 try {
     if ($pdo) {
-        $sellerStmt = $pdo->prepare("
-            SELECT DISTINCT u.user_id, u.name, u.company_name
+        // 먼저 인터넷 상품을 등록한 판매자 ID 목록 가져오기
+        $sellerIdsStmt = $pdo->prepare("
+            SELECT DISTINCT p.seller_id as user_id
             FROM products p
-            LEFT JOIN users u ON p.seller_id = u.user_id
+            INNER JOIN product_internet_details inet ON p.id = inet.product_id
             WHERE p.product_type = 'internet' AND p.status != 'deleted'
-            ORDER BY u.name
         ");
-        $sellerStmt->execute();
-        $sellers = $sellerStmt->fetchAll();
+        $sellerIdsStmt->execute();
+        $sellerIds = $sellerIdsStmt->fetchAll(PDO::FETCH_COLUMN);
+        $sellerIds = array_map('strval', $sellerIds);
+        
+        // sellers.json에서 해당 판매자 정보 가져오기
+        $sellersFile = __DIR__ . '/../../includes/data/sellers.json';
+        if (file_exists($sellersFile)) {
+            $sellersContent = file_get_contents($sellersFile);
+            $sellersJson = json_decode($sellersContent, true);
+            if ($sellersJson && isset($sellersJson['sellers'])) {
+                foreach ($sellersJson['sellers'] as $seller) {
+                    $sellerUserId = (string)($seller['user_id'] ?? '');
+                    if ($sellerUserId && in_array($sellerUserId, $sellerIds)) {
+                        $sellers[] = [
+                            'user_id' => $seller['user_id'],
+                            'name' => $seller['seller_name'] ?? $seller['name'] ?? $seller['user_id'],
+                            'company_name' => $seller['company_name'] ?? ''
+                        ];
+                    }
+                }
+            }
+        }
+        
+        // 이름으로 정렬
+        usort($sellers, function($a, $b) {
+            return strcmp($a['name'], $b['name']);
+        });
     }
 } catch (PDOException $e) {
     error_log("Error fetching sellers: " . $e->getMessage());
@@ -173,12 +302,7 @@ try {
         font-size: 28px;
         font-weight: 700;
         color: #1f2937;
-        margin-bottom: 8px;
-    }
-    
-    .page-header p {
-        font-size: 16px;
-        color: #6b7280;
+        margin: 0;
     }
     
     .btn {
@@ -243,6 +367,19 @@ try {
         font-weight: 600;
         color: #374151;
         min-width: 80px;
+        text-align: right;
+    }
+    
+    .filter-group {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        justify-content: flex-start;
+    }
+    
+    .filter-select,
+    .filter-input {
+        text-align: left;
     }
     
     .filter-select {
@@ -277,6 +414,7 @@ try {
         color: white;
         cursor: pointer;
         transition: all 0.2s;
+        text-align: center;
     }
     
     .search-button:hover {
@@ -456,8 +594,16 @@ try {
 <div class="product-list-container">
     <div class="page-header">
         <div>
-            <h1>인터넷 상품 관리</h1>
-            <p>전체 인터넷 상품을 관리할 수 있습니다.</p>
+            <h1 style="margin: 0;">인터넷 상품 관리</h1>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <label style="font-size: 14px; color: #374151; font-weight: 600;">페이지 수:</label>
+            <select class="filter-select" id="per_page_select" onchange="changePerPage()" style="width: 80px;">
+                <option value="10" <?php echo $perPage === 10 ? 'selected' : ''; ?>>10개</option>
+                <option value="20" <?php echo $perPage === 20 ? 'selected' : ''; ?>>20개</option>
+                <option value="50" <?php echo $perPage === 50 ? 'selected' : ''; ?>>50개</option>
+                <option value="100" <?php echo $perPage === 100 ? 'selected' : ''; ?>>100개</option>
+            </select>
         </div>
     </div>
     
@@ -465,8 +611,8 @@ try {
     <div class="filter-bar">
         <div class="filter-content">
             <div class="filter-row">
-                <div class="filter-group">
-                    <label class="filter-label">상태:</label>
+                <div class="filter-group" style="margin-right: -8px;">
+                    <label class="filter-label" style="text-align: right;">상태:</label>
                     <select class="filter-select" id="filter_status">
                         <option value="">전체</option>
                         <option value="active" <?php echo $status === 'active' ? 'selected' : ''; ?>>판매중</option>
@@ -474,20 +620,8 @@ try {
                     </select>
                 </div>
                 
-                <div class="filter-group">
-                    <label class="filter-label">판매자:</label>
-                    <select class="filter-select" id="filter_seller_id">
-                        <option value="">전체</option>
-                        <?php foreach ($sellers as $seller): ?>
-                            <option value="<?php echo htmlspecialchars($seller['user_id']); ?>" <?php echo $seller_id === $seller['user_id'] ? 'selected' : ''; ?>>
-                                <?php echo htmlspecialchars($seller['company_name'] ? $seller['company_name'] : ($seller['name'] ?? $seller['user_id'])); ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                
-                <div class="filter-group">
-                    <label class="filter-label">가입처:</label>
+                <div class="filter-group" style="margin-left: -8px; margin-right: -8px;">
+                    <label class="filter-label" style="text-align: right;">가입처:</label>
                     <select class="filter-select" id="filter_registration_place">
                         <option value="">전체</option>
                         <?php foreach ($registrationPlaces as $place): ?>
@@ -498,40 +632,35 @@ try {
                     </select>
                 </div>
                 
-                <div class="filter-group">
-                    <label class="filter-label">속도:</label>
-                    <input type="text" class="filter-input" id="filter_speed_option" placeholder="속도 옵션 검색" value="<?php echo htmlspecialchars($speed_option); ?>" style="width: 150px;">
+                <div class="filter-group" style="margin-left: -8px; margin-right: -8px;">
+                    <label class="filter-label" style="text-align: right;">인터넷속도:</label>
+                    <select class="filter-select" id="filter_speed_option">
+                        <option value="">전체</option>
+                        <option value="100M" <?php echo $speed_option === '100M' ? 'selected' : ''; ?>>100M</option>
+                        <option value="500M" <?php echo $speed_option === '500M' ? 'selected' : ''; ?>>500M</option>
+                        <option value="1G" <?php echo $speed_option === '1G' ? 'selected' : ''; ?>>1G</option>
+                    </select>
                 </div>
-            </div>
-            
-            <div class="filter-row">
-                <div class="filter-group">
-                    <label class="filter-label">등록일:</label>
+                
+                <div class="filter-group" style="margin-left: -8px; margin-right: -8px;">
+                    <label class="filter-label" style="text-align: right;">등록일:</label>
                     <div class="filter-input-group">
                         <input type="date" class="filter-input" id="filter_date_from" value="<?php echo htmlspecialchars($date_from); ?>">
                         <span style="color: #6b7280;">~</span>
                         <input type="date" class="filter-input" id="filter_date_to" value="<?php echo htmlspecialchars($date_to); ?>">
                     </div>
                 </div>
+                
+                <div class="filter-group" style="flex: 1; margin-left: -8px;">
+                    <label class="filter-label" style="text-align: right;">통합 검색:</label>
+                    <input type="text" class="filter-input" id="filter_search_query" placeholder="판매자 ID / 판매자명 / 회사명 / 속도 검색" value="<?php echo htmlspecialchars($search_query); ?>" style="width: 100%;">
+                </div>
             </div>
         </div>
         
         <div class="filter-buttons">
-            <button class="search-button" onclick="applyFilters()" style="width: 100%;">검색</button>
-            <button class="search-button" onclick="resetFilters()" style="background: #6b7280; width: 100%;">초기화</button>
-        </div>
-    </div>
-    
-    <!-- 페이지당 표시 선택 -->
-    <div style="display: flex; justify-content: flex-end; margin-bottom: 16px;">
-        <div style="display: flex; align-items: center; gap: 8px;">
-            <label style="font-size: 14px; color: #374151; font-weight: 600;">페이지당 표시:</label>
-            <select class="filter-select" id="per_page_select" onchange="changePerPage()" style="width: 80px;">
-                <option value="10" <?php echo $perPage === 10 ? 'selected' : ''; ?>>10개</option>
-                <option value="20" <?php echo $perPage === 20 ? 'selected' : ''; ?>>20개</option>
-                <option value="50" <?php echo $perPage === 50 ? 'selected' : ''; ?>>50개</option>
-                <option value="100" <?php echo $perPage === 100 ? 'selected' : ''; ?>>100개</option>
-            </select>
+            <button class="search-button" onclick="applyFilters()" style="width: 100%; text-align: center;">검색</button>
+            <button class="search-button" onclick="resetFilters()" style="background: #6b7280; width: 100%; text-align: center;">초기화</button>
         </div>
     </div>
     
@@ -551,10 +680,12 @@ try {
             <table class="product-table">
                 <thead>
                     <tr>
-                        <th style="text-align: center;">번호</th>
-                        <th style="text-align: center;">상품명</th>
+                        <th style="text-align: center;">상품등록번호</th>
+                        <th style="text-align: center;">아이디</th>
+                        <th style="text-align: center;">판매자명</th>
+                        <th style="text-align: center;">회사명</th>
                         <th>가입처</th>
-                        <th>판매자</th>
+                        <th>인터넷속도</th>
                         <th style="text-align: right;">월 요금</th>
                         <th style="text-align: right;">조회수</th>
                         <th style="text-align: right;">찜</th>
@@ -567,19 +698,21 @@ try {
                 <tbody>
                     <?php foreach ($products as $index => $product): ?>
                         <tr>
-                            <td style="text-align: center;"><?php echo $totalProducts - (($page - 1) * $perPage + $index); ?></td>
-                            <td style="text-align: left;"><?php echo htmlspecialchars($product['product_name'] ?? '-'); ?></td>
-                            <td><?php echo htmlspecialchars($product['provider'] ?? '-'); ?></td>
-                            <td>
+                            <td style="text-align: center;"><?php echo htmlspecialchars($product['id'] ?? '-'); ?></td>
+                            <td style="text-align: center;">
                                 <?php 
-                                $sellerDisplay = $product['seller_name'] ?? $product['seller_user_id'] ?? '-';
-                                if ($product['seller_user_id']) {
-                                    echo '<a href="/MVNO/admin/users/member-detail.php?user_id=' . urlencode($product['seller_user_id']) . '" style="color: #3b82f6; text-decoration: none;">' . htmlspecialchars($sellerDisplay) . '</a>';
+                                $sellerId = $product['seller_user_id'] ?? $product['seller_id'] ?? '-';
+                                if ($sellerId && $sellerId !== '-') {
+                                    echo '<a href="/MVNO/admin/users/seller-detail.php?user_id=' . urlencode($sellerId) . '" style="color: #3b82f6; text-decoration: none; font-weight: 600;">' . htmlspecialchars($sellerId) . '</a>';
                                 } else {
-                                    echo htmlspecialchars($sellerDisplay);
+                                    echo '-';
                                 }
                                 ?>
                             </td>
+                            <td style="text-align: center;"><?php echo htmlspecialchars($product['seller_name'] ?? '-'); ?></td>
+                            <td style="text-align: center;"><?php echo htmlspecialchars($product['company_name'] ?? '-'); ?></td>
+                            <td><?php echo htmlspecialchars($product['provider'] ?? '-'); ?></td>
+                            <td><?php echo htmlspecialchars($product['speed_option'] ?? '-'); ?></td>
                             <td style="text-align: right;"><?php echo number_format($product['monthly_fee'] ?? 0); ?>원</td>
                             <td style="text-align: right;"><?php echo number_format($product['view_count'] ?? 0); ?></td>
                             <td style="text-align: right;"><?php echo number_format($product['favorite_count'] ?? 0); ?></td>
@@ -606,9 +739,9 @@ try {
                     <?php
                     $queryParams = [];
                     if ($status) $queryParams['status'] = $status;
-                    if ($seller_id) $queryParams['seller_id'] = $seller_id;
                     if ($registration_place) $queryParams['registration_place'] = $registration_place;
                     if ($speed_option) $queryParams['speed_option'] = $speed_option;
+                    if ($search_query) $queryParams['search_query'] = $search_query;
                     if ($date_from) $queryParams['date_from'] = $date_from;
                     if ($date_to) $queryParams['date_to'] = $date_to;
                     $queryParams['per_page'] = $perPage;
@@ -640,12 +773,6 @@ function applyFilters() {
         params.set('status', status);
     }
     
-    // 판매자
-    const sellerId = document.getElementById('filter_seller_id').value;
-    if (sellerId && sellerId !== '') {
-        params.set('seller_id', sellerId);
-    }
-    
     // 가입처
     const registrationPlace = document.getElementById('filter_registration_place').value;
     if (registrationPlace && registrationPlace !== '') {
@@ -653,9 +780,15 @@ function applyFilters() {
     }
     
     // 속도 옵션
-    const speedOption = document.getElementById('filter_speed_option').value.trim();
-    if (speedOption) {
+    const speedOption = document.getElementById('filter_speed_option').value;
+    if (speedOption && speedOption !== '') {
         params.set('speed_option', speedOption);
+    }
+    
+    // 통합 검색
+    const searchQuery = document.getElementById('filter_search_query').value.trim();
+    if (searchQuery) {
+        params.set('search_query', searchQuery);
     }
     
     // 등록일
@@ -694,9 +827,9 @@ function changePerPage() {
 
 function resetFilters() {
     document.getElementById('filter_status').value = '';
-    document.getElementById('filter_seller_id').value = '';
     document.getElementById('filter_registration_place').value = '';
     document.getElementById('filter_speed_option').value = '';
+    document.getElementById('filter_search_query').value = '';
     document.getElementById('filter_date_from').value = '';
     document.getElementById('filter_date_to').value = '';
     
@@ -705,7 +838,7 @@ function resetFilters() {
 
 // Enter 키로 검색
 document.addEventListener('DOMContentLoaded', function() {
-    const searchInput = document.getElementById('filter_speed_option');
+    const searchInput = document.getElementById('filter_search_query');
     if (searchInput) {
         searchInput.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {

@@ -12,6 +12,7 @@ include '../includes/header.php';
 
 // 통신사폰 데이터 가져오기
 require_once '../includes/data/phone-data.php';
+require_once '../includes/data/plan-data.php';
 $phone = getPhoneDetailData($phone_id);
 if (!$phone) {
     // 데이터가 없으면 기본값 사용
@@ -42,280 +43,131 @@ if (!$phone) {
     <!-- 통신사폰 상세 레이아웃 (모듈 사용) -->
     <?php include '../includes/layouts/phone-detail-layout.php'; ?>
 
-    <!-- 통신사폰 상세 정보 섹션 -->
-    <section class="plan-detail-info-section">
-        <div class="content-layout">
-            <h2 class="section-title">상세정보</h2>
-            
-            <!-- 기본 정보 카드 -->
-            <div class="plan-info-card">
-                <h3 class="plan-info-card-title">기본 정보</h3>
-                <div class="plan-info-card-content">
-                    <div class="plan-detail-grid">
-                        <div class="plan-detail-item">
-                            <div class="plan-detail-label">기기명</div>
-                            <div class="plan-detail-value">
-                                <?php echo htmlspecialchars($phone['device_name']); ?>
-                            </div>
-                        </div>
-                        <div class="plan-detail-item">
-                            <div class="plan-detail-label">용량</div>
-                            <div class="plan-detail-value"><?php echo htmlspecialchars($phone['device_storage']); ?></div>
-                        </div>
-                        <div class="plan-detail-item">
-                            <div class="plan-detail-label">출고가</div>
-                            <div class="plan-detail-value"><?php echo htmlspecialchars($phone['device_price']); ?></div>
-                        </div>
-                        <div class="plan-detail-item">
-                            <div class="plan-detail-label">통신사</div>
-                            <div class="plan-detail-value"><?php echo htmlspecialchars($phone['provider']); ?></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 요금제 정보 카드 -->
-            <div class="plan-info-card">
-                <h3 class="plan-info-card-title">요금제 정보</h3>
-                <div class="plan-info-card-content">
-                    <div class="plan-detail-grid">
-                        <div class="plan-detail-item">
-                            <div class="plan-detail-label">요금제명</div>
-                            <div class="plan-detail-value"><?php echo htmlspecialchars($phone['plan_name']); ?></div>
-                        </div>
-                        <div class="plan-detail-item">
-                            <div class="plan-detail-label">월 요금</div>
-                            <div class="plan-detail-value"><?php echo htmlspecialchars($phone['monthly_price']); ?></div>
-                        </div>
-                        <div class="plan-detail-item">
-                            <div class="plan-detail-label">유지기간</div>
-                            <div class="plan-detail-value"><?php echo htmlspecialchars($phone['maintenance_period']); ?></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 지원금 정보 카드 -->
-            <div class="plan-info-card">
-                <h3 class="plan-info-card-title">지원금 정보</h3>
-                <div class="plan-info-card-content">
-                    <div class="plan-detail-grid">
-                        <div class="plan-detail-item">
-                            <div class="plan-detail-label">공통지원할인 번호이동</div>
-                            <?php 
-                            // formatSupportValue 함수가 정의되어 있는지 확인
-                            if (!function_exists('formatSupportValue')) {
-                                function formatSupportValue($value) {
-                                    $numeric_value = floatval(str_replace(',', '', $value));
-                                    $is_negative = $numeric_value < 0;
-                                    $abs_value = abs($numeric_value);
-                                    if ($abs_value == floor($abs_value)) {
-                                        $formatted = ($is_negative ? '-' : '') . number_format($abs_value, 0);
-                                    } else {
-                                        $formatted = ($is_negative ? '-' : '') . number_format($abs_value, 1);
-                                    }
-                                    return [
-                                        'value' => $formatted,
-                                        'is_negative' => $is_negative
-                                    ];
-                                }
-                            }
-                            $common_port = formatSupportValue($phone['common_number_port']);
-                            ?>
-                            <div class="plan-detail-value"><?php echo htmlspecialchars($common_port['value']); ?>만원</div>
-                        </div>
-                        <div class="plan-detail-item">
-                            <div class="plan-detail-label">공통지원할인 기기변경</div>
-                            <?php 
-                            $common_change = formatSupportValue($phone['common_device_change']);
-                            ?>
-                            <div class="plan-detail-value"><?php echo htmlspecialchars($common_change['value']); ?>만원</div>
-                        </div>
-                        <div class="plan-detail-item">
-                            <div class="plan-detail-label">선택약정할인 번호이동</div>
-                            <?php 
-                            $contract_port = formatSupportValue($phone['contract_number_port']);
-                            ?>
-                            <div class="plan-detail-value"><?php echo htmlspecialchars($contract_port['value']); ?>만원</div>
-                        </div>
-                        <div class="plan-detail-item">
-                            <div class="plan-detail-label">선택약정할인 기기변경</div>
-                            <?php 
-                            $contract_change = formatSupportValue($phone['contract_device_change']);
-                            ?>
-                            <div class="plan-detail-value"><?php echo htmlspecialchars($contract_change['value']); ?>만원</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 유심 정보 카드 -->
-            <div class="plan-info-card">
-                <h3 class="plan-info-card-title">유심 정보</h3>
-                <div class="plan-info-card-content">
-                    <div class="plan-detail-grid">
-                        <div class="plan-detail-item">
-                            <div class="plan-detail-label">일반 유심</div>
-                            <div class="plan-detail-value">배송가능 (6,600원)</div>
-                        </div>
-                        <div class="plan-detail-item">
-                            <div class="plan-detail-label">NFC 유심</div>
-                            <div class="plan-detail-value">배송불가</div>
-                        </div>
-                        <div class="plan-detail-item">
-                            <div class="plan-detail-label">eSIM</div>
-                            <div class="plan-detail-value">개통가능 (2,750원)</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-        </div>
-    </section>
-
-    <!-- 초과 요금 섹션 -->
-    <section class="plan-exceed-rate-section">
-        <div class="content-layout">
-            <div class="plan-info-card">
-                <h3 class="plan-info-card-title">기본 제공 초과 시</h3>
-                <div class="plan-info-card-content">
-                    <div class="plan-detail-grid">
-                        <div class="plan-detail-item">
-                            <div class="plan-detail-label">데이터</div>
-                            <div class="plan-detail-value">
-                                22.53원/MB
-                            </div>
-                        </div>
-                        <div class="plan-detail-item">
-                            <div class="plan-detail-label">음성 통화</div>
-                            <div class="plan-detail-value">1.98원/초</div>
-                        </div>
-                        <div class="plan-detail-item">
-                            <div class="plan-detail-label">부가/영상통화</div>
-                            <div class="plan-detail-value">3.3원/초</div>
-                        </div>
-                        <div class="plan-detail-item">
-                            <div class="plan-detail-label">단문메시지(SMS)</div>
-                            <div class="plan-detail-value">22원/개</div>
-                        </div>
-                        <div class="plan-detail-item">
-                            <div class="plan-detail-label">장문 텍스트형(MMS)</div>
-                            <div class="plan-detail-value">44원/개</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="plan-exceed-rate-notice">
-                문자메시지 기본제공 혜택을 약관에 정한 기준보다 많이 사용하거나 스팸, 광고 목적으로 이용한 것이 확인되면 추가 요금을 내야 하거나 서비스 이용이 정지될 수 있어요.
-            </div>
-        </div>
-    </section>
-
-    <!-- 판매자 추가 정보 섹션 -->
-    <section class="plan-seller-info-section">
-        <div class="content-layout">
-            <div class="plan-info-card">
-                <h3 class="plan-info-card-title">혜택 및 유의사항</h3>
-                <div class="plan-info-card-content">
-                    <div class="plan-seller-additional-text">
-                        여기 추가내용
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
     <!-- 통신사폰 리뷰 섹션 -->
     <section class="phone-review-section" id="phoneReviewSection">
         <div class="content-layout">
             <div class="plan-review-header">
                 <?php 
-                $company_name = $phone['company_name'] ?? '쉐이크모바일';
+                $company_name_raw = $phone['company_name'] ?? '쉐이크모바일';
+                // "스마트모바일" → "스마트"로 변환
+                $company_name = $company_name_raw;
+                if (strpos($company_name_raw, '스마트모바일') !== false) {
+                    $company_name = '스마트';
+                } elseif (strpos($company_name_raw, '모바일') !== false) {
+                    // "XX모바일" 형식에서 "XX"만 추출
+                    $company_name = str_replace('모바일', '', $company_name_raw);
+                }
                 ?>
                 <span class="plan-review-logo-text"><?php echo htmlspecialchars($company_name); ?></span>
                 <h2 class="section-title">리뷰</h2>
             </div>
             
+            <?php
+            // 정렬 방식 가져오기 (기본값: 높은 평점순)
+            $sort = $_GET['review_sort'] ?? 'rating_desc';
+            if (!in_array($sort, ['rating_desc', 'rating_asc', 'created_desc'])) {
+                $sort = 'rating_desc';
+            }
+            
+            // 실제 리뷰 데이터 가져오기 (같은 판매자의 같은 타입의 모든 상품 리뷰 통합)
+            $reviews = getProductReviews($phone_id, 'mno', 20, $sort);
+            $averageRating = getProductAverageRating($phone_id, 'mno');
+            $reviewCount = getProductReviewCount($phone_id, 'mno');
+            $hasReviews = $reviewCount > 0;
+            ?>
+            <?php if ($hasReviews): ?>
             <div class="plan-review-summary">
                 <div class="plan-review-rating">
                     <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M13.1479 3.1366C12.7138 2.12977 11.2862 2.12977 10.8521 3.1366L8.75804 7.99389L3.48632 8.48228C2.3937 8.58351 1.9524 9.94276 2.77717 10.6665L6.75371 14.156L5.58995 19.3138C5.34855 20.3837 6.50365 21.2235 7.44697 20.664L12 17.9635L16.553 20.664C17.4963 21.2235 18.6514 20.3837 18.4101 19.3138L17.2463 14.156L21.2228 10.6665C22.0476 9.94276 21.6063 8.58351 20.5137 8.48228L15.242 7.99389L13.1479 3.1366Z" fill="#FAB005"/>
+                        <path d="M13.1479 3.1366C12.7138 2.12977 11.2862 2.12977 10.8521 3.1366L8.75804 7.99389L3.48632 8.48228C2.3937 8.58351 1.9524 9.94276 2.77717 10.6665L6.75371 14.156L5.58995 19.3138C5.34855 20.3837 6.50365 21.2235 7.44697 20.664L12 17.9635L16.553 20.664C17.4963 21.2235 18.6514 20.3837 18.4101 19.3138L17.2463 14.156L21.2228 10.6665C22.0476 9.94276 21.6063 8.58351 20.5137 8.48228L15.242 7.99389L13.1479 3.1366Z" fill="#EF4444"/>
                     </svg>
-                    <span class="plan-review-rating-score">4.3</span>
+                    <span class="plan-review-rating-score"><?php echo htmlspecialchars($averageRating > 0 ? number_format($averageRating, 1) : '0.0'); ?></span>
+                    <span class="plan-review-rating-count"><?php echo number_format($reviewCount); ?>개</span>
                 </div>
                 <div class="plan-review-categories">
                     <div class="plan-review-category">
-                        <span class="plan-review-category-label">친절해요</span>
-                        <span class="plan-review-category-score">4.2</span>
+                        <span class="plan-review-category-label">고객센터</span>
+                        <span class="plan-review-category-score"><?php echo htmlspecialchars($averageRating > 0 ? number_format($averageRating - 0.1, 1) : '0.0'); ?></span>
                         <div class="plan-review-stars">
-                            <span>★★★★☆</span>
+                            <span><?php echo getStarsFromRating(round($averageRating)); ?></span>
                         </div>
                     </div>
                     <div class="plan-review-category">
-                        <span class="plan-review-category-label">개통 빨라요</span>
-                        <span class="plan-review-category-score">4.5</span>
+                        <span class="plan-review-category-label">개통 과정</span>
+                        <span class="plan-review-category-score"><?php echo htmlspecialchars($averageRating > 0 ? number_format($averageRating + 0.2, 1) : '0.0'); ?></span>
                         <div class="plan-review-stars">
-                            <span>★★★★☆</span>
+                            <span><?php echo getStarsFromRating(round($averageRating)); ?></span>
+                        </div>
+                    </div>
+                    <div class="plan-review-category">
+                        <span class="plan-review-category-label">개통 후 만족도</span>
+                        <span class="plan-review-category-score"><?php echo htmlspecialchars($averageRating > 0 ? number_format($averageRating - 0.1, 1) : '0.0'); ?></span>
+                        <div class="plan-review-stars">
+                            <span><?php echo getStarsFromRating(round($averageRating)); ?></span>
                         </div>
                     </div>
                 </div>
             </div>
+            <?php endif; ?>
 
             <div class="plan-review-count-section">
-                <span class="plan-review-count">8,247개</span>
+                <div class="plan-review-count-sort-wrapper">
+                    <span class="plan-review-count">총 <?php echo number_format($reviewCount); ?>개</span>
+                    <div class="plan-review-sort-select-wrapper">
+                        <select class="plan-review-sort-select" id="phoneReviewSortSelect" aria-label="리뷰 정렬 방식 선택">
+                            <option value="rating_desc" <?php echo $sort === 'rating_desc' ? 'selected' : ''; ?>>높은 평점순</option>
+                            <option value="rating_asc" <?php echo $sort === 'rating_asc' ? 'selected' : ''; ?>>낮은 평점순</option>
+                            <option value="created_desc" <?php echo $sort === 'created_desc' ? 'selected' : ''; ?>>최신순</option>
+                        </select>
+                    </div>
+                </div>
+                <?php
+                // 로그인한 사용자에게만 리뷰 작성 버튼 표시
+                require_once '../includes/data/auth-functions.php';
+                $currentUserId = getCurrentUserId();
+                if ($currentUserId): ?>
+                    <button class="plan-review-write-btn" id="phoneReviewWriteBtn">리뷰 작성</button>
+                <?php endif; ?>
             </div>
 
             <div class="plan-review-list" id="phoneReviewList">
-                <div class="plan-review-item">
-                    <div class="plan-review-item-header">
-                        <span class="plan-review-author">김*호</span>
-                        <div class="plan-review-stars">
-                            <span>★★★★★</span>
+                <?php if (!empty($reviews)): ?>
+                    <?php foreach (array_slice($reviews, 0, 5) as $review): ?>
+                        <div class="plan-review-item">
+                            <div class="plan-review-item-header">
+                                <span class="plan-review-author"><?php echo htmlspecialchars($review['author_name'] ?? '익명'); ?></span>
+                                <div class="plan-review-stars">
+                                    <span><?php echo htmlspecialchars($review['stars'] ?? '★★★★☆'); ?></span>
+                                </div>
+                                <span class="plan-review-date"><?php echo htmlspecialchars($review['date_ago'] ?? '오늘'); ?></span>
+                            </div>
+                            <p class="plan-review-content"><?php echo htmlspecialchars($review['content'] ?? ''); ?></p>
+                            <?php if (!empty($phone['device_name'])): ?>
+                                <div class="plan-review-tags">
+                                    <span class="plan-review-tag"><?php echo htmlspecialchars($phone['device_name']); ?></span>
+                                </div>
+                            <?php endif; ?>
                         </div>
-                        <span class="plan-review-date">3일 전</span>
+                    <?php endforeach; ?>
+                    <?php if (count($reviews) > 5): ?>
+                        <?php foreach (array_slice($reviews, 5) as $review): ?>
+                            <div class="plan-review-item" style="display: none;">
+                                <div class="plan-review-item-header">
+                                    <span class="plan-review-author"><?php echo htmlspecialchars($review['author_name'] ?? '익명'); ?></span>
+                                    <div class="plan-review-stars">
+                                        <span><?php echo htmlspecialchars($review['stars'] ?? '★★★★☆'); ?></span>
+                                    </div>
+                                    <span class="plan-review-date"><?php echo htmlspecialchars($review['date_ago'] ?? '오늘'); ?></span>
+                                </div>
+                                <p class="plan-review-content"><?php echo htmlspecialchars($review['content'] ?? ''); ?></p>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                <?php else: ?>
+                    <div class="plan-review-item">
+                        <p class="plan-review-content" style="text-align: center; color: #9ca3af; padding: 20px;">아직 리뷰가 없습니다.</p>
                     </div>
-                    <p class="plan-review-content">통신사폰 구매했는데 정말 만족해요. 기기 할인도 많이 받고 요금제도 좋아서 추천합니다. 고객센터도 친절하게 상담해주셨어요.</p>
-                </div>
-                <div class="plan-review-item">
-                    <div class="plan-review-item-header">
-                        <span class="plan-review-author">이*영</span>
-                        <div class="plan-review-stars">
-                            <span>★★★★★</span>
-                        </div>
-                        <span class="plan-review-date">7일 전</span>
-                    </div>
-                    <p class="plan-review-content">번호이동으로 가입했는데 개통이 빠르고 안정적이에요. 통신 품질도 기존 통신사와 동일해서 만족합니다. 할인 혜택도 좋아요.</p>
-                </div>
-                <div class="plan-review-item">
-                    <div class="plan-review-item-header">
-                        <span class="plan-review-author">박*준</span>
-                        <div class="plan-review-stars">
-                            <span>★★★★☆</span>
-                        </div>
-                        <span class="plan-review-date">12일 전</span>
-                    </div>
-                    <p class="plan-review-content">신규 가입으로 진행했는데 번호도 마음에 들고 개통도 빠르게 되었어요. 지원금도 많이 받아서 좋았습니다.</p>
-                </div>
-                <div class="plan-review-item">
-                    <div class="plan-review-item-header">
-                        <span class="plan-review-author">최*수</span>
-                        <div class="plan-review-stars">
-                            <span>★★★★★</span>
-                        </div>
-                        <span class="plan-review-date">18일 전</span>
-                    </div>
-                    <p class="plan-review-content">기기 변경으로 가입했는데 할인 혜택이 정말 좋아요. 기존보다 훨씬 저렴하게 구매할 수 있어서 만족합니다.</p>
-                </div>
-                <div class="plan-review-item">
-                    <div class="plan-review-item-header">
-                        <span class="plan-review-author">정*민</span>
-                        <div class="plan-review-stars">
-                            <span>★★★★★</span>
-                        </div>
-                        <span class="plan-review-date">24일 전</span>
-                    </div>
-                    <p class="plan-review-content">통신사폰 처음 사용해봤는데 생각보다 괜찮아요. 통신 품질도 좋고 가격도 합리적입니다. 주변 사람들한테도 추천했어요.</p>
-                </div>
+                <?php endif; ?>
                 <div class="plan-review-item" style="display: none;">
                     <div class="plan-review-item-header">
                         <span class="plan-review-author">최*수</span>
@@ -522,6 +374,141 @@ include '../includes/footer.php';
 <script src="/MVNO/assets/js/favorite-heart.js" defer></script>
 
 <?php
+// 리뷰 작성 모달 포함
+$prefix = 'phone';
+$speedLabel = '개통 빨라요';
+$formId = 'phoneReviewForm';
+$modalId = 'phoneReviewModal';
+$textareaId = 'phoneReviewText';
+include '../includes/components/order-review-modal.php';
+?>
+
+<script>
+// 리뷰 작성 기능
+document.addEventListener('DOMContentLoaded', function() {
+    const reviewWriteBtn = document.getElementById('phoneReviewWriteBtn');
+    const reviewModal = document.getElementById('phoneReviewModal');
+    const reviewForm = document.getElementById('phoneReviewForm');
+    const reviewModalOverlay = reviewModal ? reviewModal.querySelector('.phone-review-modal-overlay') : null;
+    const reviewModalClose = reviewModal ? reviewModal.querySelector('.phone-review-modal-close') : null;
+    
+    if (!reviewWriteBtn || !reviewModal || !reviewForm) {
+        return;
+    }
+    
+    // 리뷰 작성 버튼 클릭
+    reviewWriteBtn.addEventListener('click', function() {
+        reviewModal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    });
+    
+    // 모달 닫기
+    function closeReviewModal() {
+        reviewModal.style.display = 'none';
+        document.body.style.overflow = '';
+        reviewForm.reset();
+        // 별점 초기화
+        const starInputs = reviewForm.querySelectorAll('input[type="radio"]');
+        starInputs.forEach(input => {
+            input.checked = false;
+        });
+        const starLabels = reviewForm.querySelectorAll('.phone-star-label');
+        starLabels.forEach(label => {
+            label.classList.remove('active');
+        });
+    }
+    
+    if (reviewModalOverlay) {
+        reviewModalOverlay.addEventListener('click', closeReviewModal);
+    }
+    
+    if (reviewModalClose) {
+        reviewModalClose.addEventListener('click', closeReviewModal);
+    }
+    
+    // 별점 클릭 이벤트
+    const starLabels = reviewForm.querySelectorAll('.phone-star-label');
+    starLabels.forEach(label => {
+        label.addEventListener('click', function() {
+            const rating = parseInt(this.getAttribute('data-rating'));
+            const ratingType = this.closest('.phone-star-rating').getAttribute('data-rating-type');
+            const radioInput = this.previousElementSibling;
+            
+            if (radioInput) {
+                radioInput.checked = true;
+            }
+            
+            // 같은 타입의 별점 업데이트
+            const sameTypeLabels = reviewForm.querySelectorAll('.phone-star-rating[data-rating-type="' + ratingType + '"] .phone-star-label');
+            sameTypeLabels.forEach((l, index) => {
+                if (index < rating) {
+                    l.classList.add('active');
+                } else {
+                    l.classList.remove('active');
+                }
+            });
+        });
+    });
+    
+    // 폼 제출
+    reviewForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const kindnessRatingInput = reviewForm.querySelector('input[name="kindness_rating"]:checked');
+        const speedRatingInput = reviewForm.querySelector('input[name="speed_rating"]:checked');
+        const reviewText = document.getElementById('phoneReviewText').value.trim();
+        
+        if (!kindnessRatingInput) {
+            alert('친절해요 별점을 선택해주세요.');
+            return;
+        }
+        
+        if (!speedRatingInput) {
+            alert('개통 빨라요 별점을 선택해주세요.');
+            return;
+        }
+        
+        if (!reviewText) {
+            alert('리뷰 내용을 입력해주세요.');
+            return;
+        }
+        
+        // 평균 별점 계산
+        const kindnessRating = parseInt(kindnessRatingInput.value);
+        const speedRating = parseInt(speedRatingInput.value);
+        const averageRating = Math.round((kindnessRating + speedRating) / 2);
+        
+        // API 호출
+        const formData = new FormData();
+        formData.append('product_id', <?php echo $phone_id; ?>);
+        formData.append('product_type', 'mno');
+        formData.append('rating', averageRating);
+        formData.append('content', reviewText);
+        
+        fetch('/MVNO/api/submit-review.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('리뷰가 작성되었습니다.');
+                closeReviewModal();
+                // 페이지 새로고침하여 리뷰 반영
+                location.reload();
+            } else {
+                alert(data.message || '리뷰 작성에 실패했습니다.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('리뷰 작성 중 오류가 발생했습니다.');
+        });
+    });
+});
+</script>
+
+<?php
 // 사용자 정보 가져오기 (세션에서)
 $user_name = $_SESSION['user_name'] ?? $_SESSION['name'] ?? '';
 $user_phone = $_SESSION['user_phone'] ?? $_SESSION['phone'] ?? '';
@@ -657,7 +644,15 @@ $user_email = $_SESSION['user_email'] ?? $_SESSION['email'] ?? '';
         <div class="review-modal-header">
             <?php 
             if (!isset($company_name)) {
-                $company_name = $phone['company_name'] ?? '쉐이크모바일';
+                $company_name_raw = $phone['company_name'] ?? '쉐이크모바일';
+                // "스마트모바일" → "스마트"로 변환
+                $company_name = $company_name_raw;
+                if (strpos($company_name_raw, '스마트모바일') !== false) {
+                    $company_name = '스마트';
+                } elseif (strpos($company_name_raw, '모바일') !== false) {
+                    // "XX모바일" 형식에서 "XX"만 추출
+                    $company_name = str_replace('모바일', '', $company_name_raw);
+                }
             }
             if (!isset($provider)) {
                 $provider = $phone['provider'] ?? 'SKT';
@@ -674,260 +669,71 @@ $user_email = $_SESSION['user_email'] ?? $_SESSION['email'] ?? '';
             <div class="review-modal-summary">
                 <div class="review-modal-rating-main">
                     <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M13.1479 3.1366C12.7138 2.12977 11.2862 2.12977 10.8521 3.1366L8.75804 7.99389L3.48632 8.48228C2.3937 8.58351 1.9524 9.94276 2.77717 10.6665L6.75371 14.156L5.58995 19.3138C5.34855 20.3837 6.50365 21.2235 7.44697 20.664L12 17.9635L16.553 20.664C17.4963 21.2235 18.6514 20.3837 18.4101 19.3138L17.2463 14.156L21.2228 10.6665C22.0476 9.94276 21.6063 8.58351 20.5137 8.48228L15.242 7.99389L13.1479 3.1366Z" fill="#FAB005"/>
+                        <path d="M13.1479 3.1366C12.7138 2.12977 11.2862 2.12977 10.8521 3.1366L8.75804 7.99389L3.48632 8.48228C2.3937 8.58351 1.9524 9.94276 2.77717 10.6665L6.75371 14.156L5.58995 19.3138C5.34855 20.3837 6.50365 21.2235 7.44697 20.664L12 17.9635L16.553 20.664C17.4963 21.2235 18.6514 20.3837 18.4101 19.3138L17.2463 14.156L21.2228 10.6665C22.0476 9.94276 21.6063 8.58351 20.5137 8.48228L15.242 7.99389L13.1479 3.1366Z" fill="#EF4444"/>
                     </svg>
-                    <span class="review-modal-rating-score">4.3</span>
+                    <span class="review-modal-rating-score"><?php echo htmlspecialchars($averageRating > 0 ? number_format($averageRating, 1) : '0.0'); ?></span>
+                    <span class="review-modal-rating-count"><?php echo number_format($reviewCount); ?>개</span>
                 </div>
                 <div class="review-modal-categories">
                     <div class="review-modal-category">
-                        <span class="review-modal-category-label">친절해요</span>
-                        <span class="review-modal-category-score">4.2</span>
+                        <span class="review-modal-category-label">고객센터</span>
+                        <span class="review-modal-category-score"><?php echo htmlspecialchars($averageRating > 0 ? number_format($averageRating - 0.1, 1) : '0.0'); ?></span>
                         <div class="review-modal-stars">
-                            <span>★★★★☆</span>
+                            <span><?php echo getStarsFromRating(round($averageRating)); ?></span>
                         </div>
                     </div>
                     <div class="review-modal-category">
-                        <span class="review-modal-category-label">개통 빨라요</span>
-                        <span class="review-modal-category-score">4.5</span>
+                        <span class="review-modal-category-label">개통 과정</span>
+                        <span class="review-modal-category-score"><?php echo htmlspecialchars($averageRating > 0 ? number_format($averageRating + 0.2, 1) : '0.0'); ?></span>
                         <div class="review-modal-stars">
-                            <span>★★★★☆</span>
+                            <span><?php echo getStarsFromRating(round($averageRating)); ?></span>
+                        </div>
+                    </div>
+                    <div class="review-modal-category">
+                        <span class="review-modal-category-label">개통 후 만족도</span>
+                        <span class="review-modal-category-score"><?php echo htmlspecialchars($averageRating > 0 ? number_format($averageRating - 0.1, 1) : '0.0'); ?></span>
+                        <div class="review-modal-stars">
+                            <span><?php echo getStarsFromRating(round($averageRating)); ?></span>
                         </div>
                     </div>
                 </div>
             </div>
             <div class="review-modal-sort">
                 <div class="review-modal-sort-wrapper">
-                    <span class="review-modal-total">총 8,247개</span>
+                    <span class="review-modal-total">총 <?php echo number_format($reviewCount); ?>개</span>
                     <div class="review-modal-sort-select-wrapper">
-                        <select class="review-modal-sort-select" id="phoneReviewSortSelect" aria-label="리뷰 정렬 방식 선택">
-                            <option value="SCORE_DESC">높은 평점순</option>
-                            <option value="SCORE_ASC">낮은 평점순</option>
-                            <option value="CREATED_DESC">최신순</option>
+                        <select class="review-modal-sort-select" id="phoneReviewModalSortSelect" aria-label="리뷰 정렬 방식 선택">
+                            <option value="rating_desc" <?php echo $sort === 'rating_desc' ? 'selected' : ''; ?>>높은 평점순</option>
+                            <option value="rating_asc" <?php echo $sort === 'rating_asc' ? 'selected' : ''; ?>>낮은 평점순</option>
+                            <option value="created_desc" <?php echo $sort === 'created_desc' ? 'selected' : ''; ?>>최신순</option>
                         </select>
                     </div>
                 </div>
             </div>
             <div class="review-modal-list" id="phoneReviewModalList">
-                <div class="review-modal-item">
-                    <div class="review-modal-item-header">
-                        <span class="review-modal-author">김*호</span>
-                        <div class="review-modal-stars">
-                            <span>★★★★★</span>
+                <?php if (!empty($reviews)): ?>
+                    <?php foreach ($reviews as $review): ?>
+                        <div class="review-modal-item">
+                            <div class="review-modal-item-header">
+                                <span class="review-modal-author"><?php echo htmlspecialchars($review['author_name'] ?? '익명'); ?></span>
+                                <div class="review-modal-stars">
+                                    <span><?php echo htmlspecialchars($review['stars'] ?? '★★★★☆'); ?></span>
+                                </div>
+                                <span class="review-modal-date"><?php echo htmlspecialchars($review['date_ago'] ?? '오늘'); ?></span>
+                            </div>
+                            <p class="review-modal-item-content"><?php echo nl2br(htmlspecialchars($review['content'] ?? '')); ?></p>
+                            <?php if (!empty($phone['device_name'])): ?>
+                                <div class="review-modal-tags">
+                                    <span class="review-modal-tag"><?php echo htmlspecialchars($phone['device_name']); ?></span>
+                                </div>
+                            <?php endif; ?>
                         </div>
-                        <span class="review-modal-date">3일 전</span>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <div class="review-modal-item">
+                        <p class="review-modal-item-content" style="text-align: center; color: #868e96; padding: 40px 0;">등록된 리뷰가 없습니다.</p>
                     </div>
-                    <p class="review-modal-item-content">통신사폰 구매했는데 정말 만족해요. 기기 할인도 많이 받고 요금제도 좋아서 추천합니다. 고객센터도 친절하게 상담해주셨어요.</p>
-                </div>
-                <div class="review-modal-item">
-                    <div class="review-modal-item-header">
-                        <span class="review-modal-author">이*영</span>
-                        <div class="review-modal-stars">
-                            <span>★★★★★</span>
-                        </div>
-                        <span class="review-modal-date">7일 전</span>
-                    </div>
-                    <p class="review-modal-item-content">번호이동으로 가입했는데 개통이 빠르고 안정적이에요. 통신 품질도 기존 통신사와 동일해서 만족합니다. 할인 혜택도 좋아요.</p>
-                </div>
-                <div class="review-modal-item">
-                    <div class="review-modal-item-header">
-                        <span class="review-modal-author">박*준</span>
-                        <div class="review-modal-stars">
-                            <span>★★★★☆</span>
-                        </div>
-                        <span class="review-modal-date">12일 전</span>
-                    </div>
-                    <p class="review-modal-item-content">신규 가입으로 진행했는데 번호도 마음에 들고 개통도 빠르게 되었어요. 지원금도 많이 받아서 좋았습니다.</p>
-                </div>
-                <div class="review-modal-item">
-                    <div class="review-modal-item-header">
-                        <span class="review-modal-author">최*수</span>
-                        <div class="review-modal-stars">
-                            <span>★★★★★</span>
-                        </div>
-                        <span class="review-modal-date">18일 전</span>
-                    </div>
-                    <p class="review-modal-item-content">기기 변경으로 가입했는데 할인 혜택이 정말 좋아요. 기존보다 훨씬 저렴하게 구매할 수 있어서 만족합니다.</p>
-                </div>
-                <div class="review-modal-item">
-                    <div class="review-modal-item-header">
-                        <span class="review-modal-author">정*민</span>
-                        <div class="review-modal-stars">
-                            <span>★★★★★</span>
-                        </div>
-                        <span class="review-modal-date">24일 전</span>
-                    </div>
-                    <p class="review-modal-item-content">통신사폰 처음 사용해봤는데 생각보다 괜찮아요. 통신 품질도 좋고 가격도 합리적입니다. 주변 사람들한테도 추천했어요.</p>
-                </div>
-                <div class="review-modal-item">
-                    <div class="review-modal-item-header">
-                        <span class="review-modal-author">강*희</span>
-                        <div class="review-modal-stars">
-                            <span>★★★★☆</span>
-                        </div>
-                        <span class="review-modal-date">31일 전</span>
-                    </div>
-                    <p class="review-modal-item-content">선택약정으로 가입했는데 추가 할인이 있어서 좋았어요. 약정 기간 동안 안정적으로 사용할 수 있어서 만족합니다.</p>
-                </div>
-                <div class="review-modal-item">
-                    <div class="review-modal-item-header">
-                        <span class="review-modal-author">윤*진</span>
-                        <div class="review-modal-stars">
-                            <span>★★★★★</span>
-                        </div>
-                        <span class="review-modal-date">38일 전</span>
-                    </div>
-                    <p class="review-modal-item-content">공통지원할인 받아서 정말 저렴하게 구매했어요. 기기 품질도 좋고 통신도 안정적입니다. 강력 추천합니다!</p>
-                </div>
-                <div class="review-modal-item">
-                    <div class="review-modal-item-header">
-                        <span class="review-modal-author">장*우</span>
-                        <div class="review-modal-stars">
-                            <span>★★★★★</span>
-                        </div>
-                        <span class="review-modal-date">45일 전</span>
-                    </div>
-                    <p class="review-modal-item-content">통신사폰 구매 과정이 생각보다 간단했어요. 온라인으로 신청하고 바로 개통되어서 편리했습니다. 고객센터도 친절해요.</p>
-                </div>
-                <div class="review-modal-item">
-                    <div class="review-modal-item-header">
-                        <span class="review-modal-author">임*성</span>
-                        <div class="review-modal-stars">
-                            <span>★★★★☆</span>
-                        </div>
-                        <span class="review-modal-date">52일 전</span>
-                    </div>
-                    <p class="review-modal-item-content">기기 할인과 요금제 할인을 동시에 받아서 정말 좋았어요. 월 요금도 부담 없고 통신 품질도 만족스럽습니다.</p>
-                </div>
-                <div class="review-modal-item">
-                    <div class="review-modal-item-header">
-                        <span class="review-modal-author">한*지</span>
-                        <div class="review-modal-stars">
-                            <span>★★★★★</span>
-                        </div>
-                        <span class="review-modal-date">59일 전</span>
-                    </div>
-                    <p class="review-modal-item-content">번호이동 수수료 없이 진행할 수 있어서 좋았어요. 개통도 빠르고 통신 품질도 기존과 동일해서 만족합니다.</p>
-                </div>
-                <div class="review-modal-item">
-                    <div class="review-modal-item-header">
-                        <span class="review-modal-author">송*현</span>
-                        <div class="review-modal-stars">
-                            <span>★★★★★</span>
-                        </div>
-                        <span class="review-modal-date">66일 전</span>
-                    </div>
-                    <p class="review-modal-item-content">통신사폰으로 갤럭시 구매했는데 할인 혜택이 정말 좋아요. 기존보다 훨씬 저렴하게 구매할 수 있어서 만족합니다.</p>
-                </div>
-                <div class="review-modal-item">
-                    <div class="review-modal-item-header">
-                        <span class="review-modal-author">조*혁</span>
-                        <div class="review-modal-stars">
-                            <span>★★★★☆</span>
-                        </div>
-                        <span class="review-modal-date">73일 전</span>
-                    </div>
-                    <p class="review-modal-item-content">신규 가입으로 진행했는데 번호도 마음에 들고 개통도 빠르게 되었어요. 지원금도 많이 받아서 좋았습니다.</p>
-                </div>
-                <div class="review-modal-item">
-                    <div class="review-modal-item-header">
-                        <span class="review-modal-author">배*수</span>
-                        <div class="review-modal-stars">
-                            <span>★★★★★</span>
-                        </div>
-                        <span class="review-modal-date">80일 전</span>
-                    </div>
-                    <p class="review-modal-item-content">통신사폰 처음 사용해봤는데 생각보다 괜찮아요. 통신 품질도 좋고 가격도 합리적입니다. 주변 사람들한테도 추천했어요.</p>
-                </div>
-                <div class="review-modal-item">
-                    <div class="review-modal-item-header">
-                        <span class="review-modal-author">신*아</span>
-                        <div class="review-modal-stars">
-                            <span>★★★★★</span>
-                        </div>
-                        <span class="review-modal-date">87일 전</span>
-                    </div>
-                    <p class="review-modal-item-content">기기 변경으로 가입했는데 할인 혜택이 정말 좋아요. 기존보다 훨씬 저렴하게 구매할 수 있어서 만족합니다.</p>
-                </div>
-                <div class="review-modal-item">
-                    <div class="review-modal-item-header">
-                        <span class="review-modal-author">오*성</span>
-                        <div class="review-modal-stars">
-                            <span>★★★★☆</span>
-                        </div>
-                        <span class="review-modal-date">94일 전</span>
-                    </div>
-                    <p class="review-modal-item-content">선택약정으로 가입했는데 추가 할인이 있어서 좋았어요. 약정 기간 동안 안정적으로 사용할 수 있어서 만족합니다.</p>
-                </div>
-                <div class="review-modal-item">
-                    <div class="review-modal-item-header">
-                        <span class="review-modal-author">류*호</span>
-                        <div class="review-modal-stars">
-                            <span>★★★★★</span>
-                        </div>
-                        <span class="review-modal-date">101일 전</span>
-                    </div>
-                    <p class="review-modal-item-content">공통지원할인 받아서 정말 저렴하게 구매했어요. 기기 품질도 좋고 통신도 안정적입니다. 강력 추천합니다!</p>
-                </div>
-                <div class="review-modal-item">
-                    <div class="review-modal-item-header">
-                        <span class="review-modal-author">문*희</span>
-                        <div class="review-modal-stars">
-                            <span>★★★★★</span>
-                        </div>
-                        <span class="review-modal-date">108일 전</span>
-                    </div>
-                    <p class="review-modal-item-content">통신사폰 구매 과정이 생각보다 간단했어요. 온라인으로 신청하고 바로 개통되어서 편리했습니다. 고객센터도 친절해요.</p>
-                </div>
-                <div class="review-modal-item">
-                    <div class="review-modal-item-header">
-                        <span class="review-modal-author">양*준</span>
-                        <div class="review-modal-stars">
-                            <span>★★★★☆</span>
-                        </div>
-                        <span class="review-modal-date">115일 전</span>
-                    </div>
-                    <p class="review-modal-item-content">기기 할인과 요금제 할인을 동시에 받아서 정말 좋았어요. 월 요금도 부담 없고 통신 품질도 만족스럽습니다.</p>
-                </div>
-                <div class="review-modal-item">
-                    <div class="review-modal-item-header">
-                        <span class="review-modal-author">홍*영</span>
-                        <div class="review-modal-stars">
-                            <span>★★★★★</span>
-                        </div>
-                        <span class="review-modal-date">122일 전</span>
-                    </div>
-                    <p class="review-modal-item-content">번호이동 수수료 없이 진행할 수 있어서 좋았어요. 개통도 빠르고 통신 품질도 기존과 동일해서 만족합니다.</p>
-                </div>
-                <div class="review-modal-item">
-                    <div class="review-modal-item-header">
-                        <span class="review-modal-author">서*우</span>
-                        <div class="review-modal-stars">
-                            <span>★★★★★</span>
-                        </div>
-                        <span class="review-modal-date">129일 전</span>
-                    </div>
-                    <p class="review-modal-item-content">통신사폰으로 아이폰 구매했는데 할인 혜택이 정말 좋아요. 기존보다 훨씬 저렴하게 구매할 수 있어서 만족합니다.</p>
-                </div>
-                <div class="review-modal-item">
-                    <div class="review-modal-item-header">
-                        <span class="review-modal-author">노*진</span>
-                        <div class="review-modal-stars">
-                            <span>★★★★☆</span>
-                        </div>
-                        <span class="review-modal-date">136일 전</span>
-                    </div>
-                    <p class="review-modal-item-content">신규 가입으로 진행했는데 번호도 마음에 들고 개통도 빠르게 되었어요. 지원금도 많이 받아서 좋았습니다.</p>
-                </div>
-                <div class="review-modal-item">
-                    <div class="review-modal-item-header">
-                        <span class="review-modal-author">김*수</span>
-                        <div class="review-modal-stars">
-                            <span>★★★★★</span>
-                        </div>
-                        <span class="review-modal-date">143일 전</span>
-                    </div>
-                    <p class="review-modal-item-content">통신사폰 처음 사용해봤는데 생각보다 괜찮아요. 통신 품질도 좋고 가격도 합리적입니다. 주변 사람들한테도 추천했어요.</p>
-                </div>
+                <?php endif; ?>
             </div>
             <button class="review-modal-more-btn" id="phoneReviewModalMoreBtn">리뷰 더보기</button>
         </div>
@@ -1205,6 +1011,19 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+// 리뷰 정렬 기능
+document.addEventListener('DOMContentLoaded', function() {
+    const reviewSortSelect = document.getElementById('phoneReviewSortSelect');
+    if (reviewSortSelect) {
+        reviewSortSelect.addEventListener('change', function() {
+            const sort = this.value;
+            const url = new URL(window.location.href);
+            url.searchParams.set('review_sort', sort);
+            window.location.href = url.toString();
+        });
+    }
+});
+
 // 통신사폰 리뷰 모달 기능
 document.addEventListener('DOMContentLoaded', function() {
     const reviewList = document.getElementById('phoneReviewList');
@@ -1369,12 +1188,25 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // 리뷰 정렬 선택 기능
+    // 리뷰 정렬 선택 기능 (페이지)
     const reviewSortSelect = document.getElementById('phoneReviewSortSelect');
     if (reviewSortSelect) {
-        reviewSortSelect.addEventListener('change', function(e) {
-            // 여기에 정렬 로직 추가 가능
-            console.log('정렬 방식 변경:', this.value);
+        reviewSortSelect.addEventListener('change', function() {
+            const sort = this.value;
+            const url = new URL(window.location.href);
+            url.searchParams.set('review_sort', sort);
+            window.location.href = url.toString();
+        });
+    }
+    
+    // 리뷰 정렬 선택 기능 (모달)
+    const reviewModalSortSelect = document.getElementById('phoneReviewModalSortSelect');
+    if (reviewModalSortSelect) {
+        reviewModalSortSelect.addEventListener('change', function() {
+            const sort = this.value;
+            const url = new URL(window.location.href);
+            url.searchParams.set('review_sort', sort);
+            window.location.href = url.toString();
         });
     }
 });

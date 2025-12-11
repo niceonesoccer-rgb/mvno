@@ -2437,9 +2437,13 @@
             "password": "$2y$10$ARjTGNdOwcpwpaZMrsO\/cOomvzuTP2X0j7JjELenuAHAG3k\/GvxCu",
             "role": "seller",
             "created_at": "2025-12-06 09:31:55",
-            "seller_approved": false,
-            "permissions": [],
-            "approval_status": "on_hold",
+            "seller_approved": true,
+            "permissions": [
+                "mvno",
+                "mno",
+                "internet"
+            ],
+            "approval_status": "approved",
             "phone": "02-7777-7881",
             "mobile": "010-7777-7881",
             "address": "서울 강남구 가로수길 105",
@@ -2451,7 +2455,9 @@
             "business_item": "77777881d",
             "held_at": "2025-12-06 09:43:51",
             "updated_at": "2025-12-06 09:48:50",
-            "business_license_image": "\/MVNO\/uploads\/sellers\/77777881_license_1765010897.jpg"
+            "business_license_image": "\/MVNO\/uploads\/sellers\/77777881_license_1765010897.jpg",
+            "approved_at": "2025-12-11 20:33:17",
+            "permissions_updated_at": "2025-12-11 21:42:26"
         },
         {
             "user_id": "77777882",
@@ -2813,8 +2819,9 @@
             "updated_at": "2025-12-11 06:52:12",
             "info_updated": true,
             "info_updated_at": "2025-12-11 06:52:12",
-            "info_checked_by_admin": false,
-            "seller_name": "스마트"
+            "info_checked_by_admin": true,
+            "seller_name": "스마트",
+            "info_checked_at": "2025-12-11 20:32:39"
         },
         {
             "user_id": "12345678",
@@ -2823,12 +2830,12 @@
             "password": "$2y$10$70NsKXWzTOzxCBDAzdvYE.OUXrEOFVsMbHm.uX7WmkUuqxDGGkhka",
             "role": "seller",
             "created_at": "2025-12-07 08:45:16",
-            "seller_approved": false,
+            "seller_approved": true,
             "permissions": [
                 "mno",
                 "internet"
             ],
-            "approval_status": "on_hold",
+            "approval_status": "approved",
             "phone": "080-2222-2222",
             "mobile": "010-2222-2222",
             "postal_code": "",
@@ -2840,7 +2847,7 @@
             "business_type": "12345678",
             "business_item": "12345678",
             "business_license_image": "\/MVNO\/uploads\/sellers\/12345678_license_1765064716.png",
-            "approved_at": "2025-12-07 08:45:46",
+            "approved_at": "2025-12-11 20:33:05",
             "permissions_updated_at": "2025-12-07 08:46:13",
             "held_at": "2025-12-07 12:16:23"
         },
@@ -2903,13 +2910,15 @@
         {
             "user_id": "54545454",
             "email": "54545454@nate.com",
-            "name": "54545454",
+            "name": "오이사",
             "password": "$2y$10$I0GzJ1OEQD0BArWU\/M4A4OwPMMOsCseS2Mm09lDe\/amlM7ClRwldO",
             "role": "seller",
             "created_at": "2025-12-11 06:57:35",
             "seller_approved": true,
             "permissions": [
-                "mvno"
+                "mvno",
+                "mno",
+                "internet"
             ],
             "approval_status": "approved",
             "phone": "010-2222-3333",
@@ -2921,13 +2930,15 @@
             "company_representative": "54545454",
             "business_type": "54545454",
             "business_item": "54545454",
-            "business_license_image": "\/MVNO\/uploads\/sellers\/54545454_license_1765403855.png",
+            "business_license_image": "\/MVNO\/uploads\/sellers\/54545454_license_1765451573.png",
             "approved_at": "2025-12-11 07:00:33",
             "seller_name": "걸스카이",
-            "updated_at": "2025-12-11 07:05:03",
+            "updated_at": "2025-12-11 20:22:20",
             "info_updated": true,
             "info_updated_at": "2025-12-11 07:05:03",
-            "info_checked_by_admin": false
+            "info_checked_by_admin": true,
+            "info_checked_at": "2025-12-11 20:26:26",
+            "permissions_updated_at": "2025-12-11 21:40:49"
         }
     ]
 }

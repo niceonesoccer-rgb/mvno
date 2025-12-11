@@ -30,21 +30,19 @@ $delivery_display = ($delivery_method === 'visit' && !empty($visit_region)) ? $v
             <div class="plan-gifts-accordion-content">
                 <?php 
                 // 택배 또는 내방지역명 표시
-                $first_support = $additional_supports[0] ?? '';
-                $display_delivery = '택배';
+                $display_delivery_text = '택배';
                 
-                // "택배 | ..." 또는 "서초 | ..." 형태에서 추출 시도
-                if (strpos($first_support, ' | ') !== false) {
-                    $parts = explode(' | ', $first_support, 2);
-                    $display_delivery = $parts[0]; // "택배" 또는 "서초" 등
+                if ($delivery_method === 'visit' && !empty($visit_region)) {
+                    // 내방인 경우: "내방(양천 강서)" 형식
+                    $display_delivery_text = '내방(' . $visit_region . ')';
                 } else {
-                    // 데이터에 없으면 phone 데이터에서 직접 가져오기
-                    $display_delivery = $delivery_display;
+                    // 택배인 경우
+                    $display_delivery_text = '택배';
                 }
                 ?>
-                <span class="plan-gifts-text-accordion" style="display: flex; align-items: center; gap: 12px;">
-                    <span style="min-width: 80px; display: inline-block; text-align: left; padding-right: 12px; border-right: 1px solid #e5e7eb;"><?php echo htmlspecialchars($display_delivery); ?></span>
-                    <span>추가지원 및 부가서비스</span>
+                <span class="plan-gifts-text-accordion" style="display: flex; align-items: center; gap: 4px;">
+                    <span style="min-width: 13ch; display: inline-block; text-align: left; padding-right: 4px; border-right: 1px solid #e5e7eb;"><?php echo htmlspecialchars($display_delivery_text); ?></span>
+                    <span><?php echo htmlspecialchars($phone['promotion_title'] ?? '부가서비스 없음'); ?></span>
                 </span>
             </div>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="plan-accordion-arrow">
@@ -53,11 +51,45 @@ $delivery_display = ($delivery_method === 'visit' && !empty($visit_region)) ? $v
         </button>
         <div class="plan-accordion-content" style="display: none;">
             <div class="plan-gifts-detail-list">
-                <?php foreach ($additional_supports as $support): ?>
-                <div class="plan-gift-detail-item">
-                    <span class="plan-gift-detail-text"><?php echo htmlspecialchars($support); ?></span>
+                <?php 
+                // promotion_title이 "부가서비스 없음"이거나 additional_supports가 비어있으면 기본 배지 표시
+                $promotion_title = $phone['promotion_title'] ?? '부가서비스 없음';
+                $is_no_service = (empty($additional_supports) || (count($additional_supports) === 1 && strpos($additional_supports[0], '부가서비스 없음') !== false)) && $promotion_title === '부가서비스 없음';
+                
+                if ($is_no_service) {
+                    // 기본 항목들 (애, 1, 2, 3, 4) - 가로로 나란히 배치
+                    $default_items = ['애', '1', '2', '3', '4'];
+                    $default_colors = ['#ef4444', '#FCC419', '#51cf66', '#3b82f6', '#9c88ff']; // 빨강, 노랑, 초록, 파랑, 보라
+                ?>
+                <div class="plan-gift-detail-item" style="display: flex; align-items: center; gap: 4px;">
+                    <?php foreach ($default_items as $index => $item): 
+                        $bg_color = $default_colors[$index] ?? '#6366F1';
+                    ?>
+                    <div class="plan-gift-indicator-dot" style="background-color: <?php echo htmlspecialchars($bg_color); ?>;">
+                        <span class="plan-gift-indicator-text"><?php echo htmlspecialchars($item); ?></span>
+                    </div>
+                    <?php endforeach; ?>
                 </div>
-                <?php endforeach; ?>
+                <?php
+                } else {
+                    // 기존 additional_supports 항목 표시
+                    foreach ($additional_supports as $support): 
+                ?>
+                <div class="plan-gift-detail-item">
+                    <?php 
+                    // "택배 | ..." 또는 "양천 강서 | ..." 형태에서 항목만 추출
+                    $support_text = $support;
+                    if (strpos($support, ' | ') !== false) {
+                        $parts = explode(' | ', $support, 2);
+                        $support_text = $parts[1] ?? $support; // " | " 뒤의 항목명만 사용
+                    }
+                    ?>
+                    <span class="plan-gift-detail-text"><?php echo htmlspecialchars($support_text); ?></span>
+                </div>
+                <?php 
+                    endforeach;
+                }
+                ?>
             </div>
         </div>
     </div>

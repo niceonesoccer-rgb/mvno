@@ -277,6 +277,16 @@ function getCurrentUser() {
 }
 
 /**
+ * 현재 사용자 ID 가져오기
+ */
+function getCurrentUserId() {
+    if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
+        session_start();
+    }
+    return $_SESSION['user_id'] ?? null;
+}
+
+/**
  * 로그인 여부 확인
  */
 function isLoggedIn() {

@@ -110,6 +110,24 @@ if (!$seller || $seller['role'] !== 'seller') {
         background: #e5e7eb;
     }
     
+    .back-button.edit-button {
+        background: #6366f1;
+        color: white;
+    }
+    
+    .back-button.edit-button:hover {
+        background: #4f46e5;
+    }
+    
+    .back-button.list-button {
+        background: #6b7280;
+        color: white;
+    }
+    
+    .back-button.list-button:hover {
+        background: #4b5563;
+    }
+    
     .detail-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -321,12 +339,21 @@ if (!$seller || $seller['role'] !== 'seller') {
     <div class="seller-detail-container">
         <div class="detail-header">
             <h1>판매자 상세 정보</h1>
-            <a href="/MVNO/admin/seller-approval.php?tab=approved" class="back-button">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M19 12H5M12 19l-7-7 7-7"/>
-                </svg>
-                목록으로
-            </a>
+            <div style="display: flex; gap: 12px; align-items: center;">
+                <a href="/MVNO/admin/seller-approval.php?tab=approved" class="back-button list-button">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 12H5M12 19l-7-7 7-7"/>
+                    </svg>
+                    목록으로
+                </a>
+                <a href="/MVNO/admin/users/seller-edit.php?user_id=<?php echo urlencode($seller['user_id']); ?>" class="back-button edit-button">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                    </svg>
+                    정보수정
+                </a>
+            </div>
         </div>
         
         <div class="detail-grid">
@@ -433,14 +460,6 @@ if (!$seller || $seller['role'] !== 'seller') {
                         <button type="button" class="btn btn-primary" onclick="openPermissionModal('<?php echo htmlspecialchars($seller['user_id']); ?>')" style="margin-left: auto; padding: 8px 16px; font-size: 13px; height: 36px; line-height: 1;">
                             권한 설정
                         </button>
-                    </div>
-                </div>
-                <div class="detail-item">
-                    <div class="detail-label"></div>
-                    <div class="detail-value" style="display: flex; align-items: center; justify-content: flex-end; gap: 12px; flex-wrap: wrap;">
-                        <a href="/MVNO/admin/users/seller-edit.php?user_id=<?php echo urlencode($seller['user_id']); ?>" class="btn btn-primary" style="padding: 8px 16px; font-size: 13px; height: 36px; line-height: 1; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">
-                            정보 수정
-                        </a>
                     </div>
                 </div>
             </div>

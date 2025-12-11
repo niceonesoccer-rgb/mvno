@@ -1,8 +1,10 @@
 <?php
 /**
  * 통신사폰 데이터 처리
- * 나중에 DB 연결 시 이 부분만 수정하면 됨
+ * 데이터베이스에서 MNO 상품 데이터를 가져옵니다.
  */
+
+require_once __DIR__ . '/db-config.php';
 
 /**
  * 통신사폰 목록 데이터 가져오기
@@ -10,197 +12,304 @@
  * @return array 통신사폰 배열
  */
 function getPhonesData($limit = 10) {
-    // 임시 하드코딩 데이터 (나중에 DB 쿼리로 교체)
-    $allPhones = [
-        [
-            'id' => 1,
-            'provider' => 'SKT',
-            'device_name' => 'Galaxy Z Fold7',
-            'device_image' => 'https://assets.moyoplan.com/image/phone/model/galaxy_z_fold7.png',
-            'device_storage' => '256GB',
-            'plan_name' => 'SKT 프리미어 슈퍼',
-            'common_number_port' => '-198',
-            'common_device_change' => '191.6',
-            'contract_number_port' => '198',
-            'contract_device_change' => '-150',
-            'monthly_price' => '109,000원',
-            'maintenance_period' => '185일',
-            'device_price' => '출고가 2,387,000원',
-            'selection_count' => '15,234명이 신청',
-            'apply_url' => 'https://www.daum.net',
-            'gifts' => [
-                '추가 지원금',
-                '부가 서비스 1',
-                '부가 서비스 2'
-            ]
-        ],
-        [
-            'id' => 2,
-            'provider' => 'KT',
-            'device_name' => 'iPhone 16 Pro',
-            'device_image' => 'https://assets.moyoplan.com/image/phone/model/iphone_16_pro.png',
-            'device_storage' => '512GB',
-            'plan_name' => 'KT 슈퍼플랜',
-            'common_number_port' => '180.0',
-            'common_device_change' => '180.0',
-            'contract_number_port' => '200.0',
-            'contract_device_change' => '200.0',
-            'monthly_price' => '125,000원',
-            'maintenance_period' => '180일',
-            'device_price' => '출고가 2,100,000원',
-            'selection_count' => '22,156명이 신청',
-            'gifts' => [
-                '추가 지원금',
-                '부가 서비스'
-            ]
-        ],
-        [
-            'id' => 3,
-            'provider' => 'LG U+',
-            'device_name' => 'Galaxy S25',
-            'device_image' => 'https://assets.moyoplan.com/image/phone/model/galaxy_s_25.png',
-            'device_storage' => '256GB',
-            'plan_name' => 'LG U+ 5G 슈퍼플랜',
-            'common_number_port' => '175.5',
-            'common_device_change' => '175.5',
-            'contract_number_port' => '195.0',
-            'contract_device_change' => '195.0',
-            'monthly_price' => '95,000원',
-            'maintenance_period' => '200일',
-            'device_price' => '출고가 1,250,000원',
-            'selection_count' => '18,942명이 신청',
-            'gifts' => [
-                '추가 지원금'
-            ]
-        ],
-        [
-            'id' => 4,
-            'provider' => 'SKT',
-            'device_name' => 'iPhone 16',
-            'device_image' => 'https://assets.moyoplan.com/image/phone/model/iphone_16.png',
-            'device_storage' => '128GB',
-            'plan_name' => 'SKT 스탠다드',
-            'common_number_port' => '150.0',
-            'common_device_change' => '150.0',
-            'contract_number_port' => '170.0',
-            'contract_device_change' => '170.0',
-            'monthly_price' => '85,000원',
-            'maintenance_period' => '150일',
-            'device_price' => '출고가 1,350,000원',
-            'selection_count' => '12,567명이 신청',
-            'gifts' => []
-        ],
-        [
-            'id' => 5,
-            'provider' => 'KT',
-            'device_name' => 'Galaxy S24 Ultra',
-            'device_image' => 'https://assets.moyoplan.com/image/phone/model/galaxy_s24_ultra.png',
-            'device_storage' => '512GB',
-            'plan_name' => 'KT 프리미엄',
-            'common_number_port' => '165.0',
-            'common_device_change' => '165.0',
-            'contract_number_port' => '185.0',
-            'contract_device_change' => '185.0',
-            'monthly_price' => '115,000원',
-            'maintenance_period' => '190일',
-            'device_price' => '출고가 1,800,000원',
-            'selection_count' => '19,876명이 신청',
-            'gifts' => [
-                '추가 지원금',
-                '부가 서비스'
-            ]
-        ],
-        [
-            'id' => 6,
-            'provider' => 'LG U+',
-            'device_name' => 'iPhone 15 Pro Max',
-            'device_image' => 'https://assets.moyoplan.com/image/phone/model/iphone_15_pro_max.png',
-            'device_storage' => '256GB',
-            'plan_name' => 'LG U+ 5G 플랜',
-            'common_number_port' => '160.0',
-            'common_device_change' => '160.0',
-            'contract_number_port' => '180.0',
-            'contract_device_change' => '180.0',
-            'monthly_price' => '105,000원',
-            'maintenance_period' => '175일',
-            'device_price' => '출고가 1,950,000원',
-            'selection_count' => '16,432명이 신청',
-            'gifts' => []
-        ],
-        [
-            'id' => 7,
-            'provider' => 'SKT',
-            'device_name' => 'Galaxy Z Flip6',
-            'device_image' => 'https://assets.moyoplan.com/image/phone/model/galaxy_z_flip6.png',
-            'device_storage' => '256GB',
-            'plan_name' => 'SKT 베이직',
-            'common_number_port' => '140.0',
-            'common_device_change' => '140.0',
-            'contract_number_port' => '160.0',
-            'contract_device_change' => '160.0',
-            'monthly_price' => '75,000원',
-            'maintenance_period' => '140일',
-            'device_price' => '출고가 1,400,000원',
-            'selection_count' => '9,654명이 신청',
-            'gifts' => []
-        ],
-        [
-            'id' => 8,
-            'provider' => 'KT',
-            'device_name' => 'iPhone 15',
-            'device_image' => 'https://assets.moyoplan.com/image/phone/model/iphone_15.png',
-            'device_storage' => '128GB',
-            'plan_name' => 'KT 스탠다드',
-            'common_number_port' => '145.0',
-            'common_device_change' => '145.0',
-            'contract_number_port' => '165.0',
-            'contract_device_change' => '165.0',
-            'monthly_price' => '80,000원',
-            'maintenance_period' => '160일',
-            'device_price' => '출고가 1,250,000원',
-            'selection_count' => '11,234명이 신청',
-            'gifts' => []
-        ],
-        [
-            'id' => 9,
-            'provider' => 'LG U+',
-            'device_name' => 'Galaxy S23',
-            'device_image' => 'https://assets.moyoplan.com/image/phone/model/galaxy_s23.png',
-            'device_storage' => '256GB',
-            'plan_name' => 'LG U+ 5G 베이직',
-            'common_number_port' => '130.0',
-            'common_device_change' => '130.0',
-            'contract_number_port' => '150.0',
-            'contract_device_change' => '150.0',
-            'monthly_price' => '70,000원',
-            'maintenance_period' => '130일',
-            'device_price' => '출고가 1,000,000원',
-            'selection_count' => '7,891명이 신청',
-            'gifts' => []
-        ],
-        [
-            'id' => 10,
-            'provider' => 'SKT',
-            'device_name' => 'iPhone 14 Pro',
-            'device_image' => 'https://assets.moyoplan.com/image/phone/model/iphone_14_pro.png',
-            'device_storage' => '256GB',
-            'plan_name' => 'SKT 프리미엄',
-            'common_number_port' => '155.0',
-            'common_device_change' => '155.0',
-            'contract_number_port' => '175.0',
-            'contract_device_change' => '175.0',
-            'monthly_price' => '100,000원',
-            'maintenance_period' => '170일',
-            'device_price' => '출고가 1,650,000원',
-            'selection_count' => '14,567명이 신청',
-            'gifts' => [
-                '추가 지원금'
-            ]
-        ]
-    ];
+    $pdo = getDBConnection();
+    if (!$pdo) {
+        return [];
+    }
     
-    // limit만큼만 반환
-    return array_slice($allPhones, 0, $limit);
+    try {
+        $stmt = $pdo->prepare("
+            SELECT 
+                p.id,
+                p.seller_id,
+                p.application_count,
+                p.favorite_count,
+                p.view_count,
+                mno.device_name,
+                mno.device_price,
+                mno.device_capacity,
+                mno.common_provider,
+                mno.common_discount_new,
+                mno.common_discount_port,
+                mno.common_discount_change,
+                mno.contract_provider,
+                mno.contract_discount_new,
+                mno.contract_discount_port,
+                mno.contract_discount_change,
+                mno.price_main,
+                mno.contract_period_value,
+                mno.promotion_title,
+                mno.promotions,
+                mno.delivery_method,
+                mno.visit_region
+            FROM products p
+            INNER JOIN product_mno_details mno ON p.id = mno.product_id
+            WHERE p.product_type = 'mno' 
+            AND p.status = 'active'
+            ORDER BY p.id DESC
+            LIMIT :limit
+        ");
+        
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->execute();
+        $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // 판매자 정보 로드
+        $sellersData = [];
+        $sellersJsonPath = __DIR__ . '/sellers.json';
+        if (file_exists($sellersJsonPath)) {
+            $sellersContent = file_get_contents($sellersJsonPath);
+            $sellersJson = json_decode($sellersContent, true);
+            if ($sellersJson && isset($sellersJson['sellers'])) {
+                foreach ($sellersJson['sellers'] as $seller) {
+                    if (isset($seller['user_id'])) {
+                        $sellersData[(string)$seller['user_id']] = $seller;
+                    }
+                }
+            }
+        }
+        
+        // 데이터 변환
+        $phones = [];
+        foreach ($products as $product) {
+            // 판매자 정보
+            $sellerId = (string)($product['seller_id'] ?? '');
+            $seller = $sellersData[$sellerId] ?? null;
+            $companyName = $seller['company_name'] ?? $seller['seller_name'] ?? '알뜰폰';
+            
+            // 통신사 정보 추출
+            $provider = '-';
+            $commonProviders = [];
+            $contractProviders = [];
+            
+            if (!empty($product['common_provider'])) {
+                $commonProviders = json_decode($product['common_provider'], true) ?: [];
+                if (!empty($commonProviders)) {
+                    $provider = $commonProviders[0]; // 첫 번째 통신사
+                }
+            }
+            if ($provider === '-' && !empty($product['contract_provider'])) {
+                $contractProviders = json_decode($product['contract_provider'], true) ?: [];
+                if (!empty($contractProviders)) {
+                    $provider = $contractProviders[0];
+                }
+            }
+            
+            // 공통지원할인 데이터 변환
+            $commonSupport = [];
+            if (!empty($commonProviders) && is_array($commonProviders)) {
+                $commonDiscountNew = [];
+                $commonDiscountPort = [];
+                $commonDiscountChange = [];
+                
+                if (!empty($product['common_discount_new'])) {
+                    $decoded = json_decode($product['common_discount_new'], true);
+                    if (is_array($decoded)) {
+                        $commonDiscountNew = $decoded;
+                    }
+                }
+                if (!empty($product['common_discount_port'])) {
+                    $decoded = json_decode($product['common_discount_port'], true);
+                    if (is_array($decoded)) {
+                        $commonDiscountPort = $decoded;
+                    }
+                }
+                if (!empty($product['common_discount_change'])) {
+                    $decoded = json_decode($product['common_discount_change'], true);
+                    if (is_array($decoded)) {
+                        $commonDiscountChange = $decoded;
+                    }
+                }
+                
+                foreach ($commonProviders as $index => $prov) {
+                    $newVal = isset($commonDiscountNew[$index]) ? trim($commonDiscountNew[$index]) : '9999';
+                    $portVal = isset($commonDiscountPort[$index]) ? trim($commonDiscountPort[$index]) : '9999';
+                    $changeVal = isset($commonDiscountChange[$index]) ? trim($commonDiscountChange[$index]) : '9999';
+                    
+                    // 빈 문자열이면 9999로 처리
+                    if ($newVal === '') $newVal = '9999';
+                    if ($portVal === '') $portVal = '9999';
+                    if ($changeVal === '') $changeVal = '9999';
+                    
+                    $commonSupport[] = [
+                        'provider' => $prov,
+                        'plan_name' => '',
+                        'new_subscription' => $newVal == '9999' ? 9999 : (int)$newVal,
+                        'number_port' => $portVal == '9999' ? 9999 : (float)$portVal,
+                        'device_change' => $changeVal == '9999' ? 9999 : (float)$changeVal
+                    ];
+                }
+            }
+            
+        // 선택약정할인 데이터 변환
+        $contractSupport = [];
+        
+        // 할인 값 배열 초기화
+        $contractDiscountNew = [];
+        $contractDiscountPort = [];
+        $contractDiscountChange = [];
+        
+        if (!empty($product['contract_discount_new'])) {
+            $decoded = json_decode($product['contract_discount_new'], true);
+            if (is_array($decoded)) {
+                $contractDiscountNew = $decoded;
+            }
+        }
+        if (!empty($product['contract_discount_port'])) {
+            $decoded = json_decode($product['contract_discount_port'], true);
+            if (is_array($decoded)) {
+                $contractDiscountPort = $decoded;
+            }
+        }
+        if (!empty($product['contract_discount_change'])) {
+            $decoded = json_decode($product['contract_discount_change'], true);
+            if (is_array($decoded)) {
+                $contractDiscountChange = $decoded;
+            }
+        }
+        
+        // contract_provider가 없으면 common_provider를 사용하거나 기본 통신사 사용
+        if (!empty($contractProviders) && is_array($contractProviders)) {
+            // contract_provider가 있는 경우
+            foreach ($contractProviders as $index => $prov) {
+                $newVal = isset($contractDiscountNew[$index]) ? trim($contractDiscountNew[$index]) : '9999';
+                $portVal = isset($contractDiscountPort[$index]) ? trim($contractDiscountPort[$index]) : '9999';
+                $changeVal = isset($contractDiscountChange[$index]) ? trim($contractDiscountChange[$index]) : '9999';
+                
+                // 빈 문자열이면 9999로 처리
+                if ($newVal === '') $newVal = '9999';
+                if ($portVal === '') $portVal = '9999';
+                if ($changeVal === '') $changeVal = '9999';
+                
+                $contractSupport[] = [
+                    'provider' => $prov,
+                    'plan_name' => '',
+                    'new_subscription' => $newVal == '9999' ? 9999 : (int)$newVal,
+                    'number_port' => $portVal == '9999' ? 9999 : (float)$portVal,
+                    'device_change' => $changeVal == '9999' ? 9999 : (float)$changeVal
+                ];
+            }
+        } else {
+            // contract_provider가 없지만 할인 값이 있는 경우, common_provider 사용
+            $useProviders = !empty($commonProviders) && is_array($commonProviders) ? $commonProviders : ['SKT', 'KT', 'LGU+'];
+            
+            $maxLength = max(
+                count($contractDiscountNew),
+                count($contractDiscountPort),
+                count($contractDiscountChange),
+                count($useProviders)
+            );
+            
+            for ($index = 0; $index < $maxLength; $index++) {
+                $prov = isset($useProviders[$index]) ? $useProviders[$index] : $useProviders[0];
+                $newVal = isset($contractDiscountNew[$index]) ? trim($contractDiscountNew[$index]) : '9999';
+                $portVal = isset($contractDiscountPort[$index]) ? trim($contractDiscountPort[$index]) : '9999';
+                $changeVal = isset($contractDiscountChange[$index]) ? trim($contractDiscountChange[$index]) : '9999';
+                
+                // 빈 문자열이면 9999로 처리
+                if ($newVal === '') $newVal = '9999';
+                if ($portVal === '') $portVal = '9999';
+                if ($changeVal === '') $changeVal = '9999';
+                
+                // 모든 값이 9999가 아니면 추가
+                if ($newVal != '9999' || $portVal != '9999' || $changeVal != '9999') {
+                    $contractSupport[] = [
+                        'provider' => $prov,
+                        'plan_name' => '',
+                        'new_subscription' => $newVal == '9999' ? 9999 : (int)$newVal,
+                        'number_port' => $portVal == '9999' ? 9999 : (float)$portVal,
+                        'device_change' => $changeVal == '9999' ? 9999 : (float)$changeVal
+                    ];
+                }
+            }
+        }
+        
+        // 부가서비스 변환
+            $additionalSupports = [];
+            $deliveryMethod = $product['delivery_method'] ?? 'delivery';
+            $visitRegion = $product['visit_region'] ?? '';
+            
+            if (!empty($product['promotions'])) {
+                $promotions = json_decode($product['promotions'], true) ?: [];
+                foreach ($promotions as $promo) {
+                    if (!empty($promo)) {
+                        $additionalSupports[] = $promo;
+                    }
+                }
+            }
+            
+        // 택배/내방 정보 추가
+        $promotionTitle = $product['promotion_title'] ?? '부가서비스 없음';
+        if ($deliveryMethod === 'visit' && !empty($visitRegion)) {
+            if (empty($additionalSupports)) {
+                $additionalSupports[] = $visitRegion . ' | ' . $promotionTitle;
+            } else {
+                $additionalSupports[0] = $visitRegion . ' | ' . $additionalSupports[0];
+            }
+        } else if (!empty($additionalSupports)) {
+            $additionalSupports[0] = '택배 | ' . $additionalSupports[0];
+        }
+        
+        // 가격 포맷팅
+            $monthlyPrice = '';
+            if (!empty($product['price_main'])) {
+                $monthlyPrice = number_format($product['price_main']) . '원';
+            }
+            
+            $releasePrice = '';
+            if (!empty($product['device_price'])) {
+                $releasePrice = number_format($product['device_price']);
+            }
+            
+            // 유지기간
+            $maintenancePeriod = '';
+            if (!empty($product['contract_period_value'])) {
+                $maintenancePeriod = $product['contract_period_value'] . '일';
+            }
+            
+            // 신청 수
+            $applicationCount = (int)($product['application_count'] ?? 0);
+            $selectionCount = number_format($applicationCount) . '명이 신청';
+            
+            $phones[] = [
+                'id' => (int)$product['id'],
+                'provider' => $provider,
+                'company_name' => $companyName,
+                'rating' => '4.3', // 기본값, 나중에 리뷰 시스템 연동
+                'device_name' => $product['device_name'] ?? '',
+                'device_storage' => $product['device_capacity'] ?? '',
+                'release_price' => $releasePrice,
+                'plan_name' => $provider . ' 요금제', // 기본값
+                'monthly_price' => $monthlyPrice,
+                'maintenance_period' => $maintenancePeriod,
+                'selection_count' => $selectionCount,
+                'application_count' => $applicationCount,
+                'common_support' => $commonSupport,
+                'contract_support' => $contractSupport,
+                'additional_supports' => $additionalSupports,
+                'delivery_method' => $deliveryMethod,
+                'visit_region' => $visitRegion,
+                'promotion_title' => $product['promotion_title'] ?? '부가서비스 없음'
+            ];
+        }
+        
+        // 디버깅: 데이터 확인
+        if (empty($phones)) {
+            error_log("getPhonesData: No products found in database");
+        } else {
+            error_log("getPhonesData: Found " . count($phones) . " products");
+        }
+        
+        return $phones;
+        
+    } catch (PDOException $e) {
+        error_log("Error fetching phones data: " . $e->getMessage());
+        error_log("SQL Query: " . $stmt->queryString ?? 'N/A');
+        return [];
+    } catch (Exception $e) {
+        error_log("Unexpected error in getPhonesData: " . $e->getMessage());
+        return [];
+    }
 }
 
 /**
@@ -209,13 +318,296 @@ function getPhonesData($limit = 10) {
  * @return array|null 통신사폰 데이터 또는 null
  */
 function getPhoneDetailData($phone_id) {
-    // 임시 하드코딩 데이터 (나중에 DB 쿼리로 교체)
-    $phones = getPhonesData();
-    foreach ($phones as $phone) {
-        if ($phone['id'] == $phone_id) {
-            return $phone;
-        }
+    $pdo = getDBConnection();
+    if (!$pdo) {
+        return null;
     }
-    return null;
+    
+    try {
+        $stmt = $pdo->prepare("
+            SELECT 
+                p.id,
+                p.seller_id,
+                p.application_count,
+                p.favorite_count,
+                p.view_count,
+                mno.device_name,
+                mno.device_price,
+                mno.device_capacity,
+                mno.common_provider,
+                mno.common_discount_new,
+                mno.common_discount_port,
+                mno.common_discount_change,
+                mno.contract_provider,
+                mno.contract_discount_new,
+                mno.contract_discount_port,
+                mno.contract_discount_change,
+                mno.price_main,
+                mno.contract_period_value,
+                mno.promotion_title,
+                mno.promotions,
+                mno.delivery_method,
+                mno.visit_region
+            FROM products p
+            INNER JOIN product_mno_details mno ON p.id = mno.product_id
+            WHERE p.id = :product_id 
+            AND p.product_type = 'mno'
+            AND p.status = 'active'
+            LIMIT 1
+        ");
+        
+        $stmt->bindValue(':product_id', $phone_id, PDO::PARAM_INT);
+        $stmt->execute();
+        $product = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$product) {
+            return null;
+        }
+        
+        // 판매자 정보 로드
+        $seller = null;
+        $sellersJsonPath = __DIR__ . '/sellers.json';
+        if (file_exists($sellersJsonPath)) {
+            $sellersContent = file_get_contents($sellersJsonPath);
+            $sellersJson = json_decode($sellersContent, true);
+            if ($sellersJson && isset($sellersJson['sellers'])) {
+                $sellerId = (string)($product['seller_id'] ?? '');
+                foreach ($sellersJson['sellers'] as $s) {
+                    if ((string)($s['user_id'] ?? '') === $sellerId) {
+                        $seller = $s;
+                        break;
+                    }
+                }
+            }
+        }
+        
+        $companyName = $seller['company_name'] ?? $seller['seller_name'] ?? '알뜰폰';
+        
+        // 통신사 정보 추출
+        $provider = '-';
+        $commonProviders = [];
+        $contractProviders = [];
+        
+        if (!empty($product['common_provider'])) {
+            $commonProviders = json_decode($product['common_provider'], true) ?: [];
+            if (!empty($commonProviders)) {
+                $provider = $commonProviders[0];
+            }
+        }
+        if ($provider === '-' && !empty($product['contract_provider'])) {
+            $contractProviders = json_decode($product['contract_provider'], true) ?: [];
+            if (!empty($contractProviders)) {
+                $provider = $contractProviders[0];
+            }
+        }
+        
+        // 공통지원할인 데이터 변환
+        $commonSupport = [];
+        if (!empty($commonProviders) && is_array($commonProviders)) {
+            $commonDiscountNew = [];
+            $commonDiscountPort = [];
+            $commonDiscountChange = [];
+            
+            if (!empty($product['common_discount_new'])) {
+                $decoded = json_decode($product['common_discount_new'], true);
+                if (is_array($decoded)) {
+                    $commonDiscountNew = $decoded;
+                }
+            }
+            if (!empty($product['common_discount_port'])) {
+                $decoded = json_decode($product['common_discount_port'], true);
+                if (is_array($decoded)) {
+                    $commonDiscountPort = $decoded;
+                }
+            }
+            if (!empty($product['common_discount_change'])) {
+                $decoded = json_decode($product['common_discount_change'], true);
+                if (is_array($decoded)) {
+                    $commonDiscountChange = $decoded;
+                }
+            }
+            
+            foreach ($commonProviders as $index => $prov) {
+                $newVal = isset($commonDiscountNew[$index]) ? trim($commonDiscountNew[$index]) : '9999';
+                $portVal = isset($commonDiscountPort[$index]) ? trim($commonDiscountPort[$index]) : '9999';
+                $changeVal = isset($commonDiscountChange[$index]) ? trim($commonDiscountChange[$index]) : '9999';
+                
+                // 빈 문자열이면 9999로 처리
+                if ($newVal === '') $newVal = '9999';
+                if ($portVal === '') $portVal = '9999';
+                if ($changeVal === '') $changeVal = '9999';
+                
+                $commonSupport[] = [
+                    'provider' => $prov,
+                    'plan_name' => '',
+                    'new_subscription' => $newVal == '9999' ? 9999 : (int)$newVal,
+                    'number_port' => $portVal == '9999' ? 9999 : (float)$portVal,
+                    'device_change' => $changeVal == '9999' ? 9999 : (float)$changeVal
+                ];
+            }
+        }
+        
+        // 선택약정할인 데이터 변환
+        $contractSupport = [];
+        
+        // 할인 값 배열 초기화
+        $contractDiscountNew = [];
+        $contractDiscountPort = [];
+        $contractDiscountChange = [];
+        
+        if (!empty($product['contract_discount_new'])) {
+            $decoded = json_decode($product['contract_discount_new'], true);
+            if (is_array($decoded)) {
+                $contractDiscountNew = $decoded;
+            }
+        }
+        if (!empty($product['contract_discount_port'])) {
+            $decoded = json_decode($product['contract_discount_port'], true);
+            if (is_array($decoded)) {
+                $contractDiscountPort = $decoded;
+            }
+        }
+        if (!empty($product['contract_discount_change'])) {
+            $decoded = json_decode($product['contract_discount_change'], true);
+            if (is_array($decoded)) {
+                $contractDiscountChange = $decoded;
+            }
+        }
+        
+        // contract_provider가 없으면 common_provider를 사용하거나 기본 통신사 사용
+        if (!empty($contractProviders) && is_array($contractProviders)) {
+            // contract_provider가 있는 경우
+            foreach ($contractProviders as $index => $prov) {
+                $newVal = isset($contractDiscountNew[$index]) ? trim($contractDiscountNew[$index]) : '9999';
+                $portVal = isset($contractDiscountPort[$index]) ? trim($contractDiscountPort[$index]) : '9999';
+                $changeVal = isset($contractDiscountChange[$index]) ? trim($contractDiscountChange[$index]) : '9999';
+                
+                // 빈 문자열이면 9999로 처리
+                if ($newVal === '') $newVal = '9999';
+                if ($portVal === '') $portVal = '9999';
+                if ($changeVal === '') $changeVal = '9999';
+                
+                $contractSupport[] = [
+                    'provider' => $prov,
+                    'plan_name' => '',
+                    'new_subscription' => $newVal == '9999' ? 9999 : (int)$newVal,
+                    'number_port' => $portVal == '9999' ? 9999 : (float)$portVal,
+                    'device_change' => $changeVal == '9999' ? 9999 : (float)$changeVal
+                ];
+            }
+        } else {
+            // contract_provider가 없지만 할인 값이 있는 경우, common_provider 사용
+            $useProviders = !empty($commonProviders) && is_array($commonProviders) ? $commonProviders : ['SKT', 'KT', 'LGU+'];
+            
+            $maxLength = max(
+                count($contractDiscountNew),
+                count($contractDiscountPort),
+                count($contractDiscountChange),
+                count($useProviders)
+            );
+            
+            for ($index = 0; $index < $maxLength; $index++) {
+                $prov = isset($useProviders[$index]) ? $useProviders[$index] : $useProviders[0];
+                $newVal = isset($contractDiscountNew[$index]) ? trim($contractDiscountNew[$index]) : '9999';
+                $portVal = isset($contractDiscountPort[$index]) ? trim($contractDiscountPort[$index]) : '9999';
+                $changeVal = isset($contractDiscountChange[$index]) ? trim($contractDiscountChange[$index]) : '9999';
+                
+                // 빈 문자열이면 9999로 처리
+                if ($newVal === '') $newVal = '9999';
+                if ($portVal === '') $portVal = '9999';
+                if ($changeVal === '') $changeVal = '9999';
+                
+                // 모든 값이 9999가 아니면 추가
+                if ($newVal != '9999' || $portVal != '9999' || $changeVal != '9999') {
+                    $contractSupport[] = [
+                        'provider' => $prov,
+                        'plan_name' => '',
+                        'new_subscription' => $newVal == '9999' ? 9999 : (int)$newVal,
+                        'number_port' => $portVal == '9999' ? 9999 : (float)$portVal,
+                        'device_change' => $changeVal == '9999' ? 9999 : (float)$changeVal
+                    ];
+                }
+            }
+        }
+        
+        // 부가서비스 변환
+        $additionalSupports = [];
+        $deliveryMethod = $product['delivery_method'] ?? 'delivery';
+        $visitRegion = $product['visit_region'] ?? '';
+        
+        if (!empty($product['promotions'])) {
+            $promotions = json_decode($product['promotions'], true) ?: [];
+            foreach ($promotions as $promo) {
+                if (!empty($promo)) {
+                    $additionalSupports[] = $promo;
+                }
+            }
+        }
+        
+        // 택배/내방 정보 추가
+        $promotionTitle = $product['promotion_title'] ?? '부가서비스 없음';
+        if ($deliveryMethod === 'visit' && !empty($visitRegion)) {
+            if (empty($additionalSupports)) {
+                $additionalSupports[] = $visitRegion . ' | ' . $promotionTitle;
+            } else {
+                $additionalSupports[0] = $visitRegion . ' | ' . $additionalSupports[0];
+            }
+        } else if (!empty($additionalSupports)) {
+            $additionalSupports[0] = '택배 | ' . $additionalSupports[0];
+        }
+        
+        // 가격 포맷팅
+        $monthlyPrice = '';
+        if (!empty($product['price_main'])) {
+            $monthlyPrice = number_format($product['price_main']) . '원';
+        }
+        
+        $releasePrice = '';
+        $devicePrice = '';
+        if (!empty($product['device_price'])) {
+            $devicePrice = $product['device_price'];
+            $releasePrice = number_format($devicePrice);
+        }
+        
+        // 유지기간
+        $maintenancePeriod = '';
+        if (!empty($product['contract_period_value'])) {
+            $maintenancePeriod = $product['contract_period_value'] . '일';
+        }
+        
+        // 신청 수
+        $applicationCount = (int)($product['application_count'] ?? 0);
+        $selectionCount = number_format($applicationCount) . '명이 신청';
+        
+        return [
+            'id' => (int)$product['id'],
+            'provider' => $provider,
+            'company_name' => $companyName,
+            'rating' => '4.3', // 기본값
+            'device_name' => $product['device_name'] ?? '',
+            'device_storage' => $product['device_capacity'] ?? '',
+            'device_price' => $devicePrice, // 원본 가격 값 추가
+            'release_price' => $releasePrice,
+            'plan_name' => $provider . ' 요금제',
+            'monthly_price' => $monthlyPrice,
+            'maintenance_period' => $maintenancePeriod,
+            'selection_count' => $selectionCount,
+            'application_count' => $applicationCount,
+            'common_support' => $commonSupport,
+            'contract_support' => $contractSupport,
+            'additional_supports' => $additionalSupports,
+            'delivery_method' => $deliveryMethod,
+            'visit_region' => $visitRegion,
+            'promotion_title' => $product['promotion_title'] ?? '부가서비스 없음'
+        ];
+        
+    } catch (PDOException $e) {
+        error_log("Error fetching phone detail data: " . $e->getMessage());
+        error_log("Product ID: " . $phone_id);
+        return null;
+    } catch (Exception $e) {
+        error_log("Unexpected error in getPhoneDetailData: " . $e->getMessage());
+        return null;
+    }
 }
 

@@ -112,7 +112,7 @@ try {
             FROM products p
             LEFT JOIN product_mno_details mno ON p.id = mno.product_id
             WHERE {$whereClause}
-            ORDER BY p.created_at DESC
+            ORDER BY p.id DESC
             LIMIT :limit OFFSET :offset
         ");
         
@@ -529,7 +529,7 @@ include __DIR__ . '/../includes/seller-header.php';
                                 <input type="checkbox" id="selectAll" onchange="toggleSelectAll()" style="cursor: pointer;">
                             </div>
                         </th>
-                        <th>번호</th>
+                        <th>상품등록번호</th>
                         <th>단말기명</th>
                         <th>단말기 수령방법</th>
                         <th>조회수</th>
@@ -547,7 +547,7 @@ include __DIR__ . '/../includes/seller-header.php';
                             <td style="text-align: center;">
                                 <input type="checkbox" class="product-checkbox" value="<?php echo $product['id']; ?>" style="cursor: pointer;">
                             </td>
-                            <td><?php echo ($page - 1) * $perPage + $index + 1; ?></td>
+                            <td><?php echo htmlspecialchars($product['id'] ?? '-'); ?></td>
                             <td><?php echo htmlspecialchars($product['product_name'] ?? '-'); ?></td>
                             <td>
                                 <?php 

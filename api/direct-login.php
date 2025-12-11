@@ -37,7 +37,7 @@ if ($result['success']) {
     // 역할에 따라 리다이렉트 URL 결정
     $redirect = '/MVNO/';
     if ($user['role'] === 'admin' || $user['role'] === 'sub_admin') {
-        $redirect = '/MVNO/admin/';
+        $redirect = '/MVNO/admin/'; // 관리자는 관리자 센터로 이동
     } elseif ($user['role'] === 'seller') {
         $redirect = '/MVNO/'; // 판매자 대시보드가 있으면 그쪽으로
     }

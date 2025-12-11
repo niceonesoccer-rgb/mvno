@@ -10,7 +10,14 @@ if (!isset($phone)) {
 }
 $device_name = $phone['device_name'] ?? '기기명';
 $device_storage = $phone['device_storage'] ?? '';
-$release_price = $phone['release_price'] ?? '0원';
+// 출고가: release_price가 있으면 사용, 없으면 device_price를 포맷팅
+if (!empty($phone['release_price'])) {
+    $release_price = $phone['release_price'];
+} elseif (!empty($phone['device_price'])) {
+    $release_price = number_format($phone['device_price']);
+} else {
+    $release_price = '0';
+}
 $provider = $phone['provider'] ?? 'SKT';
 $plan_name = $phone['plan_name'] ?? '요금제명';
 $price_main = $phone['monthly_price'] ?? $phone['price'] ?? '월 0원';
@@ -20,49 +27,12 @@ $selection_count = $phone['selection_count'] ?? '29,448명이 신청';
 // 요금제명에서 통신사명 제거 (이미 provider에 있음)
 $plan_name_clean = str_replace([$provider . ' ', 'SKT ', 'KT ', 'LG U+ '], '', $plan_name);
 
-// 지원금 정보 (예시 데이터 - 나중에 실제 데이터로 교체)
+// 지원금 정보 (DB에서 가져온 데이터 사용)
 // 공통지원할인 데이터 (여러 행 가능)
-$common_support = $phone['common_support'] ?? [
-    [
-        'provider' => 'KT',
-        'plan_name' => '',
-        'new_subscription' => 9999,
-        'number_port' => -198,
-        'device_change' => 191.6
-    ],
-    [
-        'provider' => 'KT',
-        'plan_name' => '',
-        'new_subscription' => 9999,
-        'number_port' => -198,
-        'device_change' => 191.6
-    ],
-    [
-        'provider' => 'SKT',
-        'plan_name' => '',
-        'new_subscription' => 9999,
-        'number_port' => -198,
-        'device_change' => 191.6
-    ]
-];
+$common_support = $phone['common_support'] ?? [];
 
 // 선택약정할인 데이터 (여러 행 가능)
-$contract_support = $phone['contract_support'] ?? [
-    [
-        'provider' => 'LG U+',
-        'plan_name' => '',
-        'new_subscription' => 9999,
-        'number_port' => 198,
-        'device_change' => 150
-    ],
-    [
-        'provider' => 'KT',
-        'plan_name' => '',
-        'new_subscription' => 9999,
-        'number_port' => 198,
-        'device_change' => 150
-    ]
-];
+$contract_support = $phone['contract_support'] ?? [];
 
 // 공통지원할인: 표시될 행들에서 신규가입 열 표시 여부 확인
 $common_display_rows = [];
@@ -77,18 +47,30 @@ foreach ($common_support as $row) {
     }
 }
 
-// 표시될 행들의 신규가입 값이 모두 9999인지 확인
-$show_common_new_column = true;
-if (count($common_display_rows) > 0) {
-    $all_new_9999 = true;
-    foreach ($common_display_rows as $row) {
-        if (($row['new_subscription'] ?? 9999) != 9999) {
-            $all_new_9999 = false;
-            break;
-        }
+// 신규가입 열 표시 여부: 전체 데이터에서 신규가입 값이 9999가 아닌 값이 하나라도 있으면 표시
+$show_common_new_column = false;
+foreach ($common_support as $row) {
+    if (($row['new_subscription'] ?? 9999) != 9999) {
+        $show_common_new_column = true;
+        break;
     }
-    if ($all_new_9999) {
-        $show_common_new_column = false;
+}
+
+// 번호이동 열 표시 여부: 전체 데이터에서 번호이동 값이 9999가 아닌 값이 하나라도 있으면 표시
+$show_common_port_column = false;
+foreach ($common_support as $row) {
+    if (($row['number_port'] ?? 9999) != 9999) {
+        $show_common_port_column = true;
+        break;
+    }
+}
+
+// 기기변경 열 표시 여부: 전체 데이터에서 기기변경 값이 9999가 아닌 값이 하나라도 있으면 표시
+$show_common_change_column = false;
+foreach ($common_support as $row) {
+    if (($row['device_change'] ?? 9999) != 9999) {
+        $show_common_change_column = true;
+        break;
     }
 }
 
@@ -105,18 +87,30 @@ foreach ($contract_support as $row) {
     }
 }
 
-// 표시될 행들의 신규가입 값이 모두 9999인지 확인
-$show_contract_new_column = true;
-if (count($contract_display_rows) > 0) {
-    $all_new_9999_contract = true;
-    foreach ($contract_display_rows as $row) {
-        if (($row['new_subscription'] ?? 9999) != 9999) {
-            $all_new_9999_contract = false;
-            break;
-        }
+// 신규가입 열 표시 여부: 전체 데이터에서 신규가입 값이 9999가 아닌 값이 하나라도 있으면 표시
+$show_contract_new_column = false;
+foreach ($contract_support as $row) {
+    if (($row['new_subscription'] ?? 9999) != 9999) {
+        $show_contract_new_column = true;
+        break;
     }
-    if ($all_new_9999_contract) {
-        $show_contract_new_column = false;
+}
+
+// 번호이동 열 표시 여부: 전체 데이터에서 번호이동 값이 9999가 아닌 값이 하나라도 있으면 표시
+$show_contract_port_column = false;
+foreach ($contract_support as $row) {
+    if (($row['number_port'] ?? 9999) != 9999) {
+        $show_contract_port_column = true;
+        break;
+    }
+}
+
+// 기기변경 열 표시 여부: 전체 데이터에서 기기변경 값이 9999가 아닌 값이 하나라도 있으면 표시
+$show_contract_change_column = false;
+foreach ($contract_support as $row) {
+    if (($row['device_change'] ?? 9999) != 9999) {
+        $show_contract_change_column = true;
+        break;
     }
 }
 
@@ -173,8 +167,12 @@ $show_only_one_section = ($show_common_section && !$show_contract_section) || (!
                                 <?php if ($show_common_new_column): ?>
                                 <th>신규</th>
                                 <?php endif; ?>
+                                <?php if ($show_common_port_column): ?>
                                 <th>번이</th>
+                                <?php endif; ?>
+                                <?php if ($show_common_change_column): ?>
                                 <th>기변</th>
+                                <?php endif; ?>
                             </tr>
                         </thead>
                         <tbody>
@@ -205,18 +203,30 @@ $show_only_one_section = ($show_common_section && !$show_contract_section) || (!
                                 <?php if ($show_common_new_column): ?>
                                 <td>
                                     <?php 
-                                    $display_value = ($new_value == 9999) ? '-' : $new_value;
-                                    $text_class = ($display_value == '-') ? 'mno-support-text mno-support-text-empty' : 'mno-support-text';
+                                    // 9999 값은 "-"로 표시 (숫자/문자열 모두 처리)
+                                    $new_display = '';
+                                    if ($new_value === '' || $new_value === null || $new_value == 9999 || $new_value === '9999') {
+                                        $new_display = '-';
+                                    } else {
+                                        $new_display = htmlspecialchars($new_value);
+                                    }
+                                    $new_text_class = ($new_display == '-') ? 'mno-support-text mno-support-text-empty' : 'mno-support-text';
                                     ?>
-                                    <span class="<?php echo htmlspecialchars($text_class); ?>"><?php echo htmlspecialchars($display_value); ?></span>
+                                    <span class="<?php echo htmlspecialchars($new_text_class); ?>"><?php echo $new_display; ?></span>
                                 </td>
                                 <?php endif; ?>
+                                <?php if ($show_common_port_column): ?>
                                 <td>
                                     <?php 
-                                    $port_value = $row['number_port'] ?? '';
-                                    $port_display = htmlspecialchars($port_value);
+                                    // 9999 값은 "-"로 표시 (숫자/문자열 모두 처리)
+                                    $port_display = '';
+                                    if ($port_value === '' || $port_value === null || $port_value == 9999 || $port_value === '9999') {
+                                        $port_display = '-';
+                                    } else {
+                                        $port_display = htmlspecialchars($port_value);
+                                    }
                                     $port_color_class = '';
-                                    if ($port_value !== '' && $port_value !== null && $port_value != 9999) {
+                                    if ($port_value !== '' && $port_value !== null && $port_value != 9999 && $port_value !== '9999') {
                                         // 음수면 빨강, 양수면 파랑
                                         $port_str = (string)$port_value;
                                         if (strpos($port_str, '-') === 0 || floatval($port_value) < 0) {
@@ -225,15 +235,23 @@ $show_only_one_section = ($show_common_section && !$show_contract_section) || (!
                                             $port_color_class = 'mno-support-text-positive';
                                         }
                                     }
+                                    $port_text_class = ($port_display == '-') ? 'mno-support-text mno-support-text-empty' : 'mno-support-text';
                                     ?>
-                                    <span class="mno-support-text <?php echo htmlspecialchars($port_color_class); ?>"><?php echo $port_display; ?></span>
+                                    <span class="<?php echo htmlspecialchars($port_text_class); ?> <?php echo htmlspecialchars($port_color_class); ?>"><?php echo $port_display; ?></span>
                                 </td>
+                                <?php endif; ?>
+                                <?php if ($show_common_change_column): ?>
                                 <td>
                                     <?php 
-                                    $change_value = $row['device_change'] ?? '';
-                                    $change_display = htmlspecialchars($change_value);
+                                    // 9999 값은 "-"로 표시 (숫자/문자열 모두 처리)
+                                    $change_display = '';
+                                    if ($change_value === '' || $change_value === null || $change_value == 9999 || $change_value === '9999') {
+                                        $change_display = '-';
+                                    } else {
+                                        $change_display = htmlspecialchars($change_value);
+                                    }
                                     $change_color_class = '';
-                                    if ($change_value !== '' && $change_value !== null && $change_value != 9999) {
+                                    if ($change_value !== '' && $change_value !== null && $change_value != 9999 && $change_value !== '9999') {
                                         // 음수면 빨강, 양수면 파랑
                                         $change_str = (string)$change_value;
                                         if (strpos($change_str, '-') === 0 || floatval($change_value) < 0) {
@@ -242,9 +260,11 @@ $show_only_one_section = ($show_common_section && !$show_contract_section) || (!
                                             $change_color_class = 'mno-support-text-positive';
                                         }
                                     }
+                                    $change_text_class = ($change_display == '-') ? 'mno-support-text mno-support-text-empty' : 'mno-support-text';
                                     ?>
-                                    <span class="mno-support-text <?php echo htmlspecialchars($change_color_class); ?>"><?php echo $change_display; ?></span>
+                                    <span class="<?php echo htmlspecialchars($change_text_class); ?> <?php echo htmlspecialchars($change_color_class); ?>"><?php echo $change_display; ?></span>
                                 </td>
+                                <?php endif; ?>
                             </tr>
                             <?php endforeach; ?>
                         </tbody>
@@ -265,8 +285,12 @@ $show_only_one_section = ($show_common_section && !$show_contract_section) || (!
                                 <?php if ($show_contract_new_column): ?>
                                 <th>신규</th>
                                 <?php endif; ?>
+                                <?php if ($show_contract_port_column): ?>
                                 <th>번이</th>
+                                <?php endif; ?>
+                                <?php if ($show_contract_change_column): ?>
                                 <th>기변</th>
+                                <?php endif; ?>
                             </tr>
                         </thead>
                         <tbody>
@@ -297,18 +321,30 @@ $show_only_one_section = ($show_common_section && !$show_contract_section) || (!
                                 <?php if ($show_contract_new_column): ?>
                                 <td>
                                     <?php 
-                                    $display_value = ($new_value == 9999) ? '-' : $new_value;
-                                    $text_class = ($display_value == '-') ? 'mno-support-text mno-support-text-empty' : 'mno-support-text';
+                                    // 9999 값은 "-"로 표시 (숫자/문자열 모두 처리)
+                                    $new_display = '';
+                                    if ($new_value === '' || $new_value === null || $new_value == 9999 || $new_value === '9999') {
+                                        $new_display = '-';
+                                    } else {
+                                        $new_display = htmlspecialchars($new_value);
+                                    }
+                                    $new_text_class = ($new_display == '-') ? 'mno-support-text mno-support-text-empty' : 'mno-support-text';
                                     ?>
-                                    <span class="<?php echo htmlspecialchars($text_class); ?>"><?php echo htmlspecialchars($display_value); ?></span>
+                                    <span class="<?php echo htmlspecialchars($new_text_class); ?>"><?php echo $new_display; ?></span>
                                 </td>
                                 <?php endif; ?>
+                                <?php if ($show_contract_port_column): ?>
                                 <td>
                                     <?php 
-                                    $port_value = $row['number_port'] ?? '';
-                                    $port_display = htmlspecialchars($port_value);
+                                    // 9999 값은 "-"로 표시 (숫자/문자열 모두 처리)
+                                    $port_display = '';
+                                    if ($port_value === '' || $port_value === null || $port_value == 9999 || $port_value === '9999') {
+                                        $port_display = '-';
+                                    } else {
+                                        $port_display = htmlspecialchars($port_value);
+                                    }
                                     $port_color_class = '';
-                                    if ($port_value !== '' && $port_value !== null && $port_value != 9999) {
+                                    if ($port_value !== '' && $port_value !== null && $port_value != 9999 && $port_value !== '9999') {
                                         // 음수면 빨강, 양수면 파랑
                                         $port_str = (string)$port_value;
                                         if (strpos($port_str, '-') === 0 || floatval($port_value) < 0) {
@@ -317,15 +353,23 @@ $show_only_one_section = ($show_common_section && !$show_contract_section) || (!
                                             $port_color_class = 'mno-support-text-positive';
                                         }
                                     }
+                                    $port_text_class = ($port_display == '-') ? 'mno-support-text mno-support-text-empty' : 'mno-support-text';
                                     ?>
-                                    <span class="mno-support-text <?php echo htmlspecialchars($port_color_class); ?>"><?php echo $port_display; ?></span>
+                                    <span class="<?php echo htmlspecialchars($port_text_class); ?> <?php echo htmlspecialchars($port_color_class); ?>"><?php echo $port_display; ?></span>
                                 </td>
+                                <?php endif; ?>
+                                <?php if ($show_contract_change_column): ?>
                                 <td>
                                     <?php 
-                                    $change_value = $row['device_change'] ?? '';
-                                    $change_display = htmlspecialchars($change_value);
+                                    // 9999 값은 "-"로 표시 (숫자/문자열 모두 처리)
+                                    $change_display = '';
+                                    if ($change_value === '' || $change_value === null || $change_value == 9999 || $change_value === '9999') {
+                                        $change_display = '-';
+                                    } else {
+                                        $change_display = htmlspecialchars($change_value);
+                                    }
                                     $change_color_class = '';
-                                    if ($change_value !== '' && $change_value !== null && $change_value != 9999) {
+                                    if ($change_value !== '' && $change_value !== null && $change_value != 9999 && $change_value !== '9999') {
                                         // 음수면 빨강, 양수면 파랑
                                         $change_str = (string)$change_value;
                                         if (strpos($change_str, '-') === 0 || floatval($change_value) < 0) {
@@ -334,9 +378,11 @@ $show_only_one_section = ($show_common_section && !$show_contract_section) || (!
                                             $change_color_class = 'mno-support-text-positive';
                                         }
                                     }
+                                    $change_text_class = ($change_display == '-') ? 'mno-support-text mno-support-text-empty' : 'mno-support-text';
                                     ?>
-                                    <span class="mno-support-text <?php echo htmlspecialchars($change_color_class); ?>"><?php echo $change_display; ?></span>
+                                    <span class="<?php echo htmlspecialchars($change_text_class); ?> <?php echo htmlspecialchars($change_color_class); ?>"><?php echo $change_display; ?></span>
                                 </td>
+                                <?php endif; ?>
                             </tr>
                             <?php endforeach; ?>
                         </tbody>

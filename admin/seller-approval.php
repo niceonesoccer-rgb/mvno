@@ -109,7 +109,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_withdrawal'])
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['check_info_update'])) {
     $userId = $_POST['user_id'] ?? '';
     $currentTab = $_GET['tab'] ?? 'updated';
-    $perPage = isset($_GET['per_page']) ? '&per_page=' . (int)$_GET['per_page'] : '';
+    $currentPage = isset($_POST['page']) ? max(1, (int)$_POST['page']) : (isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1);
+    $perPage = isset($_POST['per_page']) ? (int)$_POST['per_page'] : (isset($_GET['per_page']) ? (int)$_GET['per_page'] : 10);
     
     if ($userId) {
         $file = getSellersFilePath();
@@ -128,12 +129,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['check_info_update']))
             
             if ($updated) {
                 file_put_contents($file, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-                header('Location: /MVNO/admin/seller-approval.php?tab=' . $currentTab . '&success=check_info_update' . $perPage);
+                header('Location: /MVNO/admin/seller-approval.php?tab=' . $currentTab . '&page=' . $currentPage . '&per_page=' . $perPage . '&success=check_info_update');
                 exit;
             }
         }
     }
-    header('Location: /MVNO/admin/seller-approval.php?tab=' . $currentTab . '&error=check_info_update' . $perPage);
+    header('Location: /MVNO/admin/seller-approval.php?tab=' . $currentTab . '&page=' . $currentPage . '&per_page=' . $perPage . '&error=check_info_update');
     exit;
 }
 
@@ -241,7 +242,7 @@ $withdrawalRequestedSellers = array_filter($sellers, function($seller) {
     return $hasWithdrawalRequest && !$isCompleted;
 });
 
-// 정보 업데이트된 판매자 (관리자 확인 전)
+// 정보 업데이트된 판매자 (관리자 확인 전만 표시)
 $updatedSellers = array_filter($sellers, function($seller) {
     return isset($seller['info_updated']) && $seller['info_updated'] === true 
         && (!isset($seller['info_checked_by_admin']) || $seller['info_checked_by_admin'] !== true);
@@ -1589,10 +1590,19 @@ $paginatedSellers = array_slice($currentSellers, $offset, $perPage);
                                     <td><?php echo htmlspecialchars($contact); ?></td>
                                     <td><?php echo htmlspecialchars($seller['info_updated_at'] ?? '-'); ?></td>
                                     <td>
-                                        <span class="badge badge-pending">정보 업데이트</span>
+                                        <?php if (isset($seller['info_checked_by_admin']) && $seller['info_checked_by_admin'] === true): ?>
+                                            <span class="badge badge-approved">확인 완료</span>
+                                        <?php else: ?>
+                                            <span class="badge badge-pending">정보 업데이트</span>
+                                        <?php endif; ?>
                                     </td>
                                     <td>
-                                        <a href="/MVNO/admin/users/seller-detail.php?user_id=<?php echo urlencode($seller['user_id']); ?>" class="btn" style="background: #6366f1; color: white; text-decoration: none; display: inline-block;">상세보기</a>
+                                        <div style="display: flex; gap: 8px; align-items: center;">
+                                            <a href="/MVNO/admin/users/seller-detail.php?user_id=<?php echo urlencode($seller['user_id']); ?>" class="btn" style="background: #6366f1; color: white; text-decoration: none; display: inline-block; padding: 6px 12px; font-size: 13px;">상세보기</a>
+                                            <?php if (!isset($seller['info_checked_by_admin']) || $seller['info_checked_by_admin'] !== true): ?>
+                                                <button type="button" onclick="showCheckInfoUpdateModal('<?php echo htmlspecialchars($seller['user_id']); ?>', '<?php echo htmlspecialchars($seller['seller_name'] ?? $seller['name'] ?? $seller['user_id']); ?>')" class="btn" style="background: #10b981; color: white; border: none; padding: 6px 12px; font-size: 13px; cursor: pointer;">확인</button>
+                                            <?php endif; ?>
+                                        </div>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -1935,6 +1945,25 @@ $paginatedSellers = array_slice($currentSellers, $offset, $perPage);
     </div>
 </div>
 
+<!-- 정보 업데이트 확인 모달 -->
+<div class="modal-overlay" id="checkInfoUpdateModal" onclick="if(event.target === this) closeCheckInfoUpdateModal();">
+    <div class="modal" onclick="event.stopPropagation();">
+        <div class="modal-title">정보 업데이트 확인</div>
+        <div class="modal-message">
+            <strong id="checkInfoUpdateUserName"></strong> 판매자의 정보 업데이트 확인을 완료하시겠습니까?
+        </div>
+        <div class="modal-actions">
+            <button type="button" class="modal-btn modal-btn-cancel" onclick="closeCheckInfoUpdateModal()">취소</button>
+            <form method="POST" action="/MVNO/admin/seller-approval.php?tab=updated" id="checkInfoUpdateForm" style="display: inline;">
+                <input type="hidden" name="user_id" id="checkInfoUpdateUserId">
+                <input type="hidden" name="page" id="checkInfoUpdatePage" value="<?php echo $updatedCurrentPage; ?>">
+                <input type="hidden" name="per_page" id="checkInfoUpdatePerPage" value="<?php echo $perPage; ?>">
+                <button type="submit" name="check_info_update" class="modal-btn modal-btn-confirm">확인</button>
+            </form>
+        </div>
+    </div>
+</div>
+
 <!-- 탈퇴 요청 취소 모달 (관리자) -->
 <div class="modal-overlay" id="cancelWithdrawalAdminModal">
     <div class="modal">
@@ -2074,6 +2103,7 @@ $paginatedSellers = array_slice($currentSellers, $offset, $perPage);
     
     function closeDetailModal() {
         document.getElementById('detailModal').classList.remove('active');
+        document.body.style.overflow = '';
     }
     
     function escapeHtml(text) {
@@ -2087,20 +2117,44 @@ $paginatedSellers = array_slice($currentSellers, $offset, $perPage);
         document.getElementById('approveUserId').value = userId;
         document.getElementById('approveUserName').textContent = userName;
         document.getElementById('approveModal').classList.add('active');
+        document.body.style.overflow = 'hidden';
     }
     
     function closeApproveModal() {
         document.getElementById('approveModal').classList.remove('active');
+        document.body.style.overflow = '';
     }
     
     function showHoldModal(userId, userName) {
         document.getElementById('holdUserId').value = userId;
         document.getElementById('holdUserName').textContent = userName;
         document.getElementById('holdModal').classList.add('active');
+        document.body.style.overflow = 'hidden';
     }
     
     function closeHoldModal() {
         document.getElementById('holdModal').classList.remove('active');
+        document.body.style.overflow = '';
+    }
+    
+    function showCheckInfoUpdateModal(userId, userName) {
+        const currentPage = <?php echo isset($updatedCurrentPage) ? $updatedCurrentPage : 1; ?>;
+        const perPage = <?php echo $perPage; ?>;
+        document.getElementById('checkInfoUpdateUserId').value = userId;
+        document.getElementById('checkInfoUpdateUserName').textContent = userName;
+        if (document.getElementById('checkInfoUpdatePage')) {
+            document.getElementById('checkInfoUpdatePage').value = currentPage;
+        }
+        if (document.getElementById('checkInfoUpdatePerPage')) {
+            document.getElementById('checkInfoUpdatePerPage').value = perPage;
+        }
+        document.getElementById('checkInfoUpdateModal').classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+    
+    function closeCheckInfoUpdateModal() {
+        document.getElementById('checkInfoUpdateModal').classList.remove('active');
+        document.body.style.overflow = '';
     }
     
     function showRejectModal(userId, userName) {

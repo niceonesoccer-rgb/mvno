@@ -8,7 +8,15 @@
 if (!isset($phone)) {
     $phone = [];
 }
-$provider = $phone['company_name'] ?? '이야기모바일';
+$company_name_raw = $phone['company_name'] ?? '이야기모바일';
+// "스마트모바일" → "스마트"로 변환
+$provider = $company_name_raw;
+if (strpos($company_name_raw, '스마트모바일') !== false) {
+    $provider = '스마트';
+} elseif (strpos($company_name_raw, '모바일') !== false) {
+    // "XX모바일" 형식에서 "XX"만 추출
+    $provider = str_replace('모바일', '', $company_name_raw);
+}
 $rating = $phone['rating'] ?? '4.5';
 $phone_id = $phone['id'] ?? 0;
 $is_sold_out = $phone['is_sold_out'] ?? false; // 판매종료 여부

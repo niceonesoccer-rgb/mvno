@@ -16,16 +16,10 @@ $card_wrapper_class = '';
     <?php include __DIR__ . '/../components/phone-card.php'; ?>
 </div>
 
-<!-- 신청하기 섹션 (하단 고정) -->
+<!-- 신청하기 섹션 (카드 아래 오른쪽) -->
 <section class="plan-detail-apply-section">
     <div class="content-layout">
         <div class="plan-apply-content">
-            <div class="plan-price-info">
-                <div class="plan-price-main">
-                    <span class="plan-price-amount">월 <?php echo htmlspecialchars($phone['monthly_price'] ?? '109,000원'); ?></span>
-                </div>
-                <span class="plan-price-note">유지기간 <?php echo htmlspecialchars($phone['maintenance_period'] ?? '185일'); ?></span>
-            </div>
             <button class="plan-apply-btn" id="phoneApplyBtn">신청하기</button>
         </div>
     </div>

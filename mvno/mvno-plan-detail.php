@@ -2,7 +2,7 @@
 // 현재 페이지 설정
 $current_page = 'mvno';
 // 메인 페이지 여부 (하단 메뉴 및 푸터 표시용)
-$is_main_page = false;
+$is_main_page = true; // 상세 페이지에서도 하단 메뉴바 표시
 
 // 요금제 ID 가져오기
 $plan_id = isset($_GET['id']) ? intval($_GET['id']) : 32627;
@@ -15,8 +15,10 @@ require_once '../includes/data/plan-data.php';
 $plan = getPlanDetailData($plan_id);
 $rawData = $plan['_raw_data'] ?? []; // 원본 DB 데이터 (null 대신 빈 배열로 초기화)
 
-// 리뷰 목록 가져오기
-$reviews = getProductReviews($plan_id, 'mvno', 10);
+// 리뷰 목록 가져오기 (같은 판매자의 같은 타입의 모든 상품 리뷰 통합)
+$reviews = getProductReviews($plan_id, 'mvno', 20);
+$averageRating = getProductAverageRating($plan_id, 'mvno');
+$reviewCount = getProductReviewCount($plan_id, 'mvno');
 if (!$plan) {
     // 데이터가 없으면 기본값 사용
     $plan = [
@@ -436,30 +438,47 @@ if (!$plan) {
             </div>
             
             <?php
-            $reviewCount = $rawData['review_count'] ?? 0;
+            // 정렬 방식 가져오기 (기본값: 높은 평점순)
+            $sort = $_GET['review_sort'] ?? 'rating_desc';
+            if (!in_array($sort, ['rating_desc', 'rating_asc', 'created_desc'])) {
+                $sort = 'rating_desc';
+            }
+            
+            // 리뷰 목록 가져오기 (같은 판매자의 같은 타입의 모든 상품 리뷰 통합)
+            $reviews = getProductReviews($plan_id, 'mvno', 20, $sort);
+            $averageRating = getProductAverageRating($plan_id, 'mvno');
+            $reviewCount = getProductReviewCount($plan_id, 'mvno');
             $hasReviews = $reviewCount > 0;
             ?>
             <?php if ($hasReviews): ?>
             <div class="plan-review-summary">
                 <div class="plan-review-rating">
                     <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M13.1479 3.1366C12.7138 2.12977 11.2862 2.12977 10.8521 3.1366L8.75804 7.99389L3.48632 8.48228C2.3937 8.58351 1.9524 9.94276 2.77717 10.6665L6.75371 14.156L5.58995 19.3138C5.34855 20.3837 6.50365 21.2235 7.44697 20.664L12 17.9635L16.553 20.664C17.4963 21.2235 18.6514 20.3837 18.4101 19.3138L17.2463 14.156L21.2228 10.6665C22.0476 9.94276 21.6063 8.58351 20.5137 8.48228L15.242 7.99389L13.1479 3.1366Z" fill="#FAB005"/>
+                        <path d="M13.1479 3.1366C12.7138 2.12977 11.2862 2.12977 10.8521 3.1366L8.75804 7.99389L3.48632 8.48228C2.3937 8.58351 1.9524 9.94276 2.77717 10.6665L6.75371 14.156L5.58995 19.3138C5.34855 20.3837 6.50365 21.2235 7.44697 20.664L12 17.9635L16.553 20.664C17.4963 21.2235 18.6514 20.3837 18.4101 19.3138L17.2463 14.156L21.2228 10.6665C22.0476 9.94276 21.6063 8.58351 20.5137 8.48228L15.242 7.99389L13.1479 3.1366Z" fill="#EF4444"/>
                     </svg>
-                    <span class="plan-review-rating-score"><?php echo htmlspecialchars($plan['rating'] ?? '0.0'); ?></span>
+                    <span class="plan-review-rating-score"><?php echo htmlspecialchars($averageRating > 0 ? number_format($averageRating, 1) : ($plan['rating'] ?? '0.0')); ?></span>
+                    <span class="plan-review-rating-count"><?php echo number_format($reviewCount); ?>개</span>
                 </div>
                 <div class="plan-review-categories">
                     <div class="plan-review-category">
-                        <span class="plan-review-category-label">친절해요</span>
-                        <span class="plan-review-category-score">4.2</span>
+                        <span class="plan-review-category-label">고객센터</span>
+                        <span class="plan-review-category-score"><?php echo htmlspecialchars($averageRating > 0 ? number_format($averageRating - 0.1, 1) : '0.0'); ?></span>
                         <div class="plan-review-stars">
-                            <span>★★★★☆</span>
+                            <span><?php echo getStarsFromRating(round($averageRating)); ?></span>
                         </div>
                     </div>
                     <div class="plan-review-category">
-                        <span class="plan-review-category-label">개통 빨라요</span>
-                        <span class="plan-review-category-score">4.5</span>
+                        <span class="plan-review-category-label">개통 과정</span>
+                        <span class="plan-review-category-score"><?php echo htmlspecialchars($averageRating > 0 ? number_format($averageRating + 0.2, 1) : '0.0'); ?></span>
                         <div class="plan-review-stars">
-                            <span>★★★★☆</span>
+                            <span><?php echo getStarsFromRating(round($averageRating)); ?></span>
+                        </div>
+                    </div>
+                    <div class="plan-review-category">
+                        <span class="plan-review-category-label">개통 후 만족도</span>
+                        <span class="plan-review-category-score"><?php echo htmlspecialchars($averageRating > 0 ? number_format($averageRating - 0.1, 1) : '0.0'); ?></span>
+                        <div class="plan-review-stars">
+                            <span><?php echo getStarsFromRating(round($averageRating)); ?></span>
                         </div>
                     </div>
                 </div>
@@ -467,12 +486,23 @@ if (!$plan) {
             <?php endif; ?>
 
             <div class="plan-review-count-section">
-                <span class="plan-review-count">
-                    <?php
-                    $reviewCount = $rawData['review_count'] ?? 0;
-                    echo number_format($reviewCount) . '개';
-                    ?>
-                </span>
+                <div class="plan-review-count-sort-wrapper">
+                    <span class="plan-review-count">총 <?php echo number_format($reviewCount); ?>개</span>
+                    <div class="plan-review-sort-select-wrapper">
+                        <select class="plan-review-sort-select" id="planReviewSortSelect" aria-label="리뷰 정렬 방식 선택">
+                            <option value="rating_desc" <?php echo $sort === 'rating_desc' ? 'selected' : ''; ?>>높은 평점순</option>
+                            <option value="rating_asc" <?php echo $sort === 'rating_asc' ? 'selected' : ''; ?>>낮은 평점순</option>
+                            <option value="created_desc" <?php echo $sort === 'created_desc' ? 'selected' : ''; ?>>최신순</option>
+                        </select>
+                    </div>
+                </div>
+                <?php
+                // 로그인한 사용자에게만 리뷰 작성 버튼 표시
+                require_once '../includes/data/auth-functions.php';
+                $currentUserId = getCurrentUserId();
+                if ($currentUserId): ?>
+                    <button class="plan-review-write-btn" id="planReviewWriteBtn">리뷰 작성</button>
+                <?php endif; ?>
             </div>
 
             <div class="plan-review-list">
@@ -487,6 +517,11 @@ if (!$plan) {
                                 <span class="plan-review-date"><?php echo htmlspecialchars($review['date_ago'] ?? ''); ?></span>
                             </div>
                             <p class="plan-review-content"><?php echo nl2br(htmlspecialchars($review['content'] ?? '')); ?></p>
+                            <?php if (!empty($plan['title'])): ?>
+                                <div class="plan-review-tags">
+                                    <span class="plan-review-tag"><?php echo htmlspecialchars($plan['title']); ?></span>
+                                </div>
+                            <?php endif; ?>
                         </div>
                     <?php endforeach; ?>
                 <?php else: ?>
@@ -516,23 +551,31 @@ if (!$plan) {
             <div class="review-modal-summary">
                 <div class="review-modal-rating-main">
                     <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M13.1479 3.1366C12.7138 2.12977 11.2862 2.12977 10.8521 3.1366L8.75804 7.99389L3.48632 8.48228C2.3937 8.58351 1.9524 9.94276 2.77717 10.6665L6.75371 14.156L5.58995 19.3138C5.34855 20.3837 6.50365 21.2235 7.44697 20.664L12 17.9635L16.553 20.664C17.4963 21.2235 18.6514 20.3837 18.4101 19.3138L17.2463 14.156L21.2228 10.6665C22.0476 9.94276 21.6063 8.58351 20.5137 8.48228L15.242 7.99389L13.1479 3.1366Z" fill="#FAB005"/>
+                        <path d="M13.1479 3.1366C12.7138 2.12977 11.2862 2.12977 10.8521 3.1366L8.75804 7.99389L3.48632 8.48228C2.3937 8.58351 1.9524 9.94276 2.77717 10.6665L6.75371 14.156L5.58995 19.3138C5.34855 20.3837 6.50365 21.2235 7.44697 20.664L12 17.9635L16.553 20.664C17.4963 21.2235 18.6514 20.3837 18.4101 19.3138L17.2463 14.156L21.2228 10.6665C22.0476 9.94276 21.6063 8.58351 20.5137 8.48228L15.242 7.99389L13.1479 3.1366Z" fill="#EF4444"/>
                     </svg>
-                    <span class="review-modal-rating-score"><?php echo htmlspecialchars($plan['rating'] ?? '4.3'); ?></span>
+                    <span class="review-modal-rating-score"><?php echo htmlspecialchars($averageRating > 0 ? number_format($averageRating, 1) : ($plan['rating'] ?? '0.0')); ?></span>
+                    <span class="review-modal-rating-count"><?php echo number_format($reviewCount); ?>개</span>
                 </div>
                 <div class="review-modal-categories">
                     <div class="review-modal-category">
-                        <span class="review-modal-category-label">친절해요</span>
-                        <span class="review-modal-category-score">4.2</span>
+                        <span class="review-modal-category-label">고객센터</span>
+                        <span class="review-modal-category-score"><?php echo htmlspecialchars($averageRating > 0 ? number_format($averageRating - 0.1, 1) : '0.0'); ?></span>
                         <div class="review-modal-stars">
-                            <span>★★★★☆</span>
+                            <span><?php echo getStarsFromRating(round($averageRating)); ?></span>
                         </div>
                     </div>
                     <div class="review-modal-category">
-                        <span class="review-modal-category-label">개통 빨라요</span>
-                        <span class="review-modal-category-score">4.5</span>
+                        <span class="review-modal-category-label">개통 과정</span>
+                        <span class="review-modal-category-score"><?php echo htmlspecialchars($averageRating > 0 ? number_format($averageRating + 0.2, 1) : '0.0'); ?></span>
                         <div class="review-modal-stars">
-                            <span>★★★★☆</span>
+                            <span><?php echo getStarsFromRating(round($averageRating)); ?></span>
+                        </div>
+                    </div>
+                    <div class="review-modal-category">
+                        <span class="review-modal-category-label">개통 후 만족도</span>
+                        <span class="review-modal-category-score"><?php echo htmlspecialchars($averageRating > 0 ? number_format($averageRating - 0.1, 1) : '0.0'); ?></span>
+                        <div class="review-modal-stars">
+                            <span><?php echo getStarsFromRating(round($averageRating)); ?></span>
                         </div>
                     </div>
                 </div>
@@ -540,364 +583,41 @@ if (!$plan) {
             <div class="review-modal-sort">
                 <div class="review-modal-sort-wrapper">
                     <span class="review-modal-total">
-                        총 <?php 
-                        $reviewCount = $rawData['review_count'] ?? 0;
-                        echo number_format($reviewCount);
-                        ?>개
+                        총 <?php echo number_format($reviewCount); ?>개
                     </span>
                     <div class="review-modal-sort-select-wrapper">
-                        <select class="review-modal-sort-select" id="reviewSortSelect" aria-label="리뷰 정렬 방식 선택">
-                            <option value="SCORE_DESC">높은 평점순</option>
-                            <option value="SCORE_ASC">낮은 평점순</option>
-                            <option value="CREATED_DESC">최신순</option>
+                        <select class="review-modal-sort-select" id="planReviewModalSortSelect" aria-label="리뷰 정렬 방식 선택">
+                            <option value="rating_desc" <?php echo $sort === 'rating_desc' ? 'selected' : ''; ?>>높은 평점순</option>
+                            <option value="rating_asc" <?php echo $sort === 'rating_asc' ? 'selected' : ''; ?>>낮은 평점순</option>
+                            <option value="created_desc" <?php echo $sort === 'created_desc' ? 'selected' : ''; ?>>최신순</option>
                         </select>
                     </div>
                 </div>
             </div>
-            <div class="review-modal-list">
-                <div class="review-modal-item">
-                    <div class="review-modal-item-header">
-                        <span class="review-modal-author">전*한</span>
-                        <div class="review-modal-stars">
-                            <span>★★★★★</span>
+            <div class="review-modal-list" id="reviewModalList">
+                <?php if (!empty($reviews)): ?>
+                    <?php foreach ($reviews as $review): ?>
+                        <div class="review-modal-item">
+                            <div class="review-modal-item-header">
+                                <span class="review-modal-author"><?php echo htmlspecialchars($review['author_name'] ?? '익명'); ?></span>
+                                <div class="review-modal-stars">
+                                    <span><?php echo htmlspecialchars($review['stars'] ?? '★★★★☆'); ?></span>
+                                </div>
+                                <span class="review-modal-date"><?php echo htmlspecialchars($review['date_ago'] ?? '오늘'); ?></span>
+                            </div>
+                            <p class="review-modal-item-content"><?php echo nl2br(htmlspecialchars($review['content'] ?? '')); ?></p>
+                            <?php if (!empty($plan['title'])): ?>
+                                <div class="review-modal-tags">
+                                    <span class="review-modal-tag"><?php echo htmlspecialchars($plan['title']); ?></span>
+                                </div>
+                            <?php endif; ?>
                         </div>
-                        <span class="review-modal-date">24일 전</span>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <div class="review-modal-item">
+                        <p class="review-modal-item-content" style="text-align: center; color: #868e96; padding: 40px 0;">등록된 리뷰가 없습니다.</p>
                     </div>
-                    <p class="review-modal-item-content">개통이 다른 회사 보다 빠르고 좋습니다. 요금제 너무 좋아서 계속 사용할 예정 입니다. 친구, 가족 들에게 소개해주고 같이 사용 하는 중입니다. 강력 추천 합니다.</p>
-                    <div class="review-modal-tags">
-                        <span class="review-modal-tag">KT망</span>
-                        <span class="review-modal-tag">개통까지 1일</span>
-                        <span class="review-modal-tag">유심 미보유</span>
-                    </div>
-                </div>
-                <div class="review-modal-item">
-                    <div class="review-modal-item-header">
-                        <span class="review-modal-author">오*열</span>
-                        <div class="review-modal-stars">
-                            <span>★★★★★</span>
-                        </div>
-                        <span class="review-modal-date">29일 전</span>
-                    </div>
-                    <p class="review-modal-item-content">번호 이동이나 이동 후 개통도 휴일임에도 신청서 작성하고 쓰고 있던 esim으로 안내 문자에 따라 바로 즉시 개통할 수 있어 편리했습니다. (KT알뜰A → KT알뜰B)</p>
-                    <div class="review-modal-tags">
-                        <span class="review-modal-tag">KT망</span>
-                        <span class="review-modal-tag">유심 미보유</span>
-                    </div>
-                </div>
-                <div class="review-modal-item">
-                    <div class="review-modal-item-header">
-                        <span class="review-modal-author">최*연</span>
-                        <div class="review-modal-stars">
-                            <span>★★★★★</span>
-                        </div>
-                        <span class="review-modal-date">41일 전</span>
-                    </div>
-                    <p class="review-modal-item-content">고객센터 개통 전화없이 모요 통해서 개통신청하고 편의점 바로유심 사서 끼우면 바로 개통됨..타 알뜰폰 통신사보다 개통과정, 통신속도,데이터량 불편함없이 사용함..쉐이크모바일 강추</p>
-                    <div class="review-modal-tags">
-                        <span class="review-modal-tag">KT망</span>
-                        <span class="review-modal-tag">유심 보유</span>
-                    </div>
-                </div>
-                <div class="review-modal-item">
-                    <div class="review-modal-item-header">
-                        <span class="review-modal-author">김*수</span>
-                        <div class="review-modal-stars">
-                            <span>★★★★★</span>
-                        </div>
-                        <span class="review-modal-date">52일 전</span>
-                    </div>
-                    <p class="review-modal-item-content">데이터 속도도 빠르고 가격도 합리적이에요. 특히 100GB 제공량이 넉넉해서 매달 데이터 걱정 없이 사용하고 있습니다. 주변 사람들한테도 추천했어요.</p>
-                    <div class="review-modal-tags">
-                        <span class="review-modal-tag">KT망</span>
-                        <span class="review-modal-tag">개통까지 1일</span>
-                        <span class="review-modal-tag">유심 보유</span>
-                    </div>
-                </div>
-                <div class="review-modal-item">
-                    <div class="review-modal-item-header">
-                        <span class="review-modal-author">이*민</span>
-                        <div class="review-modal-stars">
-                            <span>★★★★☆</span>
-                        </div>
-                        <span class="review-modal-date">58일 전</span>
-                    </div>
-                    <p class="review-modal-item-content">번호이동 과정이 생각보다 간단했어요. 고객센터 상담도 친절하고 개통도 빠르게 진행되었습니다. 다만 초기 설정할 때 조금 헷갈렸지만 지금은 잘 사용 중입니다.</p>
-                    <div class="review-modal-tags">
-                        <span class="review-modal-tag">KT망</span>
-                        <span class="review-modal-tag">개통까지 2일</span>
-                        <span class="review-modal-tag">유심 미보유</span>
-                    </div>
-                </div>
-                <div class="review-modal-item">
-                    <div class="review-modal-item-header">
-                        <span class="review-modal-author">박*준</span>
-                        <div class="review-modal-stars">
-                            <span>★★★★★</span>
-                        </div>
-                        <span class="review-modal-date">65일 전</span>
-                    </div>
-                    <p class="review-modal-item-content">eSIM으로 개통했는데 정말 편리했어요. 유심 카드 교체 없이 바로 사용할 수 있어서 좋았습니다. 통화 품질도 깨끗하고 데이터 속도도 만족스러워요.</p>
-                    <div class="review-modal-tags">
-                        <span class="review-modal-tag">KT망</span>
-                        <span class="review-modal-tag">개통까지 1일</span>
-                        <span class="review-modal-tag">유심 미보유</span>
-                    </div>
-                </div>
-                <div class="review-modal-item">
-                    <div class="review-modal-item-header">
-                        <span class="review-modal-author">정*호</span>
-                        <div class="review-modal-stars">
-                            <span>★★★★★</span>
-                        </div>
-                        <span class="review-modal-date">72일 전</span>
-                    </div>
-                    <p class="review-modal-item-content">기존 통신사보다 월 요금이 훨씬 저렴한데 데이터 제공량은 더 많아서 만족합니다. 사은품도 받고 가격도 좋고 일석이조네요. 강력 추천합니다!</p>
-                    <div class="review-modal-tags">
-                        <span class="review-modal-tag">KT망</span>
-                        <span class="review-modal-tag">개통까지 1일</span>
-                        <span class="review-modal-tag">유심 보유</span>
-                    </div>
-                </div>
-                <div class="review-modal-item">
-                    <div class="review-modal-item-header">
-                        <span class="review-modal-author">강*영</span>
-                        <div class="review-modal-stars">
-                            <span>★★★★☆</span>
-                        </div>
-                        <span class="review-modal-date">78일 전</span>
-                    </div>
-                    <p class="review-modal-item-content">처음 알뜰폰 사용인데 걱정했지만 생각보다 괜찮아요. 통신 품질도 나쁘지 않고 가격 대비 만족도가 높습니다. 다만 앱이 조금 불편한 점이 있어요.</p>
-                    <div class="review-modal-tags">
-                        <span class="review-modal-tag">KT망</span>
-                        <span class="review-modal-tag">개통까지 2일</span>
-                        <span class="review-modal-tag">유심 미보유</span>
-                    </div>
-                </div>
-                <div class="review-modal-item">
-                    <div class="review-modal-item-header">
-                        <span class="review-modal-author">윤*서</span>
-                        <div class="review-modal-stars">
-                            <span>★★★★★</span>
-                        </div>
-                        <span class="review-modal-date">85일 전</span>
-                    </div>
-                    <p class="review-modal-item-content">밀리의 서재 무료 구독권 받아서 너무 좋아요! 요금제도 저렴하고 부가 서비스까지 받을 수 있어서 정말 만족합니다. 친구들한테도 자랑했어요.</p>
-                    <div class="review-modal-tags">
-                        <span class="review-modal-tag">KT망</span>
-                        <span class="review-modal-tag">개통까지 1일</span>
-                        <span class="review-modal-tag">유심 보유</span>
-                    </div>
-                </div>
-                <div class="review-modal-item">
-                    <div class="review-modal-item-header">
-                        <span class="review-modal-author">장*우</span>
-                        <div class="review-modal-stars">
-                            <span>★★★★★</span>
-                        </div>
-                        <span class="review-modal-date">91일 전</span>
-                    </div>
-                    <p class="review-modal-item-content">KT망이라서 통신 품질이 안정적이에요. 지하철이나 건물 안에서도 끊김 없이 잘 사용하고 있습니다. 데이터 소진 후에도 5Mbps로 계속 사용할 수 있어서 좋아요.</p>
-                    <div class="review-modal-tags">
-                        <span class="review-modal-tag">KT망</span>
-                        <span class="review-modal-tag">개통까지 1일</span>
-                        <span class="review-modal-tag">유심 미보유</span>
-                    </div>
-                </div>
-                <div class="review-modal-item">
-                    <div class="review-modal-item-header">
-                        <span class="review-modal-author">임*진</span>
-                        <div class="review-modal-stars">
-                            <span>★★★★☆</span>
-                        </div>
-                        <span class="review-modal-date">98일 전</span>
-                    </div>
-                    <p class="review-modal-item-content">신규 가입으로 진행했는데 번호도 마음에 들고 개통도 빠르게 되었어요. 고객센터 응대도 친절하고 전체적으로 만족합니다. 다만 약정 기간이 있으면 더 좋을 것 같아요.</p>
-                    <div class="review-modal-tags">
-                        <span class="review-modal-tag">KT망</span>
-                        <span class="review-modal-tag">개통까지 1일</span>
-                        <span class="review-modal-tag">유심 미보유</span>
-                    </div>
-                </div>
-                <div class="review-modal-item">
-                    <div class="review-modal-item-header">
-                        <span class="review-modal-author">한*지</span>
-                        <div class="review-modal-stars">
-                            <span>★★★★★</span>
-                        </div>
-                        <span class="review-modal-date">105일 전</span>
-                    </div>
-                    <p class="review-modal-item-content">데이터 쿠폰 60GB까지 받아서 총 160GB나 사용할 수 있어요! 유튜브, 넷플릭스 마음껏 보고 다니는데도 부족함이 없습니다. 정말 추천해요.</p>
-                    <div class="review-modal-tags">
-                        <span class="review-modal-tag">KT망</span>
-                        <span class="review-modal-tag">개통까지 1일</span>
-                        <span class="review-modal-tag">유심 보유</span>
-                    </div>
-                </div>
-                <div class="review-modal-item">
-                    <div class="review-modal-item-header">
-                        <span class="review-modal-author">송*현</span>
-                        <div class="review-modal-stars">
-                            <span>★★★★★</span>
-                        </div>
-                        <span class="review-modal-date">112일 전</span>
-                    </div>
-                    <p class="review-modal-item-content">모요 사이트에서 비교하고 신청했는데 정말 편리했어요. 여러 통신사 요금제를 한눈에 비교할 수 있어서 좋았습니다. 쉐이크모바일 선택한 거 후회 없어요.</p>
-                    <div class="review-modal-tags">
-                        <span class="review-modal-tag">KT망</span>
-                        <span class="review-modal-tag">개통까지 1일</span>
-                        <span class="review-modal-tag">유심 미보유</span>
-                    </div>
-                </div>
-                <div class="review-modal-item">
-                    <div class="review-modal-item-header">
-                        <span class="review-modal-author">조*혁</span>
-                        <div class="review-modal-stars">
-                            <span>★★★★☆</span>
-                        </div>
-                        <span class="review-modal-date">119일 전</span>
-                    </div>
-                    <p class="review-modal-item-content">번호이동 수수료가 없어서 좋았어요. 다른 통신사는 수수료 받는데 여기는 없어서 부담이 적었습니다. 통화 품질도 깨끗하고 만족합니다.</p>
-                    <div class="review-modal-tags">
-                        <span class="review-modal-tag">KT망</span>
-                        <span class="review-modal-tag">개통까지 2일</span>
-                        <span class="review-modal-tag">유심 보유</span>
-                    </div>
-                </div>
-                <div class="review-modal-item">
-                    <div class="review-modal-item-header">
-                        <span class="review-modal-author">배*수</span>
-                        <div class="review-modal-stars">
-                            <span>★★★★★</span>
-                        </div>
-                        <span class="review-modal-date">126일 전</span>
-                    </div>
-                    <p class="review-modal-item-content">휴일에도 개통이 가능해서 정말 편리했어요. 주말에 신청했는데 월요일 오전에 바로 개통되었습니다. 고객센터도 친절하게 안내해주셨어요.</p>
-                    <div class="review-modal-tags">
-                        <span class="review-modal-tag">KT망</span>
-                        <span class="review-modal-tag">개통까지 1일</span>
-                        <span class="review-modal-tag">유심 미보유</span>
-                    </div>
-                </div>
-                <div class="review-modal-item">
-                    <div class="review-modal-item-header">
-                        <span class="review-modal-author">신*아</span>
-                        <div class="review-modal-stars">
-                            <span>★★★★★</span>
-                        </div>
-                        <span class="review-modal-date">133일 전</span>
-                    </div>
-                    <p class="review-modal-item-content">네이버페이 1만원 상품권 받아서 기분 좋았어요. 요금제도 저렴하고 사은품도 받고 일석이조입니다. 가족들도 모두 여기로 바꿨어요.</p>
-                    <div class="review-modal-tags">
-                        <span class="review-modal-tag">KT망</span>
-                        <span class="review-modal-tag">개통까지 1일</span>
-                        <span class="review-modal-tag">유심 보유</span>
-                    </div>
-                </div>
-                <div class="review-modal-item">
-                    <div class="review-modal-item-header">
-                        <span class="review-modal-author">오*성</span>
-                        <div class="review-modal-stars">
-                            <span>★★★★☆</span>
-                        </div>
-                        <span class="review-modal-date">140일 전</span>
-                    </div>
-                    <p class="review-modal-item-content">유심 배송도 빠르고 개통도 신속하게 진행되었어요. 처음 사용해보는 알뜰폰이라 걱정했는데 생각보다 괜찮습니다. 다만 앱 UI가 조금 아쉬워요.</p>
-                    <div class="review-modal-tags">
-                        <span class="review-modal-tag">KT망</span>
-                        <span class="review-modal-tag">개통까지 2일</span>
-                        <span class="review-modal-tag">유심 미보유</span>
-                    </div>
-                </div>
-                <div class="review-modal-item">
-                    <div class="review-modal-item-header">
-                        <span class="review-modal-author">류*호</span>
-                        <div class="review-modal-stars">
-                            <span>★★★★★</span>
-                        </div>
-                        <span class="review-modal-date">147일 전</span>
-                    </div>
-                    <p class="review-modal-item-content">데이터 제공량이 넉넉해서 매달 걱정 없이 사용하고 있어요. 핫스팟도 데이터 제공량 내에서 사용 가능해서 노트북 연결해서도 잘 쓰고 있습니다.</p>
-                    <div class="review-modal-tags">
-                        <span class="review-modal-tag">KT망</span>
-                        <span class="review-modal-tag">개통까지 1일</span>
-                        <span class="review-modal-tag">유심 보유</span>
-                    </div>
-                </div>
-                <div class="review-modal-item">
-                    <div class="review-modal-item-header">
-                        <span class="review-modal-author">문*희</span>
-                        <div class="review-modal-stars">
-                            <span>★★★★★</span>
-                        </div>
-                        <span class="review-modal-date">154일 전</span>
-                    </div>
-                    <p class="review-modal-item-content">SOLO 결합으로 추가 20GB 받아서 총 120GB 사용 중이에요! 데이터 걱정 전혀 없이 사용하고 있습니다. 가격 대비 정말 최고의 요금제인 것 같아요.</p>
-                    <div class="review-modal-tags">
-                        <span class="review-modal-tag">KT망</span>
-                        <span class="review-modal-tag">개통까지 1일</span>
-                        <span class="review-modal-tag">유심 미보유</span>
-                    </div>
-                </div>
-                <div class="review-modal-item">
-                    <div class="review-modal-item-header">
-                        <span class="review-modal-author">양*준</span>
-                        <div class="review-modal-stars">
-                            <span>★★★★☆</span>
-                        </div>
-                        <span class="review-modal-date">161일 전</span>
-                    </div>
-                    <p class="review-modal-item-content">고객센터 상담이 친절하고 전문적이에요. 문의사항도 빠르게 해결해주시고 개통 과정도 원활하게 진행되었습니다. 전체적으로 만족합니다.</p>
-                    <div class="review-modal-tags">
-                        <span class="review-modal-tag">KT망</span>
-                        <span class="review-modal-tag">개통까지 1일</span>
-                        <span class="review-modal-tag">유심 보유</span>
-                    </div>
-                </div>
-                <div class="review-modal-item">
-                    <div class="review-modal-item-header">
-                        <span class="review-modal-author">홍*영</span>
-                        <div class="review-modal-stars">
-                            <span>★★★★★</span>
-                        </div>
-                        <span class="review-modal-date">168일 전</span>
-                    </div>
-                    <p class="review-modal-item-content">이마트 상품권 2만원 받아서 기분 좋았어요! 요금제도 저렴하고 사은품도 다양하게 받을 수 있어서 정말 만족합니다. 주변 사람들한테도 추천했어요.</p>
-                    <div class="review-modal-tags">
-                        <span class="review-modal-tag">KT망</span>
-                        <span class="review-modal-tag">개통까지 1일</span>
-                        <span class="review-modal-tag">유심 미보유</span>
-                    </div>
-                </div>
-                <div class="review-modal-item">
-                    <div class="review-modal-item-header">
-                        <span class="review-modal-author">서*우</span>
-                        <div class="review-modal-stars">
-                            <span>★★★★★</span>
-                        </div>
-                        <span class="review-modal-date">175일 전</span>
-                    </div>
-                    <p class="review-modal-item-content">기존 통신사에서 번호이동 했는데 전혀 문제없이 잘 사용하고 있어요. 통신 품질도 동일하고 가격은 훨씬 저렴해서 만족합니다. 계속 사용할 예정이에요.</p>
-                    <div class="review-modal-tags">
-                        <span class="review-modal-tag">KT망</span>
-                        <span class="review-modal-tag">개통까지 2일</span>
-                        <span class="review-modal-tag">유심 보유</span>
-                    </div>
-                </div>
-                <div class="review-modal-item">
-                    <div class="review-modal-item-header">
-                        <span class="review-modal-author">노*진</span>
-                        <div class="review-modal-stars">
-                            <span>★★★★☆</span>
-                        </div>
-                        <span class="review-modal-date">182일 전</span>
-                    </div>
-                    <p class="review-modal-item-content">데이터 속도가 안정적이에요. 지하철이나 지하에서도 끊김 없이 잘 사용하고 있습니다. 가격 대비 품질이 정말 좋은 것 같아요. 추천합니다!</p>
-                    <div class="review-modal-tags">
-                        <span class="review-modal-tag">KT망</span>
-                        <span class="review-modal-tag">개통까지 1일</span>
-                        <span class="review-modal-tag">유심 미보유</span>
-                    </div>
-                </div>
+                <?php endif; ?>
             </div>
             <button class="review-modal-more-btn">리뷰 더보기</button>
         </div>
@@ -1571,15 +1291,25 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // 리뷰 정렬 선택 기능
-    const reviewSortSelect = document.getElementById('reviewSortSelect');
+    // 리뷰 정렬 선택 기능 (페이지 리뷰)
+    const planReviewSortSelect = document.getElementById('planReviewSortSelect');
+    if (planReviewSortSelect) {
+        planReviewSortSelect.addEventListener('change', function() {
+            const sort = this.value;
+            const url = new URL(window.location.href);
+            url.searchParams.set('review_sort', sort);
+            window.location.href = url.toString();
+        });
+    }
     
+    // 리뷰 정렬 선택 기능 (모달)
+    const reviewSortSelect = document.getElementById('reviewSortSelect');
     if (reviewSortSelect) {
-        // 정렬 선택 변경 시
-        reviewSortSelect.addEventListener('change', function(e) {
-            // 여기에 정렬 로직 추가 가능
-            // 예: 리뷰를 선택된 정렬 방식에 따라 정렬
-            console.log('정렬 방식 변경:', this.value);
+        reviewSortSelect.addEventListener('change', function() {
+            const sort = this.value;
+            const url = new URL(window.location.href);
+            url.searchParams.set('review_sort', sort);
+            window.location.href = url.toString();
         });
     }
     
@@ -1612,6 +1342,141 @@ include '../includes/components/point-usage-modal.php';
 <?php include '../includes/footer.php'; ?>
 <script src="/MVNO/assets/js/favorite-heart.js" defer></script>
 <script src="/MVNO/assets/js/point-usage-integration.js" defer></script>
+
+<?php
+// 리뷰 작성 모달 포함
+$prefix = 'plan';
+$speedLabel = '개통 빨라요';
+$formId = 'planReviewForm';
+$modalId = 'planReviewModal';
+$textareaId = 'planReviewText';
+include '../includes/components/order-review-modal.php';
+?>
+
+<script>
+// 리뷰 작성 기능
+document.addEventListener('DOMContentLoaded', function() {
+    const reviewWriteBtn = document.getElementById('planReviewWriteBtn');
+    const reviewModal = document.getElementById('planReviewModal');
+    const reviewForm = document.getElementById('planReviewForm');
+    const reviewModalOverlay = reviewModal ? reviewModal.querySelector('.plan-review-modal-overlay') : null;
+    const reviewModalClose = reviewModal ? reviewModal.querySelector('.plan-review-modal-close') : null;
+    
+    if (!reviewWriteBtn || !reviewModal || !reviewForm) {
+        return;
+    }
+    
+    // 리뷰 작성 버튼 클릭
+    reviewWriteBtn.addEventListener('click', function() {
+        reviewModal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    });
+    
+    // 모달 닫기
+    function closeReviewModal() {
+        reviewModal.style.display = 'none';
+        document.body.style.overflow = '';
+        reviewForm.reset();
+        // 별점 초기화
+        const starInputs = reviewForm.querySelectorAll('input[type="radio"]');
+        starInputs.forEach(input => {
+            input.checked = false;
+        });
+        const starLabels = reviewForm.querySelectorAll('.plan-star-label');
+        starLabels.forEach(label => {
+            label.classList.remove('active');
+        });
+    }
+    
+    if (reviewModalOverlay) {
+        reviewModalOverlay.addEventListener('click', closeReviewModal);
+    }
+    
+    if (reviewModalClose) {
+        reviewModalClose.addEventListener('click', closeReviewModal);
+    }
+    
+    // 별점 클릭 이벤트
+    const starLabels = reviewForm.querySelectorAll('.plan-star-label');
+    starLabels.forEach(label => {
+        label.addEventListener('click', function() {
+            const rating = parseInt(this.getAttribute('data-rating'));
+            const ratingType = this.closest('.plan-star-rating').getAttribute('data-rating-type');
+            const radioInput = this.previousElementSibling;
+            
+            if (radioInput) {
+                radioInput.checked = true;
+            }
+            
+            // 같은 타입의 별점 업데이트
+            const sameTypeLabels = reviewForm.querySelectorAll('.plan-star-rating[data-rating-type="' + ratingType + '"] .plan-star-label');
+            sameTypeLabels.forEach((l, index) => {
+                if (index < rating) {
+                    l.classList.add('active');
+                } else {
+                    l.classList.remove('active');
+                }
+            });
+        });
+    });
+    
+    // 폼 제출
+    reviewForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const kindnessRatingInput = reviewForm.querySelector('input[name="kindness_rating"]:checked');
+        const speedRatingInput = reviewForm.querySelector('input[name="speed_rating"]:checked');
+        const reviewText = document.getElementById('planReviewText').value.trim();
+        
+        if (!kindnessRatingInput) {
+            alert('친절해요 별점을 선택해주세요.');
+            return;
+        }
+        
+        if (!speedRatingInput) {
+            alert('개통 빨라요 별점을 선택해주세요.');
+            return;
+        }
+        
+        if (!reviewText) {
+            alert('리뷰 내용을 입력해주세요.');
+            return;
+        }
+        
+        // 평균 별점 계산
+        const kindnessRating = parseInt(kindnessRatingInput.value);
+        const speedRating = parseInt(speedRatingInput.value);
+        const averageRating = Math.round((kindnessRating + speedRating) / 2);
+        
+        // API 호출
+        const formData = new FormData();
+        formData.append('product_id', <?php echo $plan_id; ?>);
+        formData.append('product_type', 'mvno');
+        formData.append('rating', averageRating);
+        formData.append('content', reviewText);
+        
+        fetch('/MVNO/api/submit-review.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('리뷰가 작성되었습니다.');
+                closeReviewModal();
+                // 페이지 새로고침하여 리뷰 반영
+                location.reload();
+            } else {
+                alert(data.message || '리뷰 작성에 실패했습니다.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('리뷰 작성 중 오류가 발생했습니다.');
+        });
+    });
+});
+</script>
 
 <script>
 // 신청하기 버튼에 포인트 모달 연동

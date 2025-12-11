@@ -11,7 +11,15 @@ if (!isset($phone)) {
 }
 $layout_type = $layout_type ?? 'list';
 $provider = $phone['provider'] ?? 'SKT';
-$company_name = $phone['company_name'] ?? '쉐이크모바일';
+$company_name_raw = $phone['company_name'] ?? '쉐이크모바일';
+// "스마트모바일" → "스마트"로 변환
+$company_name = $company_name_raw;
+if (strpos($company_name_raw, '스마트모바일') !== false) {
+    $company_name = '스마트';
+} elseif (strpos($company_name_raw, '모바일') !== false) {
+    // "XX모바일" 형식에서 "XX"만 추출
+    $company_name = str_replace('모바일', '', $company_name_raw);
+}
 $rating = $phone['rating'] ?? '4.3';
 $phone_id = $phone['id'] ?? 0;
 $share_url = $phone['link_url'] ?? '/MVNO/mno/mno-phone-detail.php?id=' . $phone_id;

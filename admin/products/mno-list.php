@@ -13,8 +13,7 @@ $status = $_GET['status'] ?? '';
 if ($status === '') {
     $status = null;
 }
-$seller_id = $_GET['seller_id'] ?? '';
-$device_name = $_GET['device_name'] ?? '';
+$search_query = $_GET['search_query'] ?? ''; // 통합 검색 필드
 $date_from = $_GET['date_from'] ?? '';
 $date_to = $_GET['date_to'] ?? '';
 $page = max(1, intval($_GET['page'] ?? 1));
@@ -28,6 +27,8 @@ if (!in_array($perPage, [10, 50, 100])) {
 $products = [];
 $totalProducts = 0;
 $totalPages = 1;
+$errorMessage = '';
+$debugInfo = '';
 
 try {
     $pdo = getDBConnection();
@@ -44,16 +45,10 @@ try {
             $whereConditions[] = "p.status != 'deleted'";
         }
         
-        // 판매자 필터
-        if ($seller_id && $seller_id !== '') {
-            $whereConditions[] = 'p.seller_id = :seller_id';
-            $params[':seller_id'] = $seller_id;
-        }
-        
-        // 단말기명 필터
-        if ($device_name && $device_name !== '') {
-            $whereConditions[] = 'mno.device_name LIKE :device_name';
-            $params[':device_name'] = '%' . $device_name . '%';
+        // 통합 검색 필터 (단말기명만 SQL에서 처리)
+        if ($search_query && $search_query !== '') {
+            $whereConditions[] = '(mno.device_name IS NOT NULL AND mno.device_name LIKE :search_query)';
+            $params[':search_query'] = '%' . $search_query . '%';
         }
         
         // 등록일 구간 필터
@@ -68,63 +63,256 @@ try {
         
         $whereClause = implode(' AND ', $whereConditions);
         
-        // 전체 개수 조회
-        $countStmt = $pdo->prepare("
-            SELECT COUNT(*) as total
-            FROM products p
-            LEFT JOIN product_mno_details mno ON p.id = mno.product_id
-            WHERE {$whereClause}
-        ");
-        $countStmt->execute($params);
-        $totalProducts = $countStmt->fetch()['total'];
-        $totalPages = ceil($totalProducts / $perPage);
+        // 전체 개수 조회 (통합 검색 전)
+        try {
+            $countStmt = $pdo->prepare("
+                SELECT COUNT(DISTINCT p.id) as total
+                FROM products p
+                INNER JOIN product_mno_details mno ON p.id = mno.product_id
+                WHERE {$whereClause}
+            ");
+            $countStmt->execute($params);
+            $totalProducts = $countStmt->fetch()['total'];
+        } catch (PDOException $e) {
+            $errorMessage = "카운트 쿼리 오류: " . htmlspecialchars($e->getMessage());
+            if (!empty($e->errorInfo)) {
+                $errorMessage .= " (SQL State: " . htmlspecialchars($e->errorInfo[0] ?? '') . ", Error: " . htmlspecialchars($e->errorInfo[2] ?? '') . ")";
+            }
+            $errorMessage .= "<br>WHERE 절: " . htmlspecialchars($whereClause);
+            throw $e;
+        }
         
         // 상품 목록 조회
-        $offset = ($page - 1) * $perPage;
-        $stmt = $pdo->prepare("
-            SELECT 
-                p.*,
-                mno.device_name AS product_name,
-                mno.provider,
-                mno.price_main AS monthly_fee,
-                u.name AS seller_name,
-                u.user_id AS seller_user_id
-            FROM products p
-            LEFT JOIN product_mno_details mno ON p.id = mno.product_id
-            LEFT JOIN users u ON p.seller_id = u.user_id
-            WHERE {$whereClause}
-            ORDER BY p.created_at DESC
-            LIMIT :limit OFFSET :offset
-        ");
-        
-        foreach ($params as $key => $value) {
-            $stmt->bindValue($key, $value);
+        // 통합 검색이 있으면 모든 데이터를 가져온 후 필터링, 없으면 페이지네이션 적용
+        try {
+            if ($search_query && $search_query !== '') {
+                // 통합 검색: 모든 데이터 가져온 후 필터링
+                $stmt = $pdo->prepare("
+                    SELECT 
+                        p.*,
+                        p.seller_id,
+                        mno.device_name AS product_name,
+                        mno.device_price,
+                        mno.price_main AS monthly_fee,
+                        mno.common_provider,
+                        mno.contract_provider
+                    FROM products p
+                    INNER JOIN product_mno_details mno ON p.id = mno.product_id
+                    WHERE {$whereClause}
+                    ORDER BY p.id DESC
+                ");
+                
+                foreach ($params as $key => $value) {
+                    $stmt->bindValue($key, $value);
+                }
+                $stmt->execute();
+                $products = $stmt->fetchAll();
+            } else {
+                // 일반 조회: 페이지네이션 적용
+                $offset = ($page - 1) * $perPage;
+                $stmt = $pdo->prepare("
+                    SELECT 
+                        p.*,
+                        p.seller_id,
+                        mno.device_name AS product_name,
+                        mno.device_price,
+                        mno.price_main AS monthly_fee,
+                        mno.common_provider,
+                        mno.contract_provider
+                    FROM products p
+                    INNER JOIN product_mno_details mno ON p.id = mno.product_id
+                    WHERE {$whereClause}
+                    ORDER BY p.id DESC
+                    LIMIT :limit OFFSET :offset
+                ");
+                
+                foreach ($params as $key => $value) {
+                    $stmt->bindValue($key, $value);
+                }
+                $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
+                $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+                $stmt->execute();
+                $products = $stmt->fetchAll();
+            }
+        } catch (PDOException $e) {
+            $errorMessage = "상품 목록 조회 오류: " . htmlspecialchars($e->getMessage());
+            if (!empty($e->errorInfo)) {
+                $errorMessage .= " (SQL State: " . htmlspecialchars($e->errorInfo[0] ?? '') . ", Error: " . htmlspecialchars($e->errorInfo[2] ?? '') . ")";
+            }
+            $errorMessage .= "<br>WHERE 절: " . htmlspecialchars($whereClause);
+            $errorMessage .= "<br>파라미터: " . htmlspecialchars(json_encode($params, JSON_UNESCAPED_UNICODE));
+            throw $e;
         }
-        $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
-        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-        $stmt->execute();
         
-        $products = $stmt->fetchAll();
+        // 디버깅: 쿼리 결과 확인
+        if (empty($products) && $totalProducts == 0) {
+            // 실제로 상품이 있는지 확인
+            try {
+                $debugStmt = $pdo->query("SELECT COUNT(*) as cnt FROM products WHERE product_type = 'mno' AND status != 'deleted'");
+                $debugResult = $debugStmt->fetch();
+                $allCount = $debugResult['cnt'] ?? 0;
+                
+                $debugStmt2 = $pdo->query("SELECT COUNT(*) as cnt FROM products p INNER JOIN product_mno_details mno ON p.id = mno.product_id WHERE p.product_type = 'mno' AND p.status != 'deleted'");
+                $debugResult2 = $debugStmt2->fetch();
+                $withJoinCount = $debugResult2['cnt'] ?? 0;
+                
+                $debugInfo = "디버그 정보: products 테이블의 MNO 상품 수 = {$allCount}개, JOIN 후 상품 수 = {$withJoinCount}개";
+                if ($allCount > 0 && $withJoinCount == 0) {
+                    $debugInfo .= " (상세 정보가 없어서 JOIN 결과가 없습니다)";
+                }
+                
+                error_log("MNO Products Debug: All products={$allCount}, With details={$withJoinCount}, Where clause={$whereClause}");
+            } catch (Exception $e) {
+                $debugInfo = "디버그 오류: " . $e->getMessage();
+                error_log("MNO Products Debug Error: " . $e->getMessage());
+            }
+        }
+        
+        // 판매자 정보 매핑 (sellers.json에서 가져오기)
+        $sellersFile = __DIR__ . '/../../includes/data/sellers.json';
+        $sellersData = [];
+        if (file_exists($sellersFile)) {
+            $sellersContent = file_get_contents($sellersFile);
+            $sellersJson = json_decode($sellersContent, true);
+            if ($sellersJson && isset($sellersJson['sellers'])) {
+                foreach ($sellersJson['sellers'] as $seller) {
+                    if (isset($seller['user_id'])) {
+                        $sellersData[(string)$seller['user_id']] = $seller;
+                    }
+                }
+            }
+        }
+        
+        foreach ($products as &$product) {
+            $sellerId = (string)($product['seller_id'] ?? '');
+            if ($sellerId && isset($sellersData[$sellerId])) {
+                $seller = $sellersData[$sellerId];
+                $product['seller_name'] = $seller['seller_name'] ?? $seller['name'] ?? '-';
+                $product['company_name'] = $seller['company_name'] ?? '-';
+                $product['seller_user_id'] = $sellerId; // 표시용으로 추가
+            } else {
+                $product['seller_name'] = '-';
+                $product['company_name'] = '-';
+                $product['seller_user_id'] = $sellerId; // 표시용으로 추가
+            }
+            
+            // 통신사 정보 추출 (common_provider 또는 contract_provider에서)
+            $provider = '-';
+            if (!empty($product['common_provider'])) {
+                $commonProviders = json_decode($product['common_provider'], true);
+                if (is_array($commonProviders) && !empty($commonProviders)) {
+                    $provider = implode(', ', array_filter($commonProviders));
+                }
+            }
+            if ($provider === '-' && !empty($product['contract_provider'])) {
+                $contractProviders = json_decode($product['contract_provider'], true);
+                if (is_array($contractProviders) && !empty($contractProviders)) {
+                    $provider = implode(', ', array_filter($contractProviders));
+                }
+            }
+            $product['provider'] = $provider;
+        }
+        unset($product);
+        
+        // 통합 검색 필터링 (판매자 ID, 판매자명, 회사명 검색)
+        if ($search_query && $search_query !== '') {
+            $searchLower = mb_strtolower($search_query, 'UTF-8');
+            $products = array_filter($products, function($product) use ($searchLower) {
+                // 판매자 ID 검색
+                $sellerId = (string)($product['seller_user_id'] ?? $product['seller_id'] ?? '');
+                if (mb_strpos(mb_strtolower($sellerId, 'UTF-8'), $searchLower) !== false) {
+                    return true;
+                }
+                
+                // 판매자명 검색
+                $sellerName = mb_strtolower($product['seller_name'] ?? '', 'UTF-8');
+                if (mb_strpos($sellerName, $searchLower) !== false) {
+                    return true;
+                }
+                
+                // 회사명 검색
+                $companyName = mb_strtolower($product['company_name'] ?? '', 'UTF-8');
+                if (mb_strpos($companyName, $searchLower) !== false) {
+                    return true;
+                }
+                
+                // 단말기명 검색 (이미 SQL에서 처리했지만 추가 검증)
+                $deviceName = mb_strtolower($product['product_name'] ?? '', 'UTF-8');
+                if (mb_strpos($deviceName, $searchLower) !== false) {
+                    return true;
+                }
+                
+                return false;
+            });
+            $products = array_values($products);
+        }
+        
+        // 통합 검색으로 인한 필터링 후 페이지네이션 재계산
+        if ($search_query && $search_query !== '') {
+            // 판매자 정보로 필터링된 경우 전체 개수 재계산
+            $totalProducts = count($products);
+            $totalPages = ceil($totalProducts / $perPage);
+            
+            // 페이지네이션 적용
+            $offset = ($page - 1) * $perPage;
+            $products = array_slice($products, $offset, $perPage);
+        } else {
+            // 통합 검색이 없는 경우 기존 페이지네이션 사용 (이미 계산됨)
+            // totalPages는 이미 계산되어 있음
+        }
     }
 } catch (PDOException $e) {
+    $errorMessage = "데이터베이스 오류: " . htmlspecialchars($e->getMessage());
+    if (!empty($e->errorInfo)) {
+        $errorMessage .= " (SQL State: " . htmlspecialchars($e->errorInfo[0] ?? '') . ")";
+    }
     error_log("Error fetching MNO products: " . $e->getMessage());
+    error_log("SQL Error Info: " . json_encode($e->errorInfo ?? []));
 }
 
 // 판매자 목록 가져오기 (필터용)
 $sellers = [];
 try {
-    if ($pdo) {
-        $sellerStmt = $pdo->prepare("
-            SELECT DISTINCT u.user_id, u.name, u.company_name
+    if ($pdo && empty($errorMessage)) {
+        // 먼저 MNO 상품을 등록한 판매자 ID 목록 가져오기
+        $sellerIdsStmt = $pdo->prepare("
+            SELECT DISTINCT p.seller_id as user_id
             FROM products p
-            LEFT JOIN users u ON p.seller_id = u.user_id
             WHERE p.product_type = 'mno' AND p.status != 'deleted'
-            ORDER BY u.name
         ");
-        $sellerStmt->execute();
-        $sellers = $sellerStmt->fetchAll();
+        $sellerIdsStmt->execute();
+        $sellerIds = $sellerIdsStmt->fetchAll(PDO::FETCH_COLUMN);
+        // seller_id를 문자열로 변환하여 비교
+        $sellerIds = array_map('strval', $sellerIds);
+        
+        // sellers.json에서 해당 판매자 정보 가져오기
+        $sellersFile = __DIR__ . '/../../includes/data/sellers.json';
+        if (file_exists($sellersFile)) {
+            $sellersContent = file_get_contents($sellersFile);
+            $sellersJson = json_decode($sellersContent, true);
+            if ($sellersJson && isset($sellersJson['sellers'])) {
+                foreach ($sellersJson['sellers'] as $seller) {
+                    $sellerUserId = (string)($seller['user_id'] ?? '');
+                    if ($sellerUserId && in_array($sellerUserId, $sellerIds)) {
+                        $sellers[] = [
+                            'user_id' => $seller['user_id'],
+                            'name' => $seller['seller_name'] ?? $seller['name'] ?? $seller['user_id'],
+                            'company_name' => $seller['company_name'] ?? ''
+                        ];
+                    }
+                }
+            }
+        }
+        
+        // 이름으로 정렬
+        usort($sellers, function($a, $b) {
+            return strcmp($a['name'], $b['name']);
+        });
     }
 } catch (PDOException $e) {
+    if (empty($errorMessage)) {
+        $errorMessage = "판매자 목록 조회 오류: " . htmlspecialchars($e->getMessage());
+    }
     error_log("Error fetching sellers: " . $e->getMessage());
 }
 ?>
@@ -211,6 +399,7 @@ try {
         display: flex;
         align-items: center;
         gap: 8px;
+        justify-content: flex-start;
     }
     
     .filter-label {
@@ -218,6 +407,7 @@ try {
         font-weight: 600;
         color: #374151;
         min-width: 80px;
+        text-align: left;
     }
     
     .filter-select {
@@ -227,6 +417,7 @@ try {
         border-radius: 6px;
         background: white;
         cursor: pointer;
+        text-align: left;
     }
     
     .filter-input {
@@ -235,6 +426,7 @@ try {
         border: 1px solid #d1d5db;
         border-radius: 6px;
         background: white;
+        text-align: left;
     }
     
     .filter-input:focus {
@@ -274,6 +466,51 @@ try {
         display: flex;
         align-items: center;
         gap: 8px;
+    }
+    
+    .bulk-actions {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 16px;
+    }
+    
+    .btn-secondary {
+        background: #6b7280;
+        color: white;
+        padding: 8px 16px;
+        font-size: 13px;
+        font-weight: 600;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .btn-secondary:hover {
+        background: #4b5563;
+    }
+    
+    .btn-danger {
+        background: #ef4444;
+        color: white;
+        padding: 8px 16px;
+        font-size: 13px;
+        font-weight: 600;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .btn-danger:hover {
+        background: #dc2626;
+    }
+    
+    .product-checkbox,
+    #selectAll {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
     }
     
     .product-table-wrapper {
@@ -416,6 +653,116 @@ try {
         cursor: not-allowed;
     }
     
+    .error-message {
+        background: #fee2e2;
+        border: 1px solid #fca5a5;
+        color: #991b1b;
+        padding: 16px;
+        border-radius: 8px;
+        margin-bottom: 24px;
+        font-size: 14px;
+        line-height: 1.6;
+    }
+    
+    .debug-info {
+        background: #fef3c7;
+        border: 1px solid #fcd34d;
+        color: #92400e;
+        padding: 16px;
+        border-radius: 8px;
+        margin-bottom: 24px;
+        font-size: 14px;
+        line-height: 1.6;
+    }
+    
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+        overflow: auto;
+    }
+    
+    .modal-overlay.show {
+        display: flex;
+    }
+    
+    body.modal-open {
+        overflow: hidden;
+    }
+    
+    .modal {
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        max-width: 400px;
+        width: 90%;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    }
+    
+    .modal-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: #1f2937;
+        margin-bottom: 16px;
+    }
+    
+    .modal-message {
+        font-size: 14px;
+        color: #4b5563;
+        margin-bottom: 24px;
+        line-height: 1.6;
+    }
+    
+    .modal-buttons {
+        display: flex;
+        gap: 12px;
+        justify-content: flex-end;
+    }
+    
+    .modal-btn {
+        padding: 10px 20px;
+        font-size: 14px;
+        font-weight: 600;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .modal-btn-cancel {
+        background: #f3f4f6;
+        color: #374151;
+    }
+    
+    .modal-btn-cancel:hover {
+        background: #e5e7eb;
+    }
+    
+    .modal-btn-confirm {
+        background: #ef4444;
+        color: white;
+    }
+    
+    .modal-btn-confirm:hover {
+        background: #dc2626;
+    }
+    
+    .modal-btn-ok {
+        background: #10b981;
+        color: white;
+    }
+    
+    .modal-btn-ok:hover {
+        background: #059669;
+    }
+    
     @media (max-width: 768px) {
         .product-table {
             font-size: 12px;
@@ -431,17 +778,39 @@ try {
 <div class="product-list-container">
     <div class="page-header">
         <div>
-            <h1>통신사폰 상품 관리</h1>
-            <p>전체 통신사폰 상품을 관리할 수 있습니다.</p>
+            <h1 style="margin: 0;">통신사폰 상품 관리</h1>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <label style="font-size: 14px; color: #374151; font-weight: 600;">페이지 수:</label>
+            <select class="filter-select" id="per_page_select" onchange="changePerPage()" style="width: 80px;">
+                <option value="10" <?php echo $perPage === 10 ? 'selected' : ''; ?>>10개</option>
+                <option value="20" <?php echo $perPage === 20 ? 'selected' : ''; ?>>20개</option>
+                <option value="50" <?php echo $perPage === 50 ? 'selected' : ''; ?>>50개</option>
+                <option value="100" <?php echo $perPage === 100 ? 'selected' : ''; ?>>100개</option>
+            </select>
         </div>
     </div>
+    
+    <?php if (!empty($errorMessage)): ?>
+        <div class="error-message">
+            <strong>오류 발생:</strong><br>
+            <?php echo $errorMessage; ?>
+        </div>
+    <?php endif; ?>
+    
+    <?php if (!empty($debugInfo)): ?>
+        <div class="debug-info">
+            <strong>디버그 정보:</strong><br>
+            <?php echo htmlspecialchars($debugInfo); ?>
+        </div>
+    <?php endif; ?>
     
     <!-- 필터 바 -->
     <div class="filter-bar">
         <div class="filter-content">
             <div class="filter-row">
-                <div class="filter-group">
-                    <label class="filter-label">상태:</label>
+                <div class="filter-group" style="margin-right: -8px;">
+                    <label class="filter-label" style="text-align: right;">상태:</label>
                     <select class="filter-select" id="filter_status">
                         <option value="">전체</option>
                         <option value="active" <?php echo $status === 'active' ? 'selected' : ''; ?>>판매중</option>
@@ -449,50 +818,25 @@ try {
                     </select>
                 </div>
                 
-                <div class="filter-group">
-                    <label class="filter-label">판매자:</label>
-                    <select class="filter-select" id="filter_seller_id">
-                        <option value="">전체</option>
-                        <?php foreach ($sellers as $seller): ?>
-                            <option value="<?php echo htmlspecialchars($seller['user_id']); ?>" <?php echo $seller_id === $seller['user_id'] ? 'selected' : ''; ?>>
-                                <?php echo htmlspecialchars($seller['company_name'] ? $seller['company_name'] : ($seller['name'] ?? $seller['user_id'])); ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                
-                <div class="filter-group">
-                    <label class="filter-label">단말기명:</label>
-                    <input type="text" class="filter-input" id="filter_device_name" placeholder="단말기명 검색" value="<?php echo htmlspecialchars($device_name); ?>" style="width: 200px;">
-                </div>
-                
-                <div class="filter-group">
-                    <label class="filter-label">등록일:</label>
+                <div class="filter-group" style="margin-left: -8px; margin-right: -8px;">
+                    <label class="filter-label" style="text-align: right;">등록일:</label>
                     <div class="filter-input-group">
                         <input type="date" class="filter-input" id="filter_date_from" value="<?php echo htmlspecialchars($date_from); ?>">
                         <span style="color: #6b7280;">~</span>
                         <input type="date" class="filter-input" id="filter_date_to" value="<?php echo htmlspecialchars($date_to); ?>">
                     </div>
                 </div>
+                
+                <div class="filter-group" style="flex: 1; margin-left: -8px;">
+                    <label class="filter-label" style="text-align: right;">통합 검색:</label>
+                    <input type="text" class="filter-input" id="filter_search_query" placeholder="판매자 ID / 판매자명 / 회사명 / 단말기명 검색" value="<?php echo htmlspecialchars($search_query); ?>" style="width: 100%;">
+                </div>
             </div>
         </div>
         
         <div class="filter-buttons">
-            <button class="search-button" onclick="applyFilters()" style="width: 100%;">검색</button>
-            <button class="search-button" onclick="resetFilters()" style="background: #6b7280; width: 100%;">초기화</button>
-        </div>
-    </div>
-    
-    <!-- 페이지당 표시 선택 -->
-    <div style="display: flex; justify-content: flex-end; margin-bottom: 16px;">
-        <div style="display: flex; align-items: center; gap: 8px;">
-            <label style="font-size: 14px; color: #374151; font-weight: 600;">페이지당 표시:</label>
-            <select class="filter-select" id="per_page_select" onchange="changePerPage()" style="width: 80px;">
-                <option value="10" <?php echo $perPage === 10 ? 'selected' : ''; ?>>10개</option>
-                <option value="20" <?php echo $perPage === 20 ? 'selected' : ''; ?>>20개</option>
-                <option value="50" <?php echo $perPage === 50 ? 'selected' : ''; ?>>50개</option>
-                <option value="100" <?php echo $perPage === 100 ? 'selected' : ''; ?>>100개</option>
-            </select>
+            <button class="search-button" onclick="applyFilters()" style="width: 100%; text-align: right;">검색</button>
+            <button class="search-button" onclick="resetFilters()" style="background: #6b7280; width: 100%; text-align: right;">초기화</button>
         </div>
     </div>
     
@@ -512,10 +856,15 @@ try {
             <table class="product-table">
                 <thead>
                     <tr>
-                        <th style="text-align: center;">번호</th>
+                        <th style="text-align: center; width: 80px;">
+                            <button type="button" class="btn-danger" onclick="bulkInactive()" style="font-size: 11px; padding: 3px 8px; margin-bottom: 8px; width: 100%; white-space: nowrap; display: block;">판매종료</button>
+                            <input type="checkbox" id="selectAll" onchange="toggleSelectAll()" style="display: block; margin: 0 auto;">
+                        </th>
+                        <th style="text-align: center;">상품등록번호</th>
+                        <th style="text-align: center;">아이디</th>
+                        <th style="text-align: center;">판매자명</th>
+                        <th style="text-align: center;">회사명</th>
                         <th style="text-align: center;">단말기명</th>
-                        <th>통신사</th>
-                        <th>판매자</th>
                         <th style="text-align: right;">가격</th>
                         <th style="text-align: right;">조회수</th>
                         <th style="text-align: right;">찜</th>
@@ -529,20 +878,33 @@ try {
                 <tbody>
                     <?php foreach ($products as $index => $product): ?>
                         <tr>
-                            <td style="text-align: center;"><?php echo $totalProducts - (($page - 1) * $perPage + $index); ?></td>
-                            <td style="text-align: left;"><?php echo htmlspecialchars($product['product_name'] ?? '-'); ?></td>
-                            <td><?php echo htmlspecialchars($product['provider'] ?? '-'); ?></td>
-                            <td>
+                            <td style="text-align: center;">
+                                <input type="checkbox" class="product-checkbox" value="<?php echo $product['id']; ?>">
+                            </td>
+                            <td style="text-align: center;"><?php echo htmlspecialchars($product['id'] ?? '-'); ?></td>
+                            <td style="text-align: center;">
                                 <?php 
-                                $sellerDisplay = $product['seller_name'] ?? $product['seller_user_id'] ?? '-';
-                                if ($product['seller_user_id']) {
-                                    echo '<a href="/MVNO/admin/users/member-detail.php?user_id=' . urlencode($product['seller_user_id']) . '" style="color: #3b82f6; text-decoration: none;">' . htmlspecialchars($sellerDisplay) . '</a>';
+                                $sellerId = $product['seller_user_id'] ?? $product['seller_id'] ?? '-';
+                                if ($sellerId && $sellerId !== '-') {
+                                    echo '<a href="/MVNO/admin/users/member-detail.php?user_id=' . urlencode($sellerId) . '" style="color: #3b82f6; text-decoration: none; font-weight: 600;">' . htmlspecialchars($sellerId) . '</a>';
                                 } else {
-                                    echo htmlspecialchars($sellerDisplay);
+                                    echo '-';
                                 }
                                 ?>
                             </td>
-                            <td style="text-align: right;"><?php echo number_format($product['monthly_fee'] ?? 0); ?>원</td>
+                            <td style="text-align: center;"><?php echo htmlspecialchars($product['seller_name'] ?? '-'); ?></td>
+                            <td style="text-align: center;"><?php echo htmlspecialchars($product['company_name'] ?? '-'); ?></td>
+                            <td style="text-align: left;"><?php echo htmlspecialchars($product['product_name'] ?? '-'); ?></td>
+                            <td style="text-align: right;">
+                                <?php 
+                                $devicePrice = $product['device_price'] ?? null;
+                                if ($devicePrice !== null && $devicePrice !== '') {
+                                    echo number_format(floatval($devicePrice)) . '원';
+                                } else {
+                                    echo '-';
+                                }
+                                ?>
+                            </td>
                             <td style="text-align: right;"><?php echo number_format($product['view_count'] ?? 0); ?></td>
                             <td style="text-align: right;"><?php echo number_format($product['favorite_count'] ?? 0); ?></td>
                             <td style="text-align: right;"><?php echo number_format($product['review_count'] ?? 0); ?></td>
@@ -569,8 +931,7 @@ try {
                     <?php
                     $queryParams = [];
                     if ($status) $queryParams['status'] = $status;
-                    if ($seller_id) $queryParams['seller_id'] = $seller_id;
-                    if ($device_name) $queryParams['device_name'] = $device_name;
+                    if ($search_query) $queryParams['search_query'] = $search_query;
                     if ($date_from) $queryParams['date_from'] = $date_from;
                     if ($date_to) $queryParams['date_to'] = $date_to;
                     $queryParams['per_page'] = $perPage;
@@ -592,7 +953,56 @@ try {
     </div>
 </div>
 
+<!-- 모달 -->
+<div id="confirmModal" class="modal-overlay">
+    <div class="modal">
+        <div class="modal-title">판매종료 확인</div>
+        <div class="modal-message" id="confirmMessage"></div>
+        <div class="modal-buttons">
+            <button class="modal-btn modal-btn-cancel" onclick="closeConfirmModal()">취소</button>
+            <button class="modal-btn modal-btn-confirm" onclick="confirmBulkInactive()">확인</button>
+        </div>
+    </div>
+</div>
+
+<div id="alertModal" class="modal-overlay">
+    <div class="modal">
+        <div class="modal-title" id="alertTitle">알림</div>
+        <div class="modal-message" id="alertMessage"></div>
+        <div class="modal-buttons">
+            <button class="modal-btn modal-btn-ok" onclick="closeAlertModal()">확인</button>
+        </div>
+    </div>
+</div>
+
 <script>
+let pendingProductIds = [];
+
+function showConfirmModal(message) {
+    document.getElementById('confirmMessage').textContent = message;
+    document.getElementById('confirmModal').classList.add('show');
+    document.body.classList.add('modal-open');
+}
+
+function closeConfirmModal() {
+    document.getElementById('confirmModal').classList.remove('show');
+    document.body.classList.remove('modal-open');
+    pendingProductIds = [];
+}
+
+function showAlertModal(title, message) {
+    document.getElementById('alertTitle').textContent = title;
+    document.getElementById('alertMessage').textContent = message;
+    document.getElementById('alertModal').classList.add('show');
+    document.body.classList.add('modal-open');
+}
+
+function closeAlertModal() {
+    document.getElementById('alertModal').classList.remove('show');
+    document.body.classList.remove('modal-open');
+}
+
+
 function applyFilters() {
     const params = new URLSearchParams();
     
@@ -602,16 +1012,10 @@ function applyFilters() {
         params.set('status', status);
     }
     
-    // 판매자
-    const sellerId = document.getElementById('filter_seller_id').value;
-    if (sellerId && sellerId !== '') {
-        params.set('seller_id', sellerId);
-    }
-    
-    // 단말기명
-    const deviceName = document.getElementById('filter_device_name').value.trim();
-    if (deviceName) {
-        params.set('device_name', deviceName);
+    // 통합 검색
+    const searchQuery = document.getElementById('filter_search_query').value.trim();
+    if (searchQuery) {
+        params.set('search_query', searchQuery);
     }
     
     // 등록일
@@ -650,17 +1054,78 @@ function changePerPage() {
 
 function resetFilters() {
     document.getElementById('filter_status').value = '';
-    document.getElementById('filter_seller_id').value = '';
-    document.getElementById('filter_device_name').value = '';
+    document.getElementById('filter_search_query').value = '';
     document.getElementById('filter_date_from').value = '';
     document.getElementById('filter_date_to').value = '';
     
     window.location.href = window.location.pathname;
 }
 
+// 전체 선택/해제
+function toggleSelectAll() {
+    const selectAll = document.getElementById('selectAll');
+    const checkboxes = document.querySelectorAll('.product-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = selectAll.checked;
+    });
+}
+
+// 일괄 판매종료
+function bulkInactive() {
+    const checkboxes = document.querySelectorAll('.product-checkbox:checked');
+    
+    if (checkboxes.length === 0) {
+        showAlertModal('알림', '선택한 상품이 없습니다.\n판매종료할 상품을 선택해주세요.');
+        return;
+    }
+    
+    const productIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
+    pendingProductIds = productIds;
+    
+    showConfirmModal(`선택한 ${checkboxes.length}개의 상품을 판매종료 처리하시겠습니까?\n\n이 작업은 취소할 수 없습니다.`);
+}
+
+function confirmBulkInactive() {
+    if (pendingProductIds.length === 0) {
+        closeConfirmModal();
+        return;
+    }
+    
+    // product_ids를 별도 변수에 저장 (closeConfirmModal에서 초기화되기 전에)
+    const productIds = [...pendingProductIds];
+    closeConfirmModal();
+    
+    fetch('/MVNO/api/admin-product-bulk-update.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            product_ids: productIds,
+            status: 'inactive'
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlertModal('성공', `성공적으로 ${productIds.length}개의 상품이 판매종료 처리되었습니다.`);
+            // 성공 시 페이지 새로고침을 위해 플래그 저장
+            setTimeout(() => {
+                location.reload();
+            }, 1500);
+        } else {
+            showAlertModal('오류', data.message || '상품 상태 변경에 실패했습니다.');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlertModal('오류', '상품 상태 변경 중 오류가 발생했습니다.\n잠시 후 다시 시도해주세요.');
+    });
+}
+
 // Enter 키로 검색
 document.addEventListener('DOMContentLoaded', function() {
-    const searchInput = document.getElementById('filter_device_name');
+    const searchInput = document.getElementById('filter_search_query');
     if (searchInput) {
         searchInput.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
@@ -669,6 +1134,19 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+    
+    // 체크박스 상태 동기화
+    const checkboxes = document.querySelectorAll('.product-checkbox');
+    const selectAll = document.getElementById('selectAll');
+    
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+            const someChecked = Array.from(checkboxes).some(cb => cb.checked);
+            selectAll.checked = allChecked;
+            selectAll.indeterminate = someChecked && !allChecked;
+        });
+    });
 });
 </script>
 

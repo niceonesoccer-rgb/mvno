@@ -45,8 +45,8 @@ if ($has_query_params) {
     }
 }
 
-// 쿼리 파라미터가 서브페이지면 무조건 서브페이지로 처리 (수동 설정 무시)
-if ($is_sub_page_by_query) {
+// 쿼리 파라미터가 서브페이지면 무조건 서브페이지로 처리 (단, 명시적으로 설정된 경우는 제외)
+if ($is_sub_page_by_query && !isset($is_main_page)) {
     $is_main_page = false;
 }
 // 수동 설정이 없으면 자동 판단

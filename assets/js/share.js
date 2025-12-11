@@ -10,8 +10,13 @@
      * 클립보드에 텍스트 복사
      */
     function copyToClipboard(text) {
-        // 클립보드 API 사용 시도
-        if (navigator.clipboard && navigator.clipboard.writeText) {
+        // 클립보드 API 사용 시도 (HTTPS 또는 localhost에서만 동작)
+        const isSecureContext = window.isSecureContext || 
+                               location.protocol === 'https:' || 
+                               location.hostname === 'localhost' || 
+                               location.hostname === '127.0.0.1';
+        
+        if (isSecureContext && navigator.clipboard && navigator.clipboard.writeText) {
             return navigator.clipboard.writeText(text).then(() => {
                 return true;
             }).catch((err) => {
@@ -20,7 +25,7 @@
                 return fallbackCopyToClipboard(text);
             });
         } else {
-            // 클립보드 API 미지원 시 fallback 사용
+            // 클립보드 API 미지원 또는 비보안 컨텍스트 시 fallback 사용
             return fallbackCopyToClipboard(text);
         }
     }
@@ -33,31 +38,51 @@
             const textArea = document.createElement('textarea');
             textArea.value = text;
             textArea.style.position = 'fixed';
-            textArea.style.left = '-999999px';
-            textArea.style.top = '-999999px';
+            textArea.style.left = '0';
+            textArea.style.top = '0';
+            textArea.style.width = '2em';
+            textArea.style.height = '2em';
+            textArea.style.padding = '0';
+            textArea.style.border = 'none';
+            textArea.style.outline = 'none';
+            textArea.style.boxShadow = 'none';
+            textArea.style.background = 'transparent';
             textArea.style.opacity = '0';
             textArea.setAttribute('readonly', '');
+            textArea.setAttribute('aria-hidden', 'true');
             document.body.appendChild(textArea);
+            
+            // 포커스를 textArea에 주고 선택
+            textArea.focus();
+            textArea.select();
+            textArea.setSelectionRange(0, text.length);
             
             // iOS Safari에서 선택을 위해 범위 설정
             if (navigator.userAgent.match(/ipad|iphone/i)) {
                 const range = document.createRange();
                 range.selectNodeContents(textArea);
                 const selection = window.getSelection();
-                selection.removeAllRanges();
+                if (selection.rangeCount > 0) {
+                    selection.removeAllRanges();
+                }
                 selection.addRange(range);
-                textArea.setSelectionRange(0, 999999);
-            } else {
-                textArea.select();
+                textArea.setSelectionRange(0, text.length);
             }
             
             try {
                 const successful = document.execCommand('copy');
-                document.body.removeChild(textArea);
+                // 복사 후 즉시 제거하지 않고 약간 지연
+                setTimeout(() => {
+                    if (textArea.parentNode) {
+                        textArea.parentNode.removeChild(textArea);
+                    }
+                }, 100);
                 resolve(successful);
             } catch (err) {
                 console.error('클립보드 복사 실패:', err);
-                document.body.removeChild(textArea);
+                if (textArea.parentNode) {
+                    textArea.parentNode.removeChild(textArea);
+                }
                 resolve(false);
             }
         });

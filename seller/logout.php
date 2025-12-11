@@ -14,8 +14,8 @@ if (session_status() === PHP_SESSION_NONE) {
 // 로그아웃 처리
 logoutUser();
 
-// 로그아웃 후 로그인 페이지로 리다이렉트
-header('Location: /MVNO/seller/login.php');
+// 로그아웃 후 홈화면으로 리다이렉트
+header('Location: /MVNO/');
 exit;
 
 
