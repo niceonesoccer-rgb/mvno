@@ -271,6 +271,14 @@ function saveMnoProduct($productData) {
                 $pdo->exec("ALTER TABLE product_mno_details ADD COLUMN device_id INT(11) UNSIGNED DEFAULT NULL COMMENT '단말기 ID' AFTER product_id");
                 error_log("product_mno_details 테이블에 device_id 컬럼이 추가되었습니다.");
             }
+            
+            // redirect_url 컬럼 확인 및 추가
+            $checkRedirectUrl = $pdo->query("SHOW COLUMNS FROM product_mno_details LIKE 'redirect_url'");
+            if (!$checkRedirectUrl->fetch()) {
+                // redirect_url 컬럼 추가
+                $pdo->exec("ALTER TABLE product_mno_details ADD COLUMN redirect_url VARCHAR(500) DEFAULT NULL COMMENT '신청 후 리다이렉트 URL' AFTER visit_region");
+                error_log("product_mno_details 테이블에 redirect_url 컬럼이 추가되었습니다.");
+            }
         }
         
         if (!$tableExists) {
@@ -326,6 +334,7 @@ function saveMnoProduct($productData) {
                 `benefits` TEXT DEFAULT NULL COMMENT '혜택 목록 (JSON)',
                 `delivery_method` VARCHAR(20) DEFAULT 'delivery' COMMENT '배송 방법',
                 `visit_region` VARCHAR(50) DEFAULT NULL COMMENT '방문 지역',
+                `redirect_url` VARCHAR(500) DEFAULT NULL COMMENT '신청 후 리다이렉트 URL',
                 `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 PRIMARY KEY (`id`),
@@ -430,6 +439,7 @@ function saveMnoProduct($productData) {
             ':benefits' => !empty($productData['benefits']) ? json_encode($productData['benefits']) : null,
             ':delivery_method' => $productData['delivery_method'] ?? 'delivery',
             ':visit_region' => $productData['visit_region'] ?? null,
+            ':redirect_url' => !empty($productData['redirect_url']) ? trim($productData['redirect_url']) : null,
         ];
         
         if ($isEditMode) {
@@ -482,7 +492,8 @@ function saveMnoProduct($productData) {
                     promotions = :promotions,
                     benefits = :benefits,
                     delivery_method = :delivery_method,
-                    visit_region = :visit_region
+                    visit_region = :visit_region,
+                    redirect_url = :redirect_url
                 WHERE product_id = :product_id
             ");
             $stmt->execute($executeParams);
@@ -500,7 +511,7 @@ function saveMnoProduct($productData) {
                 regular_sim_available, regular_sim_price, nfc_sim_available, nfc_sim_price,
                 esim_available, esim_price, over_data_price, over_voice_price,
                 over_video_price, over_sms_price, over_lms_price, over_mms_price,
-                promotion_title, promotions, benefits, delivery_method, visit_region
+                promotion_title, promotions, benefits, delivery_method, visit_region, redirect_url
             ) VALUES (
                 :product_id, :device_id, :device_name, :device_price, :device_capacity, :device_colors,
                 :common_provider, :common_discount_new, :common_discount_port, :common_discount_change,
@@ -512,7 +523,7 @@ function saveMnoProduct($productData) {
                 :regular_sim_available, :regular_sim_price, :nfc_sim_available, :nfc_sim_price,
                 :esim_available, :esim_price, :over_data_price, :over_voice_price,
                 :over_video_price, :over_sms_price, :over_lms_price, :over_mms_price,
-                :promotion_title, :promotions, :benefits, :delivery_method, :visit_region
+                :promotion_title, :promotions, :benefits, :delivery_method, :visit_region, :redirect_url
             )
         ");
             $stmt->execute($executeParams);

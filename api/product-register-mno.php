@@ -92,6 +92,7 @@ $productData = [
     'benefits' => $_POST['benefits'] ?? [],
     'delivery_method' => $_POST['delivery_method'] ?? 'delivery',
     'visit_region' => $_POST['visit_region'] ?? '',
+    'redirect_url' => !empty($_POST['redirect_url']) ? trim($_POST['redirect_url']) : null,
     'created_at' => date('Y-m-d H:i:s')
 ];
 

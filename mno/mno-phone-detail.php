@@ -994,19 +994,49 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // 폼 데이터 수집
             const formData = new FormData(this);
+            formData.append('product_id', <?php echo $phone_id; ?>);
             
-            // TODO: 실제 서버로 데이터 전송
-            console.log('상담신청 데이터:', {
-                name: formData.get('name'),
-                phone: formData.get('phone'),
-                email: formData.get('email'),
-                agreementPurpose: formData.get('agreementPurpose'),
-                agreementItems: formData.get('agreementItems'),
-                agreementPeriod: formData.get('agreementPeriod')
+            // 제출 버튼 비활성화
+            const submitBtn = document.getElementById('consultationSubmitBtn');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.textContent = '처리 중...';
+            }
+            
+            // 서버로 데이터 전송
+            fetch('/MVNO/api/submit-mno-application.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // 신청정보가 판매자에게 저장됨
+                    
+                    // redirect_url이 있으면 해당 URL로 이동
+                    if (data.redirect_url && data.redirect_url.trim() !== '') {
+                        window.location.href = data.redirect_url;
+                    } else {
+                        // redirect_url이 없으면 창 닫기
+                        alert('상담신청이 완료되었습니다.');
+                        closeConsultationModal();
+                    }
+                } else {
+                    alert(data.message || '신청 처리 중 오류가 발생했습니다.');
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = '신청하기';
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('신청 처리 오류:', error);
+                alert('신청 처리 중 오류가 발생했습니다.');
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = '신청하기';
+                }
             });
-            
-            alert('상담신청이 완료되었습니다.');
-            closeConsultationModal();
         });
     }
 });

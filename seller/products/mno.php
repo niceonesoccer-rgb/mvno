@@ -614,6 +614,18 @@ document.addEventListener('DOMContentLoaded', function() {
             <input type="hidden" name="product_id" id="product_id" value="<?php echo $productId; ?>">
         <?php endif; ?>
         
+        <!-- 판매 상태 -->
+        <div class="form-section">
+            <div class="form-section-title">판매 상태</div>
+            <div class="form-group" style="max-width: 30%;">
+                <label class="form-label" for="product_status">상태</label>
+                <select name="product_status" id="product_status" class="form-select" style="width: auto; min-width: 120px;">
+                    <option value="active" <?php echo ($editMode && isset($productData['status']) && $productData['status'] === 'active') ? 'selected' : (!$editMode ? 'selected' : ''); ?>>판매중</option>
+                    <option value="inactive" <?php echo ($editMode && isset($productData['status']) && $productData['status'] === 'inactive') ? 'selected' : ''; ?>>판매종료</option>
+                </select>
+            </div>
+        </div>
+        
         <!-- 기본 정보 -->
         <div class="form-section">
             <div class="form-section-title">단말기</div>
@@ -648,7 +660,7 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
             
             <!-- 할인방법 -->
-            <div class="form-group" id="discount-method-section" style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; background: #f9fafb;">
+            <div class="form-group" style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; background: #f9fafb;">
                 <label class="form-label" style="font-size: 16px; margin-bottom: 20px;">할인방법</label>
                 
                 <!-- 공통지원할인과 선택약정할인 나란히 배치 -->
@@ -666,112 +678,47 @@ document.addEventListener('DOMContentLoaded', function() {
                                     <div class="form-control" style="background: #f9fafb; border: 1px solid #e5e7eb; padding: 10px 14px; font-weight: 600; font-size: 14px; height: 40px; line-height: 20px; box-sizing: border-box; display: flex; align-items: center;">SKT</div>
                                     <input type="hidden" name="common_provider[]" value="SKT">
                                 </div>
-                                <div class="common-discount-new-col" style="flex: 1; min-width: 0;">
+                                <div style="flex: 1; min-width: 0;">
                                     <label class="form-label" style="font-size: 13px; font-weight: 500; margin-bottom: 8px;">신규가입</label>
-                                    <input type="text" name="common_discount_new[]" class="form-control common-discount-input" placeholder="9999" value="<?php 
-                                        if ($editMode && isset($deviceData) && !empty($deviceData['common_discount_new'])) {
-                                            $values = json_decode($deviceData['common_discount_new'], true);
-                                            echo htmlspecialchars($values[0] ?? '9999');
-                                        } else {
-                                            echo '9999'; // SKT 기본값
-                                        }
-                                    ?>" maxlength="7" style="padding: 10px 14px; font-size: 14px; height: 40px; box-sizing: border-box;">
+                                    <input type="text" name="common_discount_new[]" class="form-control common-discount-input" placeholder="9999" value="9999" maxlength="7" style="padding: 10px 14px; font-size: 14px; height: 40px; box-sizing: border-box;">
                                 </div>
-                                <div class="common-discount-port-col" style="flex: 1; min-width: 0;">
+                                <div style="flex: 1; min-width: 0;">
                                     <label class="form-label" style="font-size: 13px; font-weight: 500; margin-bottom: 8px;">번호이동</label>
-                                    <input type="text" name="common_discount_port[]" class="form-control common-discount-input" placeholder="9999" value="<?php 
-                                        if ($editMode && isset($deviceData) && !empty($deviceData['common_discount_port'])) {
-                                            $values = json_decode($deviceData['common_discount_port'], true);
-                                            echo htmlspecialchars($values[0] ?? '4');
-                                        } else {
-                                            echo '4'; // SKT 기본값
-                                        }
-                                    ?>" maxlength="7" style="padding: 10px 14px; font-size: 14px; height: 40px; box-sizing: border-box;">
+                                    <input type="text" name="common_discount_port[]" class="form-control common-discount-input" placeholder="-198" maxlength="7" style="padding: 10px 14px; font-size: 14px; height: 40px; box-sizing: border-box;">
                                 </div>
-                                <div class="common-discount-change-col" style="flex: 1; min-width: 0;">
+                                <div style="flex: 1; min-width: 0;">
                                     <label class="form-label" style="font-size: 13px; font-weight: 500; margin-bottom: 8px;">기기변경</label>
-                                    <input type="text" name="common_discount_change[]" class="form-control common-discount-input" placeholder="9999" value="<?php 
-                                        if ($editMode && isset($deviceData) && !empty($deviceData['common_discount_change'])) {
-                                            $values = json_decode($deviceData['common_discount_change'], true);
-                                            echo htmlspecialchars($values[0] ?? '9999');
-                                        } else {
-                                            echo '9999'; // SKT 기본값
-                                        }
-                                    ?>" maxlength="7" style="padding: 10px 14px; font-size: 14px; height: 40px; box-sizing: border-box;">
+                                    <input type="text" name="common_discount_change[]" class="form-control common-discount-input" placeholder="191.6" maxlength="7" style="padding: 10px 14px; font-size: 14px; height: 40px; box-sizing: border-box;">
                                 </div>
                             </div>
-                            <div class="common-discount-row" style="display: flex; gap: 8px; flex-wrap: nowrap; margin-bottom: 8px; align-items: flex-end;">
+                            <div class="common-discount-row" style="display: flex; gap: 8px; flex-wrap: nowrap; margin-bottom: 8px; align-items: center;">
                                 <div style="flex: 1; min-width: 0;">
-                                    <label class="form-label" style="font-size: 13px; font-weight: 500; margin-bottom: 8px;">통신사</label>
                                     <div class="form-control" style="background: #f9fafb; border: 1px solid #e5e7eb; padding: 10px 14px; font-weight: 600; font-size: 14px; height: 40px; line-height: 20px; box-sizing: border-box; display: flex; align-items: center;">KT</div>
                                     <input type="hidden" name="common_provider[]" value="KT">
                                 </div>
-                                <div class="common-discount-new-col" style="flex: 1; min-width: 0;">
-                                    <input type="text" name="common_discount_new[]" class="form-control common-discount-input" placeholder="9999" value="<?php 
-                                        if ($editMode && isset($deviceData) && !empty($deviceData['common_discount_new'])) {
-                                            $values = json_decode($deviceData['common_discount_new'], true);
-                                            echo htmlspecialchars($values[1] ?? '9999');
-                                        } else {
-                                            echo '9999'; // KT 기본값
-                                        }
-                                    ?>" maxlength="7" style="padding: 10px 14px; font-size: 14px; height: 40px; box-sizing: border-box;">
+                                <div style="flex: 1; min-width: 0;">
+                                    <input type="text" name="common_discount_new[]" class="form-control common-discount-input" placeholder="9999" value="9999" maxlength="7" style="padding: 10px 14px; font-size: 14px; height: 40px; box-sizing: border-box;">
                                 </div>
-                                <div class="common-discount-port-col" style="flex: 1; min-width: 0;">
-                                    <input type="text" name="common_discount_port[]" class="form-control common-discount-input" placeholder="9999" value="<?php 
-                                        if ($editMode && isset($deviceData) && !empty($deviceData['common_discount_port'])) {
-                                            $values = json_decode($deviceData['common_discount_port'], true);
-                                            echo htmlspecialchars($values[1] ?? '9');
-                                        } else {
-                                            echo '9'; // KT 기본값
-                                        }
-                                    ?>" maxlength="7" style="padding: 10px 14px; font-size: 14px; height: 40px; box-sizing: border-box;">
+                                <div style="flex: 1; min-width: 0;">
+                                    <input type="text" name="common_discount_port[]" class="form-control common-discount-input" placeholder="-198" maxlength="7" style="padding: 10px 14px; font-size: 14px; height: 40px; box-sizing: border-box;">
                                 </div>
-                                <div class="common-discount-change-col" style="flex: 1; min-width: 0;">
-                                    <input type="text" name="common_discount_change[]" class="form-control common-discount-input" placeholder="9999" value="<?php 
-                                        if ($editMode && isset($deviceData) && !empty($deviceData['common_discount_change'])) {
-                                            $values = json_decode($deviceData['common_discount_change'], true);
-                                            echo htmlspecialchars($values[1] ?? '9999');
-                                        } else {
-                                            echo '9999'; // KT 기본값
-                                        }
-                                    ?>" maxlength="7" style="padding: 10px 14px; font-size: 14px; height: 40px; box-sizing: border-box;">
+                                <div style="flex: 1; min-width: 0;">
+                                    <input type="text" name="common_discount_change[]" class="form-control common-discount-input" placeholder="191.6" maxlength="7" style="padding: 10px 14px; font-size: 14px; height: 40px; box-sizing: border-box;">
                                 </div>
                             </div>
-                            <div class="common-discount-row" style="display: flex; gap: 8px; flex-wrap: nowrap; margin-bottom: 0; align-items: flex-end;">
+                            <div class="common-discount-row" style="display: flex; gap: 8px; flex-wrap: nowrap; margin-bottom: 0; align-items: center;">
                                 <div style="flex: 1; min-width: 0;">
-                                    <label class="form-label" style="font-size: 13px; font-weight: 500; margin-bottom: 8px;">통신사</label>
                                     <div class="form-control" style="background: #f9fafb; border: 1px solid #e5e7eb; padding: 10px 14px; font-weight: 600; font-size: 14px; height: 40px; line-height: 20px; box-sizing: border-box; display: flex; align-items: center;">LGU+</div>
-                                    <input type="hidden" name="common_provider[]" value="LGU+">
+                                    <input type="hidden" name="common_provider[]" value="LG U+">
                                 </div>
-                                <div class="common-discount-new-col" style="flex: 1; min-width: 0;">
-                                    <input type="text" name="common_discount_new[]" class="form-control common-discount-input" placeholder="9999" value="<?php 
-                                        if ($editMode && isset($deviceData) && !empty($deviceData['common_discount_new'])) {
-                                            $values = json_decode($deviceData['common_discount_new'], true);
-                                            echo htmlspecialchars($values[2] ?? '9999');
-                                        } else {
-                                            echo '9999'; // LGU+ 기본값
-                                        }
-                                    ?>" maxlength="7" style="padding: 10px 14px; font-size: 14px; height: 40px; box-sizing: border-box;">
+                                <div style="flex: 1; min-width: 0;">
+                                    <input type="text" name="common_discount_new[]" class="form-control common-discount-input" placeholder="9999" value="9999" maxlength="7" style="padding: 10px 14px; font-size: 14px; height: 40px; box-sizing: border-box;">
                                 </div>
-                                <div class="common-discount-port-col" style="flex: 1; min-width: 0;">
-                                    <input type="text" name="common_discount_port[]" class="form-control common-discount-input" placeholder="9999" value="<?php 
-                                        if ($editMode && isset($deviceData) && !empty($deviceData['common_discount_port'])) {
-                                            $values = json_decode($deviceData['common_discount_port'], true);
-                                            echo htmlspecialchars($values[2] ?? '4');
-                                        } else {
-                                            echo '4'; // LGU+ 기본값
-                                        }
-                                    ?>" maxlength="7" style="padding: 10px 14px; font-size: 14px; height: 40px; box-sizing: border-box;">
+                                <div style="flex: 1; min-width: 0;">
+                                    <input type="text" name="common_discount_port[]" class="form-control common-discount-input" placeholder="-198" maxlength="7" style="padding: 10px 14px; font-size: 14px; height: 40px; box-sizing: border-box;">
                                 </div>
-                                <div class="common-discount-change-col" style="flex: 1; min-width: 0;">
-                                    <input type="text" name="common_discount_change[]" class="form-control common-discount-input" placeholder="9999" value="<?php 
-                                        if ($editMode && isset($deviceData) && !empty($deviceData['common_discount_change'])) {
-                                            $values = json_decode($deviceData['common_discount_change'], true);
-                                            echo htmlspecialchars($values[2] ?? '7');
-                                        } else {
-                                            echo '7'; // LGU+ 기본값
-                                        }
-                                    ?>" maxlength="7" style="padding: 10px 14px; font-size: 14px; height: 40px; box-sizing: border-box;">
+                                <div style="flex: 1; min-width: 0;">
+                                    <input type="text" name="common_discount_change[]" class="form-control common-discount-input" placeholder="191.6" maxlength="7" style="padding: 10px 14px; font-size: 14px; height: 40px; box-sizing: border-box;">
                                 </div>
                             </div>
                         </div>
@@ -790,112 +737,47 @@ document.addEventListener('DOMContentLoaded', function() {
                                     <div class="form-control" style="background: #f9fafb; border: 1px solid #e5e7eb; padding: 10px 14px; font-weight: 600; font-size: 14px; height: 40px; line-height: 20px; box-sizing: border-box; display: flex; align-items: center;">SKT</div>
                                     <input type="hidden" name="contract_provider[]" value="SKT">
                                 </div>
-                                <div class="contract-discount-new-col" style="flex: 1; min-width: 0;">
+                                <div style="flex: 1; min-width: 0;">
                                     <label class="form-label" style="font-size: 13px; font-weight: 500; margin-bottom: 8px;">신규가입</label>
-                                    <input type="text" name="contract_discount_new[]" class="form-control contract-discount-input" placeholder="9999" value="<?php 
-                                        if ($editMode && isset($deviceData) && !empty($deviceData['contract_discount_new'])) {
-                                            $values = json_decode($deviceData['contract_discount_new'], true);
-                                            echo htmlspecialchars($values[0] ?? '9999');
-                                        } else {
-                                            echo '9999'; // SKT 기본값
-                                        }
-                                    ?>" maxlength="7" style="padding: 10px 14px; font-size: 14px; height: 40px; box-sizing: border-box;">
+                                    <input type="text" name="contract_discount_new[]" class="form-control contract-discount-input" placeholder="9999" value="9999" maxlength="7" style="padding: 10px 14px; font-size: 14px; height: 40px; box-sizing: border-box;">
                                 </div>
-                                <div class="contract-discount-port-col" style="flex: 1; min-width: 0;">
+                                <div style="flex: 1; min-width: 0;">
                                     <label class="form-label" style="font-size: 13px; font-weight: 500; margin-bottom: 8px;">번호이동</label>
-                                    <input type="text" name="contract_discount_port[]" class="form-control contract-discount-input" placeholder="9999" value="<?php 
-                                        if ($editMode && isset($deviceData) && !empty($deviceData['contract_discount_port'])) {
-                                            $values = json_decode($deviceData['contract_discount_port'], true);
-                                            echo htmlspecialchars($values[0] ?? '9999');
-                                        } else {
-                                            echo '9999'; // SKT 기본값
-                                        }
-                                    ?>" maxlength="7" style="padding: 10px 14px; font-size: 14px; height: 40px; box-sizing: border-box;">
+                                    <input type="text" name="contract_discount_port[]" class="form-control contract-discount-input" placeholder="198" maxlength="7" style="padding: 10px 14px; font-size: 14px; height: 40px; box-sizing: border-box;">
                                 </div>
-                                <div class="contract-discount-change-col" style="flex: 1; min-width: 0;">
+                                <div style="flex: 1; min-width: 0;">
                                     <label class="form-label" style="font-size: 13px; font-weight: 500; margin-bottom: 8px;">기기변경</label>
-                                    <input type="text" name="contract_discount_change[]" class="form-control contract-discount-input" placeholder="9999" value="<?php 
-                                        if ($editMode && isset($deviceData) && !empty($deviceData['contract_discount_change'])) {
-                                            $values = json_decode($deviceData['contract_discount_change'], true);
-                                            echo htmlspecialchars($values[0] ?? '9999');
-                                        } else {
-                                            echo '9999'; // SKT 기본값
-                                        }
-                                    ?>" maxlength="7" style="padding: 10px 14px; font-size: 14px; height: 40px; box-sizing: border-box;">
+                                    <input type="text" name="contract_discount_change[]" class="form-control contract-discount-input" placeholder="150" maxlength="7" style="padding: 10px 14px; font-size: 14px; height: 40px; box-sizing: border-box;">
                                 </div>
                             </div>
-                            <div class="contract-discount-row" style="display: flex; gap: 8px; flex-wrap: nowrap; margin-bottom: 8px; align-items: flex-end;">
+                            <div class="contract-discount-row" style="display: flex; gap: 8px; flex-wrap: nowrap; margin-bottom: 8px; align-items: center;">
                                 <div style="flex: 1; min-width: 0;">
-                                    <label class="form-label" style="font-size: 13px; font-weight: 500; margin-bottom: 8px;">통신사</label>
                                     <div class="form-control" style="background: #f9fafb; border: 1px solid #e5e7eb; padding: 10px 14px; font-weight: 600; font-size: 14px; height: 40px; line-height: 20px; box-sizing: border-box; display: flex; align-items: center;">KT</div>
                                     <input type="hidden" name="contract_provider[]" value="KT">
                                 </div>
-                                <div class="contract-discount-new-col" style="flex: 1; min-width: 0;">
-                                    <input type="text" name="contract_discount_new[]" class="form-control contract-discount-input" placeholder="9999" value="<?php 
-                                        if ($editMode && isset($deviceData) && !empty($deviceData['contract_discount_new'])) {
-                                            $values = json_decode($deviceData['contract_discount_new'], true);
-                                            echo htmlspecialchars($values[1] ?? '5');
-                                        } else {
-                                            echo '5'; // KT 기본값
-                                        }
-                                    ?>" maxlength="7" style="padding: 10px 14px; font-size: 14px; height: 40px; box-sizing: border-box;">
+                                <div style="flex: 1; min-width: 0;">
+                                    <input type="text" name="contract_discount_new[]" class="form-control contract-discount-input" placeholder="9999" value="9999" maxlength="7" style="padding: 10px 14px; font-size: 14px; height: 40px; box-sizing: border-box;">
                                 </div>
-                                <div class="contract-discount-port-col" style="flex: 1; min-width: 0;">
-                                    <input type="text" name="contract_discount_port[]" class="form-control contract-discount-input" placeholder="9999" value="<?php 
-                                        if ($editMode && isset($deviceData) && !empty($deviceData['contract_discount_port'])) {
-                                            $values = json_decode($deviceData['contract_discount_port'], true);
-                                            echo htmlspecialchars($values[1] ?? '9999');
-                                        } else {
-                                            echo '9999'; // KT 기본값
-                                        }
-                                    ?>" maxlength="7" style="padding: 10px 14px; font-size: 14px; height: 40px; box-sizing: border-box;">
+                                <div style="flex: 1; min-width: 0;">
+                                    <input type="text" name="contract_discount_port[]" class="form-control contract-discount-input" placeholder="198" maxlength="7" style="padding: 10px 14px; font-size: 14px; height: 40px; box-sizing: border-box;">
                                 </div>
-                                <div class="contract-discount-change-col" style="flex: 1; min-width: 0;">
-                                    <input type="text" name="contract_discount_change[]" class="form-control contract-discount-input" placeholder="9999" value="<?php 
-                                        if ($editMode && isset($deviceData) && !empty($deviceData['contract_discount_change'])) {
-                                            $values = json_decode($deviceData['contract_discount_change'], true);
-                                            echo htmlspecialchars($values[1] ?? '9999');
-                                        } else {
-                                            echo '9999'; // KT 기본값
-                                        }
-                                    ?>" maxlength="7" style="padding: 10px 14px; font-size: 14px; height: 40px; box-sizing: border-box;">
+                                <div style="flex: 1; min-width: 0;">
+                                    <input type="text" name="contract_discount_change[]" class="form-control contract-discount-input" placeholder="150" maxlength="7" style="padding: 10px 14px; font-size: 14px; height: 40px; box-sizing: border-box;">
                                 </div>
                             </div>
-                            <div class="contract-discount-row" style="display: flex; gap: 8px; flex-wrap: nowrap; margin-bottom: 0; align-items: flex-end;">
+                            <div class="contract-discount-row" style="display: flex; gap: 8px; flex-wrap: nowrap; margin-bottom: 0; align-items: center;">
                                 <div style="flex: 1; min-width: 0;">
-                                    <label class="form-label" style="font-size: 13px; font-weight: 500; margin-bottom: 8px;">통신사</label>
                                     <div class="form-control" style="background: #f9fafb; border: 1px solid #e5e7eb; padding: 10px 14px; font-weight: 600; font-size: 14px; height: 40px; line-height: 20px; box-sizing: border-box; display: flex; align-items: center;">LGU+</div>
-                                    <input type="hidden" name="contract_provider[]" value="LGU+">
+                                    <input type="hidden" name="contract_provider[]" value="LG U+">
                                 </div>
-                                <div class="contract-discount-new-col" style="flex: 1; min-width: 0;">
-                                    <input type="text" name="contract_discount_new[]" class="form-control contract-discount-input" placeholder="9999" value="<?php 
-                                        if ($editMode && isset($deviceData) && !empty($deviceData['contract_discount_new'])) {
-                                            $values = json_decode($deviceData['contract_discount_new'], true);
-                                            echo htmlspecialchars($values[2] ?? '9999');
-                                        } else {
-                                            echo '9999'; // LGU+ 기본값
-                                        }
-                                    ?>" maxlength="7" style="padding: 10px 14px; font-size: 14px; height: 40px; box-sizing: border-box;">
+                                <div style="flex: 1; min-width: 0;">
+                                    <input type="text" name="contract_discount_new[]" class="form-control contract-discount-input" placeholder="9999" value="9999" maxlength="7" style="padding: 10px 14px; font-size: 14px; height: 40px; box-sizing: border-box;">
                                 </div>
-                                <div class="contract-discount-port-col" style="flex: 1; min-width: 0;">
-                                    <input type="text" name="contract_discount_port[]" class="form-control contract-discount-input" placeholder="9999" value="<?php 
-                                        if ($editMode && isset($deviceData) && !empty($deviceData['contract_discount_port'])) {
-                                            $values = json_decode($deviceData['contract_discount_port'], true);
-                                            echo htmlspecialchars($values[2] ?? '9999');
-                                        } else {
-                                            echo '9999'; // LGU+ 기본값
-                                        }
-                                    ?>" maxlength="7" style="padding: 10px 14px; font-size: 14px; height: 40px; box-sizing: border-box;">
+                                <div style="flex: 1; min-width: 0;">
+                                    <input type="text" name="contract_discount_port[]" class="form-control contract-discount-input" placeholder="198" maxlength="7" style="padding: 10px 14px; font-size: 14px; height: 40px; box-sizing: border-box;">
                                 </div>
-                                <div class="contract-discount-change-col" style="flex: 1; min-width: 0;">
-                                    <input type="text" name="contract_discount_change[]" class="form-control contract-discount-input" placeholder="9999" value="<?php 
-                                        if ($editMode && isset($deviceData) && !empty($deviceData['contract_discount_change'])) {
-                                            $values = json_decode($deviceData['contract_discount_change'], true);
-                                            echo htmlspecialchars($values[2] ?? '9999');
-                                        } else {
-                                            echo '9999'; // LGU+ 기본값
-                                        }
-                                    ?>" maxlength="7" style="padding: 10px 14px; font-size: 14px; height: 40px; box-sizing: border-box;">
+                                <div style="flex: 1; min-width: 0;">
+                                    <input type="text" name="contract_discount_change[]" class="form-control contract-discount-input" placeholder="150" maxlength="7" style="padding: 10px 14px; font-size: 14px; height: 40px; box-sizing: border-box;">
                                 </div>
                             </div>
                         </div>
@@ -915,9 +797,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         <label for="delivery_enabled">택배</label>
                     </div>
                     <div class="form-checkbox" style="display: flex; align-items: center; gap: 8px;">
-                        <input type="radio" name="delivery_method" id="visit_enabled" value="visit" <?php echo ($editMode && isset($deviceData['delivery_method']) && $deviceData['delivery_method'] === 'visit') ? 'checked' : ''; ?>>
+                        <input type="radio" name="delivery_method" id="visit_enabled" value="visit">
                         <label for="visit_enabled" style="margin: 0; cursor: pointer;">내방</label>
-                        <input type="text" name="visit_region" id="visit_region" class="form-control" placeholder="도곡동" value="<?php echo $editMode && isset($deviceData['visit_region']) ? htmlspecialchars($deviceData['visit_region']) : ''; ?>" maxlength="20" style="width: 150px; padding: 8px 12px; font-size: 14px; margin: 0; <?php echo ($editMode && isset($deviceData['delivery_method']) && $deviceData['delivery_method'] === 'visit') ? '' : 'opacity: 0.5; background-color: #f3f4f6;'; ?> cursor: pointer;" <?php echo ($editMode && isset($deviceData['delivery_method']) && $deviceData['delivery_method'] === 'visit') ? '' : 'tabindex="-1"'; ?>>
+                        <input type="text" name="visit_region" id="visit_region" class="form-control" placeholder="영등포 강남" maxlength="8" style="width: 150px; padding: 8px 12px; font-size: 14px; margin: 0; opacity: 0.5; background-color: #f3f4f6; cursor: pointer;" tabindex="-1">
                     </div>
                 </div>
             </div>
@@ -931,50 +813,47 @@ document.addEventListener('DOMContentLoaded', function() {
                 <label class="form-label" for="promotion_title">
                     제목
                 </label>
-                <input type="text" name="promotion_title" id="promotion_title" class="form-control" placeholder="부가서비스 없음" value="<?php echo $editMode && isset($deviceData['promotion_title']) ? htmlspecialchars($deviceData['promotion_title']) : '부가서비스 없음'; ?>" maxlength="100">
+                <input type="text" name="promotion_title" id="promotion_title" class="form-control" placeholder="부가서비스 및 유지기간" maxlength="100">
             </div>
             
             <div class="form-group">
                 <label class="form-label">항목</label>
                 <div id="promotion-container">
-                    <?php
-                    $promotions = [];
-                    if ($editMode && isset($deviceData['promotions']) && !empty($deviceData['promotions'])) {
-                        $promotions = json_decode($deviceData['promotions'], true) ?: [];
-                    }
-                    if (empty($promotions)) {
-                        // 기본 항목 없음 - 빈 필드 하나만
-                        $promotions = [''];
-                    }
-                    foreach ($promotions as $index => $promotion): 
-                        $isFirst = ($index === 0 && count($promotions) === 1);
-                    ?>
                     <div class="gift-input-group">
-                        <input type="text" name="promotions[]" class="form-control" placeholder="항목 입력" value="<?php echo htmlspecialchars($promotion); ?>" maxlength="50">
-                        <?php if ($isFirst): ?>
-                            <button type="button" class="btn-add" onclick="addPromotionField()">추가</button>
-                        <?php else: ?>
-                            <button type="button" class="btn-remove" onclick="removePromotionField(this)">삭제</button>
-                        <?php endif; ?>
+                        <input type="text" name="promotions[]" class="form-control" placeholder="부가 미가입시 +10" maxlength="30">
+                        <button type="button" class="btn-add" onclick="addPromotionField()">추가</button>
                     </div>
-                    <?php endforeach; ?>
+                    <div class="gift-input-group">
+                        <input type="text" name="promotions[]" class="form-control" placeholder="파손보험 5700원" maxlength="30">
+                        <button type="button" class="btn-remove" onclick="removePromotionField(this)">삭제</button>
+                    </div>
                 </div>
             </div>
         </div>
         
-        <!-- 판매 상태 (수정 모드일 때만) -->
-        <?php if ($editMode): ?>
+        <!-- 신청 후 리다이렉트 URL (선택사항) -->
         <div class="form-section">
-            <div class="form-section-title">판매 상태</div>
-            <div class="form-group">
-                <label class="form-label" for="product_status">상태</label>
-                <select name="product_status" id="product_status" class="form-select">
-                    <option value="active" <?php echo (isset($productData['status']) && $productData['status'] === 'active') ? 'selected' : ''; ?>>판매중</option>
-                    <option value="inactive" <?php echo (isset($productData['status']) && $productData['status'] === 'inactive') ? 'selected' : ''; ?>>판매종료</option>
-                </select>
+            <div class="form-section-title">신청 후 리다이렉트 URL</div>
+            <div class="form-group" style="max-width: 70%;">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px; color: #374151; margin-bottom: 12px;">
+                    <input type="checkbox" id="enable_redirect_url" style="width: 18px; height: 18px; cursor: pointer;">
+                    <span>URL 입력</span>
+                </label>
+                <div id="redirect_url_container" style="display: none;">
+                    <label class="form-label" for="redirect_url">
+                        URL
+                    </label>
+                    <input type="text" name="redirect_url" id="redirect_url" class="form-control" 
+                        placeholder="example.com 또는 https://example.com" 
+                        value="<?php echo ($editMode && isset($deviceData['redirect_url'])) ? htmlspecialchars($deviceData['redirect_url']) : ''; ?>"
+                        style="padding: 10px 14px; font-size: 14px;">
+                    <small class="form-text" style="display: block; margin-top: 8px; color: #6b7280; font-size: 13px;">
+                        입력 시: 고객 신청 후 해당 URL로 이동합니다.<br>
+                        미입력 시: 고객 신청 서만 접수(성함, 전화번호, 이메일주소)
+                    </small>
+                </div>
             </div>
         </div>
-        <?php endif; ?>
         
         <!-- 제출 버튼 -->
         <div class="form-actions">
@@ -1103,9 +982,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.loadDeviceList = function(manufacturerId, selectDeviceId) {
         if (!manufacturerId || !deviceSelect) return;
         
-        // 수정 모드에서는 현재 선택된 단말기도 포함하기 위해 include_device_id 전달
-        const includeDeviceId = selectDeviceId ? `&include_device_id=${selectDeviceId}` : '';
-        fetch(`/MVNO/api/get-devices-by-manufacturer.php?manufacturer_id=${manufacturerId}${includeDeviceId}`)
+        fetch(`/MVNO/api/get-devices-by-manufacturer.php?manufacturer_id=${manufacturerId}`)
             .then(response => response.json())
             .then(data => {
                 if (data.success && data.grouped) {
@@ -1117,9 +994,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         
                         if (devices.length === 1) {
                             const device = devices[0];
-                            const capacityText = device.storage || '';
-                            const priceText = device.release_price ? (parseInt(device.release_price).toLocaleString('ko-KR') + '원') : '';
-                            const displayText = `${device.name} [${capacityText}] ${priceText}`.trim();
+                            const displayText = `${device.name} | ${device.storage || ''} | ${device.release_price ? (parseInt(device.release_price).toLocaleString('ko-KR') + '원') : ''}`.trim();
                             const option = document.createElement('option');
                             option.value = device.id;
                             option.textContent = displayText;
@@ -1173,13 +1048,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         deviceSelect.dispatchEvent(new Event('change'));
                     }
                 } else {
-                    console.warn('단말기 목록이 비어있습니다.', data);
                     deviceSelect.innerHTML = '<option value="">등록된 단말기가 없습니다</option>';
                     deviceSelect.disabled = true;
                 }
             })
             .catch(error => {
-                console.error('단말기 목록 로드 오류:', error);
                 deviceSelect.innerHTML = '<option value="">단말기 목록을 불러올 수 없습니다</option>';
                 deviceSelect.disabled = true;
             });
@@ -1226,195 +1099,8 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // 할인 필드 표시/숨김 관리 함수
-    function updateDiscountDisplay() {
-        // 공통지원할인 처리
-        updateDiscountSection('common', 'common-discount-container', 'common-discount-row');
-        // 선택약정할인 처리
-        updateDiscountSection('contract', 'contract-discount-container', 'contract-discount-row');
-        
-        // 할인방법 섹션 전체 표시/숨김 결정
-        const discountSection = document.getElementById('discount-method-section');
-        if (discountSection) {
-            const commonVisible = isDiscountSectionVisible('common');
-            const contractVisible = isDiscountSectionVisible('contract');
-            
-            if (!commonVisible && !contractVisible) {
-                discountSection.style.display = 'none';
-            } else {
-                discountSection.style.display = '';
-            }
-        }
-    }
-    
-    function updateDiscountSection(type, containerId, rowClass) {
-        const container = document.getElementById(containerId);
-        if (!container) return;
-        
-        const rows = Array.from(container.querySelectorAll('.' + rowClass));
-        const typePrefix = type === 'common' ? 'common_discount' : 'contract_discount';
-        
-        // 각 행의 입력 필드 수집
-        const rowData = [];
-        rows.forEach(row => {
-            const newInput = row.querySelector(`input[name="${typePrefix}_new[]"]`);
-            const portInput = row.querySelector(`input[name="${typePrefix}_port[]"]`);
-            const changeInput = row.querySelector(`input[name="${typePrefix}_change[]"]`);
-            
-            if (newInput && portInput && changeInput) {
-                const newVal = newInput.value.trim();
-                const portVal = portInput.value.trim();
-                const changeVal = changeInput.value.trim();
-                
-                rowData.push({
-                    row: row,
-                    newInput: newInput,
-                    portInput: portInput,
-                    changeInput: changeInput,
-                    new: newVal,
-                    port: portVal,
-                    change: changeVal,
-                    all9999: newVal === '9999' && portVal === '9999' && changeVal === '9999'
-                });
-            }
-        });
-        
-        if (rowData.length === 0) return;
-        
-        // 1단계: 먼저 행이 모두 9999인 경우 행 숨기기
-        rowData.forEach(data => {
-            if (data.all9999) {
-                data.row.style.display = 'none';
-            } else {
-                data.row.style.display = '';
-            }
-        });
-        
-        // 2단계: 숨겨지지 않은 행들 기준으로 열별로 모두 9999인지 체크
-        const visibleRows = rowData.filter(r => r.row.style.display !== 'none');
-        const newAll9999 = visibleRows.length > 0 && visibleRows.every(r => r.new === '9999');
-        const portAll9999 = visibleRows.length > 0 && visibleRows.every(r => r.port === '9999');
-        const changeAll9999 = visibleRows.length > 0 && visibleRows.every(r => r.change === '9999');
-        
-        // 3단계: 열 숨기기 및 9999 값 시각적 표시
-        visibleRows.forEach(data => {
-            // 열별 컨테이너 찾기 (클래스 기준)
-            const colClassPrefix = type === 'common' ? 'common-discount' : 'contract-discount';
-            const newContainer = data.row.querySelector(`.${colClassPrefix}-new-col`);
-            const portContainer = data.row.querySelector(`.${colClassPrefix}-port-col`);
-            const changeContainer = data.row.querySelector(`.${colClassPrefix}-change-col`);
-            
-            // 신규가입 열: 모든 보이는 행이 9999이면 열 숨김
-            if (newAll9999 && newContainer) {
-                newContainer.style.display = 'none';
-            } else if (newContainer) {
-                newContainer.style.display = '';
-                // 9999 값을 회색으로 표시
-                if (data.new === '9999') {
-                    data.newInput.style.color = '#999';
-                } else {
-                    data.newInput.style.color = '';
-                }
-            }
-            
-            // 번호이동 열: 모든 보이는 행이 9999이면 열 숨김
-            if (portAll9999 && portContainer) {
-                portContainer.style.display = 'none';
-            } else if (portContainer) {
-                portContainer.style.display = '';
-                if (data.port === '9999') {
-                    data.portInput.style.color = '#999';
-                } else {
-                    data.portInput.style.color = '';
-                }
-            }
-            
-            // 기기변경 열: 모든 보이는 행이 9999이면 열 숨김
-            if (changeAll9999 && changeContainer) {
-                changeContainer.style.display = 'none';
-            } else if (changeContainer) {
-                changeContainer.style.display = '';
-                if (data.change === '9999') {
-                    data.changeInput.style.color = '#999';
-                } else {
-                    data.changeInput.style.color = '';
-                }
-            }
-        });
-        
-        // 섹션 제목 표시/숨김
-        const sectionHeader = container.previousElementSibling;
-        if (sectionHeader) {
-            // 보이는 행이 있는지 체크
-            const visibleRowsAfter = rowData.filter(r => r.row.style.display !== 'none');
-            const hasVisibleRows = visibleRowsAfter.length > 0;
-            
-            // 보이는 열이 있는지 체크
-            const hasVisibleCols = !newAll9999 || !portAll9999 || !changeAll9999;
-            
-            if (!hasVisibleRows || !hasVisibleCols) {
-                sectionHeader.style.display = 'none';
-                container.style.display = 'none';
-            } else {
-                sectionHeader.style.display = '';
-                container.style.display = '';
-            }
-        }
-    }
-    
-    function isDiscountSectionVisible(type) {
-        const containerId = type === 'common' ? 'common-discount-container' : 'contract-discount-container';
-        const container = document.getElementById(containerId);
-        if (!container || container.style.display === 'none') return false;
-        
-        const rows = container.querySelectorAll('.' + (type === 'common' ? 'common-discount-row' : 'contract-discount-row'));
-        const typePrefix = type === 'common' ? 'common_discount' : 'contract_discount';
-        
-        for (let row of rows) {
-            if (row.style.display === 'none') continue;
-            
-            const newInput = row.querySelector(`input[name="${typePrefix}_new[]"]`);
-            const portInput = row.querySelector(`input[name="${typePrefix}_port[]"]`);
-            const changeInput = row.querySelector(`input[name="${typePrefix}_change[]"]`);
-            
-            if (newInput && portInput && changeInput) {
-                const newVal = newInput.value.trim();
-                const portVal = portInput.value.trim();
-                const changeVal = changeInput.value.trim();
-                
-                // 하나라도 9999가 아니면 visible
-                if (newVal !== '9999' || portVal !== '9999' || changeVal !== '9999') {
-                    // 열도 체크
-                    const newContainer = newInput.closest('div[style*="flex: 1"]');
-                    const portContainer = portInput.closest('div[style*="flex: 1"]');
-                    const changeContainer = changeInput.closest('div[style*="flex: 1"]');
-                    
-                    if ((newVal !== '9999' && newContainer?.style.display !== 'none') ||
-                        (portVal !== '9999' && portContainer?.style.display !== 'none') ||
-                        (changeVal !== '9999' && changeContainer?.style.display !== 'none')) {
-                        return true;
-                    }
-                }
-            }
-        }
-        
-        return false;
-    }
-    
-    // 9999 값을 "-"로 표시하는 함수
-    function formatDiscountValue(value) {
-        const val = value.trim();
-        return val === '9999' ? '-' : val;
-    }
-    
-    // 할인 필드 초기화 함수
+    // 할인 필드들: 정수 4자리 소수 2자리 (최대 9999.99)
     function initDiscountField(field) {
-        // 초기 값이 9999면 회색으로 표시
-        if (field.value.trim() === '9999') {
-            field.style.color = '#999';
-        }
-        
-        // 입력값 검증 (정수 4자리 소수 2자리)
         field.addEventListener('input', function() {
             let value = this.value.replace(/[^0-9.-]/g, '');
             const sign = value.match(/^-/);
@@ -1436,34 +1122,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             this.value = value;
-            
-            // 9999 체크 및 표시 업데이트
-            const val = value.trim();
-            if (val === '9999') {
-                this.style.color = '#999';
-            } else {
-                this.style.color = '';
-            }
-            
-            // 할인 표시 업데이트
-            updateDiscountDisplay();
-        });
-        
-        // 포커스 시 9999면 빈 문자열로 (편집 용이)
-        field.addEventListener('focus', function() {
-            if (this.value.trim() === '9999') {
-                this.value = '';
-                this.style.color = '';
-            }
-        });
-        
-        // 블러 시 빈 값이면 9999로
-        field.addEventListener('blur', function() {
-            if (this.value.trim() === '') {
-                this.value = '9999';
-                this.style.color = '#999';
-            }
-            updateDiscountDisplay();
         });
     }
     
@@ -1471,9 +1129,6 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.common-discount-input, .contract-discount-input').forEach(function(field) {
         initDiscountField(field);
     });
-    
-    // 초기 표시 상태 업데이트
-    setTimeout(updateDiscountDisplay, 100);
     
     // 수정 모드: 기존 데이터 로드
     <?php if ($editMode && $productData): ?>
@@ -1492,9 +1147,7 @@ document.addEventListener('DOMContentLoaded', function() {
         function loadDeviceListForEdit(manufacturerId, selectDeviceId) {
             if (!manufacturerId || !editDeviceSelect) return;
             
-            // 수정 모드에서는 현재 선택된 단말기도 포함하기 위해 include_device_id 전달
-            const includeDeviceId = selectDeviceId ? `&include_device_id=${selectDeviceId}` : '';
-            fetch(`/MVNO/api/get-devices-by-manufacturer.php?manufacturer_id=${manufacturerId}${includeDeviceId}`)
+            fetch(`/MVNO/api/get-devices-by-manufacturer.php?manufacturer_id=${manufacturerId}`)
                 .then(response => response.json())
                 .then(data => {
                     if (data.success && data.grouped) {
@@ -1505,9 +1158,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             
                             if (devices.length === 1) {
                                 const device = devices[0];
-                                const capacityText = device.storage || '';
-                                const priceText = device.release_price ? (parseInt(device.release_price).toLocaleString('ko-KR') + '원') : '';
-                                const displayText = `${device.name} [${capacityText}] ${priceText}`.trim();
+                                const displayText = `${device.name} | ${device.storage || ''} | ${device.release_price ? (parseInt(device.release_price).toLocaleString('ko-KR') + '원') : ''}`.trim();
                                 const option = document.createElement('option');
                                 option.value = device.id;
                                 option.textContent = displayText;
@@ -1524,7 +1175,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                     const priceText = device.release_price ? (parseInt(device.release_price).toLocaleString('ko-KR') + '원') : '';
                                     const option = document.createElement('option');
                                     option.value = device.id;
-                                    option.textContent = `${deviceName} [${capacityText}] ${priceText}`.trim().replace(/\|/g, '').trim();
+                                    option.textContent = `${deviceName} [${capacityText}] ${priceText}`.trim();
                                     option.setAttribute('data-name', device.name || '');
                                     option.setAttribute('data-price', device.release_price || '');
                                     option.setAttribute('data-capacity', device.storage || '');
@@ -1555,17 +1206,10 @@ document.addEventListener('DOMContentLoaded', function() {
                             editDeviceSelect.dispatchEvent(new Event('change'));
                         }
                     }
-                } else {
-                    console.warn('수정 모드: 단말기 목록이 비어있습니다.', data);
-                    editDeviceSelect.innerHTML = '<option value="">등록된 단말기가 없습니다</option>';
-                    editDeviceSelect.disabled = true;
-                }
-            })
-            .catch(error => {
-                console.error('수정 모드: 단말기 목록 로드 오류:', error);
-                editDeviceSelect.innerHTML = '<option value="">단말기 목록을 불러올 수 없습니다</option>';
-                editDeviceSelect.disabled = true;
-            });
+                })
+                .catch(error => {
+                    // 단말기 목록 로드 실패
+                });
         }
         
         // manufacturer_id가 없으면 device_id로 제조사 정보 가져오기
@@ -1748,7 +1392,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         newField.className = 'gift-input-group';
                         const isFirst = index === 0;
                         newField.innerHTML = `
-                            <input type="text" name="promotions[]" class="form-control" placeholder="항목 입력" maxlength="50" value="${promotion || ''}">
+                            <input type="text" name="promotions[]" class="form-control" placeholder="부가 미가입시 +10" maxlength="30" value="${promotion || ''}">
                             ${isFirst ? '<button type="button" class="btn-add" onclick="addPromotionField()">추가</button>' : '<button type="button" class="btn-remove" onclick="removePromotionField(this)">삭제</button>'}
                         `;
                         promotionContainer.appendChild(newField);
@@ -1759,14 +1403,10 @@ document.addEventListener('DOMContentLoaded', function() {
                         const newField = document.createElement('div');
                         newField.className = 'gift-input-group';
                         newField.innerHTML = `
-                            <input type="text" name="promotions[]" class="form-control" placeholder="항목 입력" maxlength="50">
+                            <input type="text" name="promotions[]" class="form-control" placeholder="부가 미가입시 +10" maxlength="30">
                             <button type="button" class="btn-add" onclick="addPromotionField()">추가</button>
                         `;
                         promotionContainer.appendChild(newField);
-                    }
-                    // 버튼 상태 업데이트
-                    if (typeof updatePromotionButtons === 'function') {
-                        updatePromotionButtons();
                     }
                 }
             } catch (e) {
@@ -1817,8 +1457,10 @@ function addPromotionField() {
     const container = document.getElementById('promotion-container');
     const newField = document.createElement('div');
     newField.className = 'gift-input-group';
+    const placeholders = ['부가 미가입시 +10', '파손보험 5700원'];
+    const placeholderIndex = (container.children.length - 1) % placeholders.length;
     newField.innerHTML = `
-        <input type="text" name="promotions[]" class="form-control" placeholder="항목 입력" maxlength="50">
+        <input type="text" name="promotions[]" class="form-control" placeholder="${placeholders[placeholderIndex]}" maxlength="30">
         <button type="button" class="btn-remove" onclick="removePromotionField(this)">삭제</button>
     `;
     container.appendChild(newField);
@@ -1826,44 +1468,9 @@ function addPromotionField() {
 
 function removePromotionField(button) {
     const container = document.getElementById('promotion-container');
-    const fieldGroups = container.querySelectorAll('.gift-input-group');
-    if (fieldGroups.length > 1) {
+    if (container.children.length > 1) {
         button.parentElement.remove();
-        // 마지막 필드에 "추가" 버튼이 있도록 조정
-        updatePromotionButtons();
-    } else {
-        // 마지막 필드 하나만 남으면 해당 필드의 버튼을 "추가"로 변경
-        const lastField = fieldGroups[0];
-        if (lastField) {
-            const button = lastField.querySelector('button');
-            if (button) {
-                button.className = 'btn-add';
-                button.textContent = '추가';
-                button.setAttribute('onclick', 'addPromotionField()');
-            }
-        }
     }
-}
-
-function updatePromotionButtons() {
-    const container = document.getElementById('promotion-container');
-    const fieldGroups = container.querySelectorAll('.gift-input-group');
-    fieldGroups.forEach((field, index) => {
-        const button = field.querySelector('button');
-        if (button) {
-            if (index === fieldGroups.length - 1) {
-                // 마지막 필드는 "추가" 버튼
-                button.className = 'btn-add';
-                button.textContent = '추가';
-                button.setAttribute('onclick', 'addPromotionField()');
-            } else {
-                // 나머지는 "삭제" 버튼
-                button.className = 'btn-remove';
-                button.textContent = '삭제';
-                button.setAttribute('onclick', 'removePromotionField(this)');
-            }
-        }
-    });
 }
 
 function deleteProduct() {
@@ -2057,6 +1664,22 @@ document.getElementById('productForm').addEventListener('submit', function(e) {
     
     const formData = new FormData(this);
     
+    // redirect_url 처리: 체크박스가 체크되지 않았으면 빈 값으로 설정
+    const enableRedirectUrlCheckbox = document.getElementById('enable_redirect_url');
+    const redirectUrlInput = document.getElementById('redirect_url');
+    if (enableRedirectUrlCheckbox && redirectUrlInput) {
+        if (!enableRedirectUrlCheckbox.checked) {
+            // 체크박스가 체크되지 않았으면 redirect_url을 빈 값으로 설정
+            formData.set('redirect_url', '');
+        } else if (redirectUrlInput.value.trim() === '') {
+            // 체크박스가 체크되었지만 값이 비어있으면 빈 값으로 설정
+            formData.set('redirect_url', '');
+        } else {
+            // 체크박스가 체크되고 값이 있으면 그대로 사용
+            formData.set('redirect_url', redirectUrlInput.value.trim());
+        }
+    }
+    
     // 로딩 모달 표시
     openRegisterModal('등록 중...', '상품을 등록하고 있습니다. 잠시만 기다려주세요.', 'info');
     const modalMessage = document.getElementById('modalMessage');
@@ -2133,6 +1756,34 @@ document.getElementById('productForm').addEventListener('submit', function(e) {
         document.getElementById('modalConfirmBtn').onclick = closeRegisterModal;
         submitBtn.disabled = false;
     });
+});
+
+// URL 입력 체크박스 토글 기능
+document.addEventListener('DOMContentLoaded', function() {
+    const enableRedirectUrlCheckbox = document.getElementById('enable_redirect_url');
+    const redirectUrlContainer = document.getElementById('redirect_url_container');
+    const redirectUrlInput = document.getElementById('redirect_url');
+    
+    if (enableRedirectUrlCheckbox && redirectUrlContainer) {
+        // 수정 모드일 때 기존 URL이 있으면 체크박스 체크
+        <?php if ($editMode && isset($deviceData['redirect_url']) && !empty($deviceData['redirect_url'])): ?>
+        enableRedirectUrlCheckbox.checked = true;
+        redirectUrlContainer.style.display = 'block';
+        <?php endif; ?>
+        
+        // 체크박스 변경 이벤트
+        enableRedirectUrlCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                redirectUrlContainer.style.display = 'block';
+                setTimeout(() => {
+                    redirectUrlInput.focus();
+                }, 100);
+            } else {
+                redirectUrlContainer.style.display = 'none';
+                redirectUrlInput.value = ''; // 체크 해제 시 입력값 초기화
+            }
+        });
+    }
 });
 </script>
 
