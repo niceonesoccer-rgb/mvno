@@ -436,6 +436,18 @@ document.addEventListener('DOMContentLoaded', function() {
             <input type="hidden" name="product_id" value="<?php echo $productId; ?>">
         <?php endif; ?>
         
+        <!-- 판매 상태 -->
+        <div class="form-section">
+            <div class="form-section-title">판매 상태</div>
+            <div class="form-group" style="max-width: 30%;">
+                <label class="form-label" for="product_status">상태</label>
+                <select name="product_status" id="product_status" class="form-select" style="width: auto; min-width: 120px;">
+                    <option value="active" <?php echo ($isEditMode && isset($product['status']) && $product['status'] === 'active') ? 'selected' : (!$isEditMode ? 'selected' : ''); ?>>판매중</option>
+                    <option value="inactive" <?php echo ($isEditMode && isset($product['status']) && $product['status'] === 'inactive') ? 'selected' : ''; ?>>판매종료</option>
+                </select>
+            </div>
+        </div>
+        
         <!-- 기본 정보 -->
         <div class="form-section">
             <div class="form-section-title">요금제</div>
@@ -838,6 +850,30 @@ document.addEventListener('DOMContentLoaded', function() {
                             <textarea name="benefits[]" class="form-textarea" style="min-height: 80px;" placeholder="혜택 및 유의사항을 입력하세요"></textarea>
                         </div>
                     <?php endif; ?>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 신청 후 리다이렉트 URL (선택사항) -->
+        <div class="form-section">
+            <div class="form-section-title">신청 후 리다이렉트 URL</div>
+            <div class="form-group" style="max-width: 70%;">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px; color: #374151; margin-bottom: 12px;">
+                    <input type="checkbox" id="enable_redirect_url" style="width: 18px; height: 18px; cursor: pointer;">
+                    <span>URL 입력</span>
+                </label>
+                <div id="redirect_url_container" style="display: none;">
+                    <label class="form-label" for="redirect_url">
+                        URL
+                    </label>
+                    <input type="text" name="redirect_url" id="redirect_url" class="form-control" 
+                        placeholder="example.com 또는 https://example.com" 
+                        value="<?php echo ($isEditMode && isset($productDetail['redirect_url'])) ? htmlspecialchars($productDetail['redirect_url']) : ''; ?>"
+                        style="padding: 10px 14px; font-size: 14px;">
+                    <small class="form-text" style="display: block; margin-top: 8px; color: #6b7280; font-size: 13px;">
+                        입력 시: 고객 신청 후 해당 URL로 이동합니다.<br>
+                        미입력 시: 고객 신청 서만 접수(성함, 전화번호, 이메일주소)
+                    </small>
                 </div>
             </div>
         </div>
@@ -1327,6 +1363,22 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const formData = new FormData(this);
         
+        // redirect_url 처리: 체크박스가 체크되지 않았으면 빈 값으로 설정
+        const enableRedirectUrlCheckbox = document.getElementById('enable_redirect_url');
+        const redirectUrlInput = document.getElementById('redirect_url');
+        if (enableRedirectUrlCheckbox && redirectUrlInput) {
+            if (!enableRedirectUrlCheckbox.checked) {
+                // 체크박스가 체크되지 않았으면 redirect_url을 빈 값으로 설정
+                formData.set('redirect_url', '');
+            } else if (redirectUrlInput.value.trim() === '') {
+                // 체크박스가 체크되었지만 값이 비어있으면 빈 값으로 설정
+                formData.set('redirect_url', '');
+            } else {
+                // 체크박스가 체크되고 값이 있으면 그대로 사용
+                formData.set('redirect_url', redirectUrlInput.value.trim());
+            }
+        }
+        
         // 실제 제출 함수
         const submitForm = function() {
             fetch('/MVNO/api/product-register-mvno.php', {
@@ -1424,6 +1476,34 @@ function removeBenefitField(button) {
         button.parentElement.remove();
     }
 }
+
+// URL 입력 체크박스 토글 기능
+document.addEventListener('DOMContentLoaded', function() {
+    const enableRedirectUrlCheckbox = document.getElementById('enable_redirect_url');
+    const redirectUrlContainer = document.getElementById('redirect_url_container');
+    const redirectUrlInput = document.getElementById('redirect_url');
+    
+    if (enableRedirectUrlCheckbox && redirectUrlContainer) {
+        // 수정 모드일 때 기존 URL이 있으면 체크박스 체크
+        <?php if ($isEditMode && isset($productDetail['redirect_url']) && !empty($productDetail['redirect_url'])): ?>
+        enableRedirectUrlCheckbox.checked = true;
+        redirectUrlContainer.style.display = 'block';
+        <?php endif; ?>
+        
+        // 체크박스 변경 이벤트
+        enableRedirectUrlCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                redirectUrlContainer.style.display = 'block';
+                setTimeout(() => {
+                    redirectUrlInput.focus();
+                }, 100);
+            } else {
+                redirectUrlContainer.style.display = 'none';
+                redirectUrlInput.value = ''; // 체크 해제 시 입력값 초기화
+            }
+        });
+    }
+});
 
 </script>
 

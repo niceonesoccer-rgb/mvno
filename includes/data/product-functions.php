@@ -61,24 +61,41 @@ function saveMvnoProduct($productData) {
         try {
             if ($isEditMode) {
                 // 수정 모드: 기존 상품 정보 업데이트
+                $status = isset($productData['status']) && in_array($productData['status'], ['active', 'inactive']) ? $productData['status'] : null;
+                if ($status) {
+                    $stmt = $pdo->prepare("
+                        UPDATE products 
+                        SET seller_id = :seller_id, product_type = 'mvno', status = :status
+                        WHERE id = :product_id AND seller_id = :seller_id_check
+                    ");
+                    $stmt->execute([
+                        ':seller_id' => $productData['seller_id'],
+                        ':product_id' => $productId,
+                        ':seller_id_check' => $productData['seller_id'],
+                        ':status' => $status
+                    ]);
+                } else {
+                    $stmt = $pdo->prepare("
+                        UPDATE products 
+                        SET seller_id = :seller_id, product_type = 'mvno'
+                        WHERE id = :product_id AND seller_id = :seller_id_check
+                    ");
+                    $stmt->execute([
+                        ':seller_id' => $productData['seller_id'],
+                        ':product_id' => $productId,
+                        ':seller_id_check' => $productData['seller_id']
+                    ]);
+                }
+            } else {
+                // 등록 모드: 새 상품 정보 저장
+                $status = isset($productData['status']) && in_array($productData['status'], ['active', 'inactive']) ? $productData['status'] : 'active';
                 $stmt = $pdo->prepare("
-                    UPDATE products 
-                    SET seller_id = :seller_id, product_type = 'mvno'
-                    WHERE id = :product_id AND seller_id = :seller_id_check
+                    INSERT INTO products (seller_id, product_type, status, view_count)
+                    VALUES (:seller_id, 'mvno', :status, 0)
                 ");
                 $stmt->execute([
                     ':seller_id' => $productData['seller_id'],
-                    ':product_id' => $productId,
-                    ':seller_id_check' => $productData['seller_id']
-                ]);
-            } else {
-                // 등록 모드: 새 상품 정보 저장
-                $stmt = $pdo->prepare("
-                    INSERT INTO products (seller_id, product_type, status, view_count)
-                    VALUES (:seller_id, 'mvno', 'active', 0)
-                ");
-                $stmt->execute([
-                    ':seller_id' => $productData['seller_id']
+                    ':status' => $status
                 ]);
                 $productId = $pdo->lastInsertId();
             }
@@ -99,6 +116,20 @@ function saveMvnoProduct($productData) {
             $checkStmt = $pdo->prepare("SELECT COUNT(*) FROM product_mvno_details WHERE product_id = :product_id");
             $checkStmt->execute([':product_id' => $productId]);
             $detailExists = $checkStmt->fetchColumn() > 0;
+            
+            // redirect_url 컬럼 확인 및 추가
+            $checkRedirectUrl = $pdo->query("SHOW COLUMNS FROM product_mvno_details LIKE 'redirect_url'");
+            if (!$checkRedirectUrl->fetch()) {
+                $pdo->exec("ALTER TABLE product_mvno_details ADD COLUMN redirect_url VARCHAR(500) DEFAULT NULL COMMENT '신청 후 리다이렉트 URL'");
+                error_log("product_mvno_details 테이블에 redirect_url 컬럼이 추가되었습니다.");
+            }
+        } else {
+            // 등록 모드에서도 redirect_url 컬럼 확인
+            $checkRedirectUrl = $pdo->query("SHOW COLUMNS FROM product_mvno_details LIKE 'redirect_url'");
+            if (!$checkRedirectUrl->fetch()) {
+                $pdo->exec("ALTER TABLE product_mvno_details ADD COLUMN redirect_url VARCHAR(500) DEFAULT NULL COMMENT '신청 후 리다이렉트 URL'");
+                error_log("product_mvno_details 테이블에 redirect_url 컬럼이 추가되었습니다.");
+            }
         }
         
         // price_after 처리: price_after_type_hidden이 'free'이면 null, 그 외에는 숫자로 변환 (0도 포함)
@@ -151,6 +182,7 @@ function saveMvnoProduct($productData) {
             ':promotion_title' => $productData['promotion_title'] ?? null,
             ':promotions' => !empty($productData['promotions']) ? json_encode($productData['promotions']) : null,
             ':benefits' => !empty($productData['benefits']) ? json_encode($productData['benefits']) : null,
+            ':redirect_url' => !empty($productData['redirect_url']) ? trim($productData['redirect_url']) : null,
         ];
         
         // 쿼리별 파라미터 배열 준비
@@ -167,7 +199,7 @@ function saveMvnoProduct($productData) {
                 regular_sim_available = :regular_sim_available, regular_sim_price = :regular_sim_price, nfc_sim_available = :nfc_sim_available, nfc_sim_price = :nfc_sim_price,
                 esim_available = :esim_available, esim_price = :esim_price, over_data_price = :over_data_price, over_voice_price = :over_voice_price,
                 over_video_price = :over_video_price, over_sms_price = :over_sms_price, over_lms_price = :over_lms_price, over_mms_price = :over_mms_price,
-                promotion_title = :promotion_title, promotions = :promotions, benefits = :benefits
+                promotion_title = :promotion_title, promotions = :promotions, benefits = :benefits, redirect_url = :redirect_url
                 WHERE product_id = :product_id
             ";
             $stmt = $pdo->prepare($queryString);
@@ -185,7 +217,7 @@ function saveMvnoProduct($productData) {
                 regular_sim_available, regular_sim_price, nfc_sim_available, nfc_sim_price,
                 esim_available, esim_price, over_data_price, over_voice_price,
                 over_video_price, over_sms_price, over_lms_price, over_mms_price,
-                promotion_title, promotions, benefits
+                promotion_title, promotions, benefits, redirect_url
             ) VALUES (
                 :product_id, :provider, :service_type, :plan_name, :contract_period,
                 :contract_period_days, :discount_period, :price_main, :price_after,
@@ -195,7 +227,7 @@ function saveMvnoProduct($productData) {
                 :regular_sim_available, :regular_sim_price, :nfc_sim_available, :nfc_sim_price,
                 :esim_available, :esim_price, :over_data_price, :over_voice_price,
                 :over_video_price, :over_sms_price, :over_lms_price, :over_mms_price,
-                :promotion_title, :promotions, :benefits
+                :promotion_title, :promotions, :benefits, :redirect_url
             )
         ";
             $stmt = $pdo->prepare($queryString);

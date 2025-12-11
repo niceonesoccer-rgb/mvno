@@ -76,7 +76,9 @@ $productData = [
     'over_mms_price' => $_POST['over_mms_price'] ?? '',
     'promotion_title' => $_POST['promotion_title'] ?? '',
     'promotions' => $_POST['promotions'] ?? [],
-    'benefits' => $_POST['benefits'] ?? []
+    'benefits' => $_POST['benefits'] ?? [],
+    'status' => $_POST['product_status'] ?? ($productData['product_id'] > 0 ? null : 'active'),
+    'redirect_url' => !empty($_POST['redirect_url']) ? trim($_POST['redirect_url']) : null
 ];
 
 // 필수 필드 검증
