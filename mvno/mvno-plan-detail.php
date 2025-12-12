@@ -736,7 +736,7 @@ if (!$plan) {
                             </div>
                             <div class="plan-apply-confirm-item plan-apply-confirm-item-empty"></div>
                         </div>
-                        <div class="plan-apply-confirm-notice">쉐이크모바일 연계 통신사로 가입을 진행합니다</div>
+                        <div class="plan-apply-confirm-notice"><?php echo htmlspecialchars($plan['provider'] ?? '쉐이크모바일'); ?> 연계 통신사로 가입을 진행합니다</div>
                     </div>
                     <button class="plan-apply-confirm-btn" id="planApplyConfirmBtn">신청하기</button>
                 </div>
@@ -1120,7 +1120,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const planApplyConfirmBtn = document.getElementById('planApplyConfirmBtn');
     if (planApplyConfirmBtn) {
         planApplyConfirmBtn.addEventListener('click', function() {
-            // 모달 즉시 닫기
+            // 모달 닫기
             applyModal.classList.remove('apply-modal-active');
             document.body.style.overflow = '';
             document.body.style.position = '';
@@ -1128,10 +1128,17 @@ document.addEventListener('DOMContentLoaded', function() {
             document.body.style.width = '';
             document.documentElement.style.overflow = '';
             window.scrollTo(0, scrollPosition);
-            showStep(3);
             
-            // 상품 등록 시 설정된 URL로 새 창에서 이동 (현재는 naver)
-            window.open('https://www.naver.com', '_blank');
+            // 상품 등록 시 설정된 redirect_url 가져오기
+            const redirectUrl = <?php echo json_encode($rawData['redirect_url'] ?? null, JSON_UNESCAPED_UNICODE); ?>;
+            
+            // redirect_url이 있으면 해당 URL로 이동
+            if (redirectUrl && redirectUrl.trim() !== '') {
+                window.location.href = redirectUrl;
+            } else {
+                // redirect_url이 없으면 알림만 표시
+                alert('신청이 완료되었습니다.');
+            }
         });
     }
 

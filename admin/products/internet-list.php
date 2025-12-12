@@ -698,7 +698,10 @@ try {
                 <tbody>
                     <?php foreach ($products as $index => $product): ?>
                         <tr>
-                            <td style="text-align: center;"><?php echo htmlspecialchars($product['id'] ?? '-'); ?></td>
+                            <td style="text-align: center;"><?php 
+                                $productNumber = getProductNumberByType($product['id'], 'internet');
+                                echo $productNumber ? htmlspecialchars($productNumber) : htmlspecialchars($product['id'] ?? '-');
+                            ?></td>
                             <td style="text-align: center;">
                                 <?php 
                                 $sellerId = $product['seller_user_id'] ?? $product['seller_id'] ?? '-';

@@ -971,6 +971,40 @@ function addProductApplication($productId, $sellerId, $productType, $customerDat
 }
 
 /**
+ * 상품 타입별 순번 조회 (각 타입별로 1번부터 시작, 가장 오래된 상품이 1번)
+ * @param int $productId 상품 ID
+ * @param string $productType 상품 타입 ('mvno', 'mno', 'internet')
+ * @return int|false 순번 또는 false
+ */
+function getProductNumberByType($productId, $productType) {
+    $pdo = getDBConnection();
+    if (!$pdo || empty($productId) || empty($productType)) {
+        return false;
+    }
+    
+    try {
+        // 해당 타입의 상품 중에서 id가 작은 순서대로 순번 계산 (가장 오래된 상품이 1번)
+        $stmt = $pdo->prepare("
+            SELECT COUNT(*) + 1 as product_number
+            FROM products
+            WHERE product_type = :product_type 
+            AND id < :product_id 
+            AND status != 'deleted'
+        ");
+        $stmt->execute([
+            ':product_type' => $productType,
+            ':product_id' => $productId
+        ]);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        return $result ? (int)$result['product_number'] : 1;
+    } catch (PDOException $e) {
+        error_log("Error getting product number: " . $e->getMessage());
+        return false;
+    }
+}
+
+/**
  * 조회수 증가
  * @param int $productId 상품 ID
  * @return bool

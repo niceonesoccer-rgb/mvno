@@ -562,7 +562,7 @@ include __DIR__ . '/../includes/seller-header.php';
                                 <input type="checkbox" id="selectAll" onchange="toggleSelectAll()" style="cursor: pointer;">
                             </div>
                         </th>
-                        <th>번호</th>
+                        <th>상품등록번호</th>
                         <th>가입처</th>
                         <th>인터넷속도</th>
                         <th>월 요금</th>
@@ -580,7 +580,10 @@ include __DIR__ . '/../includes/seller-header.php';
                             <td style="text-align: center;">
                                 <input type="checkbox" class="product-checkbox" value="<?php echo $product['id']; ?>" style="cursor: pointer;">
                             </td>
-                            <td><?php echo ($page - 1) * $perPage + $index + 1; ?></td>
+                            <td><?php 
+                                $productNumber = getProductNumberByType($product['id'], 'internet');
+                                echo $productNumber ? htmlspecialchars($productNumber) : htmlspecialchars($product['id'] ?? '-');
+                            ?></td>
                             <td><?php echo htmlspecialchars($product['provider'] ?? '-'); ?></td>
                             <td><?php echo htmlspecialchars($product['speed_option'] ?? '-'); ?></td>
                             <td><?php echo number_format($product['monthly_fee'] ?? 0); ?>원</td>

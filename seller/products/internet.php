@@ -602,26 +602,18 @@ document.addEventListener('DOMContentLoaded', function() {
             <input type="hidden" name="product_id" value="<?php echo htmlspecialchars($productId); ?>">
         <?php endif; ?>
         
-        <!-- 판매 상태 선택 (수정 모드일 때만 표시) -->
-        <?php if ($isEditMode): ?>
+        <!-- 판매 상태 -->
         <div class="form-section">
             <div class="form-section-title">판매 상태</div>
-            <div class="form-group">
-                <label class="form-label">상태 선택</label>
-                <div class="form-checkbox-group">
-                    <div class="form-checkbox">
-                        <input type="radio" name="status" id="status_active" value="active" <?php echo (!isset($productData['status']) || $productData['status'] === 'active') ? 'checked' : ''; ?>>
-                        <label for="status_active">판매중</label>
-                    </div>
-                    <div class="form-checkbox">
-                        <input type="radio" name="status" id="status_inactive" value="inactive" <?php echo (isset($productData['status']) && $productData['status'] === 'inactive') ? 'checked' : ''; ?>>
-                        <label for="status_inactive">판매종료</label>
-                    </div>
-                </div>
+            <div class="form-group" style="max-width: 30%;">
+                <label class="form-label" for="product_status">상태 선택</label>
+                <select name="status" id="product_status" class="form-select" style="width: auto; min-width: 120px;">
+                    <option value="active" <?php echo ($isEditMode && isset($productData['status']) && $productData['status'] === 'active') ? 'selected' : (!$isEditMode ? 'selected' : ''); ?>>판매중</option>
+                    <option value="inactive" <?php echo ($isEditMode && isset($productData['status']) && $productData['status'] === 'inactive') ? 'selected' : ''; ?>>판매종료</option>
+                </select>
                 <div class="form-help">상품의 판매 상태를 선택하세요</div>
             </div>
         </div>
-        <?php endif; ?>
         
         <!-- 인터넷가입처 / 인터넷속도 / 사용요금 한 줄 -->
         <div class="form-section-row">

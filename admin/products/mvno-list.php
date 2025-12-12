@@ -835,7 +835,10 @@ try {
                                 <td style="text-align: center;">
                                     <input type="checkbox" class="product-checkbox" value="<?php echo $product['id']; ?>">
                                 </td>
-                                <td style="text-align: center;"><?php echo htmlspecialchars($product['id'] ?? '-'); ?></td>
+                                <td style="text-align: center;"><?php 
+                                    $productNumber = getProductNumberByType($product['id'], 'mvno');
+                                    echo $productNumber ? htmlspecialchars($productNumber) : htmlspecialchars($product['id'] ?? '-');
+                                ?></td>
                                 <td style="text-align: center;">
                                     <?php 
                                     $sellerId = $product['seller_user_id'] ?? $product['seller_id'] ?? '-';

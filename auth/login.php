@@ -22,6 +22,7 @@ $errorMessages = [
 ];
 
 $errorMessage = $errorMessages[$error] ?? '';
+$isRegisterMode = isset($_GET['register']) && $_GET['register'] === 'true';
 ?>
 <!DOCTYPE html>
 <html lang="ko">
@@ -215,7 +216,7 @@ $errorMessage = $errorMessages[$error] ?? '';
 <body>
     <div class="login-container">
         <div class="login-header">
-            <h1>로그인</h1>
+            <h1><?php echo $isRegisterMode ? '회원가입' : '로그인'; ?></h1>
             <p>모요에 오신 것을 환영합니다</p>
         </div>
         
@@ -224,6 +225,39 @@ $errorMessage = $errorMessages[$error] ?? '';
                 <?php echo htmlspecialchars($errorMessage); ?>
             </div>
         <?php endif; ?>
+        
+        <!-- SNS 로그인/가입 -->
+        <div class="sns-login-section">
+            <div class="sns-login-title"><?php echo $isRegisterMode ? 'SNS로 회원가입' : 'SNS로 로그인'; ?></div>
+            <div class="sns-buttons">
+                <button type="button" class="sns-button naver" onclick="snsLogin('naver')">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M10 0C4.477 0 0 4.477 0 10s4.477 10 10 10 10-4.477 10-10S15.523 0 10 0zm4.5 5.5h-2v9h-5v-9h-2v11h9v-11z"/>
+                    </svg>
+                    네이버로 <?php echo $isRegisterMode ? '가입' : '로그인'; ?>
+                </button>
+                <button type="button" class="sns-button kakao" onclick="snsLogin('kakao')">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M10 0C4.477 0 0 4.477 0 10c0 3.55 2.186 6.59 5.3 7.93L3.5 20l3.2-1.77C7.5 18.33 8.71 18.5 10 18.5c5.523 0 10-4.477 10-10S15.523 0 10 0z"/>
+                    </svg>
+                    카카오로 <?php echo $isRegisterMode ? '가입' : '로그인'; ?>
+                </button>
+                <button type="button" class="sns-button google" onclick="snsLogin('google')">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <path d="M19.6 10.227c0-.709-.064-1.39-.182-2.045H10v3.868h5.382a4.6 4.6 0 01-1.996 3.018v2.51h3.232c1.891-1.742 2.982-4.305 2.982-7.35z" fill="#4285F4"/>
+                        <path d="M10 20c2.7 0 4.964-.895 6.618-2.423l-3.232-2.509c-.895.6-2.04.955-3.386.955-2.605 0-4.81-1.76-5.595-4.123H1.064v2.59A9.996 9.996 0 0010 20z" fill="#34A853"/>
+                        <path d="M4.405 11.914c-.2-.6-.314-1.24-.314-1.914 0-.673.114-1.314.314-1.914V5.496H1.064A9.996 9.996 0 000 10c0 1.614.386 3.14 1.064 4.504l3.34-2.59z" fill="#FBBC05"/>
+                        <path d="M10 3.977c1.468 0 2.786.505 3.823 1.496l2.868-2.868C14.959.99 12.695 0 10 0 6.09 0 2.71 2.24 1.064 5.496l3.34 2.59C5.19 5.732 7.395 3.977 10 3.977z" fill="#EA4335"/>
+                    </svg>
+                    구글로 <?php echo $isRegisterMode ? '가입' : '로그인'; ?>
+                </button>
+            </div>
+        </div>
+        
+        <?php if (!$isRegisterMode): ?>
+        <div class="divider">
+            <span>또는</span>
+        </div>
         
         <!-- 직접 로그인 (관리자, 서브관리자, 판매자용) -->
         <div class="direct-login-section">
@@ -246,9 +280,27 @@ $errorMessage = $errorMessages[$error] ?? '';
                 일반 회원은 SNS 로그인을 통해 가입해주세요.
             </div>
         </div>
+        <?php endif; ?>
     </div>
     
     <script>
+        function snsLogin(provider) {
+            fetch(`/MVNO/api/sns-login.php?action=${provider}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        window.location.href = data.auth_url;
+                    } else {
+                        alert(data.message || '<?php echo $isRegisterMode ? '가입' : '로그인'; ?>에 실패했습니다.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('<?php echo $isRegisterMode ? '가입' : '로그인'; ?> 중 오류가 발생했습니다.');
+                });
+        }
+        
+        <?php if (!$isRegisterMode): ?>
         // 직접 로그인 폼 처리
         document.getElementById('directLoginForm').addEventListener('submit', function(e) {
             e.preventDefault();
@@ -264,14 +316,15 @@ $errorMessage = $errorMessages[$error] ?? '';
                 if (data.success) {
                     window.location.href = data.redirect || '/MVNO/';
                 } else {
-                    showAlert(data.message || '로그인에 실패했습니다.');
+                    alert(data.message || '로그인에 실패했습니다.');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                showAlert('로그인 중 오류가 발생했습니다.');
+                alert('로그인 중 오류가 발생했습니다.');
             });
         });
+        <?php endif; ?>
     </script>
 </body>
 </html>

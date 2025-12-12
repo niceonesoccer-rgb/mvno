@@ -135,7 +135,8 @@
             "sns_provider": "google",
             "sns_id": "sns_000015",
             "created_at": "2025-01-15 10:00:00",
-            "phone": "010-2154-2222"
+            "phone": "010-2154-2222",
+            "password": "$2y$10$8y2aztibtzxR4HJlmRKxJO8UyoJR.a/bheOUhaFs7DdZoFahJZdZW"
         }
     ]
 }

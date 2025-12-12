@@ -181,7 +181,7 @@ else if (!isset($is_main_page)) {
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link <?php echo (isset($current_page) && ($current_page == 'plans' || $current_page == 'mvno')) ? 'active' : ''; ?>" href="/MVNO/mvno/mvno.php">
+                        <a class="nav-link <?php echo (isset($current_page) && ($current_page == 'plans' || $current_page == 'mvno')) ? 'active' : ''; ?>" href="/MVNO/mvno/mvno.php" data-require-login="true">
                             <svg class="nav-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M2 12C2 8.22876 2 6.34315 3.17157 5.17157C4.34315 4 6.22876 4 10 4H14C17.7712 4 19.6569 4 20.8284 5.17157C22 6.34315 22 8.22876 22 12C22 15.7712 22 17.6569 20.8284 18.8284C19.6569 20 17.7712 20 14 20H10C6.22876 20 4.34315 20 3.17157 18.8284C2 17.6569 2 15.7712 2 12Z" stroke="currentColor" stroke-width="2"/>
                                 <path d="M7 8H17M7 12H17M7 16H12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -190,7 +190,7 @@ else if (!isset($is_main_page)) {
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link <?php echo (isset($current_page) && $current_page == 'mno') ? 'active' : ''; ?>" href="/MVNO/mno/mno.php">
+                        <a class="nav-link <?php echo (isset($current_page) && $current_page == 'mno') ? 'active' : ''; ?>" href="/MVNO/mno/mno.php" data-require-login="true">
                             <svg class="nav-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M5 4C5 2.89543 5.89543 2 7 2H17C18.1046 2 19 2.89543 19 4V20C19 21.1046 18.1046 22 17 22H7C5.89543 22 5 21.1046 5 20V4Z" stroke="currentColor" stroke-width="2"/>
                                 <path d="M12 18H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -199,7 +199,7 @@ else if (!isset($is_main_page)) {
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link <?php echo (isset($current_page) && $current_page == 'internets') ? 'active' : ''; ?>" href="/MVNO/internets/internets.php">
+                        <a class="nav-link <?php echo (isset($current_page) && $current_page == 'internets') ? 'active' : ''; ?>" href="/MVNO/internets/internets.php" data-require-login="true">
                             <svg class="nav-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <!-- 지구 본체 -->
                                 <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/>
@@ -217,7 +217,7 @@ else if (!isset($is_main_page)) {
                         <a class="nav-link <?php echo (isset($current_page) && $current_page == 'event') ? 'active' : ''; ?>" href="/MVNO/event/event.php">이벤트</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link <?php echo (isset($current_page) && $current_page == 'mypage') ? 'active' : ''; ?>" href="/MVNO/mypage/mypage.php">
+                        <a class="nav-link <?php echo (isset($current_page) && $current_page == 'mypage') ? 'active' : ''; ?>" href="/MVNO/mypage/mypage.php" data-require-login="true">
                             <svg class="nav-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                                 <path d="M12 11C14.2091 11 16 9.20914 16 7C16 4.79086 14.2091 3 12 3C9.79086 3 8 4.79086 8 7C8 9.20914 9.79086 11 12 11Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -237,4 +237,35 @@ else if (!isset($is_main_page)) {
             </nav>
         </div>
     </header>
+
+<?php include __DIR__ . '/components/login-modal.php'; ?>
+
+<script>
+// 네비게이션 링크 로그인 체크
+document.addEventListener('DOMContentLoaded', function() {
+    const navLinks = document.querySelectorAll('.nav-link[data-require-login="true"]');
+    const isLoggedIn = <?php echo isLoggedIn() ? 'true' : 'false'; ?>;
+    
+    navLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+            if (!isLoggedIn) {
+                e.preventDefault();
+                // 로그인 모달 열기 (회원가입 모드)
+                if (typeof openLoginModal === 'function') {
+                    openLoginModal(true);
+                } else {
+                    // 모달이 아직 로드되지 않은 경우
+                    setTimeout(() => {
+                        if (typeof openLoginModal === 'function') {
+                            openLoginModal(true);
+                        } else {
+                            window.location.href = '/MVNO/auth/login.php?register=true';
+                        }
+                    }, 100);
+                }
+            }
+        });
+    });
+});
+</script>
 

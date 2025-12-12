@@ -30,8 +30,36 @@ if ($action === 'naver') {
     $clientId = $settings['naver']['client_id'] ?? '';
     $redirectUri = $settings['naver']['redirect_uri'] ?? '';
     
+    // API 설정이 없으면 테스트용으로 바로 로그인
     if (empty($clientId) || empty($redirectUri)) {
-        echo json_encode(['success' => false, 'message' => '네이버 API 설정이 필요합니다.']);
+        $testUserId = 'nvr_3456789';
+        
+        // 사용자가 없으면 생성
+        $user = getUserById($testUserId);
+        if (!$user) {
+            $usersFile = getUsersFilePath();
+            $data = file_exists($usersFile) ? json_decode(file_get_contents($usersFile), true) : ['users' => []];
+            
+            $newUser = [
+                'user_id' => $testUserId,
+                'email' => 'test_naver@example.com',
+                'name' => '네이버 테스트',
+                'role' => 'user',
+                'sns_provider' => 'naver',
+                'sns_id' => '3456789',
+                'created_at' => date('Y-m-d H:i:s'),
+                'seller_approved' => false
+            ];
+            
+            $data['users'][] = $newUser;
+            file_put_contents($usersFile, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+            $user = $newUser;
+        }
+        
+        // 로그인 처리
+        loginUser($testUserId);
+        
+        echo json_encode(['success' => true, 'redirect' => '/MVNO/']);
         exit;
     }
     
@@ -55,8 +83,36 @@ if ($action === 'kakao') {
     $restApiKey = $settings['kakao']['rest_api_key'] ?? '';
     $redirectUri = $settings['kakao']['redirect_uri'] ?? '';
     
+    // API 설정이 없으면 테스트용으로 바로 로그인
     if (empty($restApiKey) || empty($redirectUri)) {
-        echo json_encode(['success' => false, 'message' => '카카오 API 설정이 필요합니다.']);
+        $testUserId = 'kko_4567890';
+        
+        // 사용자가 없으면 생성
+        $user = getUserById($testUserId);
+        if (!$user) {
+            $usersFile = getUsersFilePath();
+            $data = file_exists($usersFile) ? json_decode(file_get_contents($usersFile), true) : ['users' => []];
+            
+            $newUser = [
+                'user_id' => $testUserId,
+                'email' => 'test_kakao@example.com',
+                'name' => '카카오 테스트',
+                'role' => 'user',
+                'sns_provider' => 'kakao',
+                'sns_id' => '4567890',
+                'created_at' => date('Y-m-d H:i:s'),
+                'seller_approved' => false
+            ];
+            
+            $data['users'][] = $newUser;
+            file_put_contents($usersFile, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+            $user = $newUser;
+        }
+        
+        // 로그인 처리
+        loginUser($testUserId);
+        
+        echo json_encode(['success' => true, 'redirect' => '/MVNO/']);
         exit;
     }
     
@@ -76,8 +132,36 @@ if ($action === 'google') {
     $clientId = $settings['google']['client_id'] ?? '';
     $redirectUri = $settings['google']['redirect_uri'] ?? '';
     
+    // API 설정이 없으면 테스트용으로 바로 로그인
     if (empty($clientId) || empty($redirectUri)) {
-        echo json_encode(['success' => false, 'message' => '구글 API 설정이 필요합니다.']);
+        $testUserId = 'gol_5678901';
+        
+        // 사용자가 없으면 생성
+        $user = getUserById($testUserId);
+        if (!$user) {
+            $usersFile = getUsersFilePath();
+            $data = file_exists($usersFile) ? json_decode(file_get_contents($usersFile), true) : ['users' => []];
+            
+            $newUser = [
+                'user_id' => $testUserId,
+                'email' => 'test_google@example.com',
+                'name' => '구글 테스트',
+                'role' => 'user',
+                'sns_provider' => 'google',
+                'sns_id' => '5678901',
+                'created_at' => date('Y-m-d H:i:s'),
+                'seller_approved' => false
+            ];
+            
+            $data['users'][] = $newUser;
+            file_put_contents($usersFile, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+            $user = $newUser;
+        }
+        
+        // 로그인 처리
+        loginUser($testUserId);
+        
+        echo json_encode(['success' => true, 'redirect' => '/MVNO/']);
         exit;
     }
     

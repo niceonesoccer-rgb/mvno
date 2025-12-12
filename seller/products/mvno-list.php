@@ -683,7 +683,10 @@ include __DIR__ . '/../includes/seller-header.php';
                             <td style="text-align: center;">
                                 <input type="checkbox" class="product-checkbox" value="<?php echo $product['id']; ?>" style="cursor: pointer;">
                             </td>
-                            <td style="text-align: center;"><?php echo htmlspecialchars($product['id'] ?? '-'); ?></td>
+                            <td style="text-align: center;"><?php 
+                                $productNumber = getProductNumberByType($product['id'], 'mvno');
+                                echo $productNumber ? htmlspecialchars($productNumber) : htmlspecialchars($product['id'] ?? '-');
+                            ?></td>
                             <td style="text-align: left;"><?php echo htmlspecialchars($product['product_name'] ?? '-'); ?></td>
                             <td><?php echo htmlspecialchars($product['provider'] ?? '-'); ?></td>
                             <td style="text-align: right;">

@@ -71,3 +71,5 @@ echo json_encode([
     'message' => '리뷰가 작성되었습니다.',
     'review_id' => $reviewId
 ]);
+
+

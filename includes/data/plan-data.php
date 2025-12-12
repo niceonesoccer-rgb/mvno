@@ -995,7 +995,8 @@ function getPlanDetailData($plan_id) {
                 mvno.over_mms_price,
                 mvno.promotion_title,
                 mvno.promotions,
-                mvno.benefits
+                mvno.benefits,
+                mvno.redirect_url
             FROM products p
             INNER JOIN product_mvno_details mvno ON p.id = mvno.product_id
             WHERE p.id = :plan_id 
