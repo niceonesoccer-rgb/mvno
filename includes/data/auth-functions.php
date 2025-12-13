@@ -374,11 +374,11 @@ function registerSnsUser($provider, $snsId, $email, $name) {
 }
 
 /**
- * 직접 회원가입 (관리자, 서브관리자, 판매자)
+ * 직접 회원가입 (일반 회원, 관리자, 서브관리자, 판매자)
  */
 function registerDirectUser($userId, $password, $email, $name, $role, $additionalData = []) {
     // 역할 검증
-    $allowedRoles = ['admin', 'sub_admin', 'seller'];
+    $allowedRoles = ['user', 'admin', 'sub_admin', 'seller'];
     if (!in_array($role, $allowedRoles)) {
         return ['success' => false, 'message' => '허용되지 않은 역할입니다.'];
     }
@@ -414,7 +414,13 @@ function registerDirectUser($userId, $password, $email, $name, $role, $additiona
     }
     
     // 역할에 따라 적절한 파일에 저장
-    if ($role === 'admin' || $role === 'sub_admin') {
+    if ($role === 'user') {
+        // 일반 회원은 users.json에 저장
+        $file = getUsersFilePath();
+        $data = file_exists($file) ? json_decode(file_get_contents($file), true) : ['users' => []];
+        $data['users'][] = $newUser;
+        file_put_contents($file, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+    } elseif ($role === 'admin' || $role === 'sub_admin') {
         $file = getAdminsFilePath();
         $data = file_exists($file) ? json_decode(file_get_contents($file), true) : ['admins' => []];
         $data['admins'][] = $newUser;

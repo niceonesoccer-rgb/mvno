@@ -97,15 +97,29 @@ if ($provider === 'naver') {
         $user = registerSnsUser('naver', $snsId, $email, $name);
     }
     
+    // 관리자/판매자는 SNS 로그인 불가
+    if ($user['role'] === 'admin' || $user['role'] === 'sub_admin' || $user['role'] === 'seller') {
+        header('Location: /MVNO/?error=sns_login_not_allowed');
+        exit;
+    }
+    
     loginUser($user['user_id']);
     
     // 전화번호가 없으면 추가 정보 입력 페이지로 리다이렉트
+    // 리다이렉트 URL은 이미 세션에 저장되어 있으므로 그대로 유지
     if (empty($user['phone'])) {
         header('Location: /MVNO/auth/complete-profile.php');
         exit;
     }
     
-    header('Location: /MVNO/');
+    // 세션에 저장된 리다이렉트 URL 확인
+    $redirectUrl = $_SESSION['redirect_url'] ?? null;
+    if ($redirectUrl) {
+        unset($_SESSION['redirect_url']);
+        header('Location: ' . $redirectUrl);
+    } else {
+        header('Location: /MVNO/');
+    }
     exit;
 }
 
@@ -160,15 +174,29 @@ if ($provider === 'kakao') {
         $user = registerSnsUser('kakao', $snsId, $email, $name);
     }
     
+    // 관리자/판매자는 SNS 로그인 불가
+    if ($user['role'] === 'admin' || $user['role'] === 'sub_admin' || $user['role'] === 'seller') {
+        header('Location: /MVNO/?error=sns_login_not_allowed');
+        exit;
+    }
+    
     loginUser($user['user_id']);
     
     // 전화번호가 없으면 추가 정보 입력 페이지로 리다이렉트
+    // 리다이렉트 URL은 이미 세션에 저장되어 있으므로 그대로 유지
     if (empty($user['phone'])) {
         header('Location: /MVNO/auth/complete-profile.php');
         exit;
     }
     
-    header('Location: /MVNO/');
+    // 세션에 저장된 리다이렉트 URL 확인
+    $redirectUrl = $_SESSION['redirect_url'] ?? null;
+    if ($redirectUrl) {
+        unset($_SESSION['redirect_url']);
+        header('Location: ' . $redirectUrl);
+    } else {
+        header('Location: /MVNO/');
+    }
     exit;
 }
 
@@ -232,15 +260,29 @@ if ($provider === 'google') {
         $user = registerSnsUser('google', $snsId, $email, $name);
     }
     
+    // 관리자/판매자는 SNS 로그인 불가
+    if ($user['role'] === 'admin' || $user['role'] === 'sub_admin' || $user['role'] === 'seller') {
+        header('Location: /MVNO/?error=sns_login_not_allowed');
+        exit;
+    }
+    
     loginUser($user['user_id']);
     
     // 전화번호가 없으면 추가 정보 입력 페이지로 리다이렉트
+    // 리다이렉트 URL은 이미 세션에 저장되어 있으므로 그대로 유지
     if (empty($user['phone'])) {
         header('Location: /MVNO/auth/complete-profile.php');
         exit;
     }
     
-    header('Location: /MVNO/');
+    // 세션에 저장된 리다이렉트 URL 확인
+    $redirectUrl = $_SESSION['redirect_url'] ?? null;
+    if ($redirectUrl) {
+        unset($_SESSION['redirect_url']);
+        header('Location: ' . $redirectUrl);
+    } else {
+        header('Location: /MVNO/');
+    }
     exit;
 }
 

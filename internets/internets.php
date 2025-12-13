@@ -4,6 +4,9 @@ $current_page = 'internets';
 // 메인 페이지 여부 (하단 메뉴 및 푸터 표시용)
 $is_main_page = true;
 
+// 로그인 체크를 위한 auth-functions 포함
+require_once '../includes/data/auth-functions.php';
+
 // 헤더 포함
 include '../includes/header.php';
 ?>
@@ -2143,13 +2146,55 @@ include '../includes/header.php';
 })();
 
 // 인터넷 카드 클릭 이벤트 핸들러
-(function() {
+document.addEventListener('DOMContentLoaded', function() {
     const internetCards = document.querySelectorAll('.css-58gch7.e82z5mt0');
+    const isLoggedIn = <?php echo isLoggedIn() ? 'true' : 'false'; ?>;
+    
+    if (internetCards.length === 0) {
+        console.warn('인터넷 카드를 찾을 수 없습니다.');
+        return;
+    }
     
     internetCards.forEach(card => {
+        card.style.cursor = 'pointer'; // 클릭 가능한 커서 표시
+        
         card.addEventListener('click', function(e) {
             // 모달 내부 클릭이나 특정 요소 클릭은 무시
             if (e.target.closest('.internet-modal')) {
+                return;
+            }
+            
+            // 로그인 체크 - 로그인하지 않은 경우 회원가입 모달 표시
+            if (!isLoggedIn) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                // 현재 URL을 세션에 저장 (회원가입 후 돌아올 주소)
+                const currentUrl = window.location.href;
+                fetch('/MVNO/api/save-redirect-url.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ redirect_url: currentUrl })
+                }).then(() => {
+                    // 회원가입 모달 열기
+                    if (typeof openLoginModal === 'function') {
+                        openLoginModal(true);
+                    } else {
+                        setTimeout(() => {
+                            if (typeof openLoginModal === 'function') {
+                                openLoginModal(true);
+                            }
+                        }, 100);
+                    }
+                }).catch(error => {
+                    console.error('리다이렉트 URL 저장 실패:', error);
+                    // 에러가 발생해도 회원가입 모달은 열기
+                    if (typeof openLoginModal === 'function') {
+                        openLoginModal(true);
+                    }
+                });
                 return;
             }
             
@@ -2199,7 +2244,7 @@ include '../includes/header.php';
             openInternetModal();
         });
     });
-})();
+});
 
 // 모달 제어 함수들
 let currentStep = 1;
@@ -2624,6 +2669,35 @@ function checkAllAgreements() {
 }
 
 function submitInternetForm() {
+    // 로그인 체크
+    const isLoggedIn = <?php echo isLoggedIn() ? 'true' : 'false'; ?>;
+    if (!isLoggedIn) {
+        // 인터넷 모달 닫기
+        closeInternetModal();
+        
+        // 현재 URL을 세션에 저장 (회원가입 후 돌아올 주소)
+        const currentUrl = window.location.href;
+        fetch('/MVNO/api/save-redirect-url.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ redirect_url: currentUrl })
+        }).then(() => {
+            // 회원가입 모달 열기
+            if (typeof openLoginModal === 'function') {
+                openLoginModal(true);
+            } else {
+                setTimeout(() => {
+                    if (typeof openLoginModal === 'function') {
+                        openLoginModal(true);
+                    }
+                }, 100);
+            }
+        });
+        return;
+    }
+    
     const name = document.getElementById('internetName').value;
     const phone = document.getElementById('internetPhone').value;
     

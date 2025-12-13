@@ -124,10 +124,20 @@ if (!$updated) {
 
 // 파일 저장
 if (file_put_contents($file, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE))) {
-    echo json_encode([
+    // 세션에 저장된 리다이렉트 URL 확인
+    $redirectUrl = $_SESSION['redirect_url'] ?? '/MVNO/';
+    $response = [
         'success' => true,
         'message' => '정보가 성공적으로 업데이트되었습니다.'
-    ]);
+    ];
+    
+    // 리다이렉트 URL이 있으면 반환하고 세션에서 제거
+    if (isset($_SESSION['redirect_url'])) {
+        $response['redirect_url'] = $redirectUrl;
+        unset($_SESSION['redirect_url']);
+    }
+    
+    echo json_encode($response);
 } else {
     echo json_encode([
         'success' => false,

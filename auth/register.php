@@ -21,18 +21,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $passwordConfirm = $_POST['password_confirm'] ?? '';
     $email = trim($_POST['email'] ?? '');
     $name = trim($_POST['name'] ?? '');
+    $phone = trim($_POST['phone'] ?? '');
     
-    // 일반 회원은 SNS 가입만 가능
-    if ($role === 'user') {
-        $error = '일반 회원은 SNS 로그인을 통해 가입해주세요.';
-    } else {
-        // 직접 가입 (관리자, 서브관리자, 판매자)
-        if (empty($userId) || empty($password) || empty($email) || empty($name)) {
-            $error = '모든 필드를 입력해주세요.';
+    // 직접 가입 (일반 회원, 관리자, 서브관리자, 판매자)
+    if (true) {
+        // 필수 필드 검증: 아이디, 전화번호, 이름, 이메일
+        if (empty($userId) || empty($phone) || empty($name) || empty($email)) {
+            $error = '아이디, 휴대폰번호, 이름, 이메일은 필수 입력 항목입니다.';
+        } elseif (!preg_match('/^[A-Za-z0-9]+$/', $userId)) {
+            $error = '아이디는 영문과 숫자만 사용할 수 있습니다.';
         } elseif ($password !== $passwordConfirm) {
             $error = '비밀번호가 일치하지 않습니다.';
         } elseif (strlen($password) < 8) {
             $error = '비밀번호는 최소 8자 이상이어야 합니다.';
+        } elseif (!preg_match('/[A-Z]/', $password) || !preg_match('/[a-z]/', $password) || !preg_match('/[0-9]/', $password) || !preg_match('/[@#$%^&*!?_\-=]/', $password)) {
+            $error = '비밀번호는 영문 대소문자, 숫자, 특수문자(@#$%^&*!?_-=)를 포함해야 합니다.';
         } else {
             // 판매자 추가 정보 수집
             $additionalData = [];
@@ -89,6 +92,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             
             if (empty($error)) {
+                // 일반 회원의 경우 전화번호를 additionalData에 추가
+                if ($role === 'user') {
+                    $additionalData['phone'] = $phone;
+                }
+                
                 $result = registerDirectUser($userId, $password, $email, $name, $role, $additionalData);
                 if ($result['success']) {
                     $success = true;
@@ -367,17 +375,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <span>또는</span>
         </div>
         
-        <!-- 직접 가입 (관리자, 서브관리자, 판매자용) -->
+        <!-- 직접 가입 (일반 회원, 관리자, 서브관리자, 판매자용) -->
         <div class="direct-register-section">
             <form method="POST" enctype="multipart/form-data">
                 <div class="form-group">
                     <label for="role">회원 유형</label>
                     <select id="role" name="role" required>
+                        <option value="user" selected>일반 회원</option>
                         <option value="seller">판매자</option>
                         <option value="sub_admin">서브관리자</option>
                         <option value="admin">관리자</option>
                     </select>
-                    <div class="form-help">일반 회원은 SNS 로그인을 통해 가입해주세요.</div>
                 </div>
                 <div class="form-group">
                     <label for="user_id">아이디</label>

@@ -20,7 +20,8 @@ $errorMessages = [
     'invalid_provider' => '지원하지 않는 로그인 방식입니다.'
 ];
 $errorMessage = $errorMessages[$error] ?? '';
-$isRegisterMode = isset($_GET['register']) && $_GET['register'] === 'true';
+// 기본적으로 로그인 모드 (URL 파라미터가 명시적으로 register=true일 때만 회원가입 모드)
+$isRegisterMode = false; // 기본값은 로그인 모드
 ?>
 <style>
 .login-modal {
@@ -369,6 +370,195 @@ $isRegisterMode = isset($_GET['register']) && $_GET['register'] === 'true';
     color: #1f2937;
 }
 
+.login-divider {
+    display: flex;
+    align-items: center;
+    margin: 28px 0;
+    color: #9ca3af;
+    font-size: 14px;
+}
+
+.login-divider::before,
+.login-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #e5e7eb;
+}
+
+.login-divider span {
+    padding: 0 16px;
+}
+
+.login-form-section {
+    margin-top: 24px;
+}
+
+.login-form-group {
+    margin-bottom: 20px;
+}
+
+.login-form-group label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 8px;
+}
+
+.login-form-group {
+    position: relative;
+}
+
+.login-form-group label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 8px;
+}
+
+.login-form-group input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 15px;
+    transition: border-color 0.2s;
+    box-sizing: border-box;
+}
+
+.login-form-group.password-wrapper {
+    position: relative;
+}
+
+.login-form-group.password-wrapper input {
+    padding-right: 45px;
+}
+
+.password-toggle-btn {
+    position: absolute;
+    right: 12px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #6b7280;
+    transition: color 0.2s;
+    height: 20px;
+    width: 20px;
+    outline: none;
+}
+
+.password-toggle-btn:focus {
+    outline: none;
+    box-shadow: none;
+}
+
+.password-toggle-btn:focus-visible {
+    outline: none;
+    box-shadow: none;
+}
+
+.login-form-group.password-wrapper {
+    display: flex;
+    flex-direction: column;
+}
+
+.login-form-group.password-wrapper input {
+    position: relative;
+}
+
+.login-form-group.password-wrapper .password-toggle-btn {
+    position: absolute;
+    right: 12px;
+    top: calc(20px + 8px + 12px + 11.5px); /* label height + margin-bottom + input padding-top + half input line-height */
+    transform: translateY(-50%);
+    margin-top: 0;
+}
+
+.password-toggle-btn:hover {
+    color: #374151;
+}
+
+.password-toggle-btn svg {
+    width: 20px;
+    height: 20px;
+}
+
+.login-form-group input:focus {
+    outline: none;
+    border-color: #6366f1;
+}
+
+.login-form-group input.checked-valid {
+    border-color: #10b981;
+}
+
+.login-form-group input.checked-invalid {
+    border-color: #ef4444;
+}
+
+.login-form-group input.checking {
+    border-color: #6366f1;
+}
+
+.user-id-check-result {
+    margin-top: 6px;
+    font-size: 13px;
+    min-height: 18px;
+}
+
+.user-id-check-result.success {
+    color: #10b981;
+}
+
+.user-id-check-result.error {
+    color: #ef4444;
+}
+
+.user-id-check-result.checking {
+    color: #6b7280;
+}
+
+.login-form-button {
+    width: 100%;
+    padding: 14px;
+    background: #6366f1;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.login-form-button:hover {
+    background: #4f46e5;
+}
+
+.login-form-switch {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 14px;
+    color: #6b7280;
+}
+
+.login-form-switch a {
+    color: #6366f1;
+    text-decoration: none;
+    font-weight: 500;
+    margin-left: 4px;
+}
+
+.login-form-switch a:hover {
+    text-decoration: underline;
+}
+
 .login-register-link {
     text-align: center;
     margin-top: 24px;
@@ -460,9 +650,7 @@ $isRegisterMode = isset($_GET['register']) && $_GET['register'] === 'true';
     <div class="login-modal-overlay"></div>
     <div class="login-modal-content">
         <div class="login-modal-header">
-            <?php if (!$isRegisterMode): ?>
-                <h3 class="login-modal-title" id="loginModalTitle"><?php echo $isRegisterMode ? '회원가입' : '로그인'; ?></h3>
-            <?php endif; ?>
+            <h3 class="login-modal-title" id="loginModalTitle"><?php echo $isRegisterMode ? '회원가입' : '로그인'; ?></h3>
             <button class="login-modal-close" id="loginModalClose">&times;</button>
         </div>
         <div class="login-modal-body">
@@ -478,78 +666,101 @@ $isRegisterMode = isset($_GET['register']) && $_GET['register'] === 'true';
                     <p style="font-size: 16px; margin-bottom: 8px;">관리자 및 판매자는</p>
                     <p style="font-size: 14px;">아이디와 비밀번호로 로그인해주세요.</p>
                 </div>
-            <?php elseif ($isRegisterMode): ?>
-                <!-- 회원가입 모드: 혜택 소개 -->
-                <div class="login-benefits-section">
-                    <h3 class="login-benefits-title">SNS로 로그인</h3>
-                    <p style="text-align: center; font-size: 15px; color: #6b7280; margin-bottom: 32px; line-height: 1.5;">회원가입으로 더 많은 할인 혜택을 누려보세요~</p>
-                    
-                    <div class="login-benefits-list">
-                        <div class="login-benefit-item">
-                            <div class="login-benefit-icon shield">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                                    <path d="M9 12l2 2 4-4"/>
-                                </svg>
-                            </div>
-                            <div class="login-benefit-text">
-                                복잡한 요금제 가입 절차없이 모요에서 쉽게 개통해요
-                            </div>
-                        </div>
-                        
-                        <div class="login-benefit-item">
-                            <div class="login-benefit-icon search">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <circle cx="11" cy="11" r="8"/>
-                                    <path d="m21 21-4.35-4.35"/>
-                                    <path d="M8 11h6M11 8v6"/>
-                                </svg>
-                            </div>
-                            <div class="login-benefit-text">
-                                34개 통신사의 모든 요금제를 한 번에 검색하고 비교해요
-                            </div>
-                        </div>
-                        
-                        <div class="login-benefit-item">
-                            <div class="login-benefit-icon phone">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
-                                    <path d="M12 18h.01"/>
-                                    <circle cx="12" cy="7" r="1"/>
-                                </svg>
-                            </div>
-                            <div class="login-benefit-text">
-                                지금 쓰고 있는 사용량에 딱 맞는 맞춤 요금제를 추천드려요
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="login-sns-buttons" style="margin-bottom: 16px;">
-                        <button type="button" class="login-primary-button kakao" onclick="snsLoginModal('kakao')">
-                            <img src="/MVNO/assets/images/logo/kakao-talk.svg" alt="카카오">
-                            카카오로 시작하기
-                        </button>
-                        <button type="button" class="login-primary-button naver" onclick="snsLoginModal('naver')">
-                            <img src="/MVNO/assets/images/logo/naver-n.svg" alt="네이버">
-                            네이버로 시작하기
-                        </button>
-                        <button type="button" class="login-primary-button google" onclick="snsLoginModal('google')">
-                            <img src="/MVNO/assets/images/logo/google-g.svg" alt="구글">
-                            구글로 시작하기
-                        </button>
-                    </div>
-                    
-                    <a href="#" class="login-browse-link" onclick="closeLoginModal(); return false;">일단 둘러볼게요</a>
-                </div>
             <?php else: ?>
-                <!-- 로그인 모드: 기존 SNS 로그인 -->
+                <!-- 로그인 모드 (기본) -->
+                <div id="loginModeContent" style="display: <?php echo $isRegisterMode ? 'none' : 'block'; ?>;">
+                <!-- 로그인 모드: SNS 로그인 + 일반 로그인 -->
                 <div class="login-sns-section">
-                    <div class="login-sns-title">SNS로 로그인</div>
-                    <div class="login-sns-buttons">
+                    <!-- SNS 로그인 버튼 -->
+                    <div class="login-sns-buttons" style="margin-bottom: 32px;">
                         <img src="/MVNO/assets/images/logo/button-kakao-login.png" alt="카카오톡 로그인" class="login-sns-button-img" onclick="snsLoginModal('kakao')" style="cursor: pointer; width: 100%; height: auto; border-radius: 12px;">
                         <img src="/MVNO/assets/images/logo/button-naver-login.png" alt="네이버로 로그인" class="login-sns-button-img" onclick="snsLoginModal('naver')" style="cursor: pointer; width: 100%; height: auto; border-radius: 12px;">
                         <img src="/MVNO/assets/images/logo/button-google-login.png" alt="구글 로그인" class="login-sns-button-img google" onclick="snsLoginModal('google')" style="cursor: pointer; width: 100%; height: auto; border-radius: 12px;">
                     </div>
+                    
+                    <!-- 일반 로그인 폼 -->
+                    <div class="login-form-section">
+                        <form id="loginForm" method="POST" action="/MVNO/api/direct-login.php">
+                            <div class="login-form-group" style="margin-bottom: 16px;">
+                                <input type="text" id="login_user_id" name="user_id" placeholder="아이디 입력 필드" required style="width: 100%; padding: 12px 16px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 15px;">
+                            </div>
+                            <div class="login-form-group" style="margin-bottom: 20px;">
+                                <input type="password" id="login_password" name="password" placeholder="비밀번호 입력 필드" required style="width: 100%; padding: 12px 16px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 15px;">
+                            </div>
+                            <button type="submit" class="login-form-button">로그인</button>
+                        </form>
+                        <div class="login-form-switch" style="margin-top: 24px; text-align: center;">
+                            아직 회원이 아니신가요? <a href="#" onclick="switchToRegisterMode(); return false;" style="color: #6366f1; text-decoration: none; font-weight: 500;">회원가입</a>
+                        </div>
+                    </div>
+                </div>
+                </div>
+                
+                <!-- 회원가입 모드 -->
+                <div id="registerModeContent" style="display: <?php echo $isRegisterMode ? 'block' : 'none'; ?>;">
+                <div class="login-benefits-section">
+                    <h3 class="login-benefits-title">SNS로 회원가입</h3>
+                    
+                    <div class="login-sns-buttons" style="margin-top: 24px;">
+                        <img src="/MVNO/assets/images/logo/button-kakao-login.png" alt="카카오톡 로그인" class="login-sns-button-img" onclick="snsLoginModal('kakao')" style="cursor: pointer; width: 100%; height: auto; border-radius: 12px;">
+                        <img src="/MVNO/assets/images/logo/button-naver-login.png" alt="네이버로 로그인" class="login-sns-button-img" onclick="snsLoginModal('naver')" style="cursor: pointer; width: 100%; height: auto; border-radius: 12px;">
+                        <img src="/MVNO/assets/images/logo/button-google-login.png" alt="구글 로그인" class="login-sns-button-img google" onclick="snsLoginModal('google')" style="cursor: pointer; width: 100%; height: auto; border-radius: 12px;">
+                    </div>
+                    
+                    <div class="login-divider">
+                        <span>또는</span>
+                    </div>
+                    
+                    <!-- 일반 회원가입 폼 -->
+                    <div class="login-form-section">
+                        <form id="registerForm" method="POST" action="/MVNO/auth/register.php">
+                            <input type="hidden" name="role" value="user">
+                            <div class="login-form-group">
+                                <label for="register_user_id">아이디 <span style="color: #ef4444;">*</span></label>
+                                <input type="text" id="register_user_id" name="user_id" required placeholder="아이디 입력 (영문, 숫자만 가능, 최소 4자)" pattern="[A-Za-z0-9]+" title="영문과 숫자만 입력 가능합니다">
+                                <div id="userIdCheckResult" style="margin-top: 6px; font-size: 13px; min-height: 18px;"></div>
+                            </div>
+                            <div class="login-form-group">
+                                <label for="register_name">이름 <span style="color: #ef4444;">*</span></label>
+                                <input type="text" id="register_name" name="name" required placeholder="이름 입력">
+                            </div>
+                            <div class="login-form-group">
+                                <label for="register_phone">휴대폰번호 <span style="color: #ef4444;">*</span></label>
+                                <input type="tel" id="register_phone" name="phone" required placeholder="010-1234-5678" pattern="010-\d{4}-\d{4}" maxlength="13">
+                            </div>
+                            <div class="login-form-group">
+                                <label for="register_email">이메일 <span style="color: #ef4444;">*</span></label>
+                                <input type="email" id="register_email" name="email" required placeholder="이메일 입력">
+                            </div>
+                            <div class="login-form-group password-wrapper">
+                                <label for="register_password">비밀번호</label>
+                                <input type="password" id="register_password" name="password" required minlength="8" placeholder="비밀번호 입력 (영문 대소문자, 숫자, 특수문자 포함 8자 이상)">
+                                <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('register_password', this)" aria-label="비밀번호 표시/숨김">
+                                    <svg id="register_password_eye" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                        <circle cx="12" cy="12" r="3"></circle>
+                                    </svg>
+                                </button>
+                            </div>
+                            <div class="login-form-group password-wrapper">
+                                <label for="register_password_confirm">비밀번호 확인</label>
+                                <input type="password" id="register_password_confirm" name="password_confirm" required minlength="8" placeholder="비밀번호 확인">
+                                <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('register_password_confirm', this)" aria-label="비밀번호 표시/숨김">
+                                    <svg id="register_password_confirm_eye" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                        <circle cx="12" cy="12" r="3"></circle>
+                                    </svg>
+                                </button>
+                            </div>
+                            <button type="submit" class="login-form-button">회원가입</button>
+                        </form>
+                        <div class="login-form-switch">
+                            이미 계정이 있으신가요? <a href="#" onclick="switchToLoginMode(); return false;">로그인</a>
+                        </div>
+                    </div>
+                    
+                    <a href="#" class="login-browse-link" onclick="closeLoginModal(); return false;">일단 둘러볼게요</a>
+                </div>
                 </div>
             <?php endif; ?>
         </div>
@@ -561,13 +772,19 @@ $isRegisterMode = isset($_GET['register']) && $_GET['register'] === 'true';
 function openLoginModal(isRegister = false) {
     const modal = document.getElementById('loginModal');
     const title = document.getElementById('loginModalTitle');
+    const loginContent = document.getElementById('loginModeContent');
+    const registerContent = document.getElementById('registerModeContent');
     
-    // 모달 내용을 동적으로 변경하기 위해 페이지 리로드 대신 PHP 변수 사용
-    // 실제로는 서버 사이드에서 처리되므로 여기서는 모달만 열기
-    if (isRegister) {
+    // 항상 로그인 모드로 초기화 (명시적으로 회원가입 모드를 요청한 경우만 회원가입 모드)
+    if (isRegister === true) {
         title.textContent = '회원가입';
+        if (loginContent) loginContent.style.display = 'none';
+        if (registerContent) registerContent.style.display = 'block';
     } else {
+        // 기본값은 항상 로그인 모드
         title.textContent = '로그인';
+        if (loginContent) loginContent.style.display = 'block';
+        if (registerContent) registerContent.style.display = 'none';
     }
     
     modal.classList.add('login-modal-active');
@@ -649,7 +866,281 @@ document.addEventListener('DOMContentLoaded', function() {
     
 });
 
+// 로그인 폼 제출 처리
+document.addEventListener('DOMContentLoaded', function() {
+    const loginForm = document.getElementById('loginForm');
+    if (loginForm) {
+        loginForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            
+            fetch('/MVNO/api/direct-login.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.href = data.redirect || '/MVNO/';
+                } else {
+                    alert(data.message || '로그인에 실패했습니다.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('로그인 중 오류가 발생했습니다.');
+            });
+        });
+    }
+    
+    const registerForm = document.getElementById('registerForm');
+    if (registerForm) {
+        registerForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // 필수 필드 검증
+            const userId = document.getElementById('register_user_id').value.trim();
+            const phone = document.getElementById('register_phone').value.trim();
+            const name = document.getElementById('register_name').value.trim();
+            const email = document.getElementById('register_email').value.trim();
+            const password = document.getElementById('register_password').value;
+            const passwordConfirm = document.getElementById('register_password_confirm').value;
+            
+            if (!userId || !phone || !name || !email) {
+                alert('아이디, 휴대폰번호, 이름, 이메일은 필수 입력 항목입니다.');
+                return;
+            }
+            
+            // 아이디 검증: 영문, 숫자만 가능
+            const userIdPattern = /^[A-Za-z0-9]+$/;
+            if (!userIdPattern.test(userId)) {
+                alert('아이디는 영문과 숫자만 사용할 수 있습니다.');
+                document.getElementById('register_user_id').focus();
+                return;
+            }
+            
+            // 아이디 최소 길이 확인
+            if (userId.length < 4) {
+                alert('아이디는 최소 4자 이상이어야 합니다.');
+                document.getElementById('register_user_id').focus();
+                return;
+            }
+            
+            // 아이디 중복 확인 상태 체크 (실시간 확인이 완료되었는지)
+            const userIdInput = document.getElementById('register_user_id');
+            if (userIdInput && !userIdInput.classList.contains('checked-valid')) {
+                alert('아이디 중복 확인을 완료해주세요.');
+                document.getElementById('register_user_id').focus();
+                return;
+            }
+            
+            // 전화번호 형식 검증 (010-XXXX-XXXX)
+            const phonePattern = /^010-\d{4}-\d{4}$/;
+            if (!phonePattern.test(phone)) {
+                alert('휴대폰번호는 010-XXXX-XXXX 형식으로 입력해주세요.');
+                document.getElementById('register_phone').focus();
+                return;
+            }
+            
+            // 비밀번호 검증: 영문 대소문자, 숫자, 특수문자 포함, 최소 8자리
+            if (password.length < 8) {
+                alert('비밀번호는 최소 8자 이상이어야 합니다.');
+                document.getElementById('register_password').focus();
+                return;
+            }
+            
+            // 영문 대소문자, 숫자, 특수문자(@#$%^&*!?_-=) 포함 확인
+            const hasUpperCase = /[A-Z]/.test(password);
+            const hasLowerCase = /[a-z]/.test(password);
+            const hasNumber = /[0-9]/.test(password);
+            const hasSpecialChar = /[@#$%^&*!?_\-=]/.test(password);
+            
+            if (!hasUpperCase || !hasLowerCase || !hasNumber || !hasSpecialChar) {
+                alert('비밀번호는 영문 대소문자, 숫자, 특수문자(@#$%^&*!?_-=)를 포함해야 합니다.');
+                document.getElementById('register_password').focus();
+                return;
+            }
+            
+            if (password !== passwordConfirm) {
+                alert('비밀번호가 일치하지 않습니다.');
+                return;
+            }
+            
+            // 폼 제출 (페이지 리로드)
+            this.submit();
+        });
+        
+        // 전화번호 자동 포맷팅 (010-XXXX-XXXX)
+        const phoneInput = document.getElementById('register_phone');
+        if (phoneInput) {
+            phoneInput.addEventListener('input', function(e) {
+                let value = e.target.value.replace(/[^\d]/g, '');
+                if (value.length > 11) value = value.substring(0, 11);
+                
+                if (value.length > 7) {
+                    value = value.substring(0, 3) + '-' + value.substring(3, 7) + '-' + value.substring(7);
+                } else if (value.length > 3) {
+                    value = value.substring(0, 3) + '-' + value.substring(3);
+                }
+                
+                e.target.value = value;
+            });
+        }
+        
+        // 아이디 실시간 중복 확인
+        const userIdInput = document.getElementById('register_user_id');
+        const userIdCheckResult = document.getElementById('userIdCheckResult');
+        let userIdCheckTimeout = null;
+        let isUserIdValid = false;
+        
+        if (userIdInput && userIdCheckResult) {
+            userIdInput.addEventListener('input', function(e) {
+                const userId = e.target.value.trim();
+                
+                // 입력 필드 클래스 초기화
+                userIdInput.classList.remove('checked-valid', 'checked-invalid', 'checking');
+                userIdCheckResult.className = 'user-id-check-result';
+                userIdCheckResult.textContent = '';
+                isUserIdValid = false;
+                
+                // 기존 timeout 취소
+                if (userIdCheckTimeout) {
+                    clearTimeout(userIdCheckTimeout);
+                }
+                
+                // 최소 길이 체크
+                if (userId.length < 4) {
+                    if (userId.length > 0) {
+                        userIdCheckResult.textContent = '아이디는 최소 4자 이상이어야 합니다.';
+                        userIdCheckResult.className = 'user-id-check-result error';
+                        userIdInput.classList.add('checked-invalid');
+                    }
+                    return;
+                }
+                
+                // 영문, 숫자만 허용
+                if (!/^[A-Za-z0-9]+$/.test(userId)) {
+                    userIdCheckResult.textContent = '아이디는 영문과 숫자만 사용할 수 있습니다.';
+                    userIdCheckResult.className = 'user-id-check-result error';
+                    userIdInput.classList.add('checked-invalid');
+                    return;
+                }
+                
+                // 500ms 후 서버에 중복 확인 요청 (debounce)
+                userIdInput.classList.add('checking');
+                userIdCheckResult.textContent = '확인 중...';
+                userIdCheckResult.className = 'user-id-check-result checking';
+                
+                userIdCheckTimeout = setTimeout(function() {
+                    fetch(`/MVNO/api/check-user-duplicate.php?type=user_id&value=${encodeURIComponent(userId)}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            userIdInput.classList.remove('checking');
+                            
+                            if (data.available) {
+                                // 사용 가능
+                                userIdCheckResult.textContent = '✓ ' + data.message;
+                                userIdCheckResult.className = 'user-id-check-result success';
+                                userIdInput.classList.remove('checked-invalid');
+                                userIdInput.classList.add('checked-valid');
+                                isUserIdValid = true;
+                            } else {
+                                // 사용 불가
+                                userIdCheckResult.textContent = '✗ ' + data.message;
+                                userIdCheckResult.className = 'user-id-check-result error';
+                                userIdInput.classList.remove('checked-valid');
+                                userIdInput.classList.add('checked-invalid');
+                                isUserIdValid = false;
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            userIdInput.classList.remove('checking');
+                            userIdCheckResult.textContent = '확인 중 오류가 발생했습니다.';
+                            userIdCheckResult.className = 'user-id-check-result error';
+                            userIdInput.classList.add('checked-invalid');
+                            isUserIdValid = false;
+                        });
+                }, 500);
+            });
+            
+            // 폼 제출 시 아이디 검증 확인
+            registerForm.addEventListener('submit', function(e) {
+                if (!isUserIdValid) {
+                    e.preventDefault();
+                    const userId = userIdInput.value.trim();
+                    if (userId.length >= 4 && /^[A-Za-z0-9]+$/.test(userId)) {
+                        alert('아이디 중복 확인을 완료해주세요.');
+                        userIdInput.focus();
+                    }
+                }
+            });
+        }
+    }
+});
+
+// 회원가입 모드로 전환 (모달 내 동적 전환)
+function switchToRegisterMode() {
+    const title = document.getElementById('loginModalTitle');
+    const loginContent = document.getElementById('loginModeContent');
+    const registerContent = document.getElementById('registerModeContent');
+    
+    if (title) title.textContent = '회원가입';
+    if (loginContent) loginContent.style.display = 'none';
+    if (registerContent) registerContent.style.display = 'block';
+    
+    // 모달 상단으로 스크롤
+    const modalBody = document.querySelector('.login-modal-body');
+    if (modalBody) {
+        modalBody.scrollTop = 0;
+    }
+}
+
+// 로그인 모드로 전환 (모달 내 동적 전환)
+function switchToLoginMode() {
+    const title = document.getElementById('loginModalTitle');
+    const loginContent = document.getElementById('loginModeContent');
+    const registerContent = document.getElementById('registerModeContent');
+    
+    if (title) title.textContent = '로그인';
+    if (loginContent) loginContent.style.display = 'block';
+    if (registerContent) registerContent.style.display = 'none';
+    
+    // 모달 상단으로 스크롤
+    const modalBody = document.querySelector('.login-modal-body');
+    if (modalBody) {
+        modalBody.scrollTop = 0;
+    }
+}
+
+// 비밀번호 표시/숨김 토글 함수
+function togglePasswordVisibility(inputId, button) {
+    const input = document.getElementById(inputId);
+    const eyeIcon = button.querySelector('svg');
+    
+    if (input.type === 'password') {
+        input.type = 'text';
+        // 눈을 뜬 아이콘으로 변경 (눈을 뜨고 대각선으로 가려진 아이콘)
+        eyeIcon.innerHTML = `
+            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+            <line x1="1" y1="1" x2="23" y2="23" stroke="currentColor" stroke-width="2" stroke-linecap="round"></line>
+        `;
+    } else {
+        input.type = 'password';
+        // 눈을 감은 아이콘으로 변경 (눈 아이콘)
+        eyeIcon.innerHTML = `
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="2" fill="none"></path>
+            <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2" fill="none"></circle>
+        `;
+    }
+}
+
 // 전역 함수로 등록
 window.openLoginModal = openLoginModal;
 window.closeLoginModal = closeLoginModal;
+window.switchToRegisterMode = switchToRegisterMode;
+window.switchToLoginMode = switchToLoginMode;
+window.togglePasswordVisibility = togglePasswordVisibility;
 </script>
+

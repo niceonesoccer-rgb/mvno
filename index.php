@@ -566,3 +566,21 @@ if (!empty($home_settings['mno_phones']) && is_array($home_settings['mno_phones'
 // 푸터 포함
 include 'includes/footer.php';
 ?>
+
+<?php
+// show_login 파라미터가 있으면 로그인 모달 자동 열기
+if (isset($_GET['show_login']) && $_GET['show_login'] == '1'): ?>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof openLoginModal === 'function') {
+        openLoginModal(true);
+    } else {
+        setTimeout(() => {
+            if (typeof openLoginModal === 'function') {
+                openLoginModal(true);
+            }
+        }, 100);
+    }
+});
+</script>
+<?php endif; ?>

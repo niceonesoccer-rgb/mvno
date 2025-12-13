@@ -325,9 +325,10 @@ $defaultPhone = $currentUser['phone'] ?? '';
                     form.parentNode.insertBefore(successDiv, form);
                     form.style.display = 'none';
                     
-                    // 메인 페이지로 리다이렉트
+                    // 세션에 저장된 리다이렉트 URL 확인 (서버에서 반환)
+                    const redirectUrl = data.redirect_url || '/MVNO/';
                     setTimeout(function() {
-                        window.location.href = '/MVNO/';
+                        window.location.href = redirectUrl;
                     }, 2000);
                 } else {
                     showError(data.message || '정보 저장에 실패했습니다.');

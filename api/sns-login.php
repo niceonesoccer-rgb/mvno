@@ -40,6 +40,10 @@ if ($action === 'naver') {
             $usersFile = getUsersFilePath();
             $data = file_exists($usersFile) ? json_decode(file_get_contents($usersFile), true) : ['users' => []];
             
+            if (!is_array($data) || !isset($data['users'])) {
+                $data = ['users' => []];
+            }
+            
             $newUser = [
                 'user_id' => $testUserId,
                 'email' => 'test_naver@example.com',
@@ -47,6 +51,7 @@ if ($action === 'naver') {
                 'role' => 'user',
                 'sns_provider' => 'naver',
                 'sns_id' => '3456789',
+                'phone' => '010-1234-5678',
                 'created_at' => date('Y-m-d H:i:s'),
                 'seller_approved' => false
             ];
@@ -59,7 +64,13 @@ if ($action === 'naver') {
         // 로그인 처리
         loginUser($testUserId);
         
-        echo json_encode(['success' => true, 'redirect' => '/MVNO/']);
+        // 세션에 저장된 리다이렉트 URL 확인
+        $redirectUrl = $_SESSION['redirect_url'] ?? '/MVNO/';
+        if (isset($_SESSION['redirect_url'])) {
+            unset($_SESSION['redirect_url']);
+        }
+        
+        echo json_encode(['success' => true, 'redirect' => $redirectUrl]);
         exit;
     }
     
@@ -93,6 +104,10 @@ if ($action === 'kakao') {
             $usersFile = getUsersFilePath();
             $data = file_exists($usersFile) ? json_decode(file_get_contents($usersFile), true) : ['users' => []];
             
+            if (!is_array($data) || !isset($data['users'])) {
+                $data = ['users' => []];
+            }
+            
             $newUser = [
                 'user_id' => $testUserId,
                 'email' => 'test_kakao@example.com',
@@ -100,6 +115,7 @@ if ($action === 'kakao') {
                 'role' => 'user',
                 'sns_provider' => 'kakao',
                 'sns_id' => '4567890',
+                'phone' => '010-1234-5678',
                 'created_at' => date('Y-m-d H:i:s'),
                 'seller_approved' => false
             ];
@@ -112,7 +128,13 @@ if ($action === 'kakao') {
         // 로그인 처리
         loginUser($testUserId);
         
-        echo json_encode(['success' => true, 'redirect' => '/MVNO/']);
+        // 세션에 저장된 리다이렉트 URL 확인
+        $redirectUrl = $_SESSION['redirect_url'] ?? '/MVNO/';
+        if (isset($_SESSION['redirect_url'])) {
+            unset($_SESSION['redirect_url']);
+        }
+        
+        echo json_encode(['success' => true, 'redirect' => $redirectUrl]);
         exit;
     }
     
@@ -142,6 +164,10 @@ if ($action === 'google') {
             $usersFile = getUsersFilePath();
             $data = file_exists($usersFile) ? json_decode(file_get_contents($usersFile), true) : ['users' => []];
             
+            if (!is_array($data) || !isset($data['users'])) {
+                $data = ['users' => []];
+            }
+            
             $newUser = [
                 'user_id' => $testUserId,
                 'email' => 'test_google@example.com',
@@ -149,6 +175,7 @@ if ($action === 'google') {
                 'role' => 'user',
                 'sns_provider' => 'google',
                 'sns_id' => '5678901',
+                'phone' => '010-1234-5678',
                 'created_at' => date('Y-m-d H:i:s'),
                 'seller_approved' => false
             ];
@@ -161,7 +188,13 @@ if ($action === 'google') {
         // 로그인 처리
         loginUser($testUserId);
         
-        echo json_encode(['success' => true, 'redirect' => '/MVNO/']);
+        // 세션에 저장된 리다이렉트 URL 확인
+        $redirectUrl = $_SESSION['redirect_url'] ?? '/MVNO/';
+        if (isset($_SESSION['redirect_url'])) {
+            unset($_SESSION['redirect_url']);
+        }
+        
+        echo json_encode(['success' => true, 'redirect' => $redirectUrl]);
         exit;
     }
     

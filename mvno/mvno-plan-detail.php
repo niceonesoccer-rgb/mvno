@@ -953,6 +953,32 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 모달 열기 함수
     function openApplyModal() {
+        // 로그인 체크
+        const isLoggedIn = <?php echo isLoggedIn() ? 'true' : 'false'; ?>;
+        if (!isLoggedIn) {
+            // 현재 URL을 세션에 저장 (회원가입 후 돌아올 주소)
+            const currentUrl = window.location.href;
+            fetch('/MVNO/api/save-redirect-url.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ redirect_url: currentUrl })
+            }).then(() => {
+                // 로그인 모달 열기
+                if (typeof openLoginModal === 'function') {
+                    openLoginModal(false);
+                } else {
+                    setTimeout(() => {
+                        if (typeof openLoginModal === 'function') {
+                            openLoginModal(false);
+                        }
+                    }, 100);
+                }
+            });
+            return;
+        }
+        
         if (!applyModal) {
             console.error('모달을 찾을 수 없습니다.');
             return;
@@ -1120,6 +1146,41 @@ document.addEventListener('DOMContentLoaded', function() {
     const planApplyConfirmBtn = document.getElementById('planApplyConfirmBtn');
     if (planApplyConfirmBtn) {
         planApplyConfirmBtn.addEventListener('click', function() {
+            // 로그인 체크
+            const isLoggedIn = <?php echo isLoggedIn() ? 'true' : 'false'; ?>;
+            if (!isLoggedIn) {
+                // 모달 닫기
+                applyModal.classList.remove('apply-modal-active');
+                document.body.style.overflow = '';
+                document.body.style.position = '';
+                document.body.style.top = '';
+                document.body.style.width = '';
+                document.documentElement.style.overflow = '';
+                window.scrollTo(0, scrollPosition);
+                
+                // 현재 URL을 세션에 저장 (회원가입 후 돌아올 주소)
+                const currentUrl = window.location.href;
+                fetch('/MVNO/api/save-redirect-url.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ redirect_url: currentUrl })
+                }).then(() => {
+                    // 회원가입 모달 열기
+                    if (typeof openLoginModal === 'function') {
+                        openLoginModal(true);
+                    } else {
+                        setTimeout(() => {
+                            if (typeof openLoginModal === 'function') {
+                                openLoginModal(true);
+                            }
+                        }, 100);
+                    }
+                });
+                return;
+            }
+            
             // 모달 닫기
             applyModal.classList.remove('apply-modal-active');
             document.body.style.overflow = '';

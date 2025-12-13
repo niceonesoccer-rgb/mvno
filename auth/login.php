@@ -259,25 +259,22 @@ $isRegisterMode = isset($_GET['register']) && $_GET['register'] === 'true';
             <span>또는</span>
         </div>
         
-        <!-- 직접 로그인 (관리자, 서브관리자, 판매자용) -->
+        <!-- 직접 로그인 (일반 회원, 관리자, 서브관리자, 판매자용) -->
         <div class="direct-login-section">
             <form id="directLoginForm" method="POST" action="/MVNO/api/direct-login.php">
                 <div class="form-group">
                     <label for="user_id">아이디</label>
-                    <input type="text" id="user_id" name="user_id" value="admin" required>
+                    <input type="text" id="user_id" name="user_id" required>
                 </div>
                 <div class="form-group">
                     <label for="password">비밀번호</label>
-                    <input type="password" id="password" name="password" value="000000" required>
+                    <input type="password" id="password" name="password" required>
                 </div>
                 <button type="submit" class="login-button">로그인</button>
             </form>
             
             <div class="register-link">
                 계정이 없으신가요? <a href="/MVNO/auth/register.php">회원가입</a>
-            </div>
-            <div class="register-link" style="margin-top: 12px; font-size: 13px; color: #9ca3af;">
-                일반 회원은 SNS 로그인을 통해 가입해주세요.
             </div>
         </div>
         <?php endif; ?>

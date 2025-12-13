@@ -156,7 +156,6 @@ else if (!isset($is_main_page)) {
             
             <!-- 모바일 우측 추가 영역 -->
             <div class="right-addon-mobile">
-                <?php include __DIR__ . '/components/login-button.php'; ?>
             </div>
             
             <!-- 헤더 가운데 텍스트 -->
@@ -166,7 +165,6 @@ else if (!isset($is_main_page)) {
             
             <!-- 데스크톱 로그인 버튼 -->
             <div class="right-addon-desktop" style="display: flex; align-items: center;">
-                <?php include __DIR__ . '/components/login-button.php'; ?>
             </div>
             
             <!-- 네비게이션 메뉴 -->
@@ -181,7 +179,7 @@ else if (!isset($is_main_page)) {
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link <?php echo (isset($current_page) && ($current_page == 'plans' || $current_page == 'mvno')) ? 'active' : ''; ?>" href="/MVNO/mvno/mvno.php" data-require-login="true">
+                        <a class="nav-link <?php echo (isset($current_page) && ($current_page == 'plans' || $current_page == 'mvno')) ? 'active' : ''; ?>" href="/MVNO/mvno/mvno.php">
                             <svg class="nav-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M2 12C2 8.22876 2 6.34315 3.17157 5.17157C4.34315 4 6.22876 4 10 4H14C17.7712 4 19.6569 4 20.8284 5.17157C22 6.34315 22 8.22876 22 12C22 15.7712 22 17.6569 20.8284 18.8284C19.6569 20 17.7712 20 14 20H10C6.22876 20 4.34315 20 3.17157 18.8284C2 17.6569 2 15.7712 2 12Z" stroke="currentColor" stroke-width="2"/>
                                 <path d="M7 8H17M7 12H17M7 16H12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -190,7 +188,7 @@ else if (!isset($is_main_page)) {
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link <?php echo (isset($current_page) && $current_page == 'mno') ? 'active' : ''; ?>" href="/MVNO/mno/mno.php" data-require-login="true">
+                        <a class="nav-link <?php echo (isset($current_page) && $current_page == 'mno') ? 'active' : ''; ?>" href="/MVNO/mno/mno.php">
                             <svg class="nav-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M5 4C5 2.89543 5.89543 2 7 2H17C18.1046 2 19 2.89543 19 4V20C19 21.1046 18.1046 22 17 22H7C5.89543 22 5 21.1046 5 20V4Z" stroke="currentColor" stroke-width="2"/>
                                 <path d="M12 18H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -199,7 +197,7 @@ else if (!isset($is_main_page)) {
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link <?php echo (isset($current_page) && $current_page == 'internets') ? 'active' : ''; ?>" href="/MVNO/internets/internets.php" data-require-login="true">
+                        <a class="nav-link <?php echo (isset($current_page) && $current_page == 'internets') ? 'active' : ''; ?>" href="/MVNO/internets/internets.php">
                             <svg class="nav-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <!-- 지구 본체 -->
                                 <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/>
@@ -224,6 +222,21 @@ else if (!isset($is_main_page)) {
                             </svg>
                             <span>마이페이지</span>
                         </a>
+                    </li>
+                    <?php 
+                    require_once __DIR__ . '/data/auth-functions.php';
+                    $isLoggedIn = isLoggedIn();
+                    ?>
+                    <li class="nav-item nav-item-desktop-only">
+                        <?php if ($isLoggedIn): ?>
+                            <a class="nav-link" href="/MVNO/api/logout.php">
+                                <span>로그아웃</span>
+                            </a>
+                        <?php else: ?>
+                            <a class="nav-link" href="#" onclick="if (typeof openLoginModal === 'function') { openLoginModal(false); } else { setTimeout(function() { if (typeof openLoginModal === 'function') { openLoginModal(false); } }, 100); } return false;">
+                                <span>로그인</span>
+                            </a>
+                        <?php endif; ?>
                     </li>
                     <li class="nav-item nav-item-mobile-only">
                         <a class="nav-link <?php echo (isset($current_page) && $current_page == 'wishlist') ? 'active' : ''; ?>" href="/MVNO/mypage/wishlist.php">
@@ -250,16 +263,16 @@ document.addEventListener('DOMContentLoaded', function() {
         link.addEventListener('click', function(e) {
             if (!isLoggedIn) {
                 e.preventDefault();
-                // 로그인 모달 열기 (회원가입 모드)
+                // 로그인 모달 열기 (로그인 모드)
                 if (typeof openLoginModal === 'function') {
-                    openLoginModal(true);
+                    openLoginModal(false);
                 } else {
                     // 모달이 아직 로드되지 않은 경우
                     setTimeout(() => {
                         if (typeof openLoginModal === 'function') {
-                            openLoginModal(true);
+                            openLoginModal(false);
                         } else {
-                            window.location.href = '/MVNO/auth/login.php?register=true';
+                            window.location.href = '/MVNO/auth/login.php';
                         }
                     }, 100);
                 }
@@ -267,5 +280,33 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
+// 자동 로그인 함수
+function autoLogin() {
+    fetch('/MVNO/api/auto-login.php')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // 로그인 성공 - 페이지 새로고침
+                window.location.reload();
+            } else {
+                // 로그인 실패 시 로그인 모달 표시
+                if (typeof openLoginModal === 'function') {
+                    openLoginModal(false);
+                } else {
+                    alert('로그인에 실패했습니다.');
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            // 에러 발생 시 로그인 모달 표시
+            if (typeof openLoginModal === 'function') {
+                openLoginModal(false);
+            } else {
+                alert('로그인 중 오류가 발생했습니다.');
+            }
+        });
+}
 </script>
 

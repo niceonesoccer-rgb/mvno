@@ -7,6 +7,9 @@ $is_main_page = true; // 상세 페이지에서도 푸터 표시
 // 통신사폰 ID 가져오기
 $phone_id = isset($_GET['id']) ? intval($_GET['id']) : 1;
 
+// 로그인 체크를 위한 auth-functions 포함
+require_once '../includes/data/auth-functions.php';
+
 // 헤더 포함
 include '../includes/header.php';
 
@@ -854,6 +857,32 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 상담신청 모달 열기
     function openConsultationModal() {
+        // 로그인 체크
+        const isLoggedIn = <?php echo isLoggedIn() ? 'true' : 'false'; ?>;
+        if (!isLoggedIn) {
+            // 현재 URL을 세션에 저장 (회원가입 후 돌아올 주소)
+            const currentUrl = window.location.href;
+            fetch('/MVNO/api/save-redirect-url.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ redirect_url: currentUrl })
+            }).then(() => {
+                // 로그인 모달 열기
+                if (typeof openLoginModal === 'function') {
+                    openLoginModal(false);
+                } else {
+                    setTimeout(() => {
+                        if (typeof openLoginModal === 'function') {
+                            openLoginModal(false);
+                        }
+                    }, 100);
+                }
+            });
+            return;
+        }
+        
         if (!consultationModal) return;
         
         scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
@@ -981,6 +1010,42 @@ document.addEventListener('DOMContentLoaded', function() {
     if (consultationForm) {
         consultationForm.addEventListener('submit', function(e) {
             e.preventDefault();
+            
+            // 로그인 체크
+            const isLoggedIn = <?php echo isLoggedIn() ? 'true' : 'false'; ?>;
+            if (!isLoggedIn) {
+                // 모달 닫기
+                if (consultationModal) {
+                    consultationModal.classList.remove('consultation-modal-active');
+                    document.body.style.overflow = '';
+                    document.body.style.position = '';
+                    document.body.style.top = '';
+                    document.body.style.width = '';
+                    document.documentElement.style.overflow = '';
+                }
+                
+                // 현재 URL을 세션에 저장 (회원가입 후 돌아올 주소)
+                const currentUrl = window.location.href;
+                fetch('/MVNO/api/save-redirect-url.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ redirect_url: currentUrl })
+                }).then(() => {
+                    // 회원가입 모달 열기
+                    if (typeof openLoginModal === 'function') {
+                        openLoginModal(true);
+                    } else {
+                        setTimeout(() => {
+                            if (typeof openLoginModal === 'function') {
+                                openLoginModal(true);
+                            }
+                        }, 100);
+                    }
+                });
+                return;
+            }
             
             // 모든 동의 체크박스 확인
             const agreementPurpose = document.getElementById('agreementPurpose');

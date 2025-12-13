@@ -9,7 +9,8 @@ require_once __DIR__ . '/../../includes/data/auth-functions.php';
 // 관리자 인증 체크 (출력 전에 체크)
 $currentUser = getCurrentUser();
 if (!$currentUser || !isAdmin($currentUser['user_id'])) {
-    header('Location: /MVNO/auth/login.php');
+    // 관리자가 아니면 관리자 로그인 페이지로 리다이렉트
+    header('Location: /MVNO/admin/login.php');
     exit;
 }
 

@@ -4,11 +4,36 @@ $current_page = 'mypage';
 // 메인 페이지 여부 (하단 메뉴 및 푸터 표시용)
 $is_main_page = true;
 
+// 로그인 체크를 위한 auth-functions 포함
+require_once '../includes/data/auth-functions.php';
+
+// 세션 시작
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+// 로그인 체크 - 로그인하지 않은 경우 회원가입 모달로 리다이렉트
+if (!isLoggedIn()) {
+    // 현재 URL을 세션에 저장 (회원가입 후 돌아올 주소)
+    $_SESSION['redirect_url'] = $_SERVER['REQUEST_URI'];
+    // 로그인 모달이 있는 홈으로 리다이렉트 (모달 자동 열기)
+    header('Location: /MVNO/?show_login=1');
+    exit;
+}
+
+// 현재 사용자 정보 가져오기
+$currentUser = getCurrentUser();
+if (!$currentUser) {
+    // 사용자 정보를 가져올 수 없으면 로그아웃 처리
+    header('Location: /MVNO/?show_login=1');
+    exit;
+}
+
+$user_id = $currentUser['user_id'];
+$user_name = $currentUser['name'] ?? '회원';
+
 // 포인트 설정 로드
 require_once '../includes/data/point-settings.php';
-
-// 현재 사용자 정보 (실제로는 세션에서 가져옴)
-$user_id = 'default'; // 실제로는 세션에서 가져옴
 $user_point = getUserPoint($user_id);
 $current_balance = $user_point['balance'] ?? 0;
 
@@ -20,7 +45,7 @@ include '../includes/header.php';
     <div style="width: 460px; margin: 0 auto; padding: 20px;" class="mypage-container">
         <!-- 사용자 인사말 헤더 -->
         <div style="margin-bottom: 24px; padding: 20px 0;">
-            <h2 style="font-size: 24px; font-weight: bold; margin: 0;">YMB님 안녕하세요</h2>
+            <h2 style="font-size: 24px; font-weight: bold; margin: 0;"><?php echo htmlspecialchars($user_name); ?>님 안녕하세요</h2>
         </div>
 
         <!-- 포인트 카드 -->

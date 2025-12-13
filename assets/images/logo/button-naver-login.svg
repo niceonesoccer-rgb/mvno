@@ -8,3 +8,6 @@
   <!-- 텍스트: 네이버로 로그인 (중앙 배치) -->
   <text x="200" y="35" font-family="system-ui, -apple-system, sans-serif" font-size="15" font-weight="500" fill="white" text-anchor="middle">네이버로 로그인</text>
 </svg>
+
+
+
