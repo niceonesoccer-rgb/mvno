@@ -13,6 +13,8 @@ if (isLoggedIn()) {
 
 $error = '';
 $success = false;
+$registeredUser = null;
+$redirectUrl = $_SESSION['redirect_url'] ?? '/MVNO/';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $role = $_POST['role'] ?? 'user';
@@ -28,15 +30,60 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // 필수 필드 검증: 아이디, 전화번호, 이름, 이메일
         if (empty($userId) || empty($phone) || empty($name) || empty($email)) {
             $error = '아이디, 휴대폰번호, 이름, 이메일은 필수 입력 항목입니다.';
-        } elseif (!preg_match('/^[A-Za-z0-9]+$/', $userId)) {
-            $error = '아이디는 영문과 숫자만 사용할 수 있습니다.';
-        } elseif ($password !== $passwordConfirm) {
-            $error = '비밀번호가 일치하지 않습니다.';
-        } elseif (strlen($password) < 8) {
-            $error = '비밀번호는 최소 8자 이상이어야 합니다.';
-        } elseif (!preg_match('/[A-Z]/', $password) || !preg_match('/[a-z]/', $password) || !preg_match('/[0-9]/', $password) || !preg_match('/[@#$%^&*!?_\-=]/', $password)) {
-            $error = '비밀번호는 영문 대소문자, 숫자, 특수문자(@#$%^&*!?_-=)를 포함해야 합니다.';
+        } elseif (!preg_match('/^[A-Za-z0-9]{5,20}$/', $userId)) {
+            $error = '아이디는 영문과 숫자만 사용할 수 있으며 5자 이상 20자 이내여야 합니다.';
+        } elseif (mb_strlen($name) > 15) {
+            $error = '이름은 15자 이내로 입력해주세요.';
+        } elseif (!preg_match('/^010-\d{4}-\d{4}$/', $phone) || !str_starts_with($phone, '010-')) {
+            $error = '휴대폰번호는 010으로 시작하는 번호만 가능합니다. (010-XXXX-XXXX 형식)';
+        } elseif (strlen($email) > 20) {
+            $error = '이메일 주소는 20자 이내로 입력해주세요.';
+        } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $error = '올바른 이메일 형식이 아닙니다.';
         } else {
+            // 이메일 로컬 부분 검증 (영문 소문자, 숫자만)
+            $emailParts = explode('@', $email);
+            if (count($emailParts) !== 2) {
+                $error = '올바른 이메일 형식이 아닙니다.';
+            } else {
+                $emailLocal = $emailParts[0];
+                if (!preg_match('/^[a-z0-9]+$/', $emailLocal)) {
+                    $error = '이메일 아이디는 영문 소문자와 숫자만 사용할 수 있습니다.';
+                } else {
+                    // 도메인 형식 검증 (직접입력 허용을 위해 도메인 제한 제거)
+                    $emailDomain = strtolower($emailParts[1]);
+                    // 도메인 형식 검증: 영문 소문자, 숫자, 점, 하이픈만 허용
+                    if (!preg_match('/^[a-z0-9.-]+$/', $emailDomain)) {
+                        $error = '올바른 이메일 도메인 형식이 아닙니다.';
+                    } elseif (strpos($emailDomain, '.') === false) {
+                        $error = '올바른 이메일 도메인 형식이 아닙니다.';
+                    } elseif (strpos($emailDomain, '.') === 0 || substr($emailDomain, -1) === '.') {
+                        $error = '올바른 이메일 도메인 형식이 아닙니다.';
+                    }
+                }
+            }
+        }
+        
+        if (empty($error)) {
+            if ($password !== $passwordConfirm) {
+                $error = '비밀번호가 일치하지 않습니다.';
+            } elseif (strlen($password) < 8 || strlen($password) > 20) {
+                $error = '비밀번호는 8자 이상 20자 이내로 입력해주세요.';
+            } else {
+                // 영문자(대소문자 구분 없이), 숫자, 특수문자 중 2가지 이상 조합 확인
+                $hasLetter = preg_match('/[A-Za-z]/', $password);
+                $hasNumber = preg_match('/[0-9]/', $password);
+                $hasSpecialChar = preg_match('/[@#$%^&*!?_\-=]/', $password);
+                
+                $combinationCount = ($hasLetter ? 1 : 0) + ($hasNumber ? 1 : 0) + ($hasSpecialChar ? 1 : 0);
+                
+                if ($combinationCount < 2) {
+                    $error = '비밀번호는 영문자, 숫자, 특수문자(@#$%^&*!?_-=) 중 2가지 이상 조합해야 합니다.';
+                }
+            }
+        }
+        
+        if (empty($error)) {
             // 판매자 추가 정보 수집
             $additionalData = [];
             if ($role === 'seller') {
@@ -100,6 +147,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $result = registerDirectUser($userId, $password, $email, $name, $role, $additionalData);
                 if ($result['success']) {
                     $success = true;
+                    $registeredUser = $result['user'];
+                    // 세션의 redirect_url 가져오기
+                    $redirectUrl = $_SESSION['redirect_url'] ?? '/MVNO/';
+                    // 사용 후 세션에서 제거
+                    if (isset($_SESSION['redirect_url'])) {
+                        unset($_SESSION['redirect_url']);
+                    }
                 } else {
                     $error = $result['message'];
                 }
@@ -336,12 +390,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
         <?php endif; ?>
         
-        <?php if ($success): ?>
+        <?php if ($success && $registeredUser && ($registeredUser['role'] ?? 'user') === 'user'): ?>
+            <!-- 일반 회원 가입 완료 화면 -->
+            <div class="success-container" style="text-align: center; padding: 40px 24px;">
+                <div style="font-size: 48px; margin-bottom: 24px;">🎉</div>
+                <h2 style="font-size: 24px; font-weight: 700; color: #1f2937; margin-bottom: 16px;">
+                    회원가입을 축하합니다!
+                </h2>
+                <p style="font-size: 16px; color: #6b7280; margin-bottom: 32px;">
+                    모요에 오신 것을 환영합니다.
+                </p>
+                
+                <div class="user-info-box" style="background: #f9fafb; border-radius: 12px; padding: 24px; margin-bottom: 32px; text-align: left; max-width: 400px; margin-left: auto; margin-right: auto;">
+                    <div style="margin-bottom: 16px;">
+                        <div style="font-size: 13px; color: #6b7280; margin-bottom: 4px;">아이디</div>
+                        <div style="font-size: 16px; font-weight: 600; color: #1f2937;"><?php echo htmlspecialchars($registeredUser['user_id'] ?? ''); ?></div>
+                    </div>
+                    <div style="margin-bottom: 16px;">
+                        <div style="font-size: 13px; color: #6b7280; margin-bottom: 4px;">이름</div>
+                        <div style="font-size: 16px; font-weight: 600; color: #1f2937;"><?php echo htmlspecialchars($registeredUser['name'] ?? ''); ?></div>
+                    </div>
+                    <div style="margin-bottom: 16px;">
+                        <div style="font-size: 13px; color: #6b7280; margin-bottom: 4px;">이메일</div>
+                        <div style="font-size: 16px; font-weight: 600; color: #1f2937;"><?php echo htmlspecialchars($registeredUser['email'] ?? ''); ?></div>
+                    </div>
+                    <div>
+                        <div style="font-size: 13px; color: #6b7280; margin-bottom: 4px;">휴대폰번호</div>
+                        <div style="font-size: 16px; font-weight: 600; color: #1f2937;"><?php echo htmlspecialchars($registeredUser['phone'] ?? '-'); ?></div>
+                    </div>
+                </div>
+                
+                <button onclick="goToPreviousPage()" class="confirm-button" style="width: 100%; max-width: 400px; padding: 14px; background: #6366f1; color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: background 0.2s;">
+                    확인
+                </button>
+            </div>
+            
+            <script>
+                function goToPreviousPage() {
+                    window.location.href = '<?php echo htmlspecialchars($redirectUrl, ENT_QUOTES, 'UTF-8'); ?>';
+                }
+            </script>
+        <?php elseif ($success): ?>
+            <!-- 판매자/관리자 가입 완료 (기존 방식) -->
             <div class="success-message">
                 회원가입이 완료되었습니다. <a href="/MVNO/auth/login.php" style="color: #065f46; font-weight: 600;">로그인</a>해주세요.
             </div>
         <?php endif; ?>
         
+        <?php if (!$success || ($registeredUser && ($registeredUser['role'] ?? 'user') !== 'user')): ?>
         <!-- 일반 회원 SNS 가입 -->
         <div class="sns-register-section">
             <div class="sns-register-title">일반 회원 가입</div>
@@ -402,11 +498,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="form-group">
                     <label for="password">비밀번호</label>
                     <input type="password" id="password" name="password" required minlength="8">
-                    <div class="form-help">최소 8자 이상 입력해주세요.</div>
+                    <div class="form-help">8자 이상 20자 이내, 영문자/숫자/특수문자(@#$%^&*!?_-=) 중 2가지 이상 조합</div>
                 </div>
                 <div class="form-group">
                     <label for="password_confirm">비밀번호 확인</label>
                     <input type="password" id="password_confirm" name="password_confirm" required minlength="8">
+                    <div class="form-help">비밀번호는 영문자, 숫자, 특수문자(@#$%^&*!?_-=) 중 2가지 이상의 조합으로 가입해야 합니다.</div>
                 </div>
                 
                 <!-- 판매자 추가 정보 -->
@@ -468,6 +565,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 이미 계정이 있으신가요? <a href="/MVNO/auth/login.php">로그인</a>
             </div>
         </div>
+        <?php endif; ?>
     </div>
     
     <script>

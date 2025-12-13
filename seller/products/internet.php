@@ -817,10 +817,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             <img src="/MVNO/assets/images/icons/equipment.svg" alt="장비" style="width: 20px; height: 20px; object-fit: contain;">
                         </div>
                         <input type="text" name="equipment_names[]" class="form-control item-name-input" placeholder="와이파이 공유기" maxlength="30" value="<?php echo htmlspecialchars($equipNames[$i] ?? ''); ?>">
-                        <div class="item-price-input-wrapper">
-                            <input type="text" name="equipment_prices[]" class="form-control" placeholder="무료(월1,100원 상당)" value="<?php echo isset($equipPrices[$i]) && !empty($equipPrices[$i]) ? number_format($equipPrices[$i]) : ''; ?>">
-                            <span class="item-price-suffix">원</span>
-                        </div>
+                        <input type="text" name="equipment_prices[]" class="form-control" placeholder="무료(월1,100원 상당)" value="<?php echo isset($equipPrices[$i]) && !empty($equipPrices[$i]) ? htmlspecialchars($equipPrices[$i]) : ''; ?>">
                         <?php if ($i === 0): ?>
                             <button type="button" class="btn-add" onclick="addEquipmentField()" style="margin-top: 0;">추가</button>
                         <?php else: ?>
@@ -845,10 +842,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             <img src="/MVNO/assets/images/icons/installation.svg" alt="설치" style="width: 20px; height: 20px; object-fit: contain;">
                         </div>
                         <input type="text" name="installation_names[]" class="form-control item-name-input" placeholder="인터넷,TV설치비" maxlength="30" value="<?php echo htmlspecialchars($installNames[$i] ?? ''); ?>">
-                        <div class="item-price-input-wrapper">
-                            <input type="text" name="installation_prices[]" class="form-control" placeholder="무료(36,000원 상당)" value="<?php echo isset($installPrices[$i]) && !empty($installPrices[$i]) ? number_format($installPrices[$i]) : ''; ?>">
-                            <span class="item-price-suffix">원</span>
-                        </div>
+                        <input type="text" name="installation_prices[]" class="form-control" placeholder="무료(36,000원 상당)" value="<?php echo isset($installPrices[$i]) && !empty($installPrices[$i]) ? htmlspecialchars($installPrices[$i]) : ''; ?>">
                         <?php if ($i === 0): ?>
                             <button type="button" class="btn-add" onclick="addInstallationField()" style="margin-top: 0;">추가</button>
                         <?php else: ?>
@@ -1056,18 +1050,33 @@ function addField(type) {
     const container = document.getElementById(config.container);
     const newField = document.createElement('div');
     newField.className = 'gift-input-group';
+    
+    // 장비와 설치 필드는 "원" 단위 없이 일반 텍스트 필드
+    const isTextOnlyField = (type === 'equipment' || type === 'installation');
+    const priceInputHTML = isTextOnlyField 
+        ? `<input type="text" name="${config.priceField}" class="form-control" placeholder="${config.pricePlaceholder}">`
+        : `<div class="item-price-input-wrapper">
+            <input type="text" name="${config.priceField}" class="form-control" placeholder="${config.pricePlaceholder}">
+            <span class="item-price-suffix">원</span>
+        </div>`;
+    
     newField.innerHTML = `
         <div class="item-icon-wrapper">
             <img src="${config.icon}" alt="${config.iconAlt}" style="width: 20px; height: 20px; object-fit: contain;">
         </div>
         <input type="text" name="${config.nameField}" class="form-control item-name-input" placeholder="${config.namePlaceholder}" maxlength="30">
-        <div class="item-price-input-wrapper">
-            <input type="text" name="${config.priceField}" class="form-control" placeholder="${config.pricePlaceholder}">
-            <span class="item-price-suffix">원</span>
-        </div>
+        ${priceInputHTML}
         <button type="button" class="btn-remove" onclick="removeField('${type}', this)">삭제</button>
     `;
     container.appendChild(newField);
+    
+    // 현금지급과 상품권 필드는 숫자만 입력되도록 설정
+    if (type === 'cash' || type === 'giftCard') {
+        const priceInput = newField.querySelector(`input[name="${config.priceField}"]`);
+        if (priceInput) {
+            setupNumericInput(priceInput);
+        }
+    }
 }
 
 function removeField(type, button) {
@@ -1080,31 +1089,48 @@ function removeField(type, button) {
     }
 }
 
+// 숫자만 입력받는 필드 설정 함수
+function setupNumericInput(input) {
+    if (!input) return;
+    
+    // 입력 시 숫자만 허용
+    input.addEventListener('input', function() {
+        let value = this.value.replace(/[^0-9]/g, '');
+        this.value = value;
+    });
+    
+    // 포커스 시 쉼표 제거
+    input.addEventListener('focus', function() {
+        this.value = this.value.replace(/,/g, '');
+    });
+    
+    // 블러 시 천단위 구분자 추가
+    input.addEventListener('blur', function() {
+        if (this.value) {
+            const numValue = parseInt(this.value.replace(/,/g, ''));
+            if (!isNaN(numValue)) {
+                this.value = numValue.toLocaleString('ko-KR');
+            }
+        }
+    });
+}
+
 // 월 요금제 필드 숫자만 입력되도록 설정
 document.addEventListener('DOMContentLoaded', function() {
     const monthlyFeeInput = document.getElementById('monthly_fee');
     if (monthlyFeeInput) {
-        // 입력 시 숫자만 허용
-        monthlyFeeInput.addEventListener('input', function() {
-            let value = this.value.replace(/[^0-9]/g, '');
-            this.value = value;
-        });
-        
-        // 포커스 시 쉼표 제거
-        monthlyFeeInput.addEventListener('focus', function() {
-            this.value = this.value.replace(/,/g, '');
-        });
-        
-        // 블러 시 천단위 구분자 추가
-        monthlyFeeInput.addEventListener('blur', function() {
-            if (this.value) {
-                const numValue = parseInt(this.value.replace(/,/g, ''));
-                if (!isNaN(numValue)) {
-                    this.value = numValue.toLocaleString('ko-KR');
-                }
-            }
-        });
+        setupNumericInput(monthlyFeeInput);
     }
+    
+    // 현금지급 가격 필드들 숫자만 입력
+    document.querySelectorAll('input[name="cash_payment_prices[]"]').forEach(input => {
+        setupNumericInput(input);
+    });
+    
+    // 상품권 지급 가격 필드들 숫자만 입력
+    document.querySelectorAll('input[name="gift_card_prices[]"]').forEach(input => {
+        setupNumericInput(input);
+    });
 });
 
 // 필드 추가 함수 (기존 호출 호환성 유지)
@@ -1124,8 +1150,8 @@ document.getElementById('productForm').addEventListener('submit', function(e) {
         monthlyFeeInput.value = monthlyFeeInput.value.replace(/,/g, '');
     }
     
-    // 가격 필드들에서 쉼표 제거 (현금지급, 상품권, 장비, 설치)
-    document.querySelectorAll('input[name*="_prices[]"]').forEach(input => {
+    // 가격 필드들에서 쉼표 제거 (현금지급, 상품권만 - 장비와 설치 필드는 텍스트 필드이므로 제외)
+    document.querySelectorAll('input[name="cash_payment_prices[]"], input[name="gift_card_prices[]"]').forEach(input => {
         if (input.value) {
             input.value = input.value.replace(/,/g, '');
         }

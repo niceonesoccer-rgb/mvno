@@ -512,18 +512,68 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <?php
-// 사용자 정보 가져오기 (세션에서)
-$user_name = $_SESSION['user_name'] ?? $_SESSION['name'] ?? '';
-$user_phone = $_SESSION['user_phone'] ?? $_SESSION['phone'] ?? '';
-$user_email = $_SESSION['user_email'] ?? $_SESSION['email'] ?? '';
+// 사용자 정보 가져오기 (현재 로그인한 사용자)
+$currentUser = getCurrentUser();
+$user_name = '';
+$user_phone = '';
+$user_email = '';
+
+if ($currentUser) {
+    $user_name = $currentUser['name'] ?? $currentUser['user_name'] ?? $_SESSION['user_name'] ?? $_SESSION['name'] ?? '';
+    $user_phone = $currentUser['phone'] ?? $_SESSION['user_phone'] ?? $_SESSION['phone'] ?? '';
+    $user_email = $currentUser['email'] ?? $_SESSION['user_email'] ?? $_SESSION['email'] ?? '';
+}
+
+// 할인방법 데이터 준비 (JSON으로 전달)
+$discountData = [
+    'common_support' => $phone['common_support'] ?? [],
+    'contract_support' => $phone['contract_support'] ?? []
+];
 ?>
+
+<!-- 할인방법 선택 모달 -->
+<div class="discount-selection-modal" id="discountSelectionModal">
+    <div class="discount-selection-modal-overlay" id="discountSelectionModalOverlay"></div>
+    <div class="discount-selection-modal-content">
+        <div class="discount-selection-modal-header">
+            <h3 class="discount-selection-modal-title">할인방법 선택</h3>
+            <button class="discount-selection-modal-close" aria-label="닫기" id="discountSelectionModalClose">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M18 6L6 18M6 6L18 18" stroke="#868E96" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+        </div>
+        <div class="discount-selection-modal-body">
+            <div class="discount-selection-table-wrapper">
+                <table class="discount-selection-table">
+                    <thead>
+                        <tr>
+                            <th>통신사</th>
+                            <th>할인종류</th>
+                            <th>가입유형</th>
+                            <th>가격</th>
+                        </tr>
+                    </thead>
+                    <tbody id="discountSelectionTableBody">
+                        <!-- JavaScript로 동적으로 채워짐 -->
+                    </tbody>
+                </table>
+            </div>
+            <?php if (empty(array_filter($phone['common_support'] ?? [])) && empty(array_filter($phone['contract_support'] ?? []))): ?>
+            <div class="discount-selection-empty">
+                판매 가능한 할인 방법이 없습니다.
+            </div>
+            <?php endif; ?>
+        </div>
+    </div>
+</div>
 
 <!-- 상담신청 모달 -->
 <div class="consultation-modal" id="consultationModal">
     <div class="consultation-modal-overlay" id="consultationModalOverlay"></div>
     <div class="consultation-modal-content">
         <div class="consultation-modal-header">
-            <h3 class="consultation-modal-title">가입상담 신청</h3>
+            <h3 class="consultation-modal-title">가입신청</h3>
             <button class="consultation-modal-close" aria-label="닫기" id="consultationModalClose">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M18 6L6 18M6 6L18 18" stroke="#868E96" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -545,32 +595,6 @@ $user_email = $_SESSION['user_email'] ?? $_SESSION['email'] ?? '';
                 <div class="consultation-form-group">
                     <label for="consultationEmail" class="consultation-form-label">이메일</label>
                     <input type="email" id="consultationEmail" name="email" class="consultation-form-input" value="<?php echo htmlspecialchars($user_email); ?>" placeholder="example@email.com" required>
-                </div>
-                
-                <div class="consultation-notice-section">
-                    <div class="consultation-notice-intro">
-                        모유에서 다음 정보가 알림톡으로 발송됩니다:<br>
-                        <span class="consultation-notice-intro-sub">알림 정보 설정은 마이페이지에서 수정가능하세요.</span>
-                    </div>
-                    <div class="consultation-notice-list">
-                        <div class="consultation-notice-item consultation-notice-item-empty"></div>
-                        <div class="consultation-notice-item consultation-notice-item-center">
-                            • 신청정보<br>
-                            • 약정기간 종료 안내<br>
-                            • 프로모션 종료 안내<br>
-                            • 기타 상품관련 안내
-                        </div>
-                        <div class="consultation-notice-item consultation-notice-item-empty"></div>
-                    </div>
-                    <div class="consultation-notice-text">
-                        <?php 
-                        $company_name = $phone['company_name'] ?? '쉐이크모바일';
-                        echo htmlspecialchars($company_name); 
-                        ?>에서 고객님께 가입상담을 진행합니다
-                    </div>
-                    <div class="consultation-notice-agreement-text">
-                        동의 하시면 신청하기를 진행해주세요
-                    </div>
                 </div>
                 
                 <div class="consultation-agreement-section">
@@ -855,34 +879,275 @@ document.addEventListener('DOMContentLoaded', function() {
         return scrollbarWidth;
     }
     
-    // 상담신청 모달 열기
-    function openConsultationModal() {
-        // 로그인 체크
-        const isLoggedIn = <?php echo isLoggedIn() ? 'true' : 'false'; ?>;
-        if (!isLoggedIn) {
-            // 현재 URL을 세션에 저장 (회원가입 후 돌아올 주소)
-            const currentUrl = window.location.href;
-            fetch('/MVNO/api/save-redirect-url.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ redirect_url: currentUrl })
-            }).then(() => {
-                // 로그인 모달 열기
-                if (typeof openLoginModal === 'function') {
-                    openLoginModal(false);
-                } else {
-                    setTimeout(() => {
-                        if (typeof openLoginModal === 'function') {
-                            openLoginModal(false);
-                        }
-                    }, 100);
+    // 할인방법 선택 모달 관련
+    const discountSelectionModal = document.getElementById('discountSelectionModal');
+    const discountSelectionModalOverlay = document.getElementById('discountSelectionModalOverlay');
+    const discountSelectionModalClose = document.getElementById('discountSelectionModalClose');
+    const discountSelectionTableBody = document.getElementById('discountSelectionTableBody');
+    
+    // 할인방법 데이터
+    const discountData = <?php echo json_encode($discountData, JSON_UNESCAPED_UNICODE); ?>;
+    
+    // 할인방법 선택 모달 열기
+    function openDiscountSelectionModal() {
+        if (!discountSelectionModal) return;
+        
+        // 테이블 초기화
+        if (discountSelectionTableBody) {
+            discountSelectionTableBody.innerHTML = '';
+            
+            // 할인 옵션 데이터 구성
+            const discountOptions = [];
+            
+            // 공통지원할인 처리
+            if (discountData.common_support && Array.isArray(discountData.common_support)) {
+                discountData.common_support.forEach(item => {
+                    const provider = item.provider || '';
+                    
+                    // 신규가입
+                    if (item.new_subscription !== undefined && item.new_subscription !== 9999 && item.new_subscription !== '9999') {
+                        discountOptions.push({
+                            provider: provider,
+                            discountType: '공통지원할인',
+                            subscriptionType: '신규가입',
+                            amount: item.new_subscription
+                        });
+                    }
+                    
+                    // 번호이동
+                    if (item.number_port !== undefined && item.number_port !== 9999 && item.number_port !== '9999') {
+                        discountOptions.push({
+                            provider: provider,
+                            discountType: '공통지원할인',
+                            subscriptionType: '번호이동',
+                            amount: item.number_port
+                        });
+                    }
+                    
+                    // 기기변경
+                    if (item.device_change !== undefined && item.device_change !== 9999 && item.device_change !== '9999') {
+                        discountOptions.push({
+                            provider: provider,
+                            discountType: '공통지원할인',
+                            subscriptionType: '기기변경',
+                            amount: item.device_change
+                        });
+                    }
+                });
+            }
+            
+            // 선택약정할인 처리
+            if (discountData.contract_support && Array.isArray(discountData.contract_support)) {
+                discountData.contract_support.forEach(item => {
+                    const provider = item.provider || '';
+                    
+                    // 신규가입
+                    if (item.new_subscription !== undefined && item.new_subscription !== 9999 && item.new_subscription !== '9999') {
+                        discountOptions.push({
+                            provider: provider,
+                            discountType: '선택약정할인',
+                            subscriptionType: '신규가입',
+                            amount: item.new_subscription
+                        });
+                    }
+                    
+                    // 번호이동
+                    if (item.number_port !== undefined && item.number_port !== 9999 && item.number_port !== '9999') {
+                        discountOptions.push({
+                            provider: provider,
+                            discountType: '선택약정할인',
+                            subscriptionType: '번호이동',
+                            amount: item.number_port
+                        });
+                    }
+                    
+                    // 기기변경
+                    if (item.device_change !== undefined && item.device_change !== 9999 && item.device_change !== '9999') {
+                        discountOptions.push({
+                            provider: provider,
+                            discountType: '선택약정할인',
+                            subscriptionType: '기기변경',
+                            amount: item.device_change
+                        });
+                    }
+                });
+            }
+            
+            // 통신사별로 그룹화, 그리고 할인종류별로도 그룹화
+            const groupedByProviderAndDiscount = {};
+            discountOptions.forEach(option => {
+                const key = `${option.provider}_${option.discountType}`;
+                if (!groupedByProviderAndDiscount[key]) {
+                    groupedByProviderAndDiscount[key] = {
+                        provider: option.provider,
+                        discountType: option.discountType,
+                        options: []
+                    };
                 }
+                groupedByProviderAndDiscount[key].options.push(option);
             });
-            return;
+            
+            // 통신사별로 다시 그룹화 (같은 통신사의 항목들을 묶기 위해)
+            const finalGrouped = {};
+            Object.keys(groupedByProviderAndDiscount).forEach(key => {
+                const item = groupedByProviderAndDiscount[key];
+                if (!finalGrouped[item.provider]) {
+                    finalGrouped[item.provider] = [];
+                }
+                finalGrouped[item.provider].push(item);
+            });
+            
+            // 테이블 행 생성
+            Object.keys(finalGrouped).forEach(provider => {
+                const providerGroups = finalGrouped[provider];
+                let providerRowSpan = 0;
+                
+                // 통신사별 총 행 개수 계산
+                providerGroups.forEach(group => {
+                    providerRowSpan += group.options.length;
+                });
+                
+                providerGroups.forEach((group, groupIndex) => {
+                    group.options.forEach((option, optionIndex) => {
+                        const row = document.createElement('tr');
+                        
+                        // 통신사 셀 (첫 번째 그룹의 첫 번째 옵션에만 표시)
+                        if (groupIndex === 0 && optionIndex === 0) {
+                            const providerCell = document.createElement('td');
+                            providerCell.textContent = provider;
+                            providerCell.rowSpan = providerRowSpan;
+                            providerCell.className = 'discount-provider-cell';
+                            row.appendChild(providerCell);
+                        }
+                        
+                        // 할인종류 셀 (각 그룹의 첫 번째 옵션에만 표시)
+                        if (optionIndex === 0) {
+                            const discountTypeCell = document.createElement('td');
+                            discountTypeCell.textContent = group.discountType;
+                            discountTypeCell.rowSpan = group.options.length;
+                            discountTypeCell.className = 'discount-type-cell';
+                            row.appendChild(discountTypeCell);
+                        }
+                        
+                        // 가입유형
+                        const subscriptionTypeCell = document.createElement('td');
+                        subscriptionTypeCell.textContent = option.subscriptionType;
+                        row.appendChild(subscriptionTypeCell);
+                        
+                        // 할인금액 버튼
+                        const amountCell = document.createElement('td');
+                        const amountButton = document.createElement('button');
+                        amountButton.type = 'button';
+                        amountButton.className = 'discount-amount-button';
+                        
+                        // 금액 포맷팅 (음수인 경우 포함, 소수점 처리, 원 제거)
+                        const amount = parseFloat(option.amount);
+                        let formattedAmount;
+                        if (amount % 1 === 0) {
+                            // 정수인 경우
+                            formattedAmount = amount < 0 
+                                ? `-${Math.abs(amount).toLocaleString('ko-KR')}`
+                                : `${amount.toLocaleString('ko-KR')}`;
+                        } else {
+                            // 소수점이 있는 경우
+                            formattedAmount = amount < 0 
+                                ? `-${Math.abs(amount).toLocaleString('ko-KR', { minimumFractionDigits: 1, maximumFractionDigits: 2 })}`
+                                : `${amount.toLocaleString('ko-KR', { minimumFractionDigits: 1, maximumFractionDigits: 2 })}`;
+                        }
+                        
+                        amountButton.textContent = formattedAmount;
+                        amountButton.setAttribute('data-provider', option.provider);
+                        amountButton.setAttribute('data-discount-type', option.discountType);
+                        amountButton.setAttribute('data-subscription-type', option.subscriptionType);
+                        amountButton.setAttribute('data-amount', option.amount);
+                        
+                        // 버튼 클릭 이벤트
+                        amountButton.addEventListener('click', function() {
+                            handleDiscountSelection(
+                                this.getAttribute('data-provider'),
+                                this.getAttribute('data-discount-type'),
+                                this.getAttribute('data-subscription-type'),
+                                this.getAttribute('data-amount')
+                            );
+                        });
+                        
+                        amountCell.appendChild(amountButton);
+                        row.appendChild(amountCell);
+                        
+                        discountSelectionTableBody.appendChild(row);
+                    });
+                });
+            });
+            
+            // 할인 옵션이 없으면 메시지 표시
+            if (discountOptions.length === 0 && discountSelectionTableBody.parentElement) {
+                const emptyRow = document.createElement('tr');
+                const emptyCell = document.createElement('td');
+                emptyCell.colSpan = 4;
+                emptyCell.className = 'discount-empty-cell';
+                emptyCell.textContent = '판매 가능한 할인 방법이 없습니다.';
+                emptyCell.style.textAlign = 'center';
+                emptyCell.style.padding = '40px 20px';
+                emptyCell.style.color = '#9ca3af';
+                emptyRow.appendChild(emptyCell);
+                discountSelectionTableBody.appendChild(emptyRow);
+            }
         }
         
+        scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
+        const scrollbarWidth = getScrollbarWidth();
+        
+        document.body.style.overflow = 'hidden';
+        document.body.style.position = 'fixed';
+        document.body.style.top = `-${scrollPosition}px`;
+        document.body.style.width = '100%';
+        document.body.style.paddingRight = `${scrollbarWidth}px`;
+        document.documentElement.style.overflow = 'hidden';
+        
+        discountSelectionModal.style.display = 'flex';
+        discountSelectionModal.classList.add('discount-selection-modal-active');
+    }
+    
+    // 할인방법 선택 모달 닫기
+    function closeDiscountSelectionModal() {
+        if (!discountSelectionModal) return;
+        
+        discountSelectionModal.classList.remove('discount-selection-modal-active');
+        
+        document.body.style.overflow = '';
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.width = '';
+        document.body.style.paddingRight = '';
+        document.documentElement.style.overflow = '';
+        
+        window.scrollTo(0, scrollPosition);
+    }
+    
+    // 할인방법 선택 처리
+    function handleDiscountSelection(provider, discountType, subscriptionType, amount) {
+        // 선택한 할인 방법으로 상담신청 모달 열기
+        closeDiscountSelectionModal();
+        
+        // 선택한 정보를 세션에 저장하거나 폼에 전달할 수 있도록 설정
+        // 여기서는 바로 상담신청 모달로 이동
+        // 나중에 선택한 할인 정보를 함께 전달할 수 있도록 수정 가능
+        setTimeout(() => {
+            openConsultationModal(provider, discountType, subscriptionType, amount);
+        }, 300);
+    }
+    
+    // 할인방법 선택 모달 닫기 이벤트
+    if (discountSelectionModalOverlay) {
+        discountSelectionModalOverlay.addEventListener('click', closeDiscountSelectionModal);
+    }
+    
+    if (discountSelectionModalClose) {
+        discountSelectionModalClose.addEventListener('click', closeDiscountSelectionModal);
+    }
+    
+    // 상담신청 모달 열기 (할인 정보 파라미터 추가)
+    function openConsultationModal(selectedProvider, selectedDiscountType, selectedSubscriptionType, selectedAmount) {
         if (!consultationModal) return;
         
         scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
@@ -897,6 +1162,56 @@ document.addEventListener('DOMContentLoaded', function() {
         
         consultationModal.style.display = 'flex';
         consultationModal.classList.add('consultation-modal-active');
+        
+        // 선택한 할인 정보를 폼에 저장 (나중에 제출 시 함께 전송)
+        if (selectedProvider) {
+            const hiddenInput = consultationForm.querySelector('input[name="selected_provider"]');
+            if (hiddenInput) {
+                hiddenInput.value = selectedProvider;
+            } else {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'selected_provider';
+                input.value = selectedProvider;
+                consultationForm.appendChild(input);
+            }
+        }
+        if (selectedDiscountType) {
+            const hiddenInput = consultationForm.querySelector('input[name="selected_discount_type"]');
+            if (hiddenInput) {
+                hiddenInput.value = selectedDiscountType;
+            } else {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'selected_discount_type';
+                input.value = selectedDiscountType;
+                consultationForm.appendChild(input);
+            }
+        }
+        if (selectedSubscriptionType) {
+            const hiddenInput = consultationForm.querySelector('input[name="selected_subscription_type"]');
+            if (hiddenInput) {
+                hiddenInput.value = selectedSubscriptionType;
+            } else {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'selected_subscription_type';
+                input.value = selectedSubscriptionType;
+                consultationForm.appendChild(input);
+            }
+        }
+        if (selectedAmount) {
+            const hiddenInput = consultationForm.querySelector('input[name="selected_amount"]');
+            if (hiddenInput) {
+                hiddenInput.value = selectedAmount;
+            } else {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'selected_amount';
+                input.value = selectedAmount;
+                consultationForm.appendChild(input);
+            }
+        }
     }
     
     // 상담신청 모달 닫기
@@ -938,7 +1253,35 @@ document.addEventListener('DOMContentLoaded', function() {
         applyBtn.addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
-            openConsultationModal();
+            
+            // 로그인 체크
+            const isLoggedIn = <?php echo isLoggedIn() ? 'true' : 'false'; ?>;
+            if (!isLoggedIn) {
+                // 비회원: 현재 URL을 세션에 저장 (회원가입 후 돌아올 주소)
+                const currentUrl = window.location.href;
+                fetch('/MVNO/api/save-redirect-url.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ redirect_url: currentUrl })
+                }).then(() => {
+                    // 로그인 모달 열기
+                    if (typeof openLoginModal === 'function') {
+                        openLoginModal(false);
+                    } else {
+                        setTimeout(() => {
+                            if (typeof openLoginModal === 'function') {
+                                openLoginModal(false);
+                            }
+                        }, 100);
+                    }
+                });
+                return;
+            }
+            
+            // 회원: 할인방법 선택 모달 열기
+            openDiscountSelectionModal();
         });
     }
     
@@ -1000,11 +1343,119 @@ document.addEventListener('DOMContentLoaded', function() {
         if (e.key === 'Escape') {
             if (privacyModal && privacyModal.classList.contains('privacy-content-modal-active')) {
                 closePrivacyModal();
+            } else if (discountSelectionModal && discountSelectionModal.classList.contains('discount-selection-modal-active')) {
+                closeDiscountSelectionModal();
             } else if (consultationModal && consultationModal.classList.contains('consultation-modal-active')) {
                 closeConsultationModal();
             }
         }
     });
+    
+    // 휴대폰번호 검증 함수
+    function validatePhoneNumber(phone) {
+        // 숫자만 추출
+        const phoneNumbers = phone.replace(/[^\d]/g, '');
+        // 010으로 시작하는 11자리 숫자 확인
+        return /^010\d{8}$/.test(phoneNumbers);
+    }
+    
+    // 이메일 검증 함수
+    function validateEmail(email) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email.trim());
+    }
+    
+    // 휴대폰번호 포맷팅 함수
+    function formatPhoneNumber(phone) {
+        const phoneNumbers = phone.replace(/[^\d]/g, '');
+        if (phoneNumbers.length === 11 && phoneNumbers.startsWith('010')) {
+            return '010-' + phoneNumbers.substring(3, 7) + '-' + phoneNumbers.substring(7, 11);
+        }
+        return phone;
+    }
+    
+    // 실시간 검증 이벤트
+    const consultationPhone = document.getElementById('consultationPhone');
+    const consultationEmail = document.getElementById('consultationEmail');
+    
+    if (consultationPhone) {
+        // 입력 중 포맷팅
+        consultationPhone.addEventListener('input', function() {
+            const value = this.value;
+            const formatted = formatPhoneNumber(value);
+            if (formatted !== value) {
+                this.value = formatted;
+            }
+        });
+        
+        // 포커스 아웃 시 검증
+        consultationPhone.addEventListener('blur', function() {
+            const value = this.value.trim();
+            if (value && !validatePhoneNumber(value)) {
+                this.classList.add('input-error');
+                if (!this.nextElementSibling || !this.nextElementSibling.classList.contains('error-message')) {
+                    const errorMsg = document.createElement('span');
+                    errorMsg.className = 'error-message';
+                    errorMsg.textContent = '010으로 시작하는 11자리 휴대폰 번호를 입력해주세요.';
+                    errorMsg.style.display = 'block';
+                    errorMsg.style.color = '#ef4444';
+                    errorMsg.style.fontSize = '0.75rem';
+                    errorMsg.style.marginTop = '4px';
+                    this.parentElement.appendChild(errorMsg);
+                }
+            } else {
+                this.classList.remove('input-error');
+                const errorMsg = this.parentElement.querySelector('.error-message');
+                if (errorMsg) {
+                    errorMsg.remove();
+                }
+            }
+        });
+        
+        // 입력 시작 시 에러 제거
+        consultationPhone.addEventListener('focus', function() {
+            this.classList.remove('input-error');
+            const errorMsg = this.parentElement.querySelector('.error-message');
+            if (errorMsg) {
+                errorMsg.remove();
+            }
+        });
+    }
+    
+    if (consultationEmail) {
+        // 포커스 아웃 시 검증
+        consultationEmail.addEventListener('blur', function() {
+            const value = this.value.trim();
+            if (value && !validateEmail(value)) {
+                this.classList.add('input-error');
+                if (!this.nextElementSibling || !this.nextElementSibling.classList.contains('error-message')) {
+                    const errorMsg = document.createElement('span');
+                    errorMsg.className = 'error-message';
+                    errorMsg.textContent = '올바른 이메일 주소를 입력해주세요.';
+                    errorMsg.style.display = 'block';
+                    errorMsg.style.color = '#ef4444';
+                    errorMsg.style.fontSize = '0.75rem';
+                    errorMsg.style.marginTop = '4px';
+                    this.parentElement.appendChild(errorMsg);
+                }
+            } else {
+                this.classList.remove('input-error');
+                const errorMsg = this.parentElement.querySelector('.error-message');
+                if (errorMsg) {
+                    errorMsg.remove();
+                }
+            }
+        });
+        
+        // 입력 시작 시 에러 제거
+        consultationEmail.addEventListener('focus', function() {
+            this.classList.remove('input-error');
+            const errorMsg = this.parentElement.querySelector('.error-message');
+            if (errorMsg) {
+                errorMsg.remove();
+            }
+        });
+    }
     
     // 폼 제출 이벤트
     if (consultationForm) {
@@ -1047,6 +1498,50 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
+            // 필수 필드 검증
+            const consultationName = document.getElementById('consultationName');
+            const consultationPhone = document.getElementById('consultationPhone');
+            const consultationEmail = document.getElementById('consultationEmail');
+            
+            // 이름 검증
+            if (!consultationName || !consultationName.value.trim()) {
+                alert('이름을 입력해주세요.');
+                if (consultationName) consultationName.focus();
+                return;
+            }
+            
+            // 휴대폰번호 검증
+            if (!consultationPhone || !consultationPhone.value.trim()) {
+                alert('휴대폰 번호를 입력해주세요.');
+                if (consultationPhone) consultationPhone.focus();
+                return;
+            }
+            
+            if (!validatePhoneNumber(consultationPhone.value)) {
+                alert('010으로 시작하는 11자리 휴대폰 번호를 입력해주세요.');
+                if (consultationPhone) {
+                    consultationPhone.focus();
+                    consultationPhone.classList.add('input-error');
+                }
+                return;
+            }
+            
+            // 이메일 검증
+            if (!consultationEmail || !consultationEmail.value.trim()) {
+                alert('이메일을 입력해주세요.');
+                if (consultationEmail) consultationEmail.focus();
+                return;
+            }
+            
+            if (!validateEmail(consultationEmail.value)) {
+                alert('올바른 이메일 주소를 입력해주세요.');
+                if (consultationEmail) {
+                    consultationEmail.focus();
+                    consultationEmail.classList.add('input-error');
+                }
+                return;
+            }
+            
             // 모든 동의 체크박스 확인
             const agreementPurpose = document.getElementById('agreementPurpose');
             const agreementItems = document.getElementById('agreementItems');
@@ -1083,11 +1578,20 @@ document.addEventListener('DOMContentLoaded', function() {
                         window.location.href = data.redirect_url;
                     } else {
                         // redirect_url이 없으면 창 닫기
-                        alert('상담신청이 완료되었습니다.');
+                        if (typeof showAlert === 'function') {
+                            showAlert('상담신청이 완료되었습니다.', '신청 완료');
+                        } else {
+                            alert('상담신청이 완료되었습니다.');
+                        }
                         closeConsultationModal();
                     }
                 } else {
-                    alert(data.message || '신청 처리 중 오류가 발생했습니다.');
+                    // 실패 시 모달로 표시
+                    if (typeof showAlert === 'function') {
+                        showAlert(data.message || '신청정보 저장에 실패했습니다.', '신청 실패');
+                    } else {
+                        alert(data.message || '신청정보 저장에 실패했습니다.');
+                    }
                     if (submitBtn) {
                         submitBtn.disabled = false;
                         submitBtn.textContent = '신청하기';
@@ -1096,7 +1600,12 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .catch(error => {
                 console.error('신청 처리 오류:', error);
-                alert('신청 처리 중 오류가 발생했습니다.');
+                // 에러 발생 시 모달로 표시
+                if (typeof showAlert === 'function') {
+                    showAlert('신청 처리 중 오류가 발생했습니다.', '오류');
+                } else {
+                    alert('신청 처리 중 오류가 발생했습니다.');
+                }
                 if (submitBtn) {
                     submitBtn.disabled = false;
                     submitBtn.textContent = '신청하기';

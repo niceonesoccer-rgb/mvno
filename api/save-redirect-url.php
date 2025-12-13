@@ -35,3 +35,5 @@ $_SESSION['redirect_url'] = $redirectUrl;
 
 echo json_encode(['success' => true]);
 
+
+

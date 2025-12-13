@@ -6,10 +6,36 @@
 // 한국 시간대 설정 (KST, UTC+9)
 date_default_timezone_set('Asia/Seoul');
 
-// 세션 시작 (헤더가 전송되지 않은 경우에만)
+// 세션 설정 (전체 사이트에서 공유되도록)
 if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
+    // 세션 이름 설정 (일관성 유지) - session_start() 전에 설정해야 함
+    $currentSessionName = session_name();
+    if (empty($currentSessionName) || $currentSessionName === 'PHPSESSID') {
+        session_name('MVNO_SESSION');
+    }
+    
+    // 세션 쿠키 설정 - 전체 사이트에서 공유되도록
+    // PHP 7.3.0 이상에서는 배열 형태 지원, 그 이하에서는 개별 매개변수 사용
+    if (version_compare(PHP_VERSION, '7.3.0', '>=')) {
+        session_set_cookie_params([
+            'lifetime' => 0, // 브라우저 종료 시까지 유지
+            'path' => '/', // 전체 사이트에서 공유
+            'domain' => '', // 현재 도메인 사용 (빈 문자열)
+            'secure' => false, // HTTPS가 아닐 경우 false
+            'httponly' => true, // XSS 공격 방지
+            'samesite' => 'Lax' // CSRF 공격 방지
+        ]);
+    } else {
+        // PHP 7.3.0 미만 버전용 (개별 매개변수)
+        session_set_cookie_params(0, '/', '', false, true);
+    }
+    
+    // 세션 시작
     session_start();
 }
+
+// 데이터베이스 연결 포함
+require_once __DIR__ . '/db-config.php';
 
 /**
  * 사용자 데이터 파일 경로
@@ -34,13 +60,39 @@ function getSellersFilePath() {
 function getUsersData() {
     $allUsers = [];
     
-    // 일반 회원 (users.json)
-    $usersFile = getUsersFilePath();
-    if (file_exists($usersFile)) {
-        clearstatcache(true, $usersFile); // 파일 캐시 클리어
-        $content = file_get_contents($usersFile);
-        $data = json_decode($content, true) ?: ['users' => []];
-        $allUsers = array_merge($allUsers, $data['users'] ?? []);
+    // 일반 회원 (DB에서 조회)
+    $pdo = getDBConnection();
+    if ($pdo) {
+        try {
+            $stmt = $pdo->query("SELECT * FROM users WHERE role = 'user'");
+            $dbUsers = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            // JSON 필드 처리 및 배열 형식 통일
+            foreach ($dbUsers as $user) {
+                if (isset($user['permissions']) && is_string($user['permissions'])) {
+                    $user['permissions'] = json_decode($user['permissions'], true) ?: [];
+                }
+                // seller_approved를 boolean으로 변환
+                if (isset($user['seller_approved'])) {
+                    $user['seller_approved'] = (bool)$user['seller_approved'];
+                }
+                $allUsers[] = $user;
+            }
+        } catch (PDOException $e) {
+            error_log("getUsersData DB error: " . $e->getMessage());
+            // DB 오류 시 JSON 파일에서 읽기 (하위 호환성)
+        }
+    }
+    
+    // DB 연결 실패 시 JSON 파일에서 읽기 (하위 호환성)
+    if (empty($allUsers) || !$pdo) {
+        $usersFile = getUsersFilePath();
+        if (file_exists($usersFile)) {
+            clearstatcache(true, $usersFile); // 파일 캐시 클리어
+            $content = file_get_contents($usersFile);
+            $data = json_decode($content, true) ?: ['users' => []];
+            $allUsers = array_merge($allUsers, $data['users'] ?? []);
+        }
     }
     
     // 관리자 (admins.json)
@@ -113,9 +165,40 @@ function generateSnsUserId($provider, $snsId) {
 }
 
 /**
- * 사용자 ID로 사용자 찾기 (역할별 DB 분리 검색)
+ * 사용자 ID로 사용자 찾기 (DB에서 검색)
  */
 function getUserById($userId) {
+    $pdo = getDBConnection();
+    if (!$pdo) {
+        // DB 연결 실패 시 JSON 파일에서 검색 (하위 호환성)
+        return getUserByIdFromJson($userId);
+    }
+    
+    try {
+        $stmt = $pdo->prepare("SELECT * FROM users WHERE user_id = :user_id LIMIT 1");
+        $stmt->execute([':user_id' => $userId]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if ($user) {
+            // JSON 필드 처리
+            if (isset($user['permissions']) && is_string($user['permissions'])) {
+                $user['permissions'] = json_decode($user['permissions'], true) ?: [];
+            }
+            return $user;
+        }
+        
+        return null;
+    } catch (PDOException $e) {
+        error_log("getUserById error: " . $e->getMessage());
+        // DB 오류 시 JSON 파일에서 검색 (하위 호환성)
+        return getUserByIdFromJson($userId);
+    }
+}
+
+/**
+ * JSON 파일에서 사용자 ID로 사용자 찾기 (하위 호환성)
+ */
+function getUserByIdFromJson($userId) {
     // 1. 일반 회원 검색 (users.json)
     $usersFile = getUsersFilePath();
     if (file_exists($usersFile)) {
@@ -156,9 +239,40 @@ function getUserById($userId) {
 }
 
 /**
- * 이메일로 사용자 찾기 (역할별 DB 분리 검색)
+ * 이메일로 사용자 찾기 (DB에서 검색)
  */
 function getUserByEmail($email) {
+    $pdo = getDBConnection();
+    if (!$pdo) {
+        // DB 연결 실패 시 JSON 파일에서 검색 (하위 호환성)
+        return getUserByEmailFromJson($email);
+    }
+    
+    try {
+        $stmt = $pdo->prepare("SELECT * FROM users WHERE email = :email LIMIT 1");
+        $stmt->execute([':email' => $email]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if ($user) {
+            // JSON 필드 처리
+            if (isset($user['permissions']) && is_string($user['permissions'])) {
+                $user['permissions'] = json_decode($user['permissions'], true) ?: [];
+            }
+            return $user;
+        }
+        
+        return null;
+    } catch (PDOException $e) {
+        error_log("getUserByEmail error: " . $e->getMessage());
+        // DB 오류 시 JSON 파일에서 검색 (하위 호환성)
+        return getUserByEmailFromJson($email);
+    }
+}
+
+/**
+ * JSON 파일에서 이메일로 사용자 찾기 (하위 호환성)
+ */
+function getUserByEmailFromJson($email) {
     // 1. 일반 회원 검색 (users.json)
     $usersFile = getUsersFilePath();
     if (file_exists($usersFile)) {
@@ -199,9 +313,43 @@ function getUserByEmail($email) {
 }
 
 /**
- * SNS ID로 사용자 찾기 (역할별 DB 분리 검색)
+ * SNS ID로 사용자 찾기 (DB에서 검색)
  */
 function getUserBySnsId($provider, $snsId) {
+    $pdo = getDBConnection();
+    if (!$pdo) {
+        // DB 연결 실패 시 JSON 파일에서 검색 (하위 호환성)
+        return getUserBySnsIdFromJson($provider, $snsId);
+    }
+    
+    try {
+        $stmt = $pdo->prepare("SELECT * FROM users WHERE sns_provider = :provider AND sns_id = :sns_id LIMIT 1");
+        $stmt->execute([
+            ':provider' => $provider,
+            ':sns_id' => $snsId
+        ]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if ($user) {
+            // JSON 필드 처리
+            if (isset($user['permissions']) && is_string($user['permissions'])) {
+                $user['permissions'] = json_decode($user['permissions'], true) ?: [];
+            }
+            return $user;
+        }
+        
+        return null;
+    } catch (PDOException $e) {
+        error_log("getUserBySnsId error: " . $e->getMessage());
+        // DB 오류 시 JSON 파일에서 검색 (하위 호환성)
+        return getUserBySnsIdFromJson($provider, $snsId);
+    }
+}
+
+/**
+ * JSON 파일에서 SNS ID로 사용자 찾기 (하위 호환성)
+ */
+function getUserBySnsIdFromJson($provider, $snsId) {
     // 1. 일반 회원 검색 (users.json) - SNS 로그인은 주로 일반 회원
     $usersFile = getUsersFilePath();
     if (file_exists($usersFile)) {
@@ -353,6 +501,32 @@ function registerSnsUser($provider, $snsId, $email, $name) {
         $userId = generateSnsUserId($provider, $snsId . rand(1000, 9999));
     }
     
+    $pdo = getDBConnection();
+    if ($pdo) {
+        // DB에 저장
+        try {
+            $stmt = $pdo->prepare("
+                INSERT INTO users (user_id, email, name, role, sns_provider, sns_id, seller_approved, created_at)
+                VALUES (:user_id, :email, :name, 'user', :sns_provider, :sns_id, 0, NOW())
+            ");
+            $stmt->execute([
+                ':user_id' => $userId,
+                ':email' => $email,
+                ':name' => $name,
+                ':sns_provider' => $provider,
+                ':sns_id' => $snsId
+            ]);
+            
+            // 저장된 사용자 정보 반환
+            $newUser = getUserById($userId);
+            return $newUser;
+        } catch (PDOException $e) {
+            error_log("registerSnsUser DB error: " . $e->getMessage());
+            // DB 오류 시 JSON 파일에 저장 (하위 호환성)
+        }
+    }
+    
+    // DB 연결 실패 또는 오류 시 JSON 파일에 저장 (하위 호환성)
     $newUser = [
         'user_id' => $userId,
         'email' => $email,
@@ -364,7 +538,6 @@ function registerSnsUser($provider, $snsId, $email, $name) {
         'seller_approved' => false
     ];
     
-    // users.json에만 저장 (일반 회원)
     $file = getUsersFilePath();
     $data = file_exists($file) ? json_decode(file_get_contents($file), true) : ['users' => []];
     $data['users'][] = $newUser;
@@ -408,24 +581,55 @@ function registerDirectUser($userId, $password, $email, $name, $role, $additiona
         $newUser['approval_status'] = 'pending';
     }
     
-    // 추가 데이터 병합 (판매자 정보 등)
+    // 추가 데이터 병합 (일반 회원의 경우 phone만 추가)
     if (!empty($additionalData)) {
         $newUser = array_merge($newUser, $additionalData);
     }
     
-    // 역할에 따라 적절한 파일에 저장
+    // 일반 회원(user)만 DB에 저장, 나머지는 JSON 파일에 저장
     if ($role === 'user') {
-        // 일반 회원은 users.json에 저장
+        $pdo = getDBConnection();
+        if ($pdo) {
+            // 일반 회원은 DB에 저장
+            try {
+                $stmt = $pdo->prepare("
+                    INSERT INTO users (
+                        user_id, email, name, password, phone, role, seller_approved, created_at
+                    ) VALUES (
+                        :user_id, :email, :name, :password, :phone, 'user', 1, NOW()
+                    )
+                ");
+                
+                $stmt->execute([
+                    ':user_id' => $newUser['user_id'],
+                    ':email' => $newUser['email'],
+                    ':name' => $newUser['name'],
+                    ':password' => $newUser['password'],
+                    ':phone' => $newUser['phone'] ?? null
+                ]);
+                
+                // 저장된 사용자 정보 반환
+                $savedUser = getUserById($userId);
+                return ['success' => true, 'user' => $savedUser];
+            } catch (PDOException $e) {
+                error_log("registerDirectUser DB error: " . $e->getMessage());
+                // DB 오류 시 JSON 파일에 저장 (하위 호환성)
+            }
+        }
+        
+        // DB 연결 실패 시 JSON 파일에 저장 (하위 호환성)
         $file = getUsersFilePath();
         $data = file_exists($file) ? json_decode(file_get_contents($file), true) : ['users' => []];
         $data['users'][] = $newUser;
         file_put_contents($file, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
     } elseif ($role === 'admin' || $role === 'sub_admin') {
+        // 관리자는 JSON 파일에 저장
         $file = getAdminsFilePath();
         $data = file_exists($file) ? json_decode(file_get_contents($file), true) : ['admins' => []];
         $data['admins'][] = $newUser;
         file_put_contents($file, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
     } elseif ($role === 'seller') {
+        // 판매자는 JSON 파일에 저장
         $file = getSellersFilePath();
         $data = file_exists($file) ? json_decode(file_get_contents($file), true) : ['sellers' => []];
         $data['sellers'][] = $newUser;

@@ -4,6 +4,9 @@
  */
 require_once __DIR__ . '/../../includes/data/auth-functions.php';
 
+// 로그인 상태 확인
+$isLoggedIn = isLoggedIn();
+
 // 관리자/판매자 페이지 확인
 $currentPath = $_SERVER['REQUEST_URI'] ?? '';
 $isAdminPage = strpos($currentPath, '/admin/') !== false;
@@ -303,6 +306,7 @@ $isRegisterMode = false; // 기본값은 로그인 모드
     object-fit: contain;
     transition: all 0.2s ease;
     border-radius: 12px;
+    cursor: pointer;
 }
 
 .login-sns-button-img:hover {
@@ -418,7 +422,8 @@ $isRegisterMode = false; // 기본값은 로그인 모드
     margin-bottom: 8px;
 }
 
-.login-form-group input {
+.login-form-group input,
+.login-form-group select {
     width: 100%;
     padding: 12px 16px;
     border: 1px solid #d1d5db;
@@ -426,6 +431,12 @@ $isRegisterMode = false; // 기본값은 로그인 모드
     font-size: 15px;
     transition: border-color 0.2s;
     box-sizing: border-box;
+}
+
+.login-form-group input:focus,
+.login-form-group select:focus {
+    outline: none;
+    border-color: #6366f1;
 }
 
 .login-form-group.password-wrapper {
@@ -673,24 +684,24 @@ $isRegisterMode = false; // 기본값은 로그인 모드
                 <div class="login-sns-section">
                     <!-- SNS 로그인 버튼 -->
                     <div class="login-sns-buttons" style="margin-bottom: 32px;">
-                        <img src="/MVNO/assets/images/logo/button-kakao-login.png" alt="카카오톡 로그인" class="login-sns-button-img" onclick="snsLoginModal('kakao')" style="cursor: pointer; width: 100%; height: auto; border-radius: 12px;">
-                        <img src="/MVNO/assets/images/logo/button-naver-login.png" alt="네이버로 로그인" class="login-sns-button-img" onclick="snsLoginModal('naver')" style="cursor: pointer; width: 100%; height: auto; border-radius: 12px;">
-                        <img src="/MVNO/assets/images/logo/button-google-login.png" alt="구글 로그인" class="login-sns-button-img google" onclick="snsLoginModal('google')" style="cursor: pointer; width: 100%; height: auto; border-radius: 12px;">
+                        <img src="/MVNO/assets/images/logo/button-kakao-login.png" alt="카카오톡 로그인" class="login-sns-button-img" onclick="snsLoginModal('kakao')">
+                        <img src="/MVNO/assets/images/logo/button-naver-login.png" alt="네이버로 로그인" class="login-sns-button-img" onclick="snsLoginModal('naver')">
+                        <img src="/MVNO/assets/images/logo/button-google-login.png" alt="구글 로그인" class="login-sns-button-img google" onclick="snsLoginModal('google')">
                     </div>
                     
                     <!-- 일반 로그인 폼 -->
                     <div class="login-form-section">
                         <form id="loginForm" method="POST" action="/MVNO/api/direct-login.php">
-                            <div class="login-form-group" style="margin-bottom: 16px;">
-                                <input type="text" id="login_user_id" name="user_id" placeholder="아이디 입력 필드" required style="width: 100%; padding: 12px 16px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 15px;">
+                            <div class="login-form-group">
+                                <input type="text" id="login_user_id" name="user_id" placeholder="아이디" required>
                             </div>
-                            <div class="login-form-group" style="margin-bottom: 20px;">
-                                <input type="password" id="login_password" name="password" placeholder="비밀번호 입력 필드" required style="width: 100%; padding: 12px 16px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 15px;">
+                            <div class="login-form-group">
+                                <input type="password" id="login_password" name="password" placeholder="비밀번호" required>
                             </div>
                             <button type="submit" class="login-form-button">로그인</button>
                         </form>
-                        <div class="login-form-switch" style="margin-top: 24px; text-align: center;">
-                            아직 회원이 아니신가요? <a href="#" onclick="switchToRegisterMode(); return false;" style="color: #6366f1; text-decoration: none; font-weight: 500;">회원가입</a>
+                        <div class="login-form-switch">
+                            아직 회원이 아니신가요? <a href="#" onclick="switchToRegisterMode(); return false;">회원가입</a>
                         </div>
                     </div>
                 </div>
@@ -702,9 +713,9 @@ $isRegisterMode = false; // 기본값은 로그인 모드
                     <h3 class="login-benefits-title">SNS로 회원가입</h3>
                     
                     <div class="login-sns-buttons" style="margin-top: 24px;">
-                        <img src="/MVNO/assets/images/logo/button-kakao-login.png" alt="카카오톡 로그인" class="login-sns-button-img" onclick="snsLoginModal('kakao')" style="cursor: pointer; width: 100%; height: auto; border-radius: 12px;">
-                        <img src="/MVNO/assets/images/logo/button-naver-login.png" alt="네이버로 로그인" class="login-sns-button-img" onclick="snsLoginModal('naver')" style="cursor: pointer; width: 100%; height: auto; border-radius: 12px;">
-                        <img src="/MVNO/assets/images/logo/button-google-login.png" alt="구글 로그인" class="login-sns-button-img google" onclick="snsLoginModal('google')" style="cursor: pointer; width: 100%; height: auto; border-radius: 12px;">
+                        <img src="/MVNO/assets/images/logo/button-kakao-login.png" alt="카카오톡 로그인" class="login-sns-button-img" onclick="snsLoginModal('kakao')">
+                        <img src="/MVNO/assets/images/logo/button-naver-login.png" alt="네이버로 로그인" class="login-sns-button-img" onclick="snsLoginModal('naver')">
+                        <img src="/MVNO/assets/images/logo/button-google-login.png" alt="구글 로그인" class="login-sns-button-img google" onclick="snsLoginModal('google')">
                     </div>
                     
                     <div class="login-divider">
@@ -717,24 +728,39 @@ $isRegisterMode = false; // 기본값은 로그인 모드
                             <input type="hidden" name="role" value="user">
                             <div class="login-form-group">
                                 <label for="register_user_id">아이디 <span style="color: #ef4444;">*</span></label>
-                                <input type="text" id="register_user_id" name="user_id" required placeholder="아이디 입력 (영문, 숫자만 가능, 최소 4자)" pattern="[A-Za-z0-9]+" title="영문과 숫자만 입력 가능합니다">
+                                <input type="text" id="register_user_id" name="user_id" required placeholder="아이디 입력 (영문, 숫자만 가능, 5-20자)" pattern="[A-Za-z0-9]{5,20}" title="영문과 숫자만 입력 가능하며 5-20자입니다" minlength="5" maxlength="20">
                                 <div id="userIdCheckResult" style="margin-top: 6px; font-size: 13px; min-height: 18px;"></div>
                             </div>
                             <div class="login-form-group">
                                 <label for="register_name">이름 <span style="color: #ef4444;">*</span></label>
-                                <input type="text" id="register_name" name="name" required placeholder="이름 입력">
+                                <input type="text" id="register_name" name="name" required placeholder="이름 입력 (최대 15자)" maxlength="15">
                             </div>
                             <div class="login-form-group">
                                 <label for="register_phone">휴대폰번호 <span style="color: #ef4444;">*</span></label>
-                                <input type="tel" id="register_phone" name="phone" required placeholder="010-1234-5678" pattern="010-\d{4}-\d{4}" maxlength="13">
+                                <input type="tel" id="register_phone" name="phone" required placeholder="010-1234-5678" pattern="^010-\d{4}-\d{4}$" maxlength="13" title="010으로 시작하는 번호만 가능합니다">
                             </div>
                             <div class="login-form-group">
                                 <label for="register_email">이메일 <span style="color: #ef4444;">*</span></label>
-                                <input type="email" id="register_email" name="email" required placeholder="이메일 입력">
+                                <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                                    <input type="text" id="register_email_local" name="email_local" required placeholder="이메일 아이디 (영문 소문자, 숫자만)" maxlength="20" pattern="[a-z0-9]+" title="영문 소문자와 숫자만 입력 가능합니다" style="flex: 1; min-width: 120px;">
+                                    <span style="line-height: 44px; flex-shrink: 0;">@</span>
+                                    <select id="register_email_domain" name="email_domain" required style="flex: 1; min-width: 140px;">
+                                        <option value="">도메인 선택</option>
+                                        <option value="naver.com">naver.com</option>
+                                        <option value="gmail.com">gmail.com</option>
+                                        <option value="hanmail.net">hanmail.net</option>
+                                        <option value="nate.com">nate.com</option>
+                                        <option value="custom">직접입력</option>
+                                    </select>
+                                </div>
+                                <input type="text" id="register_email_custom" name="email_custom" placeholder="직접입력 도메인 (naver.com, gmail.com, hanmail.net, nate.com 중 하나)" maxlength="50" style="display: none; margin-top: 8px; width: 100%; padding: 12px 16px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 15px; box-sizing: border-box;">
+                                <div id="emailCustomCheckResult" style="display: none; margin-top: 6px; font-size: 13px; min-height: 18px;"></div>
+                                <div id="emailCheckResult" style="margin-top: 6px; font-size: 13px; min-height: 18px;"></div>
+                                <input type="hidden" id="register_email" name="email">
                             </div>
                             <div class="login-form-group password-wrapper">
                                 <label for="register_password">비밀번호</label>
-                                <input type="password" id="register_password" name="password" required minlength="8" placeholder="비밀번호 입력 (영문 대소문자, 숫자, 특수문자 포함 8자 이상)">
+                                <input type="password" id="register_password" name="password" required minlength="8" maxlength="20" placeholder="비밀번호 입력 (영문자, 숫자, 특수문자 중 2가지 이상 조합 8-20자)">
                                 <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('register_password', this)" aria-label="비밀번호 표시/숨김">
                                     <svg id="register_password_eye" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
@@ -744,13 +770,14 @@ $isRegisterMode = false; // 기본값은 로그인 모드
                             </div>
                             <div class="login-form-group password-wrapper">
                                 <label for="register_password_confirm">비밀번호 확인</label>
-                                <input type="password" id="register_password_confirm" name="password_confirm" required minlength="8" placeholder="비밀번호 확인">
+                                <input type="password" id="register_password_confirm" name="password_confirm" required minlength="8" maxlength="20" placeholder="비밀번호 확인">
                                 <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('register_password_confirm', this)" aria-label="비밀번호 표시/숨김">
                                     <svg id="register_password_confirm_eye" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                                         <circle cx="12" cy="12" r="3"></circle>
                                     </svg>
                                 </button>
+                                <div id="passwordConfirmCheckResult" style="margin-top: 6px; font-size: 13px; min-height: 18px;"></div>
                             </div>
                             <button type="submit" class="login-form-button">회원가입</button>
                         </form>
@@ -768,8 +795,16 @@ $isRegisterMode = false; // 기본값은 로그인 모드
 </div>
 
 <script>
+// 로그인 상태 확인 (PHP에서 전달)
+const isLoggedIn = <?php echo $isLoggedIn ? 'true' : 'false'; ?>;
+
 // 로그인 모달 열기/닫기
 function openLoginModal(isRegister = false) {
+    // 로그인되어 있으면 모달을 열지 않음
+    if (isLoggedIn) {
+        return;
+    }
+    
     const modal = document.getElementById('loginModal');
     const title = document.getElementById('loginModalTitle');
     const loginContent = document.getElementById('loginModeContent');
@@ -841,11 +876,11 @@ function snsLoginModal(provider) {
         });
 }
 
-// 모달 초기화
+// 모달 초기화 및 폼 처리
 document.addEventListener('DOMContentLoaded', function() {
     const modal = document.getElementById('loginModal');
     const closeBtn = document.getElementById('loginModalClose');
-    const overlay = modal.querySelector('.login-modal-overlay');
+    const overlay = modal ? modal.querySelector('.login-modal-overlay') : null;
     
     // 닫기 버튼
     if (closeBtn) {
@@ -857,17 +892,7 @@ document.addEventListener('DOMContentLoaded', function() {
         overlay.addEventListener('click', closeLoginModal);
     }
     
-    // ESC 키로 닫기
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' && modal.classList.contains('login-modal-active')) {
-            closeLoginModal();
-        }
-    });
-    
-});
-
-// 로그인 폼 제출 처리
-document.addEventListener('DOMContentLoaded', function() {
+    // 로그인 폼 제출 처리
     const loginForm = document.getElementById('loginForm');
     if (loginForm) {
         loginForm.addEventListener('submit', function(e) {
@@ -903,26 +928,18 @@ document.addEventListener('DOMContentLoaded', function() {
             const userId = document.getElementById('register_user_id').value.trim();
             const phone = document.getElementById('register_phone').value.trim();
             const name = document.getElementById('register_name').value.trim();
-            const email = document.getElementById('register_email').value.trim();
             const password = document.getElementById('register_password').value;
             const passwordConfirm = document.getElementById('register_password_confirm').value;
             
-            if (!userId || !phone || !name || !email) {
-                alert('아이디, 휴대폰번호, 이름, 이메일은 필수 입력 항목입니다.');
+            if (!userId || !phone || !name) {
+                alert('아이디, 휴대폰번호, 이름은 필수 입력 항목입니다.');
                 return;
             }
             
-            // 아이디 검증: 영문, 숫자만 가능
-            const userIdPattern = /^[A-Za-z0-9]+$/;
+            // 아이디 검증: 영문, 숫자만 가능, 5-20자
+            const userIdPattern = /^[A-Za-z0-9]{5,20}$/;
             if (!userIdPattern.test(userId)) {
-                alert('아이디는 영문과 숫자만 사용할 수 있습니다.');
-                document.getElementById('register_user_id').focus();
-                return;
-            }
-            
-            // 아이디 최소 길이 확인
-            if (userId.length < 4) {
-                alert('아이디는 최소 4자 이상이어야 합니다.');
+                alert('아이디는 영문과 숫자만 사용할 수 있으며 5자 이상 20자 이내여야 합니다.');
                 document.getElementById('register_user_id').focus();
                 return;
             }
@@ -935,29 +952,100 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
-            // 전화번호 형식 검증 (010-XXXX-XXXX)
+            // 이름 길이 검증 (15자 이내)
+            if (name.length > 15) {
+                alert('이름은 15자 이내로 입력해주세요.');
+                document.getElementById('register_name').focus();
+                return;
+            }
+            
+            // 전화번호 형식 검증 (010으로만 시작)
             const phonePattern = /^010-\d{4}-\d{4}$/;
             if (!phonePattern.test(phone)) {
-                alert('휴대폰번호는 010-XXXX-XXXX 형식으로 입력해주세요.');
+                alert('휴대폰번호는 010으로 시작하는 번호만 가능합니다. (010-XXXX-XXXX 형식)');
                 document.getElementById('register_phone').focus();
                 return;
             }
             
-            // 비밀번호 검증: 영문 대소문자, 숫자, 특수문자 포함, 최소 8자리
-            if (password.length < 8) {
-                alert('비밀번호는 최소 8자 이상이어야 합니다.');
+            // 이메일 조합 및 검증
+            const emailLocal = document.getElementById('register_email_local').value.trim();
+            const emailDomain = document.getElementById('register_email_domain').value;
+            const emailCustom = document.getElementById('register_email_custom').value.trim();
+            
+            if (!emailLocal) {
+                alert('이메일 아이디를 입력해주세요.');
+                document.getElementById('register_email_local').focus();
+                return;
+            }
+            
+            // 영문 소문자와 숫자만 허용
+            if (!/^[a-z0-9]+$/.test(emailLocal)) {
+                alert('이메일 아이디는 영문 소문자와 숫자만 사용할 수 있습니다.');
+                document.getElementById('register_email_local').focus();
+                return;
+            }
+            
+            if (emailLocal.length > 20) {
+                alert('이메일 아이디는 20자 이내로 입력해주세요.');
+                document.getElementById('register_email_local').focus();
+                return;
+            }
+            
+            let finalEmail = '';
+            if (emailDomain === 'custom') {
+                if (!emailCustom) {
+                    alert('직접입력 도메인을 입력해주세요.');
+                    document.getElementById('register_email_custom').focus();
+                    return;
+                }
+                finalEmail = emailLocal + '@' + emailCustom;
+            } else {
+                if (!emailDomain) {
+                    alert('이메일 도메인을 선택해주세요.');
+                    document.getElementById('register_email_domain').focus();
+                    return;
+                }
+                finalEmail = emailLocal + '@' + emailDomain;
+            }
+            
+            // 전체 이메일 주소 길이 검증 (20자 이내)
+            if (finalEmail.length > 20) {
+                alert('이메일 주소는 20자 이내로 입력해주세요.');
+                return;
+            }
+            
+            // 허용된 도메인 검증 (드롭다운 선택 시에만 적용, 직접입력은 형식만 검증)
+            if (emailDomain !== 'custom') {
+                const allowedDomains = ['naver.com', 'gmail.com', 'hanmail.net', 'nate.com'];
+                const emailDomainPart = finalEmail.split('@')[1].toLowerCase();
+                
+                if (!allowedDomains.includes(emailDomainPart)) {
+                    alert('허용된 이메일 도메인만 사용할 수 있습니다. (naver.com, gmail.com, hanmail.net, nate.com)');
+                    document.getElementById('register_email_domain').focus();
+                    return;
+                }
+            }
+            
+            // 이메일을 hidden 필드에 설정
+            document.getElementById('register_email').value = finalEmail;
+            
+            // 비밀번호 검증: 영문자, 숫자, 특수문자 중 2가지 이상 조합, 8-20자
+            if (password.length < 8 || password.length > 20) {
+                alert('비밀번호는 8자 이상 20자 이내로 입력해주세요.');
                 document.getElementById('register_password').focus();
                 return;
             }
             
-            // 영문 대소문자, 숫자, 특수문자(@#$%^&*!?_-=) 포함 확인
-            const hasUpperCase = /[A-Z]/.test(password);
-            const hasLowerCase = /[a-z]/.test(password);
+            // 영문자(대소문자 구분 없이), 숫자, 특수문자(@#$%^&*!?_-=) 중 2가지 이상 조합 확인
+            const hasLetter = /[A-Za-z]/.test(password);
             const hasNumber = /[0-9]/.test(password);
             const hasSpecialChar = /[@#$%^&*!?_\-=]/.test(password);
             
-            if (!hasUpperCase || !hasLowerCase || !hasNumber || !hasSpecialChar) {
-                alert('비밀번호는 영문 대소문자, 숫자, 특수문자(@#$%^&*!?_-=)를 포함해야 합니다.');
+            // 2가지 이상 조합인지 확인
+            const combinationCount = (hasLetter ? 1 : 0) + (hasNumber ? 1 : 0) + (hasSpecialChar ? 1 : 0);
+            
+            if (combinationCount < 2) {
+                alert('비밀번호는 영문자, 숫자, 특수문자(@#$%^&*!?_-=) 중 2가지 이상 조합해야 합니다.');
                 document.getElementById('register_password').focus();
                 return;
             }
@@ -971,13 +1059,38 @@ document.addEventListener('DOMContentLoaded', function() {
             this.submit();
         });
         
-        // 전화번호 자동 포맷팅 (010-XXXX-XXXX)
+        // 전화번호 자동 포맷팅 (010-XXXX-XXXX, 010으로만 시작)
         const phoneInput = document.getElementById('register_phone');
         if (phoneInput) {
+            let previousValue = '';
+            
             phoneInput.addEventListener('input', function(e) {
                 let value = e.target.value.replace(/[^\d]/g, '');
-                if (value.length > 11) value = value.substring(0, 11);
                 
+                // 입력된 숫자 길이에 따라 검증
+                let isValid = false;
+                if (value.length === 0) {
+                    isValid = true; // 빈 값은 허용
+                } else if (value.length === 1) {
+                    isValid = value === '0'; // 첫 번째는 0만 허용
+                } else if (value.length === 2) {
+                    isValid = value === '01'; // 두 번째는 1만 허용
+                } else if (value.length >= 3) {
+                    isValid = value.startsWith('010'); // 세 번째부터는 010으로 시작해야 함
+                }
+                
+                // 유효하지 않으면 이전 값으로 되돌림
+                if (!isValid) {
+                    e.target.value = previousValue;
+                    return;
+                }
+                
+                // 최대 11자리 제한
+                if (value.length > 11) {
+                    value = value.substring(0, 11);
+                }
+                
+                // 포맷팅 (010-XXXX-XXXX)
                 if (value.length > 7) {
                     value = value.substring(0, 3) + '-' + value.substring(3, 7) + '-' + value.substring(7);
                 } else if (value.length > 3) {
@@ -985,6 +1098,164 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 
                 e.target.value = value;
+                previousValue = value;
+            });
+            
+            // 포커스 아웃 시 010으로 시작하는지 확인
+            phoneInput.addEventListener('blur', function(e) {
+                const value = e.target.value.replace(/[^\d]/g, '');
+                if (value.length > 0 && !value.startsWith('010')) {
+                    alert('휴대폰번호는 010으로 시작하는 번호만 가능합니다.');
+                    e.target.value = '';
+                }
+            });
+        }
+        
+        // 이메일 아이디 입력 필터링 (영문 소문자, 숫자만)
+        const emailLocalInput = document.getElementById('register_email_local');
+        const emailCheckResult = document.getElementById('emailCheckResult');
+        if (emailLocalInput && emailCheckResult) {
+            let previousValue = '';
+            
+            emailLocalInput.addEventListener('input', function(e) {
+                let value = e.target.value;
+                const originalValue = value;
+                
+                // 영문 소문자와 숫자만 허용
+                value = value.replace(/[^a-z0-9]/g, '');
+                
+                // 한글이나 다른 문자가 제거되었는지 확인
+                if (originalValue !== value) {
+                    // 한글이나 특수문자 입력 감지
+                    emailCheckResult.textContent = '이메일 주소는 영문자와 숫자만 입력 가능합니다.';
+                    emailCheckResult.className = 'user-id-check-result error';
+                    emailCheckResult.style.color = '#ef4444';
+                } else {
+                    // 정상 입력(영문자, 숫자만)이거나 빈 값이면 메시지 제거
+                    emailCheckResult.textContent = '';
+                    emailCheckResult.className = '';
+                }
+                
+                e.target.value = value;
+                previousValue = value;
+            });
+            
+            // 대문자 입력 시 자동으로 소문자로 변환
+            emailLocalInput.addEventListener('keypress', function(e) {
+                const char = String.fromCharCode(e.which);
+                if (/[A-Z]/.test(char)) {
+                    e.preventDefault();
+                    const start = e.target.selectionStart;
+                    const end = e.target.selectionEnd;
+                    const value = e.target.value;
+                    e.target.value = value.substring(0, start) + char.toLowerCase() + value.substring(end);
+                    e.target.setSelectionRange(start + 1, start + 1);
+                }
+            });
+        }
+        
+        // 이메일 도메인 선택 처리
+        const emailDomainSelect = document.getElementById('register_email_domain');
+        const emailCustomInput = document.getElementById('register_email_custom');
+        const emailCustomCheckResult = document.getElementById('emailCustomCheckResult');
+        if (emailDomainSelect && emailCustomInput && emailCustomCheckResult) {
+            emailDomainSelect.addEventListener('change', function() {
+                if (this.value === 'custom') {
+                    emailCustomInput.style.display = 'block';
+                    emailCustomInput.required = true;
+                    emailCustomCheckResult.style.display = 'block';
+                } else {
+                    emailCustomInput.style.display = 'none';
+                    emailCustomInput.required = false;
+                    emailCustomInput.value = '';
+                    emailCustomCheckResult.style.display = 'none';
+                    emailCustomCheckResult.textContent = '';
+                    emailCustomCheckResult.className = '';
+                }
+            });
+            
+            // 직접입력 도메인 입력 필터링 (입력 중에는 필터링만)
+            emailCustomInput.addEventListener('input', function(e) {
+                let domain = e.target.value;
+                const originalValue = domain;
+                
+                // 영문 소문자와 숫자, 점만 허용 (대문자는 소문자로 변환, 한글/특수문자 제거)
+                domain = domain.toLowerCase().replace(/[^a-z0-9.]/g, '');
+                
+                // 입력 필터링 적용
+                if (originalValue !== domain) {
+                    e.target.value = domain;
+                }
+                
+                // 입력 중에는 메시지 숨김
+                emailCustomCheckResult.textContent = '';
+                emailCustomCheckResult.className = '';
+            });
+            
+            // 직접입력 도메인 포커스 이동 시 검증
+            emailCustomInput.addEventListener('blur', function(e) {
+                let domain = e.target.value.trim();
+                
+                if (domain.length === 0) {
+                    emailCustomCheckResult.textContent = '';
+                    emailCustomCheckResult.className = '';
+                    return;
+                }
+                
+                // 연속된 점 체크
+                if (/\.{2,}/.test(domain)) {
+                    emailCustomCheckResult.textContent = '이메일 형식에 맞게 입력해주세요.';
+                    emailCustomCheckResult.className = 'user-id-check-result error';
+                    emailCustomCheckResult.style.color = '#ef4444';
+                    e.target.focus();
+                    return;
+                }
+                
+                // 점으로 시작하거나 끝나면 안됨
+                if (domain.startsWith('.') || domain.endsWith('.')) {
+                    emailCustomCheckResult.textContent = '이메일 형식에 맞게 입력해주세요.';
+                    emailCustomCheckResult.className = 'user-id-check-result error';
+                    emailCustomCheckResult.style.color = '#ef4444';
+                    e.target.focus();
+                    return;
+                }
+                
+                // 최소한 하나의 점이 있어야 함 (예: naver.com)
+                if (!domain.includes('.')) {
+                    emailCustomCheckResult.textContent = '이메일 형식에 맞게 입력해주세요.';
+                    emailCustomCheckResult.className = 'user-id-check-result error';
+                    emailCustomCheckResult.style.color = '#ef4444';
+                    e.target.focus();
+                    return;
+                }
+                
+                // 점(.) 앞에 영문자/숫자가 있어야 함
+                const parts = domain.split('.');
+                let isValidFormat = true;
+                for (let i = 0; i < parts.length; i++) {
+                    if (parts[i].length === 0) {
+                        isValidFormat = false;
+                        break;
+                    }
+                    // 각 부분이 영문자/숫자로 시작해야 함
+                    if (!/^[a-z0-9]/.test(parts[i])) {
+                        isValidFormat = false;
+                        break;
+                    }
+                }
+                
+                if (!isValidFormat) {
+                    emailCustomCheckResult.textContent = '이메일 형식에 맞게 입력해주세요.';
+                    emailCustomCheckResult.className = 'user-id-check-result error';
+                    emailCustomCheckResult.style.color = '#ef4444';
+                    e.target.focus();
+                    return;
+                }
+                
+                // 형식 검증 통과 시 성공 메시지 (도메인 제한 없음)
+                emailCustomCheckResult.textContent = '✓ 사용 가능한 도메인입니다.';
+                emailCustomCheckResult.className = 'user-id-check-result success';
+                emailCustomCheckResult.style.color = '#10b981';
             });
         }
         
@@ -992,7 +1263,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const userIdInput = document.getElementById('register_user_id');
         const userIdCheckResult = document.getElementById('userIdCheckResult');
         let userIdCheckTimeout = null;
-        let isUserIdValid = false;
         
         if (userIdInput && userIdCheckResult) {
             userIdInput.addEventListener('input', function(e) {
@@ -1002,17 +1272,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 userIdInput.classList.remove('checked-valid', 'checked-invalid', 'checking');
                 userIdCheckResult.className = 'user-id-check-result';
                 userIdCheckResult.textContent = '';
-                isUserIdValid = false;
                 
                 // 기존 timeout 취소
                 if (userIdCheckTimeout) {
                     clearTimeout(userIdCheckTimeout);
                 }
                 
-                // 최소 길이 체크
-                if (userId.length < 4) {
+                // 길이 체크 (5-20자)
+                if (userId.length < 5 || userId.length > 20) {
                     if (userId.length > 0) {
-                        userIdCheckResult.textContent = '아이디는 최소 4자 이상이어야 합니다.';
+                        userIdCheckResult.textContent = '아이디는 5자 이상 20자 이내로 입력해주세요.';
                         userIdCheckResult.className = 'user-id-check-result error';
                         userIdInput.classList.add('checked-invalid');
                     }
@@ -1044,14 +1313,12 @@ document.addEventListener('DOMContentLoaded', function() {
                                 userIdCheckResult.className = 'user-id-check-result success';
                                 userIdInput.classList.remove('checked-invalid');
                                 userIdInput.classList.add('checked-valid');
-                                isUserIdValid = true;
                             } else {
                                 // 사용 불가
                                 userIdCheckResult.textContent = '✗ ' + data.message;
                                 userIdCheckResult.className = 'user-id-check-result error';
                                 userIdInput.classList.remove('checked-valid');
                                 userIdInput.classList.add('checked-invalid');
-                                isUserIdValid = false;
                             }
                         })
                         .catch(error => {
@@ -1060,28 +1327,61 @@ document.addEventListener('DOMContentLoaded', function() {
                             userIdCheckResult.textContent = '확인 중 오류가 발생했습니다.';
                             userIdCheckResult.className = 'user-id-check-result error';
                             userIdInput.classList.add('checked-invalid');
-                            isUserIdValid = false;
                         });
                 }, 500);
             });
-            
-            // 폼 제출 시 아이디 검증 확인
-            registerForm.addEventListener('submit', function(e) {
-                if (!isUserIdValid) {
-                    e.preventDefault();
-                    const userId = userIdInput.value.trim();
-                    if (userId.length >= 4 && /^[A-Za-z0-9]+$/.test(userId)) {
-                        alert('아이디 중복 확인을 완료해주세요.');
-                        userIdInput.focus();
-                    }
+        }
+        
+        // 비밀번호 확인 실시간 검증
+        const passwordInput = document.getElementById('register_password');
+        const passwordConfirmInput = document.getElementById('register_password_confirm');
+        const passwordConfirmCheckResult = document.getElementById('passwordConfirmCheckResult');
+        
+        if (passwordInput && passwordConfirmInput && passwordConfirmCheckResult) {
+            function checkPasswordMatch() {
+                const password = passwordInput.value;
+                const passwordConfirm = passwordConfirmInput.value;
+                
+                if (passwordConfirm.length === 0) {
+                    passwordConfirmCheckResult.textContent = '';
+                    passwordConfirmCheckResult.className = '';
+                    return;
                 }
-            });
+                
+                if (password !== passwordConfirm) {
+                    passwordConfirmCheckResult.textContent = '비밀번호가 일치하지 않습니다.';
+                    passwordConfirmCheckResult.className = 'user-id-check-result error';
+                    passwordConfirmCheckResult.style.color = '#ef4444';
+                } else {
+                    passwordConfirmCheckResult.textContent = '✓ 비밀번호가 일치합니다.';
+                    passwordConfirmCheckResult.className = 'user-id-check-result success';
+                    passwordConfirmCheckResult.style.color = '#10b981';
+                }
+            }
+            
+            // 비밀번호 입력 시 확인
+            passwordInput.addEventListener('input', checkPasswordMatch);
+            
+            // 비밀번호 확인 입력 시 확인
+            passwordConfirmInput.addEventListener('input', checkPasswordMatch);
         }
     }
+    
+    // ESC 키로 닫기 (전역 이벤트)
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && modal && modal.classList.contains('login-modal-active')) {
+            closeLoginModal();
+        }
+    });
 });
 
 // 회원가입 모드로 전환 (모달 내 동적 전환)
 function switchToRegisterMode() {
+    // 로그인되어 있으면 모달을 열지 않음
+    if (isLoggedIn) {
+        return;
+    }
+    
     const title = document.getElementById('loginModalTitle');
     const loginContent = document.getElementById('loginModeContent');
     const registerContent = document.getElementById('registerModeContent');
@@ -1143,4 +1443,6 @@ window.switchToRegisterMode = switchToRegisterMode;
 window.switchToLoginMode = switchToLoginMode;
 window.togglePasswordVisibility = togglePasswordVisibility;
 </script>
+
+
 

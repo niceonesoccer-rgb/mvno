@@ -208,9 +208,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = '올바른 이메일 형식이 아닙니다.';
     } elseif ($password !== $passwordConfirm) {
         $error = '비밀번호가 일치하지 않습니다.';
-    } elseif (strlen($password) < 8) {
-        $error = '비밀번호는 최소 8자 이상이어야 합니다.';
+    } elseif (strlen($password) < 8 || strlen($password) > 20) {
+        $error = '비밀번호는 8자 이상 20자 이내로 입력해주세요.';
     } else {
+        // 영문자(대소문자 구분 없이), 숫자, 특수문자 중 2가지 이상 조합 확인
+        $hasLetter = preg_match('/[A-Za-z]/', $password);
+        $hasNumber = preg_match('/[0-9]/', $password);
+        $hasSpecialChar = preg_match('/[@#$%^&*!?_\-=]/', $password);
+        
+        $combinationCount = ($hasLetter ? 1 : 0) + ($hasNumber ? 1 : 0) + ($hasSpecialChar ? 1 : 0);
+        
+        if ($combinationCount < 2) {
+            $error = '비밀번호는 영문자, 숫자, 특수문자(@#$%^&*!?_-=) 중 2가지 이상 조합해야 합니다.';
+        }
+    }
+    
+    if (empty($error)) {
         // 판매자 추가 정보 수집
         $additionalData = [];
         $additionalData['phone'] = trim($_POST['phone'] ?? '');
@@ -1278,12 +1291,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <div class="form-group">
                             <label for="password">비밀번호 <span class="required">*</span></label>
                             <input type="password" id="password" name="password" required minlength="8">
-                            <div class="form-help">최소 8자 이상 입력해주세요.</div>
+                            <div class="form-help">8자 이상 20자 이내, 영문자/숫자/특수문자(@#$%^&*!?_-=) 중 2가지 이상 조합</div>
                         </div>
                         
                         <div class="form-group">
                             <label for="password_confirm">비밀번호 확인 <span class="required">*</span></label>
                             <input type="password" id="password_confirm" name="password_confirm" required minlength="8">
+                            <div class="form-help">비밀번호는 영문자, 숫자, 특수문자(@#$%^&*!?_-=) 중 2가지 이상의 조합으로 가입해야 합니다.</div>
                         </div>
                     </div>
                     

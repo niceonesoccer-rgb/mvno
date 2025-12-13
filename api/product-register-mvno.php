@@ -77,6 +77,7 @@ $productData = [
     'promotion_title' => $_POST['promotion_title'] ?? '',
     'promotions' => $_POST['promotions'] ?? [],
     'benefits' => $_POST['benefits'] ?? [],
+    'registration_types' => $_POST['registration_types'] ?? [],
     'status' => $_POST['product_status'] ?? ($productData['product_id'] > 0 ? null : 'active'),
     'redirect_url' => !empty($_POST['redirect_url']) ? trim($_POST['redirect_url']) : null
 ];
@@ -94,6 +95,15 @@ if (empty($productData['provider'])) {
     echo json_encode([
         'success' => false,
         'message' => '통신사를 선택해주세요.'
+    ]);
+    exit;
+}
+
+// 가입 형태 필수 검증
+if (empty($productData['registration_types']) || !is_array($productData['registration_types']) || count($productData['registration_types']) === 0) {
+    echo json_encode([
+        'success' => false,
+        'message' => '가입 형태를 최소 하나 이상 선택해주세요.'
     ]);
     exit;
 }

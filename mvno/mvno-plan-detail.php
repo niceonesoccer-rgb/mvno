@@ -4,6 +4,9 @@ $current_page = 'mvno';
 // 메인 페이지 여부 (하단 메뉴 및 푸터 표시용)
 $is_main_page = true; // 상세 페이지에서도 하단 메뉴바 표시
 
+// 로그인 체크를 위한 auth-functions 포함 (세션 설정과 함께 세션을 시작함)
+require_once '../includes/data/auth-functions.php';
+
 // 요금제 ID 가져오기
 $plan_id = isset($_GET['id']) ? intval($_GET['id']) : 32627;
 
@@ -93,6 +96,26 @@ if (!$plan) {
                             <div class="plan-detail-label">통신 기술</div>
                             <div class="plan-detail-value">
                                 <?php echo htmlspecialchars($rawData['service_type'] ?? 'LTE'); ?>
+                            </div>
+                        </div>
+                        <div class="plan-detail-item">
+                            <div class="plan-detail-label">가입 형태</div>
+                            <div class="plan-detail-value">
+                                <?php
+                                $registrationTypes = [];
+                                if (!empty($rawData['registration_types'])) {
+                                    if (is_string($rawData['registration_types'])) {
+                                        $registrationTypes = json_decode($rawData['registration_types'], true) ?: [];
+                                    } else {
+                                        $registrationTypes = $rawData['registration_types'];
+                                    }
+                                }
+                                if (!empty($registrationTypes) && is_array($registrationTypes)) {
+                                    echo htmlspecialchars(implode(', ', $registrationTypes));
+                                } else {
+                                    echo '정보 없음';
+                                }
+                                ?>
                             </div>
                         </div>
                     </div>
@@ -290,7 +313,6 @@ if (!$plan) {
                                 <?php
                                 $overDataPrice = $rawData['over_data_price'] ?? '';
                                 if (!empty($overDataPrice)) {
-                                    // 숫자 값만 추출 (단위 제거)
                                     preg_match('/[\d.]+/', $overDataPrice, $matches);
                                     $value = $matches[0] ?? $overDataPrice;
                                     echo htmlspecialchars($value) . '원/MB';
@@ -306,7 +328,6 @@ if (!$plan) {
                                 <?php
                                 $overVoicePrice = $rawData['over_voice_price'] ?? '';
                                 if (!empty($overVoicePrice)) {
-                                    // 숫자 값만 추출 (단위 제거)
                                     preg_match('/[\d.]+/', $overVoicePrice, $matches);
                                     $value = $matches[0] ?? $overVoicePrice;
                                     echo htmlspecialchars($value) . '원/초';
@@ -322,7 +343,6 @@ if (!$plan) {
                                 <?php
                                 $overVideoPrice = $rawData['over_video_price'] ?? '';
                                 if (!empty($overVideoPrice)) {
-                                    // 숫자 값만 추출 (단위 제거)
                                     preg_match('/[\d.]+/', $overVideoPrice, $matches);
                                     $value = $matches[0] ?? $overVideoPrice;
                                     echo htmlspecialchars($value) . '원/초';
@@ -338,7 +358,6 @@ if (!$plan) {
                                 <?php
                                 $overSmsPrice = $rawData['over_sms_price'] ?? '';
                                 if (!empty($overSmsPrice)) {
-                                    // 숫자 값만 추출 (단위 제거)
                                     preg_match('/[\d.]+/', $overSmsPrice, $matches);
                                     $value = $matches[0] ?? $overSmsPrice;
                                     echo htmlspecialchars($value) . '원/건';
@@ -353,10 +372,7 @@ if (!$plan) {
                             <div class="plan-detail-value">
                                 <?php
                                 $overLmsPrice = $rawData['over_lms_price'] ?? '';
-                                // 디버깅: 값 확인
-                                // echo "<!-- Debug: over_lms_price = " . var_export($overLmsPrice, true) . " -->";
                                 if (!empty($overLmsPrice) && trim($overLmsPrice) !== '') {
-                                    // 숫자 값만 추출 (단위 제거)
                                     preg_match('/[\d.]+/', $overLmsPrice, $matches);
                                     $value = $matches[0] ?? $overLmsPrice;
                                     if (!empty($value)) {
@@ -376,7 +392,6 @@ if (!$plan) {
                                 <?php
                                 $overMmsPrice = $rawData['over_mms_price'] ?? '';
                                 if (!empty($overMmsPrice)) {
-                                    // 숫자 값만 추출 (단위 제거)
                                     preg_match('/[\d.]+/', $overMmsPrice, $matches);
                                     $value = $matches[0] ?? $overMmsPrice;
                                     echo htmlspecialchars($value) . '원/건';
@@ -497,8 +512,7 @@ if (!$plan) {
                     </div>
                 </div>
                 <?php
-                // 로그인한 사용자에게만 리뷰 작성 버튼 표시
-                require_once '../includes/data/auth-functions.php';
+                // 로그인한 사용자에게만 리뷰 작성 버튼 표시 (이미 위에서 auth-functions.php 포함됨)
                 $currentUserId = getCurrentUserId();
                 if ($currentUserId): ?>
                     <button class="plan-review-write-btn" id="planReviewWriteBtn">리뷰 작성</button>
@@ -693,54 +707,99 @@ if (!$plan) {
         </div>
         <div class="apply-modal-body" id="applyModalBody">
             <!-- 2단계: 가입 방법 선택 -->
-            <div class="apply-modal-step" id="step2">
+            <div class="apply-modal-step" id="step2" style="display: none;">
                 <div class="plan-order-section">
-                    <div class="plan-order-checkbox-group">
-                        <div class="plan-order-checkbox-item">
-                            <input type="checkbox" id="numberPort" name="joinMethod" value="port" class="plan-order-checkbox-input">
-                            <label for="numberPort" class="plan-order-checkbox-label">
-                                <div class="plan-order-checkbox-content">
-                                    <div class="plan-order-checkbox-title">번호 이동</div>
-                                    <div class="plan-order-checkbox-description">지금 쓰는 번호 그대로 사용할래요</div>
-                                </div>
-                            </label>
-                        </div>
-                        <div class="plan-order-checkbox-item">
-                            <input type="checkbox" id="newJoin" name="joinMethod" value="new" class="plan-order-checkbox-input">
-                            <label for="newJoin" class="plan-order-checkbox-label">
-                                <div class="plan-order-checkbox-content">
-                                    <div class="plan-order-checkbox-title">신규 가입</div>
-                                    <div class="plan-order-checkbox-description">새로운 번호로 가입할래요</div>
-                                </div>
-                            </label>
-                        </div>
+                    <div class="plan-order-checkbox-group" id="subscriptionTypeButtons">
+                        <!-- JavaScript로 동적으로 생성됨 -->
                     </div>
                 </div>
             </div>
             
-            <!-- 3단계: 신청 안내 -->
+            <!-- 3단계: 개인정보 동의 및 신청 -->
             <div class="apply-modal-step" id="step3" style="display: none;">
-                <div class="plan-apply-confirm-section">
-                    <div class="plan-apply-confirm-description">
-                        <div class="plan-apply-confirm-intro">
-                            모유에서 다음 정보가 알림톡으로 발송됩니다:<br>
-                            <span class="plan-apply-confirm-intro-sub">알림 정보 설정은 마이페이지에서 수정가능하세요.</span>
-                        </div>
-                        <div class="plan-apply-confirm-list">
-                            <div class="plan-apply-confirm-item plan-apply-confirm-item-empty"></div>
-                            <div class="plan-apply-confirm-item plan-apply-confirm-item-center">
-                                • 신청정보<br>
-                                • 약정기간 종료 안내<br>
-                                • 프로모션 종료 안내<br>
-                                • 기타 상품관련 안내
-                            </div>
-                            <div class="plan-apply-confirm-item plan-apply-confirm-item-empty"></div>
-                        </div>
-                        <div class="plan-apply-confirm-notice"><?php echo htmlspecialchars($plan['provider'] ?? '쉐이크모바일'); ?> 연계 통신사로 가입을 진행합니다</div>
+                <form id="mvnoApplicationForm" class="consultation-form">
+                    <input type="hidden" name="product_id" id="mvnoProductId" value="<?php echo $plan_id; ?>">
+                    <input type="hidden" name="subscription_type" id="mvnoSubscriptionType" value="">
+                    
+                    <div class="consultation-form-group">
+                        <label for="mvnoApplicationName" class="consultation-form-label">이름</label>
+                        <input type="text" id="mvnoApplicationName" name="name" class="consultation-form-input" required>
                     </div>
-                    <button class="plan-apply-confirm-btn" id="planApplyConfirmBtn">신청하기</button>
-                </div>
+                    
+                    <div class="consultation-form-group">
+                        <label for="mvnoApplicationPhone" class="consultation-form-label">휴대폰번호</label>
+                        <input type="tel" id="mvnoApplicationPhone" name="phone" class="consultation-form-input" placeholder="010-1234-5678" required>
+                    </div>
+                    
+                    <div class="consultation-form-group">
+                        <label for="mvnoApplicationEmail" class="consultation-form-label">이메일</label>
+                        <input type="email" id="mvnoApplicationEmail" name="email" class="consultation-form-input" placeholder="example@email.com" required>
+                    </div>
+                    
+                    <div class="consultation-agreement-section">
+                        <div class="consultation-agreement-all">
+                            <div class="consultation-agreement-checkbox-wrapper">
+                                <input type="checkbox" id="mvnoAgreementAll" class="consultation-agreement-checkbox consultation-agreement-all-checkbox">
+                                <label for="mvnoAgreementAll" class="consultation-agreement-label consultation-agreement-all-label">
+                                    전체 동의
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="consultation-agreement-divider"></div>
+                        
+                        <div class="consultation-agreement-item">
+                            <div class="consultation-agreement-checkbox-wrapper">
+                                <input type="checkbox" id="mvnoAgreementPurpose" name="agreementPurpose" class="consultation-agreement-checkbox consultation-agreement-item-checkbox" required>
+                                <label for="mvnoAgreementPurpose" class="consultation-agreement-label">
+                                    개인정보 수집 및 이용목적에 동의합니까?
+                                </label>
+                                <button type="button" class="consultation-agreement-view-btn" data-agreement="purpose">내용보기</button>
+                            </div>
+                        </div>
+                        
+                        <div class="consultation-agreement-item">
+                            <div class="consultation-agreement-checkbox-wrapper">
+                                <input type="checkbox" id="mvnoAgreementItems" name="agreementItems" class="consultation-agreement-checkbox consultation-agreement-item-checkbox" required>
+                                <label for="mvnoAgreementItems" class="consultation-agreement-label">
+                                    개인정보 수집하는 항목에 동의합니까?
+                                </label>
+                                <button type="button" class="consultation-agreement-view-btn" data-agreement="items">내용보기</button>
+                            </div>
+                        </div>
+                        
+                        <div class="consultation-agreement-item">
+                            <div class="consultation-agreement-checkbox-wrapper">
+                                <input type="checkbox" id="mvnoAgreementPeriod" name="agreementPeriod" class="consultation-agreement-checkbox consultation-agreement-item-checkbox" required>
+                                <label for="mvnoAgreementPeriod" class="consultation-agreement-label">
+                                    개인정보 보유 및 이용기간에 동의합니까?
+                                </label>
+                                <button type="button" class="consultation-agreement-view-btn" data-agreement="period">내용보기</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="consultation-submit-btn" id="mvnoApplicationSubmitBtn">신청하기</button>
+                </form>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- 개인정보 내용보기 모달 (MVNO용) -->
+<div class="privacy-content-modal" id="mvnoPrivacyContentModal">
+    <div class="privacy-content-modal-overlay" id="mvnoPrivacyContentModalOverlay"></div>
+    <div class="privacy-content-modal-content">
+        <div class="privacy-content-modal-header">
+            <h3 class="privacy-content-modal-title" id="mvnoPrivacyContentModalTitle">개인정보 수집 및 이용목적</h3>
+            <button class="privacy-content-modal-close" aria-label="닫기" id="mvnoPrivacyContentModalClose">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M18 6L6 18M6 6L18 18" stroke="#868E96" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+        </div>
+        <div class="privacy-content-modal-body" id="mvnoPrivacyContentModalBody">
+            <!-- 내용이 JavaScript로 동적으로 채워짐 -->
         </div>
     </div>
 </div>
@@ -980,7 +1039,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         if (!applyModal) {
-            console.error('모달을 찾을 수 없습니다.');
             return;
         }
         
@@ -999,42 +1057,230 @@ document.addEventListener('DOMContentLoaded', function() {
         // 모달 열기
         applyModal.classList.add('apply-modal-active');
         
-        // 신청 안내 모달(3단계) 바로 표시 (가입유형 선택 건너뛰기)
-        showStep(3);
+        // 가입 형태 선택 모달(2단계) 먼저 표시
+        loadSubscriptionTypes();
+        showStep(2);
     }
     
     // 모달 단계 관리
-    let currentStep = 3;
+    let currentStep = 2;
+    let selectedSubscriptionType = null;
+    
+    // 라디오 버튼 이벤트 설정 함수
+    function setupRadioButtonEvents(container) {
+        const radioInputs = container.querySelectorAll('input[name="subscriptionType"]');
+        radioInputs.forEach(input => {
+            input.addEventListener('change', function() {
+                if (this.checked) {
+                    selectedSubscriptionType = this.value;
+                    
+                    // 모든 항목의 체크 스타일 제거
+                    container.querySelectorAll('.plan-order-checkbox-item').forEach(item => {
+                        item.classList.remove('plan-order-checkbox-checked');
+                    });
+                    
+                    // 선택된 항목에 체크 스타일 적용
+                    this.closest('.plan-order-checkbox-item').classList.add('plan-order-checkbox-checked');
+                    
+                    // 선택 즉시 step3로 이동
+                    setTimeout(() => {
+                        handleSubscriptionTypeSelection(this.value);
+                    }, 200);
+                }
+            });
+            
+            // 라벨 클릭 시 라디오 버튼 선택
+            const label = input.nextElementSibling;
+            if (label && label.classList.contains('plan-order-checkbox-label')) {
+                label.addEventListener('click', function(e) {
+                    if (input.checked === false) {
+                        input.checked = true;
+                        input.dispatchEvent(new Event('change'));
+                    }
+                });
+            }
+        });
+    }
+    
+    // 가입 형태 버튼 생성 함수
+    function createSubscriptionTypeButton(type, container) {
+        const item = document.createElement('div');
+        item.className = 'plan-order-checkbox-item';
+        item.innerHTML = `
+            <input type="radio" id="subType_${type.type}" name="subscriptionType" value="${type.type}" class="plan-order-checkbox-input">
+            <label for="subType_${type.type}" class="plan-order-checkbox-label">
+                <div class="plan-order-checkbox-content">
+                    <div class="plan-order-checkbox-title">${type.label}</div>
+                    <div class="plan-order-checkbox-description">${type.description}</div>
+                </div>
+            </label>
+        `;
+        container.appendChild(item);
+    }
+    
+    // 가입 형태 목록 로드
+    function loadSubscriptionTypes() {
+        const container = document.getElementById('subscriptionTypeButtons');
+        if (!container) return;
+        
+        container.innerHTML = '';
+        
+        fetch('/MVNO/api/get-user-subscription-types.php')
+            .then(response => response.json())
+            .then(data => {
+                let types = [];
+                
+                if (data.success && data.subscription_types && data.subscription_types.length > 0) {
+                    types = data.subscription_types;
+                } else {
+                    // 가입 형태가 없으면 모든 형태 표시
+                    types = [
+                        { type: 'new', label: '신규가입', description: '새로운 번호로 가입할래요' },
+                        { type: 'port', label: '번호이동', description: '지금 쓰는 번호 그대로 사용할래요' },
+                        { type: 'change', label: '기기변경', description: '기기만 변경하고 번호는 유지할래요' }
+                    ];
+                }
+                
+                // 버튼 생성
+                types.forEach(type => {
+                    createSubscriptionTypeButton(type, container);
+                });
+                
+                // 이벤트 설정
+                setupRadioButtonEvents(container);
+            })
+            .catch(error => {
+                // 오류 발생 시 기본 형태 표시
+                const container = document.getElementById('subscriptionTypeButtons');
+                if (container) {
+                    const defaultTypes = [
+                        { type: 'new', label: '신규가입', description: '새로운 번호로 가입할래요' },
+                        { type: 'port', label: '번호이동', description: '지금 쓰는 번호 그대로 사용할래요' },
+                        { type: 'change', label: '기기변경', description: '기기만 변경하고 번호는 유지할래요' }
+                    ];
+                    
+                    defaultTypes.forEach(type => {
+                        createSubscriptionTypeButton(type, container);
+                    });
+                    
+                    setupRadioButtonEvents(container);
+                }
+            });
+    }
+    
+    // 가입 형태 선택 처리
+    function handleSubscriptionTypeSelection(type) {
+        selectedSubscriptionType = type;
+        // step3로 이동 및 사용자 정보 로드
+        loadUserInfo();
+        showStep(3);
+    }
+    
+    // 휴대폰번호 검증 함수
+    function validatePhoneNumber(phone) {
+        const phoneNumbers = phone.replace(/[^\d]/g, '');
+        return /^010\d{8}$/.test(phoneNumbers);
+    }
+    
+    // 휴대폰번호 포맷팅 함수
+    function formatPhoneNumber(phone) {
+        const phoneNumbers = phone.replace(/[^\d]/g, '');
+        if (phoneNumbers.length === 11 && phoneNumbers.startsWith('010')) {
+            return '010-' + phoneNumbers.substring(3, 7) + '-' + phoneNumbers.substring(7, 11);
+        }
+        return phone;
+    }
+    
+    // 사용자 정보 로드
+    function loadUserInfo() {
+        const nameInput = document.getElementById('mvnoApplicationName');
+        const phoneInput = document.getElementById('mvnoApplicationPhone');
+        const emailInput = document.getElementById('mvnoApplicationEmail');
+        const subscriptionTypeInput = document.getElementById('mvnoSubscriptionType');
+        
+        // 가입 형태 저장
+        if (subscriptionTypeInput) {
+            subscriptionTypeInput.value = selectedSubscriptionType || '';
+        }
+        
+        // 현재 로그인한 사용자 정보 가져오기
+        fetch('/MVNO/api/get-current-user-info.php')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    if (nameInput && data.name) {
+                        nameInput.value = data.name;
+                    }
+                    if (phoneInput && data.phone) {
+                        phoneInput.value = formatPhoneNumber(data.phone);
+                        
+                        // 실시간 포맷팅
+                        phoneInput.addEventListener('input', function() {
+                            const value = this.value;
+                            const formatted = formatPhoneNumber(value);
+                            if (formatted !== value) {
+                                this.value = formatted;
+                            }
+                        });
+                        
+                        // 포커스 아웃 시 검증
+                        phoneInput.addEventListener('blur', function() {
+                            const value = this.value.trim();
+                            if (value && !validatePhoneNumber(value)) {
+                                this.classList.add('input-error');
+                            } else {
+                                this.classList.remove('input-error');
+                            }
+                        });
+                    }
+                    if (emailInput && data.email) {
+                        emailInput.value = data.email;
+                    }
+                }
+            })
+            .catch(error => {
+                // 오류가 나도 계속 진행
+            });
+        
+        // 실시간 이메일 검증
+        if (emailInput) {
+            emailInput.addEventListener('blur', function() {
+                const value = this.value.trim();
+                if (value) {
+                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    if (!emailRegex.test(value)) {
+                        this.classList.add('input-error');
+                    } else {
+                        this.classList.remove('input-error');
+                    }
+                }
+            });
+        }
+    }
     
     // 단계 표시 함수
     const applyModalBack = document.getElementById('applyModalBack');
     
-    function showStep(stepNumber, selectedMethod) {
+    function showStep(stepNumber) {
         const step2 = document.getElementById('step2');
         const step3 = document.getElementById('step3');
         const modalTitle = document.querySelector('.apply-modal-title');
-        const confirmMethod = document.getElementById('planApplyConfirmMethod');
         
         if (stepNumber === 2) {
             if (step2) step2.style.display = 'block';
             if (step3) step3.style.display = 'none';
             if (modalTitle) modalTitle.textContent = '가입유형';
-            if (applyModalBack) applyModalBack.style.display = 'flex';
+            if (applyModalBack) applyModalBack.style.display = 'none'; // step2에서는 뒤로가기 숨김
             currentStep = 2;
         } else if (stepNumber === 3) {
             if (step2) step2.style.display = 'none';
             if (step3) step3.style.display = 'block';
-            // 모달 제목 기본값: 통신사 가입신청
+            // 모달 제목: 가입신청
             if (modalTitle) {
-                modalTitle.textContent = '통신사 가입신청';
+                modalTitle.textContent = '가입신청';
             }
-            // 뒤로 가기 버튼 숨김 (첫 번째 모달이므로)
-            if (applyModalBack) applyModalBack.style.display = 'none';
-            // 버튼 텍스트 기본값: 신청하기
-            const confirmBtn = document.getElementById('planApplyConfirmBtn');
-            if (confirmBtn) {
-                confirmBtn.textContent = '신청하기';
-            }
+            // 뒤로 가기 버튼 표시
+            if (applyModalBack) applyModalBack.style.display = 'flex';
             currentStep = 3;
         }
     }
@@ -1042,84 +1288,22 @@ document.addEventListener('DOMContentLoaded', function() {
     // 뒤로 가기 버튼 이벤트
     if (applyModalBack) {
         applyModalBack.addEventListener('click', function() {
-            // step3에서 뒤로 가기 시 모달 닫기
+            // step3에서 뒤로 가기 시 step2로 이동
             if (currentStep === 3) {
-                closeApplyModal();
+                showStep(2);
             }
         });
     }
     
-    // 가입 방법 선택 이벤트 (라디오 버튼처럼 동작)
-    const joinMethodInputs = document.querySelectorAll('input[name="joinMethod"]');
-    joinMethodInputs.forEach(input => {
-        input.addEventListener('change', function() {
-            // 다른 체크박스 해제 (라디오 버튼처럼 동작)
-            joinMethodInputs.forEach(inp => {
-                if (inp !== this) {
-                    inp.checked = false;
-                    inp.closest('.plan-order-checkbox-item').classList.remove('plan-order-checkbox-checked');
-                }
-            });
-            
-            // 선택된 항목에 체크 스타일 적용
-            if (this.checked) {
-                this.closest('.plan-order-checkbox-item').classList.add('plan-order-checkbox-checked');
-                console.log('선택된 가입 방법:', this.value);
-                
-                // 선택된 가입 방법 텍스트 가져오기
-                const selectedMethod = this.value === 'port' ? '번호 이동' : '신규 가입';
-                
-                // 다음 단계로 진행
-                setTimeout(() => {
-                    showStep(3, selectedMethod);
-                }, 300);
-            } else {
-                this.closest('.plan-order-checkbox-item').classList.remove('plan-order-checkbox-checked');
-            }
-        });
-    });
 
     // 신청하기 버튼 클릭 이벤트
     if (applyBtn) {
-        console.log('신청하기 버튼 찾음:', applyBtn);
-        
-        // onclick 속성으로 직접 할당
-        applyBtn.onclick = function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            e.stopImmediatePropagation();
-            console.log('신청하기 버튼 클릭됨 (onclick)');
-            openApplyModal();
-            return false;
-        };
-        
-        // addEventListener도 추가
         applyBtn.addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
-            e.stopImmediatePropagation();
-            console.log('신청하기 버튼 클릭됨 (addEventListener)');
             openApplyModal();
             return false;
-        }, true);
-        
-        // 테스트: 버튼이 클릭 가능한지 확인
-        console.log('버튼 스타일:', window.getComputedStyle(applyBtn));
-        console.log('버튼 pointer-events:', window.getComputedStyle(applyBtn).pointerEvents);
-    } else {
-        console.error('신청하기 버튼을 찾을 수 없습니다.');
-        // 대체 방법: 클래스로 찾기
-        const applyBtnByClass = document.querySelector('.plan-apply-btn');
-        if (applyBtnByClass) {
-            console.log('클래스로 버튼 찾음:', applyBtnByClass);
-            applyBtnByClass.onclick = function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log('신청하기 버튼 클릭됨 (클래스로 찾은 버튼)');
-                openApplyModal();
-                return false;
-            };
-        }
+        });
     }
 
     // 모달 닫기
@@ -1139,68 +1323,273 @@ document.addEventListener('DOMContentLoaded', function() {
         window.scrollTo(0, scrollPosition);
         
         // 모달 상태 초기화
-        showStep(3);
+        showStep(2);
+        selectedSubscriptionType = null;
+        
+        // 폼 초기화
+        const form = document.getElementById('mvnoApplicationForm');
+        if (form) {
+            form.reset();
+        }
     }
     
-    // step3 신청하기 버튼 이벤트
-    const planApplyConfirmBtn = document.getElementById('planApplyConfirmBtn');
-    if (planApplyConfirmBtn) {
-        planApplyConfirmBtn.addEventListener('click', function() {
-            // 로그인 체크
-            const isLoggedIn = <?php echo isLoggedIn() ? 'true' : 'false'; ?>;
-            if (!isLoggedIn) {
-                // 모달 닫기
-                applyModal.classList.remove('apply-modal-active');
-                document.body.style.overflow = '';
-                document.body.style.position = '';
-                document.body.style.top = '';
-                document.body.style.width = '';
-                document.documentElement.style.overflow = '';
-                window.scrollTo(0, scrollPosition);
-                
-                // 현재 URL을 세션에 저장 (회원가입 후 돌아올 주소)
-                const currentUrl = window.location.href;
-                fetch('/MVNO/api/save-redirect-url.php', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ redirect_url: currentUrl })
-                }).then(() => {
-                    // 회원가입 모달 열기
-                    if (typeof openLoginModal === 'function') {
-                        openLoginModal(true);
-                    } else {
-                        setTimeout(() => {
-                            if (typeof openLoginModal === 'function') {
-                                openLoginModal(true);
-                            }
-                        }, 100);
-                    }
-                });
+    // MVNO 신청 폼 제출 이벤트
+    const mvnoApplicationForm = document.getElementById('mvnoApplicationForm');
+    if (mvnoApplicationForm) {
+        mvnoApplicationForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // 필수 필드 검증
+            const nameInput = document.getElementById('mvnoApplicationName');
+            const phoneInput = document.getElementById('mvnoApplicationPhone');
+            const emailInput = document.getElementById('mvnoApplicationEmail');
+            
+            if (!nameInput || !nameInput.value.trim()) {
+                alert('이름을 입력해주세요.');
+                if (nameInput) nameInput.focus();
                 return;
             }
             
-            // 모달 닫기
-            applyModal.classList.remove('apply-modal-active');
-            document.body.style.overflow = '';
-            document.body.style.position = '';
-            document.body.style.top = '';
-            document.body.style.width = '';
-            document.documentElement.style.overflow = '';
-            window.scrollTo(0, scrollPosition);
+            if (!phoneInput || !phoneInput.value.trim()) {
+                alert('휴대폰 번호를 입력해주세요.');
+                if (phoneInput) phoneInput.focus();
+                return;
+            }
             
-            // 상품 등록 시 설정된 redirect_url 가져오기
-            const redirectUrl = <?php echo json_encode($rawData['redirect_url'] ?? null, JSON_UNESCAPED_UNICODE); ?>;
+            // 휴대폰번호 검증 (010으로 시작하는 11자리)
+            const phoneNumbers = phoneInput.value.replace(/[^\d]/g, '');
+            if (!/^010\d{8}$/.test(phoneNumbers)) {
+                alert('010으로 시작하는 11자리 휴대폰 번호를 입력해주세요.');
+                if (phoneInput) phoneInput.focus();
+                return;
+            }
             
-            // redirect_url이 있으면 해당 URL로 이동
-            if (redirectUrl && redirectUrl.trim() !== '') {
-                window.location.href = redirectUrl;
-            } else {
-                // redirect_url이 없으면 알림만 표시
-                alert('신청이 완료되었습니다.');
+            if (!emailInput || !emailInput.value.trim()) {
+                alert('이메일을 입력해주세요.');
+                if (emailInput) emailInput.focus();
+                return;
+            }
+            
+            // 이메일 검증
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(emailInput.value.trim())) {
+                alert('올바른 이메일 주소를 입력해주세요.');
+                if (emailInput) emailInput.focus();
+                return;
+            }
+            
+            // 모든 동의 체크박스 확인
+            const agreementPurpose = document.getElementById('mvnoAgreementPurpose');
+            const agreementItems = document.getElementById('mvnoAgreementItems');
+            const agreementPeriod = document.getElementById('mvnoAgreementPeriod');
+            
+            if (!agreementPurpose.checked || !agreementItems.checked || !agreementPeriod.checked) {
+                alert('모든 개인정보 동의 항목에 동의해주세요.');
+                return;
+            }
+            
+            // 제출 버튼 비활성화
+            const submitBtn = document.getElementById('mvnoApplicationSubmitBtn');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.textContent = '처리 중...';
+            }
+            
+            // 폼 데이터 준비
+            const formData = new FormData(this);
+            
+            // 서버로 데이터 전송
+            fetch('/MVNO/api/submit-mvno-application.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // 신청정보가 DB에 저장됨
+                    
+                    // redirect_url이 있으면 해당 URL로 이동
+                    if (data.redirect_url && data.redirect_url.trim() !== '') {
+                        window.location.href = data.redirect_url;
+                    } else {
+                        // redirect_url이 없으면 모달 닫기
+                        if (typeof showAlert === 'function') {
+                            showAlert('신청이 완료되었습니다.', '신청 완료');
+                        } else {
+                            alert('신청이 완료되었습니다.');
+                        }
+                        closeApplyModal();
+                    }
+                } else {
+                    // 실패 시 모달로 표시
+                    if (typeof showAlert === 'function') {
+                        showAlert(data.message || '신청정보 저장에 실패했습니다.', '신청 실패');
+                    } else {
+                        alert(data.message || '신청정보 저장에 실패했습니다.');
+                    }
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = '신청하기';
+                    }
+                }
+            })
+            .catch(error => {
+                // 에러 발생 시 모달로 표시
+                if (typeof showAlert === 'function') {
+                    showAlert('신청 처리 중 오류가 발생했습니다.', '오류');
+                } else {
+                    alert('신청 처리 중 오류가 발생했습니다.');
+                }
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = '신청하기';
+                }
+            });
+        });
+    }
+    
+    // MVNO 개인정보 동의 체크박스 처리
+    const mvnoAgreementAll = document.getElementById('mvnoAgreementAll');
+    const mvnoAgreementItemCheckboxes = document.querySelectorAll('#mvnoApplicationForm .consultation-agreement-item-checkbox');
+    
+    // 전체 동의 체크박스 변경 이벤트
+    if (mvnoAgreementAll) {
+        mvnoAgreementAll.addEventListener('change', function() {
+            const isChecked = this.checked;
+            mvnoAgreementItemCheckboxes.forEach(checkbox => {
+                checkbox.checked = isChecked;
+            });
+        });
+    }
+    
+    // 개별 체크박스 변경 이벤트 (전체 동의 상태 업데이트)
+    mvnoAgreementItemCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const allChecked = Array.from(mvnoAgreementItemCheckboxes).every(cb => cb.checked);
+            if (mvnoAgreementAll) {
+                mvnoAgreementAll.checked = allChecked;
             }
         });
+    });
+    
+    // MVNO 개인정보 내용보기 모달
+    const mvnoPrivacyModal = document.getElementById('mvnoPrivacyContentModal');
+    const mvnoPrivacyModalOverlay = document.getElementById('mvnoPrivacyContentModalOverlay');
+    const mvnoPrivacyModalClose = document.getElementById('mvnoPrivacyContentModalClose');
+    const mvnoPrivacyModalTitle = document.getElementById('mvnoPrivacyContentModalTitle');
+    const mvnoPrivacyModalBody = document.getElementById('mvnoPrivacyContentModalBody');
+    
+    // 개인정보 내용 정의
+    const mvnoPrivacyContents = {
+        purpose: {
+            title: '개인정보 수집 및 이용목적',
+            content: `<div class="privacy-content-text">
+                <p><strong>1. 개인정보의 수집 및 이용목적</strong></p>
+                <p>모유('http://www.dtmall.net' 이하 '회사') 은(는) 다음의 목적을 위하여 개인정보를 처리하고 있으며, 다음의 목적 이외의 용도로는 이용하지 않습니다.</p>
+                
+                <p><strong>가. 서비스 제공에 관한 계약 이행 및 서비스 제공에 따른 요금정산</strong></p>
+                <p>컨텐츠 제공, 특정 맞춤 서비스 제공, 물품배송 또는 청구서 등 발송, 본인인증, 구매 및 요금 결제</p>
+                
+                <p><strong>나. 회원관리</strong></p>
+                <p>회원제 서비스 이용 및 제한적 본인 확인제에 따른 고객 가입의사 확인, 고객에 대한 서비스 제공에 따른 본인 식별.인증, 불량회원의 부정 이용방지와 비인가 사용방지, 가입 및 가입횟수 제한, 분쟁 조정을 위한 기록보존, 불만처리 등 민원처리, 고지사항 전달, 회원자격 유지.관리, 회원 포인트 유지.관리 등</p>
+                
+                <p><strong>다. 신규 서비스 개발 및 마케팅</strong></p>
+                <p>신규 서비스 개발 및 맞춤 서비스 제공, 통계학적 특성에 따른 서비스 제공 및 광고 게재, 서비스의 유효성 확인, 이벤트 및 광고성 정보 제공 및 참여기회 제공, 접속빈도 파악, 회원의 서비스이용에 대한 통계</p>
+            </div>`
+        },
+        items: {
+            title: '개인정보 수집하는 항목',
+            content: `<div class="privacy-content-text">
+                <p><strong>2. 개인정보 수집항목 및 수집방법</strong></p>
+                <p>모유('http://www.dtmall.net' 이하 '회사') 은(는) 다음의 개인정보 항목을 처리하고 있습니다.</p>
+                
+                <p><strong>가. 수집하는 개인정보의 항목</strong></p>
+                <p>첫째, 회사는 휴대폰 개통 및 원활한 고객상담을 위해 주문시 아래와 같은 개인정보를 수집하고 있습니다.</p>
+                <p>- 필수항목 : 성명, 핸드폰번호, 긴급연락처</p>
+                
+                <p>둘째, 서비스 이용과정이나 사업처리 과정에서 아래와 같은 정보들이 자동으로 생성되어 수집될 수 있습니다.</p>
+                <p>- IP Address, 쿠키, 방문 일시, 서비스 이용 기록, 불량 이용 기록</p>
+                
+                <p><strong>나. 개인정보 수집방법</strong></p>
+                <p>회사는 다음과 같은 방법으로 개인정보를 수집합니다.</p>
+                <p>- 홈페이지, 서면양식, 팩스, 전화, 상담 게시판, 이메일, 이벤트 응모, 배송요청</p>
+                <p>- 협력회사로부터의 제공</p>
+                <p>- 생성정보 수집 툴을 통한 수집</p>
+            </div>`
+        },
+        period: {
+            title: '개인정보 보유 및 이용기간',
+            content: `<div class="privacy-content-text">
+                <p><strong>3. 개인정보의 보유 및 이용기간</strong></p>
+                <p>모유('http://www.dtmall.net' 이하 '회사') 은(는) 이용자의 개인정보는 원칙적으로 개인정보의 수집 및 이용목적이 달성되면 지체 없이 파기합니다. 단, 다음의 정보에 대해서는 아래의 이유로 명시한 기간 동안 보존합니다.</p>
+                
+                <p><strong>가. 내부 방침에 의한 정보보유 사유</strong></p>
+                <p>- 부정이용기록</p>
+                <p>보존 이유 : 부정 이용 방지</p>
+                <p>보존 기간 : 1년</p>
+                
+                <p><strong>나. 관련법령에 의한 정보보유 사유</strong></p>
+                <p>상법, 전자상거래 등에서의 소비자보호에 관한 법률 등 관계법령의 규정에 의하여 보존할 필요가 있는 경우 회사는 관계법령에서 정한 일정한 기간 동안 회원정보를 보관합니다. 이 경우 회사는 보관하는 정보를 그 보관의 목적으로만 이용하며 보존기간은 아래와 같습니다.</p>
+                
+                <p>- 계약 또는 청약철회 등에 관한 기록</p>
+                <p>보존 이유 : 전자상거래 등에서의 소비자보호에 관한 법률</p>
+                <p>보존 기간 : 5년</p>
+                
+                <p>- 대금결제 및 재화 등의 공급에 관한 기록</p>
+                <p>보존 이유 : 전자상거래 등에서의 소비자보호에 관한 법률</p>
+                <p>보존 기간 : 5년</p>
+                
+                <p>- 소비자의 불만 또는 분쟁처리에 관한 기록</p>
+                <p>보존 이유 : 전자상거래 등에서의 소비자보호에 관한 법률</p>
+                <p>보존 기간 : 3년</p>
+                
+                <p>- 본인확인에 관한 기록</p>
+                <p>보존 이유 : 정보통신 이용촉진 및 정보보호 등에 관한 법률</p>
+                <p>보존 기간 : 6개월</p>
+                
+                <p>- 방문에 관한 기록</p>
+                <p>보존 이유 : 통신비밀보호법</p>
+                <p>보존 기간 : 3개월</p>
+            </div>`
+        }
+    };
+    
+    // MVNO 개인정보 내용보기 모달 열기
+    function openMvnoPrivacyModal(type) {
+        if (!mvnoPrivacyModal || !mvnoPrivacyContents[type]) return;
+        
+        mvnoPrivacyModalTitle.textContent = mvnoPrivacyContents[type].title;
+        mvnoPrivacyModalBody.innerHTML = mvnoPrivacyContents[type].content;
+        
+        mvnoPrivacyModal.style.display = 'flex';
+        mvnoPrivacyModal.classList.add('privacy-content-modal-active');
+    }
+    
+    // MVNO 개인정보 내용보기 모달 닫기
+    function closeMvnoPrivacyModal() {
+        if (!mvnoPrivacyModal) return;
+        
+        mvnoPrivacyModal.classList.remove('privacy-content-modal-active');
+    }
+    
+    // MVNO 개인정보 내용보기 버튼 클릭 이벤트
+    const mvnoViewBtns = document.querySelectorAll('#mvnoApplicationForm .consultation-agreement-view-btn');
+    mvnoViewBtns.forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const type = this.getAttribute('data-agreement');
+            openMvnoPrivacyModal(type);
+        });
+    });
+    
+    // MVNO 개인정보 내용보기 모달 닫기 이벤트
+    if (mvnoPrivacyModalOverlay) {
+        mvnoPrivacyModalOverlay.addEventListener('click', closeMvnoPrivacyModal);
+    }
+    
+    if (mvnoPrivacyModalClose) {
+        mvnoPrivacyModalClose.addEventListener('click', closeMvnoPrivacyModal);
     }
 
     if (applyModalOverlay) {
@@ -1224,11 +1613,17 @@ document.addEventListener('DOMContentLoaded', function() {
     if (applyModalClose) {
         applyModalClose.addEventListener('click', closeApplyModal);
     }
-
+    
     // ESC 키로 모달 닫기
     document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' && applyModal.classList.contains('apply-modal-active')) {
-            closeApplyModal();
+        if (e.key === 'Escape') {
+            if (mvnoPrivacyModal && mvnoPrivacyModal.classList.contains('privacy-content-modal-active')) {
+                closeMvnoPrivacyModal();
+            } else if (applyModal && applyModal.classList.contains('apply-modal-active')) {
+                closeApplyModal();
+            } else if (reviewModal && reviewModal.classList.contains('review-modal-active')) {
+                closeReviewModal();
+            }
         }
     });
 
@@ -1390,12 +1785,6 @@ document.addEventListener('DOMContentLoaded', function() {
         reviewModalClose.addEventListener('click', closeReviewModal);
     }
     
-    // ESC 키로 모달 닫기
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' && reviewModal && reviewModal.classList.contains('review-modal-active')) {
-            closeReviewModal();
-        }
-    });
 });
 </script>
 
@@ -1539,7 +1928,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         })
         .catch(error => {
-            console.error('Error:', error);
             alert('리뷰 작성 중 오류가 발생했습니다.');
         });
     });
@@ -1567,14 +1955,11 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // 포인트 사용 확인 후 기존 신청 모달 열기 (여기에 기존 신청 모달 열기 코드 추가)
+    // 포인트 사용 확인 후 기존 신청 모달 열기
     document.addEventListener('pointUsageConfirmed', function(e) {
-        const { type, itemId, usedPoint } = e.detail;
-        if (type === 'mvno') {
-            // 기존 신청 모달 열기 로직
-            // 예: openApplicationModal(itemId, usedPoint);
-            console.log('포인트 사용 확인됨:', e.detail);
-            // TODO: 기존 신청 모달 열기
+        const { type, itemId } = e.detail;
+        if (type === 'mvno' && itemId === <?php echo $plan_id; ?>) {
+            openApplyModal();
         }
     });
 });

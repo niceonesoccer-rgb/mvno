@@ -4,13 +4,8 @@ $current_page = 'mypage';
 // 메인 페이지 여부 (하단 메뉴 및 푸터 표시용)
 $is_main_page = true;
 
-// 로그인 체크를 위한 auth-functions 포함
+// 로그인 체크를 위한 auth-functions 포함 (세션 설정과 함께 세션을 시작함)
 require_once '../includes/data/auth-functions.php';
-
-// 세션 시작
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
 
 // 로그인 체크 - 로그인하지 않은 경우 회원가입 모달로 리다이렉트
 if (!isLoggedIn()) {

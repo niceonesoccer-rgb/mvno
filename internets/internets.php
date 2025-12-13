@@ -6,9 +6,81 @@ $is_main_page = true;
 
 // 로그인 체크를 위한 auth-functions 포함
 require_once '../includes/data/auth-functions.php';
+require_once '../includes/data/db-config.php';
+require_once '../includes/data/product-functions.php';
 
 // 헤더 포함
 include '../includes/header.php';
+
+// 데이터베이스에서 인터넷 상품 목록 가져오기
+$internetProducts = [];
+try {
+    $pdo = getDBConnection();
+    if ($pdo) {
+        $stmt = $pdo->prepare("
+            SELECT 
+                p.id,
+                p.status,
+                p.view_count,
+                p.favorite_count,
+                p.application_count,
+                inet.registration_place,
+                inet.speed_option,
+                inet.monthly_fee,
+                inet.cash_payment_names,
+                inet.cash_payment_prices,
+                inet.gift_card_names,
+                inet.gift_card_prices,
+                inet.equipment_names,
+                inet.equipment_prices,
+                inet.installation_names,
+                inet.installation_prices
+            FROM products p
+            INNER JOIN product_internet_details inet ON p.id = inet.product_id
+            WHERE p.product_type = 'internet' 
+            AND p.status = 'active'
+            ORDER BY p.created_at DESC
+        ");
+        $stmt->execute();
+        $internetProducts = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // JSON 필드 디코딩
+        foreach ($internetProducts as &$product) {
+            $jsonFields = [
+                'cash_payment_names', 'cash_payment_prices',
+                'gift_card_names', 'gift_card_prices',
+                'equipment_names', 'equipment_prices',
+                'installation_names', 'installation_prices'
+            ];
+            
+            foreach ($jsonFields as $field) {
+                if (!empty($product[$field])) {
+                    $decoded = json_decode($product[$field], true);
+                    $product[$field] = is_array($decoded) ? $decoded : [];
+                } else {
+                    $product[$field] = [];
+                }
+            }
+        }
+        unset($product);
+    }
+} catch (PDOException $e) {
+    error_log("Error fetching Internet products: " . $e->getMessage());
+}
+
+// 가입처별 아이콘 경로 매핑
+function getInternetIconPath($registrationPlace) {
+    $iconMap = [
+        'KT' => '/MVNO/assets/images/internets/kt.svg',
+        'SKT' => '/MVNO/assets/images/internets/broadband.svg',
+        'LG U+' => '/MVNO/assets/images/internets/lgu.svg',
+        'KT skylife' => '/MVNO/assets/images/internets/ktskylife.svg',
+        'LG헬로비전' => '/MVNO/assets/images/internets/hellovision.svg',
+        'BTV' => '/MVNO/assets/images/internets/btv.svg',
+        'DLIVE' => '/MVNO/assets/images/internets/dlive.svg',
+    ];
+    return $iconMap[$registrationPlace] ?? '';
+}
 ?>
 
 <main class="main-content">
@@ -36,532 +108,170 @@ include '../includes/header.php';
     </div>
     
     <div class="PlanDetail_content_wrapper__0YNeJ">
-        <div class="tw-m-auto tw-w-full tw-max-w-[780px] min-w-640-legacy:tw-max-w-[480px]">
+        <div class="tw-w-full">
             <div class="css-2l6pil e1ebrc9o0">
-                <div>
-                    <div class="css-58gch7 e82z5mt0">
-                        <div class="css-1kjyj6z e82z5mt1">
-                            <img data-testid="internet-company-logo" src="https://assets-legacy.moyoplan.com/internets/assets/ktskylife.svg" class="css-1pg8bi e82z5mt15">
-                            <div class="css-huskxe e82z5mt13">
-                                <div class="css-1fd5u73 e82z5mt14">
-                                    <span style="box-sizing:border-box;display:inline-block;overflow:hidden;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0;position:relative;max-width:100%">
-                                        <span style="box-sizing:border-box;display:block;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0;max-width:100%">
-                                            <img style="display:block;max-width:100%;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0" alt="" aria-hidden="true" src="data:image/svg+xml,%3csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20version=%271.1%27%20width=%2720%27%20height=%2720%27/%3e">
-                                        </span>
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="position:absolute;top:0;left:0;bottom:0;right:0;box-sizing:border-box;padding:0;border:none;margin:auto;display:block;width:100%;height:100%">
-                                            <rect x="2" y="3" width="20" height="14" rx="2" fill="#E9D5FF" stroke="#A855F7" stroke-width="1.5"/>
-                                            <rect x="4" y="5" width="16" height="10" rx="1" fill="white"/>
-                                            <rect x="2" y="17" width="20" height="4" rx="1" fill="#C084FC" stroke="#A855F7" stroke-width="1"/>
-                                            <g transform="translate(17, -2) scale(1.5)">
-                                                <path d="M0 0L-2 5H0L-1 10L2 5H0L0 0Z" fill="#6366F1" stroke="#4F46E5" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
-                                            </g>
-                                        </svg>
-                                    </span>500MB
-                                </div>
-                                <div class="css-1fd5u73 e82z5mt14">
-                                    <span style="box-sizing:border-box;display:inline-block;overflow:hidden;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0;position:relative;max-width:100%">
-                                        <span style="box-sizing:border-box;display:block;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0;max-width:100%">
-                                            <img style="display:block;max-width:100%;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0" alt="" aria-hidden="true" src="data:image/svg+xml,%3csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20version=%271.1%27%20width=%2720%27%20height=%2720%27/%3e">
-                                        </span>
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="position:absolute;top:0;left:0;bottom:0;right:0;box-sizing:border-box;padding:0;border:none;margin:auto;display:block;width:100%;height:100%">
-                                            <defs>
-                                                <linearGradient id="checkGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                                    <stop offset="0%" style="stop-color:#10B981;stop-opacity:1" />
-                                                    <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
-                                                </linearGradient>
-                                            </defs>
-                                            <circle cx="12" cy="12" r="10" fill="url(#checkGradient)" stroke="#047857" stroke-width="1"/>
-                                            <path d="M8 12L10.5 14.5L16 9" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                        </svg>
-                                    </span>19개 신청
-                                </div>
-                            </div>
-                        </div>
-                        <div class="css-174t92n e82z5mt7">
-                            <div class="css-12zfa6z e82z5mt8">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="css-xj5cz0 e82z5mt9">
-                                    <path d="M20 7H4C2.89543 7 2 7.89543 2 9V19C2 20.1046 2.89543 21 4 21H20C21.1046 21 22 20.1046 22 19V9C22 7.89543 21.1046 7 20 7Z" stroke="#6366F1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-                                    <path d="M12 7V21M12 7L8 3M12 7L16 3" stroke="#6366F1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                </svg>
-                                <div class="css-0 e82z5mt10">
-                                    <p class="css-2ht76o e82z5mt12">인터넷,TV 설치비 무료</p>
-                                    <p class="css-1j35abw e82z5mt11">무료(36,300원 상당)</p>
-                                </div>
-                            </div>
-                            <div class="css-12zfa6z e82z5mt8">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="css-xj5cz0 e82z5mt9">
-                                    <path d="M20 7H4C2.89543 7 2 7.89543 2 9V19C2 20.1046 2.89543 21 4 21H20C21.1046 21 22 20.1046 22 19V9C22 7.89543 21.1046 7 20 7Z" stroke="#6366F1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-                                    <path d="M12 7V21M12 7L8 3M12 7L16 3" stroke="#6366F1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                </svg>
-                                <div class="css-0 e82z5mt10">
-                                    <p class="css-2ht76o e82z5mt12">셋톱박스 임대료 무료</p>
-                                    <p class="css-1j35abw e82z5mt11">무료(월 3,300원 상당)</p>
-                                </div>
-                            </div>
-                            <div class="css-12zfa6z e82z5mt8">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="css-xj5cz0 e82z5mt9">
-                                    <path d="M20 7H4C2.89543 7 2 7.89543 2 9V19C2 20.1046 2.89543 21 4 21H20C21.1046 21 22 20.1046 22 19V9C22 7.89543 21.1046 7 20 7Z" stroke="#6366F1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-                                    <path d="M12 7V21M12 7L8 3M12 7L16 3" stroke="#6366F1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                </svg>
-                                <div class="css-0 e82z5mt10">
-                                    <p class="css-2ht76o e82z5mt12">와이파이 공유기</p>
-                                    <p class="css-1j35abw e82z5mt11">무료(월 1,100원 상당)</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div data-testid="full-price-information" class="css-rkh09p e82z5mt2">
-                            <p class="css-16qot29 e82z5mt6">월 26,400원</p>
-                        </div>
+                <?php if (empty($internetProducts)): ?>
+                    <div style="text-align: center; padding: 60px 20px; color: #6b7280;">
+                        <p>등록된 인터넷 상품이 없습니다.</p>
                     </div>
-                </div>
-                
-                <div>
-                    <div class="css-58gch7 e82z5mt0">
-                        <div class="css-1kjyj6z e82z5mt1">
-                            <img data-testid="internet-company-logo" src="https://assets-legacy.moyoplan.com/internets/assets/hellovision.svg" class="css-1pg8bi e82z5mt15">
-                            <div class="css-huskxe e82z5mt13">
-                                <div class="css-1fd5u73 e82z5mt14">
-                                    <span style="box-sizing:border-box;display:inline-block;overflow:hidden;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0;position:relative;max-width:100%">
-                                        <span style="box-sizing:border-box;display:block;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0;max-width:100%">
-                                            <img style="display:block;max-width:100%;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0" alt="" aria-hidden="true" src="data:image/svg+xml,%3csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20version=%271.1%27%20width=%2720%27%20height=%2720%27/%3e">
-                                        </span>
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="position:absolute;top:0;left:0;bottom:0;right:0;box-sizing:border-box;padding:0;border:none;margin:auto;display:block;width:100%;height:100%">
-                                            <rect x="2" y="3" width="20" height="14" rx="2" fill="#E9D5FF" stroke="#A855F7" stroke-width="1.5"/>
-                                            <rect x="4" y="5" width="16" height="10" rx="1" fill="white"/>
-                                            <rect x="2" y="17" width="20" height="4" rx="1" fill="#C084FC" stroke="#A855F7" stroke-width="1"/>
-                                            <g transform="translate(17, -2) scale(1.5)">
-                                                <path d="M0 0L-2 5H0L-1 10L2 5H0L0 0Z" fill="#6366F1" stroke="#4F46E5" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
-                                            </g>
-                                        </svg>
-                                    </span>500MB
+                <?php else: ?>
+                    <?php foreach ($internetProducts as $product): ?>
+                        <?php
+                        $iconPath = getInternetIconPath($product['registration_place']);
+                        $speedOption = htmlspecialchars($product['speed_option'] ?? '');
+                        $applicationCount = number_format($product['application_count'] ?? 0);
+                        $monthlyFee = number_format($product['monthly_fee'] ?? 0);
+                        
+                        // 혜택 정보 파싱
+                        $cashNames = $product['cash_payment_names'] ?? [];
+                        $cashPrices = $product['cash_payment_prices'] ?? [];
+                        $giftNames = $product['gift_card_names'] ?? [];
+                        $giftPrices = $product['gift_card_prices'] ?? [];
+                        $equipNames = $product['equipment_names'] ?? [];
+                        $equipPrices = $product['equipment_prices'] ?? [];
+                        $installNames = $product['installation_names'] ?? [];
+                        $installPrices = $product['installation_prices'] ?? [];
+                        ?>
+                        <div>
+                            <div class="css-58gch7 e82z5mt0">
+                                <div class="css-1kjyj6z e82z5mt1">
+                                    <?php if ($iconPath): ?>
+                                        <img data-testid="internet-company-logo" src="<?php echo htmlspecialchars($iconPath); ?>" 
+                                             alt="<?php echo htmlspecialchars($product['registration_place']); ?>" 
+                                             class="css-1pg8bi e82z5mt15"
+                                             style="<?php echo ($product['registration_place'] === 'KT') ? 'height: 24px;' : (($product['registration_place'] === 'DLIVE') ? 'height: 35px; object-fit: cover;' : 'max-height: 40px; object-fit: contain;'); ?>">
+                                    <?php else: ?>
+                                        <span><?php echo htmlspecialchars($product['registration_place']); ?></span>
+                                    <?php endif; ?>
+                                    <div class="css-huskxe e82z5mt13">
+                                        <div class="css-1fd5u73 e82z5mt14">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <rect x="2" y="3" width="20" height="14" rx="2" fill="#E9D5FF" stroke="#A855F7" stroke-width="1.5"/>
+                                                <rect x="4" y="5" width="16" height="10" rx="1" fill="white"/>
+                                                <rect x="2" y="17" width="20" height="4" rx="1" fill="#C084FC" stroke="#A855F7" stroke-width="1"/>
+                                                <g transform="translate(17, -2) scale(1.5)">
+                                                    <path d="M0 0L-2 5H0L-1 10L2 5H0L0 0Z" fill="#6366F1" stroke="#4F46E5" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+                                                </g>
+                                            </svg>
+                                            <?php echo $speedOption; ?>
+                                        </div>
+                                        <div class="css-1fd5u73 e82z5mt14">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <defs>
+                                                    <linearGradient id="checkGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                                        <stop offset="0%" style="stop-color:#10B981;stop-opacity:1" />
+                                                        <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
+                                                    </linearGradient>
+                                                </defs>
+                                                <circle cx="12" cy="12" r="10" fill="url(#checkGradient)" stroke="#047857" stroke-width="1"/>
+                                                <path d="M8 12L10.5 14.5L16 9" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                            </svg>
+                                            <?php echo $applicationCount; ?>개 신청
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="css-1fd5u73 e82z5mt14">
-                                    <span style="box-sizing:border-box;display:inline-block;overflow:hidden;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0;position:relative;max-width:100%">
-                                        <span style="box-sizing:border-box;display:block;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0;max-width:100%">
-                                            <img style="display:block;max-width:100%;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0" alt="" aria-hidden="true" src="data:image/svg+xml,%3csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20version=%271.1%27%20width=%2720%27%20height=%2720%27/%3e">
-                                        </span>
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="position:absolute;top:0;left:0;bottom:0;right:0;box-sizing:border-box;padding:0;border:none;margin:auto;display:block;width:100%;height:100%">
-                                            <defs>
-                                                <linearGradient id="checkGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                                    <stop offset="0%" style="stop-color:#10B981;stop-opacity:1" />
-                                                    <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
-                                                </linearGradient>
-                                            </defs>
-                                            <circle cx="12" cy="12" r="10" fill="url(#checkGradient)" stroke="#047857" stroke-width="1"/>
-                                            <path d="M8 12L10.5 14.5L16 9" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                        </svg>
-                                    </span>21개 신청
+                                <div class="css-174t92n e82z5mt7">
+                                    <?php
+                                    // 현금 지급 혜택 표시
+                                    for ($i = 0; $i < count($cashNames); $i++):
+                                        if (!empty($cashNames[$i])):
+                                            $priceValue = isset($cashPrices[$i]) && $cashPrices[$i] > 0 ? $cashPrices[$i] : 0;
+                                    ?>
+                                    <div class="css-12zfa6z e82z5mt8">
+                                        <img src="/MVNO/assets/images/icons/cash.svg" alt="현금" class="css-xj5cz0 e82z5mt9">
+                                        <div class="css-0 e82z5mt10">
+                                            <p class="css-2ht76o e82z5mt12 item-name-text">
+                                                <?php echo htmlspecialchars($cashNames[$i]); ?>
+                                            </p>
+                                            <?php if ($priceValue > 0): ?>
+                                                <p class="css-2ht76o e82z5mt12 item-price-text" style="margin-top: 1.28px;">
+                                                    <?php echo number_format($priceValue); ?>원
+                                                </p>
+                                            <?php else: ?>
+                                                <p class="css-2ht76o e82z5mt12 item-price-text" style="margin-top: 1.28px;">무료</p>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                    <?php
+                                        endif;
+                                    endfor;
+                                    
+                                    // 상품권 지급 혜택 표시
+                                    for ($i = 0; $i < count($giftNames); $i++):
+                                        if (!empty($giftNames[$i])):
+                                            $priceValue = isset($giftPrices[$i]) && $giftPrices[$i] > 0 ? $giftPrices[$i] : 0;
+                                    ?>
+                                    <div class="css-12zfa6z e82z5mt8">
+                                        <img src="/MVNO/assets/images/icons/gift-card.svg" alt="상품권" class="css-xj5cz0 e82z5mt9">
+                                        <div class="css-0 e82z5mt10">
+                                            <p class="css-2ht76o e82z5mt12 item-name-text">
+                                                <?php echo htmlspecialchars($giftNames[$i]); ?>
+                                            </p>
+                                            <?php if ($priceValue > 0): ?>
+                                                <p class="css-2ht76o e82z5mt12 item-price-text" style="margin-top: 1.28px;">
+                                                    <?php echo number_format($priceValue); ?>원
+                                                </p>
+                                            <?php else: ?>
+                                                <p class="css-2ht76o e82z5mt12 item-price-text" style="margin-top: 1.28px;">무료</p>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                    <?php
+                                        endif;
+                                    endfor;
+                                    
+                                    // 장비 제공 혜택 표시
+                                    for ($i = 0; $i < count($equipNames); $i++):
+                                        if (!empty($equipNames[$i])):
+                                            $priceText = isset($equipPrices[$i]) && !empty($equipPrices[$i]) ? $equipPrices[$i] : '';
+                                    ?>
+                                    <div class="css-12zfa6z e82z5mt8">
+                                        <img src="/MVNO/assets/images/icons/equipment.svg" alt="장비" class="css-xj5cz0 e82z5mt9">
+                                        <div class="css-0 e82z5mt10">
+                                            <p class="css-2ht76o e82z5mt12 item-name-text">
+                                                <?php echo htmlspecialchars($equipNames[$i]); ?>
+                                            </p>
+                                            <?php if (!empty($priceText)): ?>
+                                                <p class="css-2ht76o e82z5mt12" style="margin-top: 1.28px;">
+                                                    <?php echo htmlspecialchars($priceText); ?>
+                                                </p>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                    <?php
+                                        endif;
+                                    endfor;
+                                    
+                                    // 설치 및 기타 서비스 혜택 표시
+                                    for ($i = 0; $i < count($installNames); $i++):
+                                        if (!empty($installNames[$i])):
+                                            $priceText = isset($installPrices[$i]) && !empty($installPrices[$i]) ? $installPrices[$i] : '';
+                                    ?>
+                                    <div class="css-12zfa6z e82z5mt8">
+                                        <img src="/MVNO/assets/images/icons/installation.svg" alt="설치" class="css-xj5cz0 e82z5mt9">
+                                        <div class="css-0 e82z5mt10">
+                                            <p class="css-2ht76o e82z5mt12 item-name-text">
+                                                <?php echo htmlspecialchars($installNames[$i]); ?>
+                                            </p>
+                                            <?php if (!empty($priceText)): ?>
+                                                <p class="css-2ht76o e82z5mt12" style="margin-top: 1.28px;">
+                                                    <?php echo htmlspecialchars($priceText); ?>
+                                                </p>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                    <?php
+                                        endif;
+                                    endfor;
+                                    ?>
                                 </div>
-                            </div>
-                        </div>
-                        <div class="css-174t92n e82z5mt7">
-                            <div class="css-12zfa6z e82z5mt8">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="css-xj5cz0 e82z5mt9">
-                                    <path d="M20 7H4C2.89543 7 2 7.89543 2 9V19C2 20.1046 2.89543 21 4 21H20C21.1046 21 22 20.1046 22 19V9C22 7.89543 21.1046 7 20 7Z" stroke="#6366F1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-                                    <path d="M12 7V21M12 7L8 3M12 7L16 3" stroke="#6366F1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                </svg>
-                                <div class="css-0 e82z5mt10">
-                                    <p class="css-2ht76o e82z5mt12">기가와이파이</p>
-                                    <p class="css-1j35abw e82z5mt11">무료</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div data-testid="full-price-information" class="css-rkh09p e82z5mt2">
-                            <p class="css-16qot29 e82z5mt6">월 27,500원</p>
-                        </div>
-                    </div>
-                </div>
-                
-                <div>
-                    <div class="css-58gch7 e82z5mt0">
-                        <div class="css-1kjyj6z e82z5mt1">
-                            <img data-testid="internet-company-logo" src="https://assets-legacy.moyoplan.com/internets/assets/btv.svg" class="css-1pg8bi e82z5mt15">
-                            <div class="css-huskxe e82z5mt13">
-                                <div class="css-1fd5u73 e82z5mt14">
-                                    <span style="box-sizing:border-box;display:inline-block;overflow:hidden;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0;position:relative;max-width:100%">
-                                        <span style="box-sizing:border-box;display:block;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0;max-width:100%">
-                                            <img style="display:block;max-width:100%;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0" alt="" aria-hidden="true" src="data:image/svg+xml,%3csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20version=%271.1%27%20width=%2720%27%20height=%2720%27/%3e">
-                                        </span>
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="position:absolute;top:0;left:0;bottom:0;right:0;box-sizing:border-box;padding:0;border:none;margin:auto;display:block;width:100%;height:100%">
-                                            <rect x="2" y="3" width="20" height="14" rx="2" fill="#E9D5FF" stroke="#A855F7" stroke-width="1.5"/>
-                                            <rect x="4" y="5" width="16" height="10" rx="1" fill="white"/>
-                                            <rect x="2" y="17" width="20" height="4" rx="1" fill="#C084FC" stroke="#A855F7" stroke-width="1"/>
-                                            <g transform="translate(17, -2) scale(1.5)">
-                                                <path d="M0 0L-2 5H0L-1 10L2 5H0L0 0Z" fill="#6366F1" stroke="#4F46E5" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
-                                            </g>
-                                        </svg>
-                                    </span>500MB
-                                </div>
-                                <div class="css-1fd5u73 e82z5mt14">
-                                    <span style="box-sizing:border-box;display:inline-block;overflow:hidden;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0;position:relative;max-width:100%">
-                                        <span style="box-sizing:border-box;display:block;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0;max-width:100%">
-                                            <img style="display:block;max-width:100%;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0" alt="" aria-hidden="true" src="data:image/svg+xml,%3csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20version=%271.1%27%20width=%2720%27%20height=%2720%27/%3e">
-                                        </span>
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="position:absolute;top:0;left:0;bottom:0;right:0;box-sizing:border-box;padding:0;border:none;margin:auto;display:block;width:100%;height:100%">
-                                            <defs>
-                                                <linearGradient id="checkGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                                    <stop offset="0%" style="stop-color:#10B981;stop-opacity:1" />
-                                                    <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
-                                                </linearGradient>
-                                            </defs>
-                                            <circle cx="12" cy="12" r="10" fill="url(#checkGradient)" stroke="#047857" stroke-width="1"/>
-                                            <path d="M8 12L10.5 14.5L16 9" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                        </svg>
-                                    </span>18개 신청
-                                </div>
-                            </div>
-                        </div>
-                        <div class="css-174t92n e82z5mt7">
-                            <div class="css-12zfa6z e82z5mt8">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="css-xj5cz0 e82z5mt9">
-                                    <defs>
-                                        <linearGradient id="cashGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                            <stop offset="0%" style="stop-color:#FCD34D;stop-opacity:1" />
-                                            <stop offset="50%" style="stop-color:#F59E0B;stop-opacity:1" />
-                                            <stop offset="100%" style="stop-color:#D97706;stop-opacity:1" />
-                                        </linearGradient>
-                                    </defs>
-                                    <circle cx="12" cy="12" r="11" fill="url(#cashGradient)" stroke="#B45309" stroke-width="1"/>
-                                    <circle cx="12" cy="12" r="9" fill="#FCD34D" opacity="0.9"/>
-                                    <text x="12" y="17" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#92400E" text-anchor="middle">₩</text>
-                                </svg>
-                                <div class="css-0 e82z5mt10">
-                                    <p class="css-2ht76o e82z5mt12">현금</p>
-                                    <p class="css-1j35abw e82z5mt11">50,000원</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div data-testid="full-price-information" class="css-rkh09p e82z5mt2">
-                            <p class="css-1sfc13w e82z5mt3">
-                                <span class="css-z67709 e82z5mt4">36개월 후 </span>
-                                <span class="css-z67709 e82z5mt4">39,600원</span>
-                            </p>
-                            <p class="tw-text-indigo-600 css-16qot29 e82z5mt6">월 30,800원</p>
-                        </div>
-                    </div>
-                </div>
-                
-                <div>
-                    <div class="css-58gch7 e82z5mt0">
-                        <div class="css-1kjyj6z e82z5mt1">
-                            <img data-testid="internet-company-logo" src="https://assets-legacy.moyoplan.com/internets/assets/dlive.svg" class="css-1pg8bi e82z5mt15">
-                            <div class="css-huskxe e82z5mt13">
-                                <div class="css-1fd5u73 e82z5mt14">
-                                    <span style="box-sizing:border-box;display:inline-block;overflow:hidden;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0;position:relative;max-width:100%">
-                                        <span style="box-sizing:border-box;display:block;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0;max-width:100%">
-                                            <img style="display:block;max-width:100%;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0" alt="" aria-hidden="true" src="data:image/svg+xml,%3csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20version=%271.1%27%20width=%2720%27%20height=%2720%27/%3e">
-                                        </span>
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="position:absolute;top:0;left:0;bottom:0;right:0;box-sizing:border-box;padding:0;border:none;margin:auto;display:block;width:100%;height:100%">
-                                            <rect x="2" y="3" width="20" height="14" rx="2" fill="#E9D5FF" stroke="#A855F7" stroke-width="1.5"/>
-                                            <rect x="4" y="5" width="16" height="10" rx="1" fill="white"/>
-                                            <rect x="2" y="17" width="20" height="4" rx="1" fill="#C084FC" stroke="#A855F7" stroke-width="1"/>
-                                            <g transform="translate(17, -2) scale(1.5)">
-                                                <path d="M0 0L-2 5H0L-1 10L2 5H0L0 0Z" fill="#6366F1" stroke="#4F46E5" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
-                                            </g>
-                                        </svg>
-                                    </span>500MB
-                                </div>
-                                <div class="css-1fd5u73 e82z5mt14">
-                                    <span style="box-sizing:border-box;display:inline-block;overflow:hidden;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0;position:relative;max-width:100%">
-                                        <span style="box-sizing:border-box;display:block;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0;max-width:100%">
-                                            <img style="display:block;max-width:100%;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0" alt="" aria-hidden="true" src="data:image/svg+xml,%3csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20version=%271.1%27%20width=%2720%27%20height=%2720%27/%3e">
-                                        </span>
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="position:absolute;top:0;left:0;bottom:0;right:0;box-sizing:border-box;padding:0;border:none;margin:auto;display:block;width:100%;height:100%">
-                                            <defs>
-                                                <linearGradient id="checkGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                                    <stop offset="0%" style="stop-color:#10B981;stop-opacity:1" />
-                                                    <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
-                                                </linearGradient>
-                                            </defs>
-                                            <circle cx="12" cy="12" r="10" fill="url(#checkGradient)" stroke="#047857" stroke-width="1"/>
-                                            <path d="M8 12L10.5 14.5L16 9" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                        </svg>
-                                    </span>23개 신청
+                                <div data-testid="full-price-information" class="css-rkh09p e82z5mt2">
+                                    <p class="css-16qot29 e82z5mt6">월 <?php echo $monthlyFee; ?>원</p>
                                 </div>
                             </div>
                         </div>
-                        <div class="css-174t92n e82z5mt7">
-                            <div class="css-12zfa6z e82z5mt8">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="css-xj5cz0 e82z5mt9">
-                                    <defs>
-                                        <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                            <stop offset="0%" style="stop-color:#FFD700;stop-opacity:1" />
-                                            <stop offset="50%" style="stop-color:#FFA500;stop-opacity:1" />
-                                            <stop offset="100%" style="stop-color:#FF8C00;stop-opacity:1" />
-                                        </linearGradient>
-                                    </defs>
-                                    <circle cx="12" cy="12" r="10" fill="url(#goldGradient)" stroke="#DAA520" stroke-width="1.5"/>
-                                    <circle cx="12" cy="12" r="8.5" fill="#FFD700" opacity="0.9"/>
-                                    <circle cx="12" cy="12" r="7" fill="#FFA500" opacity="0.7"/>
-                                    <circle cx="12" cy="12" r="5" fill="#FFD700" opacity="0.8"/>
-                                    <path d="M12 7C9.24 7 7 9.24 7 12C7 14.76 9.24 17 12 17C14.76 17 17 14.76 17 12C17 9.24 14.76 7 12 7Z" fill="#FFA500" opacity="0.5"/>
-                                    <circle cx="12" cy="12" r="3" fill="#FFD700" stroke="#DAA520" stroke-width="0.5"/>
-                                    <path d="M9 12H15M12 9V15" stroke="#8B6914" stroke-width="1.2" stroke-linecap="round"/>
-                                </svg>
-                                <div class="css-0 e82z5mt10">
-                                    <p class="css-2ht76o e82z5mt12">상품권</p>
-                                    <p class="css-1j35abw e82z5mt11">170,000원</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div data-testid="full-price-information" class="css-rkh09p e82z5mt2">
-                            <p class="css-16qot29 e82z5mt6">월 30,800원</p>
-                        </div>
-                    </div>
-                </div>
-                
-                <div>
-                    <div class="css-58gch7 e82z5mt0">
-                        <div class="css-1kjyj6z e82z5mt1">
-                            <img data-testid="internet-company-logo" src="https://assets-legacy.moyoplan.com/internets/assets/lgu.svg" class="css-1pg8bi e82z5mt15">
-                            <div class="css-huskxe e82z5mt13">
-                                <div class="css-1fd5u73 e82z5mt14">
-                                    <span style="box-sizing:border-box;display:inline-block;overflow:hidden;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0;position:relative;max-width:100%">
-                                        <span style="box-sizing:border-box;display:block;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0;max-width:100%">
-                                            <img style="display:block;max-width:100%;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0" alt="" aria-hidden="true" src="data:image/svg+xml,%3csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20version=%271.1%27%20width=%2720%27%20height=%2720%27/%3e">
-                                        </span>
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="position:absolute;top:0;left:0;bottom:0;right:0;box-sizing:border-box;padding:0;border:none;margin:auto;display:block;width:100%;height:100%">
-                                            <rect x="2" y="3" width="20" height="14" rx="2" fill="#E9D5FF" stroke="#A855F7" stroke-width="1.5"/>
-                                            <rect x="4" y="5" width="16" height="10" rx="1" fill="white"/>
-                                            <rect x="2" y="17" width="20" height="4" rx="1" fill="#C084FC" stroke="#A855F7" stroke-width="1"/>
-                                            <g transform="translate(17, -2) scale(1.5)">
-                                                <path d="M0 0L-2 5H0L-1 10L2 5H0L0 0Z" fill="#6366F1" stroke="#4F46E5" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
-                                            </g>
-                                        </svg>
-                                    </span>500MB
-                                </div>
-                                <div class="css-1fd5u73 e82z5mt14">
-                                    <span style="box-sizing:border-box;display:inline-block;overflow:hidden;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0;position:relative;max-width:100%">
-                                        <span style="box-sizing:border-box;display:block;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0;max-width:100%">
-                                            <img style="display:block;max-width:100%;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0" alt="" aria-hidden="true" src="data:image/svg+xml,%3csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20version=%271.1%27%20width=%2720%27%20height=%2720%27/%3e">
-                                        </span>
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="position:absolute;top:0;left:0;bottom:0;right:0;box-sizing:border-box;padding:0;border:none;margin:auto;display:block;width:100%;height:100%">
-                                            <defs>
-                                                <linearGradient id="checkGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                                    <stop offset="0%" style="stop-color:#10B981;stop-opacity:1" />
-                                                    <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
-                                                </linearGradient>
-                                            </defs>
-                                            <circle cx="12" cy="12" r="10" fill="url(#checkGradient)" stroke="#047857" stroke-width="1"/>
-                                            <path d="M8 12L10.5 14.5L16 9" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                        </svg>
-                                    </span>21개 신청
-                                </div>
-                            </div>
-                        </div>
-                        <div class="css-174t92n e82z5mt7">
-                            <div class="css-12zfa6z e82z5mt8">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="css-xj5cz0 e82z5mt9">
-                                    <defs>
-                                        <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                            <stop offset="0%" style="stop-color:#FFD700;stop-opacity:1" />
-                                            <stop offset="50%" style="stop-color:#FFA500;stop-opacity:1" />
-                                            <stop offset="100%" style="stop-color:#FF8C00;stop-opacity:1" />
-                                        </linearGradient>
-                                    </defs>
-                                    <circle cx="12" cy="12" r="10" fill="url(#goldGradient)" stroke="#DAA520" stroke-width="1.5"/>
-                                    <circle cx="12" cy="12" r="8.5" fill="#FFD700" opacity="0.9"/>
-                                    <circle cx="12" cy="12" r="7" fill="#FFA500" opacity="0.7"/>
-                                    <circle cx="12" cy="12" r="5" fill="#FFD700" opacity="0.8"/>
-                                    <path d="M12 7C9.24 7 7 9.24 7 12C7 14.76 9.24 17 12 17C14.76 17 17 14.76 17 12C17 9.24 14.76 7 12 7Z" fill="#FFA500" opacity="0.5"/>
-                                    <circle cx="12" cy="12" r="3" fill="#FFD700" stroke="#DAA520" stroke-width="0.5"/>
-                                    <path d="M9 12H15M12 9V15" stroke="#8B6914" stroke-width="1.2" stroke-linecap="round"/>
-                                </svg>
-                                <div class="css-0 e82z5mt10">
-                                    <p class="css-2ht76o e82z5mt12">상품권</p>
-                                    <p class="css-1j35abw e82z5mt11">360,000원</p>
-                                </div>
-                            </div>
-                            <div class="css-12zfa6z e82z5mt8">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="css-xj5cz0 e82z5mt9">
-                                    <defs>
-                                        <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                            <stop offset="0%" style="stop-color:#FFD700;stop-opacity:1" />
-                                            <stop offset="50%" style="stop-color:#FFA500;stop-opacity:1" />
-                                            <stop offset="100%" style="stop-color:#FF8C00;stop-opacity:1" />
-                                        </linearGradient>
-                                    </defs>
-                                    <circle cx="12" cy="12" r="10" fill="url(#goldGradient)" stroke="#DAA520" stroke-width="1.5"/>
-                                    <circle cx="12" cy="12" r="8.5" fill="#FFD700" opacity="0.9"/>
-                                    <circle cx="12" cy="12" r="7" fill="#FFA500" opacity="0.7"/>
-                                    <circle cx="12" cy="12" r="5" fill="#FFD700" opacity="0.8"/>
-                                    <path d="M12 7C9.24 7 7 9.24 7 12C7 14.76 9.24 17 12 17C14.76 17 17 14.76 17 12C17 9.24 14.76 7 12 7Z" fill="#FFA500" opacity="0.5"/>
-                                    <circle cx="12" cy="12" r="3" fill="#FFD700" stroke="#DAA520" stroke-width="0.5"/>
-                                    <path d="M9 12H15M12 9V15" stroke="#8B6914" stroke-width="1.2" stroke-linecap="round"/>
-                                </svg>
-                                <div class="css-0 e82z5mt10">
-                                    <p class="css-2ht76o e82z5mt12">상품권 (알뜰폰 결합 시)</p>
-                                    <p class="css-1j35abw e82z5mt11">150,000원</p>
-                                </div>
-                            </div>
-                            <div class="css-12zfa6z e82z5mt8">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="css-xj5cz0 e82z5mt9">
-                                    <path d="M20 7H4C2.89543 7 2 7.89543 2 9V19C2 20.1046 2.89543 21 4 21H20C21.1046 21 22 20.1046 22 19V9C22 7.89543 21.1046 7 20 7Z" stroke="#6366F1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-                                    <path d="M12 7V21M12 7L8 3M12 7L16 3" stroke="#6366F1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                </svg>
-                                <div class="css-0 e82z5mt10">
-                                    <p class="css-2ht76o e82z5mt12">기가와이파이 1대</p>
-                                    <p class="css-1j35abw e82z5mt11">안테나형</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div data-testid="full-price-information" class="css-rkh09p e82z5mt2">
-                            <p class="css-16qot29 e82z5mt6">월 42,680원</p>
-                        </div>
-                    </div>
-                </div>
-                
-                <div>
-                    <div class="css-58gch7 e82z5mt0">
-                        <div class="css-1kjyj6z e82z5mt1">
-                            <img data-testid="internet-company-logo" src="https://assets-legacy.moyoplan.com/internets/assets/kt.svg" class="css-1pg8bi e82z5mt15">
-                            <div class="css-huskxe e82z5mt13">
-                                <div class="css-1fd5u73 e82z5mt14">
-                                    <span style="box-sizing:border-box;display:inline-block;overflow:hidden;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0;position:relative;max-width:100%">
-                                        <span style="box-sizing:border-box;display:block;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0;max-width:100%">
-                                            <img style="display:block;max-width:100%;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0" alt="" aria-hidden="true" src="data:image/svg+xml,%3csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20version=%271.1%27%20width=%2720%27%20height=%2720%27/%3e">
-                                        </span>
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="position:absolute;top:0;left:0;bottom:0;right:0;box-sizing:border-box;padding:0;border:none;margin:auto;display:block;width:100%;height:100%">
-                                            <rect x="2" y="3" width="20" height="14" rx="2" fill="#E9D5FF" stroke="#A855F7" stroke-width="1.5"/>
-                                            <rect x="4" y="5" width="16" height="10" rx="1" fill="white"/>
-                                            <rect x="2" y="17" width="20" height="4" rx="1" fill="#C084FC" stroke="#A855F7" stroke-width="1"/>
-                                            <g transform="translate(17, -2) scale(1.5)">
-                                                <path d="M0 0L-2 5H0L-1 10L2 5H0L0 0Z" fill="#6366F1" stroke="#4F46E5" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
-                                            </g>
-                                        </svg>
-                                    </span>500MB
-                                </div>
-                                <div class="css-1fd5u73 e82z5mt14">
-                                    <span style="box-sizing:border-box;display:inline-block;overflow:hidden;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0;position:relative;max-width:100%">
-                                        <span style="box-sizing:border-box;display:block;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0;max-width:100%">
-                                            <img style="display:block;max-width:100%;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0" alt="" aria-hidden="true" src="data:image/svg+xml,%3csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20version=%271.1%27%20width=%2720%27%20height=%2720%27/%3e">
-                                        </span>
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="position:absolute;top:0;left:0;bottom:0;right:0;box-sizing:border-box;padding:0;border:none;margin:auto;display:block;width:100%;height:100%">
-                                            <defs>
-                                                <linearGradient id="checkGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                                    <stop offset="0%" style="stop-color:#10B981;stop-opacity:1" />
-                                                    <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
-                                                </linearGradient>
-                                            </defs>
-                                            <circle cx="12" cy="12" r="10" fill="url(#checkGradient)" stroke="#047857" stroke-width="1"/>
-                                            <path d="M8 12L10.5 14.5L16 9" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                        </svg>
-                                    </span>23개 신청
-                                </div>
-                            </div>
-                        </div>
-                        <div class="css-174t92n e82z5mt7">
-                            <div class="css-12zfa6z e82z5mt8">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="css-xj5cz0 e82z5mt9">
-                                    <defs>
-                                        <linearGradient id="cashGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                            <stop offset="0%" style="stop-color:#FCD34D;stop-opacity:1" />
-                                            <stop offset="50%" style="stop-color:#F59E0B;stop-opacity:1" />
-                                            <stop offset="100%" style="stop-color:#D97706;stop-opacity:1" />
-                                        </linearGradient>
-                                    </defs>
-                                    <circle cx="12" cy="12" r="11" fill="url(#cashGradient)" stroke="#B45309" stroke-width="1"/>
-                                    <circle cx="12" cy="12" r="9" fill="#FCD34D" opacity="0.9"/>
-                                    <text x="12" y="17" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#92400E" text-anchor="middle">₩</text>
-                                </svg>
-                                <div class="css-0 e82z5mt10">
-                                    <p class="css-2ht76o e82z5mt12">현금</p>
-                                    <p class="css-1j35abw e82z5mt11">390,000원</p>
-                                </div>
-                            </div>
-                            <div class="css-12zfa6z e82z5mt8">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="css-xj5cz0 e82z5mt9">
-                                    <defs>
-                                        <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                            <stop offset="0%" style="stop-color:#FFD700;stop-opacity:1" />
-                                            <stop offset="50%" style="stop-color:#FFA500;stop-opacity:1" />
-                                            <stop offset="100%" style="stop-color:#FF8C00;stop-opacity:1" />
-                                        </linearGradient>
-                                    </defs>
-                                    <circle cx="12" cy="12" r="10" fill="url(#goldGradient)" stroke="#DAA520" stroke-width="1.5"/>
-                                    <circle cx="12" cy="12" r="8.5" fill="#FFD700" opacity="0.9"/>
-                                    <circle cx="12" cy="12" r="7" fill="#FFA500" opacity="0.7"/>
-                                    <circle cx="12" cy="12" r="5" fill="#FFD700" opacity="0.8"/>
-                                    <path d="M12 7C9.24 7 7 9.24 7 12C7 14.76 9.24 17 12 17C14.76 17 17 14.76 17 12C17 9.24 14.76 7 12 7Z" fill="#FFA500" opacity="0.5"/>
-                                    <circle cx="12" cy="12" r="3" fill="#FFD700" stroke="#DAA520" stroke-width="0.5"/>
-                                    <path d="M9 12H15M12 9V15" stroke="#8B6914" stroke-width="1.2" stroke-linecap="round"/>
-                                </svg>
-                                <div class="css-0 e82z5mt10">
-                                    <p class="css-2ht76o e82z5mt12">상품권</p>
-                                    <p class="css-1j35abw e82z5mt11">60,000원</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div data-testid="full-price-information" class="css-rkh09p e82z5mt2">
-                            <p class="css-16qot29 e82z5mt6">월 42,900원</p>
-                        </div>
-                    </div>
-                </div>
-                
-                <div>
-                    <div class="css-58gch7 e82z5mt0">
-                        <div class="css-1kjyj6z e82z5mt1">
-                            <img data-testid="internet-company-logo" src="https://assets-legacy.moyoplan.com/internets/assets/broadband.svg" class="css-1pg8bi e82z5mt15">
-                            <div class="css-huskxe e82z5mt13">
-                                <div class="css-1fd5u73 e82z5mt14">
-                                    <span style="box-sizing:border-box;display:inline-block;overflow:hidden;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0;position:relative;max-width:100%">
-                                        <span style="box-sizing:border-box;display:block;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0;max-width:100%">
-                                            <img style="display:block;max-width:100%;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0" alt="" aria-hidden="true" src="data:image/svg+xml,%3csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20version=%271.1%27%20width=%2720%27%20height=%2720%27/%3e">
-                                        </span>
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="position:absolute;top:0;left:0;bottom:0;right:0;box-sizing:border-box;padding:0;border:none;margin:auto;display:block;width:100%;height:100%">
-                                            <rect x="2" y="3" width="20" height="14" rx="2" fill="#E9D5FF" stroke="#A855F7" stroke-width="1.5"/>
-                                            <rect x="4" y="5" width="16" height="10" rx="1" fill="white"/>
-                                            <rect x="2" y="17" width="20" height="4" rx="1" fill="#C084FC" stroke="#A855F7" stroke-width="1"/>
-                                            <g transform="translate(17, -2) scale(1.5)">
-                                                <path d="M0 0L-2 5H0L-1 10L2 5H0L0 0Z" fill="#6366F1" stroke="#4F46E5" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
-                                            </g>
-                                        </svg>
-                                    </span>500MB
-                                </div>
-                                <div class="css-1fd5u73 e82z5mt14">
-                                    <span style="box-sizing:border-box;display:inline-block;overflow:hidden;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0;position:relative;max-width:100%">
-                                        <span style="box-sizing:border-box;display:block;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0;max-width:100%">
-                                            <img style="display:block;max-width:100%;width:initial;height:initial;background:none;opacity:1;border:0;margin:0;padding:0" alt="" aria-hidden="true" src="data:image/svg+xml,%3csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20version=%271.1%27%20width=%2720%27%20height=%2720%27/%3e">
-                                        </span>
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="position:absolute;top:0;left:0;bottom:0;right:0;box-sizing:border-box;padding:0;border:none;margin:auto;display:block;width:100%;height:100%">
-                                            <defs>
-                                                <linearGradient id="checkGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                                    <stop offset="0%" style="stop-color:#10B981;stop-opacity:1" />
-                                                    <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
-                                                </linearGradient>
-                                            </defs>
-                                            <circle cx="12" cy="12" r="10" fill="url(#checkGradient)" stroke="#047857" stroke-width="1"/>
-                                            <path d="M8 12L10.5 14.5L16 9" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                        </svg>
-                                    </span>23개 신청
-                                </div>
-                            </div>
-                        </div>
-                        <div class="css-174t92n e82z5mt7">
-                            <div class="css-12zfa6z e82z5mt8">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="css-xj5cz0 e82z5mt9">
-                                    <defs>
-                                        <linearGradient id="cashGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                            <stop offset="0%" style="stop-color:#FCD34D;stop-opacity:1" />
-                                            <stop offset="50%" style="stop-color:#F59E0B;stop-opacity:1" />
-                                            <stop offset="100%" style="stop-color:#D97706;stop-opacity:1" />
-                                        </linearGradient>
-                                    </defs>
-                                    <circle cx="12" cy="12" r="11" fill="url(#cashGradient)" stroke="#B45309" stroke-width="1"/>
-                                    <circle cx="12" cy="12" r="9" fill="#FCD34D" opacity="0.9"/>
-                                    <text x="12" y="17" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#92400E" text-anchor="middle">₩</text>
-                                </svg>
-                                <div class="css-0 e82z5mt10">
-                                    <p class="css-2ht76o e82z5mt12">현금</p>
-                                    <p class="css-1j35abw e82z5mt11">470,000원</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div data-testid="full-price-information" class="css-rkh09p e82z5mt2">
-                            <p class="css-16qot29 e82z5mt6">월 45,100원</p>
-                        </div>
-                    </div>
-                </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
             </div>
         </div>
     </div>
@@ -699,6 +409,12 @@ include '../includes/header.php';
                             <input id="internetPhone" type="tel" inputmode="tel" name="phoneNumber" class="internet-form-input" data-phone-format="true">
                         </div>
                     </div>
+                    <div class="internet-form-group">
+                        <label for="internetEmail" class="internet-form-label">이메일 주소</label>
+                        <div class="internet-form-input-wrapper">
+                            <input id="internetEmail" type="email" inputmode="email" name="email" class="internet-form-input">
+                        </div>
+                    </div>
                     
                     <!-- 체크박스 -->
                     <div class="internet-checkbox-group">
@@ -815,55 +531,21 @@ include '../includes/header.php';
 </div>
 
 <style>
-/* Tailwind-like utilities */
-.tw-m-auto {
-    margin: auto;
+/* Main content background */
+.main-content {
+    background-color: #F8F9FA;
+    min-height: 100vh;
 }
 
+/* Tailwind-like utilities */
 .tw-w-full {
     width: 100%;
-}
-
-.tw-max-w-\[780px\] {
-    max-width: 780px;
 }
 
 .tw-text-indigo-600 {
     color: #4f46e5;
 }
 
-.tw-w-20 {
-    width: 5rem;
-}
-
-.tw-text-indigo-500 {
-    color: #6366f1;
-}
-
-@media (min-width: 640px) {
-    .min-w-640-legacy\:tw-max-w-\[480px\] {
-        max-width: 480px;
-    }
-}
-
-/* Header section */
-.css-9mgi5u.e12hkotm0 {
-    text-align: center;
-    padding: 2rem 1rem;
-}
-
-.css-5xeo2v.e12hkotm1 {
-    font-size: 1.5rem;
-    font-weight: 700;
-    line-height: 1.75rem;
-    margin-bottom: 0.5rem;
-    color: #1a1a1a;
-}
-
-.css-clrse6.e12hkotm2 {
-    font-size: 0.875rem;
-    color: #666;
-}
 
 /* Filter section - plans.php와 동일한 스타일 사용 (assets/css/style.css에 정의됨) */
 /* 필터 버튼 내 이미지 아이콘 스타일 추가 */
@@ -879,14 +561,34 @@ include '../includes/header.php';
 }
 
 /* Product cards container */
+.PlanDetail_content_wrapper__0YNeJ {
+    width: 100%;
+    max-width: 100%;
+}
+
 .css-2l6pil.e1ebrc9o0 {
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
-    padding: 1rem;
+    padding: 1rem 1.5rem;
     /* 필터 아래에 위치하도록 기본 여백 추가 */
     padding-top: 100px;
     transition: padding-top 0.3s ease-in-out;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+/* PC에서 메뉴보다 작게 제한 */
+@media (min-width: 1024px) {
+    .PlanDetail_content_wrapper__0YNeJ {
+        max-width: 1000px;
+        margin: 0 auto;
+    }
+    
+    .css-2l6pil.e1ebrc9o0 {
+        max-width: 100%;
+    }
 }
 
 /* 필터가 sticky일 때 추가 여백 */
@@ -914,12 +616,13 @@ include '../includes/header.php';
 .css-1kjyj6z.e82z5mt1 {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 1rem;
     margin-bottom: 1rem;
 }
 
 .css-1pg8bi.e82z5mt15 {
-    width: 80px;
+    width: 120px;
     height: auto;
     object-fit: contain;
 }
@@ -927,14 +630,15 @@ include '../includes/header.php';
 .css-huskxe.e82z5mt13 {
     display: flex;
     gap: 0.75rem;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    flex-shrink: 0;
 }
 
 .css-1fd5u73.e82z5mt14 {
     display: flex;
     align-items: center;
     gap: 0.25rem;
-    font-size: 0.875rem;
+    font-size: 1.2rem;
     color: #374151;
 }
 
@@ -956,14 +660,15 @@ include '../includes/header.php';
 
 .css-12zfa6z.e82z5mt8 {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     gap: 0.75rem;
 }
 
 .css-xj5cz0.e82z5mt9 {
-    width: 24px;
-    height: 24px;
+    width: auto;
+    height: calc(1.0584rem * 1.5 + 1.3125rem * 1.5 + 0.08rem);
     flex-shrink: 0;
+    object-fit: contain;
 }
 
 .css-0.e82z5mt10 {
@@ -971,16 +676,29 @@ include '../includes/header.php';
 }
 
 .css-2ht76o.e82z5mt12 {
-    font-size: 0.875rem;
-    font-weight: 600;
+    font-size: 1.3125rem;
+    font-weight: 500;
     color: #1a1a1a;
-    margin: 0 0 0.25rem 0;
+    margin: 0;
+    line-height: 1.5;
+}
+
+.css-2ht76o.e82z5mt12.item-name-text {
+    color: #6b7280 !important;
+    font-weight: 400 !important;
+    font-size: 1.0584rem !important; /* 0.882rem의 120% (20% 증가) */
+}
+
+.item-price-text {
+    color: #1a1a1a;
+    font-weight: 600;
 }
 
 .css-1j35abw.e82z5mt11 {
-    font-size: 0.8125rem;
+    font-size: 1.125rem;
     color: #6b7280;
     margin: 0;
+    font-weight: 400;
 }
 
 /* Price section */
@@ -991,35 +709,37 @@ include '../includes/header.php';
 }
 
 .css-16qot29.e82z5mt6 {
-    font-size: 1.5rem;
+    font-size: 1.05rem;
     font-weight: 700;
     color: #1a1a1a;
     margin: 0;
-}
-
-.css-1sfc13w.e82z5mt3 {
-    font-size: 0.875rem;
-    color: #6b7280;
-    margin-bottom: 0.5rem;
-}
-
-.css-z67709.e82z5mt4 {
-    display: inline-block;
-    margin-right: 0.5rem;
+    text-align: right;
 }
 
 @media (max-width: 767px) {
-    .css-5xeo2v.e12hkotm1 {
-        font-size: 1.25rem;
-    }
-    
     .css-58gch7.e82z5mt0 {
         padding: 1rem;
     }
     
     .css-1kjyj6z.e82z5mt1 {
-        flex-direction: column;
-        align-items: flex-start;
+        flex-wrap: nowrap;
+        gap: 0.5rem;
+    }
+    
+    .css-huskxe.e82z5mt13 {
+        gap: 0.5rem;
+        flex-shrink: 1;
+    }
+    
+    .css-1fd5u73.e82z5mt14 {
+        font-size: 1.2rem;
+        white-space: nowrap;
+    }
+    
+    .css-1pg8bi.e82z5mt15 {
+        width: 80px;
+        max-width: 80px;
+        flex-shrink: 1;
     }
 }
 
@@ -2145,10 +1865,39 @@ include '../includes/header.php';
     });
 })();
 
+// 로그인한 사용자 정보 가져오기 (전역 변수)
+<?php
+$currentUser = null;
+if (isLoggedIn()) {
+    $currentUser = getCurrentUser();
+}
+?>
+const currentUser = <?php echo json_encode($currentUser ? [
+    'name' => $currentUser['name'] ?? '',
+    'phone' => $currentUser['phone'] ?? '',
+    'email' => $currentUser['email'] ?? ''
+] : null); ?>;
+
 // 인터넷 카드 클릭 이벤트 핸들러
 document.addEventListener('DOMContentLoaded', function() {
     const internetCards = document.querySelectorAll('.css-58gch7.e82z5mt0');
     const isLoggedIn = <?php echo isLoggedIn() ? 'true' : 'false'; ?>;
+    
+    // 인터넷 모달을 열어야 하는지 여부를 저장하는 플래그
+    window.shouldOpenInternetModal = false;
+    
+    // URL 파라미터에서 인터넷 모달을 열어야 하는지 확인 (SNS 로그인 후 리다이렉트)
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('openInternetModal') === 'true') {
+        window.shouldOpenInternetModal = true;
+        // URL에서 파라미터 제거
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, '', newUrl);
+        // 인터넷 모달 열기
+        setTimeout(() => {
+            openInternetModal();
+        }, 300);
+    }
     
     if (internetCards.length === 0) {
         console.warn('인터넷 카드를 찾을 수 없습니다.');
@@ -2164,12 +1913,57 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
-            // 로그인 체크 - 로그인하지 않은 경우 회원가입 모달 표시
+            // 로그인 체크 - 로그인하지 않은 경우 로그인 모달 표시
             if (!isLoggedIn) {
                 e.preventDefault();
                 e.stopPropagation();
                 
-                // 현재 URL을 세션에 저장 (회원가입 후 돌아올 주소)
+                // 카드에서 회사 정보 추출 (로그인 후 사용하기 위해 저장)
+                const logoImg = card.querySelector('img[data-testid="internet-company-logo"]');
+                if (logoImg) {
+                    const logoSrc = logoImg.src;
+                    const logoAlt = logoImg.alt || '';
+                    
+                    // URL에서 회사명 추출
+                    const companyMap = {
+                        'ktskylife': { name: 'KT SkyLife', icon: 'ktskylife' },
+                        'hellovision': { name: 'HelloVision', icon: 'hellovision' },
+                        'btv': { name: 'BTV', icon: 'btv' },
+                        'dlive': { name: 'DLive', icon: 'dlive' },
+                        'lgu': { name: 'LG U+', icon: 'lgu' },
+                        'kt': { name: 'KT', icon: 'kt' },
+                        'broadband': { name: 'Broadband', icon: 'broadband' }
+                    };
+                    
+                    let companyInfo = null;
+                    for (const [key, value] of Object.entries(companyMap)) {
+                        if (logoSrc.includes(key)) {
+                            companyInfo = value;
+                            break;
+                        }
+                    }
+                    
+                    // alt 텍스트에서도 확인
+                    if (!companyInfo && logoAlt) {
+                        for (const [key, value] of Object.entries(companyMap)) {
+                            if (logoAlt.toLowerCase().includes(key.toLowerCase())) {
+                                companyInfo = value;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    if (companyInfo) {
+                        selectedData.newCompany = companyInfo.name;
+                        selectedData.newCompanyIcon = companyInfo.icon;
+                        selectedData.newCompanyLogo = logoSrc;
+                    }
+                }
+                
+                // 인터넷 모달을 열어야 한다는 플래그 설정
+                window.shouldOpenInternetModal = true;
+                
+                // 현재 URL을 세션에 저장 (로그인 후 돌아올 주소)
                 const currentUrl = window.location.href;
                 fetch('/MVNO/api/save-redirect-url.php', {
                     method: 'POST',
@@ -2177,24 +1971,54 @@ document.addEventListener('DOMContentLoaded', function() {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({ redirect_url: currentUrl })
-                }).then(() => {
-                    // 회원가입 모달 열기
-                    if (typeof openLoginModal === 'function') {
-                        openLoginModal(true);
-                    } else {
-                        setTimeout(() => {
-                            if (typeof openLoginModal === 'function') {
-                                openLoginModal(true);
-                            }
-                        }, 100);
-                    }
                 }).catch(error => {
-                    console.error('리다이렉트 URL 저장 실패:', error);
-                    // 에러가 발생해도 회원가입 모달은 열기
-                    if (typeof openLoginModal === 'function') {
-                        openLoginModal(true);
-                    }
+                    // 에러 무시하고 계속 진행
                 });
+                
+                // 로그인 모달 열기 (여러 방법 시도)
+                function tryOpenLoginModal() {
+                    // 방법 1: 전역 함수 사용
+                    if (typeof openLoginModal === 'function') {
+                        openLoginModal(false);
+                        return true;
+                    }
+                    
+                    // 방법 2: 직접 모달 요소 찾기
+                    const loginModal = document.getElementById('loginModal');
+                    if (loginModal) {
+                        loginModal.classList.add('active');
+                        document.body.style.overflow = 'hidden';
+                        return true;
+                    }
+                    
+                    // 방법 3: 로그인 모달 오버레이 찾기
+                    const loginModalOverlay = document.querySelector('.login-modal-overlay');
+                    const loginModalContent = document.querySelector('.login-modal-content');
+                    if (loginModalOverlay && loginModalContent) {
+                        const loginModalWrapper = loginModalOverlay.closest('.login-modal');
+                        if (loginModalWrapper) {
+                            loginModalWrapper.classList.add('active');
+                            document.body.style.overflow = 'hidden';
+                            return true;
+                        }
+                    }
+                    
+                    return false;
+                }
+                
+                // 즉시 시도
+                if (!tryOpenLoginModal()) {
+                    // 실패 시 재시도
+                    let retryCount = 0;
+                    const maxRetries = 10;
+                    const retryInterval = setInterval(() => {
+                        retryCount++;
+                        if (tryOpenLoginModal() || retryCount >= maxRetries) {
+                            clearInterval(retryInterval);
+                        }
+                    }, 100);
+                }
+                
                 return;
             }
             
@@ -2244,6 +2068,52 @@ document.addEventListener('DOMContentLoaded', function() {
             openInternetModal();
         });
     });
+    
+    // 로그인 모달의 로그인 폼 제출 처리 오버라이드 (인터넷 페이지에서만)
+    const loginForm = document.getElementById('loginForm');
+    if (loginForm) {
+        // 기존 이벤트 리스너 제거를 위해 클론 후 재등록
+        const newLoginForm = loginForm.cloneNode(true);
+        loginForm.parentNode.replaceChild(newLoginForm, loginForm);
+        
+        newLoginForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            
+            fetch('/MVNO/api/direct-login.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // 로그인 모달 닫기
+                    if (typeof closeLoginModal === 'function') {
+                        closeLoginModal();
+                    }
+                    
+                    // 인터넷 모달을 열어야 하는 경우
+                    if (window.shouldOpenInternetModal) {
+                        window.shouldOpenInternetModal = false;
+                        // 페이지 리로드 대신 인터넷 모달 열기
+                        setTimeout(() => {
+                            openInternetModal();
+                        }, 100);
+                    } else {
+                        // 일반적인 경우 페이지 리로드
+                        window.location.href = data.redirect || '/MVNO/';
+                    }
+                } else {
+                    alert(data.message || '로그인에 실패했습니다.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('로그인 중 오류가 발생했습니다.');
+            });
+        });
+    }
 });
 
 // 모달 제어 함수들
@@ -2303,6 +2173,23 @@ function openInternetModal() {
         if (window.setupFormValidation) {
             window.setupFormValidation();
         }
+        
+        // 로그인한 사용자 정보 자동 입력
+        if (currentUser) {
+            const nameInput = document.getElementById('internetName');
+            const phoneInput = document.getElementById('internetPhone');
+            const emailInput = document.getElementById('internetEmail');
+            
+            if (nameInput && currentUser.name) {
+                nameInput.value = currentUser.name;
+            }
+            if (phoneInput && currentUser.phone) {
+                phoneInput.value = currentUser.phone;
+            }
+            if (emailInput && currentUser.email) {
+                emailInput.value = currentUser.email;
+            }
+        }
     }
 }
 
@@ -2348,6 +2235,23 @@ function showStep(step) {
     if (currentStepEl) {
         currentStepEl.classList.add('active');
         currentStep = step;
+        
+        // step 3로 이동할 때 로그인한 사용자 정보 자동 입력
+        if (step === 3 && currentUser) {
+            const nameInput = document.getElementById('internetName');
+            const phoneInput = document.getElementById('internetPhone');
+            const emailInput = document.getElementById('internetEmail');
+            
+            if (nameInput && currentUser.name && !nameInput.value) {
+                nameInput.value = currentUser.name;
+            }
+            if (phoneInput && currentUser.phone && !phoneInput.value) {
+                phoneInput.value = currentUser.phone;
+            }
+            if (emailInput && currentUser.email && !emailInput.value) {
+                emailInput.value = currentUser.email;
+            }
+        }
     }
 }
 
@@ -2380,8 +2284,10 @@ function resetSteps() {
     // 입력 필드 초기화
     const nameInput = document.getElementById('internetName');
     const phoneInput = document.getElementById('internetPhone');
+    const emailInput = document.getElementById('internetEmail');
     if (nameInput) nameInput.value = '';
     if (phoneInput) phoneInput.value = '';
+    if (emailInput) emailInput.value = '';
 }
 
 function selectInternetOption(option) {
@@ -2591,33 +2497,6 @@ function toggleAllAgreements(checked) {
     }
 }
 
-function toggleAccordion(accordionId, isOpen) {
-    const accordion = document.getElementById(accordionId);
-    if (accordion) {
-        if (isOpen) {
-            accordion.classList.add('active');
-        } else {
-            accordion.classList.remove('active');
-        }
-    }
-    
-    // 화살표 방향 변경
-    let arrowLink = null;
-    if (accordionId === 'privacyAccordion') {
-        arrowLink = document.getElementById('privacyArrowLink');
-    } else if (accordionId === 'thirdPartyAccordion') {
-        arrowLink = document.getElementById('thirdPartyArrowLink');
-    }
-    
-    if (arrowLink) {
-        if (isOpen) {
-            arrowLink.classList.add('arrow-up');
-        } else {
-            arrowLink.classList.remove('arrow-up');
-        }
-    }
-}
-
 function toggleAccordionByArrow(accordionId, arrowLinkId) {
     const accordion = document.getElementById(accordionId);
     const arrowLink = document.getElementById(arrowLinkId);
@@ -2700,15 +2579,15 @@ function submitInternetForm() {
     
     const name = document.getElementById('internetName').value;
     const phone = document.getElementById('internetPhone').value;
+    const email = document.getElementById('internetEmail').value;
     
     // 폼 데이터 수집
     const formData = {
         ...selectedData,
         name: name,
-        phone: phone
+        phone: phone,
+        email: email
     };
-    
-    console.log('제출된 데이터:', formData);
     
     // TODO: 실제 제출 로직 구현
     
@@ -3021,51 +2900,8 @@ document.addEventListener('keydown', function(e) {
 })();
 </script>
 
-<?php
-// 포인트 사용 모달 포함 (각 인터넷 카드마다)
-// 인터넷 카드에 data-internet-id 속성이 있다고 가정
-?>
-
-<script src="/MVNO/assets/js/point-usage-integration.js" defer></script>
-<script>
-// 인터넷 신청하기 버튼에 포인트 모달 연동
-document.addEventListener('DOMContentLoaded', function() {
-    // 인터넷 카드의 신청하기 버튼 찾기 (실제 버튼 선택자에 맞게 수정 필요)
-    const internetCards = document.querySelectorAll('[data-internet-id]');
-    
-    internetCards.forEach(card => {
-        const internetId = card.getAttribute('data-internet-id');
-        const applyBtn = card.querySelector('.internet-apply-btn, [data-apply-type="internet"]');
-        
-        if (applyBtn) {
-            applyBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                
-                // 포인트 모달 열기
-                if (typeof openPointUsageModal === 'function') {
-                    openPointUsageModal('internet', internetId);
-                }
-            });
-        }
-    });
-    
-    // 포인트 사용 확인 후 기존 신청 모달 열기
-    document.addEventListener('pointUsageConfirmed', function(e) {
-        const { type, itemId, usedPoint } = e.detail;
-        if (type === 'internet') {
-            console.log('포인트 사용 확인됨:', e.detail);
-            // TODO: 기존 인터넷 신청 모달 열기
-        }
-    });
-});
-</script>
 
 <?php
 // 푸터 포함
 include '../includes/footer.php';
 ?>
-
-
-
-

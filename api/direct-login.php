@@ -3,11 +3,7 @@
  * 직접 로그인 API (관리자, 서브관리자, 판매자용)
  */
 
-// 세션 시작
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
+// auth-functions.php에서 세션 설정과 함께 세션을 시작함
 require_once __DIR__ . '/../includes/data/auth-functions.php';
 
 header('Content-Type: application/json');

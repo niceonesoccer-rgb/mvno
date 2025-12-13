@@ -52,6 +52,21 @@ function saveMvnoProduct($productData) {
         return false;
     }
     
+    // 트랜잭션 시작 전에 컬럼 확인 및 추가 (ALTER TABLE은 DDL이므로 트랜잭션 밖에서 실행)
+    // redirect_url 컬럼 확인 및 추가
+    $checkRedirectUrl = $pdo->query("SHOW COLUMNS FROM product_mvno_details LIKE 'redirect_url'");
+    if (!$checkRedirectUrl->fetch()) {
+        $pdo->exec("ALTER TABLE product_mvno_details ADD COLUMN redirect_url VARCHAR(500) DEFAULT NULL COMMENT '신청 후 리다이렉트 URL'");
+        error_log("product_mvno_details 테이블에 redirect_url 컬럼이 추가되었습니다.");
+    }
+    
+    // registration_types 컬럼 확인 및 추가
+    $checkRegistrationTypes = $pdo->query("SHOW COLUMNS FROM product_mvno_details LIKE 'registration_types'");
+    if (!$checkRegistrationTypes->fetch()) {
+        $pdo->exec("ALTER TABLE product_mvno_details ADD COLUMN registration_types TEXT DEFAULT NULL COMMENT '가입 형태 (JSON)'");
+        error_log("product_mvno_details 테이블에 registration_types 컬럼이 추가되었습니다.");
+    }
+    
     try {
         $pdo->beginTransaction();
         
@@ -116,20 +131,6 @@ function saveMvnoProduct($productData) {
             $checkStmt = $pdo->prepare("SELECT COUNT(*) FROM product_mvno_details WHERE product_id = :product_id");
             $checkStmt->execute([':product_id' => $productId]);
             $detailExists = $checkStmt->fetchColumn() > 0;
-            
-            // redirect_url 컬럼 확인 및 추가
-            $checkRedirectUrl = $pdo->query("SHOW COLUMNS FROM product_mvno_details LIKE 'redirect_url'");
-            if (!$checkRedirectUrl->fetch()) {
-                $pdo->exec("ALTER TABLE product_mvno_details ADD COLUMN redirect_url VARCHAR(500) DEFAULT NULL COMMENT '신청 후 리다이렉트 URL'");
-                error_log("product_mvno_details 테이블에 redirect_url 컬럼이 추가되었습니다.");
-            }
-        } else {
-            // 등록 모드에서도 redirect_url 컬럼 확인
-            $checkRedirectUrl = $pdo->query("SHOW COLUMNS FROM product_mvno_details LIKE 'redirect_url'");
-            if (!$checkRedirectUrl->fetch()) {
-                $pdo->exec("ALTER TABLE product_mvno_details ADD COLUMN redirect_url VARCHAR(500) DEFAULT NULL COMMENT '신청 후 리다이렉트 URL'");
-                error_log("product_mvno_details 테이블에 redirect_url 컬럼이 추가되었습니다.");
-            }
         }
         
         // price_after 처리: price_after_type_hidden이 'free'이면 null, 그 외에는 숫자로 변환 (0도 포함)
@@ -182,6 +183,7 @@ function saveMvnoProduct($productData) {
             ':promotion_title' => $productData['promotion_title'] ?? null,
             ':promotions' => !empty($productData['promotions']) ? json_encode($productData['promotions']) : null,
             ':benefits' => !empty($productData['benefits']) ? json_encode($productData['benefits']) : null,
+            ':registration_types' => !empty($productData['registration_types']) ? json_encode($productData['registration_types']) : null,
             ':redirect_url' => !empty($productData['redirect_url']) ? trim($productData['redirect_url']) : null,
         ];
         
@@ -199,7 +201,7 @@ function saveMvnoProduct($productData) {
                 regular_sim_available = :regular_sim_available, regular_sim_price = :regular_sim_price, nfc_sim_available = :nfc_sim_available, nfc_sim_price = :nfc_sim_price,
                 esim_available = :esim_available, esim_price = :esim_price, over_data_price = :over_data_price, over_voice_price = :over_voice_price,
                 over_video_price = :over_video_price, over_sms_price = :over_sms_price, over_lms_price = :over_lms_price, over_mms_price = :over_mms_price,
-                promotion_title = :promotion_title, promotions = :promotions, benefits = :benefits, redirect_url = :redirect_url
+                promotion_title = :promotion_title, promotions = :promotions, benefits = :benefits, registration_types = :registration_types, redirect_url = :redirect_url
                 WHERE product_id = :product_id
             ";
             $stmt = $pdo->prepare($queryString);
@@ -217,7 +219,7 @@ function saveMvnoProduct($productData) {
                 regular_sim_available, regular_sim_price, nfc_sim_available, nfc_sim_price,
                 esim_available, esim_price, over_data_price, over_voice_price,
                 over_video_price, over_sms_price, over_lms_price, over_mms_price,
-                promotion_title, promotions, benefits, redirect_url
+                promotion_title, promotions, benefits, registration_types, redirect_url
             ) VALUES (
                 :product_id, :provider, :service_type, :plan_name, :contract_period,
                 :contract_period_days, :discount_period, :price_main, :price_after,
@@ -227,7 +229,7 @@ function saveMvnoProduct($productData) {
                 :regular_sim_available, :regular_sim_price, :nfc_sim_available, :nfc_sim_price,
                 :esim_available, :esim_price, :over_data_price, :over_voice_price,
                 :over_video_price, :over_sms_price, :over_lms_price, :over_mms_price,
-                :promotion_title, :promotions, :benefits, :redirect_url
+                :promotion_title, :promotions, :benefits, :registration_types, :redirect_url
             )
         ";
             $stmt = $pdo->prepare($queryString);

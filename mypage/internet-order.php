@@ -4,6 +4,26 @@ $current_page = 'mypage';
 // 메인 페이지 여부 (하단 메뉴 및 푸터 표시용)
 $is_main_page = false;
 
+// 로그인 체크를 위한 auth-functions 포함 (세션 설정과 함께 세션을 시작함)
+require_once '../includes/data/auth-functions.php';
+
+// 로그인 체크 - 로그인하지 않은 경우 회원가입 모달로 리다이렉트
+if (!isLoggedIn()) {
+    // 현재 URL을 세션에 저장 (회원가입 후 돌아올 주소)
+    $_SESSION['redirect_url'] = $_SERVER['REQUEST_URI'];
+    // 로그인 모달이 있는 홈으로 리다이렉트 (모달 자동 열기)
+    header('Location: /MVNO/?show_login=1');
+    exit;
+}
+
+// 현재 사용자 정보 가져오기
+$currentUser = getCurrentUser();
+if (!$currentUser) {
+    // 사용자 정보를 가져올 수 없으면 로그아웃 처리
+    header('Location: /MVNO/?show_login=1');
+    exit;
+}
+
 // 인터넷 요금제 데이터 배열 (주문 내역용)
 $internets = [
     ['id' => 1, 'provider' => 'KT SkyLife', 'plan_name' => '인터넷 500MB + TV', 'speed' => '500MB', 'tv_combined' => true, 'price' => '월 39,000원', 'installation_fee' => '무료', 'order_date' => '2024.11.15', 'installation_date' => '2024.11.18', 'has_review' => false, 'review_count' => 19],

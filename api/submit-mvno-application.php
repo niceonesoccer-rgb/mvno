@@ -27,6 +27,7 @@ $productId = isset($_POST['product_id']) ? intval($_POST['product_id']) : 0;
 $name = isset($_POST['name']) ? trim($_POST['name']) : '';
 $phone = isset($_POST['phone']) ? trim($_POST['phone']) : '';
 $email = isset($_POST['email']) ? trim($_POST['email']) : '';
+$subscriptionType = isset($_POST['subscription_type']) ? trim($_POST['subscription_type']) : '';
 
 if (empty($productId) || empty($name) || empty($phone)) {
     echo json_encode([
@@ -44,10 +45,11 @@ try {
     
     // 상품 정보 가져오기 (seller_id, redirect_url 확인)
     $stmt = $pdo->prepare("
-        SELECT p.seller_id, m.redirect_url
+        SELECT p.seller_id, mvno.redirect_url
         FROM products p
-        LEFT JOIN product_mvno_details m ON p.id = m.product_id
+        LEFT JOIN product_mvno_details mvno ON p.id = mvno.product_id
         WHERE p.id = ? AND p.product_type = 'mvno' AND p.status = 'active'
+        LIMIT 1
     ");
     $stmt->execute([$productId]);
     $product = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -59,9 +61,17 @@ try {
     $sellerId = $product['seller_id'];
     $redirectUrl = !empty($product['redirect_url']) ? trim($product['redirect_url']) : null;
     
+    // 로그인한 사용자 ID 가져오기
+    require_once __DIR__ . '/../includes/data/auth-functions.php';
+    $userId = null;
+    if (isLoggedIn()) {
+        $currentUser = getCurrentUser();
+        $userId = $currentUser['user_id'] ?? null;
+    }
+    
     // 고객 정보 준비
     $customerData = [
-        'user_id' => null, // 비회원도 신청 가능
+        'user_id' => $userId, // 로그인한 사용자 ID
         'name' => $name,
         'phone' => $phone,
         'email' => $email,
@@ -69,7 +79,9 @@ try {
         'address_detail' => null,
         'birth_date' => null,
         'gender' => null,
-        'additional_info' => []
+        'additional_info' => [
+            'subscription_type' => $subscriptionType // 가입 형태 저장
+        ]
     ];
     
     // 신청정보 저장
@@ -94,6 +106,8 @@ try {
         'message' => $e->getMessage()
     ]);
 }
+
+
 
 
 

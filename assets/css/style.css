@@ -6652,6 +6652,16 @@ button:focus {
     box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
 }
 
+.consultation-form-input.input-error {
+    border-color: #ef4444;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+.consultation-form-input.input-error:focus {
+    border-color: #ef4444;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
 .consultation-notice-section {
     width: 100%;
     margin: 20px 0;
@@ -6739,22 +6749,22 @@ button:focus {
 }
 
 .consultation-agreement-all {
-    padding: 16px;
-    background-color: var(--color-gray-50);
-    border: 1px solid var(--color-gray-200);
-    border-radius: 8px;
+    padding: 16px 0 0 0;
+    background-color: transparent;
+    border: none;
     cursor: pointer;
     transition: all 0.2s;
+    margin-bottom: 0;
 }
 
 .consultation-agreement-all:hover {
-    background-color: var(--color-gray-100);
+    background-color: transparent;
 }
 
 .consultation-agreement-divider {
     height: 1px;
     background-color: var(--color-gray-200);
-    margin: 12px 0;
+    margin: 0 0 8px 0;
 }
 
 .consultation-agreement-item {
@@ -6778,7 +6788,7 @@ button:focus {
 }
 
 .consultation-agreement-all-label {
-    font-size: 0.9375rem;
+    font-size: 1rem;
     font-weight: 700;
     color: var(--color-gray-900);
     cursor: pointer;
@@ -6841,6 +6851,242 @@ button:focus {
 .consultation-submit-btn:disabled {
     background-color: var(--color-gray-300);
     cursor: not-allowed;
+}
+
+/* 할인방법 선택 모달 */
+.discount-selection-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 9999;
+    display: none;
+    align-items: flex-end;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.discount-selection-modal.discount-selection-modal-active {
+    display: flex;
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+.discount-selection-modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    cursor: pointer;
+}
+
+.discount-selection-modal-content {
+    position: relative;
+    background-color: var(--color-white);
+    border-radius: 20px 20px 0 0;
+    width: 100%;
+    max-width: 640px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    transform: translateY(100%);
+    transition: transform 0.3s ease;
+    z-index: 10000;
+}
+
+.discount-selection-modal.discount-selection-modal-active .discount-selection-modal-content {
+    transform: translateY(0);
+}
+
+.discount-selection-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px;
+    border-bottom: 1px solid var(--color-gray-200);
+}
+
+.discount-selection-modal-title {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--color-gray-700);
+    margin: 0;
+}
+
+.discount-selection-modal-close {
+    background: none;
+    border: none;
+    padding: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.discount-selection-modal-close:hover {
+    background-color: var(--color-gray-100);
+}
+
+.discount-selection-modal-body {
+    padding: 20px;
+    overflow-y: auto;
+    flex: 1;
+    min-height: 0;
+}
+
+.discount-selection-table-wrapper {
+    overflow-x: auto;
+    width: 100%;
+}
+
+.discount-selection-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 1rem;
+}
+
+.discount-selection-table thead {
+    background-color: var(--color-gray-50);
+    border-bottom: 2px solid var(--color-gray-200);
+}
+
+.discount-selection-table th {
+    padding: 16px 12px;
+    text-align: center;
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--color-gray-700);
+    border-bottom: 1px solid var(--color-gray-200);
+}
+
+.discount-selection-table th:first-child {
+    width: 80px;
+}
+
+.discount-selection-table th:nth-child(2) {
+    width: 120px;
+}
+
+.discount-selection-table th:nth-child(3) {
+    width: 100px;
+}
+
+.discount-selection-table th:nth-child(4) {
+    width: auto;
+}
+
+.discount-selection-table td {
+    padding: 16px 12px;
+    border-bottom: 1px solid var(--color-gray-100);
+    color: var(--color-gray-700);
+    text-align: center;
+    font-size: 1rem;
+}
+
+.discount-selection-table td:not(.discount-provider-cell):not(.discount-type-cell) {
+    text-align: center;
+}
+
+.discount-provider-cell {
+    font-weight: 600;
+    color: var(--color-gray-900);
+    vertical-align: middle;
+    text-align: center;
+}
+
+.discount-type-cell {
+    font-weight: 500;
+    color: var(--color-gray-800);
+    vertical-align: middle;
+    text-align: center;
+}
+
+.discount-amount-button {
+    width: 100%;
+    padding: 18px 20px;
+    min-height: 56px;
+    background-color: var(--color-indigo-500);
+    color: var(--color-white);
+    border: none;
+    border-radius: 8px;
+    font-size: 1.25rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.discount-amount-button:hover {
+    background-color: var(--color-indigo-600);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+}
+
+.discount-amount-button:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 4px rgba(99, 102, 241, 0.2);
+}
+
+.discount-empty-cell {
+    text-align: center;
+    padding: 40px 20px !important;
+    color: var(--color-gray-400);
+}
+
+.discount-selection-empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--color-gray-400);
+    font-size: 0.875rem;
+}
+
+@media (max-width: 767px) {
+    .discount-selection-modal-content {
+        max-height: 95vh;
+    }
+
+    .discount-selection-modal-body {
+        padding: 16px;
+    }
+
+    .discount-selection-modal-header {
+        padding: 16px;
+    }
+
+    .discount-selection-table {
+        font-size: 0.9375rem;
+    }
+
+    .discount-selection-table th {
+        padding: 14px 10px;
+        font-size: 0.9375rem;
+    }
+
+    .discount-selection-table td {
+        padding: 14px 10px;
+        font-size: 0.9375rem;
+    }
+
+    .discount-amount-button {
+        padding: 14px 16px;
+        font-size: 1.125rem;
+        min-height: 50px;
+    }
+
+    .discount-provider-cell {
+        font-size: 0.9375rem;
+    }
 }
 
 /* 개인정보 내용보기 모달 */
@@ -6957,6 +7203,18 @@ button:focus {
     }
 
     .consultation-modal-header {
+        padding: 16px;
+    }
+    
+    .discount-selection-modal-content {
+        max-height: 95vh;
+    }
+
+    .discount-selection-modal-body {
+        padding: 16px;
+    }
+
+    .discount-selection-modal-header {
         padding: 16px;
     }
     

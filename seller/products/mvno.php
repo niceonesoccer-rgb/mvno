@@ -127,6 +127,12 @@ if ($productId > 0) {
                     } else {
                         $productData['benefits'] = [];
                     }
+                    
+                    if (!empty($productData['registration_types'])) {
+                        $productData['registration_types'] = json_decode($productData['registration_types'], true) ?: [];
+                    } else {
+                        $productData['registration_types'] = [];
+                    }
                 }
             }
         }
@@ -475,6 +481,36 @@ document.addEventListener('DOMContentLoaded', function() {
                         <option value="5G" <?php echo (isset($productData['service_type']) && $productData['service_type'] === '5G') ? 'selected' : ''; ?>>5G</option>
                         <option value="6G" <?php echo (isset($productData['service_type']) && $productData['service_type'] === '6G') ? 'selected' : ''; ?>>6G</option>
                     </select>
+                </div>
+                
+                <div style="flex: 1;">
+                    <label class="form-label">
+                        가입 형태 <span class="required">*</span>
+                    </label>
+                    <div class="form-checkbox-group">
+                        <?php
+                        $registrationTypes = [];
+                        if (!empty($productData['registration_types'])) {
+                            if (is_string($productData['registration_types'])) {
+                                $registrationTypes = json_decode($productData['registration_types'], true) ?: [];
+                            } else {
+                                $registrationTypes = $productData['registration_types'];
+                            }
+                        }
+                        ?>
+                        <div class="form-checkbox">
+                            <input type="checkbox" name="registration_types[]" id="registration_type_new" value="신규" <?php echo in_array('신규', $registrationTypes) ? 'checked' : ''; ?>>
+                            <label for="registration_type_new">신규</label>
+                        </div>
+                        <div class="form-checkbox">
+                            <input type="checkbox" name="registration_types[]" id="registration_type_port" value="번이" <?php echo in_array('번이', $registrationTypes) ? 'checked' : ''; ?>>
+                            <label for="registration_type_port">번이</label>
+                        </div>
+                        <div class="form-checkbox">
+                            <input type="checkbox" name="registration_types[]" id="registration_type_change" value="기변" <?php echo in_array('기변', $registrationTypes) ? 'checked' : ''; ?>>
+                            <label for="registration_type_change">기변</label>
+                        </div>
+                    </div>
                 </div>
             </div>
             
@@ -1321,6 +1357,18 @@ document.addEventListener('DOMContentLoaded', function() {
                     dataAdditionalValue.disabled = false;
                 }
             }
+        }
+        
+        // 가입 형태 필수 검증
+        const registrationTypes = document.querySelectorAll('input[name="registration_types[]"]:checked');
+        if (registrationTypes.length === 0) {
+            if (typeof showAlert === 'function') {
+                showAlert('가입 형태를 최소 하나 이상 선택해주세요.', '입력 오류');
+            } else {
+                alert('가입 형태를 최소 하나 이상 선택해주세요.');
+            }
+            e.preventDefault();
+            return;
         }
         
         // plan_name 필드 확인

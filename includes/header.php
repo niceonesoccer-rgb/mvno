@@ -263,7 +263,7 @@ document.addEventListener('DOMContentLoaded', function() {
         link.addEventListener('click', function(e) {
             if (!isLoggedIn) {
                 e.preventDefault();
-                // 로그인 모달 열기 (로그인 모드)
+                // 로그인 모달 열기 (로그인 모드) - openLoginModal 함수 내부에서 로그인 상태를 다시 체크함
                 if (typeof openLoginModal === 'function') {
                     openLoginModal(false);
                 } else {
