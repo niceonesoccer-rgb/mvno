@@ -947,57 +947,47 @@ function showProductInfo(order, productType) {
         const contractDiscountChange = parseJsonField(order.contract_discount_change);
         
         html = `
-            <table class="product-info-table">
-                <tr>
-                    <th>단말기명</th>
-                    <td>${order.device_name || '-'}</td>
-                </tr>
-                <tr>
-                    <th>단말기 출고가</th>
-                    <td>${order.device_price ? number_format(order.device_price) + '원' : '-'}</td>
-                </tr>
-                <tr>
-                    <th>용량</th>
-                    <td>${order.device_capacity || '-'}</td>
-                </tr>
-                <tr>
-                    <th>색상</th>
-                    <td>${deviceColors.length > 0 ? deviceColors.join(', ') : '-'}</td>
-                </tr>
-                <tr>
-                    <th>단말기 수령방법</th>
-                    <td>${order.delivery_method === 'delivery' ? '택배' : order.delivery_method === 'visit' ? '내방' + (order.visit_region ? ' (' + order.visit_region + ')' : '') : '-'}</td>
-                </tr>
-                <tr>
-                    <th>서비스 타입</th>
-                    <td>${order.service_type || '-'}</td>
-                </tr>
-                <tr>
-                    <th>약정기간</th>
-                    <td>${order.contract_period || '-'}</td>
-                </tr>
-                <tr>
-                    <th>기본 요금</th>
-                    <td>${order.price_main ? number_format(order.price_main) + '원' : '-'}</td>
-                </tr>
-                <tr>
-                    <th>데이터</th>
-                    <td>${order.data_amount_value && order.data_unit ? order.data_amount_value + order.data_unit : (order.data_amount || '-')}</td>
-                </tr>
-                <tr>
-                    <th>데이터 소진 시</th>
-                    <td>${order.data_exhausted || '-'}</td>
-                </tr>
-                <tr>
-                    <th>통화</th>
-                    <td>${order.call_type && order.call_amount ? order.call_type + ' ' + order.call_amount : '-'}</td>
-                </tr>
-                <tr>
-                    <th>SMS</th>
-                    <td>${order.sms_type && order.sms_amount ? order.sms_type + ' ' + order.sms_amount : '-'}</td>
-                </tr>
-            </table>
-        `;
+        // 주문 시 선택한 정보 가져오기
+        const additionalInfo = order.additional_info || {};
+        const subscriptionType = additionalInfo.subscription_type || '';
+        const selectedCarrier = additionalInfo.carrier || additionalInfo.provider || '';
+        const selectedDiscountType = additionalInfo.discount_type || '';
+        const selectedPrice = additionalInfo.price || '';
+        const selectedColors = additionalInfo.device_colors || [];
+        
+        // 주문 정보 섹션 (기본 정보와 주문 선택 정보 통합)
+        html += `<h3 style="margin-top: 24px; margin-bottom: 12px; font-size: 16px; color: #1f2937;">주문 정보</h3>`;
+        html += `<table class="product-info-table">`;
+        
+        // 주문 시 선택한 정보 (먼저 표시)
+        if (subscriptionType) {
+            const subTypeLabels = {
+                'new': '신규가입',
+                'port': '번호이동',
+                'change': '기기변경'
+            };
+            html += `<tr><th>가입형태</th><td>${subTypeLabels[subscriptionType] || subscriptionType}</td></tr>`;
+        }
+        if (selectedCarrier) {
+            html += `<tr><th>통신사</th><td>${selectedCarrier}</td></tr>`;
+        }
+        if (selectedDiscountType) {
+            html += `<tr><th>할인방법</th><td>${selectedDiscountType}</td></tr>`;
+        }
+        if (selectedPrice) {
+            html += `<tr><th>가격</th><td>${selectedPrice}</td></tr>`;
+        }
+        if (selectedColors.length > 0) {
+            html += `<tr><th>선택한 색상</th><td>${selectedColors.join(', ')}</td></tr>`;
+        }
+        
+        // 기본 정보 (단말기 정보)
+        html += `<tr><th>단말기명</th><td>${order.device_name || '-'}</td></tr>`;
+        html += `<tr><th>단말기 출고가</th><td>${order.device_price ? number_format(order.device_price) + '원' : '-'}</td></tr>`;
+        html += `<tr><th>용량</th><td>${order.device_capacity || '-'}</td></tr>`;
+        html += `<tr><th>단말기 수령방법</th><td>${order.delivery_method === 'delivery' ? '택배' : order.delivery_method === 'visit' ? '내방' + (order.visit_region ? ' (' + order.visit_region + ')' : '') : '-'}</td></tr>`;
+        
+        html += `</table>`;
         
         // 공통지원할인 정보
         if (commonProvider.length > 0) {
@@ -1029,40 +1019,6 @@ function showProductInfo(order, productType) {
             }
             if (contractDiscountChange.length > 0) {
                 html += `<tr><th>기기변경</th><td>${contractDiscountChange.join(', ')}</td></tr>`;
-            }
-            html += `</table>`;
-        }
-        
-        // 주문 시 선택한 정보
-        const additionalInfo = order.additional_info || {};
-        const subscriptionType = additionalInfo.subscription_type || '';
-        const selectedCarrier = additionalInfo.carrier || additionalInfo.provider || '';
-        const selectedDiscountType = additionalInfo.discount_type || '';
-        const selectedPrice = additionalInfo.price || '';
-        const selectedColors = additionalInfo.device_colors || [];
-        
-        if (subscriptionType || selectedCarrier || selectedDiscountType || selectedPrice) {
-            html += `<h3 style="margin-top: 24px; margin-bottom: 12px; font-size: 16px; color: #1f2937;">주문 정보</h3>`;
-            html += `<table class="product-info-table">`;
-            if (subscriptionType) {
-                const subTypeLabels = {
-                    'new': '신규가입',
-                    'port': '번호이동',
-                    'change': '기기변경'
-                };
-                html += `<tr><th>가입형태</th><td>${subTypeLabels[subscriptionType] || subscriptionType}</td></tr>`;
-            }
-            if (selectedCarrier) {
-                html += `<tr><th>통신사</th><td>${selectedCarrier}</td></tr>`;
-            }
-            if (selectedDiscountType) {
-                html += `<tr><th>할인방법</th><td>${selectedDiscountType}</td></tr>`;
-            }
-            if (selectedPrice) {
-                html += `<tr><th>가격</th><td>${selectedPrice}</td></tr>`;
-            }
-            if (selectedColors.length > 0) {
-                html += `<tr><th>선택한 색상</th><td>${selectedColors.join(', ')}</td></tr>`;
             }
             html += `</table>`;
         }

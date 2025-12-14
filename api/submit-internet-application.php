@@ -52,10 +52,11 @@ try {
         throw new Exception('데이터베이스 연결에 실패했습니다.');
     }
     
-    // 상품 정보 가져오기 (seller_id 확인)
+    // 상품 정보 전체 가져오기 (신청 시점의 상품 정보 전체를 저장하기 위해)
     $stmt = $pdo->prepare("
-        SELECT p.seller_id
+        SELECT p.seller_id, inet.*
         FROM products p
+        LEFT JOIN product_internet_details inet ON p.id = inet.product_id
         WHERE p.id = ? AND p.product_type = 'internet' AND p.status = 'active'
         LIMIT 1
     ");
@@ -76,6 +77,14 @@ try {
         throw new Exception('로그인 정보를 확인할 수 없습니다.');
     }
     
+    // 상품 정보 전체를 배열로 구성 (product_id, id 제외)
+    $productSnapshot = [];
+    foreach ($product as $key => $value) {
+        if ($key !== 'seller_id' && $key !== 'product_id' && $key !== 'id') {
+            $productSnapshot[$key] = $value;
+        }
+    }
+    
     // 고객 정보 준비
     $customerData = [
         'user_id' => $userId, // 로그인한 사용자 ID
@@ -86,7 +95,9 @@ try {
         'address_detail' => null,
         'birth_date' => null,
         'gender' => null,
-        'additional_info' => []
+        'additional_info' => [
+            'product_snapshot' => $productSnapshot // 신청 당시 상품 정보 전체 저장 (클레임 처리용)
+        ]
     ];
     
     // 신청정보 저장

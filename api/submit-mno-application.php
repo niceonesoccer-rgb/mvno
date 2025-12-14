@@ -52,12 +52,13 @@ try {
         throw new Exception('데이터베이스 연결에 실패했습니다.');
     }
     
-    // 상품 정보 가져오기 (seller_id, redirect_url 확인)
+    // 상품 정보 전체 가져오기 (신청 시점의 상품 정보 전체를 저장하기 위해)
     $stmt = $pdo->prepare("
-        SELECT p.seller_id, m.redirect_url
+        SELECT p.seller_id, m.*
         FROM products p
         LEFT JOIN product_mno_details m ON p.id = m.product_id
         WHERE p.id = ? AND p.product_type = 'mno' AND p.status = 'active'
+        LIMIT 1
     ");
     $stmt->execute([$productId]);
     $product = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -67,7 +68,7 @@ try {
     }
     
     $sellerId = $product['seller_id'];
-    $redirectUrl = !empty($product['redirect_url']) ? trim($product['redirect_url']) : null;
+    $redirectUrl = null; // MNO는 redirect_url 없음
     
     // 로그인한 사용자 정보 가져오기 (이미 로그인 체크 완료)
     $currentUser = getCurrentUser();
@@ -77,10 +78,21 @@ try {
         throw new Exception('로그인 정보를 확인할 수 없습니다.');
     }
     
+    // 상품 정보 전체를 배열로 구성 (product_id, id 제외)
+    $productSnapshot = [];
+    foreach ($product as $key => $value) {
+        if ($key !== 'seller_id' && $key !== 'product_id' && $key !== 'id') {
+            $productSnapshot[$key] = $value;
+        }
+    }
+    
     // 추가 정보 수집
     $additionalInfo = [];
     
-    // 할인 정보
+    // 신청 당시 상품 정보 전체 저장 (클레임 처리용)
+    $additionalInfo['product_snapshot'] = $productSnapshot;
+    
+    // 할인 정보 (고객이 선택한 정보)
     if (isset($_POST['selected_provider'])) {
         $additionalInfo['carrier'] = trim($_POST['selected_provider']);
     }

@@ -551,7 +551,11 @@ include __DIR__ . '/../includes/seller-header.php';
                                 $productNumber = getProductNumberByType($product['id'], 'mno');
                                 echo $productNumber ? htmlspecialchars($productNumber) : htmlspecialchars($product['id'] ?? '-');
                             ?></td>
-                            <td><?php echo htmlspecialchars($product['product_name'] ?? '-'); ?></td>
+                            <td>
+                                <a href="javascript:void(0);" onclick="showProductInfo(<?php echo $product['id']; ?>)" style="color: #3b82f6; text-decoration: none; font-weight: 600; cursor: pointer;">
+                                    <?php echo htmlspecialchars($product['product_name'] ?? '-'); ?>
+                                </a>
+                            </td>
                             <td>
                                 <?php 
                                 $deliveryMethod = $product['delivery_method'] ?? 'delivery';
@@ -635,6 +639,88 @@ include __DIR__ . '/../includes/seller-header.php';
         </div>
     <?php endif; ?>
 </div>
+
+<!-- 상품 정보 모달 -->
+<div id="productInfoModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 10000; overflow-y: auto;">
+    <div style="position: relative; max-width: 800px; margin: 40px auto; background: white; border-radius: 12px; padding: 24px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; border-bottom: 2px solid #e5e7eb; padding-bottom: 16px;">
+            <h2 style="font-size: 24px; font-weight: 700; color: #1f2937; margin: 0;">상품 정보</h2>
+            <button onclick="closeProductInfoModal()" style="background: none; border: none; font-size: 28px; color: #6b7280; cursor: pointer; padding: 0; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 4px; transition: all 0.2s;" onmouseover="this.style.background='#f3f4f6'; this.style.color='#374151';" onmouseout="this.style.background='none'; this.style.color='#6b7280';">×</button>
+        </div>
+        <div id="productInfoContent" style="color: #1f2937;">
+            <div style="text-align: center; padding: 40px; color: #6b7280;">상품 정보를 불러오는 중...</div>
+        </div>
+    </div>
+</div>
+
+<style>
+.product-info-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 24px;
+}
+.product-info-table th {
+    background: #f9fafb;
+    padding: 12px 16px;
+    text-align: left;
+    font-weight: 600;
+    color: #374151;
+    border: 1px solid #e5e7eb;
+    width: 200px;
+}
+.product-info-table td {
+    padding: 12px 16px;
+    border: 1px solid #e5e7eb;
+    color: #1f2937;
+}
+.discount-selection-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    margin-top: 16px;
+}
+.discount-selection-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+}
+.discount-selection-table thead {
+    background: #f9fafb;
+}
+.discount-selection-table th {
+    padding: 12px 16px;
+    text-align: left;
+    font-weight: 600;
+    color: #374151;
+    border: 1px solid #e5e7eb;
+    font-size: 14px;
+}
+.discount-selection-table td {
+    padding: 12px 16px;
+    border: 1px solid #e5e7eb;
+    color: #1f2937;
+    font-size: 14px;
+}
+.discount-provider-cell {
+    font-weight: 600;
+    background: #f9fafb;
+    vertical-align: top;
+}
+.discount-type-cell {
+    font-weight: 500;
+    vertical-align: top;
+}
+.discount-amount-display {
+    display: inline-block;
+    padding: 6px 12px;
+    background: #6366f1;
+    color: white;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    min-width: 60px;
+    text-align: center;
+}
+</style>
 
 <script>
 function applyFilters() {
@@ -756,6 +842,393 @@ function bulkInactive() {
         processBulkInactive(checkboxes);
     }
 }
+
+function showProductInfo(productId) {
+    const modal = document.getElementById('productInfoModal');
+    const content = document.getElementById('productInfoContent');
+    
+    if (!modal || !content) {
+        console.error('Modal elements not found');
+        alert('상품 정보를 불러올 수 없습니다.');
+        return;
+    }
+    
+    modal.style.display = 'block';
+    content.innerHTML = '<div style="text-align: center; padding: 40px; color: #6b7280;">상품 정보를 불러오는 중...</div>';
+    
+    fetch('/MVNO/api/get-product-info.php?product_id=' + productId + '&product_type=mno')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.product) {
+                const product = data.product;
+                console.log('Product data:', product); // 디버깅용
+                let html = '';
+                
+                // 주문정보 섹션 (맨 위)
+                html += '<div style="margin-bottom: 32px;"><strong style="font-size: 18px; color: #1f2937; display: block; margin-bottom: 16px;">주문정보</strong>';
+                html += '<table class="product-info-table">';
+                html += '<tr><th>단말기명</th><td>' + (product.device_name || '-') + '</td></tr>';
+                html += '<tr><th>단말기 출고가</th><td>' + (product.device_price ? number_format(product.device_price) + '원' : '-') + '</td></tr>';
+                html += '<tr><th>용량</th><td>' + (product.device_capacity || '-') + '</td></tr>';
+                
+                // 색상
+                let colors = '-';
+                if (product.device_colors) {
+                    const colorArray = typeof product.device_colors === 'string' ? JSON.parse(product.device_colors) : product.device_colors;
+                    if (Array.isArray(colorArray) && colorArray.length > 0) {
+                        colors = colorArray.join(', ');
+                    }
+                }
+                html += '<tr><th>색상</th><td>' + colors + '</td></tr>';
+                
+                // 단말기 수령방법
+                let deliveryMethod = '-';
+                if (product.delivery_method === 'delivery') {
+                    deliveryMethod = '택배';
+                } else if (product.delivery_method === 'visit') {
+                    deliveryMethod = '내방' + (product.visit_region ? ' (' + product.visit_region + ')' : '');
+                }
+                html += '<tr><th>단말기 수령방법</th><td>' + deliveryMethod + '</td></tr>';
+                html += '<tr><th>서비스 타입</th><td>' + (product.service_type || '-') + '</td></tr>';
+                html += '<tr><th>약정기간</th><td>' + (product.contract_period_value ? product.contract_period_value + '일' : '-') + '</td></tr>';
+                html += '<tr><th>기본 요금</th><td>' + (product.price_main ? number_format(product.price_main) + '원' : '-') + '</td></tr>';
+                html += '<tr><th>데이터</th><td>-</td></tr>';
+                html += '<tr><th>데이터 소진 시</th><td>-</td></tr>';
+                html += '<tr><th>통화</th><td>-</td></tr>';
+                html += '<tr><th>SMS</th><td>-</td></tr>';
+                html += '</table></div>';
+                
+                // 공통지원할인과 선택약정할인 (고객 신청 화면과 동일한 형태)
+                const allDiscounts = buildAllDiscountTables(product);
+                console.log('All discounts HTML:', allDiscounts); // 디버깅용
+                if (allDiscounts) {
+                    html += allDiscounts;
+                } else {
+                    console.log('No discounts to display (all filtered out or no data)');
+                }
+                
+                content.innerHTML = html;
+            } else {
+                content.innerHTML = '<div style="text-align: center; padding: 40px; color: #ef4444;">상품 정보를 불러올 수 없습니다.</div>';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            content.innerHTML = '<div style="text-align: center; padding: 40px; color: #ef4444;">상품 정보를 불러오는 중 오류가 발생했습니다.</div>';
+        });
+}
+
+function buildAllDiscountTables(product) {
+    // 공통지원할인과 선택약정할인을 모두 포함하는 하나의 테이블로 구성
+    const allDiscountOptions = [];
+    
+    // 숫자 비교를 위한 헬퍼 함수
+    function isNot9999(value) {
+        if (value === undefined || value === null) return false;
+        const numValue = parseFloat(value);
+        const result = !isNaN(numValue) && numValue !== 9999;
+        if (!result && value !== undefined && value !== null) {
+            console.log('Filtered out 9999 value:', value, 'parsed as:', numValue);
+        }
+        return result;
+    }
+    
+    // 공통지원할인 데이터 수집
+    let commonProviders = [];
+    let commonNewDiscounts = [];
+    let commonPortDiscounts = [];
+    let commonChangeDiscounts = [];
+    
+    try {
+        commonProviders = product.common_provider ? (typeof product.common_provider === 'string' ? JSON.parse(product.common_provider) : product.common_provider) : [];
+        commonNewDiscounts = product.common_discount_new ? (typeof product.common_discount_new === 'string' ? JSON.parse(product.common_discount_new) : product.common_discount_new) : [];
+        commonPortDiscounts = product.common_discount_port ? (typeof product.common_discount_port === 'string' ? JSON.parse(product.common_discount_port) : product.common_discount_port) : [];
+        commonChangeDiscounts = product.common_discount_change ? (typeof product.common_discount_change === 'string' ? JSON.parse(product.common_discount_change) : product.common_discount_change) : [];
+    } catch (e) {
+        console.error('Error parsing common discount data:', e);
+    }
+    
+    for (let i = 0; i < commonProviders.length; i++) {
+        const provider = commonProviders[i] || '-';
+        
+        if (isNot9999(commonPortDiscounts[i])) {
+            allDiscountOptions.push({ provider, discountType: '공통지원할인', subscriptionType: '번호이동', amount: commonPortDiscounts[i] });
+        }
+        if (isNot9999(commonChangeDiscounts[i])) {
+            allDiscountOptions.push({ provider, discountType: '공통지원할인', subscriptionType: '기기변경', amount: commonChangeDiscounts[i] });
+        }
+        if (isNot9999(commonNewDiscounts[i])) {
+            allDiscountOptions.push({ provider, discountType: '공통지원할인', subscriptionType: '신규가입', amount: commonNewDiscounts[i] });
+        }
+    }
+    
+    // 선택약정할인 데이터 수집
+    let contractProviders = [];
+    let contractNewDiscounts = [];
+    let contractPortDiscounts = [];
+    let contractChangeDiscounts = [];
+    
+    try {
+        contractProviders = product.contract_provider ? (typeof product.contract_provider === 'string' ? JSON.parse(product.contract_provider) : product.contract_provider) : [];
+        contractNewDiscounts = product.contract_discount_new ? (typeof product.contract_discount_new === 'string' ? JSON.parse(product.contract_discount_new) : product.contract_discount_new) : [];
+        contractPortDiscounts = product.contract_discount_port ? (typeof product.contract_discount_port === 'string' ? JSON.parse(product.contract_discount_port) : product.contract_discount_port) : [];
+        contractChangeDiscounts = product.contract_discount_change ? (typeof product.contract_discount_change === 'string' ? JSON.parse(product.contract_discount_change) : product.contract_discount_change) : [];
+    } catch (e) {
+        console.error('Error parsing contract discount data:', e);
+    }
+    
+    for (let i = 0; i < contractProviders.length; i++) {
+        const provider = contractProviders[i] || '-';
+        
+        if (isNot9999(contractPortDiscounts[i])) {
+            allDiscountOptions.push({ provider, discountType: '선택약정할인', subscriptionType: '번호이동', amount: contractPortDiscounts[i] });
+        }
+        if (isNot9999(contractChangeDiscounts[i])) {
+            allDiscountOptions.push({ provider, discountType: '선택약정할인', subscriptionType: '기기변경', amount: contractChangeDiscounts[i] });
+        }
+        if (isNot9999(contractNewDiscounts[i])) {
+            allDiscountOptions.push({ provider, discountType: '선택약정할인', subscriptionType: '신규가입', amount: contractNewDiscounts[i] });
+        }
+    }
+    
+    if (allDiscountOptions.length === 0) {
+        return null;
+    }
+    
+    // 통신사별, 할인종류별로 그룹화
+    const groupedByProviderAndDiscount = {};
+    allDiscountOptions.forEach(option => {
+        const key = `${option.provider}_${option.discountType}`;
+        if (!groupedByProviderAndDiscount[key]) {
+            groupedByProviderAndDiscount[key] = {
+                provider: option.provider,
+                discountType: option.discountType,
+                options: []
+            };
+        }
+        groupedByProviderAndDiscount[key].options.push(option);
+    });
+    
+    // 통신사별로 다시 그룹화
+    const finalGrouped = {};
+    Object.keys(groupedByProviderAndDiscount).forEach(key => {
+        const item = groupedByProviderAndDiscount[key];
+        if (!finalGrouped[item.provider]) {
+            finalGrouped[item.provider] = [];
+        }
+        finalGrouped[item.provider].push(item);
+    });
+    
+    // 테이블 HTML 생성
+    let html = '<div style="margin-top: 32px; margin-bottom: 16px;"><strong style="font-size: 18px; color: #1f2937; display: block; margin-bottom: 16px;">할인방법 선택</strong>';
+    html += '<div class="discount-selection-table-wrapper">';
+    html += '<table class="discount-selection-table">';
+    html += '<thead><tr><th>통신사</th><th>할인종류</th><th>가입유형</th><th>가격</th></tr></thead>';
+    html += '<tbody>';
+    
+    Object.keys(finalGrouped).forEach(provider => {
+        const providerGroups = finalGrouped[provider];
+        let providerRowSpan = 0;
+        
+        // 통신사별 총 행 개수 계산
+        providerGroups.forEach(group => {
+            providerRowSpan += group.options.length;
+        });
+        
+        providerGroups.forEach((group, groupIndex) => {
+            group.options.forEach((option, optionIndex) => {
+                html += '<tr>';
+                
+                // 통신사 셀 (첫 번째 그룹의 첫 번째 옵션에만 표시)
+                if (groupIndex === 0 && optionIndex === 0) {
+                    html += `<td rowspan="${providerRowSpan}" class="discount-provider-cell">${provider}</td>`;
+                }
+                
+                // 할인종류 셀 (각 그룹의 첫 번째 옵션에만 표시)
+                if (optionIndex === 0) {
+                    html += `<td rowspan="${group.options.length}" class="discount-type-cell">${group.discountType}</td>`;
+                }
+                
+                // 가입유형
+                html += `<td>${option.subscriptionType}</td>`;
+                
+                // 할인금액 (고객 화면과 동일한 스타일의 박스)
+                const amount = parseFloat(option.amount);
+                let formattedAmount;
+                if (amount % 1 === 0) {
+                    formattedAmount = amount < 0 
+                        ? `-${Math.abs(amount).toLocaleString('ko-KR')}`
+                        : `${amount.toLocaleString('ko-KR')}`;
+                } else {
+                    formattedAmount = amount < 0 
+                        ? `-${Math.abs(amount).toLocaleString('ko-KR', { minimumFractionDigits: 1, maximumFractionDigits: 2 })}`
+                        : `${amount.toLocaleString('ko-KR', { minimumFractionDigits: 1, maximumFractionDigits: 2 })}`;
+                }
+                
+                html += `<td><span class="discount-amount-display">${formattedAmount}</span></td>`;
+                html += '</tr>';
+            });
+        });
+    });
+    
+    html += '</tbody></table></div></div>';
+    return html;
+}
+
+function buildCustomerDiscountTable(product, type) {
+    const prefix = type === 'common' ? 'common' : 'contract';
+    const discountTypeName = type === 'common' ? '공통지원할인' : '선택약정할인';
+    const providers = product[prefix + '_provider'] ? (typeof product[prefix + '_provider'] === 'string' ? JSON.parse(product[prefix + '_provider']) : product[prefix + '_provider']) : [];
+    const newDiscounts = product[prefix + '_discount_new'] ? (typeof product[prefix + '_discount_new'] === 'string' ? JSON.parse(product[prefix + '_discount_new']) : product[prefix + '_discount_new']) : [];
+    const portDiscounts = product[prefix + '_discount_port'] ? (typeof product[prefix + '_discount_port'] === 'string' ? JSON.parse(product[prefix + '_discount_port']) : product[prefix + '_discount_port']) : [];
+    const changeDiscounts = product[prefix + '_discount_change'] ? (typeof product[prefix + '_discount_change'] === 'string' ? JSON.parse(product[prefix + '_discount_change']) : product[prefix + '_discount_change']) : [];
+    
+    if (!providers || providers.length === 0) {
+        return null;
+    }
+    
+    // 할인 옵션 데이터 구성 (9999 값 제외)
+    const discountOptions = [];
+    
+    for (let i = 0; i < providers.length; i++) {
+        const provider = providers[i] || '-';
+        
+        // 번호이동
+        if (portDiscounts[i] !== undefined && portDiscounts[i] !== null && portDiscounts[i] !== 9999 && portDiscounts[i] !== '9999') {
+            discountOptions.push({
+                provider: provider,
+                discountType: discountTypeName,
+                subscriptionType: '번호이동',
+                amount: portDiscounts[i]
+            });
+        }
+        
+        // 기기변경
+        if (changeDiscounts[i] !== undefined && changeDiscounts[i] !== null && changeDiscounts[i] !== 9999 && changeDiscounts[i] !== '9999') {
+            discountOptions.push({
+                provider: provider,
+                discountType: discountTypeName,
+                subscriptionType: '기기변경',
+                amount: changeDiscounts[i]
+            });
+        }
+        
+        // 신규가입
+        if (newDiscounts[i] !== undefined && newDiscounts[i] !== null && newDiscounts[i] !== 9999 && newDiscounts[i] !== '9999') {
+            discountOptions.push({
+                provider: provider,
+                discountType: discountTypeName,
+                subscriptionType: '신규가입',
+                amount: newDiscounts[i]
+            });
+        }
+    }
+    
+    if (discountOptions.length === 0) {
+        return null;
+    }
+    
+    // 통신사별, 할인종류별로 그룹화
+    const groupedByProviderAndDiscount = {};
+    discountOptions.forEach(option => {
+        const key = `${option.provider}_${option.discountType}`;
+        if (!groupedByProviderAndDiscount[key]) {
+            groupedByProviderAndDiscount[key] = {
+                provider: option.provider,
+                discountType: option.discountType,
+                options: []
+            };
+        }
+        groupedByProviderAndDiscount[key].options.push(option);
+    });
+    
+    // 통신사별로 다시 그룹화
+    const finalGrouped = {};
+    Object.keys(groupedByProviderAndDiscount).forEach(key => {
+        const item = groupedByProviderAndDiscount[key];
+        if (!finalGrouped[item.provider]) {
+            finalGrouped[item.provider] = [];
+        }
+        finalGrouped[item.provider].push(item);
+    });
+    
+    // 테이블 HTML 생성
+    let html = '<div class="discount-selection-table-wrapper">';
+    html += '<table class="discount-selection-table">';
+    html += '<thead><tr><th>통신사</th><th>할인종류</th><th>가입유형</th><th>가격</th></tr></thead>';
+    html += '<tbody>';
+    
+    Object.keys(finalGrouped).forEach(provider => {
+        const providerGroups = finalGrouped[provider];
+        let providerRowSpan = 0;
+        
+        // 통신사별 총 행 개수 계산
+        providerGroups.forEach(group => {
+            providerRowSpan += group.options.length;
+        });
+        
+        providerGroups.forEach((group, groupIndex) => {
+            group.options.forEach((option, optionIndex) => {
+                html += '<tr>';
+                
+                // 통신사 셀 (첫 번째 그룹의 첫 번째 옵션에만 표시)
+                if (groupIndex === 0 && optionIndex === 0) {
+                    html += `<td rowspan="${providerRowSpan}" class="discount-provider-cell">${provider}</td>`;
+                }
+                
+                // 할인종류 셀 (각 그룹의 첫 번째 옵션에만 표시)
+                if (optionIndex === 0) {
+                    html += `<td rowspan="${group.options.length}" class="discount-type-cell">${group.discountType}</td>`;
+                }
+                
+                // 가입유형
+                html += `<td>${option.subscriptionType}</td>`;
+                
+                // 할인금액 (고객 화면과 동일한 스타일의 박스)
+                const amount = parseFloat(option.amount);
+                let formattedAmount;
+                if (amount % 1 === 0) {
+                    formattedAmount = amount < 0 
+                        ? `-${Math.abs(amount).toLocaleString('ko-KR')}`
+                        : `${amount.toLocaleString('ko-KR')}`;
+                } else {
+                    formattedAmount = amount < 0 
+                        ? `-${Math.abs(amount).toLocaleString('ko-KR', { minimumFractionDigits: 1, maximumFractionDigits: 2 })}`
+                        : `${amount.toLocaleString('ko-KR', { minimumFractionDigits: 1, maximumFractionDigits: 2 })}`;
+                }
+                
+                html += `<td><span class="discount-amount-display">${formattedAmount}</span></td>`;
+                html += '</tr>';
+            });
+        });
+    });
+    
+    html += '</tbody></table></div>';
+    return html;
+}
+
+function closeProductInfoModal() {
+    const modal = document.getElementById('productInfoModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+function number_format(number) {
+    return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+// 모달 외부 클릭 시 닫기
+document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('productInfoModal');
+    if (modal) {
+        modal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeProductInfoModal();
+            }
+        });
+    }
+});
 
 function processBulkInactive(checkboxes) {
     const productIds = Array.from(checkboxes).map(cb => cb.value);

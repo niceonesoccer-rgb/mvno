@@ -11,6 +11,12 @@ if (!isset($plan)) {
 }
 $layout_type = $layout_type ?? 'list';
 $title = $plan['title'] ?? '요금제 제목';
+// 하이픈 앞뒤 모두 값이 있으면 하이픈 삭제, 값이 없으면 유지
+// "데이터 소진시 - 5Mbps 무제한" → "데이터 소진시 5Mbps 무제한" (하이픈 제거)
+// "통화 기본제공 -" → "통화 기본제공 -" (유지, 뒤에 값 없음)
+// " - 문자 무제한" → " - 문자 무제한" (유지, 앞에 값 없음)
+// 하이픈 앞뒤에 공백과 문자가 모두 있는 경우에만 하이픈 제거
+$title = preg_replace('/([^\s-]+)\s*-\s*([^\s-]+)/u', '$1 $2', $title); // 앞뒤 모두 값이 있는 경우 하이픈 제거
 $data_main = $plan['data_main'] ?? '월 100GB + 5Mbps';
 $features = $plan['features'] ?? ['통화 무제한', '문자 무제한', 'KT망', 'LTE'];
 $price_main = $plan['price_main'] ?? '월 17,000원';

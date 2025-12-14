@@ -53,9 +53,9 @@ try {
         throw new Exception('데이터베이스 연결에 실패했습니다.');
     }
     
-    // 상품 정보 가져오기 (seller_id, redirect_url 확인)
+    // 상품 정보 전체 가져오기 (신청 시점의 상품 정보 전체를 저장하기 위해)
     $stmt = $pdo->prepare("
-        SELECT p.seller_id, mvno.redirect_url
+        SELECT p.seller_id, mvno.*
         FROM products p
         LEFT JOIN product_mvno_details mvno ON p.id = mvno.product_id
         WHERE p.id = ? AND p.product_type = 'mvno' AND p.status = 'active'
@@ -79,6 +79,14 @@ try {
         throw new Exception('로그인 정보를 확인할 수 없습니다.');
     }
     
+    // 상품 정보 전체를 배열로 구성 (product_id, id 제외)
+    $productSnapshot = [];
+    foreach ($product as $key => $value) {
+        if ($key !== 'seller_id' && $key !== 'product_id' && $key !== 'id') {
+            $productSnapshot[$key] = $value;
+        }
+    }
+    
     // 고객 정보 준비
     $customerData = [
         'user_id' => $userId, // 로그인한 사용자 ID
@@ -90,7 +98,8 @@ try {
         'birth_date' => null,
         'gender' => null,
         'additional_info' => [
-            'subscription_type' => $subscriptionType // 가입 형태 저장
+            'subscription_type' => $subscriptionType, // 가입 형태 저장
+            'product_snapshot' => $productSnapshot // 신청 당시 상품 정보 전체 저장 (클레임 처리용)
         ]
     ];
     
