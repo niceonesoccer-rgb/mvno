@@ -59,3 +59,5 @@ if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
 1. 한 페이지에서 로그인
 2. 다른 페이지로 이동하여 로그인 상태 확인
 3. 세션 쿠키 `MVNO_SESSION`이 모든 페이지에서 동일한지 확인
+
+

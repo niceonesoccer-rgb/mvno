@@ -426,87 +426,53 @@ function getInternetIconPath($registrationPlace) {
                             <div class="internet-checkbox-item-wrapper">
                                 <div class="internet-checkbox-item">
                                     <label class="internet-checkbox-label-item">
-                                        <input type="checkbox" id="agreePrivacy" class="internet-checkbox-input-item" onchange="checkAllAgreements();">
-                                        <span class="internet-checkbox-text">개인정보 수집 이용(필수)</span>
+                                        <input type="checkbox" id="agreePurpose" name="agreementPurpose" class="internet-checkbox-input-item" onchange="checkAllAgreements();" required>
+                                        <span class="internet-checkbox-text" style="font-size: 1.0625rem !important;">개인정보 수집 및 이용목적에 동의합니까?</span>
                                     </label>
-                                    <a href="/terms/10081" target="_blank" rel="noreferrer" class="internet-checkbox-link" id="privacyArrowLink" onclick="event.preventDefault(); toggleAccordionByArrow('privacyAccordion', 'privacyArrowLink'); return false;">
+                                    <a href="#" class="internet-checkbox-link" id="purposeArrowLink" onclick="event.preventDefault(); openInternetPrivacyModal('purpose'); return false;">
                                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="arrow-down">
                                             <path d="M3.646 4.646a.5.5 0 0 1 .708 0L8 8.293l3.646-3.647a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 0-.708z"></path>
                                         </svg>
                                     </a>
-                                </div>
-                                <div id="privacyAccordion" class="internet-accordion-content">
-                                    <div class="internet-accordion-inner">
-                                        <div class="internet-accordion-title">모요 개인정보 수집 이용 동의</div>
-                                        <div class="internet-accordion-section">
-                                            <div class="internet-accordion-section-title">1. 개인정보 수집·이용 목적</div>
-                                            <div class="internet-accordion-section-content">
-                                                - TV, 인터넷 등 가입 상담 서비스 제공 및 서비스 이용 경험 수집을 위한 연락
-                                            </div>
-                                        </div>
-                                        <div class="internet-accordion-section">
-                                            <div class="internet-accordion-section-title">2. 수집 항목</div>
-                                            <div class="internet-accordion-section-content">
-                                                - 이름, 연락처
-                                            </div>
-                                        </div>
-                                        <div class="internet-accordion-section">
-                                            <div class="internet-accordion-section-title">3. 개인정보 보유 및 이용 기간</div>
-                                            <div class="internet-accordion-section-content">
-                                                - 상담요청일로부터 3개월간
-                                            </div>
-                                        </div>
-                                        <div class="internet-accordion-section">
-                                            <div class="internet-accordion-section-title">4. 동의 거부권리 및 동의 거부 시 불이익 내용</div>
-                                            <div class="internet-accordion-section-content">
-                                                - 개인정보 수집이용 동의를 거부할 권리가 있습니다.<br>
-                                                - 단, 동의 거부 시 가입상담 및 서비스 가입이 제한될 수 있습니다.
-                                            </div>
-                                        </div>
-                                    </div>
                                 </div>
                             </div>
                             <div class="internet-checkbox-item-wrapper">
                                 <div class="internet-checkbox-item">
                                     <label class="internet-checkbox-label-item">
-                                        <input type="checkbox" id="agreeThirdParty" class="internet-checkbox-input-item" onchange="checkAllAgreements();">
-                                        <span class="internet-checkbox-text">개인정보 제3자 제공(필수)</span>
+                                        <input type="checkbox" id="agreeItems" name="agreementItems" class="internet-checkbox-input-item" onchange="checkAllAgreements();" required>
+                                        <span class="internet-checkbox-text" style="font-size: 1.0625rem !important;">개인정보 수집하는 항목에 동의합니까?</span>
                                     </label>
-                                    <a href="/terms/10092" target="_blank" rel="noreferrer" class="internet-checkbox-link" id="thirdPartyArrowLink" onclick="event.preventDefault(); toggleAccordionByArrow('thirdPartyAccordion', 'thirdPartyArrowLink'); return false;">
+                                    <a href="#" class="internet-checkbox-link" id="itemsArrowLink" onclick="event.preventDefault(); openInternetPrivacyModal('items'); return false;">
                                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="arrow-down">
                                             <path d="M3.646 4.646a.5.5 0 0 1 .708 0L8 8.293l3.646-3.647a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 0-.708z"></path>
                                         </svg>
                                     </a>
                                 </div>
-                                <div id="thirdPartyAccordion" class="internet-accordion-content">
-                                    <div class="internet-accordion-inner">
-                                        <div class="internet-accordion-title">모요 개인정보 제3자 제공에 동의</div>
-                                        <div class="internet-accordion-section">
-                                            <div class="internet-accordion-section-title">1. 개인정보를 제공받는 자</div>
-                                            <div class="internet-accordion-section-content">
-                                                - (주)케이티스카이라이프
-                                            </div>
-                                        </div>
-                                        <div class="internet-accordion-section">
-                                            <div class="internet-accordion-section-title">2. 개인정보를 제공받는 자의 개인정보 이용 목적</div>
-                                            <div class="internet-accordion-section-content">
-                                                - TV, 인터넷 등 가입 상담 서비스 제공
-                                            </div>
-                                        </div>
-                                        <div class="internet-accordion-section">
-                                            <div class="internet-accordion-section-title">3. 제공되는 개인정보</div>
-                                            <div class="internet-accordion-section-content">
-                                                - 이름, 연락처
-                                            </div>
-                                        </div>
-                                        <div class="internet-accordion-section">
-                                            <div class="internet-accordion-section-title">4. 동의 거부권리 및 동의 거부 시 불이익 내용</div>
-                                            <div class="internet-accordion-section-content">
-                                                - 개인정보 제3자 제공 동의를 거부할 권리가 있습니다.<br>
-                                                - 단, 동의 거부 시 가입상담 및 서비스 가입이 제한될 수 있습니다.
-                                            </div>
-                                        </div>
-                                    </div>
+                            </div>
+                            <div class="internet-checkbox-item-wrapper">
+                                <div class="internet-checkbox-item">
+                                    <label class="internet-checkbox-label-item">
+                                        <input type="checkbox" id="agreePeriod" name="agreementPeriod" class="internet-checkbox-input-item" onchange="checkAllAgreements();" required>
+                                        <span class="internet-checkbox-text" style="font-size: 1.0625rem !important;">개인정보 보유 및 이용기간에 동의합니까?</span>
+                                    </label>
+                                    <a href="#" class="internet-checkbox-link" id="periodArrowLink" onclick="event.preventDefault(); openInternetPrivacyModal('period'); return false;">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="arrow-down">
+                                            <path d="M3.646 4.646a.5.5 0 0 1 .708 0L8 8.293l3.646-3.647a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 0-.708z"></path>
+                                        </svg>
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="internet-checkbox-item-wrapper">
+                                <div class="internet-checkbox-item">
+                                    <label class="internet-checkbox-label-item">
+                                        <input type="checkbox" id="agreeThirdParty" name="agreementThirdParty" class="internet-checkbox-input-item" onchange="checkAllAgreements();" required>
+                                        <span class="internet-checkbox-text" style="font-size: 1.0625rem !important;">개인정보 제3자 제공에 동의합니까?</span>
+                                    </label>
+                                    <a href="#" class="internet-checkbox-link" id="thirdPartyArrowLink" onclick="event.preventDefault(); openInternetPrivacyModal('thirdParty'); return false;">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="arrow-down">
+                                            <path d="M3.646 4.646a.5.5 0 0 1 .708 0L8 8.293l3.646-3.647a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 0-.708z"></path>
+                                        </svg>
+                                    </a>
                                 </div>
                             </div>
                         </div>
@@ -516,6 +482,24 @@ function getInternetIconPath($registrationPlace) {
                     <button id="submitBtn" class="internet-submit-btn" disabled onclick="submitInternetForm()">상담 신청</button>
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- 개인정보 내용보기 모달 (인터넷 신청용) -->
+<div class="privacy-content-modal" id="internetPrivacyContentModal">
+    <div class="privacy-content-modal-overlay" id="internetPrivacyContentModalOverlay"></div>
+    <div class="privacy-content-modal-content">
+        <div class="privacy-content-modal-header">
+            <h3 class="privacy-content-modal-title" id="internetPrivacyContentModalTitle">개인정보 수집 및 이용목적</h3>
+            <button class="privacy-content-modal-close" aria-label="닫기" id="internetPrivacyContentModalClose">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M18 6L6 18M6 6L18 18" stroke="#868E96" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+        </div>
+        <div class="privacy-content-modal-body" id="internetPrivacyContentModalBody">
+            <!-- 내용이 JavaScript로 동적으로 채워짐 -->
         </div>
     </div>
 </div>
@@ -855,6 +839,8 @@ function getInternetIconPath($registrationPlace) {
     font-weight: 700;
     color: #1a1a1a;
     margin: 0;
+    flex: 1;
+    text-align: center;
 }
 
 .internet-modal-close {
@@ -1381,7 +1367,7 @@ function getInternetIconPath($registrationPlace) {
 .internet-checkbox-group {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 0.5rem;
 }
 
 .internet-checkbox-all {
@@ -1401,7 +1387,7 @@ function getInternetIconPath($registrationPlace) {
 .internet-checkbox-list {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 0.5rem;
     margin-left: 2rem;
 }
 
@@ -1505,9 +1491,14 @@ function getInternetIconPath($registrationPlace) {
     border-radius: 1px;
 }
 
+.internet-checkbox-group .internet-checkbox-text,
+.internet-checkbox-label-item .internet-checkbox-text,
+span.internet-checkbox-text {
+    font-size: 1.0625rem !important; /* 17px - 플랜 카드의 "통화 기본제공 | 문자 무제한 | KT알뜰폰 | 5G" 텍스트와 동일한 크기 */
+    font-weight: 500 !important;
+}
+
 .internet-checkbox-text {
-    font-size: 0.875rem;
-    font-weight: 500;
     color: #6b7280;
     margin-left: 0.5rem;
 }
@@ -1517,12 +1508,18 @@ function getInternetIconPath($registrationPlace) {
     color: #6b7280;
     display: flex;
     align-items: center;
+    justify-content: center;
     text-decoration: none;
+    padding: 0.6rem; /* 클릭 영역 확대 */
+    min-width: 2.88rem; /* 최소 너비 설정 */
+    min-height: 2.88rem; /* 최소 높이 설정 (기존 높이에서 20% 증가) */
+    border-radius: 0.25rem;
+    transition: background-color 0.2s;
 }
 
 .internet-checkbox-link svg {
-    width: 16px;
-    height: 16px;
+    width: 18px; /* 아이콘 크기 증가 */
+    height: 18px;
     transition: transform 0.3s ease;
 }
 
@@ -1532,6 +1529,7 @@ function getInternetIconPath($registrationPlace) {
 
 .internet-checkbox-link:hover {
     color: #374151;
+    background-color: #f3f4f6;
 }
 
 .internet-checkbox-link.arrow-up svg {
@@ -1786,6 +1784,8 @@ function getInternetIconPath($registrationPlace) {
         height: 45px;
     }
 }
+
+/* 개인정보 내용보기 모달 스타일은 assets/css/style.css에 정의되어 있음 */
 </style>
 
 <script>
@@ -2487,48 +2487,88 @@ function hideCurrentCompanyInfo() {
 }
 
 function toggleAllAgreements(checked) {
-    const agreePrivacy = document.getElementById('agreePrivacy');
+    const agreePurpose = document.getElementById('agreePurpose');
+    const agreeItems = document.getElementById('agreeItems');
+    const agreePeriod = document.getElementById('agreePeriod');
     const agreeThirdParty = document.getElementById('agreeThirdParty');
-    
-    if (agreePrivacy && agreeThirdParty) {
-        agreePrivacy.checked = checked;
+
+    if (agreePurpose && agreeItems && agreePeriod && agreeThirdParty) {
+        agreePurpose.checked = checked;
+        agreeItems.checked = checked;
+        agreePeriod.checked = checked;
         agreeThirdParty.checked = checked;
         checkAllAgreements();
     }
 }
 
-function toggleAccordionByArrow(accordionId, arrowLinkId) {
-    const accordion = document.getElementById(accordionId);
-    const arrowLink = document.getElementById(arrowLinkId);
+// 인터넷 개인정보 내용 정의 (설정 파일에서 로드)
+<?php
+require_once __DIR__ . '/../includes/data/privacy-functions.php';
+$privacySettings = getPrivacySettings();
+echo "const internetPrivacyContents = " . json_encode($privacySettings, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . ";\n";
+?>
+
+// 인터넷 개인정보 내용보기 모달 열기 (전역으로 노출)
+function openInternetPrivacyModal(type) {
+    const modal = document.getElementById('internetPrivacyContentModal');
+    const modalTitle = document.getElementById('internetPrivacyContentModalTitle');
+    const modalBody = document.getElementById('internetPrivacyContentModalBody');
     
-    if (!accordion || !arrowLink) return;
+    if (!modal || !modalTitle || !modalBody || !internetPrivacyContents[type]) return;
     
-    // 현재 상태 확인
-    const isOpen = accordion.classList.contains('active');
+    modalTitle.textContent = internetPrivacyContents[type].title;
+    modalBody.innerHTML = internetPrivacyContents[type].content;
     
-    // 상태 토글
-    const newState = !isOpen;
-    
-    if (newState) {
-        accordion.classList.add('active');
-        arrowLink.classList.add('arrow-up');
-    } else {
-        accordion.classList.remove('active');
-        arrowLink.classList.remove('arrow-up');
-    }
+    modal.style.display = 'flex';
+    modal.classList.add('privacy-content-modal-active');
+    document.body.style.overflow = 'hidden';
 }
+
+// 인터넷 개인정보 내용보기 모달 닫기
+function closeInternetPrivacyModal() {
+    const modal = document.getElementById('internetPrivacyContentModal');
+    if (!modal) return;
+    
+    modal.classList.remove('privacy-content-modal-active');
+    modal.style.display = 'none';
+    document.body.style.overflow = '';
+}
+
+// 인터넷 개인정보 모달 닫기 이벤트
+document.addEventListener('DOMContentLoaded', function() {
+    const internetPrivacyModal = document.getElementById('internetPrivacyContentModal');
+    const internetPrivacyModalOverlay = document.getElementById('internetPrivacyContentModalOverlay');
+    const internetPrivacyModalClose = document.getElementById('internetPrivacyContentModalClose');
+    
+    if (internetPrivacyModalOverlay) {
+        internetPrivacyModalOverlay.addEventListener('click', closeInternetPrivacyModal);
+    }
+    
+    if (internetPrivacyModalClose) {
+        internetPrivacyModalClose.addEventListener('click', closeInternetPrivacyModal);
+    }
+    
+    // ESC 키로 모달 닫기
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && internetPrivacyModal && internetPrivacyModal.classList.contains('privacy-content-modal-active')) {
+            closeInternetPrivacyModal();
+        }
+    });
+});
 
 function checkAllAgreements() {
     const agreeAll = document.getElementById('agreeAll');
-    const agreePrivacy = document.getElementById('agreePrivacy');
+    const agreePurpose = document.getElementById('agreePurpose');
+    const agreeItems = document.getElementById('agreeItems');
+    const agreePeriod = document.getElementById('agreePeriod');
     const agreeThirdParty = document.getElementById('agreeThirdParty');
     const submitBtn = document.getElementById('submitBtn');
     const nameInput = document.getElementById('internetName');
     const phoneInput = document.getElementById('internetPhone');
-    
-    if (agreeAll && agreePrivacy && agreeThirdParty && submitBtn) {
+
+    if (agreeAll && agreePurpose && agreeItems && agreePeriod && agreeThirdParty && submitBtn) {
         // 전체 동의 체크박스 상태 업데이트
-        agreeAll.checked = agreePrivacy.checked && agreeThirdParty.checked;
+        agreeAll.checked = agreePurpose.checked && agreeItems.checked && agreePeriod.checked && agreeThirdParty.checked;
         
         // 이름과 휴대폰 번호 확인
         const name = nameInput ? nameInput.value.trim() : '';
@@ -2537,7 +2577,7 @@ function checkAllAgreements() {
         // 제출 버튼 활성화/비활성화 (모든 필드가 입력되어야 활성화)
         const isNameValid = name.length > 0;
         const isPhoneValid = phone.length === 11 && phone.startsWith('010');
-        const isAgreementsChecked = agreePrivacy.checked && agreeThirdParty.checked;
+        const isAgreementsChecked = agreePurpose.checked && agreeItems.checked && agreePeriod.checked && agreeThirdParty.checked;
         
         if (isNameValid && isPhoneValid && isAgreementsChecked) {
             submitBtn.disabled = false;

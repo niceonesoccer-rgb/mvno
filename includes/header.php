@@ -8,6 +8,9 @@
  * 3. 쿼리 파라미터 우선: 쿼리 파라미터가 있으면 무조건 서브페이지로 처리 (수동 설정보다 우선)
  */
 
+// 세션 및 인증 함수를 가장 먼저 로드 (HTML 출력 전에 세션 시작)
+require_once __DIR__ . '/data/auth-functions.php';
+
 // 쿼리 파라미터가 서브페이지인지 먼저 확인 (수동 설정보다 우선)
 $query_string = isset($_SERVER['QUERY_STRING']) ? $_SERVER['QUERY_STRING'] : '';
 $has_query_params = !empty($query_string);
@@ -224,7 +227,7 @@ else if (!isset($is_main_page)) {
                         </a>
                     </li>
                     <?php 
-                    require_once __DIR__ . '/data/auth-functions.php';
+                    // auth-functions.php는 이미 파일 상단에서 로드됨
                     $isLoggedIn = isLoggedIn();
                     ?>
                     <li class="nav-item nav-item-desktop-only">
@@ -257,7 +260,7 @@ else if (!isset($is_main_page)) {
 // 네비게이션 링크 로그인 체크
 document.addEventListener('DOMContentLoaded', function() {
     const navLinks = document.querySelectorAll('.nav-link[data-require-login="true"]');
-    const isLoggedIn = <?php echo isLoggedIn() ? 'true' : 'false'; ?>;
+    const isLoggedIn = <?php echo (isset($isLoggedIn) && $isLoggedIn) ? 'true' : 'false'; ?>;
     
     navLinks.forEach(link => {
         link.addEventListener('click', function(e) {

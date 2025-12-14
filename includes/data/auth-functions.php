@@ -438,6 +438,16 @@ function getCurrentUserId() {
  * 로그인 여부 확인
  */
 function isLoggedIn() {
+    // 세션이 시작되지 않았으면 시작
+    if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
+        // 세션 이름이 설정되지 않았으면 설정
+        $currentSessionName = session_name();
+        if (empty($currentSessionName) || $currentSessionName === 'PHPSESSID') {
+            session_name('MVNO_SESSION');
+        }
+        session_start();
+    }
+    
     return isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true;
 }
 

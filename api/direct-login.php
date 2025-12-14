@@ -31,17 +31,19 @@ if ($result['success']) {
     $user = $result['user'];
     
     // 세션에 저장된 리다이렉트 URL 확인
-    $redirect = $_SESSION['redirect_url'] ?? '/MVNO/';
+    $redirect = $_SESSION['redirect_url'] ?? null;
     if (isset($_SESSION['redirect_url'])) {
         unset($_SESSION['redirect_url']);
     }
     
-    // 역할에 따라 기본 리다이렉트 URL 결정 (redirect_url이 없을 경우)
-    if ($redirect === '/MVNO/') {
+    // 리다이렉트 URL이 없으면 역할에 따라 기본 리다이렉트 URL 결정
+    if (empty($redirect)) {
         if ($user['role'] === 'admin' || $user['role'] === 'sub_admin') {
             $redirect = '/MVNO/admin/'; // 관리자는 관리자 센터로 이동
         } elseif ($user['role'] === 'seller') {
             $redirect = '/MVNO/'; // 판매자 대시보드가 있으면 그쪽으로
+        } else {
+            $redirect = '/MVNO/'; // 일반 사용자는 홈으로
         }
     }
     

@@ -597,45 +597,64 @@ $discountData = [
                     <input type="email" id="consultationEmail" name="email" class="consultation-form-input" value="<?php echo htmlspecialchars($user_email); ?>" placeholder="example@email.com" required>
                 </div>
                 
-                <div class="consultation-agreement-section">
-                    <div class="consultation-agreement-all">
-                        <div class="consultation-agreement-checkbox-wrapper">
-                            <input type="checkbox" id="agreementAll" class="consultation-agreement-checkbox consultation-agreement-all-checkbox">
-                            <label for="agreementAll" class="consultation-agreement-label consultation-agreement-all-label">
-                                전체 동의
-                            </label>
+                <!-- 체크박스 -->
+                <div class="internet-checkbox-group">
+                    <label class="internet-checkbox-all">
+                        <input type="checkbox" id="agreementAll" class="internet-checkbox-input" onchange="toggleAllMnoAgreements(this.checked)">
+                        <span class="internet-checkbox-label">전체 동의</span>
+                    </label>
+                    <div class="internet-checkbox-list">
+                        <div class="internet-checkbox-item-wrapper">
+                            <div class="internet-checkbox-item">
+                                <label class="internet-checkbox-label-item">
+                                    <input type="checkbox" id="agreementPurpose" name="agreementPurpose" class="internet-checkbox-input-item" onchange="checkAllMnoAgreements();" required>
+                                    <span class="internet-checkbox-text" style="font-size: 1.0625rem !important;">개인정보 수집 및 이용목적에 동의합니까?</span>
+                                </label>
+                                <a href="#" class="internet-checkbox-link" id="mnoPurposeArrowLink" onclick="event.preventDefault(); openMnoPrivacyModal('purpose'); return false;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="arrow-down">
+                                        <path d="M3.646 4.646a.5.5 0 0 1 .708 0L8 8.293l3.646-3.647a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 0-.708z"></path>
+                                    </svg>
+                                </a>
+                            </div>
                         </div>
-                    </div>
-                    
-                    <div class="consultation-agreement-divider"></div>
-                    
-                    <div class="consultation-agreement-item">
-                        <div class="consultation-agreement-checkbox-wrapper">
-                            <input type="checkbox" id="agreementPurpose" name="agreementPurpose" class="consultation-agreement-checkbox consultation-agreement-item-checkbox" required>
-                            <label for="agreementPurpose" class="consultation-agreement-label">
-                                개인정보 수집 및 이용목적에 동의합니까?
-                            </label>
-                            <button type="button" class="consultation-agreement-view-btn" data-agreement="purpose">내용보기</button>
+                        <div class="internet-checkbox-item-wrapper">
+                            <div class="internet-checkbox-item">
+                                <label class="internet-checkbox-label-item">
+                                    <input type="checkbox" id="agreementItems" name="agreementItems" class="internet-checkbox-input-item" onchange="checkAllMnoAgreements();" required>
+                                    <span class="internet-checkbox-text" style="font-size: 1.0625rem !important;">개인정보 수집하는 항목에 동의합니까?</span>
+                                </label>
+                                <a href="#" class="internet-checkbox-link" id="mnoItemsArrowLink" onclick="event.preventDefault(); openMnoPrivacyModal('items'); return false;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="arrow-down">
+                                        <path d="M3.646 4.646a.5.5 0 0 1 .708 0L8 8.293l3.646-3.647a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 0-.708z"></path>
+                                    </svg>
+                                </a>
+                            </div>
                         </div>
-                    </div>
-                    
-                    <div class="consultation-agreement-item">
-                        <div class="consultation-agreement-checkbox-wrapper">
-                            <input type="checkbox" id="agreementItems" name="agreementItems" class="consultation-agreement-checkbox consultation-agreement-item-checkbox" required>
-                            <label for="agreementItems" class="consultation-agreement-label">
-                                개인정보 수집하는 항목에 동의합니까?
-                            </label>
-                            <button type="button" class="consultation-agreement-view-btn" data-agreement="items">내용보기</button>
+                        <div class="internet-checkbox-item-wrapper">
+                            <div class="internet-checkbox-item">
+                                <label class="internet-checkbox-label-item">
+                                    <input type="checkbox" id="agreementPeriod" name="agreementPeriod" class="internet-checkbox-input-item" onchange="checkAllMnoAgreements();" required>
+                                    <span class="internet-checkbox-text" style="font-size: 1.0625rem !important;">개인정보 보유 및 이용기간에 동의합니까?</span>
+                                </label>
+                                <a href="#" class="internet-checkbox-link" id="mnoPeriodArrowLink" onclick="event.preventDefault(); openMnoPrivacyModal('period'); return false;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="arrow-down">
+                                        <path d="M3.646 4.646a.5.5 0 0 1 .708 0L8 8.293l3.646-3.647a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 0-.708z"></path>
+                                    </svg>
+                                </a>
+                            </div>
                         </div>
-                    </div>
-                    
-                    <div class="consultation-agreement-item">
-                        <div class="consultation-agreement-checkbox-wrapper">
-                            <input type="checkbox" id="agreementPeriod" name="agreementPeriod" class="consultation-agreement-checkbox consultation-agreement-item-checkbox" required>
-                            <label for="agreementPeriod" class="consultation-agreement-label">
-                                개인정보 보유 및 이용기간에 동의합니까?
-                            </label>
-                            <button type="button" class="consultation-agreement-view-btn" data-agreement="period">내용보기</button>
+                        <div class="internet-checkbox-item-wrapper">
+                            <div class="internet-checkbox-item">
+                                <label class="internet-checkbox-label-item">
+                                    <input type="checkbox" id="agreementThirdParty" name="agreementThirdParty" class="internet-checkbox-input-item" onchange="checkAllMnoAgreements();" required>
+                                    <span class="internet-checkbox-text" style="font-size: 1.0625rem !important;">개인정보 제3자 제공에 동의합니까?</span>
+                                </label>
+                                <a href="#" class="internet-checkbox-link" id="mnoThirdPartyArrowLink" onclick="event.preventDefault(); openMnoPrivacyModal('thirdParty'); return false;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="arrow-down">
+                                        <path d="M3.646 4.646a.5.5 0 0 1 .708 0L8 8.293l3.646-3.647a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 0-.708z"></path>
+                                    </svg>
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -768,6 +787,28 @@ $discountData = [
 </div>
 
 <script>
+// 아코디언 토글 함수 (전역으로 노출)
+function toggleMnoAccordionByArrow(accordionId, arrowLinkId) {
+    const accordion = document.getElementById(accordionId);
+    const arrowLink = document.getElementById(arrowLinkId);
+    
+    if (!accordion || !arrowLink) return;
+    
+    // 현재 상태 확인
+    const isOpen = accordion.classList.contains('active');
+    
+    // 상태 토글
+    const newState = !isOpen;
+    
+    if (newState) {
+        accordion.classList.add('active');
+        arrowLink.classList.add('arrow-up');
+    } else {
+        accordion.classList.remove('active');
+        arrowLink.classList.remove('arrow-up');
+    }
+}
+
 // 상담신청 모달 기능
 document.addEventListener('DOMContentLoaded', function() {
     const applyBtn = document.getElementById('phoneApplyBtn');
@@ -783,80 +824,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const privacyModalTitle = document.getElementById('privacyContentModalTitle');
     const privacyModalBody = document.getElementById('privacyContentModalBody');
     
-    // 개인정보 내용 정의
-    const privacyContents = {
-        purpose: {
-            title: '개인정보 수집 및 이용목적',
-            content: `<div class="privacy-content-text">
-                <p><strong>1. 개인정보의 수집 및 이용목적</strong></p>
-                <p>모유('http://www.dtmall.net' 이하 '회사') 은(는) 다음의 목적을 위하여 개인정보를 처리하고 있으며, 다음의 목적 이외의 용도로는 이용하지 않습니다.</p>
-                
-                <p><strong>가. 서비스 제공에 관한 계약 이행 및 서비스 제공에 따른 요금정산</strong></p>
-                <p>컨텐츠 제공, 특정 맞춤 서비스 제공, 물품배송 또는 청구서 등 발송, 본인인증, 구매 및 요금 결제</p>
-                
-                <p><strong>나. 회원관리</strong></p>
-                <p>회원제 서비스 이용 및 제한적 본인 확인제에 따른 고객 가입의사 확인, 고객에 대한 서비스 제공에 따른 본인 식별.인증, 불량회원의 부정 이용방지와 비인가 사용방지, 가입 및 가입횟수 제한, 분쟁 조정을 위한 기록보존, 불만처리 등 민원처리, 고지사항 전달, 회원자격 유지.관리, 회원 포인트 유지.관리 등</p>
-                
-                <p><strong>다. 신규 서비스 개발 및 마케팅</strong></p>
-                <p>신규 서비스 개발 및 맞춤 서비스 제공, 통계학적 특성에 따른 서비스 제공 및 광고 게재, 서비스의 유효성 확인, 이벤트 및 광고성 정보 제공 및 참여기회 제공, 접속빈도 파악, 회원의 서비스이용에 대한 통계</p>
-            </div>`
-        },
-        items: {
-            title: '개인정보 수집하는 항목',
-            content: `<div class="privacy-content-text">
-                <p><strong>2. 개인정보 수집항목 및 수집방법</strong></p>
-                <p>모유('http://www.dtmall.net' 이하 '회사') 은(는) 다음의 개인정보 항목을 처리하고 있습니다.</p>
-                
-                <p><strong>가. 수집하는 개인정보의 항목</strong></p>
-                <p>첫째, 회사는 휴대폰 개통 및 원활한 고객상담을 위해 주문시 아래와 같은 개인정보를 수집하고 있습니다.</p>
-                <p>- 필수항목 : 성명, 핸드폰번호, 긴급연락처</p>
-                
-                <p>둘째, 서비스 이용과정이나 사업처리 과정에서 아래와 같은 정보들이 자동으로 생성되어 수집될 수 있습니다.</p>
-                <p>- IP Address, 쿠키, 방문 일시, 서비스 이용 기록, 불량 이용 기록</p>
-                
-                <p><strong>나. 개인정보 수집방법</strong></p>
-                <p>회사는 다음과 같은 방법으로 개인정보를 수집합니다.</p>
-                <p>- 홈페이지, 서면양식, 팩스, 전화, 상담 게시판, 이메일, 이벤트 응모, 배송요청</p>
-                <p>- 협력회사로부터의 제공</p>
-                <p>- 생성정보 수집 툴을 통한 수집</p>
-            </div>`
-        },
-        period: {
-            title: '개인정보 보유 및 이용기간',
-            content: `<div class="privacy-content-text">
-                <p><strong>3. 개인정보의 보유 및 이용기간</strong></p>
-                <p>모유('http://www.dtmall.net' 이하 '회사') 은(는) 이용자의 개인정보는 원칙적으로 개인정보의 수집 및 이용목적이 달성되면 지체 없이 파기합니다. 단, 다음의 정보에 대해서는 아래의 이유로 명시한 기간 동안 보존합니다.</p>
-                
-                <p><strong>가. 내부 방침에 의한 정보보유 사유</strong></p>
-                <p>- 부정이용기록</p>
-                <p>보존 이유 : 부정 이용 방지</p>
-                <p>보존 기간 : 1년</p>
-                
-                <p><strong>나. 관련법령에 의한 정보보유 사유</strong></p>
-                <p>상법, 전자상거래 등에서의 소비자보호에 관한 법률 등 관계법령의 규정에 의하여 보존할 필요가 있는 경우 회사는 관계법령에서 정한 일정한 기간 동안 회원정보를 보관합니다. 이 경우 회사는 보관하는 정보를 그 보관의 목적으로만 이용하며 보존기간은 아래와 같습니다.</p>
-                
-                <p>- 계약 또는 청약철회 등에 관한 기록</p>
-                <p>보존 이유 : 전자상거래 등에서의 소비자보호에 관한 법률</p>
-                <p>보존 기간 : 5년</p>
-                
-                <p>- 대금결제 및 재화 등의 공급에 관한 기록</p>
-                <p>보존 이유 : 전자상거래 등에서의 소비자보호에 관한 법률</p>
-                <p>보존 기간 : 5년</p>
-                
-                <p>- 소비자의 불만 또는 분쟁처리에 관한 기록</p>
-                <p>보존 이유 : 전자상거래 등에서의 소비자보호에 관한 법률</p>
-                <p>보존 기간 : 3년</p>
-                
-                <p>- 본인확인에 관한 기록</p>
-                <p>보존 이유 : 정보통신 이용촉진 및 정보보호 등에 관한 법률</p>
-                <p>보존 기간 : 6개월</p>
-                
-                <p>- 방문에 관한 기록</p>
-                <p>보존 이유 : 통신비밀보호법</p>
-                <p>보존 기간 : 3개월</p>
-            </div>`
-        }
-    };
+    // 개인정보 내용 정의 (설정 파일에서 로드)
+    <?php
+    require_once __DIR__ . '/../includes/data/privacy-functions.php';
+    $privacySettings = getPrivacySettings();
+    echo "const privacyContents = " . json_encode($privacySettings, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . ";\n";
+    ?>
     
     // 스크롤 위치 저장 변수
     let scrollPosition = 0;
@@ -1230,8 +1203,8 @@ document.addEventListener('DOMContentLoaded', function() {
         window.scrollTo(0, scrollPosition);
     }
     
-    // 개인정보 내용보기 모달 열기
-    function openPrivacyModal(type) {
+    // 개인정보 내용보기 모달 열기 (전역으로 노출)
+    window.openMnoPrivacyModal = function(type) {
         if (!privacyModal || !privacyContents[type]) return;
         
         privacyModalTitle.textContent = privacyContents[type].title;
@@ -1239,13 +1212,16 @@ document.addEventListener('DOMContentLoaded', function() {
         
         privacyModal.style.display = 'flex';
         privacyModal.classList.add('privacy-content-modal-active');
-    }
+        document.body.style.overflow = 'hidden';
+    };
     
     // 개인정보 내용보기 모달 닫기
     function closePrivacyModal() {
         if (!privacyModal) return;
         
         privacyModal.classList.remove('privacy-content-modal-active');
+        privacyModal.style.display = 'none';
+        document.body.style.overflow = '';
     }
     
     // 신청하기 버튼 클릭 이벤트
@@ -1296,7 +1272,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 전체 동의 체크박스
     const agreementAll = document.getElementById('agreementAll');
-    const agreementItemCheckboxes = document.querySelectorAll('.consultation-agreement-item-checkbox');
+    const agreementItemCheckboxes = document.querySelectorAll('.internet-checkbox-input-item');
     
     // 전체 동의 체크박스 변경 이벤트
     if (agreementAll) {
@@ -1305,29 +1281,67 @@ document.addEventListener('DOMContentLoaded', function() {
             agreementItemCheckboxes.forEach(checkbox => {
                 checkbox.checked = isChecked;
             });
+            checkAllMnoAgreements();
         });
     }
     
     // 개별 체크박스 변경 이벤트 (전체 동의 상태 업데이트)
     agreementItemCheckboxes.forEach(checkbox => {
         checkbox.addEventListener('change', function() {
-            const allChecked = Array.from(agreementItemCheckboxes).every(cb => cb.checked);
-            if (agreementAll) {
-                agreementAll.checked = allChecked;
-            }
+            checkAllMnoAgreements();
         });
     });
     
-    // 개인정보 내용보기 버튼 클릭 이벤트
-    const viewBtns = document.querySelectorAll('.consultation-agreement-view-btn');
-    viewBtns.forEach(btn => {
-        btn.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            const type = this.getAttribute('data-agreement');
-            openPrivacyModal(type);
-        });
-    });
+    // 전체 동의 토글 함수
+    function toggleAllMnoAgreements(checked) {
+        const agreementPurpose = document.getElementById('agreementPurpose');
+        const agreementItems = document.getElementById('agreementItems');
+        const agreementPeriod = document.getElementById('agreementPeriod');
+        const agreementThirdParty = document.getElementById('agreementThirdParty');
+        
+        if (agreementPurpose && agreementItems && agreementPeriod && agreementThirdParty) {
+            agreementPurpose.checked = checked;
+            agreementItems.checked = checked;
+            agreementPeriod.checked = checked;
+            agreementThirdParty.checked = checked;
+            checkAllMnoAgreements();
+        }
+    }
+    
+    // 전체 동의 상태 확인 함수
+    function checkAllMnoAgreements() {
+        const agreementAll = document.getElementById('agreementAll');
+        const agreementPurpose = document.getElementById('agreementPurpose');
+        const agreementItems = document.getElementById('agreementItems');
+        const agreementPeriod = document.getElementById('agreementPeriod');
+        const agreementThirdParty = document.getElementById('agreementThirdParty');
+        const submitBtn = document.getElementById('consultationSubmitBtn');
+        const nameInput = document.getElementById('consultationName');
+        const phoneInput = document.getElementById('consultationPhone');
+        
+        if (agreementAll && agreementPurpose && agreementItems && agreementPeriod && agreementThirdParty && submitBtn) {
+            // 전체 동의 체크박스 상태 업데이트
+            agreementAll.checked = agreementPurpose.checked && agreementItems.checked && agreementPeriod.checked && agreementThirdParty.checked;
+            
+            // 이름과 휴대폰 번호 확인
+            const name = nameInput ? nameInput.value.trim() : '';
+            const phone = phoneInput ? phoneInput.value.replace(/[^\d]/g, '') : '';
+            
+            // 제출 버튼 활성화/비활성화 (모든 필드가 입력되어야 활성화)
+            const isNameValid = name.length > 0;
+            const isPhoneValid = phone.length === 11 && phone.startsWith('010');
+            const isAgreementsChecked = agreementPurpose.checked && agreementItems.checked && agreementPeriod.checked && agreementThirdParty.checked;
+            
+            if (isNameValid && isPhoneValid && isAgreementsChecked) {
+                submitBtn.disabled = false;
+            } else {
+                submitBtn.disabled = true;
+            }
+        }
+    }
+    
+    
+    // 개인정보 내용보기 버튼 클릭 이벤트는 아코디언으로 대체됨 (인라인 아코디언 사용)
     
     // 개인정보 내용보기 모달 닫기 이벤트
     if (privacyModalOverlay) {
@@ -1386,6 +1400,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (formatted !== value) {
                 this.value = formatted;
             }
+            checkAllMnoAgreements();
         });
         
         // 포커스 아웃 시 검증
@@ -1410,6 +1425,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     errorMsg.remove();
                 }
             }
+            checkAllMnoAgreements();
         });
         
         // 입력 시작 시 에러 제거
@@ -1445,6 +1461,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     errorMsg.remove();
                 }
             }
+            checkAllMnoAgreements();
         });
         
         // 입력 시작 시 에러 제거
@@ -1455,6 +1472,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 errorMsg.remove();
             }
         });
+    }
+    
+    // 이름 입력 시 검증
+    const consultationName = document.getElementById('consultationName');
+    if (consultationName) {
+        consultationName.addEventListener('input', checkAllMnoAgreements);
+        consultationName.addEventListener('blur', checkAllMnoAgreements);
     }
     
     // 폼 제출 이벤트
@@ -1815,5 +1839,991 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
+
+<style>
+/* 체크박스 스타일 (인터넷 신청과 동일) */
+.internet-checkbox-group .internet-checkbox-text,
+.internet-checkbox-label-item .internet-checkbox-text,
+span.internet-checkbox-text {
+    font-size: 1.0625rem !important; /* 17px - 플랜 카드의 "통화 기본제공 | 문자 무제한 | KT알뜰폰 | 5G" 텍스트와 동일한 크기 */
+    font-weight: 500 !important;
+}
+
+.internet-checkbox-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.internet-checkbox-all {
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+    gap: 0.5rem;
+}
+
+.internet-checkbox-all .internet-checkbox-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #374151;
+    flex: 1;
+}
+
+.internet-checkbox-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-left: 2rem;
+}
+
+.internet-checkbox-item-wrapper {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+.internet-checkbox-item {
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+.internet-checkbox-label-item {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    flex: 1;
+}
+
+.internet-checkbox-input-item {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    border-radius: 50%;
+    border: 2px solid #d1d5db;
+    background-color: #f3f4f6;
+    position: relative;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.internet-checkbox-input-item:hover {
+    border-color: #9ca3af;
+    background-color: #e5e7eb;
+}
+
+.internet-checkbox-input-item:checked {
+    background-color: #6366f1;
+    border-color: #6366f1;
+    box-shadow: 0 1px 3px rgba(99, 102, 241, 0.3);
+}
+
+.internet-checkbox-input-item:checked::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -55%) rotate(45deg);
+    width: 5px;
+    height: 9px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    border-radius: 1px;
+}
+
+/* 전체동의 원형 체크박스 */
+.internet-checkbox-all .internet-checkbox-input {
+    width: 20px;
+    height: 20px;
+    margin: 0;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    border-radius: 50%;
+    border: 2px solid #d1d5db;
+    background-color: #f3f4f6;
+    position: relative;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.internet-checkbox-all .internet-checkbox-input:hover {
+    border-color: #9ca3af;
+    background-color: #e5e7eb;
+}
+
+.internet-checkbox-all .internet-checkbox-input:checked {
+    background-color: #6366f1;
+    border-color: #6366f1;
+    box-shadow: 0 1px 3px rgba(99, 102, 241, 0.3);
+}
+
+.internet-checkbox-all .internet-checkbox-input:checked::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -55%) rotate(45deg);
+    width: 5px;
+    height: 9px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    border-radius: 1px;
+}
+
+.internet-checkbox-text {
+    font-size: 1.0625rem !important;
+    font-weight: 500 !important;
+    color: #6b7280;
+    margin-left: 0.5rem;
+}
+
+.internet-checkbox-link {
+    margin-left: auto;
+    color: #6b7280;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    padding: 0.6rem; /* 클릭 영역 확대 */
+    min-width: 2.88rem; /* 최소 너비 설정 */
+    min-height: 2.88rem; /* 최소 높이 설정 (기존 높이에서 20% 증가) */
+    border-radius: 0.25rem;
+    transition: background-color 0.2s;
+}
+
+.internet-checkbox-link svg {
+    width: 18px; /* 아이콘 크기 증가 */
+    height: 18px;
+    transition: transform 0.3s ease;
+}
+
+.internet-checkbox-link svg.arrow-down {
+    transform: rotate(0deg);
+}
+
+.internet-checkbox-link:hover {
+    color: #374151;
+    background-color: #f3f4f6;
+}
+
+.internet-checkbox-link.arrow-up svg {
+    transform: rotate(180deg);
+}
+
+/* 아코디언 스타일 */
+.internet-accordion-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+    margin-top: 0;
+    margin-left: 2rem;
+}
+
+.internet-accordion-content.active {
+    max-height: none;
+    overflow: visible;
+    transition: max-height 0.4s ease-in;
+    margin-top: 0.75rem;
+}
+
+.internet-accordion-inner {
+    background-color: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+.internet-accordion-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.internet-accordion-section {
+    margin-bottom: 0.75rem;
+}
+
+.internet-accordion-section:last-child {
+    margin-bottom: 0;
+}
+
+.internet-accordion-section-title {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #4b5563;
+    margin-bottom: 0.5rem;
+}
+
+.internet-accordion-section-content {
+    font-size: 0.8125rem;
+    color: #6b7280;
+    line-height: 1.6;
+    padding-left: 0.5rem;
+}
+
+@media (max-width: 767px) {
+    .internet-checkbox-list {
+        margin-left: 1.5rem;
+    }
+}
+</style>
+
+
+
+            const isAgreementsChecked = agreementPurpose.checked && agreementItems.checked && agreementPeriod.checked;
+            
+            if (isNameValid && isPhoneValid && isAgreementsChecked) {
+                submitBtn.disabled = false;
+            } else {
+                submitBtn.disabled = true;
+            }
+        }
+    }
+    
+    
+    // 개인정보 내용보기 버튼 클릭 이벤트는 아코디언으로 대체됨 (인라인 아코디언 사용)
+    
+    // 개인정보 내용보기 모달 닫기 이벤트
+    if (privacyModalOverlay) {
+        privacyModalOverlay.addEventListener('click', closePrivacyModal);
+    }
+    
+    if (privacyModalClose) {
+        privacyModalClose.addEventListener('click', closePrivacyModal);
+    }
+    
+    // ESC 키로 모달 닫기
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            if (privacyModal && privacyModal.classList.contains('privacy-content-modal-active')) {
+                closePrivacyModal();
+            } else if (discountSelectionModal && discountSelectionModal.classList.contains('discount-selection-modal-active')) {
+                closeDiscountSelectionModal();
+            } else if (consultationModal && consultationModal.classList.contains('consultation-modal-active')) {
+                closeConsultationModal();
+            }
+        }
+    });
+    
+    // 휴대폰번호 검증 함수
+    function validatePhoneNumber(phone) {
+        // 숫자만 추출
+        const phoneNumbers = phone.replace(/[^\d]/g, '');
+        // 010으로 시작하는 11자리 숫자 확인
+        return /^010\d{8}$/.test(phoneNumbers);
+    }
+    
+    // 이메일 검증 함수
+    function validateEmail(email) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email.trim());
+    }
+    
+    // 휴대폰번호 포맷팅 함수
+    function formatPhoneNumber(phone) {
+        const phoneNumbers = phone.replace(/[^\d]/g, '');
+        if (phoneNumbers.length === 11 && phoneNumbers.startsWith('010')) {
+            return '010-' + phoneNumbers.substring(3, 7) + '-' + phoneNumbers.substring(7, 11);
+        }
+        return phone;
+    }
+    
+    // 실시간 검증 이벤트
+    const consultationPhone = document.getElementById('consultationPhone');
+    const consultationEmail = document.getElementById('consultationEmail');
+    
+    if (consultationPhone) {
+        // 입력 중 포맷팅
+        consultationPhone.addEventListener('input', function() {
+            const value = this.value;
+            const formatted = formatPhoneNumber(value);
+            if (formatted !== value) {
+                this.value = formatted;
+            }
+            checkAllMnoAgreements();
+        });
+        
+        // 포커스 아웃 시 검증
+        consultationPhone.addEventListener('blur', function() {
+            const value = this.value.trim();
+            if (value && !validatePhoneNumber(value)) {
+                this.classList.add('input-error');
+                if (!this.nextElementSibling || !this.nextElementSibling.classList.contains('error-message')) {
+                    const errorMsg = document.createElement('span');
+                    errorMsg.className = 'error-message';
+                    errorMsg.textContent = '010으로 시작하는 11자리 휴대폰 번호를 입력해주세요.';
+                    errorMsg.style.display = 'block';
+                    errorMsg.style.color = '#ef4444';
+                    errorMsg.style.fontSize = '0.75rem';
+                    errorMsg.style.marginTop = '4px';
+                    this.parentElement.appendChild(errorMsg);
+                }
+            } else {
+                this.classList.remove('input-error');
+                const errorMsg = this.parentElement.querySelector('.error-message');
+                if (errorMsg) {
+                    errorMsg.remove();
+                }
+            }
+            checkAllMnoAgreements();
+        });
+        
+        // 입력 시작 시 에러 제거
+        consultationPhone.addEventListener('focus', function() {
+            this.classList.remove('input-error');
+            const errorMsg = this.parentElement.querySelector('.error-message');
+            if (errorMsg) {
+                errorMsg.remove();
+            }
+        });
+    }
+    
+    if (consultationEmail) {
+        // 포커스 아웃 시 검증
+        consultationEmail.addEventListener('blur', function() {
+            const value = this.value.trim();
+            if (value && !validateEmail(value)) {
+                this.classList.add('input-error');
+                if (!this.nextElementSibling || !this.nextElementSibling.classList.contains('error-message')) {
+                    const errorMsg = document.createElement('span');
+                    errorMsg.className = 'error-message';
+                    errorMsg.textContent = '올바른 이메일 주소를 입력해주세요.';
+                    errorMsg.style.display = 'block';
+                    errorMsg.style.color = '#ef4444';
+                    errorMsg.style.fontSize = '0.75rem';
+                    errorMsg.style.marginTop = '4px';
+                    this.parentElement.appendChild(errorMsg);
+                }
+            } else {
+                this.classList.remove('input-error');
+                const errorMsg = this.parentElement.querySelector('.error-message');
+                if (errorMsg) {
+                    errorMsg.remove();
+                }
+            }
+            checkAllMnoAgreements();
+        });
+        
+        // 입력 시작 시 에러 제거
+        consultationEmail.addEventListener('focus', function() {
+            this.classList.remove('input-error');
+            const errorMsg = this.parentElement.querySelector('.error-message');
+            if (errorMsg) {
+                errorMsg.remove();
+            }
+        });
+    }
+    
+    // 이름 입력 시 검증
+    const consultationName = document.getElementById('consultationName');
+    if (consultationName) {
+        consultationName.addEventListener('input', checkAllMnoAgreements);
+        consultationName.addEventListener('blur', checkAllMnoAgreements);
+    }
+    
+    // 폼 제출 이벤트
+    if (consultationForm) {
+        consultationForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // 로그인 체크
+            const isLoggedIn = <?php echo isLoggedIn() ? 'true' : 'false'; ?>;
+            if (!isLoggedIn) {
+                // 모달 닫기
+                if (consultationModal) {
+                    consultationModal.classList.remove('consultation-modal-active');
+                    document.body.style.overflow = '';
+                    document.body.style.position = '';
+                    document.body.style.top = '';
+                    document.body.style.width = '';
+                    document.documentElement.style.overflow = '';
+                }
+                
+                // 현재 URL을 세션에 저장 (회원가입 후 돌아올 주소)
+                const currentUrl = window.location.href;
+                fetch('/MVNO/api/save-redirect-url.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ redirect_url: currentUrl })
+                }).then(() => {
+                    // 회원가입 모달 열기
+                    if (typeof openLoginModal === 'function') {
+                        openLoginModal(true);
+                    } else {
+                        setTimeout(() => {
+                            if (typeof openLoginModal === 'function') {
+                                openLoginModal(true);
+                            }
+                        }, 100);
+                    }
+                });
+                return;
+            }
+            
+            // 필수 필드 검증
+            const consultationName = document.getElementById('consultationName');
+            const consultationPhone = document.getElementById('consultationPhone');
+            const consultationEmail = document.getElementById('consultationEmail');
+            
+            // 이름 검증
+            if (!consultationName || !consultationName.value.trim()) {
+                alert('이름을 입력해주세요.');
+                if (consultationName) consultationName.focus();
+                return;
+            }
+            
+            // 휴대폰번호 검증
+            if (!consultationPhone || !consultationPhone.value.trim()) {
+                alert('휴대폰 번호를 입력해주세요.');
+                if (consultationPhone) consultationPhone.focus();
+                return;
+            }
+            
+            if (!validatePhoneNumber(consultationPhone.value)) {
+                alert('010으로 시작하는 11자리 휴대폰 번호를 입력해주세요.');
+                if (consultationPhone) {
+                    consultationPhone.focus();
+                    consultationPhone.classList.add('input-error');
+                }
+                return;
+            }
+            
+            // 이메일 검증
+            if (!consultationEmail || !consultationEmail.value.trim()) {
+                alert('이메일을 입력해주세요.');
+                if (consultationEmail) consultationEmail.focus();
+                return;
+            }
+            
+            if (!validateEmail(consultationEmail.value)) {
+                alert('올바른 이메일 주소를 입력해주세요.');
+                if (consultationEmail) {
+                    consultationEmail.focus();
+                    consultationEmail.classList.add('input-error');
+                }
+                return;
+            }
+            
+            // 모든 동의 체크박스 확인
+            const agreementPurpose = document.getElementById('agreementPurpose');
+            const agreementItems = document.getElementById('agreementItems');
+            const agreementPeriod = document.getElementById('agreementPeriod');
+            
+            if (!agreementPurpose.checked || !agreementItems.checked || !agreementPeriod.checked) {
+                alert('모든 개인정보 동의 항목에 동의해주세요.');
+                return;
+            }
+            
+            // 폼 데이터 수집
+            const formData = new FormData(this);
+            formData.append('product_id', <?php echo $phone_id; ?>);
+            
+            // 제출 버튼 비활성화
+            const submitBtn = document.getElementById('consultationSubmitBtn');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.textContent = '처리 중...';
+            }
+            
+            // 서버로 데이터 전송
+            fetch('/MVNO/api/submit-mno-application.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // 신청정보가 판매자에게 저장됨
+                    
+                    // redirect_url이 있으면 해당 URL로 이동
+                    if (data.redirect_url && data.redirect_url.trim() !== '') {
+                        window.location.href = data.redirect_url;
+                    } else {
+                        // redirect_url이 없으면 창 닫기
+                        if (typeof showAlert === 'function') {
+                            showAlert('상담신청이 완료되었습니다.', '신청 완료');
+                        } else {
+                            alert('상담신청이 완료되었습니다.');
+                        }
+                        closeConsultationModal();
+                    }
+                } else {
+                    // 실패 시 모달로 표시
+                    if (typeof showAlert === 'function') {
+                        showAlert(data.message || '신청정보 저장에 실패했습니다.', '신청 실패');
+                    } else {
+                        alert(data.message || '신청정보 저장에 실패했습니다.');
+                    }
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = '신청하기';
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('신청 처리 오류:', error);
+                // 에러 발생 시 모달로 표시
+                if (typeof showAlert === 'function') {
+                    showAlert('신청 처리 중 오류가 발생했습니다.', '오류');
+                } else {
+                    alert('신청 처리 중 오류가 발생했습니다.');
+                }
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = '신청하기';
+                }
+            });
+        });
+    }
+});
+
+// 리뷰 정렬 기능
+document.addEventListener('DOMContentLoaded', function() {
+    const reviewSortSelect = document.getElementById('phoneReviewSortSelect');
+    if (reviewSortSelect) {
+        reviewSortSelect.addEventListener('change', function() {
+            const sort = this.value;
+            const url = new URL(window.location.href);
+            url.searchParams.set('review_sort', sort);
+            window.location.href = url.toString();
+        });
+    }
+});
+
+// 통신사폰 리뷰 모달 기능
+document.addEventListener('DOMContentLoaded', function() {
+    const reviewList = document.getElementById('phoneReviewList');
+    const reviewMoreBtn = document.getElementById('phoneReviewMoreBtn');
+    const reviewModal = document.getElementById('phoneReviewModal');
+    const reviewModalOverlay = document.getElementById('phoneReviewModalOverlay');
+    const reviewModalClose = document.getElementById('phoneReviewModalClose');
+    const reviewModalList = document.getElementById('phoneReviewModalList');
+    const reviewModalMoreBtn = document.getElementById('phoneReviewModalMoreBtn');
+    
+    // 페이지 리뷰: 처음 5개만 표시
+    if (reviewList) {
+        const reviewItems = reviewList.querySelectorAll('.plan-review-item');
+        const totalReviews = reviewItems.length;
+        const visibleCount = 5;
+        
+        reviewItems.forEach((item, index) => {
+            if (index >= visibleCount) {
+                item.style.display = 'none';
+            }
+        });
+        
+        // 리뷰 더보기 버튼에 남은 리뷰 개수 표시
+        if (reviewMoreBtn && totalReviews > visibleCount) {
+            const remainingCount = totalReviews - visibleCount;
+            reviewMoreBtn.textContent = `리뷰 더보기 (${remainingCount}개)`;
+        } else if (reviewMoreBtn) {
+            reviewMoreBtn.style.display = 'none';
+        }
+    }
+    
+    // 모달 열기 함수
+    function openReviewModal() {
+        if (reviewModal) {
+            // 리뷰 섹션으로 스크롤 이동
+            const reviewSection = document.getElementById('phoneReviewSection');
+            if (reviewSection) {
+                const sectionTop = reviewSection.getBoundingClientRect().top + window.pageYOffset;
+                window.scrollTo({
+                    top: sectionTop,
+                    behavior: 'smooth'
+                });
+            }
+            
+            // 모달 열기 (약간의 딜레이를 주어 스크롤 후 모달이 열리도록)
+            setTimeout(() => {
+                reviewModal.classList.add('review-modal-active');
+                document.body.classList.add('review-modal-open');
+                document.body.style.overflow = 'hidden';
+                document.documentElement.style.overflow = 'hidden';
+            }, 300);
+        }
+    }
+    
+    // 모달 닫기 함수
+    function closeReviewModal() {
+        if (reviewModal) {
+            reviewModal.classList.remove('review-modal-active');
+            document.body.classList.remove('review-modal-open');
+            document.body.style.overflow = '';
+            document.documentElement.style.overflow = '';
+        }
+    }
+    
+    // 리뷰 아이템 클릭 시 모달 열기
+    if (reviewList) {
+        const reviewItems = reviewList.querySelectorAll('.plan-review-item');
+        reviewItems.forEach(item => {
+            item.style.cursor = 'pointer';
+            item.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                openReviewModal();
+            });
+        });
+    }
+    
+    // 더보기 버튼 클릭 시 모달 열기
+    if (reviewMoreBtn) {
+        reviewMoreBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            openReviewModal();
+        });
+    }
+    
+    // 모달 닫기 이벤트
+    if (reviewModalOverlay) {
+        reviewModalOverlay.addEventListener('click', closeReviewModal);
+    }
+    
+    if (reviewModalClose) {
+        reviewModalClose.addEventListener('click', closeReviewModal);
+    }
+    
+    // ESC 키로 모달 닫기
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && reviewModal && reviewModal.classList.contains('review-modal-active')) {
+            closeReviewModal();
+        }
+    });
+    
+    // 모달 내부 더보기 기능: 처음 5개, 이후 10개씩 표시
+    if (reviewModalList && reviewModalMoreBtn) {
+        const modalReviewItems = reviewModalList.querySelectorAll('.review-modal-item');
+        const totalModalReviews = modalReviewItems.length;
+        let visibleModalCount = 5; // 처음 5개만 표시
+        
+        // 초기 설정: 5개 이후 리뷰 숨기기
+        function initializeModalReviews() {
+            visibleModalCount = 5; // 모달 열 때마다 5개로 초기화
+            modalReviewItems.forEach((item, index) => {
+                if (index >= visibleModalCount) {
+                    item.style.display = 'none';
+                } else {
+                    item.style.display = 'block';
+                }
+            });
+            
+            // 모든 리뷰가 이미 표시되어 있으면 버튼 숨기기
+            if (totalModalReviews <= visibleModalCount) {
+                reviewModalMoreBtn.style.display = 'none';
+            } else {
+                reviewModalMoreBtn.style.display = 'block';
+            }
+        }
+        
+        // 초기 설정 실행
+        initializeModalReviews();
+        
+        // 모달이 열릴 때마다 초기화
+        if (reviewModal) {
+            const observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                        if (reviewModal.classList.contains('review-modal-active')) {
+                            initializeModalReviews(); // 모달 열 때마다 5개로 초기화
+                        }
+                    }
+                });
+            });
+            observer.observe(reviewModal, { attributes: true });
+        }
+        
+        // 모달 내부 더보기 버튼 클릭 이벤트
+        reviewModalMoreBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            visibleModalCount += 10; // 10개씩 추가
+            
+            // 리뷰 표시
+            modalReviewItems.forEach((item, index) => {
+                if (index < visibleModalCount) {
+                    item.style.display = 'block';
+                }
+            });
+            
+            // 모든 리뷰가 표시되면 버튼 숨기기
+            if (visibleModalCount >= totalModalReviews) {
+                reviewModalMoreBtn.style.display = 'none';
+            }
+        });
+    }
+    
+    // 리뷰 정렬 선택 기능 (페이지)
+    const reviewSortSelect = document.getElementById('phoneReviewSortSelect');
+    if (reviewSortSelect) {
+        reviewSortSelect.addEventListener('change', function() {
+            const sort = this.value;
+            const url = new URL(window.location.href);
+            url.searchParams.set('review_sort', sort);
+            window.location.href = url.toString();
+        });
+    }
+    
+    // 리뷰 정렬 선택 기능 (모달)
+    const reviewModalSortSelect = document.getElementById('phoneReviewModalSortSelect');
+    if (reviewModalSortSelect) {
+        reviewModalSortSelect.addEventListener('change', function() {
+            const sort = this.value;
+            const url = new URL(window.location.href);
+            url.searchParams.set('review_sort', sort);
+            window.location.href = url.toString();
+        });
+    }
+});
+</script>
+
+<style>
+/* 체크박스 스타일 (인터넷 신청과 동일) */
+.internet-checkbox-group .internet-checkbox-text,
+.internet-checkbox-label-item .internet-checkbox-text,
+span.internet-checkbox-text {
+    font-size: 1.0625rem !important; /* 17px - 플랜 카드의 "통화 기본제공 | 문자 무제한 | KT알뜰폰 | 5G" 텍스트와 동일한 크기 */
+    font-weight: 500 !important;
+}
+
+.internet-checkbox-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.internet-checkbox-all {
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+    gap: 0.5rem;
+}
+
+.internet-checkbox-all .internet-checkbox-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #374151;
+    flex: 1;
+}
+
+.internet-checkbox-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-left: 2rem;
+}
+
+.internet-checkbox-item-wrapper {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+.internet-checkbox-item {
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+.internet-checkbox-label-item {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    flex: 1;
+}
+
+.internet-checkbox-input-item {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    border-radius: 50%;
+    border: 2px solid #d1d5db;
+    background-color: #f3f4f6;
+    position: relative;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.internet-checkbox-input-item:hover {
+    border-color: #9ca3af;
+    background-color: #e5e7eb;
+}
+
+.internet-checkbox-input-item:checked {
+    background-color: #6366f1;
+    border-color: #6366f1;
+    box-shadow: 0 1px 3px rgba(99, 102, 241, 0.3);
+}
+
+.internet-checkbox-input-item:checked::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -55%) rotate(45deg);
+    width: 5px;
+    height: 9px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    border-radius: 1px;
+}
+
+/* 전체동의 원형 체크박스 */
+.internet-checkbox-all .internet-checkbox-input {
+    width: 20px;
+    height: 20px;
+    margin: 0;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    border-radius: 50%;
+    border: 2px solid #d1d5db;
+    background-color: #f3f4f6;
+    position: relative;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.internet-checkbox-all .internet-checkbox-input:hover {
+    border-color: #9ca3af;
+    background-color: #e5e7eb;
+}
+
+.internet-checkbox-all .internet-checkbox-input:checked {
+    background-color: #6366f1;
+    border-color: #6366f1;
+    box-shadow: 0 1px 3px rgba(99, 102, 241, 0.3);
+}
+
+.internet-checkbox-all .internet-checkbox-input:checked::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -55%) rotate(45deg);
+    width: 5px;
+    height: 9px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    border-radius: 1px;
+}
+
+.internet-checkbox-text {
+    font-size: 1.0625rem !important;
+    font-weight: 500 !important;
+    color: #6b7280;
+    margin-left: 0.5rem;
+}
+
+.internet-checkbox-link {
+    margin-left: auto;
+    color: #6b7280;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    padding: 0.6rem; /* 클릭 영역 확대 */
+    min-width: 2.88rem; /* 최소 너비 설정 */
+    min-height: 2.88rem; /* 최소 높이 설정 (기존 높이에서 20% 증가) */
+    border-radius: 0.25rem;
+    transition: background-color 0.2s;
+}
+
+.internet-checkbox-link svg {
+    width: 18px; /* 아이콘 크기 증가 */
+    height: 18px;
+    transition: transform 0.3s ease;
+}
+
+.internet-checkbox-link svg.arrow-down {
+    transform: rotate(0deg);
+}
+
+.internet-checkbox-link:hover {
+    color: #374151;
+    background-color: #f3f4f6;
+}
+
+.internet-checkbox-link.arrow-up svg {
+    transform: rotate(180deg);
+}
+
+/* 아코디언 스타일 */
+.internet-accordion-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+    margin-top: 0;
+    margin-left: 2rem;
+}
+
+.internet-accordion-content.active {
+    max-height: none;
+    overflow: visible;
+    transition: max-height 0.4s ease-in;
+    margin-top: 0.75rem;
+}
+
+.internet-accordion-inner {
+    background-color: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+.internet-accordion-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.internet-accordion-section {
+    margin-bottom: 0.75rem;
+}
+
+.internet-accordion-section:last-child {
+    margin-bottom: 0;
+}
+
+.internet-accordion-section-title {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #4b5563;
+    margin-bottom: 0.5rem;
+}
+
+.internet-accordion-section-content {
+    font-size: 0.8125rem;
+    color: #6b7280;
+    line-height: 1.6;
+    padding-left: 0.5rem;
+}
+
+@media (max-width: 767px) {
+    .internet-checkbox-list {
+        margin-left: 1.5rem;
+    }
+}
+</style>
 
 

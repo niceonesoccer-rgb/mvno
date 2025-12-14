@@ -7,8 +7,24 @@ require_once __DIR__ . '/../includes/data/auth-functions.php';
 
 // 이미 로그인한 경우 리다이렉트
 if (isLoggedIn()) {
-    header('Location: /MVNO/');
+    // 세션에 저장된 리다이렉트 URL 확인
+    $redirectUrl = $_SESSION['redirect_url'] ?? '/MVNO/';
+    if (isset($_SESSION['redirect_url'])) {
+        unset($_SESSION['redirect_url']);
+    }
+    header('Location: ' . $redirectUrl);
     exit;
+}
+
+// 회원가입 페이지 접근 시 현재 URL을 리다이렉트 URL로 저장 (GET 파라미터로 전달된 경우)
+if (isset($_GET['redirect'])) {
+    $_SESSION['redirect_url'] = $_GET['redirect'];
+} elseif (!isset($_SESSION['redirect_url'])) {
+    // 리다이렉트 URL이 없으면 이전 페이지 URL 저장
+    $referer = $_SERVER['HTTP_REFERER'] ?? '';
+    if (!empty($referer) && strpos($referer, '/auth/login.php') === false && strpos($referer, '/auth/register.php') === false) {
+        $_SESSION['redirect_url'] = $referer;
+    }
 }
 
 $error = '';

@@ -41,7 +41,7 @@ $delivery_display = ($delivery_method === 'visit' && !empty($visit_region)) ? $v
                 }
                 ?>
                 <span class="plan-gifts-text-accordion" style="display: flex; align-items: center; gap: 4px;">
-                    <span style="min-width: 13ch; display: inline-block; text-align: left; padding-right: 4px; border-right: 1px solid #e5e7eb;"><?php echo htmlspecialchars($display_delivery_text); ?></span>
+                    <span style="min-width: 13ch; display: inline-block; text-align: center; padding-right: 4px; border-right: 1px solid #e5e7eb;"><?php echo htmlspecialchars($display_delivery_text); ?></span>
                     <span><?php echo htmlspecialchars($phone['promotion_title'] ?? '부가서비스 없음'); ?></span>
                 </span>
             </div>

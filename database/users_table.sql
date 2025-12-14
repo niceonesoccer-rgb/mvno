@@ -46,3 +46,5 @@ CREATE TABLE IF NOT EXISTS `users` (
     KEY `idx_sns_provider_sns_id` (`sns_provider`, `sns_id`),
     KEY `idx_created_at` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='사용자 테이블';
+
+

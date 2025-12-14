@@ -805,6 +805,18 @@ function openLoginModal(isRegister = false) {
         return;
     }
     
+    // 현재 URL을 세션에 저장 (로그인/회원가입 후 돌아올 페이지)
+    const currentUrl = window.location.href;
+    fetch('/MVNO/api/save-redirect-url.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ redirect_url: currentUrl })
+    }).catch(error => {
+        console.error('Failed to save redirect URL:', error);
+    });
+    
     const modal = document.getElementById('loginModal');
     const title = document.getElementById('loginModalTitle');
     const loginContent = document.getElementById('loginModeContent');
@@ -855,25 +867,36 @@ function closeLoginModal() {
 
 // SNS 로그인
 function snsLoginModal(provider) {
-    fetch(`/MVNO/api/sns-login.php?action=${provider}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // redirect가 있으면 바로 이동 (테스트용 자동 로그인)
-                if (data.redirect) {
-                    window.location.href = data.redirect;
-                } else if (data.auth_url) {
-                    // auth_url이 있으면 OAuth 인증 페이지로 이동
-                    window.location.href = data.auth_url;
-                }
-            } else {
-                alert(data.message || '로그인에 실패했습니다.');
+    // 현재 URL을 세션에 저장 (로그인 후 돌아올 페이지)
+    const currentUrl = window.location.href;
+    fetch('/MVNO/api/save-redirect-url.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ redirect_url: currentUrl })
+    }).then(() => {
+        // URL 저장 후 SNS 로그인 진행
+        return fetch(`/MVNO/api/sns-login.php?action=${provider}`);
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // redirect가 있으면 바로 이동 (테스트용 자동 로그인)
+            if (data.redirect) {
+                window.location.href = data.redirect;
+            } else if (data.auth_url) {
+                // auth_url이 있으면 OAuth 인증 페이지로 이동
+                window.location.href = data.auth_url;
             }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('로그인 중 오류가 발생했습니다.');
-        });
+        } else {
+            alert(data.message || '로그인에 실패했습니다.');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('로그인 중 오류가 발생했습니다.');
+    });
 }
 
 // 모달 초기화 및 폼 처리
@@ -1443,6 +1466,8 @@ window.switchToRegisterMode = switchToRegisterMode;
 window.switchToLoginMode = switchToLoginMode;
 window.togglePasswordVisibility = togglePasswordVisibility;
 </script>
+
+
 
 
 

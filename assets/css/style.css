@@ -2914,7 +2914,7 @@ button:focus {
 }
 
 .phone-title-text {
-    font-size: 1.0625rem; /* 17px - 제목 전용 크기 */
+    font-size: 1.3125rem; /* 21px - plan-data-main과 동일한 크기 */
     font-weight: 700;
     color: var(--color-gray-700);
     flex: 1;
@@ -3091,7 +3091,7 @@ button:focus {
 }
 
 .mno-support-card-title {
-    font-size: 0.85rem;
+    font-size: 0.85rem; /* plan-provider-logo-text(스마트)와 동일한 크기 */
     font-weight: 600;
     color: var(--color-gray-600);
     margin-bottom: 4px;
@@ -3102,14 +3102,14 @@ button:focus {
 }
 
 .mno-support-card-content {
-    padding-top: 4px;
+    padding-top: 0;
     overflow-x: auto;
 }
 
 .mno-support-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.85rem;
+    font-size: 1.0625rem; /* 17px - 아코디언 글자 크기와 동일 */
 }
 
 .mno-support-table thead {
@@ -3117,21 +3117,23 @@ button:focus {
 }
 
 .mno-support-table th {
-    padding: 2px 4px;
+    padding: 0 2px 4px 2px;
     text-align: center;
+    vertical-align: middle;
     font-weight: 600;
     color: var(--color-gray-600);
-    font-size: 0.85rem;
+    font-size: 1.0625rem; /* 17px - 아코디언 글자 크기와 동일 */
     border-bottom: 1px solid var(--color-gray-200);
     white-space: nowrap;
-    line-height: 1.2;
+    line-height: 1.2; /* 1.5에서 20% 감소 */
+    margin-top: 0;
 }
 
 .mno-support-table td {
-    padding: 2px 4px;
+    padding: 4px 2px;
     text-align: center;
     vertical-align: middle;
-    line-height: 1.2;
+    line-height: 1.2; /* 1.5에서 20% 감소 */
 }
 
 .mno-support-table tbody tr {
@@ -3145,21 +3147,23 @@ button:focus {
 
 
 .mno-support-provider-text {
-    display: inline-block;
-    font-size: 0.85rem;
+    display: block;
+    font-size: 1.0625rem; /* 17px - 아코디언 글자 크기와 동일 */
     font-weight: 500;
     color: var(--color-gray-700);
-    padding: 0 4px;
-    line-height: 1.2;
+    padding: 0 1px;
+    line-height: 1.2; /* 1.5에서 20% 감소 */
+    text-align: center;
 }
 
 .mno-support-text {
     display: inline-block;
-    font-size: 0.85rem;
+    font-size: 1.0625rem; /* 17px - 아코디언 글자 크기와 동일 */
     font-weight: 500;
     color: #3b82f6;
-    padding: 0 4px;
-    line-height: 1.2;
+    padding: 0 1px;
+    line-height: 1.2; /* 1.5에서 20% 감소 */
+    vertical-align: middle;
 }
 
 .mno-support-text-negative {
@@ -3205,7 +3209,7 @@ button:focus {
     }
     
     .mno-support-card-title {
-        font-size: 0.6875rem;
+        font-size: 0.85rem; /* plan-provider-logo-text(스마트)와 동일한 크기 */
         margin-bottom: 2px;
         padding-bottom: 2px;
         white-space: nowrap;
@@ -3215,51 +3219,56 @@ button:focus {
     
     .mno-support-card-content {
         overflow-x: hidden;
-        padding-top: 2px;
+        padding-top: 0;
         width: 100%;
         box-sizing: border-box;
     }
     
     .mno-support-table {
         width: 100%;
-        font-size: 0.875rem;
+        font-size: 1.0625rem; /* 17px - 아코디언 글자 크기와 동일 */
         table-layout: fixed;
     }
     
     .mno-support-table th,
     .mno-support-table td {
-        padding: 2px 3px;
+        padding: 4px 1px;
+        vertical-align: middle;
         word-wrap: break-word;
         overflow-wrap: break-word;
         box-sizing: border-box;
     }
     
     .mno-support-table th {
-        font-size: 0.875rem;
+        font-size: 1.0625rem; /* 17px - 아코디언 글자 크기와 동일 */
         white-space: normal;
-        line-height: 1.2;
+        line-height: 1.2; /* 1.5에서 20% 감소 */
     }
     
     .mno-support-table td {
-        font-size: 0.875rem;
+        font-size: 1.0625rem; /* 17px - 아코디언 글자 크기와 동일 */
         white-space: normal;
-        line-height: 1.2;
+        line-height: 1.2; /* 1.5에서 20% 감소 */
     }
     
     .mno-support-provider-text {
-        font-size: 0.875rem;
-        padding: 1px 2px;
+        font-size: 1.0625rem; /* 17px - 아코디언 글자 크기와 동일 */
+        padding: 0 1px;
         display: block;
         word-break: break-all;
         color: var(--color-gray-700);
+        line-height: 1.2; /* 1.5에서 20% 감소 */
+        text-align: center;
     }
     
     .mno-support-text {
-        font-size: 0.875rem;
-        padding: 1px 2px;
-        display: block;
+        font-size: 1.0625rem; /* 17px - 아코디언 글자 크기와 동일 */
+        padding: 0 1px;
+        display: inline-block;
         word-break: break-all;
         color: #3b82f6;
+        line-height: 1.2; /* 1.5에서 20% 감소 */
+        vertical-align: middle;
     }
     
     .mno-support-text-negative {
@@ -3452,7 +3461,7 @@ button:focus {
 }
 
 .plan-gifts-text-accordion {
-    font-size: 0.85rem; /* 13.6px - 제목의 80% (20% 감소) */
+    font-size: 1.0625rem; /* 17px - 통화기본문자와 동일한 크기 */
     font-weight: 500;
     color: var(--color-gray-500);
 }
@@ -3488,7 +3497,7 @@ button:focus {
 }
 
 .plan-gift-detail-text {
-    font-size: 0.85rem; /* 13.6px - 제목의 80% (20% 감소) */
+    font-size: 1.0625rem; /* 17px - 통화기본문자와 동일한 크기 */
     font-weight: 500;
     color: var(--color-gray-600);
     line-height: 1.2;
@@ -3500,12 +3509,48 @@ button:focus {
         font-size: 1.4375rem; /* 23px */
     }
     
+    .phone-title-text {
+        font-size: 1.4375rem; /* 23px - plan-data-main과 동일한 크기 */
+    }
+    
     .plan-price-main {
         font-size: 1.4375rem; /* 23px */
     }
     
     .plan-provider-logo-img {
         height: 24px;
+    }
+    
+    /* 공통지원할인 테이블 데스크톱 스타일 */
+    .mno-support-table th,
+    .mno-support-table td {
+        padding: 4px 2px;
+        vertical-align: middle;
+        text-align: center;
+    }
+    
+    .mno-support-table th {
+        padding: 0 2px 4px 2px;
+        line-height: 1.2; /* 1.5에서 20% 감소 */
+        margin-top: 0;
+    }
+    
+    .mno-support-table td {
+        line-height: 1.2; /* 1.5에서 20% 감소 */
+    }
+    
+    .mno-support-provider-text {
+        display: block;
+        text-align: center;
+        line-height: 1.2; /* 1.5에서 20% 감소 */
+        padding: 0 1px;
+    }
+    
+    .mno-support-text {
+        display: inline-block;
+        line-height: 1.2; /* 1.5에서 20% 감소 */
+        vertical-align: middle;
+        padding: 0 1px;
     }
 }
 
@@ -6595,6 +6640,8 @@ button:focus {
     font-weight: 700;
     color: var(--color-gray-700);
     margin: 0;
+    flex: 1;
+    text-align: center;
 }
 
 .consultation-modal-close {

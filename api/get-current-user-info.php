@@ -36,3 +36,5 @@ echo json_encode([
     'phone' => $currentUser['phone'] ?? '',
     'email' => $currentUser['email'] ?? ''
 ]);
+
+
