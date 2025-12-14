@@ -34,18 +34,40 @@ if (isset($currentUser['withdrawal_requested']) && $currentUser['withdrawal_requ
 }
 
 // 필터 파라미터
-$status = $_GET['status'] ?? '';
-if ($status === '') {
-    $status = null;
-}
-$searchName = $_GET['search_name'] ?? '';
-$searchPhone = $_GET['search_phone'] ?? '';
+$status = isset($_GET['status']) && $_GET['status'] !== '' ? $_GET['status'] : null;
+$searchKeyword = $_GET['search_keyword'] ?? ''; // 통합검색 (주문번호, 고객명, 전화번호)
 $dateFrom = $_GET['date_from'] ?? '';
 $dateTo = $_GET['date_to'] ?? '';
+$dateRange = $_GET['date_range'] ?? '7'; // 기본값 7일
 $page = max(1, intval($_GET['page'] ?? 1));
-$perPage = isset($_GET['per_page']) ? intval($_GET['per_page']) : 20;
+
+// 기간 선택에 따라 날짜 자동 설정 (기본값 7일)
+if (empty($dateRange)) {
+    $dateRange = '7';
+}
+if ($dateRange && $dateRange !== 'all') {
+    $endDate = date('Y-m-d');
+    switch ($dateRange) {
+        case '7':
+            $dateFrom = date('Y-m-d', strtotime('-7 days'));
+            $dateTo = $endDate;
+            break;
+        case '30':
+            $dateFrom = date('Y-m-d', strtotime('-30 days'));
+            $dateTo = $endDate;
+            break;
+        case '365':
+            $dateFrom = date('Y-m-d', strtotime('-365 days'));
+            $dateTo = $endDate;
+            break;
+    }
+} elseif ($dateRange === 'all') {
+    $dateFrom = '';
+    $dateTo = '';
+}
+$perPage = isset($_GET['per_page']) ? intval($_GET['per_page']) : 10;
 if (!in_array($perPage, [10, 20, 50, 100])) {
-    $perPage = 20;
+    $perPage = 10;
 }
 
 // DB에서 주문 목록 가져오기
@@ -65,22 +87,47 @@ try {
         ];
         $params = [':seller_id' => $sellerId];
         
-        // 상태 필터
-        if ($status && $status !== '') {
+        // 진행상황 필터
+        if (!empty($status)) {
             $whereConditions[] = 'a.application_status = :status';
             $params[':status'] = $status;
         }
         
-        // 이름 검색
-        if ($searchName && $searchName !== '') {
-            $whereConditions[] = 'c.name LIKE :search_name';
-            $params[':search_name'] = '%' . $searchName . '%';
-        }
-        
-        // 전화번호 검색
-        if ($searchPhone && $searchPhone !== '') {
-            $whereConditions[] = 'c.phone LIKE :search_phone';
-            $params[':search_phone'] = '%' . $searchPhone . '%';
+        // 통합검색 (주문번호, 고객명, 전화번호)
+        if ($searchKeyword && $searchKeyword !== '') {
+            $searchConditions = [];
+            $searchConditions[] = 'c.name LIKE :search_keyword';
+            // 전화번호 검색 (하이픈, 공백 제거 후 검색)
+            $cleanPhoneKeyword = preg_replace('/[^0-9]/', '', $searchKeyword); // 숫자만 추출
+            if (strlen($cleanPhoneKeyword) >= 3) {
+                $searchConditions[] = "REPLACE(REPLACE(REPLACE(c.phone, '-', ''), ' ', ''), '.', '') LIKE :search_keyword_phone";
+                $params[':search_keyword_phone'] = '%' . $cleanPhoneKeyword . '%';
+            } else {
+                // 3자리 미만이면 원본 검색어로도 검색
+                $searchConditions[] = 'c.phone LIKE :search_keyword';
+            }
+            // 주문번호 검색 (created_at 기반: YYYYMMDD-HHMMSS00 형식, 하이픈 없이도 검색 가능)
+            $cleanKeyword = preg_replace('/[^0-9]/', '', $searchKeyword); // 숫자만 추출
+            if (strlen($cleanKeyword) >= 4) {
+                // 날짜 부분 검색 (YYYYMMDD)
+                if (strlen($cleanKeyword) >= 8) {
+                    $datePart = substr($cleanKeyword, 0, 8);
+                    $searchConditions[] = "DATE_FORMAT(a.created_at, '%Y%m%d') LIKE :search_keyword_date";
+                    $params[':search_keyword_date'] = '%' . $datePart . '%';
+                }
+                // 시간 부분 검색 (HHMMSS)
+                if (strlen($cleanKeyword) > 8) {
+                    $timePart = substr($cleanKeyword, 8);
+                    $searchConditions[] = "DATE_FORMAT(a.created_at, '%H%i%s') LIKE :search_keyword_time";
+                    $params[':search_keyword_time'] = '%' . $timePart . '%';
+                } elseif (strlen($cleanKeyword) < 8) {
+                    // 8자리 미만이면 날짜 부분으로 검색
+                    $searchConditions[] = "DATE_FORMAT(a.created_at, '%Y%m%d') LIKE :search_keyword_date";
+                    $params[':search_keyword_date'] = '%' . $cleanKeyword . '%';
+                }
+            }
+            $params[':search_keyword'] = '%' . $searchKeyword . '%';
+            $whereConditions[] = '(' . implode(' OR ', $searchConditions) . ')';
         }
         
         // 날짜 필터
@@ -121,7 +168,43 @@ try {
                 c.additional_info,
                 p.id as product_id,
                 mvno.plan_name,
-                mvno.provider
+                mvno.provider,
+                mvno.service_type,
+                mvno.contract_period,
+                mvno.contract_period_days,
+                mvno.discount_period,
+                mvno.price_main,
+                mvno.price_after,
+                mvno.data_amount,
+                mvno.data_amount_value,
+                mvno.data_unit,
+                mvno.data_additional,
+                mvno.data_additional_value,
+                mvno.data_exhausted,
+                mvno.data_exhausted_value,
+                mvno.call_type,
+                mvno.call_amount,
+                mvno.additional_call_type,
+                mvno.additional_call,
+                mvno.sms_type,
+                mvno.sms_amount,
+                mvno.mobile_hotspot,
+                mvno.mobile_hotspot_value,
+                mvno.regular_sim_available,
+                mvno.regular_sim_price,
+                mvno.nfc_sim_available,
+                mvno.nfc_sim_price,
+                mvno.esim_available,
+                mvno.esim_price,
+                mvno.over_data_price,
+                mvno.over_voice_price,
+                mvno.over_video_price,
+                mvno.over_sms_price,
+                mvno.over_lms_price,
+                mvno.over_mms_price,
+                mvno.promotion_title,
+                mvno.promotions,
+                mvno.benefits
             FROM product_applications a
             INNER JOIN application_customers c ON a.id = c.application_id
             INNER JOIN products p ON a.product_id = p.id
@@ -139,12 +222,22 @@ try {
         $stmt->execute();
         $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
-        // additional_info JSON 디코딩
+        // additional_info 및 JSON 필드 디코딩
         foreach ($orders as &$order) {
             if (!empty($order['additional_info'])) {
                 $order['additional_info'] = json_decode($order['additional_info'], true) ?: [];
             } else {
                 $order['additional_info'] = [];
+            }
+            
+            // JSON 필드 디코딩
+            $jsonFields = ['promotions', 'benefits'];
+            foreach ($jsonFields as $field) {
+                if (!empty($order[$field])) {
+                    $order[$field] = json_decode($order[$field], true) ?: [];
+                } else {
+                    $order[$field] = [];
+                }
             }
         }
     }
@@ -154,11 +247,17 @@ try {
 
 // 상태별 한글명
 $statusLabels = [
-    'pending' => '대기중',
-    'processing' => '처리중',
-    'completed' => '완료',
+    'received' => '접수',
+    'activating' => '개통중',
+    'on_hold' => '보류',
     'cancelled' => '취소',
-    'rejected' => '거부'
+    'activation_completed' => '개통완료',
+    'installation_completed' => '설치완료',
+    // 기존 상태 호환성 유지
+    'pending' => '접수',
+    'processing' => '개통중',
+    'completed' => '설치완료',
+    'rejected' => '보류'
 ];
 
 // 가입형태 한글명
@@ -335,6 +434,31 @@ $pageStyles = '
         color: #374151;
     }
     
+    .status-received {
+        background: #dbeafe;
+        color: #1e40af;
+    }
+    
+    .status-activating {
+        background: #fef3c7;
+        color: #92400e;
+    }
+    
+    .status-on_hold {
+        background: #f3f4f6;
+        color: #374151;
+    }
+    
+    .status-activation_completed {
+        background: #d1fae5;
+        color: #065f46;
+    }
+    
+    .status-installation_completed {
+        background: #d1fae5;
+        color: #065f46;
+    }
+    
     .pagination {
         display: flex;
         justify-content: center;
@@ -385,6 +509,200 @@ $pageStyles = '
         font-size: 14px;
         color: #9ca3af;
     }
+    
+    .product-name-link {
+        color: #10b981;
+        cursor: pointer;
+        text-decoration: underline;
+        font-weight: 500;
+    }
+    
+    .product-name-link:hover {
+        color: #059669;
+    }
+    
+    .product-modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        overflow: auto;
+    }
+    
+    .product-modal-content {
+        background-color: #fff;
+        margin: 5% auto;
+        padding: 0;
+        border-radius: 12px;
+        width: 90%;
+        max-width: 800px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        max-height: 85vh;
+        overflow-y: auto;
+    }
+    
+    .product-modal-header {
+        padding: 20px 24px;
+        border-bottom: 1px solid #e5e7eb;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #f9fafb;
+        border-radius: 12px 12px 0 0;
+    }
+    
+    .product-modal-header h2 {
+        margin: 0;
+        font-size: 20px;
+        font-weight: 700;
+        color: #1f2937;
+    }
+    
+    .product-modal-close {
+        color: #6b7280;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+        line-height: 1;
+    }
+    
+    .product-modal-close:hover {
+        color: #1f2937;
+    }
+    
+    .product-modal-body {
+        padding: 24px;
+    }
+    
+    .product-info-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 20px;
+    }
+    
+    .product-info-table th {
+        background: #f9fafb;
+        padding: 12px;
+        text-align: left;
+        font-weight: 600;
+        color: #374151;
+        border: 1px solid #e5e7eb;
+        width: 30%;
+    }
+    
+    .product-info-table td {
+        padding: 12px;
+        border: 1px solid #e5e7eb;
+        color: #1f2937;
+    }
+    
+    .product-info-table tr:nth-child(even) {
+        background: #f9fafb;
+    }
+    
+    .product-info-section {
+        margin-bottom: 24px;
+    }
+    
+    .product-info-section h3 {
+        margin: 0 0 12px 0;
+        font-size: 18px;
+        font-weight: 700;
+        color: #1f2937;
+        padding-bottom: 8px;
+        border-bottom: 2px solid #10b981;
+    }
+    
+    .product-info-table th {
+        white-space: nowrap;
+        vertical-align: top;
+    }
+    
+    .product-info-table td {
+        word-break: break-word;
+    }
+    
+    /* 모바일 반응형 */
+    @media (max-width: 768px) {
+        .product-modal-content {
+            width: 95%;
+            margin: 2% auto;
+            max-height: 95vh;
+        }
+        
+        .product-modal-header {
+            padding: 16px;
+        }
+        
+        .product-modal-header h2 {
+            font-size: 18px;
+        }
+        
+        .product-modal-body {
+            padding: 16px;
+        }
+        
+        .product-info-table {
+            font-size: 14px;
+        }
+        
+        .product-info-table th,
+        .product-info-table td {
+            padding: 8px;
+        }
+        
+        .product-info-table th {
+            width: 35%;
+            font-size: 13px;
+        }
+        
+        .product-info-section h3 {
+            font-size: 16px;
+        }
+        
+        .product-info-table td {
+            font-size: 13px;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .product-modal-content {
+            width: 100%;
+            margin: 0;
+            border-radius: 0;
+            max-height: 100vh;
+        }
+        
+        .product-modal-header {
+            padding: 12px;
+            border-radius: 0;
+        }
+        
+        .product-modal-body {
+            padding: 12px;
+        }
+        
+        .product-info-table {
+            font-size: 12px;
+            display: block;
+            overflow-x: auto;
+        }
+        
+        .product-info-table th,
+        .product-info-table td {
+            padding: 6px;
+            font-size: 12px;
+        }
+        
+        .product-info-table th {
+            width: 40%;
+            min-width: 100px;
+        }
+    }
 ';
 
 include __DIR__ . '/../includes/seller-header.php';
@@ -401,53 +719,51 @@ include __DIR__ . '/../includes/seller-header.php';
         <form method="GET" action="">
             <div class="filter-row">
                 <div class="filter-group">
-                    <label class="filter-label">상태</label>
-                    <select name="status" class="filter-select">
-                        <option value="">전체</option>
-                        <option value="pending" <?php echo $status === 'pending' ? 'selected' : ''; ?>>대기중</option>
-                        <option value="processing" <?php echo $status === 'processing' ? 'selected' : ''; ?>>처리중</option>
-                        <option value="completed" <?php echo $status === 'completed' ? 'selected' : ''; ?>>완료</option>
-                        <option value="cancelled" <?php echo $status === 'cancelled' ? 'selected' : ''; ?>>취소</option>
-                        <option value="rejected" <?php echo $status === 'rejected' ? 'selected' : ''; ?>>거부</option>
+                    <label class="filter-label">기간</label>
+                    <select name="date_range" class="filter-select" id="date_range">
+                        <option value="7" <?php echo $dateRange === '7' ? 'selected' : ''; ?>>7일</option>
+                        <option value="30" <?php echo $dateRange === '30' ? 'selected' : ''; ?>>30일</option>
+                        <option value="365" <?php echo $dateRange === '365' ? 'selected' : ''; ?>>1년</option>
+                        <option value="all" <?php echo $dateRange === 'all' ? 'selected' : ''; ?>>전체</option>
                     </select>
                 </div>
                 
                 <div class="filter-group">
-                    <label class="filter-label">고객명</label>
-                    <input type="text" name="search_name" class="filter-input" placeholder="고객명 검색" value="<?php echo htmlspecialchars($searchName); ?>">
+                    <label class="filter-label">진행상황</label>
+                    <select name="status" class="filter-select">
+                        <option value="">전체</option>
+                        <option value="received" <?php echo (!empty($status) && $status === 'received') ? 'selected' : ''; ?>>접수</option>
+                        <option value="activating" <?php echo (!empty($status) && $status === 'activating') ? 'selected' : ''; ?>>개통중</option>
+                        <option value="on_hold" <?php echo (!empty($status) && $status === 'on_hold') ? 'selected' : ''; ?>>보류</option>
+                        <option value="cancelled" <?php echo (!empty($status) && $status === 'cancelled') ? 'selected' : ''; ?>>취소</option>
+                        <option value="activation_completed" <?php echo (!empty($status) && $status === 'activation_completed') ? 'selected' : ''; ?>>개통완료</option>
+                        <option value="installation_completed" <?php echo (!empty($status) && $status === 'installation_completed') ? 'selected' : ''; ?>>설치완료</option>
+                    </select>
                 </div>
                 
-                <div class="filter-group">
-                    <label class="filter-label">전화번호</label>
-                    <input type="text" name="search_phone" class="filter-input" placeholder="전화번호 검색" value="<?php echo htmlspecialchars($searchPhone); ?>">
-                </div>
-            </div>
-            
-            <div class="filter-row">
-                <div class="filter-group">
-                    <label class="filter-label">신청일 (시작)</label>
-                    <input type="date" name="date_from" class="filter-input" value="<?php echo htmlspecialchars($dateFrom); ?>">
+                <div class="filter-group" style="flex: 2;">
+                    <label class="filter-label">통합검색</label>
+                    <input type="text" name="search_keyword" class="filter-input" placeholder="주문번호, 고객명, 전화번호 검색" value="<?php echo htmlspecialchars($searchKeyword); ?>">
                 </div>
                 
-                <div class="filter-group">
-                    <label class="filter-label">신청일 (종료)</label>
-                    <input type="date" name="date_to" class="filter-input" value="<?php echo htmlspecialchars($dateTo); ?>">
+                <!-- 날짜 입력 필드는 숨김 처리 (기간 선택 시 자동 설정) -->
+                <input type="hidden" name="date_from" id="date_from" value="<?php echo htmlspecialchars($dateFrom); ?>">
+                <input type="hidden" name="date_to" id="date_to" value="<?php echo htmlspecialchars($dateTo); ?>">
+                
+                <div class="filter-actions" style="display: flex; align-items: flex-end; gap: 8px; margin-top: 0;">
+                    <button type="submit" class="btn-filter btn-filter-primary">검색</button>
+                    <a href="?" class="btn-filter btn-filter-secondary">초기화</a>
                 </div>
                 
-                <div class="filter-group">
+                <div class="filter-group" style="margin-left: auto; text-align: right;">
                     <label class="filter-label">페이지당 표시</label>
-                    <select name="per_page" class="filter-select">
+                    <select name="per_page" class="filter-select" style="min-width: 100px;">
                         <option value="10" <?php echo $perPage === 10 ? 'selected' : ''; ?>>10개</option>
                         <option value="20" <?php echo $perPage === 20 ? 'selected' : ''; ?>>20개</option>
                         <option value="50" <?php echo $perPage === 50 ? 'selected' : ''; ?>>50개</option>
                         <option value="100" <?php echo $perPage === 100 ? 'selected' : ''; ?>>100개</option>
                     </select>
                 </div>
-            </div>
-            
-            <div class="filter-actions">
-                <button type="submit" class="btn-filter btn-filter-primary">검색</button>
-                <a href="?" class="btn-filter btn-filter-secondary">초기화</a>
             </div>
         </form>
     </div>
@@ -471,7 +787,7 @@ include __DIR__ . '/../includes/seller-header.php';
                         <th>고객명</th>
                         <th>전화번호</th>
                         <th>이메일</th>
-                        <th>상태</th>
+                        <th>진행상황</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -490,11 +806,13 @@ include __DIR__ . '/../includes/seller-header.php';
                                 ?>
                             </td>
                             <td>
-                                <?php 
-                                $productName = htmlspecialchars($order['plan_name'] ?? '상품명 없음');
-                                $provider = htmlspecialchars($order['provider'] ?? '');
-                                echo $provider ? "{$provider} {$productName}" : $productName;
-                                ?>
+                                <span class="product-name-link" onclick="showProductInfo(<?php echo htmlspecialchars(json_encode($order)); ?>, 'mvno')">
+                                    <?php 
+                                    $productName = htmlspecialchars($order['plan_name'] ?? '상품명 없음');
+                                    $provider = htmlspecialchars($order['provider'] ?? '');
+                                    echo $provider ? "{$provider} {$productName}" : $productName;
+                                    ?>
+                                </span>
                             </td>
                             <td>
                                 <?php 
@@ -540,6 +858,348 @@ include __DIR__ . '/../includes/seller-header.php';
                 </div>
             <?php endif; ?>
         <?php endif; ?>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const dateRangeSelect = document.getElementById('date_range');
+    const dateFromInput = document.getElementById('date_from');
+    const dateToInput = document.getElementById('date_to');
+    
+    if (dateRangeSelect && dateFromInput && dateToInput) {
+        // 기간 선택 변경 시 날짜 자동 업데이트
+        dateRangeSelect.addEventListener('change', function() {
+            const today = new Date();
+            const endDate = today.toISOString().split('T')[0];
+            let startDate = '';
+            
+            switch(this.value) {
+                case '7':
+                    const date7 = new Date(today);
+                    date7.setDate(date7.getDate() - 7);
+                    startDate = date7.toISOString().split('T')[0];
+                    break;
+                case '30':
+                    const date30 = new Date(today);
+                    date30.setDate(date30.getDate() - 30);
+                    startDate = date30.toISOString().split('T')[0];
+                    break;
+                case '365':
+                    const date365 = new Date(today);
+                    date365.setDate(date365.getDate() - 365);
+                    startDate = date365.toISOString().split('T')[0];
+                    break;
+                case 'all':
+                    startDate = '';
+                    endDate = '';
+                    break;
+            }
+            
+            dateFromInput.value = startDate;
+            dateToInput.value = endDate;
+        });
+        
+        // 날짜 직접 입력 시 기간 선택을 'all'로 변경
+        dateFromInput.addEventListener('change', function() {
+            if (this.value || dateToInput.value) {
+                dateRangeSelect.value = 'all';
+            }
+        });
+        
+        dateToInput.addEventListener('change', function() {
+            if (this.value || dateFromInput.value) {
+                dateRangeSelect.value = 'all';
+            }
+        });
+    }
+});
+
+// 상품 정보 모달 표시
+function showProductInfo(order, productType) {
+    const modal = document.getElementById('productInfoModal');
+    const modalBody = document.getElementById('productInfoModalBody');
+    
+    let html = '';
+    
+    if (productType === 'mvno') {
+        const additionalInfo = order.additional_info || {};
+        
+        // 고객이 가입한 정보를 우선 사용, 없으면 상품 기본 정보 사용
+        const getValue = (customerKey, productKey, defaultValue = '-') => {
+            if (additionalInfo[customerKey] !== undefined && additionalInfo[customerKey] !== null && additionalInfo[customerKey] !== '') {
+                return additionalInfo[customerKey];
+            }
+            return order[productKey] || defaultValue;
+        };
+        
+        // 가입 형태
+        const subscriptionType = additionalInfo.subscription_type || '';
+        const subscriptionTypeLabel = subscriptionType === 'new' ? '신규가입' : 
+                                     subscriptionType === 'port' ? '번호이동' : 
+                                     subscriptionType === 'change' ? '기기변경' : 
+                                     subscriptionType || '-';
+        
+        // 통신 기술 (service_type)
+        const serviceType = getValue('service_type', 'service_type');
+        const serviceTypeLabel = serviceType === '5g' ? '5G' : 
+                                serviceType === 'lte' ? 'LTE' : 
+                                serviceType === '3g' ? '3G' : 
+                                serviceType || '-';
+        
+        // 통신망 (provider)
+        const provider = getValue('provider', 'provider');
+        const providerLabel = provider ? provider + (serviceTypeLabel !== '-' ? '알뜰폰' : '') : '-';
+        
+        // 약정기간
+        const contractPeriod = getValue('contract_period', 'contract_period');
+        const contractPeriodLabel = contractPeriod === 'none' || contractPeriod === '무약정' ? '무약정' : contractPeriod || '-';
+        
+        // 가입 형태 (신규, 번이, 기변)
+        const subscriptionTypes = [];
+        if (subscriptionType === 'new' || (order.contract_period && order.contract_period.includes('신규'))) subscriptionTypes.push('신규');
+        if (subscriptionType === 'port' || (order.contract_period && order.contract_period.includes('번호이동'))) subscriptionTypes.push('번호이동');
+        if (subscriptionType === 'change' || (order.contract_period && order.contract_period.includes('기기변경'))) subscriptionTypes.push('기기변경');
+        const subscriptionTypesLabel = subscriptionTypes.length > 0 ? subscriptionTypes.join(', ') : subscriptionTypeLabel;
+        
+        // 데이터 제공량
+        const dataAmount = getValue('data_amount', 'data_amount');
+        const dataAmountValue = getValue('data_amount_value', 'data_amount_value');
+        const dataUnit = getValue('data_unit', 'data_unit');
+        const dataAmountLabel = dataAmountValue && dataUnit ? '월 ' + dataAmountValue + dataUnit : 
+                               dataAmount ? '월 ' + dataAmount : '-';
+        
+        // 데이터 추가제공
+        const dataAdditional = getValue('data_additional', 'data_additional');
+        const dataAdditionalValue = getValue('data_additional_value', 'data_additional_value');
+        const dataAdditionalLabel = dataAdditional && dataAdditionalValue ? dataAdditional + ' ' + dataAdditionalValue : 
+                                   dataAdditional || '-';
+        
+        // 데이터 소진시
+        const dataExhausted = getValue('data_exhausted', 'data_exhausted');
+        const dataExhaustedValue = getValue('data_exhausted_value', 'data_exhausted_value');
+        const dataExhaustedLabel = dataExhaustedValue ? dataExhaustedValue + (dataExhausted ? ' ' + dataExhausted : '') : 
+                                  dataExhausted || '-';
+        
+        // 통화
+        const callType = getValue('call_type', 'call_type');
+        const callAmount = getValue('call_amount', 'call_amount');
+        const callLabel = callType && callAmount ? callType + ' ' + callAmount : 
+                         callType === '무제한' || callType === '기본제공' ? callType : '-';
+        
+        // 부가통화
+        const additionalCallType = getValue('additional_call_type', 'additional_call_type');
+        const additionalCall = getValue('additional_call', 'additional_call');
+        const additionalCallLabel = additionalCallType && additionalCall ? additionalCallType + ' ' + additionalCall : 
+                                    additionalCallType === '없음' ? '없음' : '-';
+        
+        // 문자
+        const smsType = getValue('sms_type', 'sms_type');
+        const smsAmount = getValue('sms_amount', 'sms_amount');
+        const smsLabel = smsType && smsAmount ? smsType + ' ' + smsAmount : 
+                        smsType === '무제한' ? '무제한' : '-';
+        
+        // 테더링(핫스팟)
+        const mobileHotspot = getValue('mobile_hotspot', 'mobile_hotspot');
+        const mobileHotspotValue = getValue('mobile_hotspot_value', 'mobile_hotspot_value');
+        const mobileHotspotLabel = mobileHotspotValue ? mobileHotspotValue + (mobileHotspot ? ' ' + mobileHotspot : '') : 
+                                   mobileHotspot === '기본 제공량 내에서 사용' ? '기본 제공량 내에서 사용' : 
+                                   mobileHotspot || '-';
+        
+        // 유심 정보
+        const regularSimAvailable = getValue('regular_sim_available', 'regular_sim_available');
+        const regularSimPrice = getValue('regular_sim_price', 'regular_sim_price');
+        const regularSimLabel = regularSimAvailable === '배송가능' && regularSimPrice ? 
+                               '배송가능 (' + number_format(regularSimPrice) + '원)' : 
+                               regularSimAvailable === '배송불가' ? '배송불가' : 
+                               regularSimAvailable || '-';
+        
+        const nfcSimAvailable = getValue('nfc_sim_available', 'nfc_sim_available');
+        const nfcSimPrice = getValue('nfc_sim_price', 'nfc_sim_price');
+        const nfcSimLabel = nfcSimAvailable === '배송가능' && nfcSimPrice ? 
+                           '배송가능 (' + number_format(nfcSimPrice) + '원)' : 
+                           nfcSimAvailable === '배송불가' ? '배송불가' : 
+                           nfcSimAvailable || '-';
+        
+        const esimAvailable = getValue('esim_available', 'esim_available');
+        const esimPrice = getValue('esim_price', 'esim_price');
+        const esimLabel = esimAvailable === '개통가능' && esimPrice ? 
+                         '개통가능 (' + number_format(esimPrice) + '원)' : 
+                         esimAvailable === '개통불가' ? '개통불가' : 
+                         esimAvailable || '-';
+        
+        // 기본 제공 초과 시
+        const overDataPrice = getValue('over_data_price', 'over_data_price');
+        const overVoicePrice = getValue('over_voice_price', 'over_voice_price');
+        const overVideoPrice = getValue('over_video_price', 'over_video_price');
+        const overSmsPrice = getValue('over_sms_price', 'over_sms_price');
+        const overLmsPrice = getValue('over_lms_price', 'over_lms_price');
+        const overMmsPrice = getValue('over_mms_price', 'over_mms_price');
+        
+        // 프로모션 및 혜택
+        const parseJsonField = (field) => {
+            if (!field) return [];
+            if (typeof field === 'string') {
+                try {
+                    return JSON.parse(field);
+                } catch (e) {
+                    return Array.isArray(field) ? field : [field];
+                }
+            }
+            return Array.isArray(field) ? field : [];
+        };
+        
+        const promotions = parseJsonField(order.promotions);
+        const benefits = parseJsonField(order.benefits);
+        const promotionTitle = order.promotion_title || '';
+        
+        // 값이 '-'가 아닌 경우에만 행 추가하는 헬퍼 함수
+        const addRowIfNotDash = (rows, label, value) => {
+            if (value && value !== '-') {
+                rows.push(`<tr><th>${label}</th><td>${value}</td></tr>`);
+            }
+        };
+        
+        // 기본 정보 섹션
+        let basicInfoRows = [];
+        if (order.plan_name && order.plan_name !== '-') {
+            basicInfoRows.push(`<tr><th>요금제 이름</th><td>${order.plan_name}</td></tr>`);
+        }
+        addRowIfNotDash(basicInfoRows, '통신사 약정', contractPeriodLabel);
+        addRowIfNotDash(basicInfoRows, '통신망', providerLabel);
+        addRowIfNotDash(basicInfoRows, '통신 기술', serviceTypeLabel);
+        addRowIfNotDash(basicInfoRows, '가입 형태', subscriptionTypesLabel);
+        
+        if (basicInfoRows.length > 0) {
+            html += `
+                <div class="product-info-section">
+                    <h3>기본 정보</h3>
+                    <table class="product-info-table">
+                        ${basicInfoRows.join('')}
+                    </table>
+                </div>
+            `;
+        }
+        
+        // 데이터 정보 섹션
+        let dataInfoRows = [];
+        addRowIfNotDash(dataInfoRows, '통화', callLabel);
+        addRowIfNotDash(dataInfoRows, '문자', smsLabel);
+        addRowIfNotDash(dataInfoRows, '데이터 제공량', dataAmountLabel);
+        addRowIfNotDash(dataInfoRows, '데이터 소진시', dataExhaustedLabel);
+        addRowIfNotDash(dataInfoRows, '부가통화', additionalCallLabel);
+        addRowIfNotDash(dataInfoRows, '테더링(핫스팟)', mobileHotspotLabel);
+        
+        if (dataInfoRows.length > 0) {
+            html += `
+                <div class="product-info-section">
+                    <h3>데이터 정보</h3>
+                    <table class="product-info-table">
+                        ${dataInfoRows.join('')}
+                    </table>
+                </div>
+            `;
+        }
+        
+        // 유심 정보 섹션
+        let simInfoRows = [];
+        addRowIfNotDash(simInfoRows, '일반 유심', regularSimLabel);
+        addRowIfNotDash(simInfoRows, 'NFC 유심', nfcSimLabel);
+        addRowIfNotDash(simInfoRows, 'eSIM', esimLabel);
+        
+        if (simInfoRows.length > 0) {
+            html += `
+                <div class="product-info-section">
+                    <h3>유심 정보</h3>
+                    <table class="product-info-table">
+                        ${simInfoRows.join('')}
+                    </table>
+                </div>
+            `;
+        }
+        
+        // 기본 제공 초과 시 섹션
+        let overLimitRows = [];
+        addRowIfNotDash(overLimitRows, '데이터', overDataPrice);
+        addRowIfNotDash(overLimitRows, '음성', overVoicePrice);
+        addRowIfNotDash(overLimitRows, '영상통화', overVideoPrice);
+        addRowIfNotDash(overLimitRows, '단문메시지(SMS)', overSmsPrice);
+        addRowIfNotDash(overLimitRows, '텍스트형(LMS,MMS)', overLmsPrice);
+        addRowIfNotDash(overLimitRows, '멀티미디어형(MMS)', overMmsPrice);
+        
+        if (overLimitRows.length > 0) {
+            html += `
+                <div class="product-info-section">
+                    <h3>기본 제공 초과 시</h3>
+                    <table class="product-info-table">
+                        ${overLimitRows.join('')}
+                    </table>
+                </div>
+            `;
+        }
+        
+        // 프로모션 이벤트 섹션 (아코디언에 있는 것)
+        if (promotionTitle || promotions.length > 0) {
+            html += `
+                <div class="product-info-section">
+                    <h3>프로모션 이벤트</h3>
+                    ${promotionTitle ? `<p style="margin-bottom: 12px; font-weight: 600; color: #1f2937;">${promotionTitle}</p>` : ''}
+                    ${promotions.length > 0 ? `<ul style="margin: 0 0 0 20px; padding: 0;"><li style="margin-bottom: 8px;">${promotions.join('</li><li style="margin-bottom: 8px;">')}</li></ul>` : ''}
+                </div>
+            `;
+        }
+        
+        // 혜택 및 유의사항 섹션
+        if (benefits.length > 0) {
+            html += `
+                <div class="product-info-section">
+                    <h3>혜택 및 유의사항</h3>
+                    <ul style="margin: 0 0 0 20px; padding: 0;">
+                        ${benefits.map(benefit => `<li style="margin-bottom: 8px;">${benefit}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+        }
+    }
+    
+    modalBody.innerHTML = html;
+    modal.style.display = 'block';
+}
+
+// 숫자 포맷팅 함수
+function number_format(num) {
+    if (!num && num !== 0) return '0';
+    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+// 모달 닫기
+document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('productInfoModal');
+    const closeBtn = document.querySelector('.product-modal-close');
+    
+    if (closeBtn) {
+        closeBtn.onclick = function() {
+            modal.style.display = 'none';
+        };
+    }
+    
+    window.onclick = function(event) {
+        if (event.target === modal) {
+            modal.style.display = 'none';
+        }
+    };
+});
+</script>
+
+<!-- 상품 정보 모달 -->
+<div id="productInfoModal" class="product-modal">
+    <div class="product-modal-content">
+        <div class="product-modal-header">
+            <h2>상품 정보</h2>
+            <span class="product-modal-close">&times;</span>
+        </div>
+        <div class="product-modal-body" id="productInfoModalBody">
+        </div>
     </div>
 </div>
 

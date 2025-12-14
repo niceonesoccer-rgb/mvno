@@ -34,18 +34,40 @@ if (isset($currentUser['withdrawal_requested']) && $currentUser['withdrawal_requ
 }
 
 // 필터 파라미터
-$status = $_GET['status'] ?? '';
-if ($status === '') {
-    $status = null;
-}
-$searchName = $_GET['search_name'] ?? '';
-$searchPhone = $_GET['search_phone'] ?? '';
+$status = isset($_GET['status']) && $_GET['status'] !== '' ? $_GET['status'] : null;
+$searchKeyword = $_GET['search_keyword'] ?? ''; // 통합검색 (주문번호, 고객명, 전화번호)
 $dateFrom = $_GET['date_from'] ?? '';
 $dateTo = $_GET['date_to'] ?? '';
+$dateRange = $_GET['date_range'] ?? '7'; // 기본값 7일
 $page = max(1, intval($_GET['page'] ?? 1));
-$perPage = isset($_GET['per_page']) ? intval($_GET['per_page']) : 20;
+
+// 기간 선택에 따라 날짜 자동 설정 (기본값 7일)
+if (empty($dateRange)) {
+    $dateRange = '7';
+}
+if ($dateRange && $dateRange !== 'all') {
+    $endDate = date('Y-m-d');
+    switch ($dateRange) {
+        case '7':
+            $dateFrom = date('Y-m-d', strtotime('-7 days'));
+            $dateTo = $endDate;
+            break;
+        case '30':
+            $dateFrom = date('Y-m-d', strtotime('-30 days'));
+            $dateTo = $endDate;
+            break;
+        case '365':
+            $dateFrom = date('Y-m-d', strtotime('-365 days'));
+            $dateTo = $endDate;
+            break;
+    }
+} elseif ($dateRange === 'all') {
+    $dateFrom = '';
+    $dateTo = '';
+}
+$perPage = isset($_GET['per_page']) ? intval($_GET['per_page']) : 10;
 if (!in_array($perPage, [10, 20, 50, 100])) {
-    $perPage = 20;
+    $perPage = 10;
 }
 
 // DB에서 주문 목록 가져오기
@@ -65,22 +87,47 @@ try {
         ];
         $params = [':seller_id' => $sellerId];
         
-        // 상태 필터
-        if ($status && $status !== '') {
+        // 진행상황 필터
+        if (!empty($status)) {
             $whereConditions[] = 'a.application_status = :status';
             $params[':status'] = $status;
         }
         
-        // 이름 검색
-        if ($searchName && $searchName !== '') {
-            $whereConditions[] = 'c.name LIKE :search_name';
-            $params[':search_name'] = '%' . $searchName . '%';
-        }
-        
-        // 전화번호 검색
-        if ($searchPhone && $searchPhone !== '') {
-            $whereConditions[] = 'c.phone LIKE :search_phone';
-            $params[':search_phone'] = '%' . $searchPhone . '%';
+        // 통합검색 (주문번호, 고객명, 전화번호)
+        if ($searchKeyword && $searchKeyword !== '') {
+            $searchConditions = [];
+            $searchConditions[] = 'c.name LIKE :search_keyword';
+            // 전화번호 검색 (하이픈, 공백 제거 후 검색)
+            $cleanPhoneKeyword = preg_replace('/[^0-9]/', '', $searchKeyword); // 숫자만 추출
+            if (strlen($cleanPhoneKeyword) >= 3) {
+                $searchConditions[] = "REPLACE(REPLACE(REPLACE(c.phone, '-', ''), ' ', ''), '.', '') LIKE :search_keyword_phone";
+                $params[':search_keyword_phone'] = '%' . $cleanPhoneKeyword . '%';
+            } else {
+                // 3자리 미만이면 원본 검색어로도 검색
+                $searchConditions[] = 'c.phone LIKE :search_keyword';
+            }
+            // 주문번호 검색 (created_at 기반: YYYYMMDD-HHMMSS00 형식, 하이픈 없이도 검색 가능)
+            $cleanKeyword = preg_replace('/[^0-9]/', '', $searchKeyword); // 숫자만 추출
+            if (strlen($cleanKeyword) >= 4) {
+                // 날짜 부분 검색 (YYYYMMDD)
+                if (strlen($cleanKeyword) >= 8) {
+                    $datePart = substr($cleanKeyword, 0, 8);
+                    $searchConditions[] = "DATE_FORMAT(a.created_at, '%Y%m%d') LIKE :search_keyword_date";
+                    $params[':search_keyword_date'] = '%' . $datePart . '%';
+                }
+                // 시간 부분 검색 (HHMMSS)
+                if (strlen($cleanKeyword) > 8) {
+                    $timePart = substr($cleanKeyword, 8);
+                    $searchConditions[] = "DATE_FORMAT(a.created_at, '%H%i%s') LIKE :search_keyword_time";
+                    $params[':search_keyword_time'] = '%' . $timePart . '%';
+                } elseif (strlen($cleanKeyword) < 8) {
+                    // 8자리 미만이면 날짜 부분으로 검색
+                    $searchConditions[] = "DATE_FORMAT(a.created_at, '%Y%m%d') LIKE :search_keyword_date";
+                    $params[':search_keyword_date'] = '%' . $cleanKeyword . '%';
+                }
+            }
+            $params[':search_keyword'] = '%' . $searchKeyword . '%';
+            $whereConditions[] = '(' . implode(' OR ', $searchConditions) . ')';
         }
         
         // 날짜 필터
@@ -121,9 +168,23 @@ try {
                 c.additional_info,
                 p.id as product_id,
                 mno.device_name,
+                mno.device_price,
                 mno.device_capacity,
+                mno.device_colors,
                 mno.delivery_method,
                 mno.visit_region,
+                mno.service_type,
+                mno.contract_period,
+                mno.contract_period_value,
+                mno.price_main,
+                mno.data_amount,
+                mno.data_amount_value,
+                mno.data_unit,
+                mno.data_exhausted,
+                mno.call_type,
+                mno.call_amount,
+                mno.sms_type,
+                mno.sms_amount,
                 mno.common_provider,
                 mno.common_discount_new,
                 mno.common_discount_port,
@@ -178,11 +239,17 @@ try {
 
 // 상태별 한글명
 $statusLabels = [
-    'pending' => '대기중',
-    'processing' => '처리중',
-    'completed' => '완료',
+    'received' => '접수',
+    'activating' => '개통중',
+    'on_hold' => '보류',
     'cancelled' => '취소',
-    'rejected' => '거부'
+    'activation_completed' => '개통완료',
+    'installation_completed' => '설치완료',
+    // 기존 상태 호환성 유지
+    'pending' => '접수',
+    'processing' => '개통중',
+    'completed' => '설치완료',
+    'rejected' => '보류'
 ];
 
 // 가입형태 한글명
@@ -448,6 +515,31 @@ $pageStyles = '
         color: #374151;
     }
     
+    .status-received {
+        background: #dbeafe;
+        color: #1e40af;
+    }
+    
+    .status-activating {
+        background: #fef3c7;
+        color: #92400e;
+    }
+    
+    .status-on_hold {
+        background: #f3f4f6;
+        color: #374151;
+    }
+    
+    .status-activation_completed {
+        background: #d1fae5;
+        color: #065f46;
+    }
+    
+    .status-installation_completed {
+        background: #d1fae5;
+        color: #065f46;
+    }
+    
     .pagination {
         display: flex;
         justify-content: center;
@@ -498,6 +590,100 @@ $pageStyles = '
         font-size: 14px;
         color: #9ca3af;
     }
+    
+    .product-name-link {
+        color: #10b981;
+        cursor: pointer;
+        text-decoration: underline;
+        font-weight: 500;
+    }
+    
+    .product-name-link:hover {
+        color: #059669;
+    }
+    
+    .product-modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        overflow: auto;
+    }
+    
+    .product-modal-content {
+        background-color: #fff;
+        margin: 5% auto;
+        padding: 0;
+        border-radius: 12px;
+        width: 90%;
+        max-width: 900px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        max-height: 85vh;
+        overflow-y: auto;
+    }
+    
+    .product-modal-header {
+        padding: 20px 24px;
+        border-bottom: 1px solid #e5e7eb;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #f9fafb;
+        border-radius: 12px 12px 0 0;
+    }
+    
+    .product-modal-header h2 {
+        margin: 0;
+        font-size: 20px;
+        font-weight: 700;
+        color: #1f2937;
+    }
+    
+    .product-modal-close {
+        color: #6b7280;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+        line-height: 1;
+    }
+    
+    .product-modal-close:hover {
+        color: #1f2937;
+    }
+    
+    .product-modal-body {
+        padding: 24px;
+    }
+    
+    .product-info-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 20px;
+    }
+    
+    .product-info-table th {
+        background: #f9fafb;
+        padding: 12px;
+        text-align: left;
+        font-weight: 600;
+        color: #374151;
+        border: 1px solid #e5e7eb;
+        width: 30%;
+    }
+    
+    .product-info-table td {
+        padding: 12px;
+        border: 1px solid #e5e7eb;
+        color: #1f2937;
+    }
+    
+    .product-info-table tr:nth-child(even) {
+        background: #f9fafb;
+    }
 ';
 
 include __DIR__ . '/../includes/seller-header.php';
@@ -514,53 +700,51 @@ include __DIR__ . '/../includes/seller-header.php';
         <form method="GET" action="">
             <div class="filter-row">
                 <div class="filter-group">
-                    <label class="filter-label">상태</label>
-                    <select name="status" class="filter-select">
-                        <option value="">전체</option>
-                        <option value="pending" <?php echo $status === 'pending' ? 'selected' : ''; ?>>대기중</option>
-                        <option value="processing" <?php echo $status === 'processing' ? 'selected' : ''; ?>>처리중</option>
-                        <option value="completed" <?php echo $status === 'completed' ? 'selected' : ''; ?>>완료</option>
-                        <option value="cancelled" <?php echo $status === 'cancelled' ? 'selected' : ''; ?>>취소</option>
-                        <option value="rejected" <?php echo $status === 'rejected' ? 'selected' : ''; ?>>거부</option>
+                    <label class="filter-label">기간</label>
+                    <select name="date_range" class="filter-select" id="date_range">
+                        <option value="7" <?php echo $dateRange === '7' ? 'selected' : ''; ?>>7일</option>
+                        <option value="30" <?php echo $dateRange === '30' ? 'selected' : ''; ?>>30일</option>
+                        <option value="365" <?php echo $dateRange === '365' ? 'selected' : ''; ?>>1년</option>
+                        <option value="all" <?php echo $dateRange === 'all' ? 'selected' : ''; ?>>전체</option>
                     </select>
                 </div>
                 
                 <div class="filter-group">
-                    <label class="filter-label">고객명</label>
-                    <input type="text" name="search_name" class="filter-input" placeholder="고객명 검색" value="<?php echo htmlspecialchars($searchName); ?>">
+                    <label class="filter-label">진행상황</label>
+                    <select name="status" class="filter-select">
+                        <option value="">전체</option>
+                        <option value="received" <?php echo (!empty($status) && $status === 'received') ? 'selected' : ''; ?>>접수</option>
+                        <option value="activating" <?php echo (!empty($status) && $status === 'activating') ? 'selected' : ''; ?>>개통중</option>
+                        <option value="on_hold" <?php echo (!empty($status) && $status === 'on_hold') ? 'selected' : ''; ?>>보류</option>
+                        <option value="cancelled" <?php echo (!empty($status) && $status === 'cancelled') ? 'selected' : ''; ?>>취소</option>
+                        <option value="activation_completed" <?php echo (!empty($status) && $status === 'activation_completed') ? 'selected' : ''; ?>>개통완료</option>
+                        <option value="installation_completed" <?php echo (!empty($status) && $status === 'installation_completed') ? 'selected' : ''; ?>>설치완료</option>
+                    </select>
                 </div>
                 
-                <div class="filter-group">
-                    <label class="filter-label">전화번호</label>
-                    <input type="text" name="search_phone" class="filter-input" placeholder="전화번호 검색" value="<?php echo htmlspecialchars($searchPhone); ?>">
-                </div>
-            </div>
-            
-            <div class="filter-row">
-                <div class="filter-group">
-                    <label class="filter-label">신청일 (시작)</label>
-                    <input type="date" name="date_from" class="filter-input" value="<?php echo htmlspecialchars($dateFrom); ?>">
+                <div class="filter-group" style="flex: 2;">
+                    <label class="filter-label">통합검색</label>
+                    <input type="text" name="search_keyword" class="filter-input" placeholder="주문번호, 고객명, 전화번호 검색" value="<?php echo htmlspecialchars($searchKeyword); ?>">
                 </div>
                 
-                <div class="filter-group">
-                    <label class="filter-label">신청일 (종료)</label>
-                    <input type="date" name="date_to" class="filter-input" value="<?php echo htmlspecialchars($dateTo); ?>">
+                <!-- 날짜 입력 필드는 숨김 처리 (기간 선택 시 자동 설정) -->
+                <input type="hidden" name="date_from" id="date_from" value="<?php echo htmlspecialchars($dateFrom); ?>">
+                <input type="hidden" name="date_to" id="date_to" value="<?php echo htmlspecialchars($dateTo); ?>">
+                
+                <div class="filter-actions" style="display: flex; align-items: flex-end; gap: 8px; margin-top: 0;">
+                    <button type="submit" class="btn-filter btn-filter-primary">검색</button>
+                    <a href="?" class="btn-filter btn-filter-secondary">초기화</a>
                 </div>
                 
-                <div class="filter-group">
+                <div class="filter-group" style="margin-left: auto; text-align: right;">
                     <label class="filter-label">페이지당 표시</label>
-                    <select name="per_page" class="filter-select">
+                    <select name="per_page" class="filter-select" style="min-width: 100px;">
                         <option value="10" <?php echo $perPage === 10 ? 'selected' : ''; ?>>10개</option>
                         <option value="20" <?php echo $perPage === 20 ? 'selected' : ''; ?>>20개</option>
                         <option value="50" <?php echo $perPage === 50 ? 'selected' : ''; ?>>50개</option>
                         <option value="100" <?php echo $perPage === 100 ? 'selected' : ''; ?>>100개</option>
                     </select>
                 </div>
-            </div>
-            
-            <div class="filter-actions">
-                <button type="submit" class="btn-filter btn-filter-primary">검색</button>
-                <a href="?" class="btn-filter btn-filter-secondary">초기화</a>
             </div>
         </form>
     </div>
@@ -590,7 +774,7 @@ include __DIR__ . '/../includes/seller-header.php';
                         <th>고객명</th>
                         <th>전화번호</th>
                         <th>이메일</th>
-                        <th>상태</th>
+                        <th>진행상황</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -608,7 +792,11 @@ include __DIR__ . '/../includes/seller-header.php';
                                 echo $datePart . '-' . $timePart;
                                 ?>
                             </td>
-                            <td><?php echo htmlspecialchars($order['device_name'] ?? '상품명 없음'); ?></td>
+                            <td>
+                                <span class="product-name-link" onclick="showProductInfo(<?php echo htmlspecialchars(json_encode($order)); ?>, 'mno')">
+                                    <?php echo htmlspecialchars($order['device_name'] ?? '상품명 없음'); ?>
+                                </span>
+                            </td>
                             <td>
                                 <?php 
                                 $deliveryMethod = $order['delivery_method'] ?? '';
@@ -683,6 +871,241 @@ include __DIR__ . '/../includes/seller-header.php';
                 </div>
             <?php endif; ?>
         <?php endif; ?>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const dateRangeSelect = document.getElementById('date_range');
+    const dateFromInput = document.getElementById('date_from');
+    const dateToInput = document.getElementById('date_to');
+    
+    if (dateRangeSelect && dateFromInput && dateToInput) {
+        // 기간 선택 변경 시 날짜 자동 업데이트
+        dateRangeSelect.addEventListener('change', function() {
+            const today = new Date();
+            const endDate = today.toISOString().split('T')[0];
+            let startDate = '';
+            
+            switch(this.value) {
+                case '7':
+                    const date7 = new Date(today);
+                    date7.setDate(date7.getDate() - 7);
+                    startDate = date7.toISOString().split('T')[0];
+                    break;
+                case '30':
+                    const date30 = new Date(today);
+                    date30.setDate(date30.getDate() - 30);
+                    startDate = date30.toISOString().split('T')[0];
+                    break;
+                case '365':
+                    const date365 = new Date(today);
+                    date365.setDate(date365.getDate() - 365);
+                    startDate = date365.toISOString().split('T')[0];
+                    break;
+                case 'all':
+                    startDate = '';
+                    endDate = '';
+                    break;
+            }
+            
+            dateFromInput.value = startDate;
+            dateToInput.value = endDate;
+        });
+    }
+});
+
+// 상품 정보 모달 표시
+function showProductInfo(order, productType) {
+    const modal = document.getElementById('productInfoModal');
+    const modalBody = document.getElementById('productInfoModalBody');
+    
+    let html = '';
+    
+    if (productType === 'mno') {
+        // JSON 필드 파싱
+        const parseJsonField = (field) => {
+            if (!field) return [];
+            if (typeof field === 'string') {
+                try {
+                    return JSON.parse(field);
+                } catch (e) {
+                    return [];
+                }
+            }
+            return Array.isArray(field) ? field : [];
+        };
+        
+        const deviceColors = parseJsonField(order.device_colors);
+        const commonProvider = parseJsonField(order.common_provider);
+        const commonDiscountNew = parseJsonField(order.common_discount_new);
+        const commonDiscountPort = parseJsonField(order.common_discount_port);
+        const commonDiscountChange = parseJsonField(order.common_discount_change);
+        const contractProvider = parseJsonField(order.contract_provider);
+        const contractDiscountNew = parseJsonField(order.contract_discount_new);
+        const contractDiscountPort = parseJsonField(order.contract_discount_port);
+        const contractDiscountChange = parseJsonField(order.contract_discount_change);
+        
+        html = `
+            <table class="product-info-table">
+                <tr>
+                    <th>단말기명</th>
+                    <td>${order.device_name || '-'}</td>
+                </tr>
+                <tr>
+                    <th>단말기 출고가</th>
+                    <td>${order.device_price ? number_format(order.device_price) + '원' : '-'}</td>
+                </tr>
+                <tr>
+                    <th>용량</th>
+                    <td>${order.device_capacity || '-'}</td>
+                </tr>
+                <tr>
+                    <th>색상</th>
+                    <td>${deviceColors.length > 0 ? deviceColors.join(', ') : '-'}</td>
+                </tr>
+                <tr>
+                    <th>단말기 수령방법</th>
+                    <td>${order.delivery_method === 'delivery' ? '택배' : order.delivery_method === 'visit' ? '내방' + (order.visit_region ? ' (' + order.visit_region + ')' : '') : '-'}</td>
+                </tr>
+                <tr>
+                    <th>서비스 타입</th>
+                    <td>${order.service_type || '-'}</td>
+                </tr>
+                <tr>
+                    <th>약정기간</th>
+                    <td>${order.contract_period || '-'}</td>
+                </tr>
+                <tr>
+                    <th>기본 요금</th>
+                    <td>${order.price_main ? number_format(order.price_main) + '원' : '-'}</td>
+                </tr>
+                <tr>
+                    <th>데이터</th>
+                    <td>${order.data_amount_value && order.data_unit ? order.data_amount_value + order.data_unit : (order.data_amount || '-')}</td>
+                </tr>
+                <tr>
+                    <th>데이터 소진 시</th>
+                    <td>${order.data_exhausted || '-'}</td>
+                </tr>
+                <tr>
+                    <th>통화</th>
+                    <td>${order.call_type && order.call_amount ? order.call_type + ' ' + order.call_amount : '-'}</td>
+                </tr>
+                <tr>
+                    <th>SMS</th>
+                    <td>${order.sms_type && order.sms_amount ? order.sms_type + ' ' + order.sms_amount : '-'}</td>
+                </tr>
+            </table>
+        `;
+        
+        // 공통지원할인 정보
+        if (commonProvider.length > 0) {
+            html += `<h3 style="margin-top: 24px; margin-bottom: 12px; font-size: 16px; color: #1f2937;">공통지원할인</h3>`;
+            html += `<table class="product-info-table">`;
+            html += `<tr><th>통신사</th><td>${commonProvider.join(', ')}</td></tr>`;
+            if (commonDiscountNew.length > 0) {
+                html += `<tr><th>신규가입</th><td>${commonDiscountNew.join(', ')}</td></tr>`;
+            }
+            if (commonDiscountPort.length > 0) {
+                html += `<tr><th>번호이동</th><td>${commonDiscountPort.join(', ')}</td></tr>`;
+            }
+            if (commonDiscountChange.length > 0) {
+                html += `<tr><th>기기변경</th><td>${commonDiscountChange.join(', ')}</td></tr>`;
+            }
+            html += `</table>`;
+        }
+        
+        // 선택약정할인 정보
+        if (contractProvider.length > 0) {
+            html += `<h3 style="margin-top: 24px; margin-bottom: 12px; font-size: 16px; color: #1f2937;">선택약정할인</h3>`;
+            html += `<table class="product-info-table">`;
+            html += `<tr><th>통신사</th><td>${contractProvider.join(', ')}</td></tr>`;
+            if (contractDiscountNew.length > 0) {
+                html += `<tr><th>신규가입</th><td>${contractDiscountNew.join(', ')}</td></tr>`;
+            }
+            if (contractDiscountPort.length > 0) {
+                html += `<tr><th>번호이동</th><td>${contractDiscountPort.join(', ')}</td></tr>`;
+            }
+            if (contractDiscountChange.length > 0) {
+                html += `<tr><th>기기변경</th><td>${contractDiscountChange.join(', ')}</td></tr>`;
+            }
+            html += `</table>`;
+        }
+        
+        // 주문 시 선택한 정보
+        const additionalInfo = order.additional_info || {};
+        const subscriptionType = additionalInfo.subscription_type || '';
+        const selectedCarrier = additionalInfo.carrier || additionalInfo.provider || '';
+        const selectedDiscountType = additionalInfo.discount_type || '';
+        const selectedPrice = additionalInfo.price || '';
+        const selectedColors = additionalInfo.device_colors || [];
+        
+        if (subscriptionType || selectedCarrier || selectedDiscountType || selectedPrice) {
+            html += `<h3 style="margin-top: 24px; margin-bottom: 12px; font-size: 16px; color: #1f2937;">주문 정보</h3>`;
+            html += `<table class="product-info-table">`;
+            if (subscriptionType) {
+                const subTypeLabels = {
+                    'new': '신규가입',
+                    'port': '번호이동',
+                    'change': '기기변경'
+                };
+                html += `<tr><th>가입형태</th><td>${subTypeLabels[subscriptionType] || subscriptionType}</td></tr>`;
+            }
+            if (selectedCarrier) {
+                html += `<tr><th>통신사</th><td>${selectedCarrier}</td></tr>`;
+            }
+            if (selectedDiscountType) {
+                html += `<tr><th>할인방법</th><td>${selectedDiscountType}</td></tr>`;
+            }
+            if (selectedPrice) {
+                html += `<tr><th>가격</th><td>${selectedPrice}</td></tr>`;
+            }
+            if (selectedColors.length > 0) {
+                html += `<tr><th>선택한 색상</th><td>${selectedColors.join(', ')}</td></tr>`;
+            }
+            html += `</table>`;
+        }
+    }
+    
+    modalBody.innerHTML = html;
+    modal.style.display = 'block';
+}
+
+// 숫자 포맷팅 함수
+function number_format(num) {
+    if (!num) return '0';
+    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+// 모달 닫기
+document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('productInfoModal');
+    const closeBtn = document.querySelector('.product-modal-close');
+    
+    if (closeBtn) {
+        closeBtn.onclick = function() {
+            modal.style.display = 'none';
+        };
+    }
+    
+    window.onclick = function(event) {
+        if (event.target === modal) {
+            modal.style.display = 'none';
+        }
+    };
+});
+</script>
+
+<!-- 상품 정보 모달 -->
+<div id="productInfoModal" class="product-modal">
+    <div class="product-modal-content">
+        <div class="product-modal-header">
+            <h2>상품 정보</h2>
+            <span class="product-modal-close">&times;</span>
+        </div>
+        <div class="product-modal-body" id="productInfoModalBody">
+        </div>
     </div>
 </div>
 

@@ -928,15 +928,17 @@ function addProductApplication($productId, $sellerId, $productType, $customerDat
     try {
         $pdo->beginTransaction();
         
-        // 1. 신청 등록
+        // 1. 신청 등록 (모든 상품 타입은 'received' 상태로 시작)
+        $initialStatus = 'received';
         $stmt = $pdo->prepare("
             INSERT INTO product_applications (product_id, seller_id, product_type, application_status)
-            VALUES (:product_id, :seller_id, :product_type, 'pending')
+            VALUES (:product_id, :seller_id, :product_type, :application_status)
         ");
         $stmt->execute([
             ':product_id' => $productId,
             ':seller_id' => $sellerId,
-            ':product_type' => $productType
+            ':product_type' => $productType,
+            ':application_status' => $initialStatus
         ]);
         $applicationId = $pdo->lastInsertId();
         
