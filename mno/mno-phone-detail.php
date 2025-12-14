@@ -568,6 +568,29 @@ $discountData = [
     </div>
 </div>
 
+<!-- 단말기 색상 선택 모달 -->
+<div class="discount-selection-modal" id="deviceColorSelectionModal">
+    <div class="discount-selection-modal-overlay" id="deviceColorSelectionModalOverlay"></div>
+    <div class="discount-selection-modal-content">
+        <div class="discount-selection-modal-header">
+            <h3 class="discount-selection-modal-title">단말기 색상 선택</h3>
+            <button class="discount-selection-modal-close" aria-label="닫기" id="deviceColorSelectionModalClose">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M18 6L6 18M6 6L18 18" stroke="#868E96" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+        </div>
+        <div class="discount-selection-modal-body">
+            <div id="device-colors-selection-container" style="display: flex; flex-wrap: wrap; gap: 12px; padding: 20px; justify-content: center;">
+                <div style="width: 100%; color: #6b7280; font-size: 14px; text-align: center;">색상을 불러오는 중...</div>
+            </div>
+            <div style="padding: 20px; text-align: center;">
+                <button type="button" id="deviceColorConfirmBtn" class="discount-amount-button" style="padding: 12px 32px; font-size: 16px; font-weight: 600; background: #6366f1; color: white; border: none; border-radius: 8px; cursor: pointer; min-width: 200px;" disabled>선택 완료</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- 상담신청 모달 -->
 <div class="consultation-modal" id="consultationModal">
     <div class="consultation-modal-overlay" id="consultationModalOverlay"></div>
@@ -1099,15 +1122,31 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 할인방법 선택 처리
     function handleDiscountSelection(provider, discountType, subscriptionType, amount) {
-        // 선택한 할인 방법으로 상담신청 모달 열기
-        closeDiscountSelectionModal();
+        // 선택한 할인 방법 정보 저장
+        window.selectedDiscountInfo = {
+            provider: provider,
+            discountType: discountType,
+            subscriptionType: subscriptionType,
+            amount: amount
+        };
         
-        // 선택한 정보를 세션에 저장하거나 폼에 전달할 수 있도록 설정
-        // 여기서는 바로 상담신청 모달로 이동
-        // 나중에 선택한 할인 정보를 함께 전달할 수 있도록 수정 가능
-        setTimeout(() => {
-            openConsultationModal(provider, discountType, subscriptionType, amount);
-        }, 300);
+        // 등록된 색상이 있으면 색상 선택 모달 열기, 없으면 바로 가입신청 모달 열기
+        const deviceColors = <?php echo json_encode($phone['device_colors'] ?? [], JSON_UNESCAPED_UNICODE); ?>;
+        if (Array.isArray(deviceColors) && deviceColors.length > 0) {
+            // 연속적인 느낌을 위해 할인방법 모달을 닫지 않고 바로 색상 모달 열기
+            // 할인방법 모달 닫기
+            closeDiscountSelectionModal();
+            // 바로 색상 선택 모달 열기 (딜레이 최소화)
+            setTimeout(() => {
+                openDeviceColorSelectionModal(deviceColors);
+            }, 150);
+        } else {
+            // 색상이 없으면 할인방법 모달 닫고 가입신청 모달 열기
+            closeDiscountSelectionModal();
+            setTimeout(() => {
+                openConsultationModal(provider, discountType, subscriptionType, amount);
+            }, 150);
+        }
     }
     
     // 할인방법 선택 모달 닫기 이벤트
@@ -1119,8 +1158,140 @@ document.addEventListener('DOMContentLoaded', function() {
         discountSelectionModalClose.addEventListener('click', closeDiscountSelectionModal);
     }
     
+    // 단말기 색상 선택 모달 관련
+    const deviceColorSelectionModal = document.getElementById('deviceColorSelectionModal');
+    const deviceColorSelectionModalOverlay = document.getElementById('deviceColorSelectionModalOverlay');
+    const deviceColorSelectionModalClose = document.getElementById('deviceColorSelectionModalClose');
+    const deviceColorConfirmBtn = document.getElementById('deviceColorConfirmBtn');
+    let selectedColors = [];
+    
+    // 단말기 색상 선택 모달 열기
+    function openDeviceColorSelectionModal(colors) {
+        if (!deviceColorSelectionModal) return;
+        
+        selectedColors = [];
+        const colorContainer = document.getElementById('device-colors-selection-container');
+        const confirmBtn = deviceColorConfirmBtn;
+        
+        if (!colorContainer) return;
+        
+        // 색상 버튼 생성 (1개만 선택 가능)
+        colorContainer.innerHTML = '';
+        if (Array.isArray(colors) && colors.length > 0) {
+            colors.forEach(colorName => {
+                const colorButton = document.createElement('button');
+                colorButton.type = 'button';
+                colorButton.className = 'discount-amount-button';
+                colorButton.textContent = colorName;
+                colorButton.setAttribute('data-color', colorName);
+                colorButton.style.cssText = 'padding: 12px 24px; font-size: 14px; font-weight: 600; border: 2px solid #e5e7eb; border-radius: 8px; background: white; color: #374151; cursor: pointer; transition: all 0.2s;';
+                
+                // 버튼 클릭 이벤트 (1개만 선택)
+                colorButton.addEventListener('click', function() {
+                    // 모든 버튼 초기화
+                    const allButtons = colorContainer.querySelectorAll('.discount-amount-button');
+                    allButtons.forEach(btn => {
+                        btn.style.borderColor = '#e5e7eb';
+                        btn.style.background = 'white';
+                        btn.style.color = '#374151';
+                    });
+                    
+                    // 선택한 버튼 활성화 (리뷰 작성 버튼과 동일한 색상)
+                    this.style.borderColor = '#6366f1';
+                    this.style.background = '#6366f1';
+                    this.style.color = 'white';
+                    
+                    // 선택한 색상 저장 (1개만)
+                    selectedColors = [this.getAttribute('data-color')];
+                    
+                    // 선택 완료 버튼 활성화 (리뷰 작성 버튼과 동일한 색상)
+                    if (confirmBtn) {
+                        confirmBtn.disabled = false;
+                        confirmBtn.textContent = '선택 완료';
+                        confirmBtn.style.background = '#6366f1';
+                    }
+                });
+                
+                colorContainer.appendChild(colorButton);
+            });
+        } else {
+            colorContainer.innerHTML = '<div style="width: 100%; color: #6b7280; font-size: 14px; text-align: center;">등록된 색상이 없습니다.</div>';
+        }
+        
+        // 선택 완료 버튼 초기화
+        if (confirmBtn) {
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = '색상을 선택해주세요';
+            confirmBtn.style.background = '#9ca3af';
+        }
+        
+        // 모달 열기 (연속적인 느낌을 위해 딜레이 없이 바로 열기)
+        scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
+        const scrollbarWidth = getScrollbarWidth();
+        
+        document.body.style.overflow = 'hidden';
+        document.body.style.position = 'fixed';
+        document.body.style.top = `-${scrollPosition}px`;
+        document.body.style.width = '100%';
+        document.body.style.paddingRight = `${scrollbarWidth}px`;
+        document.documentElement.style.overflow = 'hidden';
+        
+        deviceColorSelectionModal.style.display = 'flex';
+        deviceColorSelectionModal.classList.add('discount-selection-modal-active');
+    }
+    
+    // 단말기 색상 선택 모달 닫기
+    function closeDeviceColorSelectionModal() {
+        if (!deviceColorSelectionModal) return;
+        
+        deviceColorSelectionModal.classList.remove('discount-selection-modal-active');
+        
+        document.body.style.overflow = '';
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.width = '';
+        document.body.style.paddingRight = '';
+        document.documentElement.style.overflow = '';
+        
+        window.scrollTo(0, scrollPosition);
+    }
+    
+    // 색상 선택 모달 이벤트
+    if (deviceColorSelectionModalOverlay) {
+        deviceColorSelectionModalOverlay.addEventListener('click', closeDeviceColorSelectionModal);
+    }
+    
+    if (deviceColorSelectionModalClose) {
+        deviceColorSelectionModalClose.addEventListener('click', closeDeviceColorSelectionModal);
+    }
+    
+    // 선택 완료 버튼 클릭 이벤트
+    if (deviceColorConfirmBtn) {
+        deviceColorConfirmBtn.addEventListener('click', function() {
+            if (selectedColors.length === 0) {
+                alert('색상을 선택해주세요.');
+                return;
+            }
+            
+            // 선택한 할인 정보와 색상 정보로 가입신청 모달 열기
+            const discountInfo = window.selectedDiscountInfo || {};
+            
+            // 연속적인 느낌을 위해 색상 모달을 닫지 않고 바로 가입신청 모달 열기
+            closeDeviceColorSelectionModal();
+            setTimeout(() => {
+                openConsultationModal(
+                    discountInfo.provider,
+                    discountInfo.discountType,
+                    discountInfo.subscriptionType,
+                    discountInfo.amount,
+                    selectedColors
+                );
+            }, 150);
+        });
+    }
+    
     // 상담신청 모달 열기 (할인 정보 파라미터 추가)
-    function openConsultationModal(selectedProvider, selectedDiscountType, selectedSubscriptionType, selectedAmount) {
+    function openConsultationModal(selectedProvider, selectedDiscountType, selectedSubscriptionType, selectedAmount, selectedDeviceColors = []) {
         if (!consultationModal) return;
         
         scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
@@ -1184,6 +1355,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 input.value = selectedAmount;
                 consultationForm.appendChild(input);
             }
+        }
+        
+        // 선택한 단말기 색상 정보 저장 (1개만 선택 가능)
+        if (selectedDeviceColors && Array.isArray(selectedDeviceColors) && selectedDeviceColors.length > 0) {
+            // 기존 색상 입력 필드 제거
+            const existingColorInputs = consultationForm.querySelectorAll('input[name="device_color[]"]');
+            existingColorInputs.forEach(input => input.remove());
+            
+            // 선택한 색상을 hidden input으로 추가 (1개만)
+            const selectedColor = selectedDeviceColors[0];
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'device_color[]';
+            input.value = selectedColor;
+            consultationForm.appendChild(input);
         }
     }
     

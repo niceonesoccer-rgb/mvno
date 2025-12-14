@@ -32,6 +32,21 @@ try {
     $device = $stmt->fetch(PDO::FETCH_ASSOC);
     
     if ($device) {
+        // 색상 정보 파싱
+        $colors = [];
+        if (!empty($device['color_values'])) {
+            $colorValues = json_decode($device['color_values'], true);
+            if (is_array($colorValues)) {
+                $colors = $colorValues;
+            }
+        } elseif (!empty($device['color'])) {
+            // color 필드가 쉼표로 구분된 문자열인 경우
+            $colorNames = array_map('trim', explode(',', $device['color']));
+            $colors = array_map(function($name) {
+                return ['name' => $name, 'value' => ''];
+            }, $colorNames);
+        }
+        
         echo json_encode([
             'success' => true,
             'device_id' => $device['id'],
@@ -39,7 +54,8 @@ try {
             'manufacturer_name' => $device['manufacturer_name'],
             'device_name' => $device['name'],
             'device_storage' => $device['storage'],
-            'device_price' => $device['release_price']
+            'device_price' => $device['release_price'],
+            'colors' => $colors
         ]);
     } else {
         echo json_encode([

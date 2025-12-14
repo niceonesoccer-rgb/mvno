@@ -334,6 +334,7 @@ function getPhoneDetailData($phone_id) {
                 mno.device_name,
                 mno.device_price,
                 mno.device_capacity,
+                mno.device_colors,
                 mno.common_provider,
                 mno.common_discount_new,
                 mno.common_discount_port,
@@ -579,6 +580,15 @@ function getPhoneDetailData($phone_id) {
         $applicationCount = (int)($product['application_count'] ?? 0);
         $selectionCount = number_format($applicationCount) . '명이 신청';
         
+        // 단말기 색상 정보 파싱
+        $deviceColors = [];
+        if (!empty($product['device_colors'])) {
+            $colorsJson = json_decode($product['device_colors'], true);
+            if (is_array($colorsJson)) {
+                $deviceColors = $colorsJson;
+            }
+        }
+        
         return [
             'id' => (int)$product['id'],
             'provider' => $provider,
@@ -598,7 +608,8 @@ function getPhoneDetailData($phone_id) {
             'additional_supports' => $additionalSupports,
             'delivery_method' => $deliveryMethod,
             'visit_region' => $visitRegion,
-            'promotion_title' => $product['promotion_title'] ?? '부가서비스 없음'
+            'promotion_title' => $product['promotion_title'] ?? '부가서비스 없음',
+            'device_colors' => $deviceColors
         ];
         
     } catch (PDOException $e) {

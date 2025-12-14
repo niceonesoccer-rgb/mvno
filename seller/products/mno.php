@@ -659,6 +659,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             </div>
             
+            <!-- 단말기 색상 -->
+            <div class="form-group">
+                <label class="form-label" for="device_colors">
+                    단말기 색상
+                </label>
+                <div id="device-colors-container" style="display: flex; flex-wrap: wrap; gap: 12px; padding: 12px; border: 1px solid #e5e7eb; border-radius: 8px; background: #f9fafb; min-height: 50px;">
+                    <div style="width: 100%; color: #6b7280; font-size: 14px; margin-bottom: 8px;">단말기를 선택하면 색상이 표시됩니다.</div>
+                </div>
+                <small class="form-text text-muted">단말기를 선택하면 해당 단말기의 색상 목록이 표시됩니다. 판매할 색상을 선택하세요.</small>
+            </div>
+            
             <!-- 할인방법 -->
             <div class="form-group" style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; background: #f9fafb;">
                 <label class="form-label" style="font-size: 16px; margin-bottom: 20px;">할인방법</label>
@@ -1079,6 +1090,8 @@ document.addEventListener('DOMContentLoaded', function() {
         deviceSelect.addEventListener('change', function() {
             const selectedOption = this.options[this.selectedIndex];
             if (selectedOption && selectedOption.value) {
+                const deviceId = selectedOption.value;
+                
                 // 단말기명만 추출 (용량, 가격 제외)
                 const deviceName = selectedOption.getAttribute('data-name') || '';
                 // 가격은 숫자만 저장 (콤마 제거)
@@ -1091,10 +1104,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 deviceNameInput.value = deviceName;        // 예: "iPhone 16 Pro"
                 devicePriceInput.value = devicePrice;       // 예: "1155000"
                 deviceCapacityInput.value = deviceCapacity; // 예: "256GB"
+                
+                // 단말기 색상 정보 가져오기
+                loadDeviceColors(deviceId);
             } else {
                 deviceNameInput.value = '';
                 devicePriceInput.value = '';
                 deviceCapacityInput.value = '';
+                
+                // 색상 컨테이너 초기화
+                const colorContainer = document.getElementById('device-colors-container');
+                if (colorContainer) {
+                    colorContainer.innerHTML = '<div style="width: 100%; color: #6b7280; font-size: 14px;">단말기를 선택하면 색상이 표시됩니다.</div>';
+                }
             }
         });
     }
@@ -1423,12 +1445,29 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         
-        if (editData.device_colors) {
-            try {
-                const colors = JSON.parse(editData.device_colors);
-                // 색상 동적 추가 로직 필요 시 구현
-            } catch (e) {
-                // 색상 데이터 파싱 오류
+        // 수정 모드에서 단말기 색상 로드
+        if (editData.device_id) {
+            // 단말기 ID가 있으면 색상 정보 가져오기
+            loadDeviceColors(editData.device_id);
+            
+            // 저장된 색상 체크
+            if (editData.device_colors) {
+                try {
+                    const savedColors = JSON.parse(editData.device_colors);
+                    if (Array.isArray(savedColors) && savedColors.length > 0) {
+                        // 색상 정보 로드 후 체크박스 선택
+                        setTimeout(() => {
+                            savedColors.forEach(colorName => {
+                                const checkbox = document.querySelector(`input[name="device_colors[]"][value="${colorName}"]`);
+                                if (checkbox) {
+                                    checkbox.checked = true;
+                                }
+                            });
+                        }, 500);
+                    }
+                } catch (e) {
+                    console.error('Error parsing device_colors:', e);
+                }
             }
         }
         
@@ -1452,6 +1491,60 @@ document.addEventListener('DOMContentLoaded', function() {
     })();
     <?php endif; ?>
 });
+
+// 단말기 색상 정보 가져오기
+function loadDeviceColors(deviceId) {
+    const colorContainer = document.getElementById('device-colors-container');
+    if (!colorContainer || !deviceId) return;
+    
+    // 로딩 표시
+    colorContainer.innerHTML = '<div style="width: 100%; color: #6b7280; font-size: 14px;">색상 정보를 불러오는 중...</div>';
+    
+    fetch(`/MVNO/api/get-device-info.php?device_id=${deviceId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.colors && Array.isArray(data.colors) && data.colors.length > 0) {
+                // 색상 체크박스 생성
+                colorContainer.innerHTML = '';
+                data.colors.forEach(color => {
+                    const colorName = color.name || color;
+                    const colorValue = color.value || '';
+                    
+                    const colorItem = document.createElement('div');
+                    colorItem.style.cssText = 'display: flex; align-items: center; gap: 8px;';
+                    
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.name = 'device_colors[]';
+                    checkbox.value = colorName;
+                    checkbox.id = `color_${colorName.replace(/\s+/g, '_')}`;
+                    checkbox.style.cssText = 'width: 18px; height: 18px; cursor: pointer;';
+                    
+                    const label = document.createElement('label');
+                    label.htmlFor = checkbox.id;
+                    label.textContent = colorName;
+                    label.style.cssText = 'cursor: pointer; font-size: 14px; color: #374151; margin: 0;';
+                    
+                    // 색상값이 있으면 색상 표시
+                    if (colorValue) {
+                        const colorIndicator = document.createElement('span');
+                        colorIndicator.style.cssText = `display: inline-block; width: 20px; height: 20px; border-radius: 4px; background-color: ${colorValue}; border: 1px solid #d1d5db; margin-right: 4px;`;
+                        label.insertBefore(colorIndicator, label.firstChild);
+                    }
+                    
+                    colorItem.appendChild(checkbox);
+                    colorItem.appendChild(label);
+                    colorContainer.appendChild(colorItem);
+                });
+            } else {
+                colorContainer.innerHTML = '<div style="width: 100%; color: #6b7280; font-size: 14px;">등록된 색상 정보가 없습니다.</div>';
+            }
+        })
+        .catch(error => {
+            console.error('Error loading device colors:', error);
+            colorContainer.innerHTML = '<div style="width: 100%; color: #ef4444; font-size: 14px;">색상 정보를 불러오는 중 오류가 발생했습니다.</div>';
+        });
+}
 
 function addPromotionField() {
     const container = document.getElementById('promotion-container');

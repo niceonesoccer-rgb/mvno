@@ -462,6 +462,19 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         </div>
         
         <div class="menu-section">
+            <div class="menu-section-title">주문 관리</div>
+            <a href="/MVNO/seller/orders/mvno.php" class="menu-item menu-item-sub <?php echo (basename($_SERVER['PHP_SELF']) === 'mvno.php' && strpos($_SERVER['REQUEST_URI'], '/orders/') !== false) ? 'active' : ''; ?>">
+                알뜰폰
+            </a>
+            <a href="/MVNO/seller/orders/mno.php" class="menu-item menu-item-sub <?php echo (basename($_SERVER['PHP_SELF']) === 'mno.php' && strpos($_SERVER['REQUEST_URI'], '/orders/') !== false) ? 'active' : ''; ?>">
+                통신사폰
+            </a>
+            <a href="/MVNO/seller/orders/internet.php" class="menu-item menu-item-sub <?php echo (basename($_SERVER['PHP_SELF']) === 'internet.php' && strpos($_SERVER['REQUEST_URI'], '/orders/') !== false) ? 'active' : ''; ?>">
+                인터넷
+            </a>
+        </div>
+        
+        <div class="menu-section">
             <div class="menu-section-title">상품 관리</div>
             <div style="margin-top: 8px;">
                 <div style="padding: 8px 24px; font-size: 12px; color: rgba(255, 255, 255, 0.5); font-weight: 600;">
@@ -477,33 +490,18 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                     인터넷
                 </a>
             </div>
-            <div style="margin-top: 8px;">
-                <div style="padding: 8px 24px; font-size: 12px; color: rgba(255, 255, 255, 0.5); font-weight: 600;">
-                    상품 등록
-                </div>
-                <a href="/MVNO/seller/products/mvno.php" class="menu-item menu-item-sub <?php echo $currentPage === 'mvno.php' ? 'active' : ''; ?>">
-                    알뜰폰
-                </a>
-                <a href="/MVNO/seller/products/mno.php" class="menu-item menu-item-sub <?php echo $currentPage === 'mno.php' ? 'active' : ''; ?>">
-                    통신사폰
-                </a>
-                <a href="/MVNO/seller/products/internet.php" class="menu-item menu-item-sub <?php echo $currentPage === 'internet.php' ? 'active' : ''; ?>">
-                    인터넷
-                </a>
-            </div>
         </div>
         
         <div class="menu-section">
-            <div class="menu-section-title">주문 관리</div>
-            <a href="/MVNO/seller/orders/" class="menu-item">
-                <span class="menu-item-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="9" cy="21" r="1"/>
-                        <circle cx="20" cy="21" r="1"/>
-                        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
-                    </svg>
-                </span>
-                주문 관리
+            <div class="menu-section-title">상품 등록</div>
+            <a href="/MVNO/seller/products/mvno.php" class="menu-item menu-item-sub <?php echo ($currentPage === 'mvno.php' && strpos($_SERVER['REQUEST_URI'], '/products/') !== false && strpos($_SERVER['REQUEST_URI'], '/orders/') === false) ? 'active' : ''; ?>">
+                알뜰폰
+            </a>
+            <a href="/MVNO/seller/products/mno.php" class="menu-item menu-item-sub <?php echo ($currentPage === 'mno.php' && strpos($_SERVER['REQUEST_URI'], '/products/') !== false && strpos($_SERVER['REQUEST_URI'], '/orders/') === false) ? 'active' : ''; ?>">
+                통신사폰
+            </a>
+            <a href="/MVNO/seller/products/internet.php" class="menu-item menu-item-sub <?php echo ($currentPage === 'internet.php' && strpos($_SERVER['REQUEST_URI'], '/products/') !== false && strpos($_SERVER['REQUEST_URI'], '/orders/') === false) ? 'active' : ''; ?>">
+                인터넷
             </a>
         </div>
         

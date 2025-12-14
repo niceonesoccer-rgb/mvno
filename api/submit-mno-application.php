@@ -10,8 +10,18 @@
 
 require_once __DIR__ . '/../includes/data/db-config.php';
 require_once __DIR__ . '/../includes/data/product-functions.php';
+require_once __DIR__ . '/../includes/data/auth-functions.php';
 
 header('Content-Type: application/json; charset=utf-8');
+
+// 로그인 체크 (비회원 주문 불가)
+if (!isLoggedIn()) {
+    echo json_encode([
+        'success' => false,
+        'message' => '로그인이 필요합니다. 회원가입 후 주문 신청이 가능합니다.'
+    ]);
+    exit;
+}
 
 // POST 데이터 확인
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -59,9 +69,43 @@ try {
     $sellerId = $product['seller_id'];
     $redirectUrl = !empty($product['redirect_url']) ? trim($product['redirect_url']) : null;
     
+    // 로그인한 사용자 정보 가져오기 (이미 로그인 체크 완료)
+    $currentUser = getCurrentUser();
+    $userId = $currentUser['user_id'] ?? null;
+    
+    if (!$userId) {
+        throw new Exception('로그인 정보를 확인할 수 없습니다.');
+    }
+    
+    // 추가 정보 수집
+    $additionalInfo = [];
+    
+    // 할인 정보
+    if (isset($_POST['selected_provider'])) {
+        $additionalInfo['carrier'] = trim($_POST['selected_provider']);
+    }
+    if (isset($_POST['selected_discount_type'])) {
+        $additionalInfo['discount_type'] = trim($_POST['selected_discount_type']);
+    }
+    if (isset($_POST['selected_subscription_type'])) {
+        $additionalInfo['subscription_type'] = trim($_POST['selected_subscription_type']);
+    }
+    if (isset($_POST['selected_amount'])) {
+        $additionalInfo['price'] = trim($_POST['selected_amount']);
+    }
+    
+    // 단말기 색상 정보 (1개만 선택 가능)
+    if (isset($_POST['device_color']) && is_array($_POST['device_color'])) {
+        $selectedColors = array_filter(array_map('trim', $_POST['device_color']));
+        if (!empty($selectedColors)) {
+            // 첫 번째 색상만 저장 (1개만 선택)
+            $additionalInfo['device_colors'] = [reset($selectedColors)];
+        }
+    }
+    
     // 고객 정보 준비
     $customerData = [
-        'user_id' => null, // 비회원도 신청 가능
+        'user_id' => $userId, // 로그인한 사용자 ID
         'name' => $name,
         'phone' => $phone,
         'email' => $email,
@@ -69,7 +113,7 @@ try {
         'address_detail' => null,
         'birth_date' => null,
         'gender' => null,
-        'additional_info' => []
+        'additional_info' => $additionalInfo
     ];
     
     // 신청정보 저장

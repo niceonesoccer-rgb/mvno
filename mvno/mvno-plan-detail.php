@@ -1050,6 +1050,30 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 스크롤 위치 저장 변수
     let scrollPosition = 0;
+    
+    // 상품의 가입형태 데이터 (PHP에서 전달)
+    const productRegistrationTypes = <?php
+        $registrationTypes = [];
+        if (!empty($rawData['registration_types'])) {
+            if (is_string($rawData['registration_types'])) {
+                $registrationTypes = json_decode($rawData['registration_types'], true) ?: [];
+            } else {
+                $registrationTypes = $rawData['registration_types'];
+            }
+        }
+        // 가입형태 매핑: "신규" -> "new", "번이" -> "port", "기변" -> "change"
+        $mappedTypes = [];
+        foreach ($registrationTypes as $type) {
+            if ($type === '신규') {
+                $mappedTypes[] = 'new';
+            } elseif ($type === '번이') {
+                $mappedTypes[] = 'port';
+            } elseif ($type === '기변') {
+                $mappedTypes[] = 'change';
+            }
+        }
+        echo json_encode($mappedTypes, JSON_UNESCAPED_UNICODE);
+    ?>;
 
     // 모달 열기 함수
     function openApplyModal() {
@@ -1166,47 +1190,32 @@ document.addEventListener('DOMContentLoaded', function() {
         
         container.innerHTML = '';
         
-        fetch('/MVNO/api/get-user-subscription-types.php')
-            .then(response => response.json())
-            .then(data => {
-                let types = [];
-                
-                if (data.success && data.subscription_types && data.subscription_types.length > 0) {
-                    types = data.subscription_types;
-                } else {
-                    // 가입 형태가 없으면 모든 형태 표시
-                    types = [
-                        { type: 'new', label: '신규가입', description: '새로운 번호로 가입할래요' },
-                        { type: 'port', label: '번호이동', description: '지금 쓰는 번호 그대로 사용할래요' },
-                        { type: 'change', label: '기기변경', description: '기기만 변경하고 번호는 유지할래요' }
-                    ];
-                }
-                
-                // 버튼 생성
-                types.forEach(type => {
-                    createSubscriptionTypeButton(type, container);
-                });
-                
-                // 이벤트 설정
-                setupRadioButtonEvents(container);
-            })
-            .catch(error => {
-                // 오류 발생 시 기본 형태 표시
-                const container = document.getElementById('subscriptionTypeButtons');
-                if (container) {
-                    const defaultTypes = [
-                        { type: 'new', label: '신규가입', description: '새로운 번호로 가입할래요' },
-                        { type: 'port', label: '번호이동', description: '지금 쓰는 번호 그대로 사용할래요' },
-                        { type: 'change', label: '기기변경', description: '기기만 변경하고 번호는 유지할래요' }
-                    ];
-                    
-                    defaultTypes.forEach(type => {
-                        createSubscriptionTypeButton(type, container);
-                    });
-                    
-                    setupRadioButtonEvents(container);
-                }
-            });
+        // 모든 가입형태 정의
+        const allSubscriptionTypes = [
+            { type: 'new', label: '신규가입', description: '새로운 번호로 가입할래요' },
+            { type: 'port', label: '번호이동', description: '지금 쓰는 번호 그대로 사용할래요' },
+            { type: 'change', label: '기기변경', description: '기기만 변경하고 번호는 유지할래요' }
+        ];
+        
+        // 상품에 체크된 가입형태만 필터링
+        let availableTypes = [];
+        if (productRegistrationTypes && productRegistrationTypes.length > 0) {
+            // 상품에 체크된 가입형태만 표시
+            availableTypes = allSubscriptionTypes.filter(type => 
+                productRegistrationTypes.includes(type.type)
+            );
+        } else {
+            // 상품에 가입형태가 설정되지 않은 경우 모든 형태 표시 (기존 동작 유지)
+            availableTypes = allSubscriptionTypes;
+        }
+        
+        // 버튼 생성
+        availableTypes.forEach(type => {
+            createSubscriptionTypeButton(type, container);
+        });
+        
+        // 이벤트 설정
+        setupRadioButtonEvents(container);
     }
     
     // 가입 형태 선택 처리

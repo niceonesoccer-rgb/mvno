@@ -1,6 +1,6 @@
 <?php
 /**
- * MVNO 상품 고객 신청 처리 API
+ * Internet 상품 고객 신청 처리 API
  * 
  * 고객이 신청정보를 제출하면:
  * 1. 판매자에게 신청정보 저장
@@ -37,7 +37,6 @@ $productId = isset($_POST['product_id']) ? intval($_POST['product_id']) : 0;
 $name = isset($_POST['name']) ? trim($_POST['name']) : '';
 $phone = isset($_POST['phone']) ? trim($_POST['phone']) : '';
 $email = isset($_POST['email']) ? trim($_POST['email']) : '';
-$subscriptionType = isset($_POST['subscription_type']) ? trim($_POST['subscription_type']) : '';
 
 if (empty($productId) || empty($name) || empty($phone)) {
     echo json_encode([
@@ -53,12 +52,11 @@ try {
         throw new Exception('데이터베이스 연결에 실패했습니다.');
     }
     
-    // 상품 정보 가져오기 (seller_id, redirect_url 확인)
+    // 상품 정보 가져오기 (seller_id 확인)
     $stmt = $pdo->prepare("
-        SELECT p.seller_id, mvno.redirect_url
+        SELECT p.seller_id
         FROM products p
-        LEFT JOIN product_mvno_details mvno ON p.id = mvno.product_id
-        WHERE p.id = ? AND p.product_type = 'mvno' AND p.status = 'active'
+        WHERE p.id = ? AND p.product_type = 'internet' AND p.status = 'active'
         LIMIT 1
     ");
     $stmt->execute([$productId]);
@@ -69,7 +67,6 @@ try {
     }
     
     $sellerId = $product['seller_id'];
-    $redirectUrl = !empty($product['redirect_url']) ? trim($product['redirect_url']) : null;
     
     // 로그인한 사용자 정보 가져오기 (이미 로그인 체크 완료)
     $currentUser = getCurrentUser();
@@ -89,13 +86,11 @@ try {
         'address_detail' => null,
         'birth_date' => null,
         'gender' => null,
-        'additional_info' => [
-            'subscription_type' => $subscriptionType // 가입 형태 저장
-        ]
+        'additional_info' => []
     ];
     
     // 신청정보 저장
-    $applicationId = addProductApplication($productId, $sellerId, 'mvno', $customerData);
+    $applicationId = addProductApplication($productId, $sellerId, 'internet', $customerData);
     
     if ($applicationId === false) {
         throw new Exception('신청정보 저장에 실패했습니다.');
@@ -105,23 +100,13 @@ try {
     echo json_encode([
         'success' => true,
         'message' => '신청이 완료되었습니다.',
-        'application_id' => $applicationId,
-        'redirect_url' => $redirectUrl
+        'application_id' => $applicationId
     ]);
     
 } catch (Exception $e) {
-    error_log("MVNO Application Error: " . $e->getMessage());
+    error_log("Internet Application Error: " . $e->getMessage());
     echo json_encode([
         'success' => false,
         'message' => $e->getMessage()
     ]);
 }
-
-
-
-
-
-
-
-
-

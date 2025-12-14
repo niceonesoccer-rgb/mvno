@@ -133,7 +133,7 @@ function getInternetIconPath($registrationPlace) {
                         $installPrices = $product['installation_prices'] ?? [];
                         ?>
                         <div>
-                            <div class="css-58gch7 e82z5mt0">
+                            <div class="css-58gch7 e82z5mt0" data-product-id="<?php echo $product['id']; ?>">
                                 <div class="css-1kjyj6z e82z5mt1">
                                     <?php if ($iconPath): ?>
                                         <img data-testid="internet-company-logo" src="<?php echo htmlspecialchars($iconPath); ?>" 
@@ -2022,6 +2022,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
+            // 카드에서 product_id 추출
+            const productId = card.getAttribute('data-product-id');
+            if (productId) {
+                selectedData.product_id = productId;
+            }
+            
             // 카드에서 회사 정보 추출
             const logoImg = card.querySelector('img[data-testid="internet-company-logo"]');
             if (logoImg) {
@@ -2157,11 +2163,12 @@ function openInternetModal() {
             document.body.style.paddingRight = scrollbarWidth + 'px';
         }
         
-        // 상태 초기화 (선택한 인터넷 정보는 유지)
+        // 상태 초기화 (선택한 인터넷 정보와 product_id는 유지)
         const newCompanyData = {
             newCompany: selectedData.newCompany,
             newCompanyIcon: selectedData.newCompanyIcon,
-            newCompanyLogo: selectedData.newCompanyLogo
+            newCompanyLogo: selectedData.newCompanyLogo,
+            product_id: selectedData.product_id // product_id 보존
         };
         selectedData = newCompanyData;
         resetSteps();
@@ -2621,21 +2628,40 @@ function submitInternetForm() {
     const phone = document.getElementById('internetPhone').value;
     const email = document.getElementById('internetEmail').value;
     
+    // product_id 확인
+    if (!selectedData.product_id) {
+        alert('상품 정보를 찾을 수 없습니다. 다시 시도해주세요.');
+        return;
+    }
+    
     // 폼 데이터 수집
-    const formData = {
-        ...selectedData,
-        name: name,
-        phone: phone,
-        email: email
-    };
+    const formData = new FormData();
+    formData.append('product_id', selectedData.product_id);
+    formData.append('name', name);
+    formData.append('phone', phone);
+    formData.append('email', email);
     
-    // TODO: 실제 제출 로직 구현
-    
-    // 인터넷 모달 닫기
-    closeInternetModal();
-    
-    // 토스트 메시지 표시
-    showInternetToast();
+    // 실제 제출 로직
+    fetch('/MVNO/api/submit-internet-application.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // 인터넷 모달 닫기
+            closeInternetModal();
+            
+            // 토스트 메시지 표시
+            showInternetToast();
+        } else {
+            alert(data.message || '신청 중 오류가 발생했습니다.');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('신청 중 오류가 발생했습니다.');
+    });
 }
 
 function showInternetToast() {
