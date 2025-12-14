@@ -466,9 +466,9 @@ include __DIR__ . '/../includes/seller-header.php';
                     <tr>
                         <th>순번</th>
                         <th>주문번호</th>
-                        <th>상품명</th>
-                        <th>용량</th>
-                        <th>가입형태</th>
+                        <th>신청 인터넷 회선</th>
+                        <th>속도</th>
+                        <th>기존 인터넷 회선</th>
                         <th>고객명</th>
                         <th>전화번호</th>
                         <th>이메일</th>
@@ -493,16 +493,22 @@ include __DIR__ . '/../includes/seller-header.php';
                             <td>
                                 <?php 
                                 $place = htmlspecialchars($order['registration_place'] ?? '');
-                                $speed = htmlspecialchars($order['speed_option'] ?? '');
-                                $productName = trim($place . ' ' . $speed);
-                                echo $productName ?: '상품명 없음';
+                                echo $place ?: '-';
                                 ?>
                             </td>
-                            <td>-</td>
                             <td>
                                 <?php 
-                                $subType = $order['additional_info']['subscription_type'] ?? '';
-                                echo $subType ? ($subscriptionTypeLabels[$subType] ?? $subType) : '-';
+                                $speed = htmlspecialchars($order['speed_option'] ?? '');
+                                echo $speed ?: '-';
+                                ?>
+                            </td>
+                            <td>
+                                <?php 
+                                // 기존 인터넷 회선 정보 가져오기
+                                $existingCompany = $order['additional_info']['currentCompany'] ?? 
+                                                   $order['additional_info']['existing_company'] ?? 
+                                                   $order['additional_info']['existingCompany'] ?? '';
+                                echo $existingCompany ? htmlspecialchars($existingCompany) : '-';
                                 ?>
                             </td>
                             <td><?php echo htmlspecialchars($order['name']); ?></td>

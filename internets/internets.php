@@ -277,7 +277,7 @@ function getInternetIconPath($registrationPlace) {
     </div>
 </main>
 
-<!-- 인터넷 신청 모달 -->
+<!-- 인터넷 회선 신청 모달 -->
 <div id="internetModal" class="internet-modal">
     <div class="internet-modal-overlay"></div>
     <div class="internet-modal-content">
@@ -308,7 +308,7 @@ function getInternetIconPath($registrationPlace) {
                 </div>
             </div>
             
-            <!-- Step 2: 기존 설치회사 선택 -->
+            <!-- Step 2: 기존 인터넷 회선 선택 -->
             <div class="internet-modal-step" id="step2">
                 <div class="internet-company-scroll-wrapper">
                     <div class="internet-company-scroll">
@@ -358,10 +358,10 @@ function getInternetIconPath($registrationPlace) {
             <div class="internet-modal-step" id="step3">
                 <!-- 인터넷 정보 표시 -->
                 <div class="internet-info-section">
-                    <!-- 현재 사용 중인 인터넷 카드 -->
+                    <!-- 기존 인터넷 회선 카드 -->
                     <div id="currentCompanyInfo" class="internet-info-card" style="display: none;">
                         <div class="internet-info-label-section">
-                            <span class="internet-info-label">현재 사용 중인 인터넷</span>
+                            <span class="internet-info-label">기존 인터넷 회선</span>
                         </div>
                         <div class="internet-info-divider"></div>
                         <div class="internet-info-logo-section">
@@ -379,10 +379,10 @@ function getInternetIconPath($registrationPlace) {
                         </svg>
                     </div>
                     
-                    <!-- 선택한 인터넷 카드 -->
+                    <!-- 신청 인터넷 회선 카드 -->
                     <div id="newCompanyInfo" class="internet-info-card">
                         <div class="internet-info-label-section">
-                            <span class="internet-info-label">선택한 인터넷</span>
+                            <span class="internet-info-label">신청 인터넷 회선</span>
                         </div>
                         <div class="internet-info-divider"></div>
                         <div class="internet-info-logo-section">
@@ -873,7 +873,7 @@ function getInternetIconPath($registrationPlace) {
     display: block;
 }
 
-/* Step 2: 기존 설치회사 선택 - 높이 증가 */
+/* Step 2: 기존 인터넷 회선 선택 - 높이 증가 */
 #step2 {
     min-height: 400px;
 }
@@ -1166,7 +1166,7 @@ function getInternetIconPath($registrationPlace) {
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
-/* 현재 사용 중인 인터넷 카드 배경색 */
+/* 기존 인터넷 회선 카드 배경색 */
 #currentCompanyInfo.internet-info-card {
     background: #f8fafc;
 }
@@ -1240,7 +1240,7 @@ function getInternetIconPath($registrationPlace) {
     height: 24px;
 }
 
-/* 현재 사용 중인 인터넷이 없을 때 화살표 숨기기 (JavaScript로 처리) */
+/* 기존 인터넷 회선이 없을 때 화살표 숨기기 (JavaScript로 처리) */
 .internet-info-arrow.hidden {
     display: none;
 }
@@ -2163,7 +2163,7 @@ function openInternetModal() {
             document.body.style.paddingRight = scrollbarWidth + 'px';
         }
         
-        // 상태 초기화 (선택한 인터넷 정보와 product_id는 유지)
+        // 상태 초기화 (신청 인터넷 회선 정보와 product_id는 유지)
         const newCompanyData = {
             newCompany: selectedData.newCompany,
             newCompanyIcon: selectedData.newCompanyIcon,
@@ -2174,7 +2174,7 @@ function openInternetModal() {
         resetSteps();
         // 첫 번째 단계 활성화
         showStep(1);
-        // 선택한 인터넷 정보 표시
+        // 신청 인터넷 회선 정보 표시
         showNewCompanyInfo();
         // 폼 검증 이벤트 리스너 설정
         if (window.setupFormValidation) {
@@ -2315,12 +2315,12 @@ function selectInternetOption(option) {
         if (option === 'none') {
             // 인터넷이 없어요 -> 바로 폼으로 이동
             showStep(3);
-            updateModalTitle('인터넷 신청');
+            updateModalTitle('인터넷 회선 신청');
             hideCurrentCompanyInfo();
         } else if (option === 'installed') {
             // 인터넷이 설치되어 있어요 -> 설치회사 선택 단계로 이동
             showStep(2);
-            updateModalTitle('기존 설치회사 선택');
+            updateModalTitle('기존 인터넷 회선 선택');
         }
     }, 300);
 }
@@ -2466,7 +2466,7 @@ function showNewCompanyInfo() {
         if (infoEl) infoEl.style.display = 'none';
     }
     
-    // 현재 사용 중인 인터넷이 없으면 화살표 숨기기
+    // 기존 인터넷 회선이 없으면 화살표 숨기기
     const currentInfoEl = document.getElementById('currentCompanyInfo');
     const arrowEl = document.querySelector('.internet-info-arrow');
     
