@@ -269,8 +269,9 @@ $subscriptionTypeLabels = [
 
 $pageStyles = '
     .orders-container {
-        max-width: 1400px;
+        max-width: 95%;
         margin: 0 auto;
+        width: 100%;
     }
     
     .orders-header {
@@ -388,6 +389,7 @@ $pageStyles = '
         font-weight: 600;
         color: #374151;
         border-bottom: 2px solid #e5e7eb;
+        white-space: nowrap;
     }
     
     .orders-table td {
@@ -395,6 +397,8 @@ $pageStyles = '
         border-bottom: 1px solid #e5e7eb;
         font-size: 14px;
         color: #1f2937;
+        white-space: nowrap;
+        min-width: fit-content;
     }
     
     .orders-table tr:hover {
@@ -407,6 +411,160 @@ $pageStyles = '
         border-radius: 12px;
         font-size: 12px;
         font-weight: 600;
+        white-space: nowrap;
+    }
+    
+    .status-cell-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        white-space: nowrap;
+    }
+    
+    .status-edit-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 4px 6px;
+        border: 1px solid #d1d5db;
+        border-radius: 4px;
+        background: white;
+        color: #6b7280;
+        cursor: pointer;
+        transition: all 0.2s;
+        line-height: 1;
+    }
+    
+    .status-edit-btn:hover {
+        background: #f3f4f6;
+        border-color: #10b981;
+        color: #10b981;
+    }
+    
+    .status-edit-btn:active {
+        transform: scale(0.95);
+    }
+    
+    .status-modal {
+        display: none;
+        position: fixed;
+        z-index: 10000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .status-modal-content {
+        background-color: white;
+        padding: 24px;
+        border-radius: 12px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        width: 90%;
+        max-width: 400px;
+        position: relative;
+    }
+    
+    .status-modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+    
+    .status-modal-header h3 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 600;
+        color: #111827;
+    }
+    
+    .status-modal-close {
+        background: none;
+        border: none;
+        font-size: 24px;
+        cursor: pointer;
+        color: #6b7280;
+        padding: 0;
+        width: 28px;
+        height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 4px;
+        transition: all 0.2s;
+    }
+    
+    .status-modal-close:hover {
+        background: #f3f4f6;
+        color: #111827;
+    }
+    
+    .status-modal-body {
+        margin-bottom: 20px;
+    }
+    
+    .status-modal-body label {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        color: #374151;
+    }
+    
+    .status-modal-select {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        font-size: 14px;
+        background: white;
+        color: #374151;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .status-modal-select:focus {
+        outline: none;
+        border-color: #10b981;
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+    }
+    
+    .status-modal-actions {
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+    }
+    
+    .status-modal-btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .status-modal-btn-cancel {
+        background: #f3f4f6;
+        color: #374151;
+    }
+    
+    .status-modal-btn-cancel:hover {
+        background: #e5e7eb;
+    }
+    
+    .status-modal-btn-save {
+        background: #10b981;
+        color: white;
+    }
+    
+    .status-modal-btn-save:hover {
+        background: #059669;
     }
     
     .status-pending {
@@ -824,9 +982,17 @@ include __DIR__ . '/../includes/seller-header.php';
                             <td><?php echo htmlspecialchars($order['phone']); ?></td>
                             <td><?php echo htmlspecialchars($order['email'] ?? '-'); ?></td>
                             <td>
-                                <span class="status-badge status-<?php echo $order['application_status']; ?>">
-                                    <?php echo $statusLabels[$order['application_status']] ?? $order['application_status']; ?>
-                                </span>
+                                <div class="status-cell-wrapper">
+                                    <span class="status-badge status-<?php echo $order['application_status']; ?>">
+                                        <?php echo $statusLabels[$order['application_status']] ?? $order['application_status']; ?>
+                                    </span>
+                                    <button type="button" class="status-edit-btn" onclick="openStatusEditModal(<?php echo $order['id']; ?>, '<?php echo htmlspecialchars($order['application_status'], ENT_QUOTES); ?>')" title="상태 변경">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                        </svg>
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                     <?php endforeach; ?>
@@ -1189,6 +1355,96 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 });
+
+// 상태 변경 모달 열기
+function openStatusEditModal(applicationId, currentStatus) {
+    const modal = document.getElementById('statusEditModal');
+    const select = document.getElementById('statusEditSelect');
+    
+    if (!modal || !select) return;
+    
+    // 현재 상태 선택
+    select.value = currentStatus;
+    select.setAttribute('data-application-id', applicationId);
+    
+    // 모달 표시
+    modal.style.display = 'flex';
+}
+
+// 상태 변경 모달 닫기
+function closeStatusEditModal() {
+    const modal = document.getElementById('statusEditModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+// 주문 상태 변경 함수
+function updateOrderStatus() {
+    const select = document.getElementById('statusEditSelect');
+    if (!select) return;
+    
+    const applicationId = select.getAttribute('data-application-id');
+    const newStatus = select.value;
+    
+    if (!applicationId || !newStatus) {
+        return;
+    }
+    
+    // API 호출
+    fetch('/MVNO/api/update-order-status.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `application_id=${applicationId}&status=${encodeURIComponent(newStatus)}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            closeStatusEditModal();
+            if (typeof showAlert === 'function') {
+                showAlert('상태가 변경되었습니다.', '완료');
+            } else {
+                alert('상태가 변경되었습니다.');
+            }
+            // 페이지 새로고침
+            location.reload();
+        } else {
+            if (typeof showAlert === 'function') {
+                showAlert(data.message || '상태 변경에 실패했습니다.', '오류', true);
+            } else {
+                alert(data.message || '상태 변경에 실패했습니다.');
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        if (typeof showAlert === 'function') {
+            showAlert('상태 변경 중 오류가 발생했습니다.', '오류', true);
+        } else {
+            alert('상태 변경 중 오류가 발생했습니다.');
+        }
+    });
+}
+
+// 모달 닫기 이벤트
+document.addEventListener('DOMContentLoaded', function() {
+    const statusModal = document.getElementById('statusEditModal');
+    const statusModalClose = document.querySelector('.status-modal-close');
+    
+    if (statusModalClose) {
+        statusModalClose.addEventListener('click', closeStatusEditModal);
+    }
+    
+    if (statusModal) {
+        statusModal.addEventListener('click', function(event) {
+            if (event.target === statusModal) {
+                closeStatusEditModal();
+            }
+        });
+    }
+});
 </script>
 
 <!-- 상품 정보 모달 -->
@@ -1203,4 +1459,30 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
 </div>
 
+<!-- 상태 변경 모달 -->
+<div id="statusEditModal" class="status-modal">
+    <div class="status-modal-content">
+        <div class="status-modal-header">
+            <h3>진행상황 변경</h3>
+            <button type="button" class="status-modal-close">&times;</button>
+        </div>
+        <div class="status-modal-body">
+            <label for="statusEditSelect">진행상황 선택</label>
+            <select id="statusEditSelect" class="status-modal-select">
+                <option value="received">접수</option>
+                <option value="activating">개통중</option>
+                <option value="on_hold">보류</option>
+                <option value="cancelled">취소</option>
+                <option value="activation_completed">개통완료</option>
+                <option value="installation_completed">설치완료</option>
+            </select>
+        </div>
+        <div class="status-modal-actions">
+            <button type="button" class="status-modal-btn status-modal-btn-cancel" onclick="closeStatusEditModal()">취소</button>
+            <button type="button" class="status-modal-btn status-modal-btn-save" onclick="updateOrderStatus()">변경</button>
+        </div>
+    </div>
+</div>
+
 <?php include __DIR__ . '/../includes/seller-footer.php'; ?>
+

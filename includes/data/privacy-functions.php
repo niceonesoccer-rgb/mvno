@@ -49,3 +49,4 @@ function outputPrivacySettingsAsJS($varName = 'privacyContents') {
     echo "const {$varName} = " . json_encode($settings, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . ';';
     echo '</script>';
 }
+

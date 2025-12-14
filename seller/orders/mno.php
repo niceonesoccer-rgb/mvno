@@ -350,8 +350,9 @@ function extractOrderDetails($order) {
 
 $pageStyles = '
     .orders-container {
-        max-width: 1400px;
+        max-width: 95%;
         margin: 0 auto;
+        width: 100%;
     }
     
     .orders-header {
@@ -469,6 +470,7 @@ $pageStyles = '
         font-weight: 600;
         color: #374151;
         border-bottom: 2px solid #e5e7eb;
+        white-space: nowrap;
     }
     
     .orders-table td {
@@ -476,6 +478,8 @@ $pageStyles = '
         border-bottom: 1px solid #e5e7eb;
         font-size: 14px;
         color: #1f2937;
+        white-space: nowrap;
+        min-width: fit-content;
     }
     
     .orders-table tr:hover {
@@ -488,6 +492,160 @@ $pageStyles = '
         border-radius: 12px;
         font-size: 12px;
         font-weight: 600;
+        white-space: nowrap;
+    }
+    
+    .status-cell-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        white-space: nowrap;
+    }
+    
+    .status-edit-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 4px 6px;
+        border: 1px solid #d1d5db;
+        border-radius: 4px;
+        background: white;
+        color: #6b7280;
+        cursor: pointer;
+        transition: all 0.2s;
+        line-height: 1;
+    }
+    
+    .status-edit-btn:hover {
+        background: #f3f4f6;
+        border-color: #10b981;
+        color: #10b981;
+    }
+    
+    .status-edit-btn:active {
+        transform: scale(0.95);
+    }
+    
+    .status-modal {
+        display: none;
+        position: fixed;
+        z-index: 10000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .status-modal-content {
+        background-color: white;
+        padding: 24px;
+        border-radius: 12px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        width: 90%;
+        max-width: 400px;
+        position: relative;
+    }
+    
+    .status-modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+    
+    .status-modal-header h3 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 600;
+        color: #111827;
+    }
+    
+    .status-modal-close {
+        background: none;
+        border: none;
+        font-size: 24px;
+        cursor: pointer;
+        color: #6b7280;
+        padding: 0;
+        width: 28px;
+        height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 4px;
+        transition: all 0.2s;
+    }
+    
+    .status-modal-close:hover {
+        background: #f3f4f6;
+        color: #111827;
+    }
+    
+    .status-modal-body {
+        margin-bottom: 20px;
+    }
+    
+    .status-modal-body label {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        color: #374151;
+    }
+    
+    .status-modal-select {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        font-size: 14px;
+        background: white;
+        color: #374151;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .status-modal-select:focus {
+        outline: none;
+        border-color: #10b981;
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+    }
+    
+    .status-modal-actions {
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+    }
+    
+    .status-modal-btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .status-modal-btn-cancel {
+        background: #f3f4f6;
+        color: #374151;
+    }
+    
+    .status-modal-btn-cancel:hover {
+        background: #e5e7eb;
+    }
+    
+    .status-modal-btn-save {
+        background: #10b981;
+        color: white;
+    }
+    
+    .status-modal-btn-save:hover {
+        background: #059669;
     }
     
     .status-pending {
@@ -684,6 +842,65 @@ $pageStyles = '
     .product-info-table tr:nth-child(even) {
         background: #f9fafb;
     }
+    
+    .discount-selection-modal-body {
+        margin-top: 32px;
+    }
+    
+    .discount-selection-table-wrapper {
+        width: 100%;
+        overflow-x: auto;
+        margin-top: 16px;
+    }
+    
+    .discount-selection-table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+    }
+    
+    .discount-selection-table thead {
+        background: #f9fafb;
+    }
+    
+    .discount-selection-table th {
+        padding: 12px 16px;
+        text-align: left;
+        font-weight: 600;
+        color: #374151;
+        border: 1px solid #e5e7eb;
+        font-size: 14px;
+    }
+    
+    .discount-selection-table td {
+        padding: 12px 16px;
+        border: 1px solid #e5e7eb;
+        color: #1f2937;
+        font-size: 14px;
+    }
+    
+    .discount-provider-cell {
+        font-weight: 600;
+        background: #f9fafb;
+        vertical-align: top;
+    }
+    
+    .discount-type-cell {
+        font-weight: 500;
+        vertical-align: top;
+    }
+    
+    .discount-amount-display {
+        display: inline-block;
+        padding: 6px 12px;
+        background: #6366f1;
+        color: white;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 14px;
+        min-width: 60px;
+        text-align: center;
+    }
 ';
 
 include __DIR__ . '/../includes/seller-header.php';
@@ -837,9 +1054,17 @@ include __DIR__ . '/../includes/seller-header.php';
                             <td><?php echo htmlspecialchars($order['phone']); ?></td>
                             <td><?php echo htmlspecialchars($order['email'] ?? '-'); ?></td>
                             <td>
-                                <span class="status-badge status-<?php echo $order['application_status']; ?>">
-                                    <?php echo $statusLabels[$order['application_status']] ?? $order['application_status']; ?>
-                                </span>
+                                <div class="status-cell-wrapper">
+                                    <span class="status-badge status-<?php echo $order['application_status']; ?>">
+                                        <?php echo $statusLabels[$order['application_status']] ?? $order['application_status']; ?>
+                                    </span>
+                                    <button type="button" class="status-edit-btn" onclick="openStatusEditModal(<?php echo $order['id']; ?>, '<?php echo htmlspecialchars($order['application_status'], ENT_QUOTES); ?>')" title="상태 변경">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                        </svg>
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                     <?php endforeach; ?>
@@ -946,7 +1171,6 @@ function showProductInfo(order, productType) {
         const contractDiscountPort = parseJsonField(order.contract_discount_port);
         const contractDiscountChange = parseJsonField(order.contract_discount_change);
         
-        html = `
         // 주문 시 선택한 정보 가져오기
         const additionalInfo = order.additional_info || {};
         const subscriptionType = additionalInfo.subscription_type || '';
@@ -956,10 +1180,21 @@ function showProductInfo(order, productType) {
         const selectedColors = additionalInfo.device_colors || [];
         
         // 주문 정보 섹션 (기본 정보와 주문 선택 정보 통합)
-        html += `<h3 style="margin-top: 24px; margin-bottom: 12px; font-size: 16px; color: #1f2937;">주문 정보</h3>`;
+        html = `<h3 style="margin-top: 24px; margin-bottom: 12px; font-size: 16px; color: #1f2937;">주문 정보</h3>`;
         html += `<table class="product-info-table">`;
         
-        // 주문 시 선택한 정보 (먼저 표시)
+        // 단말기 정보 (상단에 표시)
+        html += `<tr><th>단말기명</th><td>${order.device_name || '-'}</td></tr>`;
+        html += `<tr><th>단말기 출고가</th><td>${order.device_price ? number_format(Math.round(parseFloat(order.device_price))) + '원' : '-'}</td></tr>`;
+        html += `<tr><th>용량</th><td>${order.device_capacity || '-'}</td></tr>`;
+        if (selectedColors.length > 0) {
+            html += `<tr><th>선택한 색상</th><td>${selectedColors.join(', ')}</td></tr>`;
+        }
+        
+        // 주문 시 선택한 정보 (요청된 순서대로)
+        if (selectedCarrier) {
+            html += `<tr><th>통신사</th><td>${selectedCarrier}</td></tr>`;
+        }
         if (subscriptionType) {
             const subTypeLabels = {
                 'new': '신규가입',
@@ -968,59 +1203,20 @@ function showProductInfo(order, productType) {
             };
             html += `<tr><th>가입형태</th><td>${subTypeLabels[subscriptionType] || subscriptionType}</td></tr>`;
         }
-        if (selectedCarrier) {
-            html += `<tr><th>통신사</th><td>${selectedCarrier}</td></tr>`;
-        }
         if (selectedDiscountType) {
             html += `<tr><th>할인방법</th><td>${selectedDiscountType}</td></tr>`;
         }
         if (selectedPrice) {
             html += `<tr><th>가격</th><td>${selectedPrice}</td></tr>`;
         }
-        if (selectedColors.length > 0) {
-            html += `<tr><th>선택한 색상</th><td>${selectedColors.join(', ')}</td></tr>`;
-        }
-        
-        // 기본 정보 (단말기 정보)
-        html += `<tr><th>단말기명</th><td>${order.device_name || '-'}</td></tr>`;
-        html += `<tr><th>단말기 출고가</th><td>${order.device_price ? number_format(order.device_price) + '원' : '-'}</td></tr>`;
-        html += `<tr><th>용량</th><td>${order.device_capacity || '-'}</td></tr>`;
         html += `<tr><th>단말기 수령방법</th><td>${order.delivery_method === 'delivery' ? '택배' : order.delivery_method === 'visit' ? '내방' + (order.visit_region ? ' (' + order.visit_region + ')' : '') : '-'}</td></tr>`;
         
         html += `</table>`;
         
-        // 공통지원할인 정보
-        if (commonProvider.length > 0) {
-            html += `<h3 style="margin-top: 24px; margin-bottom: 12px; font-size: 16px; color: #1f2937;">공통지원할인</h3>`;
-            html += `<table class="product-info-table">`;
-            html += `<tr><th>통신사</th><td>${commonProvider.join(', ')}</td></tr>`;
-            if (commonDiscountNew.length > 0) {
-                html += `<tr><th>신규가입</th><td>${commonDiscountNew.join(', ')}</td></tr>`;
-            }
-            if (commonDiscountPort.length > 0) {
-                html += `<tr><th>번호이동</th><td>${commonDiscountPort.join(', ')}</td></tr>`;
-            }
-            if (commonDiscountChange.length > 0) {
-                html += `<tr><th>기기변경</th><td>${commonDiscountChange.join(', ')}</td></tr>`;
-            }
-            html += `</table>`;
-        }
-        
-        // 선택약정할인 정보
-        if (contractProvider.length > 0) {
-            html += `<h3 style="margin-top: 24px; margin-bottom: 12px; font-size: 16px; color: #1f2937;">선택약정할인</h3>`;
-            html += `<table class="product-info-table">`;
-            html += `<tr><th>통신사</th><td>${contractProvider.join(', ')}</td></tr>`;
-            if (contractDiscountNew.length > 0) {
-                html += `<tr><th>신규가입</th><td>${contractDiscountNew.join(', ')}</td></tr>`;
-            }
-            if (contractDiscountPort.length > 0) {
-                html += `<tr><th>번호이동</th><td>${contractDiscountPort.join(', ')}</td></tr>`;
-            }
-            if (contractDiscountChange.length > 0) {
-                html += `<tr><th>기기변경</th><td>${contractDiscountChange.join(', ')}</td></tr>`;
-            }
-            html += `</table>`;
+        // 할인 정보 테이블 (판매자 확인용)
+        const discountTable = buildDiscountTableForOrder(order);
+        if (discountTable) {
+            html += discountTable;
         }
     }
     
@@ -1028,11 +1224,261 @@ function showProductInfo(order, productType) {
     modal.style.display = 'block';
 }
 
+// 할인 정보 테이블 생성 함수 (버튼 없이 정보만 표시)
+function buildDiscountTableForOrder(order) {
+    // JSON 필드 파싱
+    const parseJsonField = (field) => {
+        if (!field) return [];
+        if (typeof field === 'string') {
+            try {
+                return JSON.parse(field);
+            } catch (e) {
+                return [];
+            }
+        }
+        return Array.isArray(field) ? field : [];
+    };
+    
+    // 숫자 비교를 위한 헬퍼 함수
+    function isNot9999(value) {
+        if (value === undefined || value === null) return false;
+        const numValue = parseFloat(value);
+        return !isNaN(numValue) && numValue !== 9999;
+    }
+    
+    const allDiscountOptions = [];
+    
+    // 공통지원할인 데이터 수집
+    const commonProviders = parseJsonField(order.common_provider);
+    const commonNewDiscounts = parseJsonField(order.common_discount_new);
+    const commonPortDiscounts = parseJsonField(order.common_discount_port);
+    const commonChangeDiscounts = parseJsonField(order.common_discount_change);
+    
+    for (let i = 0; i < commonProviders.length; i++) {
+        const provider = commonProviders[i] || '-';
+        
+        if (isNot9999(commonPortDiscounts[i])) {
+            allDiscountOptions.push({ provider, discountType: '공통지원할인', subscriptionType: '번호이동', amount: commonPortDiscounts[i] });
+        }
+        if (isNot9999(commonChangeDiscounts[i])) {
+            allDiscountOptions.push({ provider, discountType: '공통지원할인', subscriptionType: '기기변경', amount: commonChangeDiscounts[i] });
+        }
+        if (isNot9999(commonNewDiscounts[i])) {
+            allDiscountOptions.push({ provider, discountType: '공통지원할인', subscriptionType: '신규가입', amount: commonNewDiscounts[i] });
+        }
+    }
+    
+    // 선택약정할인 데이터 수집
+    const contractProviders = parseJsonField(order.contract_provider);
+    const contractNewDiscounts = parseJsonField(order.contract_discount_new);
+    const contractPortDiscounts = parseJsonField(order.contract_discount_port);
+    const contractChangeDiscounts = parseJsonField(order.contract_discount_change);
+    
+    for (let i = 0; i < contractProviders.length; i++) {
+        const provider = contractProviders[i] || '-';
+        
+        if (isNot9999(contractPortDiscounts[i])) {
+            allDiscountOptions.push({ provider, discountType: '선택약정할인', subscriptionType: '번호이동', amount: contractPortDiscounts[i] });
+        }
+        if (isNot9999(contractChangeDiscounts[i])) {
+            allDiscountOptions.push({ provider, discountType: '선택약정할인', subscriptionType: '기기변경', amount: contractChangeDiscounts[i] });
+        }
+        if (isNot9999(contractNewDiscounts[i])) {
+            allDiscountOptions.push({ provider, discountType: '선택약정할인', subscriptionType: '신규가입', amount: contractNewDiscounts[i] });
+        }
+    }
+    
+    if (allDiscountOptions.length === 0) {
+        return null;
+    }
+    
+    // 통신사별, 할인종류별로 그룹화
+    const groupedByProviderAndDiscount = {};
+    allDiscountOptions.forEach(option => {
+        const key = `${option.provider}_${option.discountType}`;
+        if (!groupedByProviderAndDiscount[key]) {
+            groupedByProviderAndDiscount[key] = {
+                provider: option.provider,
+                discountType: option.discountType,
+                options: []
+            };
+        }
+        groupedByProviderAndDiscount[key].options.push(option);
+    });
+    
+    // 통신사별로 다시 그룹화
+    const finalGrouped = {};
+    Object.keys(groupedByProviderAndDiscount).forEach(key => {
+        const item = groupedByProviderAndDiscount[key];
+        if (!finalGrouped[item.provider]) {
+            finalGrouped[item.provider] = [];
+        }
+        finalGrouped[item.provider].push(item);
+    });
+    
+    // 테이블 HTML 생성
+    let html = '<div class="discount-selection-modal-body" style="margin-top: 32px;">';
+    html += '<div class="discount-selection-table-wrapper">';
+    html += '<table class="discount-selection-table">';
+    html += '<thead><tr><th>통신사</th><th>할인종류</th><th>가입유형</th><th>가격</th></tr></thead>';
+    html += '<tbody>';
+    
+    Object.keys(finalGrouped).forEach(provider => {
+        const providerGroups = finalGrouped[provider];
+        let providerRowSpan = 0;
+        
+        // 통신사별 총 행 개수 계산
+        providerGroups.forEach(group => {
+            providerRowSpan += group.options.length;
+        });
+        
+        providerGroups.forEach((group, groupIndex) => {
+            group.options.forEach((option, optionIndex) => {
+                html += '<tr>';
+                
+                // 통신사 셀 (첫 번째 그룹의 첫 번째 옵션에만 표시)
+                if (groupIndex === 0 && optionIndex === 0) {
+                    html += `<td rowspan="${providerRowSpan}" class="discount-provider-cell">${provider}</td>`;
+                }
+                
+                // 할인종류 셀 (각 그룹의 첫 번째 옵션에만 표시)
+                if (optionIndex === 0) {
+                    html += `<td rowspan="${group.options.length}" class="discount-type-cell">${group.discountType}</td>`;
+                }
+                
+                // 가입유형
+                html += `<td>${option.subscriptionType}</td>`;
+                
+                // 가격 (버튼 없이 박스 스타일로 표시)
+                const amount = parseFloat(option.amount);
+                let formattedAmount;
+                if (amount % 1 === 0) {
+                    formattedAmount = amount < 0 
+                        ? `-${Math.abs(amount).toLocaleString('ko-KR')}`
+                        : `${amount.toLocaleString('ko-KR')}`;
+                } else {
+                    formattedAmount = amount < 0 
+                        ? `-${Math.abs(amount).toLocaleString('ko-KR', { minimumFractionDigits: 1, maximumFractionDigits: 2 })}`
+                        : `${amount.toLocaleString('ko-KR', { minimumFractionDigits: 1, maximumFractionDigits: 2 })}`;
+                }
+                
+                html += `<td><span class="discount-amount-display">${formattedAmount}</span></td>`;
+                html += '</tr>';
+            });
+        });
+    });
+    
+    html += '</tbody></table></div></div>';
+    return html;
+}
+
 // 숫자 포맷팅 함수
 function number_format(num) {
     if (!num) return '0';
     return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
+
+// 상태 변경 모달 열기
+function openStatusEditModal(applicationId, currentStatus) {
+    const modal = document.getElementById('statusEditModal');
+    const select = document.getElementById('statusEditSelect');
+    
+    if (!modal || !select) return;
+    
+    // 현재 상태 선택
+    select.value = currentStatus;
+    select.setAttribute('data-application-id', applicationId);
+    
+    // 모달 표시
+    modal.style.display = 'flex';
+}
+
+// 상태 변경 모달 닫기
+function closeStatusEditModal() {
+    const modal = document.getElementById('statusEditModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+// 주문 상태 변경 함수
+function updateOrderStatus() {
+    const select = document.getElementById('statusEditSelect');
+    if (!select) return;
+    
+    const applicationId = select.getAttribute('data-application-id');
+    const newStatus = select.value;
+    
+    if (!applicationId || !newStatus) {
+        return;
+    }
+    
+    // 상태 레이블 매핑
+    const statusLabels = {
+        'received': '접수',
+        'activating': '개통중',
+        'on_hold': '보류',
+        'cancelled': '취소',
+        'activation_completed': '개통완료',
+        'installation_completed': '설치완료'
+    };
+    
+    const statusLabel = statusLabels[newStatus] || newStatus;
+    
+    // API 호출
+    fetch('/MVNO/api/update-order-status.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `application_id=${applicationId}&status=${encodeURIComponent(newStatus)}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            closeStatusEditModal();
+            if (typeof showAlert === 'function') {
+                showAlert('상태가 변경되었습니다.', '완료');
+            } else {
+                alert('상태가 변경되었습니다.');
+            }
+            // 페이지 새로고침
+            location.reload();
+        } else {
+            if (typeof showAlert === 'function') {
+                showAlert(data.message || '상태 변경에 실패했습니다.', '오류', true);
+            } else {
+                alert(data.message || '상태 변경에 실패했습니다.');
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        if (typeof showAlert === 'function') {
+            showAlert('상태 변경 중 오류가 발생했습니다.', '오류', true);
+        } else {
+            alert('상태 변경 중 오류가 발생했습니다.');
+        }
+    });
+}
+
+// 모달 닫기 이벤트
+document.addEventListener('DOMContentLoaded', function() {
+    const statusModal = document.getElementById('statusEditModal');
+    const statusModalClose = document.querySelector('.status-modal-close');
+    
+    if (statusModalClose) {
+        statusModalClose.addEventListener('click', closeStatusEditModal);
+    }
+    
+    if (statusModal) {
+        statusModal.addEventListener('click', function(event) {
+            if (event.target === statusModal) {
+                closeStatusEditModal();
+            }
+        });
+    }
+});
 
 // 모달 닫기
 document.addEventListener('DOMContentLoaded', function() {
@@ -1065,4 +1511,30 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
 </div>
 
+<!-- 상태 변경 모달 -->
+<div id="statusEditModal" class="status-modal">
+    <div class="status-modal-content">
+        <div class="status-modal-header">
+            <h3>진행상황 변경</h3>
+            <button type="button" class="status-modal-close">&times;</button>
+        </div>
+        <div class="status-modal-body">
+            <label for="statusEditSelect">진행상황 선택</label>
+            <select id="statusEditSelect" class="status-modal-select">
+                <option value="received">접수</option>
+                <option value="activating">개통중</option>
+                <option value="on_hold">보류</option>
+                <option value="cancelled">취소</option>
+                <option value="activation_completed">개통완료</option>
+                <option value="installation_completed">설치완료</option>
+            </select>
+        </div>
+        <div class="status-modal-actions">
+            <button type="button" class="status-modal-btn status-modal-btn-cancel" onclick="closeStatusEditModal()">취소</button>
+            <button type="button" class="status-modal-btn status-modal-btn-save" onclick="updateOrderStatus()">변경</button>
+        </div>
+    </div>
+</div>
+
 <?php include __DIR__ . '/../includes/seller-footer.php'; ?>
+

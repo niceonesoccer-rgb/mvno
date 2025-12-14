@@ -1785,7 +1785,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     // redirect_url이 있으면 해당 URL로 이동
                     if (data.redirect_url && data.redirect_url.trim() !== '') {
-                        window.location.href = data.redirect_url;
+                        let redirectUrl = data.redirect_url.trim();
+                        // URL이 프로토콜(http:// 또는 https://)을 포함하지 않으면 https:// 추가
+                        if (!/^https?:\/\//i.test(redirectUrl)) {
+                            redirectUrl = 'https://' + redirectUrl;
+                        }
+                        window.location.href = redirectUrl;
                     } else {
                         // redirect_url이 없으면 창 닫기
                         if (typeof showAlert === 'function') {
@@ -2534,7 +2539,12 @@ span.internet-checkbox-text {
                     
                     // redirect_url이 있으면 해당 URL로 이동
                     if (data.redirect_url && data.redirect_url.trim() !== '') {
-                        window.location.href = data.redirect_url;
+                        let redirectUrl = data.redirect_url.trim();
+                        // URL이 프로토콜(http:// 또는 https://)을 포함하지 않으면 https:// 추가
+                        if (!/^https?:\/\//i.test(redirectUrl)) {
+                            redirectUrl = 'https://' + redirectUrl;
+                        }
+                        window.location.href = redirectUrl;
                     } else {
                         // redirect_url이 없으면 창 닫기
                         if (typeof showAlert === 'function') {

@@ -68,7 +68,7 @@ try {
     }
     
     $sellerId = $product['seller_id'];
-    $redirectUrl = null; // MNO는 redirect_url 없음
+    $redirectUrl = !empty($product['redirect_url']) ? trim($product['redirect_url']) : null;
     
     // 로그인한 사용자 정보 가져오기 (이미 로그인 체크 완료)
     $currentUser = getCurrentUser();

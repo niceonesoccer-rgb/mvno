@@ -61,3 +61,4 @@ if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
 3. 세션 쿠키 `MVNO_SESSION`이 모든 페이지에서 동일한지 확인
 
 
+
