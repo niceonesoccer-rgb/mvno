@@ -928,8 +928,8 @@ function addProductApplication($productId, $sellerId, $productType, $customerDat
     try {
         $pdo->beginTransaction();
         
-        // 1. 신청 등록 (모든 상품 타입은 'received' 상태로 시작)
-        $initialStatus = 'received';
+        // 1. 신청 등록 (모든 상품 타입은 'pending' 상태로 시작)
+        $initialStatus = 'pending';
         $stmt = $pdo->prepare("
             INSERT INTO product_applications (product_id, seller_id, product_type, application_status)
             VALUES (:product_id, :seller_id, :product_type, :application_status)
@@ -1028,6 +1028,255 @@ function incrementProductView($productId) {
     } catch (PDOException $e) {
         error_log("Error incrementing view: " . $e->getMessage());
         return false;
+    }
+}
+
+/**
+ * 사용자의 MVNO 신청 내역 가져오기
+ * @param int $userId 사용자 ID
+ * @return array 신청 내역 배열
+ */
+function getUserMvnoApplications($userId) {
+    $pdo = getDBConnection();
+    if (!$pdo) {
+        return [];
+    }
+    
+    try {
+        $stmt = $pdo->prepare("
+            SELECT 
+                a.id as application_id,
+                a.product_id,
+                a.application_status,
+                a.created_at as order_date,
+                c.name,
+                c.phone,
+                c.email,
+                c.additional_info,
+                mvno.plan_name,
+                mvno.provider,
+                mvno.price_main,
+                mvno.price_after,
+                mvno.discount_period,
+                mvno.data_amount,
+                mvno.data_amount_value,
+                mvno.data_unit,
+                mvno.data_additional,
+                mvno.data_additional_value,
+                mvno.data_exhausted,
+                mvno.data_exhausted_value,
+                mvno.call_type,
+                mvno.call_amount,
+                mvno.sms_type,
+                mvno.sms_amount,
+                mvno.service_type,
+                mvno.promotions,
+                p.status as product_status
+            FROM product_applications a
+            INNER JOIN application_customers c ON a.id = c.application_id
+            INNER JOIN products p ON a.product_id = p.id
+            LEFT JOIN product_mvno_details mvno ON p.id = mvno.product_id
+            WHERE c.user_id = :user_id 
+            AND a.product_type = 'mvno'
+            ORDER BY a.created_at DESC
+        ");
+        $stmt->execute([':user_id' => $userId]);
+        $applications = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // 데이터 포맷팅
+        $formattedApplications = [];
+        foreach ($applications as $app) {
+            // additional_info 파싱
+            $additionalInfo = [];
+            if (!empty($app['additional_info'])) {
+                $additionalInfo = json_decode($app['additional_info'], true) ?: [];
+            }
+            
+            // 상품 스냅샷이 있으면 사용 (신청 당시 상품 정보)
+            $productSnapshot = $additionalInfo['product_snapshot'] ?? null;
+            if ($productSnapshot) {
+                // 스냅샷 데이터 사용
+                $planName = $productSnapshot['plan_name'] ?? $app['plan_name'] ?? '';
+                $provider = $productSnapshot['provider'] ?? $app['provider'] ?? '';
+                $priceMain = $productSnapshot['price_main'] ?? $app['price_main'] ?? 0;
+                $priceAfter = $productSnapshot['price_after'] ?? $app['price_after'] ?? null;
+                $discountPeriod = $productSnapshot['discount_period'] ?? $app['discount_period'] ?? '';
+                $dataAmount = $productSnapshot['data_amount'] ?? $app['data_amount'] ?? '';
+                $dataAmountValue = $productSnapshot['data_amount_value'] ?? $app['data_amount_value'] ?? '';
+                $dataUnit = $productSnapshot['data_unit'] ?? $app['data_unit'] ?? '';
+                $dataAdditional = $productSnapshot['data_additional'] ?? $app['data_additional'] ?? '';
+                $dataAdditionalValue = $productSnapshot['data_additional_value'] ?? $app['data_additional_value'] ?? '';
+                $dataExhausted = $productSnapshot['data_exhausted'] ?? $app['data_exhausted'] ?? '';
+                $dataExhaustedValue = $productSnapshot['data_exhausted_value'] ?? $app['data_exhausted_value'] ?? '';
+                $callType = $productSnapshot['call_type'] ?? $app['call_type'] ?? '';
+                $callAmount = $productSnapshot['call_amount'] ?? $app['call_amount'] ?? '';
+                $smsType = $productSnapshot['sms_type'] ?? $app['sms_type'] ?? '';
+                $smsAmount = $productSnapshot['sms_amount'] ?? $app['sms_amount'] ?? '';
+                $serviceType = $productSnapshot['service_type'] ?? $app['service_type'] ?? '';
+                $promotions = $productSnapshot['promotions'] ?? $app['promotions'] ?? '';
+            } else {
+                // 현재 상품 정보 사용
+                $planName = $app['plan_name'] ?? '';
+                $provider = $app['provider'] ?? '';
+                $priceMain = $app['price_main'] ?? 0;
+                $priceAfter = $app['price_after'] ?? null;
+                $discountPeriod = $app['discount_period'] ?? '';
+                $dataAmount = $app['data_amount'] ?? '';
+                $dataAmountValue = $app['data_amount_value'] ?? '';
+                $dataUnit = $app['data_unit'] ?? '';
+                $dataAdditional = $app['data_additional'] ?? '';
+                $dataAdditionalValue = $app['data_additional_value'] ?? '';
+                $dataExhausted = $app['data_exhausted'] ?? '';
+                $dataExhaustedValue = $app['data_exhausted_value'] ?? '';
+                $callType = $app['call_type'] ?? '';
+                $callAmount = $app['call_amount'] ?? '';
+                $smsType = $app['sms_type'] ?? '';
+                $smsAmount = $app['sms_amount'] ?? '';
+                $serviceType = $app['service_type'] ?? '';
+                $promotions = $app['promotions'] ?? '';
+            }
+            
+            // 데이터 제공량 포맷팅
+            $dataMain = '';
+            if (!empty($dataAmount)) {
+                if ($dataAmount === '무제한') {
+                    $dataMain = '무제한';
+                } elseif ($dataAmount === '직접입력' && !empty($dataAmountValue)) {
+                    $dataMain = '월 ' . number_format((float)$dataAmountValue) . $dataUnit;
+                } else {
+                    $dataMain = $dataAmount;
+                }
+                
+                if (!empty($dataAdditional) && $dataAdditional !== '없음') {
+                    if ($dataAdditional === '직접입력' && !empty($dataAdditionalValue)) {
+                        $dataMain .= ' + ' . $dataAdditionalValue;
+                    } else {
+                        $dataMain .= ' + ' . $dataAdditional;
+                    }
+                }
+                
+                if (!empty($dataExhausted) && $dataExhausted !== '직접입력') {
+                    $dataMain .= ' + ' . $dataExhausted;
+                } elseif (!empty($dataExhausted) && $dataExhausted === '직접입력' && !empty($dataExhaustedValue)) {
+                    $dataMain .= ' + ' . $dataExhaustedValue;
+                }
+            }
+            
+            // 기능 배열 생성
+            $features = [];
+            if (!empty($callType)) {
+                if ($callType === '무제한') {
+                    $features[] = '통화 무제한';
+                } elseif ($callType === '기본제공') {
+                    $features[] = '통화 기본제공';
+                } elseif ($callType === '직접입력' && !empty($callAmount)) {
+                    $features[] = '통화 ' . number_format((float)$callAmount) . '분';
+                }
+            }
+            
+            if (!empty($smsType)) {
+                if ($smsType === '무제한') {
+                    $features[] = '문자 무제한';
+                } elseif ($smsType === '기본제공') {
+                    $features[] = '문자 기본제공';
+                } elseif ($smsType === '직접입력' && !empty($smsAmount)) {
+                    $features[] = '문자 ' . number_format((float)$smsAmount) . '건';
+                }
+            }
+            
+            if (!empty($provider)) {
+                $features[] = $provider;
+            }
+            
+            if (!empty($serviceType)) {
+                $features[] = $serviceType;
+            }
+            
+            // 가격 포맷팅
+            $priceMainFormatted = '';
+            if ($priceAfter !== null && $priceAfter !== '' && $priceAfter !== '0') {
+                $priceMainFormatted = '월 ' . number_format((float)$priceAfter) . '원';
+            } else {
+                $priceMainFormatted = '월 ' . number_format((float)$priceMain) . '원';
+            }
+            
+            $priceAfterFormatted = '';
+            if (!empty($discountPeriod)) {
+                $priceAfterFormatted = $discountPeriod . ' 이후 월 ' . number_format((float)$priceMain) . '원';
+            } else {
+                $priceAfterFormatted = '월 ' . number_format((float)$priceMain) . '원';
+            }
+            
+            // 프로모션 파싱
+            $gifts = [];
+            if (!empty($promotions)) {
+                $promotionsArray = json_decode($promotions, true);
+                if (is_array($promotionsArray)) {
+                    $gifts = array_filter($promotionsArray, function($p) {
+                        return !empty(trim($p));
+                    });
+                }
+            }
+            
+            // 리뷰 작성 여부 확인
+            $hasReview = false;
+            $rating = '';
+            if (!empty($app['product_id'])) {
+                $reviewStmt = $pdo->prepare("
+                    SELECT COUNT(*) as count
+                    FROM product_reviews
+                    WHERE product_id = :product_id 
+                    AND user_id = :user_id 
+                    AND status = 'approved'
+                ");
+                $reviewStmt->execute([
+                    ':product_id' => $app['product_id'],
+                    ':user_id' => $userId
+                ]);
+                $reviewResult = $reviewStmt->fetch(PDO::FETCH_ASSOC);
+                $hasReview = ($reviewResult['count'] ?? 0) > 0;
+                
+                // 평균 별점 가져오기
+                require_once __DIR__ . '/plan-data.php';
+                $averageRating = getProductAverageRating($app['product_id'], 'mvno');
+                $rating = $averageRating > 0 ? number_format($averageRating, 1) : '';
+            }
+            
+            // 상태 한글 변환
+            $statusMap = [
+                'pending' => '접수완료',
+                'processing' => '처리중',
+                'completed' => '완료',
+                'cancelled' => '취소',
+                'rejected' => '거부'
+            ];
+            $statusKor = $statusMap[$app['application_status']] ?? $app['application_status'];
+            
+            $formattedApplications[] = [
+                'id' => (int)$app['product_id'],
+                'application_id' => (int)$app['application_id'],
+                'provider' => $provider,
+                'rating' => $rating,
+                'title' => $planName,
+                'data_main' => $dataMain ?: '데이터 정보 없음',
+                'features' => $features,
+                'price_main' => $priceMainFormatted,
+                'price_after' => $priceAfterFormatted,
+                'gifts' => $gifts,
+                'gift_count' => count($gifts),
+                'order_date' => date('Y.m.d', strtotime($app['order_date'])),
+                'activation_date' => '', // 개통일은 별도 관리 필요
+                'has_review' => $hasReview,
+                'is_sold_out' => ($app['product_status'] ?? 'active') !== 'active',
+                'status' => $statusKor,
+                'application_status' => $app['application_status']
+            ];
+        }
+        
+        return $formattedApplications;
+    } catch (PDOException $e) {
+        error_log("Error fetching user MVNO applications: " . $e->getMessage());
+        return [];
     }
 }
 

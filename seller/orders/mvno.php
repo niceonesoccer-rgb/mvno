@@ -1090,13 +1090,27 @@ function showProductInfo(order, productType) {
     
     if (productType === 'mvno') {
         const additionalInfo = order.additional_info || {};
+        const productSnapshot = additionalInfo.product_snapshot || {};
         
-        // 고객이 가입한 정보를 우선 사용, 없으면 상품 기본 정보 사용
-        const getValue = (customerKey, productKey, defaultValue = '-') => {
-            if (additionalInfo[customerKey] !== undefined && additionalInfo[customerKey] !== null && additionalInfo[customerKey] !== '') {
-                return additionalInfo[customerKey];
+        // 고객이 가입한 정보를 우선 사용 (product_snapshot에서), 없으면 상품 기본 정보 사용
+        const getValue = (customerKey, productKey, defaultValue = null) => {
+            // product_snapshot에서 먼저 확인
+            if (productSnapshot[customerKey] !== undefined && productSnapshot[customerKey] !== null) {
+                const value = productSnapshot[customerKey];
+                // 빈 문자열도 유효한 값으로 처리 (빈 문자열이면 빈 문자열 반환)
+                return value;
             }
-            return order[productKey] || defaultValue;
+            // additionalInfo에서 확인
+            if (additionalInfo[customerKey] !== undefined && additionalInfo[customerKey] !== null) {
+                const value = additionalInfo[customerKey];
+                return value;
+            }
+            // order에서 확인
+            if (order[productKey] !== undefined && order[productKey] !== null) {
+                return order[productKey];
+            }
+            // 기본값 반환 (null이면 빈 문자열 반환)
+            return defaultValue !== null ? defaultValue : '';
         };
         
         // 가입 형태
@@ -1115,11 +1129,27 @@ function showProductInfo(order, productType) {
         
         // 통신망 (provider)
         const provider = getValue('provider', 'provider');
-        const providerLabel = provider ? provider + (serviceTypeLabel !== '-' ? '알뜰폰' : '') : '-';
+        // provider 값이 이미 "알뜰폰"을 포함하고 있으면 추가하지 않음
+        let providerLabel = '-';
+        if (provider) {
+            if (provider.includes('알뜰폰')) {
+                providerLabel = provider;
+            } else {
+                providerLabel = provider + (serviceTypeLabel !== '-' ? '알뜰폰' : '');
+            }
+        }
         
         // 약정기간
         const contractPeriod = getValue('contract_period', 'contract_period');
-        const contractPeriodLabel = contractPeriod === 'none' || contractPeriod === '무약정' ? '무약정' : contractPeriod || '-';
+        const contractPeriodDays = order.contract_period_days ? parseInt(order.contract_period_days) : 0;
+        let contractPeriodLabel = '-';
+        if (contractPeriod === '무약정' || contractPeriod === 'none') {
+            contractPeriodLabel = '무약정';
+        } else if (contractPeriodDays > 0) {
+            contractPeriodLabel = contractPeriodDays + '일';
+        } else if (contractPeriod) {
+            contractPeriodLabel = contractPeriod;
+        }
         
         // 가입 형태 (신규, 번이, 기변)
         const subscriptionTypes = [];
@@ -1132,45 +1162,80 @@ function showProductInfo(order, productType) {
         const dataAmount = getValue('data_amount', 'data_amount');
         const dataAmountValue = getValue('data_amount_value', 'data_amount_value');
         const dataUnit = getValue('data_unit', 'data_unit');
-        const dataAmountLabel = dataAmountValue && dataUnit ? '월 ' + dataAmountValue + dataUnit : 
-                               dataAmount ? '월 ' + dataAmount : '-';
+        let dataAmountLabel = '-';
+        if (dataAmountValue && dataAmountValue !== '-' && dataUnit && dataUnit !== '-') {
+            dataAmountLabel = '월 ' + dataAmountValue + dataUnit;
+        } else if (dataAmount && dataAmount !== '-') {
+            dataAmountLabel = '월 ' + dataAmount;
+        }
         
         // 데이터 추가제공
         const dataAdditional = getValue('data_additional', 'data_additional');
         const dataAdditionalValue = getValue('data_additional_value', 'data_additional_value');
-        const dataAdditionalLabel = dataAdditional && dataAdditionalValue ? dataAdditional + ' ' + dataAdditionalValue : 
-                                   dataAdditional || '-';
+        let dataAdditionalLabel = '-';
+        if (dataAdditional === '직접입력' && dataAdditionalValue) {
+            dataAdditionalLabel = dataAdditionalValue;
+        } else if (dataAdditional && dataAdditional !== '없음') {
+            dataAdditionalLabel = dataAdditional;
+        } else {
+            dataAdditionalLabel = '없음';
+        }
         
         // 데이터 소진시
         const dataExhausted = getValue('data_exhausted', 'data_exhausted');
         const dataExhaustedValue = getValue('data_exhausted_value', 'data_exhausted_value');
-        const dataExhaustedLabel = dataExhaustedValue ? dataExhaustedValue + (dataExhausted ? ' ' + dataExhausted : '') : 
-                                  dataExhausted || '-';
+        let dataExhaustedLabel = '-';
+        if (dataExhaustedValue && dataExhaustedValue !== '-') {
+            dataExhaustedLabel = dataExhaustedValue + (dataExhausted && dataExhausted !== '-' ? ' ' + dataExhausted : '');
+        } else if (dataExhausted && dataExhausted !== '-') {
+            dataExhaustedLabel = dataExhausted;
+        }
         
         // 통화
         const callType = getValue('call_type', 'call_type');
         const callAmount = getValue('call_amount', 'call_amount');
-        const callLabel = callType && callAmount ? callType + ' ' + callAmount : 
-                         callType === '무제한' || callType === '기본제공' ? callType : '-';
+        let callLabel = '-';
+        if (callType) {
+            if (callAmount && callAmount !== '-') {
+                callLabel = callType + ' ' + callAmount;
+            } else {
+                callLabel = callType;
+            }
+        }
         
         // 부가통화
         const additionalCallType = getValue('additional_call_type', 'additional_call_type');
         const additionalCall = getValue('additional_call', 'additional_call');
-        const additionalCallLabel = additionalCallType && additionalCall ? additionalCallType + ' ' + additionalCall : 
-                                    additionalCallType === '없음' ? '없음' : '-';
+        let additionalCallLabel = '-';
+        if (additionalCallType) {
+            if (additionalCall && additionalCall !== '-') {
+                additionalCallLabel = additionalCallType + ' ' + additionalCall;
+            } else {
+                additionalCallLabel = additionalCallType;
+            }
+        }
         
         // 문자
         const smsType = getValue('sms_type', 'sms_type');
         const smsAmount = getValue('sms_amount', 'sms_amount');
-        const smsLabel = smsType && smsAmount ? smsType + ' ' + smsAmount : 
-                        smsType === '무제한' ? '무제한' : '-';
+        let smsLabel = '-';
+        if (smsType) {
+            if (smsAmount && smsAmount !== '-') {
+                smsLabel = smsType + ' ' + smsAmount;
+            } else {
+                smsLabel = smsType;
+            }
+        }
         
         // 테더링(핫스팟)
         const mobileHotspot = getValue('mobile_hotspot', 'mobile_hotspot');
         const mobileHotspotValue = getValue('mobile_hotspot_value', 'mobile_hotspot_value');
-        const mobileHotspotLabel = mobileHotspotValue ? mobileHotspotValue + (mobileHotspot ? ' ' + mobileHotspot : '') : 
-                                   mobileHotspot === '기본 제공량 내에서 사용' ? '기본 제공량 내에서 사용' : 
-                                   mobileHotspot || '-';
+        let mobileHotspotLabel = '-';
+        if (mobileHotspotValue && mobileHotspotValue !== '-') {
+            mobileHotspotLabel = mobileHotspotValue + (mobileHotspot && mobileHotspot !== '-' ? ' ' + mobileHotspot : '');
+        } else if (mobileHotspot && mobileHotspot !== '-') {
+            mobileHotspotLabel = mobileHotspot;
+        }
         
         // 유심 정보
         const regularSimAvailable = getValue('regular_sim_available', 'regular_sim_available');
@@ -1252,6 +1317,7 @@ function showProductInfo(order, productType) {
         addRowIfNotDash(dataInfoRows, '통화', callLabel);
         addRowIfNotDash(dataInfoRows, '문자', smsLabel);
         addRowIfNotDash(dataInfoRows, '데이터 제공량', dataAmountLabel);
+        addRowIfNotDash(dataInfoRows, '데이터 추가제공', dataAdditionalLabel);
         addRowIfNotDash(dataInfoRows, '데이터 소진시', dataExhaustedLabel);
         addRowIfNotDash(dataInfoRows, '부가통화', additionalCallLabel);
         addRowIfNotDash(dataInfoRows, '테더링(핫스팟)', mobileHotspotLabel);

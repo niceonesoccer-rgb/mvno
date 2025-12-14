@@ -78,7 +78,17 @@ if (!$plan) {
                             <div class="plan-detail-value">
                                 <?php 
                                 $contractPeriod = $rawData['contract_period'] ?? '';
-                                echo htmlspecialchars($contractPeriod ?: '없음'); 
+                                $contractPeriodDays = isset($rawData['contract_period_days']) ? intval($rawData['contract_period_days']) : 0;
+                                
+                                if ($contractPeriod === '무약정' || $contractPeriod === 'none') {
+                                    echo '무약정';
+                                } elseif ($contractPeriodDays > 0) {
+                                    echo htmlspecialchars($contractPeriodDays . '일');
+                                } elseif ($contractPeriod) {
+                                    echo htmlspecialchars($contractPeriod);
+                                } else {
+                                    echo '없음';
+                                }
                                 ?>
                             </div>
                         </div>
@@ -133,14 +143,12 @@ if (!$plan) {
                                 <?php
                                 $callType = $rawData['call_type'] ?? '';
                                 $callAmount = $rawData['call_amount'] ?? '';
-                                if ($callType === '무제한') {
-                                    echo '무제한';
-                                } elseif ($callType === '기본제공') {
-                                    echo '기본제공';
-                                } elseif ($callType === '직접입력' && !empty($callAmount)) {
+                                if ($callType === '직접입력' && !empty($callAmount)) {
                                     echo number_format((float)$callAmount) . '분';
+                                } elseif (!empty($callType)) {
+                                    echo htmlspecialchars($callType);
                                 } else {
-                                    echo htmlspecialchars($callType ?: '정보 없음');
+                                    echo '정보 없음';
                                 }
                                 ?>
                             </div>
@@ -151,14 +159,12 @@ if (!$plan) {
                                 <?php
                                 $smsType = $rawData['sms_type'] ?? '';
                                 $smsAmount = $rawData['sms_amount'] ?? '';
-                                if ($smsType === '무제한') {
-                                    echo '무제한';
-                                } elseif ($smsType === '기본제공') {
-                                    echo '기본제공';
-                                } elseif ($smsType === '직접입력' && !empty($smsAmount)) {
+                                if ($smsType === '직접입력' && !empty($smsAmount)) {
                                     echo number_format((float)$smsAmount) . '건';
+                                } elseif (!empty($smsType)) {
+                                    echo htmlspecialchars($smsType);
                                 } else {
-                                    echo htmlspecialchars($smsType ?: '정보 없음');
+                                    echo '정보 없음';
                                 }
                                 ?>
                             </div>
@@ -170,22 +176,39 @@ if (!$plan) {
                                 $dataAmount = $rawData['data_amount'] ?? '';
                                 $dataAmountValue = $rawData['data_amount_value'] ?? '';
                                 $dataUnit = $rawData['data_unit'] ?? '';
-                                if ($dataAmount === '무제한') {
-                                    echo '무제한';
-                                } elseif ($dataAmount === '직접입력' && !empty($dataAmountValue)) {
+                                if ($dataAmount === '직접입력' && !empty($dataAmountValue)) {
                                     // 직접입력인 경우: 값 + 단위 표시
                                     $displayValue = '월 ' . number_format((float)$dataAmountValue);
                                     if (!empty($dataUnit)) {
                                         $displayValue .= $dataUnit;
                                     }
                                     echo $displayValue;
-                                } else {
-                                    // 선택 옵션인 경우에도 단위 표시
-                                    $displayValue = htmlspecialchars($dataAmount ?: '정보 없음');
-                                    if (!empty($dataUnit) && $dataAmount !== '무제한' && $dataAmount !== '') {
+                                } elseif (!empty($dataAmount)) {
+                                    // 그 외는 type 값 그대로 표시 (무제한 등)
+                                    $displayValue = htmlspecialchars($dataAmount);
+                                    // 단위가 있고 무제한이 아닌 경우에만 단위 추가
+                                    if (!empty($dataUnit) && $dataAmount !== '무제한') {
                                         $displayValue .= ' ' . htmlspecialchars($dataUnit);
                                     }
                                     echo $displayValue;
+                                } else {
+                                    echo '정보 없음';
+                                }
+                                ?>
+                            </div>
+                        </div>
+                        <div class="plan-detail-item">
+                            <div class="plan-detail-label">데이터 추가제공</div>
+                            <div class="plan-detail-value">
+                                <?php
+                                $dataAdditional = $rawData['data_additional'] ?? '';
+                                $dataAdditionalValue = $rawData['data_additional_value'] ?? '';
+                                if ($dataAdditional === '직접입력' && !empty($dataAdditionalValue)) {
+                                    echo htmlspecialchars($dataAdditionalValue);
+                                } elseif (!empty($dataAdditional)) {
+                                    echo htmlspecialchars($dataAdditional);
+                                } else {
+                                    echo '없음';
                                 }
                                 ?>
                             </div>
@@ -212,8 +235,10 @@ if (!$plan) {
                                 <?php
                                 $additionalCallType = $rawData['additional_call_type'] ?? '';
                                 $additionalCall = $rawData['additional_call'] ?? '';
-                                if (!empty($additionalCallType) && !empty($additionalCall)) {
+                                if ($additionalCallType === '직접입력' && !empty($additionalCall)) {
                                     echo number_format((float)$additionalCall) . '분';
+                                } elseif (!empty($additionalCallType)) {
+                                    echo htmlspecialchars($additionalCallType);
                                 } else {
                                     echo '없음';
                                 }
@@ -1841,10 +1866,6 @@ $item_name = $plan['title'] ?? '알뜰폰 요금제';
 include '../includes/components/point-usage-modal.php';
 ?>
 
-<?php include '../includes/footer.php'; ?>
-<script src="/MVNO/assets/js/favorite-heart.js" defer></script>
-<script src="/MVNO/assets/js/point-usage-integration.js" defer></script>
-
 <style>
 /* 체크박스 스타일 (인터넷 신청과 동일) */
 /* 아코디언 텍스트 크기를 플랜 카드 기능 텍스트와 동일하게 설정 */
@@ -2216,672 +2237,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-<script>
-// 신청하기 버튼에 포인트 모달 연동
-document.addEventListener('DOMContentLoaded', function() {
-    const applyBtn = document.getElementById('planApplyBtn');
-    if (applyBtn) {
-        applyBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            // 포인트 모달 열기
-            const modalId = 'pointUsageModal_mvno_<?php echo $plan_id; ?>';
-            const modal = document.getElementById(modalId);
-            if (modal && typeof openPointUsageModal === 'function') {
-                openPointUsageModal('mvno', <?php echo $plan_id; ?>);
-            } else if (modal) {
-                modal.classList.add('show');
-                document.body.style.overflow = 'hidden';
-            }
-        });
-    }
-    
-    // 포인트 사용 확인 후 기존 신청 모달 열기
-    document.addEventListener('pointUsageConfirmed', function(e) {
-        const { type, itemId } = e.detail;
-        if (type === 'mvno' && itemId === <?php echo $plan_id; ?>) {
-            openApplyModal();
-        }
-    });
-});
-</script>
-
-
-        if (!mvnoPrivacyModal) return;
-        
-        mvnoPrivacyModal.classList.remove('privacy-content-modal-active');
-        mvnoPrivacyModal.style.display = 'none';
-        document.body.style.overflow = '';
-    }
-    
-    // MVNO 개인정보 내용보기 버튼 클릭 이벤트
-    const mvnoViewBtns = document.querySelectorAll('#mvnoApplicationForm .consultation-agreement-view-btn');
-    mvnoViewBtns.forEach(btn => {
-        btn.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            const type = this.getAttribute('data-agreement');
-            openMvnoPrivacyModal(type);
-        });
-    });
-    
-    // MVNO 개인정보 내용보기 모달 닫기 이벤트
-    if (mvnoPrivacyModalOverlay) {
-        mvnoPrivacyModalOverlay.addEventListener('click', closeMvnoPrivacyModal);
-    }
-    
-    if (mvnoPrivacyModalClose) {
-        mvnoPrivacyModalClose.addEventListener('click', closeMvnoPrivacyModal);
-    }
-
-    if (applyModalOverlay) {
-        applyModalOverlay.addEventListener('click', closeApplyModal);
-        // 터치 스크롤 방지
-        applyModalOverlay.addEventListener('touchmove', function(e) {
-            e.preventDefault();
-        }, { passive: false });
-    }
-    
-    // 모달이 열려있을 때 배경 스크롤 방지
-    if (applyModal) {
-        applyModal.addEventListener('touchmove', function(e) {
-            // 모달 콘텐츠 내부가 아닌 경우에만 preventDefault
-            if (e.target === applyModal || e.target === applyModalOverlay) {
-                e.preventDefault();
-            }
-        }, { passive: false });
-    }
-
-    if (applyModalClose) {
-        applyModalClose.addEventListener('click', closeApplyModal);
-    }
-    
-    // ESC 키로 모달 닫기
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            if (mvnoPrivacyModal && mvnoPrivacyModal.classList.contains('privacy-content-modal-active')) {
-                closeMvnoPrivacyModal();
-            } else if (applyModal && applyModal.classList.contains('apply-modal-active')) {
-                closeApplyModal();
-            } else if (reviewModal && reviewModal.classList.contains('review-modal-active')) {
-                closeReviewModal();
-            }
-        }
-    });
-
-    // 메인 페이지 리뷰: 처음 5개만 표시
-    const planReviewList = document.querySelector('.plan-review-list');
-    if (planReviewList) {
-        const reviewItems = planReviewList.querySelectorAll('.plan-review-item');
-        const totalReviews = reviewItems.length;
-        
-        // 초기 설정: 5개 이후 리뷰 숨기기
-        reviewItems.forEach((item, index) => {
-            if (index >= 5) {
-                item.style.display = 'none';
-            }
-        });
-    }
-
-    // 리뷰 모달 기능
-    const reviewModal = document.getElementById('reviewModal');
-    const reviewModalOverlay = document.getElementById('reviewModalOverlay');
-    const reviewModalClose = document.getElementById('reviewModalClose');
-    const reviewModalMoreBtn = document.querySelector('.review-modal-more-btn');
-    const reviewModalList = document.querySelector('.review-modal-list');
-    const planReviewMoreBtn = document.getElementById('planReviewMoreBtn');
-    
-    // 모달 열기 함수
-    function openReviewModal() {
-        if (reviewModal) {
-            reviewModal.classList.add('review-modal-active');
-            document.body.classList.add('review-modal-open');
-            document.body.style.overflow = 'hidden';
-            document.documentElement.style.overflow = 'hidden';
-        }
-    }
-    
-    // 모달 닫기 함수
-    function closeReviewModal() {
-        if (reviewModal) {
-            reviewModal.classList.remove('review-modal-active');
-            document.body.classList.remove('review-modal-open');
-            document.body.style.overflow = '';
-            document.documentElement.style.overflow = '';
-        }
-    }
-    
-    // 리뷰 아이템 클릭 시 모달 열기
-    if (planReviewList) {
-        const reviewItems = planReviewList.querySelectorAll('.plan-review-item');
-        reviewItems.forEach(item => {
-            item.style.cursor = 'pointer';
-            item.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                openReviewModal();
-            });
-        });
-    }
-    
-    // 더보기 버튼 클릭 시 모달 열기
-    if (planReviewMoreBtn) {
-        planReviewMoreBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            openReviewModal();
-        });
-    }
-    
-    // 모달 내부 더보기 기능: 처음 5개, 이후 10개씩 표시
-    if (reviewModalList && reviewModalMoreBtn) {
-        const modalReviewItems = reviewModalList.querySelectorAll('.review-modal-item');
-        const totalModalReviews = modalReviewItems.length;
-        let visibleModalCount = 5; // 처음 5개만 표시
-        
-        // 초기 설정: 5개 이후 리뷰 숨기기
-        function initializeModalReviews() {
-            visibleModalCount = 5; // 모달 열 때마다 5개로 초기화
-            modalReviewItems.forEach((item, index) => {
-                if (index >= visibleModalCount) {
-                    item.style.display = 'none';
-                } else {
-                    item.style.display = 'block';
-                }
-            });
-            
-            // 모든 리뷰가 이미 표시되어 있으면 버튼 숨기기
-            if (totalModalReviews <= visibleModalCount) {
-                reviewModalMoreBtn.style.display = 'none';
-            } else {
-                reviewModalMoreBtn.style.display = 'block';
-            }
-        }
-        
-        // 초기 설정 실행
-        initializeModalReviews();
-        
-        // 모달이 열릴 때마다 초기화 (MutationObserver 또는 이벤트 리스너 사용)
-        if (reviewModal) {
-            // 모달이 열릴 때를 감지하기 위해 클래스 변경 감지
-            const observer = new MutationObserver(function(mutations) {
-                mutations.forEach(function(mutation) {
-                    if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
-                        if (reviewModal.classList.contains('review-modal-active')) {
-                            initializeModalReviews(); // 모달 열 때마다 5개로 초기화
-                        }
-                    }
-                });
-            });
-            observer.observe(reviewModal, { attributes: true });
-        }
-        
-        // 모달 내부 더보기 버튼 클릭 이벤트
-        reviewModalMoreBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            visibleModalCount += 10; // 10개씩 추가
-            
-            // 리뷰 표시
-            modalReviewItems.forEach((item, index) => {
-                if (index < visibleModalCount) {
-                    item.style.display = 'block';
-                }
-            });
-            
-            // 모든 리뷰가 표시되면 버튼 숨기기
-            if (visibleModalCount >= totalModalReviews) {
-                reviewModalMoreBtn.style.display = 'none';
-            }
-        });
-    }
-    
-    // 리뷰 정렬 선택 기능 (페이지 리뷰)
-    const planReviewSortSelect = document.getElementById('planReviewSortSelect');
-    if (planReviewSortSelect) {
-        planReviewSortSelect.addEventListener('change', function() {
-            const sort = this.value;
-            const url = new URL(window.location.href);
-            url.searchParams.set('review_sort', sort);
-            window.location.href = url.toString();
-        });
-    }
-    
-    // 리뷰 정렬 선택 기능 (모달)
-    const reviewSortSelect = document.getElementById('reviewSortSelect');
-    if (reviewSortSelect) {
-        reviewSortSelect.addEventListener('change', function() {
-            const sort = this.value;
-            const url = new URL(window.location.href);
-            url.searchParams.set('review_sort', sort);
-            window.location.href = url.toString();
-        });
-    }
-    
-    // 모달 닫기 이벤트
-    if (reviewModalOverlay) {
-        reviewModalOverlay.addEventListener('click', closeReviewModal);
-    }
-    
-    if (reviewModalClose) {
-        reviewModalClose.addEventListener('click', closeReviewModal);
-    }
-    
-});
-</script>
-
-<?php
-// 포인트 사용 모달 포함
-$type = 'mvno';
-$item_id = $plan_id;
-$item_name = $plan['title'] ?? '알뜰폰 요금제';
-include '../includes/components/point-usage-modal.php';
-?>
-
-<?php include '../includes/footer.php'; ?>
 <script src="/MVNO/assets/js/favorite-heart.js" defer></script>
 <script src="/MVNO/assets/js/point-usage-integration.js" defer></script>
 
-<style>
-/* 체크박스 스타일 (인터넷 신청과 동일) */
-/* 아코디언 텍스트 크기를 플랜 카드 기능 텍스트와 동일하게 설정 */
-.internet-checkbox-group .internet-checkbox-text,
-.internet-checkbox-label-item .internet-checkbox-text,
-span.internet-checkbox-text {
-    font-size: 1.0625rem !important; /* 17px - 플랜 카드의 "통화 기본제공 | 문자 무제한 | KT알뜰폰 | 5G" 텍스트와 동일한 크기 */
-    font-weight: 500 !important;
-}
-
-.internet-checkbox-group {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-
-.internet-checkbox-all {
-    display: inline-flex;
-    align-items: center;
-    cursor: pointer;
-    gap: 0.5rem;
-}
-
-.internet-checkbox-all .internet-checkbox-label {
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: #374151;
-    flex: 1;
-}
-
-.internet-checkbox-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    margin-left: 2rem;
-}
-
-.internet-checkbox-item-wrapper {
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-}
-
-.internet-checkbox-item {
-    display: flex;
-    align-items: center;
-    width: 100%;
-}
-
-.internet-checkbox-label-item {
-    display: flex;
-    align-items: center;
-    cursor: pointer;
-    flex: 1;
-}
-
-.internet-checkbox-input-item {
-    width: 18px;
-    height: 18px;
-    margin: 0;
-    cursor: pointer;
-    appearance: none;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    border-radius: 50%;
-    border: 2px solid #d1d5db;
-    background-color: #f3f4f6;
-    position: relative;
-    transition: all 0.2s ease;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-}
-
-.internet-checkbox-input-item:hover {
-    border-color: #9ca3af;
-    background-color: #e5e7eb;
-}
-
-.internet-checkbox-input-item:checked {
-    background-color: #6366f1;
-    border-color: #6366f1;
-    box-shadow: 0 1px 3px rgba(99, 102, 241, 0.3);
-}
-
-.internet-checkbox-input-item:checked::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -55%) rotate(45deg);
-    width: 5px;
-    height: 9px;
-    border: solid white;
-    border-width: 0 2px 2px 0;
-    border-radius: 1px;
-}
-
-/* 전체동의 원형 체크박스 */
-.internet-checkbox-all .internet-checkbox-input {
-    width: 20px;
-    height: 20px;
-    margin: 0;
-    cursor: pointer;
-    appearance: none;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    border-radius: 50%;
-    border: 2px solid #d1d5db;
-    background-color: #f3f4f6;
-    position: relative;
-    transition: all 0.2s ease;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-}
-
-.internet-checkbox-all .internet-checkbox-input:hover {
-    border-color: #9ca3af;
-    background-color: #e5e7eb;
-}
-
-.internet-checkbox-all .internet-checkbox-input:checked {
-    background-color: #6366f1;
-    border-color: #6366f1;
-    box-shadow: 0 1px 3px rgba(99, 102, 241, 0.3);
-}
-
-.internet-checkbox-all .internet-checkbox-input:checked::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -55%) rotate(45deg);
-    width: 5px;
-    height: 9px;
-    border: solid white;
-    border-width: 0 2px 2px 0;
-    border-radius: 1px;
-}
-
-.internet-checkbox-text {
-    font-size: 1.0625rem !important; /* 17px - 플랜 카드의 "통화 기본제공 | 문자 무제한 | KT알뜰폰 | 5G" 텍스트와 동일한 크기 */
-    font-weight: 500 !important;
-    color: #6b7280;
-    margin-left: 0.5rem;
-}
-
-/* 더 구체적인 선택자로 확실하게 적용 */
-.internet-checkbox-label-item .internet-checkbox-text {
-    font-size: 1.0625rem !important; /* 17px */
-    font-weight: 500 !important;
-}
-
-.internet-checkbox-link {
-    margin-left: auto;
-    color: #6b7280;
-    display: flex;
-    align-items: center;
-    text-decoration: none;
-}
-
-.internet-checkbox-link svg {
-    width: 16px;
-    height: 16px;
-    transition: transform 0.3s ease;
-}
-
-.internet-checkbox-link svg.arrow-down {
-    transform: rotate(0deg);
-}
-
-.internet-checkbox-link:hover {
-    color: #374151;
-}
-
-.internet-checkbox-link.arrow-up svg {
-    transform: rotate(180deg);
-}
-
-/* 아코디언 스타일 */
-.internet-accordion-content {
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height 0.3s ease-out;
-    margin-top: 0;
-    margin-left: 2rem;
-}
-
-.internet-accordion-content.active {
-    max-height: none;
-    overflow: visible;
-    transition: max-height 0.4s ease-in;
-    margin-top: 0.75rem;
-}
-
-.internet-accordion-inner {
-    background-color: #f9fafb;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    padding: 1rem;
-}
-
-.internet-accordion-title {
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: #374151;
-    margin-bottom: 0.75rem;
-    padding-bottom: 0.75rem;
-    border-bottom: 1px solid #e5e7eb;
-}
-
-.internet-accordion-section {
-    margin-bottom: 0.75rem;
-}
-
-.internet-accordion-section:last-child {
-    margin-bottom: 0;
-}
-
-.internet-accordion-section-title {
-    font-size: 0.8125rem;
-    font-weight: 600;
-    color: #4b5563;
-    margin-bottom: 0.5rem;
-}
-
-.internet-accordion-section-content {
-    font-size: 0.8125rem;
-    color: #6b7280;
-    line-height: 1.6;
-    padding-left: 0.5rem;
-}
-
-@media (max-width: 767px) {
-    .internet-checkbox-list {
-        margin-left: 1.5rem;
-    }
-}
-</style>
-
-<?php
-// 리뷰 작성 모달 포함
-$prefix = 'plan';
-$speedLabel = '개통 빨라요';
-$formId = 'planReviewForm';
-$modalId = 'planReviewModal';
-$textareaId = 'planReviewText';
-include '../includes/components/order-review-modal.php';
-?>
-
-<script>
-// 리뷰 작성 기능
-document.addEventListener('DOMContentLoaded', function() {
-    const reviewWriteBtn = document.getElementById('planReviewWriteBtn');
-    const reviewModal = document.getElementById('planReviewModal');
-    const reviewForm = document.getElementById('planReviewForm');
-    const reviewModalOverlay = reviewModal ? reviewModal.querySelector('.plan-review-modal-overlay') : null;
-    const reviewModalClose = reviewModal ? reviewModal.querySelector('.plan-review-modal-close') : null;
-    
-    if (!reviewWriteBtn || !reviewModal || !reviewForm) {
-        return;
-    }
-    
-    // 리뷰 작성 버튼 클릭
-    reviewWriteBtn.addEventListener('click', function() {
-        reviewModal.style.display = 'flex';
-        document.body.style.overflow = 'hidden';
-    });
-    
-    // 모달 닫기
-    function closeReviewModal() {
-        reviewModal.style.display = 'none';
-        document.body.style.overflow = '';
-        reviewForm.reset();
-        // 별점 초기화
-        const starInputs = reviewForm.querySelectorAll('input[type="radio"]');
-        starInputs.forEach(input => {
-            input.checked = false;
-        });
-        const starLabels = reviewForm.querySelectorAll('.plan-star-label');
-        starLabels.forEach(label => {
-            label.classList.remove('active');
-        });
-    }
-    
-    if (reviewModalOverlay) {
-        reviewModalOverlay.addEventListener('click', closeReviewModal);
-    }
-    
-    if (reviewModalClose) {
-        reviewModalClose.addEventListener('click', closeReviewModal);
-    }
-    
-    // 별점 클릭 이벤트
-    const starLabels = reviewForm.querySelectorAll('.plan-star-label');
-    starLabels.forEach(label => {
-        label.addEventListener('click', function() {
-            const rating = parseInt(this.getAttribute('data-rating'));
-            const ratingType = this.closest('.plan-star-rating').getAttribute('data-rating-type');
-            const radioInput = this.previousElementSibling;
-            
-            if (radioInput) {
-                radioInput.checked = true;
-            }
-            
-            // 같은 타입의 별점 업데이트
-            const sameTypeLabels = reviewForm.querySelectorAll('.plan-star-rating[data-rating-type="' + ratingType + '"] .plan-star-label');
-            sameTypeLabels.forEach((l, index) => {
-                if (index < rating) {
-                    l.classList.add('active');
-                } else {
-                    l.classList.remove('active');
-                }
-            });
-        });
-    });
-    
-    // 폼 제출
-    reviewForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        const kindnessRatingInput = reviewForm.querySelector('input[name="kindness_rating"]:checked');
-        const speedRatingInput = reviewForm.querySelector('input[name="speed_rating"]:checked');
-        const reviewText = document.getElementById('planReviewText').value.trim();
-        
-        if (!kindnessRatingInput) {
-            alert('친절해요 별점을 선택해주세요.');
-            return;
-        }
-        
-        if (!speedRatingInput) {
-            alert('개통 빨라요 별점을 선택해주세요.');
-            return;
-        }
-        
-        if (!reviewText) {
-            alert('리뷰 내용을 입력해주세요.');
-            return;
-        }
-        
-        // 평균 별점 계산
-        const kindnessRating = parseInt(kindnessRatingInput.value);
-        const speedRating = parseInt(speedRatingInput.value);
-        const averageRating = Math.round((kindnessRating + speedRating) / 2);
-        
-        // API 호출
-        const formData = new FormData();
-        formData.append('product_id', <?php echo $plan_id; ?>);
-        formData.append('product_type', 'mvno');
-        formData.append('rating', averageRating);
-        formData.append('content', reviewText);
-        
-        fetch('/MVNO/api/submit-review.php', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('리뷰가 작성되었습니다.');
-                closeReviewModal();
-                // 페이지 새로고침하여 리뷰 반영
-                location.reload();
-            } else {
-                alert(data.message || '리뷰 작성에 실패했습니다.');
-            }
-        })
-        .catch(error => {
-            alert('리뷰 작성 중 오류가 발생했습니다.');
-        });
-    });
-});
-</script>
-
-<script>
-// 신청하기 버튼에 포인트 모달 연동
-document.addEventListener('DOMContentLoaded', function() {
-    const applyBtn = document.getElementById('planApplyBtn');
-    if (applyBtn) {
-        applyBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            // 포인트 모달 열기
-            const modalId = 'pointUsageModal_mvno_<?php echo $plan_id; ?>';
-            const modal = document.getElementById(modalId);
-            if (modal && typeof openPointUsageModal === 'function') {
-                openPointUsageModal('mvno', <?php echo $plan_id; ?>);
-            } else if (modal) {
-                modal.classList.add('show');
-                document.body.style.overflow = 'hidden';
-            }
-        });
-    }
-    
-    // 포인트 사용 확인 후 기존 신청 모달 열기
-    document.addEventListener('pointUsageConfirmed', function(e) {
-        const { type, itemId } = e.detail;
-        if (type === 'mvno' && itemId === <?php echo $plan_id; ?>) {
-            openApplyModal();
-        }
-    });
-});
-</script>
-
+<?php include '../includes/footer.php'; ?>

@@ -1242,7 +1242,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <div class="form-group">
                             <label for="user_id">아이디 <span class="required">*</span></label>
                             <div style="display: flex; gap: 8px;">
-                                <input type="text" id="user_id" name="user_id" required value="<?php echo htmlspecialchars($_POST['user_id'] ?? ''); ?>" style="flex: 1;" pattern="[a-z0-9]{5,20}" title="소문자 영문자와 숫자 조합 5-20자로 입력해주세요." minlength="5" maxlength="20">
+                                <input type="text" id="user_id" name="user_id" required value="<?php echo htmlspecialchars($_SERVER['REQUEST_METHOD'] === 'POST' ? ($_POST['user_id'] ?? '') : ''); ?>" style="flex: 1;" pattern="[a-z0-9]{5,20}" title="소문자 영문자와 숫자 조합 5-20자로 입력해주세요." minlength="5" maxlength="20">
                                 <button type="button" id="checkUserIdBtn" class="check-duplicate-btn" onclick="checkDuplicate('user_id')">중복확인</button>
                             </div>
                             <div class="form-help">소문자 영문자와 숫자 조합 5-20자</div>
@@ -1253,25 +1253,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <label for="email_local">이메일 <span class="required">*</span></label>
                             <div class="email-input-group">
                                 <input type="text" id="email_local" name="email_local" required maxlength="20"
-                                       value="<?php echo htmlspecialchars(explode('@', $_POST['email'] ?? '')[0] ?? ''); ?>" 
+                                       value="<?php 
+                                       if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['email'])) {
+                                           echo htmlspecialchars(explode('@', $_POST['email'])[0] ?? '');
+                                       }
+                                       ?>" 
                                        placeholder="이메일 아이디">
                                 <span class="email-at">@</span>
                                 <select id="email_domain" name="email_domain" onchange="handleEmailDomainChange()">
                                     <option value="">선택하세요</option>
-                                    <option value="naver.com" <?php echo (isset($_POST['email_domain']) && $_POST['email_domain'] === 'naver.com') || (isset($_POST['email']) && strpos($_POST['email'], '@naver.com') !== false) ? 'selected' : ''; ?>>naver.com</option>
-                                    <option value="gmail.com" <?php echo (isset($_POST['email_domain']) && $_POST['email_domain'] === 'gmail.com') || (isset($_POST['email']) && strpos($_POST['email'], '@gmail.com') !== false) ? 'selected' : ''; ?>>gmail.com</option>
-                                    <option value="hanmail.net" <?php echo (isset($_POST['email_domain']) && $_POST['email_domain'] === 'hanmail.net') || (isset($_POST['email']) && strpos($_POST['email'], '@hanmail.net') !== false) ? 'selected' : ''; ?>>hanmail.net</option>
-                                    <option value="nate.com" <?php echo (isset($_POST['email_domain']) && $_POST['email_domain'] === 'nate.com') || (isset($_POST['email']) && strpos($_POST['email'], '@nate.com') !== false) ? 'selected' : ''; ?>>nate.com</option>
+                                    <option value="naver.com" <?php echo ($_SERVER['REQUEST_METHOD'] === 'POST' && ((isset($_POST['email_domain']) && $_POST['email_domain'] === 'naver.com') || (isset($_POST['email']) && strpos($_POST['email'], '@naver.com') !== false))) ? 'selected' : ''; ?>>naver.com</option>
+                                    <option value="gmail.com" <?php echo ($_SERVER['REQUEST_METHOD'] === 'POST' && ((isset($_POST['email_domain']) && $_POST['email_domain'] === 'gmail.com') || (isset($_POST['email']) && strpos($_POST['email'], '@gmail.com') !== false))) ? 'selected' : ''; ?>>gmail.com</option>
+                                    <option value="hanmail.net" <?php echo ($_SERVER['REQUEST_METHOD'] === 'POST' && ((isset($_POST['email_domain']) && $_POST['email_domain'] === 'hanmail.net') || (isset($_POST['email']) && strpos($_POST['email'], '@hanmail.net') !== false))) ? 'selected' : ''; ?>>hanmail.net</option>
+                                    <option value="nate.com" <?php echo ($_SERVER['REQUEST_METHOD'] === 'POST' && ((isset($_POST['email_domain']) && $_POST['email_domain'] === 'nate.com') || (isset($_POST['email']) && strpos($_POST['email'], '@nate.com') !== false))) ? 'selected' : ''; ?>>nate.com</option>
                                     <option value="custom">직접 입력</option>
                                 </select>
                                 <input type="text" id="email_custom" name="email_custom" 
                                        value="<?php 
-                                       $emailParts = explode('@', $_POST['email'] ?? '');
-                                       if (count($emailParts) === 2) {
-                                           $domain = $emailParts[1];
-                                           $commonDomains = ['naver.com', 'gmail.com', 'hanmail.net', 'nate.com'];
-                                           if (!in_array($domain, $commonDomains)) {
-                                               echo htmlspecialchars($domain);
+                                       if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['email'])) {
+                                           $emailParts = explode('@', $_POST['email']);
+                                           if (count($emailParts) === 2) {
+                                               $domain = $emailParts[1];
+                                               $commonDomains = ['naver.com', 'gmail.com', 'hanmail.net', 'nate.com'];
+                                               if (!in_array($domain, $commonDomains)) {
+                                                   echo htmlspecialchars($domain);
+                                               }
                                            }
                                        }
                                        ?>" 
@@ -1279,13 +1285,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                        style="display: none;">
                                 <button type="button" id="checkEmailBtn" class="check-duplicate-btn" onclick="checkDuplicate('email')">중복확인</button>
                             </div>
-                            <input type="hidden" id="email" name="email" value="<?php echo htmlspecialchars($_POST['email'] ?? ''); ?>">
+                            <input type="hidden" id="email" name="email" value="<?php echo htmlspecialchars($_SERVER['REQUEST_METHOD'] === 'POST' ? ($_POST['email'] ?? '') : ''); ?>">
                             <div id="emailCheckResult" class="check-result"></div>
                         </div>
                         
                         <div class="form-group">
                             <label for="name">이름 <span class="required">*</span></label>
-                            <input type="text" id="name" name="name" required value="<?php echo htmlspecialchars($_POST['name'] ?? ''); ?>">
+                            <input type="text" id="name" name="name" required value="<?php echo htmlspecialchars($_SERVER['REQUEST_METHOD'] === 'POST' ? ($_POST['name'] ?? '') : ''); ?>">
                         </div>
                         
                         <div class="form-group">
@@ -1338,7 +1344,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             
                             <div style="display: flex; flex-direction: column; gap: 16px;">
                                 <label style="display: flex; align-items: center; padding: 20px; border: 2px solid #e5e7eb; border-radius: 12px; cursor: pointer; transition: all 0.3s; background: #ffffff;" onmouseover="this.style.borderColor='#667eea'; this.style.background='#f9fafb';" onmouseout="this.style.borderColor='#e5e7eb'; this.style.background='#ffffff';">
-                                    <input type="checkbox" name="permissions[]" value="mno" style="width: 24px; height: 24px; margin-right: 16px; cursor: pointer; accent-color: #667eea;" <?php echo (isset($_POST['permissions']) && in_array('mno', $_POST['permissions'])) ? 'checked' : ''; ?>>
+                                    <input type="checkbox" name="permissions[]" value="mno" style="width: 24px; height: 24px; margin-right: 16px; cursor: pointer; accent-color: #667eea;" <?php echo ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['permissions']) && in_array('mno', $_POST['permissions'])) ? 'checked' : ''; ?>>
                                     <div style="flex: 1;">
                                         <div style="font-size: 18px; font-weight: 700; color: #1f2937; margin-bottom: 4px;">MNO (통신사폰)</div>
                                         <div style="font-size: 14px; color: #6b7280;">통신사폰 상품을 판매합니다</div>
@@ -1346,7 +1352,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 </label>
                                 
                                 <label style="display: flex; align-items: center; padding: 20px; border: 2px solid #e5e7eb; border-radius: 12px; cursor: pointer; transition: all 0.3s; background: #ffffff;" onmouseover="this.style.borderColor='#667eea'; this.style.background='#f9fafb';" onmouseout="this.style.borderColor='#e5e7eb'; this.style.background='#ffffff';">
-                                    <input type="checkbox" name="permissions[]" value="mvno" style="width: 24px; height: 24px; margin-right: 16px; cursor: pointer; accent-color: #667eea;" <?php echo (isset($_POST['permissions']) && in_array('mvno', $_POST['permissions'])) ? 'checked' : ''; ?>>
+                                    <input type="checkbox" name="permissions[]" value="mvno" style="width: 24px; height: 24px; margin-right: 16px; cursor: pointer; accent-color: #667eea;" <?php echo ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['permissions']) && in_array('mvno', $_POST['permissions'])) ? 'checked' : ''; ?>>
                                     <div style="flex: 1;">
                                         <div style="font-size: 18px; font-weight: 700; color: #1f2937; margin-bottom: 4px;">MVNO (알뜰폰)</div>
                                         <div style="font-size: 14px; color: #6b7280;">알뜰폰 요금제를 판매합니다</div>
@@ -1354,7 +1360,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 </label>
                                 
                                 <label style="display: flex; align-items: center; padding: 20px; border: 2px solid #e5e7eb; border-radius: 12px; cursor: pointer; transition: all 0.3s; background: #ffffff;" onmouseover="this.style.borderColor='#667eea'; this.style.background='#f9fafb';" onmouseout="this.style.borderColor='#e5e7eb'; this.style.background='#ffffff';">
-                                    <input type="checkbox" name="permissions[]" value="internet" style="width: 24px; height: 24px; margin-right: 16px; cursor: pointer; accent-color: #667eea;" <?php echo (isset($_POST['permissions']) && in_array('internet', $_POST['permissions'])) ? 'checked' : ''; ?>>
+                                    <input type="checkbox" name="permissions[]" value="internet" style="width: 24px; height: 24px; margin-right: 16px; cursor: pointer; accent-color: #667eea;" <?php echo ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['permissions']) && in_array('internet', $_POST['permissions'])) ? 'checked' : ''; ?>>
                                     <div style="flex: 1;">
                                         <div style="font-size: 18px; font-weight: 700; color: #1f2937; margin-bottom: 4px;">INTERNET (인터넷)</div>
                                         <div style="font-size: 14px; color: #6b7280;">인터넷 상품을 판매합니다</div>
@@ -1376,30 +1382,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         
                         <div class="form-group">
                             <label for="business_number">사업자등록번호 <span class="required">*</span></label>
-                            <input type="text" id="business_number" name="business_number" placeholder="123-45-67890" required value="<?php echo htmlspecialchars($_POST['business_number'] ?? ''); ?>">
+                            <input type="text" id="business_number" name="business_number" placeholder="123-45-67890" required value="<?php echo htmlspecialchars($_SERVER['REQUEST_METHOD'] === 'POST' ? ($_POST['business_number'] ?? '') : ''); ?>">
                         </div>
                         
                         <div class="form-group">
                             <label for="company_name">회사명 <span class="required">*</span></label>
-                            <input type="text" id="company_name" name="company_name" placeholder="(주)회사명" required maxlength="20" value="<?php echo htmlspecialchars($_POST['company_name'] ?? ''); ?>">
+                            <input type="text" id="company_name" name="company_name" placeholder="(주)회사명" required maxlength="20" value="<?php echo htmlspecialchars($_SERVER['REQUEST_METHOD'] === 'POST' ? ($_POST['company_name'] ?? '') : ''); ?>">
                             <div class="form-help">20자 이내로 입력해주세요.</div>
                         </div>
                         
                         <div class="form-group">
                             <label for="company_representative">대표자명 <span class="required">*</span></label>
-                            <input type="text" id="company_representative" name="company_representative" placeholder="홍길동" maxlength="20" required value="<?php echo htmlspecialchars($_POST['company_representative'] ?? ''); ?>">
+                            <input type="text" id="company_representative" name="company_representative" placeholder="홍길동" maxlength="20" required value="<?php echo htmlspecialchars($_SERVER['REQUEST_METHOD'] === 'POST' ? ($_POST['company_representative'] ?? '') : ''); ?>">
                             <div class="form-help">20자 이내로 입력해주세요.</div>
                         </div>
                         
                         <div class="form-group">
                             <label for="business_type">업종 <span class="required">*</span></label>
-                            <input type="text" id="business_type" name="business_type" placeholder="도매 및 소매업" maxlength="20" required value="<?php echo htmlspecialchars($_POST['business_type'] ?? ''); ?>">
+                            <input type="text" id="business_type" name="business_type" placeholder="도매 및 소매업" maxlength="20" required value="<?php echo htmlspecialchars($_SERVER['REQUEST_METHOD'] === 'POST' ? ($_POST['business_type'] ?? '') : ''); ?>">
                             <div class="form-help">20자 이내로 입력해주세요.</div>
                         </div>
                         
                         <div class="form-group">
                             <label for="business_item">업태 <span class="required">*</span></label>
-                            <input type="text" id="business_item" name="business_item" placeholder="통신판매업" maxlength="20" required value="<?php echo htmlspecialchars($_POST['business_item'] ?? ''); ?>">
+                            <input type="text" id="business_item" name="business_item" placeholder="통신판매업" maxlength="20" required value="<?php echo htmlspecialchars($_SERVER['REQUEST_METHOD'] === 'POST' ? ($_POST['business_item'] ?? '') : ''); ?>">
                             <div class="form-help">20자 이내로 입력해주세요.</div>
                         </div>
                         
@@ -1408,26 +1414,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <div class="form-group">
                             <label for="address">주소 <span class="required">*</span></label>
                             <div style="display: flex; gap: 8px;">
-                                <input type="text" id="address" name="address" placeholder="주소 검색 버튼을 클릭하세요" value="<?php echo htmlspecialchars($_POST['address'] ?? ''); ?>" style="flex: 1;" readonly required onclick="searchAddress()">
+                                <input type="text" id="address" name="address" placeholder="주소 검색 버튼을 클릭하세요" value="<?php echo htmlspecialchars($_SERVER['REQUEST_METHOD'] === 'POST' ? ($_POST['address'] ?? '') : ''); ?>" style="flex: 1;" readonly required onclick="searchAddress()">
                                 <button type="button" id="searchAddressBtn" class="check-duplicate-btn" onclick="searchAddress()">주소 검색</button>
                             </div>
                         </div>
                         
                         <div class="form-group">
                             <label for="address_detail">상세주소</label>
-                            <input type="text" id="address_detail" name="address_detail" placeholder="상세주소를 입력하세요" value="<?php echo htmlspecialchars($_POST['address_detail'] ?? ''); ?>">
+                            <input type="text" id="address_detail" name="address_detail" placeholder="상세주소를 입력하세요" value="<?php echo htmlspecialchars($_SERVER['REQUEST_METHOD'] === 'POST' ? ($_POST['address_detail'] ?? '') : ''); ?>">
                         </div>
                         
                         <h3 style="font-size: 16px; font-weight: 600; color: #374151; margin: 24px 0 16px 0;">연락처 정보</h3>
                         
                         <div class="form-group">
                             <label for="mobile">휴대폰 <span class="required">*</span></label>
-                            <input type="tel" id="mobile" name="mobile" placeholder="010-1234-5678" required value="<?php echo htmlspecialchars($_POST['mobile'] ?? ''); ?>">
+                            <input type="tel" id="mobile" name="mobile" placeholder="010-1234-5678" required value="<?php echo htmlspecialchars($_SERVER['REQUEST_METHOD'] === 'POST' ? ($_POST['mobile'] ?? '') : ''); ?>">
                         </div>
                         
                         <div class="form-group">
                             <label for="phone">전화번호</label>
-                            <input type="tel" id="phone" name="phone" placeholder="1588-1588-070-1234-5678,010-1234-5678" value="<?php echo htmlspecialchars($_POST['phone'] ?? ''); ?>">
+                            <input type="tel" id="phone" name="phone" placeholder="1588-1588-070-1234-5678,010-1234-5678" value="<?php echo htmlspecialchars($_SERVER['REQUEST_METHOD'] === 'POST' ? ($_POST['phone'] ?? '') : ''); ?>">
                         </div>
                     </div>
                     

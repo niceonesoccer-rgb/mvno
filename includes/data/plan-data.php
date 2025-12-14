@@ -100,12 +100,12 @@ function convertMvnoProductToPlanCard($product) {
     $originalPriceMain = $product['price_main'] ?? 0;
     
     // price_main: 할인 후 요금 표시 (프로모션 기간 요금)
-    if ($priceAfterValue !== null && $priceAfterValue !== '' && $priceAfterValue !== '0') {
+    if ($priceAfterValue === null || $priceAfterValue === '' || $priceAfterValue === '0') {
+        // 할인 후 요금이 없으면(공짜) "공짜"로 표시
+        $priceMain = '공짜';
+    } elseif ($priceAfterValue !== null && $priceAfterValue !== '' && $priceAfterValue !== '0') {
         // 할인 후 요금이 있으면 그것을 price_main으로 표시
         $priceMain = '월 ' . number_format((float)$priceAfterValue) . '원';
-    } elseif ($priceAfterValue === null || $priceAfterValue === '' || $priceAfterValue === '0') {
-        // 할인 후 요금이 없으면(공짜) 원래 월요금 표시
-        $priceMain = '월 ' . number_format((float)$originalPriceMain) . '원';
     } else {
         // 기본값
         $priceMain = '월 ' . number_format((float)$originalPriceMain) . '원';

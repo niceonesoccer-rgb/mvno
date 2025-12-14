@@ -1,45 +1,48 @@
 <?php
 /**
  * 사용자 인증 관련 함수
+ * 
+ * 주요 기능:
+ * - 세션 관리
+ * - 사용자 조회 (DB 및 JSON 파일)
+ * - 로그인/로그아웃
+ * - 회원가입 (SNS, 직접 가입)
+ * - 판매자 관리 (승인, 권한 등)
  */
 
-// 한국 시간대 설정 (KST, UTC+9)
+// 한국 시간대 설정
 date_default_timezone_set('Asia/Seoul');
 
-// 세션 설정 (전체 사이트에서 공유되도록)
+// 세션 설정 (전체 사이트에서 공유)
 if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
-    // 세션 이름 설정 (일관성 유지) - session_start() 전에 설정해야 함
     $currentSessionName = session_name();
     if (empty($currentSessionName) || $currentSessionName === 'PHPSESSID') {
         session_name('MVNO_SESSION');
     }
     
-    // 세션 쿠키 설정 - 전체 사이트에서 공유되도록
-    // PHP 7.3.0 이상에서는 배열 형태 지원, 그 이하에서는 개별 매개변수 사용
+    // 세션 쿠키 설정
     if (version_compare(PHP_VERSION, '7.3.0', '>=')) {
         session_set_cookie_params([
-            'lifetime' => 0, // 브라우저 종료 시까지 유지
-            'path' => '/', // 전체 사이트에서 공유
-            'domain' => '', // 현재 도메인 사용 (빈 문자열)
-            'secure' => false, // HTTPS가 아닐 경우 false
-            'httponly' => true, // XSS 공격 방지
-            'samesite' => 'Lax' // CSRF 공격 방지
+            'lifetime' => 0,
+            'path' => '/',
+            'domain' => '',
+            'secure' => false,
+            'httponly' => true,
+            'samesite' => 'Lax'
         ]);
     } else {
-        // PHP 7.3.0 미만 버전용 (개별 매개변수)
         session_set_cookie_params(0, '/', '', false, true);
     }
     
-    // 세션 시작
     session_start();
 }
 
-// 데이터베이스 연결 포함
 require_once __DIR__ . '/db-config.php';
 
-/**
- * 사용자 데이터 파일 경로
- */
+// ============================================================================
+// 파일 경로 함수
+// ============================================================================
+
 function getUsersFilePath() {
     return __DIR__ . '/users.json';
 }
@@ -52,10 +55,162 @@ function getSellersFilePath() {
     return __DIR__ . '/sellers.json';
 }
 
+// ============================================================================
+// 공통 헬퍼 함수
+// ============================================================================
+
+/**
+ * JSON 파일에서 사용자 검색 (공통 로직)
+ * 
+ * @param string $filePath 파일 경로
+ * @param string $key 검색할 키 (user_id, email, sns_provider 등)
+ * @param mixed $value 검색할 값
+ * @param string $dataKey JSON 데이터 키 (users, admins, sellers)
+ * @return array|null 사용자 데이터 또는 null
+ */
+function searchUserInJsonFile($filePath, $key, $value, $dataKey) {
+    if (!file_exists($filePath)) {
+        return null;
+    }
+    
+    clearstatcache(true, $filePath);
+    $content = file_get_contents($filePath);
+    $data = json_decode($content, true) ?: [$dataKey => []];
+    
+    foreach ($data[$dataKey] ?? [] as $user) {
+        if (isset($user[$key]) && $user[$key] === $value) {
+            return $user;
+        }
+    }
+    
+    return null;
+}
+
+/**
+ * 사용자 데이터 정규화 (JSON 필드 처리)
+ * 
+ * @param array $user 사용자 데이터
+ * @return array 정규화된 사용자 데이터
+ */
+function normalizeUserData($user) {
+    if (isset($user['permissions']) && is_string($user['permissions'])) {
+        $user['permissions'] = json_decode($user['permissions'], true) ?: [];
+    }
+    if (isset($user['seller_approved'])) {
+        $user['seller_approved'] = (bool)$user['seller_approved'];
+    }
+    return $user;
+}
+
+// ============================================================================
+// 사용자 조회 함수
+// ============================================================================
+
+/**
+ * 사용자 ID로 사용자 찾기 (DB 우선, 실패 시 JSON)
+ */
+function getUserById($userId) {
+    $pdo = getDBConnection();
+    if ($pdo) {
+        try {
+            $stmt = $pdo->prepare("SELECT * FROM users WHERE user_id = :user_id LIMIT 1");
+            $stmt->execute([':user_id' => $userId]);
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($user) {
+                return normalizeUserData($user);
+            }
+        } catch (PDOException $e) {
+            error_log("getUserById error: " . $e->getMessage());
+        }
+    }
+    
+    // JSON 파일에서 검색 (하위 호환성)
+    $user = searchUserInJsonFile(getUsersFilePath(), 'user_id', $userId, 'users');
+    if ($user) return $user;
+    
+    $user = searchUserInJsonFile(getAdminsFilePath(), 'user_id', $userId, 'admins');
+    if ($user) return $user;
+    
+    $user = searchUserInJsonFile(getSellersFilePath(), 'user_id', $userId, 'sellers');
+    if ($user) return $user;
+    
+    return null;
+}
+
+/**
+ * 이메일로 사용자 찾기 (DB 우선, 실패 시 JSON)
+ */
+function getUserByEmail($email) {
+    $pdo = getDBConnection();
+    if ($pdo) {
+        try {
+            $stmt = $pdo->prepare("SELECT * FROM users WHERE email = :email LIMIT 1");
+            $stmt->execute([':email' => $email]);
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($user) {
+                return normalizeUserData($user);
+            }
+        } catch (PDOException $e) {
+            error_log("getUserByEmail error: " . $e->getMessage());
+        }
+    }
+    
+    // JSON 파일에서 검색 (하위 호환성)
+    $user = searchUserInJsonFile(getUsersFilePath(), 'email', $email, 'users');
+    if ($user) return $user;
+    
+    $user = searchUserInJsonFile(getAdminsFilePath(), 'email', $email, 'admins');
+    if ($user) return $user;
+    
+    $user = searchUserInJsonFile(getSellersFilePath(), 'email', $email, 'sellers');
+    if ($user) return $user;
+    
+    return null;
+}
+
+/**
+ * SNS ID로 사용자 찾기 (DB 우선, 실패 시 JSON)
+ */
+function getUserBySnsId($provider, $snsId) {
+    $pdo = getDBConnection();
+    if ($pdo) {
+        try {
+            $stmt = $pdo->prepare("SELECT * FROM users WHERE sns_provider = :provider AND sns_id = :sns_id LIMIT 1");
+            $stmt->execute([
+                ':provider' => $provider,
+                ':sns_id' => $snsId
+            ]);
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($user) {
+                return normalizeUserData($user);
+            }
+        } catch (PDOException $e) {
+            error_log("getUserBySnsId error: " . $e->getMessage());
+        }
+    }
+    
+    // JSON 파일에서 검색 (하위 호환성)
+    $usersFile = getUsersFilePath();
+    if (file_exists($usersFile)) {
+        $content = file_get_contents($usersFile);
+        $data = json_decode($content, true) ?: ['users' => []];
+        foreach ($data['users'] ?? [] as $user) {
+            if (isset($user['sns_provider']) && $user['sns_provider'] === $provider && 
+                isset($user['sns_id']) && $user['sns_id'] === $snsId) {
+                return $user;
+            }
+        }
+    }
+    
+    return null;
+}
+
 /**
  * 모든 사용자 데이터 읽기 (일반회원, 관리자, 판매자 통합)
- * 주의: 통합 검색이 필요한 경우에만 사용하세요.
- * 일반적으로는 getUserById(), getUserByEmail() 등 역할별 분리 검색 함수를 사용하세요.
+ * 주의: 통합 검색이 필요한 경우에만 사용
  */
 function getUsersData() {
     $allUsers = [];
@@ -67,20 +222,11 @@ function getUsersData() {
             $stmt = $pdo->query("SELECT * FROM users WHERE role = 'user'");
             $dbUsers = $stmt->fetchAll(PDO::FETCH_ASSOC);
             
-            // JSON 필드 처리 및 배열 형식 통일
             foreach ($dbUsers as $user) {
-                if (isset($user['permissions']) && is_string($user['permissions'])) {
-                    $user['permissions'] = json_decode($user['permissions'], true) ?: [];
-                }
-                // seller_approved를 boolean으로 변환
-                if (isset($user['seller_approved'])) {
-                    $user['seller_approved'] = (bool)$user['seller_approved'];
-                }
-                $allUsers[] = $user;
+                $allUsers[] = normalizeUserData($user);
             }
         } catch (PDOException $e) {
             error_log("getUsersData DB error: " . $e->getMessage());
-            // DB 오류 시 JSON 파일에서 읽기 (하위 호환성)
         }
     }
     
@@ -88,7 +234,7 @@ function getUsersData() {
     if (empty($allUsers) || !$pdo) {
         $usersFile = getUsersFilePath();
         if (file_exists($usersFile)) {
-            clearstatcache(true, $usersFile); // 파일 캐시 클리어
+            clearstatcache(true, $usersFile);
             $content = file_get_contents($usersFile);
             $data = json_decode($content, true) ?: ['users' => []];
             $allUsers = array_merge($allUsers, $data['users'] ?? []);
@@ -98,7 +244,7 @@ function getUsersData() {
     // 관리자 (admins.json)
     $adminsFile = getAdminsFilePath();
     if (file_exists($adminsFile)) {
-        clearstatcache(true, $adminsFile); // 파일 캐시 클리어
+        clearstatcache(true, $adminsFile);
         $content = file_get_contents($adminsFile);
         $data = json_decode($content, true) ?: ['admins' => []];
         $allUsers = array_merge($allUsers, $data['admins'] ?? []);
@@ -107,7 +253,7 @@ function getUsersData() {
     // 판매자 (sellers.json)
     $sellersFile = getSellersFilePath();
     if (file_exists($sellersFile)) {
-        clearstatcache(true, $sellersFile); // 파일 캐시 클리어
+        clearstatcache(true, $sellersFile);
         $content = file_get_contents($sellersFile);
         $data = json_decode($content, true) ?: ['sellers' => []];
         $allUsers = array_merge($allUsers, $data['sellers'] ?? []);
@@ -136,261 +282,14 @@ function saveUsersData($data) {
         }
     }
     
-    // 각 파일에 저장
     file_put_contents(getUsersFilePath(), json_encode($usersData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
     file_put_contents(getAdminsFilePath(), json_encode($adminsData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
     file_put_contents(getSellersFilePath(), json_encode($sellersData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
 }
 
-/**
- * SNS 아이디 생성 (형식: nvr_3211205, kko_3211205, gol_3211205)
- */
-function generateSnsUserId($provider, $snsId) {
-    $prefixes = [
-        'naver' => 'nvr',
-        'kakao' => 'kko',
-        'google' => 'gol'
-    ];
-    
-    $prefix = $prefixes[$provider] ?? 'sns';
-    
-    // SNS ID를 해시하여 고유한 숫자 생성
-    $hash = md5($snsId . $provider);
-    // 해시에서 숫자만 추출하여 7자리 숫자 생성
-    $numbers = preg_replace('/[^0-9]/', '', $hash);
-    // 7자리 숫자 추출 (부족하면 반복)
-    $idPart = substr(str_repeat($numbers, 3), 0, 7);
-    
-    return $prefix . '_' . $idPart;
-}
-
-/**
- * 사용자 ID로 사용자 찾기 (DB에서 검색)
- */
-function getUserById($userId) {
-    $pdo = getDBConnection();
-    if (!$pdo) {
-        // DB 연결 실패 시 JSON 파일에서 검색 (하위 호환성)
-        return getUserByIdFromJson($userId);
-    }
-    
-    try {
-        $stmt = $pdo->prepare("SELECT * FROM users WHERE user_id = :user_id LIMIT 1");
-        $stmt->execute([':user_id' => $userId]);
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        if ($user) {
-            // JSON 필드 처리
-            if (isset($user['permissions']) && is_string($user['permissions'])) {
-                $user['permissions'] = json_decode($user['permissions'], true) ?: [];
-            }
-            return $user;
-        }
-        
-        return null;
-    } catch (PDOException $e) {
-        error_log("getUserById error: " . $e->getMessage());
-        // DB 오류 시 JSON 파일에서 검색 (하위 호환성)
-        return getUserByIdFromJson($userId);
-    }
-}
-
-/**
- * JSON 파일에서 사용자 ID로 사용자 찾기 (하위 호환성)
- */
-function getUserByIdFromJson($userId) {
-    // 1. 일반 회원 검색 (users.json)
-    $usersFile = getUsersFilePath();
-    if (file_exists($usersFile)) {
-        $content = file_get_contents($usersFile);
-        $data = json_decode($content, true) ?: ['users' => []];
-        foreach ($data['users'] ?? [] as $user) {
-            if (isset($user['user_id']) && $user['user_id'] === $userId) {
-                return $user;
-            }
-        }
-    }
-    
-    // 2. 관리자/부관리자 검색 (admins.json)
-    $adminsFile = getAdminsFilePath();
-    if (file_exists($adminsFile)) {
-        $content = file_get_contents($adminsFile);
-        $data = json_decode($content, true) ?: ['admins' => []];
-        foreach ($data['admins'] ?? [] as $admin) {
-            if (isset($admin['user_id']) && $admin['user_id'] === $userId) {
-                return $admin;
-            }
-        }
-    }
-    
-    // 3. 판매자 검색 (sellers.json)
-    $sellersFile = getSellersFilePath();
-    if (file_exists($sellersFile)) {
-        $content = file_get_contents($sellersFile);
-        $data = json_decode($content, true) ?: ['sellers' => []];
-        foreach ($data['sellers'] ?? [] as $seller) {
-            if (isset($seller['user_id']) && $seller['user_id'] === $userId) {
-                return $seller;
-            }
-        }
-    }
-    
-    return null;
-}
-
-/**
- * 이메일로 사용자 찾기 (DB에서 검색)
- */
-function getUserByEmail($email) {
-    $pdo = getDBConnection();
-    if (!$pdo) {
-        // DB 연결 실패 시 JSON 파일에서 검색 (하위 호환성)
-        return getUserByEmailFromJson($email);
-    }
-    
-    try {
-        $stmt = $pdo->prepare("SELECT * FROM users WHERE email = :email LIMIT 1");
-        $stmt->execute([':email' => $email]);
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        if ($user) {
-            // JSON 필드 처리
-            if (isset($user['permissions']) && is_string($user['permissions'])) {
-                $user['permissions'] = json_decode($user['permissions'], true) ?: [];
-            }
-            return $user;
-        }
-        
-        return null;
-    } catch (PDOException $e) {
-        error_log("getUserByEmail error: " . $e->getMessage());
-        // DB 오류 시 JSON 파일에서 검색 (하위 호환성)
-        return getUserByEmailFromJson($email);
-    }
-}
-
-/**
- * JSON 파일에서 이메일로 사용자 찾기 (하위 호환성)
- */
-function getUserByEmailFromJson($email) {
-    // 1. 일반 회원 검색 (users.json)
-    $usersFile = getUsersFilePath();
-    if (file_exists($usersFile)) {
-        $content = file_get_contents($usersFile);
-        $data = json_decode($content, true) ?: ['users' => []];
-        foreach ($data['users'] ?? [] as $user) {
-            if (isset($user['email']) && $user['email'] === $email) {
-                return $user;
-            }
-        }
-    }
-    
-    // 2. 관리자/부관리자 검색 (admins.json) - 관리자는 이메일이 없을 수 있음
-    $adminsFile = getAdminsFilePath();
-    if (file_exists($adminsFile)) {
-        $content = file_get_contents($adminsFile);
-        $data = json_decode($content, true) ?: ['admins' => []];
-        foreach ($data['admins'] ?? [] as $admin) {
-            if (isset($admin['email']) && $admin['email'] === $email) {
-                return $admin;
-            }
-        }
-    }
-    
-    // 3. 판매자 검색 (sellers.json)
-    $sellersFile = getSellersFilePath();
-    if (file_exists($sellersFile)) {
-        $content = file_get_contents($sellersFile);
-        $data = json_decode($content, true) ?: ['sellers' => []];
-        foreach ($data['sellers'] ?? [] as $seller) {
-            if (isset($seller['email']) && $seller['email'] === $email) {
-                return $seller;
-            }
-        }
-    }
-    
-    return null;
-}
-
-/**
- * SNS ID로 사용자 찾기 (DB에서 검색)
- */
-function getUserBySnsId($provider, $snsId) {
-    $pdo = getDBConnection();
-    if (!$pdo) {
-        // DB 연결 실패 시 JSON 파일에서 검색 (하위 호환성)
-        return getUserBySnsIdFromJson($provider, $snsId);
-    }
-    
-    try {
-        $stmt = $pdo->prepare("SELECT * FROM users WHERE sns_provider = :provider AND sns_id = :sns_id LIMIT 1");
-        $stmt->execute([
-            ':provider' => $provider,
-            ':sns_id' => $snsId
-        ]);
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        if ($user) {
-            // JSON 필드 처리
-            if (isset($user['permissions']) && is_string($user['permissions'])) {
-                $user['permissions'] = json_decode($user['permissions'], true) ?: [];
-            }
-            return $user;
-        }
-        
-        return null;
-    } catch (PDOException $e) {
-        error_log("getUserBySnsId error: " . $e->getMessage());
-        // DB 오류 시 JSON 파일에서 검색 (하위 호환성)
-        return getUserBySnsIdFromJson($provider, $snsId);
-    }
-}
-
-/**
- * JSON 파일에서 SNS ID로 사용자 찾기 (하위 호환성)
- */
-function getUserBySnsIdFromJson($provider, $snsId) {
-    // 1. 일반 회원 검색 (users.json) - SNS 로그인은 주로 일반 회원
-    $usersFile = getUsersFilePath();
-    if (file_exists($usersFile)) {
-        $content = file_get_contents($usersFile);
-        $data = json_decode($content, true) ?: ['users' => []];
-        foreach ($data['users'] ?? [] as $user) {
-            if (isset($user['sns_provider']) && $user['sns_provider'] === $provider && 
-                isset($user['sns_id']) && $user['sns_id'] === $snsId) {
-                return $user;
-            }
-        }
-    }
-    
-    // 2. 관리자/부관리자 검색 (admins.json) - 일반적으로 SNS 로그인 없음
-    $adminsFile = getAdminsFilePath();
-    if (file_exists($adminsFile)) {
-        $content = file_get_contents($adminsFile);
-        $data = json_decode($content, true) ?: ['admins' => []];
-        foreach ($data['admins'] ?? [] as $admin) {
-            if (isset($admin['sns_provider']) && $admin['sns_provider'] === $provider && 
-                isset($admin['sns_id']) && $admin['sns_id'] === $snsId) {
-                return $admin;
-            }
-        }
-    }
-    
-    // 3. 판매자 검색 (sellers.json) - 일반적으로 SNS 로그인 없음
-    $sellersFile = getSellersFilePath();
-    if (file_exists($sellersFile)) {
-        $content = file_get_contents($sellersFile);
-        $data = json_decode($content, true) ?: ['sellers' => []];
-        foreach ($data['sellers'] ?? [] as $seller) {
-            if (isset($seller['sns_provider']) && $seller['sns_provider'] === $provider && 
-                isset($seller['sns_id']) && $seller['sns_id'] === $snsId) {
-                return $seller;
-            }
-        }
-    }
-    
-    return null;
-}
+// ============================================================================
+// 인증 관련 함수
+// ============================================================================
 
 /**
  * 사용자 로그인
@@ -438,9 +337,7 @@ function getCurrentUserId() {
  * 로그인 여부 확인
  */
 function isLoggedIn() {
-    // 세션이 시작되지 않았으면 시작
     if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
-        // 세션 이름이 설정되지 않았으면 설정
         $currentSessionName = session_name();
         if (empty($currentSessionName) || $currentSessionName === 'PHPSESSID') {
             session_name('MVNO_SESSION');
@@ -494,6 +391,28 @@ function isSellerApproved($userId = null) {
     return isset($user['seller_approved']) && $user['seller_approved'] === true;
 }
 
+// ============================================================================
+// 회원가입 관련 함수
+// ============================================================================
+
+/**
+ * SNS 아이디 생성 (형식: nvr_3211205, kko_3211205, gol_3211205)
+ */
+function generateSnsUserId($provider, $snsId) {
+    $prefixes = [
+        'naver' => 'nvr',
+        'kakao' => 'kko',
+        'google' => 'gol'
+    ];
+    
+    $prefix = $prefixes[$provider] ?? 'sns';
+    $hash = md5($snsId . $provider);
+    $numbers = preg_replace('/[^0-9]/', '', $hash);
+    $idPart = substr(str_repeat($numbers, 3), 0, 7);
+    
+    return $prefix . '_' . $idPart;
+}
+
 /**
  * 일반 회원 가입 (SNS)
  */
@@ -513,7 +432,6 @@ function registerSnsUser($provider, $snsId, $email, $name) {
     
     $pdo = getDBConnection();
     if ($pdo) {
-        // DB에 저장
         try {
             $stmt = $pdo->prepare("
                 INSERT INTO users (user_id, email, name, role, sns_provider, sns_id, seller_approved, created_at)
@@ -527,12 +445,9 @@ function registerSnsUser($provider, $snsId, $email, $name) {
                 ':sns_id' => $snsId
             ]);
             
-            // 저장된 사용자 정보 반환
-            $newUser = getUserById($userId);
-            return $newUser;
+            return getUserById($userId);
         } catch (PDOException $e) {
             error_log("registerSnsUser DB error: " . $e->getMessage());
-            // DB 오류 시 JSON 파일에 저장 (하위 호환성)
         }
     }
     
@@ -560,7 +475,6 @@ function registerSnsUser($provider, $snsId, $email, $name) {
  * 직접 회원가입 (일반 회원, 관리자, 서브관리자, 판매자)
  */
 function registerDirectUser($userId, $password, $email, $name, $role, $additionalData = []) {
-    // 역할 검증
     $allowedRoles = ['user', 'admin', 'sub_admin', 'seller'];
     if (!in_array($role, $allowedRoles)) {
         return ['success' => false, 'message' => '허용되지 않은 역할입니다.'];
@@ -582,16 +496,14 @@ function registerDirectUser($userId, $password, $email, $name, $role, $additiona
         'password' => password_hash($password, PASSWORD_DEFAULT),
         'role' => $role,
         'created_at' => date('Y-m-d H:i:s'),
-        'seller_approved' => $role === 'seller' ? false : true, // 판매자는 승인 필요
-        'permissions' => [] // 판매자 권한 (초기값: 빈 배열)
+        'seller_approved' => $role === 'seller' ? false : true,
+        'permissions' => []
     ];
     
-    // 판매자 가입 시 approval_status를 pending으로 설정
     if ($role === 'seller') {
         $newUser['approval_status'] = 'pending';
     }
     
-    // 추가 데이터 병합 (일반 회원의 경우 phone만 추가)
     if (!empty($additionalData)) {
         $newUser = array_merge($newUser, $additionalData);
     }
@@ -600,14 +512,10 @@ function registerDirectUser($userId, $password, $email, $name, $role, $additiona
     if ($role === 'user') {
         $pdo = getDBConnection();
         if ($pdo) {
-            // 일반 회원은 DB에 저장
             try {
                 $stmt = $pdo->prepare("
-                    INSERT INTO users (
-                        user_id, email, name, password, phone, role, seller_approved, created_at
-                    ) VALUES (
-                        :user_id, :email, :name, :password, :phone, 'user', 1, NOW()
-                    )
+                    INSERT INTO users (user_id, email, name, password, phone, role, seller_approved, created_at)
+                    VALUES (:user_id, :email, :name, :password, :phone, 'user', 1, NOW())
                 ");
                 
                 $stmt->execute([
@@ -618,12 +526,10 @@ function registerDirectUser($userId, $password, $email, $name, $role, $additiona
                     ':phone' => $newUser['phone'] ?? null
                 ]);
                 
-                // 저장된 사용자 정보 반환
                 $savedUser = getUserById($userId);
                 return ['success' => true, 'user' => $savedUser];
             } catch (PDOException $e) {
                 error_log("registerDirectUser DB error: " . $e->getMessage());
-                // DB 오류 시 JSON 파일에 저장 (하위 호환성)
             }
         }
         
@@ -633,13 +539,11 @@ function registerDirectUser($userId, $password, $email, $name, $role, $additiona
         $data['users'][] = $newUser;
         file_put_contents($file, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
     } elseif ($role === 'admin' || $role === 'sub_admin') {
-        // 관리자는 JSON 파일에 저장
         $file = getAdminsFilePath();
         $data = file_exists($file) ? json_decode(file_get_contents($file), true) : ['admins' => []];
         $data['admins'][] = $newUser;
         file_put_contents($file, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
     } elseif ($role === 'seller') {
-        // 판매자는 JSON 파일에 저장
         $file = getSellersFilePath();
         $data = file_exists($file) ? json_decode(file_get_contents($file), true) : ['sellers' => []];
         $data['sellers'][] = $newUser;
@@ -672,12 +576,12 @@ function loginDirectUser($userId, $password) {
     return ['success' => true, 'user' => $user];
 }
 
+// ============================================================================
+// 판매자 관리 함수
+// ============================================================================
+
 /**
  * 판매자 데이터 파일 저장 (공통 함수)
- * 
- * @param string $file 파일 경로
- * @param array $data 저장할 데이터
- * @return bool 성공 여부
  */
 function saveSellersData($file, $data) {
     $jsonData = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
@@ -710,25 +614,15 @@ function saveSellersData($file, $data) {
     
     flock($fp, LOCK_UN);
     fclose($fp);
-    
     clearstatcache(true, $file);
     
     return true;
 }
 
 /**
- * 판매자 승인
- * 
- * 날짜 필드 정리:
- * - created_at (가입일): 최초 1번만 설정, 변경 안됨
- * - approved_at (승인일): 승인할 때마다 현재 시간으로 업데이트
- * - held_at (승인보류일): 승인보류할 때마다 현재 시간으로 업데이트
- * - updated_at (정보수정일): 판매자 정보 수정 시 업데이트 (별도 관리)
- * 
- * @param string $userId 판매자 아이디
- * @return bool 성공 여부
+ * 판매자 데이터 로드 및 업데이트 헬퍼
  */
-function approveSeller($userId) {
+function loadAndUpdateSeller($userId, $callback) {
     $user = getUserById($userId);
     if (!$user || $user['role'] !== 'seller') {
         return false;
@@ -739,10 +633,7 @@ function approveSeller($userId) {
         return false;
     }
     
-    // 파일 캐시 클리어 후 읽기
     clearstatcache(true, $file);
-    
-    // 파일 내용 읽기
     $content = @file_get_contents($file);
     if ($content === false) {
         return false;
@@ -753,20 +644,11 @@ function approveSeller($userId) {
         return false;
     }
     
-    $currentTime = date('Y-m-d H:i:s');
     $foundUser = false;
-    
-    // 데이터 업데이트
     foreach ($data['sellers'] as &$u) {
         if (isset($u['user_id']) && $u['user_id'] === $userId) {
             $foundUser = true;
-            $u['approved_at'] = $currentTime;  // 승인일 업데이트
-            $u['seller_approved'] = true;
-            $u['approval_status'] = 'approved';
-            
-            if (!isset($u['permissions'])) {
-                $u['permissions'] = [];
-            }
+            $callback($u);
             break;
         }
     }
@@ -775,71 +657,36 @@ function approveSeller($userId) {
         return false;
     }
     
-    // 파일 저장
     return saveSellersData($file, $data);
+}
+
+/**
+ * 판매자 승인
+ */
+function approveSeller($userId) {
+    return loadAndUpdateSeller($userId, function(&$u) use ($userId) {
+        $u['approved_at'] = date('Y-m-d H:i:s');
+        $u['seller_approved'] = true;
+        $u['approval_status'] = 'approved';
+        if (!isset($u['permissions'])) {
+            $u['permissions'] = [];
+        }
+    });
 }
 
 /**
  * 판매자 승인보류
- * 
- * 날짜 필드 정리:
- * - held_at (승인보류일): 승인보류할 때마다 현재 시간으로 업데이트
- * - approved_at (승인일): 승인보류 시에도 유지 (히스토리 보존)
- * - updated_at (정보수정일): 변경 안됨 (별도 관리)
- * 
- * @param string $userId 판매자 아이디
- * @return bool 성공 여부
  */
 function holdSeller($userId) {
-    $user = getUserById($userId);
-    if (!$user || $user['role'] !== 'seller') {
-        return false;
-    }
-    
-    $file = getSellersFilePath();
-    if (!file_exists($file)) {
-        return false;
-    }
-    
-    // 파일 캐시 클리어 후 읽기
-    clearstatcache(true, $file);
-    
-    // 파일 내용 읽기
-    $content = @file_get_contents($file);
-    if ($content === false) {
-        return false;
-    }
-    
-    $data = @json_decode($content, true);
-    if (!is_array($data) || !isset($data['sellers'])) {
-        return false;
-    }
-    
-    $currentTime = date('Y-m-d H:i:s');
-    $foundUser = false;
-    
-    // 데이터 업데이트
-    foreach ($data['sellers'] as &$u) {
-        if (isset($u['user_id']) && $u['user_id'] === $userId) {
-            $foundUser = true;
-            $u['held_at'] = $currentTime;  // 승인보류일 업데이트
-            $u['seller_approved'] = false;
-            $u['approval_status'] = 'on_hold';
-            // approved_at은 유지 (히스토리 보존)
-            break;
-        }
-    }
-    
-    if (!$foundUser) {
-        return false;
-    }
-    
-    // 파일 저장
-    return saveSellersData($file, $data);
+    return loadAndUpdateSeller($userId, function(&$u) {
+        $u['held_at'] = date('Y-m-d H:i:s');
+        $u['seller_approved'] = false;
+        $u['approval_status'] = 'on_hold';
+    });
 }
 
 /**
- * 판매자 신청 취소 (거부)
+ * 판매자 신청 거부
  */
 function rejectSeller($userId) {
     $user = getUserById($userId);
@@ -857,7 +704,6 @@ function rejectSeller($userId) {
         if ($u['user_id'] === $userId) {
             $u['seller_approved'] = false;
             $u['approval_status'] = 'rejected';
-            // rejected_at 필드 제거 (용어 정리: 승인일, 승인보류일만 유지)
             break;
         }
     }
@@ -868,14 +714,6 @@ function rejectSeller($userId) {
 
 /**
  * 판매자 승인 취소 (승인 -> 대기로 변경)
- * 
- * 날짜 필드 정리:
- * - approved_at (승인일): 승인 취소 시에도 유지 (히스토리 보존)
- * - held_at (승인보류일): 승인 취소 시 유지 (히스토리 보존)
- * - updated_at (정보수정일): 변경 안됨 (별도 관리)
- * 
- * @param string $userId 판매자 아이디
- * @return bool 성공 여부
  */
 function cancelSellerApproval($userId) {
     $user = getUserById($userId);
@@ -893,7 +731,6 @@ function cancelSellerApproval($userId) {
         if ($u['user_id'] === $userId) {
             $u['seller_approved'] = false;
             $u['approval_status'] = 'pending';
-            // 승인일(approved_at)과 승인보류일(held_at)은 유지 (히스토리 보존)
             break;
         }
     }
@@ -929,9 +766,7 @@ function requestSellerWithdrawal($userId, $reason = '') {
             $u['withdrawal_requested_at'] = date('Y-m-d H:i:s');
             $u['withdrawal_reason'] = $reason;
             $u['approval_status'] = 'withdrawal_requested';
-            // 계정 비활성화 (로그인 불가)
             $u['seller_approved'] = false;
-            // 등록한 상품 정보, 고객 구매 기록, 리뷰, 주문 등은 모두 보존 (데이터 보존 정책)
             break;
         }
     }
@@ -952,11 +787,6 @@ function requestSellerWithdrawal($userId, $reason = '') {
  * 삭제/비식별화되는 것:
  * - 개인정보만 삭제 (이름, 이메일, 연락처, 주소)
  * - 계정 비활성화 (로그인 불가)
- * 
- * 보존 이유:
- * - 법적 보존 의무 (거래 기록, 상품 정보)
- * - 고객의 구매 이력 확인 필요
- * - 상품 정보 참고용 (고객이 구매한 상품 정보 확인)
  */
 function completeSellerWithdrawal($userId, $deleteDate = null) {
     $user = getUserById($userId);
@@ -976,42 +806,45 @@ function completeSellerWithdrawal($userId, $deleteDate = null) {
             $u['withdrawal_completed_at'] = date('Y-m-d H:i:s');
             $u['approval_status'] = 'withdrawn';
             $u['seller_approved'] = false;
-            // 탈퇴 완료 처리 시 탈퇴 요청 플래그는 유지하되, 탈퇴 요청 탭에서는 제외됨 (위의 필터에서 처리)
             
-            // 삭제 예정일 설정 (해당 날짜에 삭제)
             if (!empty($deleteDate)) {
                 $u['scheduled_delete_date'] = $deleteDate;
             } else {
-                // 날짜 미지정 시 즉시 삭제 처리
                 $u['scheduled_delete_date'] = null;
                 $u['scheduled_delete_time'] = null;
-                // 즉시 삭제 처리
                 $u['email'] = 'withdrawn_' . $userId . '@withdrawn';
                 if (isset($u['phone'])) unset($u['phone']);
                 if (isset($u['mobile'])) unset($u['mobile']);
                 if (isset($u['address'])) unset($u['address']);
                 if (isset($u['address_detail'])) unset($u['address_detail']);
                 if (isset($u['postal_code'])) unset($u['postal_code']);
+                
+                // 업로드된 파일 삭제 (사업자등록증 등)
+                if (isset($u['business_license_image']) && !empty($u['business_license_image'])) {
+                    $imagePath = $_SERVER['DOCUMENT_ROOT'] . $u['business_license_image'];
+                    if (file_exists($imagePath)) {
+                        @unlink($imagePath);
+                    }
+                }
+                
+                // 기타 첨부파일 삭제
+                if (isset($u['other_documents']) && is_array($u['other_documents'])) {
+                    foreach ($u['other_documents'] as $doc) {
+                        if (isset($doc['url']) && !empty($doc['url'])) {
+                            $docPath = $_SERVER['DOCUMENT_ROOT'] . $doc['url'];
+                            if (file_exists($docPath)) {
+                                @unlink($docPath);
+                            }
+                        }
+                    }
+                }
             }
-            
-            // 이름은 그대로 유지, 상태만 'withdrawn'으로 변경
-            // 중요: 등록한 상품 정보와 고객의 구매 기록은 그대로 보존됨
-            // 이름은 유지하므로 $u['name'] 변경하지 않음
-            
-            // 사업자 정보는 보존 (거래 이력과 연결되어 있음)
-            // 다만 개인 연락처 정보는 삭제 예정일이 지나면 삭제
-            
-            // 등록한 상품 정보는 별도 파일에 저장되어 있으므로
-            // 판매자 정보 삭제와 무관하게 보존됨
-            // 고객의 주문/신청 내역도 별도 파일에 저장되어 있으므로 보존됨
-            
             break;
         }
     }
     
     file_put_contents($file, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
     
-    // 삭제 예정일이 오늘 이전이거나 같으면 즉시 삭제 처리
     if (!empty($deleteDate) && $deleteDate <= date('Y-m-d')) {
         processScheduledDeletions();
     }
@@ -1034,14 +867,11 @@ function processScheduledDeletions() {
     $updated = false;
     
     foreach ($data['sellers'] as &$u) {
-        // 삭제 예정일이 설정되어 있고, 아직 처리되지 않은 경우
         if (isset($u['scheduled_delete_date']) && !empty($u['scheduled_delete_date']) 
             && (!isset($u['scheduled_delete_processed']) || $u['scheduled_delete_processed'] !== true)) {
             $scheduledDate = $u['scheduled_delete_date'];
             
-            // 삭제 예정일이 현재 날짜보다 이전이거나 같은 경우 (날짜만 비교)
             if ($scheduledDate <= $currentDate) {
-                // 개인정보 삭제 처리
                 $u['email'] = 'withdrawn_' . $u['user_id'] . '@withdrawn';
                 if (isset($u['phone'])) unset($u['phone']);
                 if (isset($u['mobile'])) unset($u['mobile']);
@@ -1049,10 +879,28 @@ function processScheduledDeletions() {
                 if (isset($u['address_detail'])) unset($u['address_detail']);
                 if (isset($u['postal_code'])) unset($u['postal_code']);
                 
-                // 삭제 처리 완료 표시
+                // 업로드된 파일 삭제 (사업자등록증 등)
+                if (isset($u['business_license_image']) && !empty($u['business_license_image'])) {
+                    $imagePath = $_SERVER['DOCUMENT_ROOT'] . $u['business_license_image'];
+                    if (file_exists($imagePath)) {
+                        @unlink($imagePath);
+                    }
+                }
+                
+                // 기타 첨부파일 삭제
+                if (isset($u['other_documents']) && is_array($u['other_documents'])) {
+                    foreach ($u['other_documents'] as $doc) {
+                        if (isset($doc['url']) && !empty($doc['url'])) {
+                            $docPath = $_SERVER['DOCUMENT_ROOT'] . $doc['url'];
+                            if (file_exists($docPath)) {
+                                @unlink($docPath);
+                            }
+                        }
+                    }
+                }
+                
                 $u['scheduled_delete_processed'] = true;
                 $u['scheduled_delete_processed_at'] = $currentDateTime;
-                
                 $updated = true;
             }
         }
@@ -1103,7 +951,6 @@ function setSellerPermissions($userId, $permissions) {
         return false;
     }
     
-    // 권한 검증
     $allowedPermissions = ['mvno', 'mno', 'internet'];
     $validPermissions = [];
     foreach ($permissions as $perm) {
@@ -1139,12 +986,10 @@ function hasSellerPermission($userId, $permission) {
         return false;
     }
     
-    // 승인되지 않은 판매자는 권한 없음
     if (!isset($user['seller_approved']) || $user['seller_approved'] !== true) {
         return false;
     }
     
-    // 권한이 없으면 false
     if (!isset($user['permissions']) || !is_array($user['permissions'])) {
         return false;
     }
@@ -1163,4 +1008,3 @@ function canSellerPost($permission) {
     
     return hasSellerPermission($user['user_id'], $permission);
 }
-

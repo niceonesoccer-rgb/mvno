@@ -2,49 +2,12 @@
     "admins": [
         {
             "user_id": "admin",
-            "email": "admin@toyo.com",
-            "name": "관리자",
-            "password": "$2y$10$zM6hTPnJ1DZshDXzeskNv.H6cwOIQcBxPyDrDvfB6bN\/kY3TpSJK.",
-            "role": "admin",
-            "created_at": "2025-12-04 15:29:04",
-            "seller_approved": true,
-            "permissions": []
-        },
-        {
-            "user_id": "11111",
-            "phone": "010-2222-1111",
-            "name": "카카오테",
-            "password": "$2y$10$x7s1l4O8roxLFwybKytJVeuEeNz76JGEnc6AHILfR5VkZgvYSWgR2",
-            "role": "sub_admin",
-            "created_at": "2025-12-07 10:16:55",
-            "created_by": "admin"
-        },
-        {
-            "user_id": "ddddddd",
-            "phone": "010-2222-1111",
-            "name": "dddd",
-            "password": "$2y$10$GTm4HILm8XXSK2TiOHBsJOW9wZuEQXR2KhUQh9I81M995Nqr9DGly",
-            "role": "sub_admin",
-            "created_at": "2025-12-07 10:21:25",
-            "created_by": "admin"
-        },
-        {
-            "user_id": "00000000",
             "phone": "010-0000-0000",
-            "name": "00011111111111",
-            "password": "$2y$10$WUiwoeF4dO6aak.CPTCOfOQCKhFpCFm508mJ2YGsjzBaXYHfiPqda",
-            "role": "sub_admin",
-            "created_at": "2025-12-07 10:29:33",
-            "created_by": "admin"
-        },
-        {
-            "user_id": "dsfadsfadsf",
-            "phone": "010-2145-5555dxdx",
-            "name": "수정",
-            "password": "$2y$10$86WY4pexlKY9vklVCEBOo.3A3XZpA\/hraVDfBMmjCQ6h4J8\/worvC",
-            "role": "sub_admin",
-            "created_at": "2025-12-07 12:30:10",
-            "created_by": "admin"
+            "name": "관리자",
+            "password": "$2y$10$9h65l3t6HBQDEtX2WscufeOBtY5XzRNBYvbA1j9Z.41gcnZ9Ph.Ki",
+            "role": "admin",
+            "created_at": "2025-12-15 07:23:16",
+            "created_by": "system"
         }
     ]
 }

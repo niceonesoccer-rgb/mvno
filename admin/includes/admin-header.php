@@ -709,6 +709,17 @@ if (file_exists($adminsFile)) {
                     </span>
                     단말기 설정
                 </a>
+                <a href="/MVNO/admin/settings/data-delete.php" class="menu-item <?php echo $currentPage === 'data-delete.php' ? 'active' : ''; ?>">
+                    <span class="menu-item-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="3 6 5 6 21 6"/>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                            <line x1="10" y1="11" x2="10" y2="17"/>
+                            <line x1="14" y1="11" x2="14" y2="17"/>
+                        </svg>
+                    </span>
+                    데이터 삭제 관리
+                </a>
             </div>
             
             <!-- 통계 분석 -->
