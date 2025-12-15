@@ -79,7 +79,7 @@ $productData = [
     'benefits' => $_POST['benefits'] ?? [],
     'registration_types' => $_POST['registration_types'] ?? [],
     'status' => $_POST['product_status'] ?? ($productData['product_id'] > 0 ? null : 'active'),
-    'redirect_url' => !empty($_POST['redirect_url']) ? trim($_POST['redirect_url']) : null
+    'redirect_url' => !empty($_POST['redirect_url']) ? preg_replace('/\s+/', '', trim($_POST['redirect_url'])) : null
 ];
 
 // 필수 필드 검증

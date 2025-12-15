@@ -69,7 +69,7 @@ try {
     }
     
     $sellerId = $product['seller_id'];
-    $redirectUrl = !empty($product['redirect_url']) ? trim($product['redirect_url']) : null;
+    $redirectUrl = !empty($product['redirect_url']) ? preg_replace('/\s+/', '', trim($product['redirect_url'])) : null;
     
     // 로그인한 사용자 정보 가져오기 (이미 로그인 체크 완료)
     $currentUser = getCurrentUser();

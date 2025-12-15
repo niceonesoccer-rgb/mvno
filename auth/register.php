@@ -395,58 +395,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 <body>
     <div class="register-container">
-        <div class="register-header">
-            <h1>회원가입</h1>
-            <p>모요에 오신 것을 환영합니다</p>
-        </div>
-        
         <?php if ($error): ?>
             <div class="error-message">
                 <?php echo htmlspecialchars($error); ?>
             </div>
         <?php endif; ?>
         
-        <?php if ($success && $registeredUser && ($registeredUser['role'] ?? 'user') === 'user'): ?>
-            <!-- 일반 회원 가입 완료 화면 -->
-            <div class="success-container" style="text-align: center; padding: 40px 24px;">
-                <div style="font-size: 48px; margin-bottom: 24px;">🎉</div>
-                <h2 style="font-size: 24px; font-weight: 700; color: #1f2937; margin-bottom: 16px;">
-                    회원가입을 축하합니다!
-                </h2>
-                <p style="font-size: 16px; color: #6b7280; margin-bottom: 32px;">
-                    모요에 오신 것을 환영합니다.
-                </p>
-                
-                <div class="user-info-box" style="background: #f9fafb; border-radius: 12px; padding: 24px; margin-bottom: 32px; text-align: left; max-width: 400px; margin-left: auto; margin-right: auto;">
-                    <div style="margin-bottom: 16px;">
-                        <div style="font-size: 13px; color: #6b7280; margin-bottom: 4px;">아이디</div>
-                        <div style="font-size: 16px; font-weight: 600; color: #1f2937;"><?php echo htmlspecialchars($registeredUser['user_id'] ?? ''); ?></div>
-                    </div>
-                    <div style="margin-bottom: 16px;">
-                        <div style="font-size: 13px; color: #6b7280; margin-bottom: 4px;">이름</div>
-                        <div style="font-size: 16px; font-weight: 600; color: #1f2937;"><?php echo htmlspecialchars($registeredUser['name'] ?? ''); ?></div>
-                    </div>
-                    <div style="margin-bottom: 16px;">
-                        <div style="font-size: 13px; color: #6b7280; margin-bottom: 4px;">이메일</div>
-                        <div style="font-size: 16px; font-weight: 600; color: #1f2937;"><?php echo htmlspecialchars($registeredUser['email'] ?? ''); ?></div>
-                    </div>
-                    <div>
-                        <div style="font-size: 13px; color: #6b7280; margin-bottom: 4px;">휴대폰번호</div>
-                        <div style="font-size: 16px; font-weight: 600; color: #1f2937;"><?php echo htmlspecialchars($registeredUser['phone'] ?? '-'); ?></div>
-                    </div>
-                </div>
-                
-                <button onclick="goToPreviousPage()" class="confirm-button" style="width: 100%; max-width: 400px; padding: 14px; background: #6366f1; color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: background 0.2s;">
-                    확인
-                </button>
-            </div>
-            
-            <script>
-                function goToPreviousPage() {
-                    window.location.href = '<?php echo htmlspecialchars($redirectUrl, ENT_QUOTES, 'UTF-8'); ?>';
-                }
-            </script>
-        <?php elseif ($success): ?>
+        <?php if ($success): ?>
             <!-- 판매자/관리자 가입 완료 (기존 방식) -->
             <div class="success-message">
                 회원가입이 완료되었습니다. <a href="/MVNO/auth/login.php" style="color: #065f46; font-weight: 600;">로그인</a>해주세요.

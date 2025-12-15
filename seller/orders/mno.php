@@ -106,24 +106,44 @@ try {
                 // 3자리 미만이면 원본 검색어로도 검색
                 $searchConditions[] = 'c.phone LIKE :search_keyword';
             }
-            // 주문번호 검색 (created_at 기반: YYYYMMDD-HHMMSS00 형식, 하이픈 없이도 검색 가능)
+            // 주문번호 검색 (created_at 기반: YYMMDDHH-MMXXXXXX 형식, 하이픈 없이도 검색 가능)
             $cleanKeyword = preg_replace('/[^0-9]/', '', $searchKeyword); // 숫자만 추출
-            if (strlen($cleanKeyword) >= 4) {
-                // 날짜 부분 검색 (YYYYMMDD)
+            if (strlen($cleanKeyword) >= 2) {
+                // 앞 8자리 검색 (YYMMDDHH: 년월일시간)
                 if (strlen($cleanKeyword) >= 8) {
-                    $datePart = substr($cleanKeyword, 0, 8);
-                    $searchConditions[] = "DATE_FORMAT(a.created_at, '%Y%m%d') LIKE :search_keyword_date";
-                    $params[':search_keyword_date'] = '%' . $datePart . '%';
+                    $dateTimePart = substr($cleanKeyword, 0, 8);
+                    // YYMMDDHH 형식으로 변환하여 검색 (예: 25121518 -> 2025-12-15 18:xx:xx)
+                    $year = '20' . substr($dateTimePart, 0, 2);
+                    $month = substr($dateTimePart, 2, 2);
+                    $day = substr($dateTimePart, 4, 2);
+                    $hour = substr($dateTimePart, 6, 2);
+                    $searchConditions[] = "DATE_FORMAT(a.created_at, '%Y%m%d%H') LIKE :search_keyword_datetime";
+                    $params[':search_keyword_datetime'] = '%' . $year . $month . $day . $hour . '%';
                 }
-                // 시간 부분 검색 (HHMMSS)
+                // 뒤 8자리 검색 (MMXXXXXX: 분 + 주문ID)
                 if (strlen($cleanKeyword) > 8) {
-                    $timePart = substr($cleanKeyword, 8);
-                    $searchConditions[] = "DATE_FORMAT(a.created_at, '%H%i%s') LIKE :search_keyword_time";
-                    $params[':search_keyword_time'] = '%' . $timePart . '%';
+                    $minutePart = substr($cleanKeyword, 8, 2);
+                    $orderIdPart = substr($cleanKeyword, 10);
+                    $searchConditions[] = "DATE_FORMAT(a.created_at, '%i') LIKE :search_keyword_minute";
+                    $params[':search_keyword_minute'] = '%' . $minutePart . '%';
+                    if (strlen($orderIdPart) > 0) {
+                        $searchConditions[] = "CAST(a.id AS CHAR) LIKE :search_keyword_orderid";
+                        $params[':search_keyword_orderid'] = '%' . $orderIdPart . '%';
+                    }
                 } elseif (strlen($cleanKeyword) < 8) {
-                    // 8자리 미만이면 날짜 부분으로 검색
-                    $searchConditions[] = "DATE_FORMAT(a.created_at, '%Y%m%d') LIKE :search_keyword_date";
-                    $params[':search_keyword_date'] = '%' . $cleanKeyword . '%';
+                    // 8자리 미만이면 날짜/시간 부분으로 검색
+                    if (strlen($cleanKeyword) >= 6) {
+                        // YYMMDD 형식
+                        $year = '20' . substr($cleanKeyword, 0, 2);
+                        $month = substr($cleanKeyword, 2, 2);
+                        $day = substr($cleanKeyword, 4, 2);
+                        $searchConditions[] = "DATE_FORMAT(a.created_at, '%Y%m%d') LIKE :search_keyword_date";
+                        $params[':search_keyword_date'] = '%' . $year . $month . $day . '%';
+                    } else {
+                        // YYMM 또는 YY 형식
+                        $searchConditions[] = "DATE_FORMAT(a.created_at, '%y%m') LIKE :search_keyword_ym";
+                        $params[':search_keyword_ym'] = '%' . $cleanKeyword . '%';
+                    }
                 }
             }
             $params[':search_keyword'] = '%' . $searchKeyword . '%';
@@ -142,9 +162,9 @@ try {
         
         $whereClause = implode(' AND ', $whereConditions);
         
-        // 전체 개수 조회
+        // 전체 개수 조회 (중복 방지를 위해 DISTINCT 사용)
         $countSql = "
-            SELECT COUNT(*) as total
+            SELECT COUNT(DISTINCT a.id) as total
             FROM product_applications a
             INNER JOIN application_customers c ON a.id = c.application_id
             WHERE $whereClause
@@ -154,10 +174,10 @@ try {
         $totalOrders = $countStmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
         $totalPages = max(1, ceil($totalOrders / $perPage));
         
-        // 주문 목록 조회
+        // 주문 목록 조회 (중복 방지를 위해 DISTINCT 사용)
         $offset = ($page - 1) * $perPage;
         $sql = "
-            SELECT 
+            SELECT DISTINCT
                 a.id,
                 a.product_id,
                 a.application_status,
@@ -198,7 +218,7 @@ try {
             INNER JOIN products p ON a.product_id = p.id
             LEFT JOIN product_mno_details mno ON p.id = mno.product_id
             WHERE $whereClause
-            ORDER BY a.created_at DESC
+            ORDER BY a.created_at DESC, a.id DESC
             LIMIT :limit OFFSET :offset
         ";
         $stmt = $pdo->prepare($sql);
@@ -218,6 +238,19 @@ try {
                 $order['additional_info'] = [];
             }
             
+            // product_snapshot에서 상품 정보 가져오기 (신청 당시 정보)
+            $productSnapshot = $order['additional_info']['product_snapshot'] ?? [];
+            if (!empty($productSnapshot) && is_array($productSnapshot)) {
+                // product_snapshot의 모든 정보로 현재 상품 정보 덮어쓰기 (신청 당시 정보 유지)
+                // 단, id, product_id, seller_id 등은 제외
+                $excludeKeys = ['id', 'product_id', 'seller_id'];
+                foreach ($productSnapshot as $key => $value) {
+                    if (!in_array($key, $excludeKeys) && $value !== null) {
+                        $order[$key] = $value;
+                    }
+                }
+            }
+            
             // 상품 정보 JSON 디코딩
             $jsonFields = [
                 'common_provider', 'common_discount_new', 'common_discount_port', 'common_discount_change',
@@ -225,8 +258,13 @@ try {
             ];
             foreach ($jsonFields as $field) {
                 if (!empty($order[$field])) {
-                    $decoded = json_decode($order[$field], true);
-                    $order[$field] = is_array($decoded) ? $decoded : [];
+                    // 문자열인 경우에만 디코딩
+                    if (is_string($order[$field])) {
+                        $decoded = json_decode($order[$field], true);
+                        $order[$field] = is_array($decoded) ? $decoded : [];
+                    } elseif (!is_array($order[$field])) {
+                        $order[$field] = [];
+                    }
                 } else {
                     $order[$field] = [];
                 }
@@ -1004,9 +1042,16 @@ include __DIR__ . '/../includes/seller-header.php';
                             <td>
                                 <?php 
                                 $createdAt = new DateTime($order['created_at']);
-                                $datePart = $createdAt->format('Ymd');
-                                $timePart = $createdAt->format('His') . '00'; // 시분초 + 00으로 8자리
-                                echo $datePart . '-' . $timePart;
+                                // 앞 8자리: YY(년 2자리) + MM(월 2자리) + DD(일 2자리) + HH(시간 2자리)
+                                $dateTimePart = $createdAt->format('ymdH'); // 년(2자리)월일시간
+                                // 뒤 8자리: MM(분 2자리) + 주문ID(6자리)
+                                $minutePart = $createdAt->format('i'); // 분 2자리
+                                $orderIdPadded = str_pad($order['id'], 6, '0', STR_PAD_LEFT); // 주문ID 6자리
+                                
+                                // 형식: YYMMDDHH-MMXXXXXX (8자리-8자리)
+                                // 예: 25121518-0004000001, 25121518-0004000002
+                                $orderNumber = $dateTimePart . '-' . $minutePart . $orderIdPadded;
+                                echo $orderNumber;
                                 ?>
                             </td>
                             <td>

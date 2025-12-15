@@ -96,34 +96,54 @@ try {
         // 통합검색 (주문번호, 고객명, 전화번호)
         if ($searchKeyword && $searchKeyword !== '') {
             $searchConditions = [];
-            $searchConditions[] = 'c.name LIKE :search_keyword';
+            $searchConditions[] = '(SELECT c.name FROM application_customers c WHERE c.application_id = a.id LIMIT 1) LIKE :search_keyword';
             // 전화번호 검색 (하이픈, 공백 제거 후 검색)
             $cleanPhoneKeyword = preg_replace('/[^0-9]/', '', $searchKeyword); // 숫자만 추출
             if (strlen($cleanPhoneKeyword) >= 3) {
-                $searchConditions[] = "REPLACE(REPLACE(REPLACE(c.phone, '-', ''), ' ', ''), '.', '') LIKE :search_keyword_phone";
+                $searchConditions[] = "REPLACE(REPLACE(REPLACE((SELECT c.phone FROM application_customers c WHERE c.application_id = a.id LIMIT 1), '-', ''), ' ', ''), '.', '') LIKE :search_keyword_phone";
                 $params[':search_keyword_phone'] = '%' . $cleanPhoneKeyword . '%';
             } else {
                 // 3자리 미만이면 원본 검색어로도 검색
-                $searchConditions[] = 'c.phone LIKE :search_keyword';
+                $searchConditions[] = '(SELECT c.phone FROM application_customers c WHERE c.application_id = a.id LIMIT 1) LIKE :search_keyword';
             }
-            // 주문번호 검색 (created_at 기반: YYYYMMDD-HHMMSS00 형식, 하이픈 없이도 검색 가능)
+            // 주문번호 검색 (created_at 기반: YYMMDDHH-MMXXXXXX 형식, 하이픈 없이도 검색 가능)
             $cleanKeyword = preg_replace('/[^0-9]/', '', $searchKeyword); // 숫자만 추출
-            if (strlen($cleanKeyword) >= 4) {
-                // 날짜 부분 검색 (YYYYMMDD)
+            if (strlen($cleanKeyword) >= 2) {
+                // 앞 8자리 검색 (YYMMDDHH: 년월일시간)
                 if (strlen($cleanKeyword) >= 8) {
-                    $datePart = substr($cleanKeyword, 0, 8);
-                    $searchConditions[] = "DATE_FORMAT(a.created_at, '%Y%m%d') LIKE :search_keyword_date";
-                    $params[':search_keyword_date'] = '%' . $datePart . '%';
+                    $dateTimePart = substr($cleanKeyword, 0, 8);
+                    // YYMMDDHH 형식으로 변환하여 검색 (예: 25121518 -> 2025-12-15 18:xx:xx)
+                    $year = '20' . substr($dateTimePart, 0, 2);
+                    $month = substr($dateTimePart, 2, 2);
+                    $day = substr($dateTimePart, 4, 2);
+                    $hour = substr($dateTimePart, 6, 2);
+                    $searchConditions[] = "DATE_FORMAT(a.created_at, '%Y%m%d%H') LIKE :search_keyword_datetime";
+                    $params[':search_keyword_datetime'] = '%' . $year . $month . $day . $hour . '%';
                 }
-                // 시간 부분 검색 (HHMMSS)
+                // 뒤 8자리 검색 (MMXXXXXX: 분 + 주문ID)
                 if (strlen($cleanKeyword) > 8) {
-                    $timePart = substr($cleanKeyword, 8);
-                    $searchConditions[] = "DATE_FORMAT(a.created_at, '%H%i%s') LIKE :search_keyword_time";
-                    $params[':search_keyword_time'] = '%' . $timePart . '%';
+                    $minutePart = substr($cleanKeyword, 8, 2);
+                    $orderIdPart = substr($cleanKeyword, 10);
+                    $searchConditions[] = "DATE_FORMAT(a.created_at, '%i') LIKE :search_keyword_minute";
+                    $params[':search_keyword_minute'] = '%' . $minutePart . '%';
+                    if (strlen($orderIdPart) > 0) {
+                        $searchConditions[] = "CAST(a.id AS CHAR) LIKE :search_keyword_orderid";
+                        $params[':search_keyword_orderid'] = '%' . $orderIdPart . '%';
+                    }
                 } elseif (strlen($cleanKeyword) < 8) {
-                    // 8자리 미만이면 날짜 부분으로 검색
-                    $searchConditions[] = "DATE_FORMAT(a.created_at, '%Y%m%d') LIKE :search_keyword_date";
-                    $params[':search_keyword_date'] = '%' . $cleanKeyword . '%';
+                    // 8자리 미만이면 날짜/시간 부분으로 검색
+                    if (strlen($cleanKeyword) >= 6) {
+                        // YYMMDD 형식
+                        $year = '20' . substr($cleanKeyword, 0, 2);
+                        $month = substr($cleanKeyword, 2, 2);
+                        $day = substr($cleanKeyword, 4, 2);
+                        $searchConditions[] = "DATE_FORMAT(a.created_at, '%Y%m%d') LIKE :search_keyword_date";
+                        $params[':search_keyword_date'] = '%' . $year . $month . $day . '%';
+                    } else {
+                        // YYMM 또는 YY 형식
+                        $searchConditions[] = "DATE_FORMAT(a.created_at, '%y%m') LIKE :search_keyword_ym";
+                        $params[':search_keyword_ym'] = '%' . $cleanKeyword . '%';
+                    }
                 }
             }
             $params[':search_keyword'] = '%' . $searchKeyword . '%';
@@ -142,30 +162,32 @@ try {
         
         $whereClause = implode(' AND ', $whereConditions);
         
-        // 전체 개수 조회
+        // 전체 개수 조회 (중복 방지를 위해 DISTINCT 사용)
         $countSql = "
-            SELECT COUNT(*) as total
+            SELECT COUNT(DISTINCT a.id) as total
             FROM product_applications a
-            INNER JOIN application_customers c ON a.id = c.application_id
-            WHERE $whereClause
+            WHERE EXISTS (
+                SELECT 1 FROM application_customers c WHERE c.application_id = a.id
+            )
+            AND $whereClause
         ";
         $countStmt = $pdo->prepare($countSql);
         $countStmt->execute($params);
         $totalOrders = $countStmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
         $totalPages = max(1, ceil($totalOrders / $perPage));
         
-        // 주문 목록 조회
+        // 주문 목록 조회 (중복 방지를 위해 서브쿼리 사용)
         $offset = ($page - 1) * $perPage;
         $sql = "
             SELECT 
-                a.id,
+                a.id as application_id,
                 a.product_id,
                 a.application_status,
                 a.created_at,
-                c.name,
-                c.phone,
-                c.email,
-                c.additional_info,
+                (SELECT c.name FROM application_customers c WHERE c.application_id = a.id LIMIT 1) as name,
+                (SELECT c.phone FROM application_customers c WHERE c.application_id = a.id LIMIT 1) as phone,
+                (SELECT c.email FROM application_customers c WHERE c.application_id = a.id LIMIT 1) as email,
+                (SELECT c.additional_info FROM application_customers c WHERE c.application_id = a.id LIMIT 1) as additional_info,
                 p.id as product_id,
                 mvno.plan_name,
                 mvno.provider,
@@ -206,11 +228,10 @@ try {
                 mvno.promotions,
                 mvno.benefits
             FROM product_applications a
-            INNER JOIN application_customers c ON a.id = c.application_id
             INNER JOIN products p ON a.product_id = p.id
             LEFT JOIN product_mvno_details mvno ON p.id = mvno.product_id
             WHERE $whereClause
-            ORDER BY a.created_at DESC
+            ORDER BY a.created_at DESC, a.id DESC
             LIMIT :limit OFFSET :offset
         ";
         $stmt = $pdo->prepare($sql);
@@ -230,11 +251,29 @@ try {
                 $order['additional_info'] = [];
             }
             
+            // product_snapshot에서 상품 정보 가져오기 (신청 당시 정보)
+            $productSnapshot = $order['additional_info']['product_snapshot'] ?? [];
+            if (!empty($productSnapshot) && is_array($productSnapshot)) {
+                // product_snapshot의 모든 정보로 현재 상품 정보 덮어쓰기 (신청 당시 정보 유지)
+                // 단, id, product_id, seller_id 등은 제외
+                $excludeKeys = ['id', 'product_id', 'seller_id'];
+                foreach ($productSnapshot as $key => $value) {
+                    if (!in_array($key, $excludeKeys) && $value !== null) {
+                        $order[$key] = $value;
+                    }
+                }
+            }
+            
             // JSON 필드 디코딩
             $jsonFields = ['promotions', 'benefits'];
             foreach ($jsonFields as $field) {
                 if (!empty($order[$field])) {
-                    $order[$field] = json_decode($order[$field], true) ?: [];
+                    // 문자열인 경우에만 디코딩
+                    if (is_string($order[$field])) {
+                        $order[$field] = json_decode($order[$field], true) ?: [];
+                    } elseif (!is_array($order[$field])) {
+                        $order[$field] = [];
+                    }
                 } else {
                     $order[$field] = [];
                 }
@@ -940,6 +979,7 @@ include __DIR__ . '/../includes/seller-header.php';
                     <tr>
                         <th>순번</th>
                         <th>주문번호</th>
+                        <th>통신사</th>
                         <th>상품명</th>
                         <th>가입형태</th>
                         <th>고객명</th>
@@ -957,18 +997,61 @@ include __DIR__ . '/../includes/seller-header.php';
                             <td><?php echo $orderIndex--; ?></td>
                             <td>
                                 <?php 
+                                // 주문 ID 확인 (application_id 우선 사용)
+                                $orderId = isset($order['application_id']) ? intval($order['application_id']) : (isset($order['id']) ? intval($order['id']) : 0);
+                                
+                                if ($orderId <= 0) {
+                                    // 디버깅: 주문 ID가 없는 경우
+                                    error_log("MVNO Order - Invalid order ID. Available keys: " . implode(', ', array_keys($order)));
+                                    $orderId = 0;
+                                }
+                                
                                 $createdAt = new DateTime($order['created_at']);
-                                $datePart = $createdAt->format('Ymd');
-                                $timePart = $createdAt->format('His') . '00'; // 시분초 + 00으로 8자리
-                                echo $datePart . '-' . $timePart;
+                                // 앞 8자리: YY(년 2자리) + MM(월 2자리) + DD(일 2자리) + HH(시간 2자리)
+                                $dateTimePart = $createdAt->format('ymdH'); // 년(2자리)월일시간
+                                // 뒤 8자리: MM(분 2자리) + 주문ID(6자리)
+                                $minutePart = $createdAt->format('i'); // 분 2자리
+                                $orderIdPadded = str_pad($orderId, 6, '0', STR_PAD_LEFT); // 주문ID 6자리
+                                
+                                // 형식: YYMMDDHH-MMXXXXXX (8자리-8자리)
+                                // 예: 25121518-0004000001, 25121518-0004000002
+                                $orderNumber = $dateTimePart . '-' . $minutePart . $orderIdPadded;
+                                
+                                // 디버깅: 주문 ID 확인 (임시)
+                                // echo '<!-- Order ID: ' . $orderId . ', Keys: ' . implode(', ', array_keys($order)) . ' -->';
+                                
+                                echo htmlspecialchars($orderNumber);
                                 ?>
                             </td>
                             <td>
-                                <span class="product-name-link" onclick="showProductInfo(<?php echo htmlspecialchars(json_encode($order)); ?>, 'mvno')">
+                                <?php
+                                // 주문 데이터를 JSON으로 안전하게 인코딩
+                                $orderData = $order;
+                                // NULL 값 처리 및 데이터 정리
+                                foreach ($orderData as $key => $value) {
+                                    if ($value === null) {
+                                        $orderData[$key] = '';
+                                    }
+                                }
+                                // JSON 인코딩 (에러 처리 포함)
+                                $orderJson = json_encode($orderData, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                                if ($orderJson === false) {
+                                    // JSON 인코딩 실패 시 기본값 사용
+                                    $orderJson = '{}';
+                                }
+                                // HTML 속성에 안전하게 삽입하기 위해 이스케이프
+                                $orderJsonEscaped = htmlspecialchars($orderJson, ENT_QUOTES, 'UTF-8');
+                                ?>
+                                <?php 
+                                $provider = htmlspecialchars($order['provider'] ?? '-');
+                                echo $provider;
+                                ?>
+                            </td>
+                            <td>
+                                <span class="product-name-link" data-order="<?php echo $orderJsonEscaped; ?>" onclick="showProductInfo(JSON.parse(this.getAttribute('data-order')), 'mvno')">
                                     <?php 
                                     $productName = htmlspecialchars($order['plan_name'] ?? '상품명 없음');
-                                    $provider = htmlspecialchars($order['provider'] ?? '');
-                                    echo $provider ? "{$provider} {$productName}" : $productName;
+                                    echo $productName;
                                     ?>
                                 </span>
                             </td>
@@ -986,7 +1069,7 @@ include __DIR__ . '/../includes/seller-header.php';
                                     <span class="status-badge status-<?php echo $order['application_status']; ?>">
                                         <?php echo $statusLabels[$order['application_status']] ?? $order['application_status']; ?>
                                     </span>
-                                    <button type="button" class="status-edit-btn" onclick="openStatusEditModal(<?php echo $order['id']; ?>, '<?php echo htmlspecialchars($order['application_status'], ENT_QUOTES); ?>')" title="상태 변경">
+                                    <button type="button" class="status-edit-btn" onclick="openStatusEditModal(<?php echo isset($order['application_id']) ? $order['application_id'] : $order['id']; ?>, '<?php echo htmlspecialchars($order['application_status'], ENT_QUOTES); ?>')" title="상태 변경">
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                                             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
@@ -1083,319 +1166,372 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // 상품 정보 모달 표시
 function showProductInfo(order, productType) {
-    const modal = document.getElementById('productInfoModal');
-    const modalBody = document.getElementById('productInfoModalBody');
-    
-    let html = '';
-    
-    if (productType === 'mvno') {
-        const additionalInfo = order.additional_info || {};
-        const productSnapshot = additionalInfo.product_snapshot || {};
+    try {
+        const modal = document.getElementById('productInfoModal');
+        const modalBody = document.getElementById('productInfoModalBody');
         
-        // 고객이 가입한 정보를 우선 사용 (product_snapshot에서), 없으면 상품 기본 정보 사용
-        const getValue = (customerKey, productKey, defaultValue = null) => {
-            // product_snapshot에서 먼저 확인
-            if (productSnapshot[customerKey] !== undefined && productSnapshot[customerKey] !== null) {
-                const value = productSnapshot[customerKey];
-                // 빈 문자열도 유효한 값으로 처리 (빈 문자열이면 빈 문자열 반환)
-                return value;
-            }
-            // additionalInfo에서 확인
-            if (additionalInfo[customerKey] !== undefined && additionalInfo[customerKey] !== null) {
-                const value = additionalInfo[customerKey];
-                return value;
-            }
-            // order에서 확인
-            if (order[productKey] !== undefined && order[productKey] !== null) {
-                return order[productKey];
-            }
-            // 기본값 반환 (null이면 빈 문자열 반환)
-            return defaultValue !== null ? defaultValue : '';
-        };
-        
-        // 가입 형태
-        const subscriptionType = additionalInfo.subscription_type || '';
-        const subscriptionTypeLabel = subscriptionType === 'new' ? '신규가입' : 
-                                     subscriptionType === 'port' ? '번호이동' : 
-                                     subscriptionType === 'change' ? '기기변경' : 
-                                     subscriptionType || '-';
-        
-        // 통신 기술 (service_type)
-        const serviceType = getValue('service_type', 'service_type');
-        const serviceTypeLabel = serviceType === '5g' ? '5G' : 
-                                serviceType === 'lte' ? 'LTE' : 
-                                serviceType === '3g' ? '3G' : 
-                                serviceType || '-';
-        
-        // 통신망 (provider)
-        const provider = getValue('provider', 'provider');
-        // provider 값이 이미 "알뜰폰"을 포함하고 있으면 추가하지 않음
-        let providerLabel = '-';
-        if (provider) {
-            if (provider.includes('알뜰폰')) {
-                providerLabel = provider;
-            } else {
-                providerLabel = provider + (serviceTypeLabel !== '-' ? '알뜰폰' : '');
-            }
+        if (!modal || !modalBody) {
+            console.error('Modal elements not found');
+            alert('상품 정보를 표시할 수 없습니다.');
+            return;
         }
         
-        // 약정기간
-        const contractPeriod = getValue('contract_period', 'contract_period');
-        const contractPeriodDays = order.contract_period_days ? parseInt(order.contract_period_days) : 0;
-        let contractPeriodLabel = '-';
-        if (contractPeriod === '무약정' || contractPeriod === 'none') {
-            contractPeriodLabel = '무약정';
-        } else if (contractPeriodDays > 0) {
-            contractPeriodLabel = contractPeriodDays + '일';
-        } else if (contractPeriod) {
-            contractPeriodLabel = contractPeriod;
+        if (!order || typeof order !== 'object') {
+            console.error('Invalid order data:', order);
+            alert('상품 정보를 불러올 수 없습니다.');
+            return;
         }
         
-        // 가입 형태 (신규, 번이, 기변)
-        const subscriptionTypes = [];
-        if (subscriptionType === 'new' || (order.contract_period && order.contract_period.includes('신규'))) subscriptionTypes.push('신규');
-        if (subscriptionType === 'port' || (order.contract_period && order.contract_period.includes('번호이동'))) subscriptionTypes.push('번호이동');
-        if (subscriptionType === 'change' || (order.contract_period && order.contract_period.includes('기기변경'))) subscriptionTypes.push('기기변경');
-        const subscriptionTypesLabel = subscriptionTypes.length > 0 ? subscriptionTypes.join(', ') : subscriptionTypeLabel;
+        let html = '';
         
-        // 데이터 제공량
-        const dataAmount = getValue('data_amount', 'data_amount');
-        const dataAmountValue = getValue('data_amount_value', 'data_amount_value');
-        const dataUnit = getValue('data_unit', 'data_unit');
-        let dataAmountLabel = '-';
-        if (dataAmountValue && dataAmountValue !== '-' && dataUnit && dataUnit !== '-') {
-            dataAmountLabel = '월 ' + dataAmountValue + dataUnit;
-        } else if (dataAmount && dataAmount !== '-') {
-            dataAmountLabel = '월 ' + dataAmount;
-        }
-        
-        // 데이터 추가제공
-        const dataAdditional = getValue('data_additional', 'data_additional');
-        const dataAdditionalValue = getValue('data_additional_value', 'data_additional_value');
-        let dataAdditionalLabel = '-';
-        if (dataAdditional === '직접입력' && dataAdditionalValue) {
-            dataAdditionalLabel = dataAdditionalValue;
-        } else if (dataAdditional && dataAdditional !== '없음') {
-            dataAdditionalLabel = dataAdditional;
-        } else {
-            dataAdditionalLabel = '없음';
-        }
-        
-        // 데이터 소진시
-        const dataExhausted = getValue('data_exhausted', 'data_exhausted');
-        const dataExhaustedValue = getValue('data_exhausted_value', 'data_exhausted_value');
-        let dataExhaustedLabel = '-';
-        if (dataExhaustedValue && dataExhaustedValue !== '-') {
-            dataExhaustedLabel = dataExhaustedValue + (dataExhausted && dataExhausted !== '-' ? ' ' + dataExhausted : '');
-        } else if (dataExhausted && dataExhausted !== '-') {
-            dataExhaustedLabel = dataExhausted;
-        }
-        
-        // 통화
-        const callType = getValue('call_type', 'call_type');
-        const callAmount = getValue('call_amount', 'call_amount');
-        let callLabel = '-';
-        if (callType) {
-            if (callAmount && callAmount !== '-') {
-                callLabel = callType + ' ' + callAmount;
-            } else {
-                callLabel = callType;
-            }
-        }
-        
-        // 부가통화
-        const additionalCallType = getValue('additional_call_type', 'additional_call_type');
-        const additionalCall = getValue('additional_call', 'additional_call');
-        let additionalCallLabel = '-';
-        if (additionalCallType) {
-            if (additionalCall && additionalCall !== '-') {
-                additionalCallLabel = additionalCallType + ' ' + additionalCall;
-            } else {
-                additionalCallLabel = additionalCallType;
-            }
-        }
-        
-        // 문자
-        const smsType = getValue('sms_type', 'sms_type');
-        const smsAmount = getValue('sms_amount', 'sms_amount');
-        let smsLabel = '-';
-        if (smsType) {
-            if (smsAmount && smsAmount !== '-') {
-                smsLabel = smsType + ' ' + smsAmount;
-            } else {
-                smsLabel = smsType;
-            }
-        }
-        
-        // 테더링(핫스팟)
-        const mobileHotspot = getValue('mobile_hotspot', 'mobile_hotspot');
-        const mobileHotspotValue = getValue('mobile_hotspot_value', 'mobile_hotspot_value');
-        let mobileHotspotLabel = '-';
-        if (mobileHotspotValue && mobileHotspotValue !== '-') {
-            mobileHotspotLabel = mobileHotspotValue + (mobileHotspot && mobileHotspot !== '-' ? ' ' + mobileHotspot : '');
-        } else if (mobileHotspot && mobileHotspot !== '-') {
-            mobileHotspotLabel = mobileHotspot;
-        }
-        
-        // 유심 정보
-        const regularSimAvailable = getValue('regular_sim_available', 'regular_sim_available');
-        const regularSimPrice = getValue('regular_sim_price', 'regular_sim_price');
-        const regularSimLabel = regularSimAvailable === '배송가능' && regularSimPrice ? 
-                               '배송가능 (' + number_format(regularSimPrice) + '원)' : 
-                               regularSimAvailable === '배송불가' ? '배송불가' : 
-                               regularSimAvailable || '-';
-        
-        const nfcSimAvailable = getValue('nfc_sim_available', 'nfc_sim_available');
-        const nfcSimPrice = getValue('nfc_sim_price', 'nfc_sim_price');
-        const nfcSimLabel = nfcSimAvailable === '배송가능' && nfcSimPrice ? 
-                           '배송가능 (' + number_format(nfcSimPrice) + '원)' : 
-                           nfcSimAvailable === '배송불가' ? '배송불가' : 
-                           nfcSimAvailable || '-';
-        
-        const esimAvailable = getValue('esim_available', 'esim_available');
-        const esimPrice = getValue('esim_price', 'esim_price');
-        const esimLabel = esimAvailable === '개통가능' && esimPrice ? 
-                         '개통가능 (' + number_format(esimPrice) + '원)' : 
-                         esimAvailable === '개통불가' ? '개통불가' : 
-                         esimAvailable || '-';
-        
-        // 기본 제공 초과 시
-        const overDataPrice = getValue('over_data_price', 'over_data_price');
-        const overVoicePrice = getValue('over_voice_price', 'over_voice_price');
-        const overVideoPrice = getValue('over_video_price', 'over_video_price');
-        const overSmsPrice = getValue('over_sms_price', 'over_sms_price');
-        const overLmsPrice = getValue('over_lms_price', 'over_lms_price');
-        const overMmsPrice = getValue('over_mms_price', 'over_mms_price');
-        
-        // 프로모션 및 혜택
-        const parseJsonField = (field) => {
-            if (!field) return [];
-            if (typeof field === 'string') {
-                try {
-                    return JSON.parse(field);
-                } catch (e) {
-                    return Array.isArray(field) ? field : [field];
+        if (productType === 'mvno') {
+            const additionalInfo = order.additional_info || {};
+            const productSnapshot = additionalInfo.product_snapshot || {};
+            
+            // 직접입력/직접선택 텍스트 제거 헬퍼 함수
+            const removeDirectInputText = (value) => {
+                if (!value || value === '-') return value;
+                let cleaned = String(value);
+                // "직접입력" 제거 (앞뒤 공백 포함)
+                cleaned = cleaned.replace(/\s*직접입력\s*/g, '');
+                // "직접선택" 제거 (앞뒤 공백 포함)
+                cleaned = cleaned.replace(/\s*직접선택\s*/g, '');
+                // 앞뒤 공백 제거
+                cleaned = cleaned.trim();
+                return cleaned || value; // 빈 문자열이면 원본 반환
+            };
+            
+            // 고객이 가입한 정보를 우선 사용 (product_snapshot에서), 없으면 상품 기본 정보 사용
+            const getValue = (customerKey, productKey, defaultValue = null) => {
+                // product_snapshot에서 먼저 확인
+                if (productSnapshot[customerKey] !== undefined && productSnapshot[customerKey] !== null) {
+                    const value = productSnapshot[customerKey];
+                    // 빈 문자열도 유효한 값으로 처리 (빈 문자열이면 빈 문자열 반환)
+                    return value;
+                }
+                // additionalInfo에서 확인
+                if (additionalInfo[customerKey] !== undefined && additionalInfo[customerKey] !== null) {
+                    const value = additionalInfo[customerKey];
+                    return value;
+                }
+                // order에서 확인
+                if (order[productKey] !== undefined && order[productKey] !== null) {
+                    return order[productKey];
+                }
+                // 기본값 반환 (null이면 빈 문자열 반환)
+                return defaultValue !== null ? defaultValue : '';
+            };
+            
+            // 가입 형태
+            const subscriptionType = additionalInfo.subscription_type || '';
+            const subscriptionTypeLabel = subscriptionType === 'new' ? '신규가입' : 
+                                         subscriptionType === 'port' ? '번호이동' : 
+                                         subscriptionType === 'change' ? '기기변경' : 
+                                         subscriptionType || '-';
+            
+            // 통신 기술 (service_type)
+            const serviceType = getValue('service_type', 'service_type');
+            const serviceTypeLabel = serviceType === '5g' ? '5G' : 
+                                    serviceType === 'lte' ? 'LTE' : 
+                                    serviceType === '3g' ? '3G' : 
+                                    serviceType || '-';
+            
+            // 통신망 (provider)
+            const provider = getValue('provider', 'provider');
+            // provider 값이 이미 "알뜰폰"을 포함하고 있으면 추가하지 않음
+            let providerLabel = '-';
+            if (provider) {
+                if (provider.includes('알뜰폰')) {
+                    providerLabel = provider;
+                } else {
+                    providerLabel = provider + (serviceTypeLabel !== '-' ? '알뜰폰' : '');
                 }
             }
-            return Array.isArray(field) ? field : [];
-        };
-        
-        const promotions = parseJsonField(order.promotions);
-        const benefits = parseJsonField(order.benefits);
-        const promotionTitle = order.promotion_title || '';
-        
-        // 값이 '-'가 아닌 경우에만 행 추가하는 헬퍼 함수
-        const addRowIfNotDash = (rows, label, value) => {
-            if (value && value !== '-') {
-                rows.push(`<tr><th>${label}</th><td>${value}</td></tr>`);
+            
+            // 약정기간
+            const contractPeriod = getValue('contract_period', 'contract_period');
+            const contractPeriodDays = order.contract_period_days ? parseInt(order.contract_period_days) : 0;
+            let contractPeriodLabel = '-';
+            if (contractPeriod === '무약정' || contractPeriod === 'none') {
+                contractPeriodLabel = '무약정';
+            } else if (contractPeriodDays > 0) {
+                contractPeriodLabel = contractPeriodDays + '일';
+            } else if (contractPeriod) {
+                contractPeriodLabel = contractPeriod;
             }
-        };
-        
-        // 기본 정보 섹션
-        let basicInfoRows = [];
-        if (order.plan_name && order.plan_name !== '-') {
-            basicInfoRows.push(`<tr><th>요금제 이름</th><td>${order.plan_name}</td></tr>`);
+            
+            // 가입 형태 (신규, 번이, 기변)
+            const subscriptionTypes = [];
+            if (subscriptionType === 'new' || (order.contract_period && order.contract_period.includes('신규'))) subscriptionTypes.push('신규');
+            if (subscriptionType === 'port' || (order.contract_period && order.contract_period.includes('번호이동'))) subscriptionTypes.push('번호이동');
+            if (subscriptionType === 'change' || (order.contract_period && order.contract_period.includes('기기변경'))) subscriptionTypes.push('기기변경');
+            const subscriptionTypesLabel = subscriptionTypes.length > 0 ? subscriptionTypes.join(', ') : subscriptionTypeLabel;
+            
+            // 데이터 제공량
+            const dataAmount = getValue('data_amount', 'data_amount');
+            const dataAmountValue = getValue('data_amount_value', 'data_amount_value');
+            const dataUnit = getValue('data_unit', 'data_unit');
+            let dataAmountLabel = '-';
+            if (dataAmountValue && dataAmountValue !== '-' && dataUnit && dataUnit !== '-') {
+                dataAmountLabel = '월 ' + dataAmountValue + dataUnit;
+            } else if (dataAmount && dataAmount !== '-') {
+                dataAmountLabel = '월 ' + dataAmount;
+            }
+            
+            // 데이터 추가제공
+            const dataAdditional = getValue('data_additional', 'data_additional');
+            const dataAdditionalValue = getValue('data_additional_value', 'data_additional_value');
+            let dataAdditionalLabel = '-';
+            if (dataAdditional === '직접입력' && dataAdditionalValue) {
+                dataAdditionalLabel = removeDirectInputText(dataAdditionalValue);
+            } else if (dataAdditional && dataAdditional !== '없음') {
+                dataAdditionalLabel = removeDirectInputText(dataAdditional);
+            } else {
+                dataAdditionalLabel = '없음';
+            }
+            
+            // 데이터 소진시
+            const dataExhausted = getValue('data_exhausted', 'data_exhausted');
+            const dataExhaustedValue = getValue('data_exhausted_value', 'data_exhausted_value');
+            let dataExhaustedLabel = '-';
+            if (dataExhaustedValue && dataExhaustedValue !== '-') {
+                let combined = dataExhaustedValue + (dataExhausted && dataExhausted !== '-' ? ' ' + dataExhausted : '');
+                dataExhaustedLabel = removeDirectInputText(combined);
+            } else if (dataExhausted && dataExhausted !== '-') {
+                dataExhaustedLabel = removeDirectInputText(dataExhausted);
+            }
+            
+            // 통화
+            const callType = getValue('call_type', 'call_type');
+            const callAmount = getValue('call_amount', 'call_amount');
+            let callLabel = '-';
+            if (callType) {
+                if (callAmount && callAmount !== '-') {
+                    let combined = callType + ' ' + callAmount;
+                    callLabel = removeDirectInputText(combined);
+                } else {
+                    callLabel = removeDirectInputText(callType);
+                }
+            }
+            
+            // 부가통화
+            const additionalCallType = getValue('additional_call_type', 'additional_call_type');
+            const additionalCall = getValue('additional_call', 'additional_call');
+            let additionalCallLabel = '-';
+            if (additionalCallType) {
+                if (additionalCall && additionalCall !== '-') {
+                    let combined = additionalCallType + ' ' + additionalCall;
+                    additionalCallLabel = removeDirectInputText(combined);
+                } else {
+                    additionalCallLabel = removeDirectInputText(additionalCallType);
+                }
+            }
+            
+            // 문자
+            const smsType = getValue('sms_type', 'sms_type');
+            const smsAmount = getValue('sms_amount', 'sms_amount');
+            let smsLabel = '-';
+            if (smsType) {
+                if (smsAmount && smsAmount !== '-') {
+                    let combined = smsType + ' ' + smsAmount;
+                    smsLabel = removeDirectInputText(combined);
+                } else {
+                    smsLabel = removeDirectInputText(smsType);
+                }
+            }
+            
+            // 테더링(핫스팟)
+            const mobileHotspot = getValue('mobile_hotspot', 'mobile_hotspot');
+            const mobileHotspotValue = getValue('mobile_hotspot_value', 'mobile_hotspot_value');
+            let mobileHotspotLabel = '-';
+            if (mobileHotspotValue && mobileHotspotValue !== '-') {
+                let combined = mobileHotspotValue + (mobileHotspot && mobileHotspot !== '-' ? ' ' + mobileHotspot : '');
+                mobileHotspotLabel = removeDirectInputText(combined);
+            } else if (mobileHotspot && mobileHotspot !== '-') {
+                mobileHotspotLabel = removeDirectInputText(mobileHotspot);
+            }
+            
+            // 유심 정보
+            const regularSimAvailable = getValue('regular_sim_available', 'regular_sim_available');
+            const regularSimPrice = getValue('regular_sim_price', 'regular_sim_price');
+            const regularSimLabel = regularSimAvailable === '배송가능' && regularSimPrice ? 
+                                   '배송가능 (' + number_format(regularSimPrice) + '원)' : 
+                                   regularSimAvailable === '배송불가' ? '배송불가' : 
+                                   regularSimAvailable || '-';
+            
+            const nfcSimAvailable = getValue('nfc_sim_available', 'nfc_sim_available');
+            const nfcSimPrice = getValue('nfc_sim_price', 'nfc_sim_price');
+            const nfcSimLabel = nfcSimAvailable === '배송가능' && nfcSimPrice ? 
+                               '배송가능 (' + number_format(nfcSimPrice) + '원)' : 
+                               nfcSimAvailable === '배송불가' ? '배송불가' : 
+                               nfcSimAvailable || '-';
+            
+            const esimAvailable = getValue('esim_available', 'esim_available');
+            const esimPrice = getValue('esim_price', 'esim_price');
+            const esimLabel = esimAvailable === '개통가능' && esimPrice ? 
+                             '개통가능 (' + number_format(esimPrice) + '원)' : 
+                             esimAvailable === '개통불가' ? '개통불가' : 
+                             esimAvailable || '-';
+            
+            // 기본 제공 초과 시
+            const overDataPrice = getValue('over_data_price', 'over_data_price');
+            const overVoicePrice = getValue('over_voice_price', 'over_voice_price');
+            const overVideoPrice = getValue('over_video_price', 'over_video_price');
+            const overSmsPrice = getValue('over_sms_price', 'over_sms_price');
+            const overLmsPrice = getValue('over_lms_price', 'over_lms_price');
+            const overMmsPrice = getValue('over_mms_price', 'over_mms_price');
+            
+            // 프로모션 및 혜택
+            const parseJsonField = (field) => {
+                if (!field) return [];
+                if (typeof field === 'string') {
+                    try {
+                        return JSON.parse(field);
+                    } catch (e) {
+                        return Array.isArray(field) ? field : [field];
+                    }
+                }
+                return Array.isArray(field) ? field : [];
+            };
+            
+            // benefits와 promotions는 productSnapshot에서 우선 가져오기
+            const benefitsRaw = getValue('benefits', 'benefits');
+            const promotionsRaw = getValue('promotions', 'promotions');
+            const promotionTitleRaw = getValue('promotion_title', 'promotion_title');
+            
+            const promotions = parseJsonField(promotionsRaw);
+            const benefits = parseJsonField(benefitsRaw);
+            const promotionTitle = promotionTitleRaw || '';
+            
+            // 값이 '-'가 아닌 경우에만 행 추가하는 헬퍼 함수
+            const addRowIfNotDash = (rows, label, value) => {
+                if (value && value !== '-') {
+                    rows.push(`<tr><th>${label}</th><td>${value}</td></tr>`);
+                }
+            };
+            
+            // 기본 정보 섹션
+            let basicInfoRows = [];
+            if (order.plan_name && order.plan_name !== '-') {
+                basicInfoRows.push(`<tr><th>요금제 이름</th><td>${order.plan_name}</td></tr>`);
+            }
+            addRowIfNotDash(basicInfoRows, '통신사 약정', contractPeriodLabel);
+            addRowIfNotDash(basicInfoRows, '통신망', providerLabel);
+            addRowIfNotDash(basicInfoRows, '통신 기술', serviceTypeLabel);
+            addRowIfNotDash(basicInfoRows, '가입 형태', subscriptionTypesLabel);
+            
+            if (basicInfoRows.length > 0) {
+                html += `
+                    <div class="product-info-section">
+                        <h3>기본 정보</h3>
+                        <table class="product-info-table">
+                            ${basicInfoRows.join('')}
+                        </table>
+                    </div>
+                `;
+            }
+            
+            // 데이터 정보 섹션
+            let dataInfoRows = [];
+            addRowIfNotDash(dataInfoRows, '통화', callLabel);
+            addRowIfNotDash(dataInfoRows, '문자', smsLabel);
+            addRowIfNotDash(dataInfoRows, '데이터 제공량', dataAmountLabel);
+            addRowIfNotDash(dataInfoRows, '데이터 추가제공', dataAdditionalLabel);
+            addRowIfNotDash(dataInfoRows, '데이터 소진시', dataExhaustedLabel);
+            addRowIfNotDash(dataInfoRows, '부가통화', additionalCallLabel);
+            addRowIfNotDash(dataInfoRows, '테더링(핫스팟)', mobileHotspotLabel);
+            
+            if (dataInfoRows.length > 0) {
+                html += `
+                    <div class="product-info-section">
+                        <h3>데이터 정보</h3>
+                        <table class="product-info-table">
+                            ${dataInfoRows.join('')}
+                        </table>
+                    </div>
+                `;
+            }
+            
+            // 유심 정보 섹션
+            let simInfoRows = [];
+            addRowIfNotDash(simInfoRows, '일반 유심', regularSimLabel);
+            addRowIfNotDash(simInfoRows, 'NFC 유심', nfcSimLabel);
+            addRowIfNotDash(simInfoRows, 'eSIM', esimLabel);
+            
+            if (simInfoRows.length > 0) {
+                html += `
+                    <div class="product-info-section">
+                        <h3>유심 정보</h3>
+                        <table class="product-info-table">
+                            ${simInfoRows.join('')}
+                        </table>
+                    </div>
+                `;
+            }
+            
+            // 기본 제공 초과 시 섹션
+            let overLimitRows = [];
+            addRowIfNotDash(overLimitRows, '데이터', overDataPrice);
+            addRowIfNotDash(overLimitRows, '음성', overVoicePrice);
+            addRowIfNotDash(overLimitRows, '영상통화', overVideoPrice);
+            addRowIfNotDash(overLimitRows, '단문메시지(SMS)', overSmsPrice);
+            addRowIfNotDash(overLimitRows, '텍스트형(LMS,MMS)', overLmsPrice);
+            addRowIfNotDash(overLimitRows, '멀티미디어형(MMS)', overMmsPrice);
+            
+            if (overLimitRows.length > 0) {
+                html += `
+                    <div class="product-info-section">
+                        <h3>기본 제공 초과 시</h3>
+                        <table class="product-info-table">
+                            ${overLimitRows.join('')}
+                        </table>
+                    </div>
+                `;
+            }
+            
+            // 프로모션 이벤트 섹션 (아코디언에 있는 것)
+            if (promotionTitle || promotions.length > 0) {
+                html += `
+                    <div class="product-info-section">
+                        <h3>프로모션 이벤트</h3>
+                        ${promotionTitle ? `<p style="margin-bottom: 12px; font-weight: 600; color: #1f2937;">${promotionTitle}</p>` : ''}
+                        ${promotions.length > 0 ? `<ul style="margin: 0 0 0 20px; padding: 0;"><li style="margin-bottom: 8px;">${promotions.join('</li><li style="margin-bottom: 8px;">')}</li></ul>` : ''}
+                    </div>
+                `;
+            }
+            
+            // 혜택 및 유의사항 섹션
+            if (benefits.length > 0) {
+                // 줄바꿈을 <br>로 변환하는 헬퍼 함수
+                const formatBenefit = (text) => {
+                    if (!text) return '';
+                    // HTML 이스케이프 후 줄바꿈을 <br>로 변환
+                    return String(text)
+                        .replace(/&/g, '&amp;')
+                        .replace(/</g, '&lt;')
+                        .replace(/>/g, '&gt;')
+                        .replace(/"/g, '&quot;')
+                        .replace(/'/g, '&#039;')
+                        .replace(/\n/g, '<br>');
+                };
+                
+                html += `
+                    <div class="product-info-section">
+                        <h3>혜택 및 유의사항</h3>
+                        <ul style="margin: 0 0 0 20px; padding: 0;">
+                            ${benefits.map(benefit => `<li style="margin-bottom: 8px; white-space: pre-wrap;">${formatBenefit(benefit)}</li>`).join('')}
+                        </ul>
+                    </div>
+                `;
+            }
+            
+            modalBody.innerHTML = html;
+            modal.style.display = 'block';
         }
-        addRowIfNotDash(basicInfoRows, '통신사 약정', contractPeriodLabel);
-        addRowIfNotDash(basicInfoRows, '통신망', providerLabel);
-        addRowIfNotDash(basicInfoRows, '통신 기술', serviceTypeLabel);
-        addRowIfNotDash(basicInfoRows, '가입 형태', subscriptionTypesLabel);
-        
-        if (basicInfoRows.length > 0) {
-            html += `
-                <div class="product-info-section">
-                    <h3>기본 정보</h3>
-                    <table class="product-info-table">
-                        ${basicInfoRows.join('')}
-                    </table>
-                </div>
-            `;
-        }
-        
-        // 데이터 정보 섹션
-        let dataInfoRows = [];
-        addRowIfNotDash(dataInfoRows, '통화', callLabel);
-        addRowIfNotDash(dataInfoRows, '문자', smsLabel);
-        addRowIfNotDash(dataInfoRows, '데이터 제공량', dataAmountLabel);
-        addRowIfNotDash(dataInfoRows, '데이터 추가제공', dataAdditionalLabel);
-        addRowIfNotDash(dataInfoRows, '데이터 소진시', dataExhaustedLabel);
-        addRowIfNotDash(dataInfoRows, '부가통화', additionalCallLabel);
-        addRowIfNotDash(dataInfoRows, '테더링(핫스팟)', mobileHotspotLabel);
-        
-        if (dataInfoRows.length > 0) {
-            html += `
-                <div class="product-info-section">
-                    <h3>데이터 정보</h3>
-                    <table class="product-info-table">
-                        ${dataInfoRows.join('')}
-                    </table>
-                </div>
-            `;
-        }
-        
-        // 유심 정보 섹션
-        let simInfoRows = [];
-        addRowIfNotDash(simInfoRows, '일반 유심', regularSimLabel);
-        addRowIfNotDash(simInfoRows, 'NFC 유심', nfcSimLabel);
-        addRowIfNotDash(simInfoRows, 'eSIM', esimLabel);
-        
-        if (simInfoRows.length > 0) {
-            html += `
-                <div class="product-info-section">
-                    <h3>유심 정보</h3>
-                    <table class="product-info-table">
-                        ${simInfoRows.join('')}
-                    </table>
-                </div>
-            `;
-        }
-        
-        // 기본 제공 초과 시 섹션
-        let overLimitRows = [];
-        addRowIfNotDash(overLimitRows, '데이터', overDataPrice);
-        addRowIfNotDash(overLimitRows, '음성', overVoicePrice);
-        addRowIfNotDash(overLimitRows, '영상통화', overVideoPrice);
-        addRowIfNotDash(overLimitRows, '단문메시지(SMS)', overSmsPrice);
-        addRowIfNotDash(overLimitRows, '텍스트형(LMS,MMS)', overLmsPrice);
-        addRowIfNotDash(overLimitRows, '멀티미디어형(MMS)', overMmsPrice);
-        
-        if (overLimitRows.length > 0) {
-            html += `
-                <div class="product-info-section">
-                    <h3>기본 제공 초과 시</h3>
-                    <table class="product-info-table">
-                        ${overLimitRows.join('')}
-                    </table>
-                </div>
-            `;
-        }
-        
-        // 프로모션 이벤트 섹션 (아코디언에 있는 것)
-        if (promotionTitle || promotions.length > 0) {
-            html += `
-                <div class="product-info-section">
-                    <h3>프로모션 이벤트</h3>
-                    ${promotionTitle ? `<p style="margin-bottom: 12px; font-weight: 600; color: #1f2937;">${promotionTitle}</p>` : ''}
-                    ${promotions.length > 0 ? `<ul style="margin: 0 0 0 20px; padding: 0;"><li style="margin-bottom: 8px;">${promotions.join('</li><li style="margin-bottom: 8px;">')}</li></ul>` : ''}
-                </div>
-            `;
-        }
-        
-        // 혜택 및 유의사항 섹션
-        if (benefits.length > 0) {
-            html += `
-                <div class="product-info-section">
-                    <h3>혜택 및 유의사항</h3>
-                    <ul style="margin: 0 0 0 20px; padding: 0;">
-                        ${benefits.map(benefit => `<li style="margin-bottom: 8px;">${benefit}</li>`).join('')}
-                    </ul>
-                </div>
-            `;
-        }
+    } catch (error) {
+        console.error('Error showing product info:', error);
+        alert('상품 정보를 표시하는 중 오류가 발생했습니다.');
     }
-    
-    modalBody.innerHTML = html;
-    modal.style.display = 'block';
 }
 
 // 숫자 포맷팅 함수

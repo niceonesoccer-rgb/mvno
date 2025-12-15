@@ -142,9 +142,9 @@ try {
         
         $whereClause = implode(' AND ', $whereConditions);
         
-        // 전체 개수 조회
+        // 전체 개수 조회 (중복 방지를 위해 DISTINCT 사용)
         $countSql = "
-            SELECT COUNT(*) as total
+            SELECT COUNT(DISTINCT a.id) as total
             FROM product_applications a
             INNER JOIN application_customers c ON a.id = c.application_id
             WHERE $whereClause
@@ -154,10 +154,10 @@ try {
         $totalOrders = $countStmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
         $totalPages = max(1, ceil($totalOrders / $perPage));
         
-        // 주문 목록 조회
+        // 주문 목록 조회 (중복 방지를 위해 DISTINCT 사용)
         $offset = ($page - 1) * $perPage;
         $sql = "
-            SELECT 
+            SELECT DISTINCT
                 a.id,
                 a.product_id,
                 a.application_status,
@@ -183,7 +183,7 @@ try {
             INNER JOIN products p ON a.product_id = p.id
             LEFT JOIN product_internet_details internet ON p.id = internet.product_id
             WHERE $whereClause
-            ORDER BY a.created_at DESC
+            ORDER BY a.created_at DESC, a.id DESC
             LIMIT :limit OFFSET :offset
         ";
         $stmt = $pdo->prepare($sql);
@@ -203,6 +203,19 @@ try {
                 $order['additional_info'] = [];
             }
             
+            // product_snapshot에서 상품 정보 가져오기 (신청 당시 정보)
+            $productSnapshot = $order['additional_info']['product_snapshot'] ?? [];
+            if (!empty($productSnapshot) && is_array($productSnapshot)) {
+                // product_snapshot의 모든 정보로 현재 상품 정보 덮어쓰기 (신청 당시 정보 유지)
+                // 단, id, product_id, seller_id 등은 제외
+                $excludeKeys = ['id', 'product_id', 'seller_id'];
+                foreach ($productSnapshot as $key => $value) {
+                    if (!in_array($key, $excludeKeys) && $value !== null) {
+                        $order[$key] = $value;
+                    }
+                }
+            }
+            
             // JSON 필드 디코딩
             $jsonFields = [
                 'cash_payment_names', 'cash_payment_prices',
@@ -213,7 +226,12 @@ try {
             
             foreach ($jsonFields as $field) {
                 if (!empty($order[$field])) {
-                    $order[$field] = json_decode($order[$field], true) ?: [];
+                    // 문자열인 경우에만 디코딩
+                    if (is_string($order[$field])) {
+                        $order[$field] = json_decode($order[$field], true) ?: [];
+                    } elseif (!is_array($order[$field])) {
+                        $order[$field] = [];
+                    }
                 } else {
                     $order[$field] = [];
                 }
@@ -838,9 +856,16 @@ include __DIR__ . '/../includes/seller-header.php';
                             <td>
                                 <?php 
                                 $createdAt = new DateTime($order['created_at']);
-                                $datePart = $createdAt->format('Ymd');
-                                $timePart = $createdAt->format('His') . '00'; // 시분초 + 00으로 8자리
-                                echo $datePart . '-' . $timePart;
+                                // 앞 8자리: YY(년 2자리) + MM(월 2자리) + DD(일 2자리) + HH(시간 2자리)
+                                $dateTimePart = $createdAt->format('ymdH'); // 년(2자리)월일시간
+                                // 뒤 8자리: MM(분 2자리) + 주문ID(6자리)
+                                $minutePart = $createdAt->format('i'); // 분 2자리
+                                $orderIdPadded = str_pad($order['id'], 6, '0', STR_PAD_LEFT); // 주문ID 6자리
+                                
+                                // 형식: YYMMDDHH-MMXXXXXX (8자리-8자리)
+                                // 예: 25121518-0004000001, 25121518-0004000002
+                                $orderNumber = $dateTimePart . '-' . $minutePart . $orderIdPadded;
+                                echo $orderNumber;
                                 ?>
                             </td>
                             <td>

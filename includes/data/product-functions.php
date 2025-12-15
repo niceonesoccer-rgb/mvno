@@ -3,6 +3,9 @@
  * 상품 관련 데이터베이스 함수
  */
 
+// 한국 시간대 설정 (KST, UTC+9)
+date_default_timezone_set('Asia/Seoul');
+
 require_once __DIR__ . '/db-config.php';
 
 /**
@@ -184,7 +187,7 @@ function saveMvnoProduct($productData) {
             ':promotions' => !empty($productData['promotions']) ? json_encode($productData['promotions']) : null,
             ':benefits' => !empty($productData['benefits']) ? json_encode($productData['benefits']) : null,
             ':registration_types' => !empty($productData['registration_types']) ? json_encode($productData['registration_types']) : null,
-            ':redirect_url' => !empty($productData['redirect_url']) ? trim($productData['redirect_url']) : null,
+            ':redirect_url' => !empty($productData['redirect_url']) ? preg_replace('/\s+/', '', trim($productData['redirect_url'])) : null,
         ];
         
         // 쿼리별 파라미터 배열 준비
@@ -929,16 +932,19 @@ function addProductApplication($productId, $sellerId, $productType, $customerDat
         $pdo->beginTransaction();
         
         // 1. 신청 등록 (모든 상품 타입은 'pending' 상태로 시작)
+        // 한국 시간대(KST, UTC+9)로 현재 시간을 명시적으로 설정하여 주문번호의 시간이 정확하게 표시되도록 함
+        $currentDateTime = (new DateTime('now', new DateTimeZone('Asia/Seoul')))->format('Y-m-d H:i:s');
         $initialStatus = 'pending';
         $stmt = $pdo->prepare("
-            INSERT INTO product_applications (product_id, seller_id, product_type, application_status)
-            VALUES (:product_id, :seller_id, :product_type, :application_status)
+            INSERT INTO product_applications (product_id, seller_id, product_type, application_status, created_at)
+            VALUES (:product_id, :seller_id, :product_type, :application_status, :created_at)
         ");
         $stmt->execute([
             ':product_id' => $productId,
             ':seller_id' => $sellerId,
             ':product_type' => $productType,
-            ':application_status' => $initialStatus
+            ':application_status' => $initialStatus,
+            ':created_at' => $currentDateTime
         ]);
         $applicationId = $pdo->lastInsertId();
         

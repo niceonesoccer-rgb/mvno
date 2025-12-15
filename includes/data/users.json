@@ -1,3 +1,15 @@
 {
-    "users": []
+    "users": [
+        {
+            "user_id": "1111111111",
+            "email": "11st@11.com",
+            "name": "일열개",
+            "password": "$2y$10$9KXSomfPRlBoTWhuMxYBm.uwL9vesU1srFY7hU3VUR4YIyRbKPkYm",
+            "role": "user",
+            "created_at": "2025-12-15 19:16:58",
+            "seller_approved": true,
+            "permissions": [],
+            "phone": "010-1111-1111"
+        }
+    ]
 }

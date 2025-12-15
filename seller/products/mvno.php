@@ -1422,8 +1422,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 // 체크박스가 체크되었지만 값이 비어있으면 빈 값으로 설정
                 formData.set('redirect_url', '');
             } else {
-                // 체크박스가 체크되고 값이 있으면 그대로 사용
-                formData.set('redirect_url', redirectUrlInput.value.trim());
+                // 체크박스가 체크되고 값이 있으면 모든 공백 제거 후 저장
+                const urlValue = redirectUrlInput.value.replace(/\s+/g, '').trim();
+                formData.set('redirect_url', urlValue);
             }
         }
         

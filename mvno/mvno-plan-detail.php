@@ -1493,7 +1493,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     // redirect_url이 있으면 해당 URL로 이동
                     if (data.redirect_url && data.redirect_url.trim() !== '') {
-                        let redirectUrl = data.redirect_url.trim();
+                        // 모든 공백 제거 (앞뒤 + 내부)
+                        let redirectUrl = data.redirect_url.replace(/\s+/g, '').trim();
                         // URL이 프로토콜(http:// 또는 https://)을 포함하지 않으면 https:// 추가
                         if (!/^https?:\/\//i.test(redirectUrl)) {
                             redirectUrl = 'https://' + redirectUrl;
