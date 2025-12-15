@@ -593,13 +593,10 @@ document.addEventListener('DOMContentLoaded', function() {
                         <option value="직접입력" <?php echo (isset($productData['data_amount']) && $productData['data_amount'] === '직접입력') ? 'selected' : ''; ?>>직접입력</option>
                     </select>
                     <div id="data_amount_input" style="display: <?php echo (isset($productData['data_amount']) && $productData['data_amount'] === '직접입력') ? 'block' : 'none'; ?>; margin-top: 12px;">
-                        <div class="input-with-unit" style="max-width: 200px;">
-                            <input type="number" name="data_amount_value" id="data_amount_value" class="form-control" placeholder="100" min="0" max="99999" maxlength="5" style="padding-right: 70px;" value="<?php echo isset($productData['data_amount_value']) ? htmlspecialchars($productData['data_amount_value']) : ''; ?>">
-                            <select name="data_unit" id="data_unit" class="form-select" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); width: 60px; height: auto; border: none; background: transparent; padding: 0 20px 0 0; appearance: auto; -webkit-appearance: menulist; -moz-appearance: menulist; cursor: pointer; font-size: 15px; color: #6b7280;">
-                                <option value="GB" <?php echo (isset($productData['data_unit']) && $productData['data_unit'] === 'GB') ? 'selected' : ''; ?>>GB</option>
-                                <option value="MB" <?php echo (isset($productData['data_unit']) && $productData['data_unit'] === 'MB') ? 'selected' : ''; ?>>MB</option>
-                            </select>
-                        </div>
+                        <input type="text" name="data_amount_value" id="data_amount_value" class="form-control" placeholder="100GB 또는 월 100GB" maxlength="30" value="<?php echo isset($productData['data_amount_value']) ? htmlspecialchars($productData['data_amount_value']) : ''; ?>">
+                        <small style="color: #6b7280; font-size: 12px; margin-top: 4px; display: block;">예: 100GB, 월 100GB (단위 포함 입력 가능)</small>
+                        <!-- data_unit은 하위 호환성을 위해 hidden으로 유지 -->
+                        <input type="hidden" name="data_unit" id="data_unit" value="<?php echo isset($productData['data_unit']) ? htmlspecialchars($productData['data_unit']) : 'GB'; ?>">
                     </div>
                 </div>
                 
@@ -646,10 +643,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         <option value="직접입력" <?php echo (isset($productData['call_type']) && $productData['call_type'] === '직접입력') ? 'selected' : ''; ?>>직접입력</option>
                     </select>
                     <div id="call_type_input" style="display: <?php echo (isset($productData['call_type']) && $productData['call_type'] === '직접입력') ? 'block' : 'none'; ?>; margin-top: 12px;">
-                        <div class="input-with-unit" style="max-width: 200px;">
-                            <input type="number" name="call_amount" id="call_amount" class="form-control" placeholder="300" min="0" max="99999" maxlength="5" value="<?php echo isset($productData['call_amount']) ? htmlspecialchars($productData['call_amount']) : ''; ?>">
-                            <span class="unit">분</span>
-                        </div>
+                        <input type="text" name="call_amount" id="call_amount" class="form-control" placeholder="300분 또는 100원/건" maxlength="20" value="<?php echo isset($productData['call_amount']) ? htmlspecialchars($productData['call_amount']) : ''; ?>">
+                        <small style="color: #6b7280; font-size: 12px; margin-top: 4px; display: block;">예: 300분, 100원/건 (단위 포함 입력 가능)</small>
                     </div>
                 </div>
                 
@@ -664,10 +659,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         <option value="직접입력" <?php echo (isset($productData['additional_call_type']) && $productData['additional_call_type'] === '직접입력') ? 'selected' : ''; ?>>직접입력</option>
                     </select>
                     <div id="additional_call_input" style="display: <?php echo (isset($productData['additional_call_type']) && $productData['additional_call_type'] === '직접입력') ? 'block' : 'none'; ?>; margin-top: 12px;">
-                        <div class="input-with-unit" style="max-width: 200px;">
-                            <input type="number" name="additional_call" id="additional_call" class="form-control" placeholder="300" min="0" max="99999" maxlength="5" value="<?php echo isset($productData['additional_call']) ? htmlspecialchars($productData['additional_call']) : ''; ?>">
-                            <span class="unit">분</span>
-                        </div>
+                        <input type="text" name="additional_call" id="additional_call" class="form-control" placeholder="300분 또는 100원/건" maxlength="20" value="<?php echo isset($productData['additional_call']) ? htmlspecialchars($productData['additional_call']) : ''; ?>">
+                        <small style="color: #6b7280; font-size: 12px; margin-top: 4px; display: block;">예: 300분, 100원/건 (단위 포함 입력 가능)</small>
                     </div>
                 </div>
             </div>
@@ -684,10 +677,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         <option value="직접입력" <?php echo (isset($productData['sms_type']) && $productData['sms_type'] === '직접입력') ? 'selected' : ''; ?>>직접입력</option>
                     </select>
                     <div id="sms_type_input" style="display: <?php echo (isset($productData['sms_type']) && $productData['sms_type'] === '직접입력') ? 'block' : 'none'; ?>; margin-top: 12px;">
-                        <div class="input-with-unit" style="max-width: 200px;">
-                            <input type="number" name="sms_amount" id="sms_amount" class="form-control" placeholder="300" min="0" max="99999" maxlength="5" value="<?php echo isset($productData['sms_amount']) ? htmlspecialchars($productData['sms_amount']) : ''; ?>">
-                            <span class="unit">건</span>
-                        </div>
+                        <input type="text" name="sms_amount" id="sms_amount" class="form-control" placeholder="300건 또는 10원/건" maxlength="20" value="<?php echo isset($productData['sms_amount']) ? htmlspecialchars($productData['sms_amount']) : ''; ?>">
+                        <small style="color: #6b7280; font-size: 12px; margin-top: 4px; display: block;">예: 300건, 10원/건 (단위 포함 입력 가능)</small>
                     </div>
                 </div>
                 
@@ -1103,25 +1094,17 @@ document.addEventListener('DOMContentLoaded', function() {
     toggleInputField('contract_period', 'contract_period_input', '직접입력', 'contract_period_days');
     limitNumericInput('contract_period_days', 5);
     
-    // 통화
+    // 통화 (텍스트 입력으로 변경 - 단위 포함 가능)
     toggleInputField('call_type', 'call_type_input', '직접입력', 'call_amount');
-    limitNumericInput('call_amount', 5, false);
+    limitTextInput('call_amount', 20, false);
     
-    // 문자
+    // 문자 (텍스트 입력으로 변경 - 단위 포함 가능)
     toggleInputField('sms_type', 'sms_type_input', '직접입력', 'sms_amount');
-    limitNumericInput('sms_amount', 5, false);
+    limitTextInput('sms_amount', 20, false);
     
-    // 데이터 제공량
-    toggleInputField('data_amount', 'data_amount_input', '직접입력', 'data_amount_value', 'data_unit');
-    limitNumericInput('data_amount_value', 5, false);
-    const dataUnitSelect = document.getElementById('data_unit');
-    if (dataUnitSelect) {
-        // 초기 상태 설정
-        const dataAmount = document.getElementById('data_amount');
-        if (dataAmount && dataAmount.value !== '직접입력') {
-            dataUnitSelect.disabled = true;
-        }
-    }
+    // 데이터 제공량 (텍스트 입력으로 변경 - 단위 포함 가능)
+    toggleInputField('data_amount', 'data_amount_input', '직접입력', 'data_amount_value');
+    limitTextInput('data_amount_value', 30, false);
     
     // 데이터 추가제공 (텍스트 입력)
     toggleInputField('data_additional', 'data_additional_input', '직접입력', 'data_additional_value');
@@ -1131,9 +1114,9 @@ document.addEventListener('DOMContentLoaded', function() {
     toggleInputField('data_exhausted', 'data_exhausted_input', '직접입력', 'data_exhausted_value');
     limitTextInput('data_exhausted_value', 50, false);
     
-    // 부가·영상통화
+    // 부가·영상통화 (텍스트 입력으로 변경 - 단위 포함 가능)
     toggleInputField('additional_call_type', 'additional_call_input', '직접입력', 'additional_call');
-    limitNumericInput('additional_call', 5, false);
+    limitTextInput('additional_call', 20, false);
     
     // 테더링(핫스팟)
     toggleInputField('mobile_hotspot', 'mobile_hotspot_input', '직접선택', 'mobile_hotspot_value');

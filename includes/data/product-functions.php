@@ -915,6 +915,84 @@ function addProductShare($productId, $productType, $shareMethod, $userId = null,
 }
 
 /**
+ * 주문번호 생성 (쇼핑몰 일반 형식)
+ * 형식: YYMMDDHH-0001 (예: 25121519-0001) - 총 12자리
+ * 같은 시간(시 단위)에 여러 주문이 있을 경우 순번 증가
+ * 동시성 문제를 방지하기 위해 트랜잭션 내에서 호출되어야 함
+ * @param PDO $pdo 데이터베이스 연결 (트랜잭션 내에서)
+ * @param DateTime $dateTime 주문 시간
+ * @param int $maxRetries 최대 재시도 횟수 (중복 방지)
+ * @return string 주문번호
+ */
+function generateOrderNumber($pdo, $dateTime = null, $maxRetries = 10) {
+    if ($dateTime === null) {
+        $dateTime = new DateTime('now', new DateTimeZone('Asia/Seoul'));
+    }
+    
+    $attempt = 0;
+    while ($attempt < $maxRetries) {
+        // 년월일 시간 (YYMMDDHH) - 8자리
+        $timePrefix = $dateTime->format('ymdH');
+        
+        // 같은 시간(시)에 생성된 주문 수 확인
+        // FOR UPDATE를 사용하여 동시성 문제 방지 (트랜잭션 내에서만 작동)
+        $startOfHour = $dateTime->format('Y-m-d H:00:00');
+        $endOfHour = $dateTime->format('Y-m-d H:59:59');
+        
+        // 주문번호가 이미 존재하는지 확인 (FOR UPDATE로 락)
+        $stmt = $pdo->prepare("
+            SELECT COUNT(*) as count 
+            FROM product_applications 
+            WHERE created_at >= :start_time 
+            AND created_at <= :end_time
+            AND order_number LIKE :prefix
+            FOR UPDATE
+        ");
+        $stmt->execute([
+            ':start_time' => $startOfHour,
+            ':end_time' => $endOfHour,
+            ':prefix' => $timePrefix . '-%'
+        ]);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        $existingCount = $result['count'] ?? 0;
+        
+        // 순번 생성 (기존 주문 수 + 1)
+        $sequenceNumber = $existingCount + 1;
+        
+        // 4자리 순번 생성 (0001 ~ 9999)
+        // 같은 시간에 9999개 이상의 주문이 있으면 다음 시간으로 넘어감
+        if ($sequenceNumber > 9999) {
+            $dateTime->modify('+1 hour');
+            $timePrefix = $dateTime->format('ymdH');
+            $sequenceNumber = 1;
+        }
+        
+        $sequence = str_pad($sequenceNumber, 4, '0', STR_PAD_LEFT);
+        $orderNumber = $timePrefix . '-' . $sequence;
+        
+        // 생성된 주문번호가 이미 존재하는지 확인 (중복 체크)
+        $checkStmt = $pdo->prepare("SELECT COUNT(*) as count FROM product_applications WHERE order_number = :order_number");
+        $checkStmt->execute([':order_number' => $orderNumber]);
+        $checkResult = $checkStmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (($checkResult['count'] ?? 0) == 0) {
+            // 중복이 없으면 주문번호 반환
+            return $orderNumber;
+        }
+        
+        // 중복이 있으면 순번 증가 후 재시도
+        $attempt++;
+        $sequenceNumber++;
+        
+        // 재시도 로그
+        error_log("Order number duplicate detected: {$orderNumber}, retrying... (attempt {$attempt})");
+    }
+    
+    // 최대 재시도 횟수 초과 시 예외 발생
+    throw new Exception("주문번호 생성 실패: 최대 재시도 횟수 초과");
+}
+
+/**
  * 상품 신청
  * @param int $productId 상품 ID
  * @param int $sellerId 판매자 ID
@@ -931,21 +1009,87 @@ function addProductApplication($productId, $sellerId, $productType, $customerDat
     try {
         $pdo->beginTransaction();
         
+        // order_number 컬럼 존재 확인 및 추가 (트랜잭션 밖에서 실행해야 함)
+        try {
+            $checkOrderNumber = $pdo->query("SHOW COLUMNS FROM product_applications LIKE 'order_number'");
+            if (!$checkOrderNumber->fetch()) {
+                $pdo->commit(); // ALTER TABLE은 트랜잭션을 커밋함
+                $pdo->exec("ALTER TABLE product_applications ADD COLUMN order_number VARCHAR(20) DEFAULT NULL COMMENT '주문번호' AFTER id");
+                // UNIQUE 제약조건 추가 (중복 방지)
+                try {
+                    $pdo->exec("ALTER TABLE product_applications ADD UNIQUE KEY uk_order_number (order_number)");
+                } catch (PDOException $e) {
+                    // 이미 존재하는 경우 무시
+                    if (strpos($e->getMessage(), 'Duplicate key name') === false) {
+                        throw $e;
+                    }
+                }
+                $pdo->beginTransaction(); // 트랜잭션 재시작
+                error_log("product_applications 테이블에 order_number 컬럼이 추가되었습니다.");
+            }
+        } catch (PDOException $e) {
+            // 컬럼 확인 중 오류 발생 시 무시하고 계속 진행
+            error_log("Order number column check error: " . $e->getMessage());
+        }
+        
         // 1. 신청 등록 (모든 상품 타입은 'pending' 상태로 시작)
         // 한국 시간대(KST, UTC+9)로 현재 시간을 명시적으로 설정하여 주문번호의 시간이 정확하게 표시되도록 함
-        $currentDateTime = (new DateTime('now', new DateTimeZone('Asia/Seoul')))->format('Y-m-d H:i:s');
+        $currentDateTime = new DateTime('now', new DateTimeZone('Asia/Seoul'));
+        $currentDateTimeStr = $currentDateTime->format('Y-m-d H:i:s');
         $initialStatus = 'pending';
-        $stmt = $pdo->prepare("
-            INSERT INTO product_applications (product_id, seller_id, product_type, application_status, created_at)
-            VALUES (:product_id, :seller_id, :product_type, :application_status, :created_at)
-        ");
-        $stmt->execute([
-            ':product_id' => $productId,
-            ':seller_id' => $sellerId,
-            ':product_type' => $productType,
-            ':application_status' => $initialStatus,
-            ':created_at' => $currentDateTime
-        ]);
+        
+        // 주문번호 생성 (트랜잭션 내에서, UNIQUE 제약조건으로 중복 방지)
+        $orderNumber = null;
+        $maxRetries = 10;
+        $retryCount = 0;
+        
+        while ($retryCount < $maxRetries) {
+            try {
+                $orderNumber = generateOrderNumber($pdo, $currentDateTime);
+                
+                // 주문번호로 INSERT 시도
+                $stmt = $pdo->prepare("
+                    INSERT INTO product_applications (order_number, product_id, seller_id, product_type, application_status, created_at)
+                    VALUES (:order_number, :product_id, :seller_id, :product_type, :application_status, :created_at)
+                ");
+                $stmt->execute([
+                    ':order_number' => $orderNumber,
+                    ':product_id' => $productId,
+                    ':seller_id' => $sellerId,
+                    ':product_type' => $productType,
+                    ':application_status' => $initialStatus,
+                    ':created_at' => $currentDateTimeStr
+                ]);
+                
+                // INSERT 성공 시 루프 종료
+                break;
+                
+            } catch (PDOException $e) {
+                // UNIQUE 제약조건 위반 (중복 주문번호)
+                if ($e->getCode() == 23000 || strpos($e->getMessage(), 'Duplicate entry') !== false) {
+                    $retryCount++;
+                    error_log("Order number duplicate detected: {$orderNumber}, retrying... (attempt {$retryCount})");
+                    
+                    // 다음 순번으로 재시도하기 위해 시간을 약간 조정하거나 순번 증가
+                    if ($retryCount >= $maxRetries) {
+                        throw new Exception("주문번호 생성 실패: 중복 방지 시도 횟수 초과");
+                    }
+                    
+                    // 다음 순번을 위해 시간을 1초 증가 (같은 시간에 여러 주문이 동시에 들어올 경우)
+                    $currentDateTime->modify('+1 second');
+                    $currentDateTimeStr = $currentDateTime->format('Y-m-d H:i:s');
+                    continue;
+                } else {
+                    // 다른 오류는 즉시 throw
+                    throw $e;
+                }
+            }
+        }
+        
+        if ($orderNumber === null) {
+            throw new Exception("주문번호 생성 실패");
+        }
+        
         $applicationId = $pdo->lastInsertId();
         
         // 2. 고객 정보 등록
@@ -968,7 +1112,7 @@ function addProductApplication($productId, $sellerId, $productType, $customerDat
             ':address_detail' => $customerData['address_detail'] ?? null,
             ':birth_date' => $customerData['birth_date'] ?? null,
             ':gender' => $customerData['gender'] ?? null,
-            ':additional_info' => !empty($customerData['additional_info']) ? json_encode($customerData['additional_info']) : null
+            ':additional_info' => !empty($customerData['additional_info']) ? json_encode($customerData['additional_info'], JSON_UNESCAPED_UNICODE) : null
         ]);
         
         $pdo->commit();

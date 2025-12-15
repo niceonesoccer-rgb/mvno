@@ -1059,11 +1059,13 @@ document.addEventListener('DOMContentLoaded', function() {
                         
                         // 버튼 클릭 이벤트
                         amountButton.addEventListener('click', function() {
+                            // data-amount 값을 그대로 가져오기 (0도 포함)
+                            const amountValue = this.getAttribute('data-amount');
                             handleDiscountSelection(
                                 this.getAttribute('data-provider'),
                                 this.getAttribute('data-discount-type'),
                                 this.getAttribute('data-subscription-type'),
-                                this.getAttribute('data-amount')
+                                amountValue // 0인 경우도 그대로 전달
                             );
                         });
                         
@@ -1122,6 +1124,8 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 할인방법 선택 처리
     function handleDiscountSelection(provider, discountType, subscriptionType, amount) {
+        // amount가 '0'인 경우도 정상적으로 처리
+        console.log('handleDiscountSelection - amount:', amount, 'type:', typeof amount);
         // 선택한 할인 방법 정보 저장
         window.selectedDiscountInfo = {
             provider: provider,
@@ -1292,7 +1296,15 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 상담신청 모달 열기 (할인 정보 파라미터 추가)
     function openConsultationModal(selectedProvider, selectedDiscountType, selectedSubscriptionType, selectedAmount, selectedDeviceColors = []) {
+        console.log('openConsultationModal - selectedAmount:', selectedAmount, 'type:', typeof selectedAmount);
         if (!consultationModal) return;
+        
+        // 버튼 상태 초기화
+        const submitBtn = document.getElementById('consultationSubmitBtn');
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = '신청하기';
+        }
         
         scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
         const scrollbarWidth = getScrollbarWidth();
@@ -1344,15 +1356,31 @@ document.addEventListener('DOMContentLoaded', function() {
                 consultationForm.appendChild(input);
             }
         }
-        if (selectedAmount) {
+        // selectedAmount 처리: undefined, null, 빈 문자열이 아닌 경우 모두 처리 (0도 포함)
+        // option.amount가 0일 때 그대로 0을 사용하도록 함
+        if (selectedAmount !== undefined && selectedAmount !== null && selectedAmount !== '') {
             const hiddenInput = consultationForm.querySelector('input[name="selected_amount"]');
             if (hiddenInput) {
-                hiddenInput.value = selectedAmount;
+                // 0인 경우도 그대로 저장 ('0' 또는 0 모두 허용)
+                hiddenInput.value = String(selectedAmount);
             } else {
                 const input = document.createElement('input');
                 input.type = 'hidden';
                 input.name = 'selected_amount';
-                input.value = selectedAmount;
+                // 0인 경우도 그대로 저장 ('0' 또는 0 모두 허용)
+                input.value = String(selectedAmount);
+                consultationForm.appendChild(input);
+            }
+        } else if (selectedAmount === '0' || selectedAmount === 0) {
+            // selectedAmount가 0인 경우 명시적으로 처리
+            const hiddenInput = consultationForm.querySelector('input[name="selected_amount"]');
+            if (hiddenInput) {
+                hiddenInput.value = '0';
+            } else {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'selected_amount';
+                input.value = '0';
                 consultationForm.appendChild(input);
             }
         }
@@ -1765,6 +1793,15 @@ document.addEventListener('DOMContentLoaded', function() {
             // 폼 데이터 수집
             const formData = new FormData(this);
             formData.append('product_id', <?php echo $phone_id; ?>);
+            
+            // selected_amount 값 확인
+            const selectedAmountInput = this.querySelector('input[name="selected_amount"]');
+            if (selectedAmountInput) {
+                console.log('Form submit - selected_amount:', selectedAmountInput.value);
+                formData.set('selected_amount', selectedAmountInput.value);
+            } else {
+                console.warn('Form submit - selected_amount input not found');
+            }
             
             // 제출 버튼 비활성화
             const submitBtn = document.getElementById('consultationSubmitBtn');
@@ -2305,283 +2342,7 @@ span.internet-checkbox-text {
         }
     });
     
-    // 휴대폰번호 검증 함수
-    function validatePhoneNumber(phone) {
-        // 숫자만 추출
-        const phoneNumbers = phone.replace(/[^\d]/g, '');
-        // 010으로 시작하는 11자리 숫자 확인
-        return /^010\d{8}$/.test(phoneNumbers);
-    }
-    
-    // 이메일 검증 함수
-    function validateEmail(email) {
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return emailRegex.test(email.trim());
-    }
-    
-    // 휴대폰번호 포맷팅 함수
-    function formatPhoneNumber(phone) {
-        const phoneNumbers = phone.replace(/[^\d]/g, '');
-        if (phoneNumbers.length === 11 && phoneNumbers.startsWith('010')) {
-            return '010-' + phoneNumbers.substring(3, 7) + '-' + phoneNumbers.substring(7, 11);
-        }
-        return phone;
-    }
-    
-    // 실시간 검증 이벤트
-    const consultationPhone = document.getElementById('consultationPhone');
-    const consultationEmail = document.getElementById('consultationEmail');
-    
-    if (consultationPhone) {
-        // 입력 중 포맷팅
-        consultationPhone.addEventListener('input', function() {
-            const value = this.value;
-            const formatted = formatPhoneNumber(value);
-            if (formatted !== value) {
-                this.value = formatted;
-            }
-            checkAllMnoAgreements();
-        });
-        
-        // 포커스 아웃 시 검증
-        consultationPhone.addEventListener('blur', function() {
-            const value = this.value.trim();
-            if (value && !validatePhoneNumber(value)) {
-                this.classList.add('input-error');
-                if (!this.nextElementSibling || !this.nextElementSibling.classList.contains('error-message')) {
-                    const errorMsg = document.createElement('span');
-                    errorMsg.className = 'error-message';
-                    errorMsg.textContent = '010으로 시작하는 11자리 휴대폰 번호를 입력해주세요.';
-                    errorMsg.style.display = 'block';
-                    errorMsg.style.color = '#ef4444';
-                    errorMsg.style.fontSize = '0.75rem';
-                    errorMsg.style.marginTop = '4px';
-                    this.parentElement.appendChild(errorMsg);
-                }
-            } else {
-                this.classList.remove('input-error');
-                const errorMsg = this.parentElement.querySelector('.error-message');
-                if (errorMsg) {
-                    errorMsg.remove();
-                }
-            }
-            checkAllMnoAgreements();
-        });
-        
-        // 입력 시작 시 에러 제거
-        consultationPhone.addEventListener('focus', function() {
-            this.classList.remove('input-error');
-            const errorMsg = this.parentElement.querySelector('.error-message');
-            if (errorMsg) {
-                errorMsg.remove();
-            }
-        });
-    }
-    
-    if (consultationEmail) {
-        // 포커스 아웃 시 검증
-        consultationEmail.addEventListener('blur', function() {
-            const value = this.value.trim();
-            if (value && !validateEmail(value)) {
-                this.classList.add('input-error');
-                if (!this.nextElementSibling || !this.nextElementSibling.classList.contains('error-message')) {
-                    const errorMsg = document.createElement('span');
-                    errorMsg.className = 'error-message';
-                    errorMsg.textContent = '올바른 이메일 주소를 입력해주세요.';
-                    errorMsg.style.display = 'block';
-                    errorMsg.style.color = '#ef4444';
-                    errorMsg.style.fontSize = '0.75rem';
-                    errorMsg.style.marginTop = '4px';
-                    this.parentElement.appendChild(errorMsg);
-                }
-            } else {
-                this.classList.remove('input-error');
-                const errorMsg = this.parentElement.querySelector('.error-message');
-                if (errorMsg) {
-                    errorMsg.remove();
-                }
-            }
-            checkAllMnoAgreements();
-        });
-        
-        // 입력 시작 시 에러 제거
-        consultationEmail.addEventListener('focus', function() {
-            this.classList.remove('input-error');
-            const errorMsg = this.parentElement.querySelector('.error-message');
-            if (errorMsg) {
-                errorMsg.remove();
-            }
-        });
-    }
-    
-    // 이름 입력 시 검증
-    const consultationName = document.getElementById('consultationName');
-    if (consultationName) {
-        consultationName.addEventListener('input', checkAllMnoAgreements);
-        consultationName.addEventListener('blur', checkAllMnoAgreements);
-    }
-    
-    // 폼 제출 이벤트
-    if (consultationForm) {
-        consultationForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            // 로그인 체크
-            const isLoggedIn = <?php echo isLoggedIn() ? 'true' : 'false'; ?>;
-            if (!isLoggedIn) {
-                // 모달 닫기
-                if (consultationModal) {
-                    consultationModal.classList.remove('consultation-modal-active');
-                    document.body.style.overflow = '';
-                    document.body.style.position = '';
-                    document.body.style.top = '';
-                    document.body.style.width = '';
-                    document.documentElement.style.overflow = '';
-                }
-                
-                // 현재 URL을 세션에 저장 (회원가입 후 돌아올 주소)
-                const currentUrl = window.location.href;
-                fetch('/MVNO/api/save-redirect-url.php', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ redirect_url: currentUrl })
-                }).then(() => {
-                    // 회원가입 모달 열기
-                    if (typeof openLoginModal === 'function') {
-                        openLoginModal(true);
-                    } else {
-                        setTimeout(() => {
-                            if (typeof openLoginModal === 'function') {
-                                openLoginModal(true);
-                            }
-                        }, 100);
-                    }
-                });
-                return;
-            }
-            
-            // 필수 필드 검증
-            const consultationName = document.getElementById('consultationName');
-            const consultationPhone = document.getElementById('consultationPhone');
-            const consultationEmail = document.getElementById('consultationEmail');
-            
-            // 이름 검증
-            if (!consultationName || !consultationName.value.trim()) {
-                alert('이름을 입력해주세요.');
-                if (consultationName) consultationName.focus();
-                return;
-            }
-            
-            // 휴대폰번호 검증
-            if (!consultationPhone || !consultationPhone.value.trim()) {
-                alert('휴대폰 번호를 입력해주세요.');
-                if (consultationPhone) consultationPhone.focus();
-                return;
-            }
-            
-            if (!validatePhoneNumber(consultationPhone.value)) {
-                alert('010으로 시작하는 11자리 휴대폰 번호를 입력해주세요.');
-                if (consultationPhone) {
-                    consultationPhone.focus();
-                    consultationPhone.classList.add('input-error');
-                }
-                return;
-            }
-            
-            // 이메일 검증
-            if (!consultationEmail || !consultationEmail.value.trim()) {
-                alert('이메일을 입력해주세요.');
-                if (consultationEmail) consultationEmail.focus();
-                return;
-            }
-            
-            if (!validateEmail(consultationEmail.value)) {
-                alert('올바른 이메일 주소를 입력해주세요.');
-                if (consultationEmail) {
-                    consultationEmail.focus();
-                    consultationEmail.classList.add('input-error');
-                }
-                return;
-            }
-            
-            // 모든 동의 체크박스 확인
-            const agreementPurpose = document.getElementById('agreementPurpose');
-            const agreementItems = document.getElementById('agreementItems');
-            const agreementPeriod = document.getElementById('agreementPeriod');
-            
-            if (!agreementPurpose.checked || !agreementItems.checked || !agreementPeriod.checked) {
-                alert('모든 개인정보 동의 항목에 동의해주세요.');
-                return;
-            }
-            
-            // 폼 데이터 수집
-            const formData = new FormData(this);
-            formData.append('product_id', <?php echo $phone_id; ?>);
-            
-            // 제출 버튼 비활성화
-            const submitBtn = document.getElementById('consultationSubmitBtn');
-            if (submitBtn) {
-                submitBtn.disabled = true;
-                submitBtn.textContent = '처리 중...';
-            }
-            
-            // 서버로 데이터 전송
-            fetch('/MVNO/api/submit-mno-application.php', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // 신청정보가 판매자에게 저장됨
-                    
-                    // redirect_url이 있으면 해당 URL로 이동
-                    if (data.redirect_url && data.redirect_url.trim() !== '') {
-                        let redirectUrl = data.redirect_url.trim();
-                        // URL이 프로토콜(http:// 또는 https://)을 포함하지 않으면 https:// 추가
-                        if (!/^https?:\/\//i.test(redirectUrl)) {
-                            redirectUrl = 'https://' + redirectUrl;
-                        }
-                        window.location.href = redirectUrl;
-                    } else {
-                        // redirect_url이 없으면 창 닫기
-                        if (typeof showAlert === 'function') {
-                            showAlert('상담신청이 완료되었습니다.', '신청 완료');
-                        } else {
-                            alert('상담신청이 완료되었습니다.');
-                        }
-                        closeConsultationModal();
-                    }
-                } else {
-                    // 실패 시 모달로 표시
-                    if (typeof showAlert === 'function') {
-                        showAlert(data.message || '신청정보 저장에 실패했습니다.', '신청 실패');
-                    } else {
-                        alert(data.message || '신청정보 저장에 실패했습니다.');
-                    }
-                    if (submitBtn) {
-                        submitBtn.disabled = false;
-                        submitBtn.textContent = '신청하기';
-                    }
-                }
-            })
-            .catch(error => {
-                console.error('신청 처리 오류:', error);
-                // 에러 발생 시 모달로 표시
-                if (typeof showAlert === 'function') {
-                    showAlert('신청 처리 중 오류가 발생했습니다.', '오류');
-                } else {
-                    alert('신청 처리 중 오류가 발생했습니다.');
-                }
-                if (submitBtn) {
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = '신청하기';
-                }
-            });
-        });
-    }
+    // 중복 이벤트 리스너 제거됨 - 위에서 이미 등록됨
 });
 
 // 리뷰 정렬 기능

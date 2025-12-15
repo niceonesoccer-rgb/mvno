@@ -1756,7 +1756,31 @@ document.getElementById('productForm').addEventListener('submit', function(e) {
     }
     
     const formData = new FormData(this);
+
+    // 할인 필드 처리: 빈 값이면 9999로 설정, '0'은 그대로 유지
+    const discountFields = [
+        'common_discount_new',
+        'common_discount_port',
+        'common_discount_change',
+        'contract_discount_new',
+        'contract_discount_port',
+        'contract_discount_change'
+    ];
     
+    discountFields.forEach(fieldName => {
+        const values = formData.getAll(fieldName + '[]');
+        formData.delete(fieldName + '[]');
+        values.forEach((value, index) => {
+            const trimmedValue = value.trim();
+            // 빈 문자열이면 9999로 설정, '0'은 그대로 유지
+            if (trimmedValue === '') {
+                formData.append(fieldName + '[]', '9999');
+            } else {
+                formData.append(fieldName + '[]', trimmedValue);
+            }
+        });
+    });
+
     // redirect_url 처리: 체크박스가 체크되지 않았으면 빈 값으로 설정
     const enableRedirectUrlCheckbox = document.getElementById('enable_redirect_url');
     const redirectUrlInput = document.getElementById('redirect_url');

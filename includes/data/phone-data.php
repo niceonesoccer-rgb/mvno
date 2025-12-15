@@ -134,9 +134,9 @@ function getPhonesData($limit = 10) {
                     $commonSupport[] = [
                         'provider' => $prov,
                         'plan_name' => '',
-                        'new_subscription' => $newVal == '9999' ? 9999 : (int)$newVal,
-                        'number_port' => $portVal == '9999' ? 9999 : (float)$portVal,
-                        'device_change' => $changeVal == '9999' ? 9999 : (float)$changeVal
+                        'new_subscription' => ($newVal === '9999' || $newVal === 9999) ? 9999 : (int)$newVal,
+                        'number_port' => ($portVal === '9999' || $portVal === 9999) ? 9999 : (float)$portVal,
+                        'device_change' => ($changeVal === '9999' || $changeVal === 9999) ? 9999 : (float)$changeVal
                     ];
                 }
             }
@@ -184,9 +184,9 @@ function getPhonesData($limit = 10) {
                 $contractSupport[] = [
                     'provider' => $prov,
                     'plan_name' => '',
-                    'new_subscription' => $newVal == '9999' ? 9999 : (int)$newVal,
-                    'number_port' => $portVal == '9999' ? 9999 : (float)$portVal,
-                    'device_change' => $changeVal == '9999' ? 9999 : (float)$changeVal
+                    'new_subscription' => ($newVal === '9999' || $newVal === 9999) ? 9999 : (int)$newVal,
+                    'number_port' => ($portVal === '9999' || $portVal === 9999) ? 9999 : (float)$portVal,
+                    'device_change' => ($changeVal === '9999' || $changeVal === 9999) ? 9999 : (float)$changeVal
                 ];
             }
         } else {
@@ -216,18 +216,18 @@ function getPhonesData($limit = 10) {
                     $contractSupport[] = [
                         'provider' => $prov,
                         'plan_name' => '',
-                        'new_subscription' => $newVal == '9999' ? 9999 : (int)$newVal,
-                        'number_port' => $portVal == '9999' ? 9999 : (float)$portVal,
-                        'device_change' => $changeVal == '9999' ? 9999 : (float)$changeVal
+                        'new_subscription' => ($newVal === '9999' || $newVal === 9999) ? 9999 : (int)$newVal,
+                        'number_port' => ($portVal === '9999' || $portVal === 9999) ? 9999 : (float)$portVal,
+                        'device_change' => ($changeVal === '9999' || $changeVal === 9999) ? 9999 : (float)$changeVal
                     ];
                 }
             }
         }
         
         // 부가서비스 변환
-            $additionalSupports = [];
-            $deliveryMethod = $product['delivery_method'] ?? 'delivery';
-            $visitRegion = $product['visit_region'] ?? '';
+        $additionalSupports = [];
+        $deliveryMethod = $product['delivery_method'] ?? 'delivery';
+        $visitRegion = $product['visit_region'] ?? '';
             
             if (!empty($product['promotions'])) {
                 $promotions = json_decode($product['promotions'], true) ?: [];
@@ -441,9 +441,9 @@ function getPhoneDetailData($phone_id) {
                 $commonSupport[] = [
                     'provider' => $prov,
                     'plan_name' => '',
-                    'new_subscription' => $newVal == '9999' ? 9999 : (int)$newVal,
-                    'number_port' => $portVal == '9999' ? 9999 : (float)$portVal,
-                    'device_change' => $changeVal == '9999' ? 9999 : (float)$changeVal
+                    'new_subscription' => ($newVal === '9999' || $newVal === 9999) ? 9999 : (int)$newVal,
+                    'number_port' => ($portVal === '9999' || $portVal === 9999) ? 9999 : (float)$portVal,
+                    'device_change' => ($changeVal === '9999' || $changeVal === 9999) ? 9999 : (float)$changeVal
                 ];
             }
         }
@@ -491,9 +491,9 @@ function getPhoneDetailData($phone_id) {
                 $contractSupport[] = [
                     'provider' => $prov,
                     'plan_name' => '',
-                    'new_subscription' => $newVal == '9999' ? 9999 : (int)$newVal,
-                    'number_port' => $portVal == '9999' ? 9999 : (float)$portVal,
-                    'device_change' => $changeVal == '9999' ? 9999 : (float)$changeVal
+                    'new_subscription' => ($newVal === '9999' || $newVal === 9999) ? 9999 : (int)$newVal,
+                    'number_port' => ($portVal === '9999' || $portVal === 9999) ? 9999 : (float)$portVal,
+                    'device_change' => ($changeVal === '9999' || $changeVal === 9999) ? 9999 : (float)$changeVal
                 ];
             }
         } else {
@@ -523,9 +523,9 @@ function getPhoneDetailData($phone_id) {
                     $contractSupport[] = [
                         'provider' => $prov,
                         'plan_name' => '',
-                        'new_subscription' => $newVal == '9999' ? 9999 : (int)$newVal,
-                        'number_port' => $portVal == '9999' ? 9999 : (float)$portVal,
-                        'device_change' => $changeVal == '9999' ? 9999 : (float)$changeVal
+                        'new_subscription' => ($newVal === '9999' || $newVal === 9999) ? 9999 : (int)$newVal,
+                        'number_port' => ($portVal === '9999' || $portVal === 9999) ? 9999 : (float)$portVal,
+                        'device_change' => ($changeVal === '9999' || $changeVal === 9999) ? 9999 : (float)$changeVal
                     ];
                 }
             }

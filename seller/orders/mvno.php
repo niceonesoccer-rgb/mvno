@@ -34,7 +34,8 @@ if (isset($currentUser['withdrawal_requested']) && $currentUser['withdrawal_requ
 }
 
 // 필터 파라미터
-$status = isset($_GET['status']) && $_GET['status'] !== '' ? $_GET['status'] : null;
+// status가 빈 문자열이거나 설정되지 않았으면 null로 설정 (전체 검색)
+$status = isset($_GET['status']) && trim($_GET['status']) !== '' ? trim($_GET['status']) : null;
 $searchKeyword = $_GET['search_keyword'] ?? ''; // 통합검색 (주문번호, 고객명, 전화번호)
 $dateFrom = $_GET['date_from'] ?? '';
 $dateTo = $_GET['date_to'] ?? '';
@@ -89,8 +90,14 @@ try {
         
         // 진행상황 필터
         if (!empty($status)) {
-            $whereConditions[] = 'a.application_status = :status';
-            $params[':status'] = $status;
+            // 'received' 필터링 시 빈 문자열, null, 'pending'도 포함 (정규화 로직과 일치)
+            if ($status === 'received') {
+                $whereConditions[] = "(a.application_status = :status OR a.application_status = '' OR a.application_status IS NULL OR LOWER(TRIM(a.application_status)) = 'pending')";
+                $params[':status'] = $status;
+            } else {
+                $whereConditions[] = 'a.application_status = :status';
+                $params[':status'] = $status;
+            }
         }
         
         // 통합검색 (주문번호, 고객명, 전화번호)
@@ -106,44 +113,22 @@ try {
                 // 3자리 미만이면 원본 검색어로도 검색
                 $searchConditions[] = '(SELECT c.phone FROM application_customers c WHERE c.application_id = a.id LIMIT 1) LIKE :search_keyword';
             }
-            // 주문번호 검색 (created_at 기반: YYMMDDHH-MMXXXXXX 형식, 하이픈 없이도 검색 가능)
+            // 주문번호 검색 (order_number 컬럼 기반: YYMMDDHH-0001 형식)
+            // 하이픈 제거 후 검색 (하이픈 포함/미포함 모두 검색 가능)
             $cleanKeyword = preg_replace('/[^0-9]/', '', $searchKeyword); // 숫자만 추출
             if (strlen($cleanKeyword) >= 2) {
-                // 앞 8자리 검색 (YYMMDDHH: 년월일시간)
-                if (strlen($cleanKeyword) >= 8) {
-                    $dateTimePart = substr($cleanKeyword, 0, 8);
-                    // YYMMDDHH 형식으로 변환하여 검색 (예: 25121518 -> 2025-12-15 18:xx:xx)
-                    $year = '20' . substr($dateTimePart, 0, 2);
-                    $month = substr($dateTimePart, 2, 2);
-                    $day = substr($dateTimePart, 4, 2);
-                    $hour = substr($dateTimePart, 6, 2);
-                    $searchConditions[] = "DATE_FORMAT(a.created_at, '%Y%m%d%H') LIKE :search_keyword_datetime";
-                    $params[':search_keyword_datetime'] = '%' . $year . $month . $day . $hour . '%';
-                }
-                // 뒤 8자리 검색 (MMXXXXXX: 분 + 주문ID)
-                if (strlen($cleanKeyword) > 8) {
-                    $minutePart = substr($cleanKeyword, 8, 2);
-                    $orderIdPart = substr($cleanKeyword, 10);
-                    $searchConditions[] = "DATE_FORMAT(a.created_at, '%i') LIKE :search_keyword_minute";
-                    $params[':search_keyword_minute'] = '%' . $minutePart . '%';
-                    if (strlen($orderIdPart) > 0) {
-                        $searchConditions[] = "CAST(a.id AS CHAR) LIKE :search_keyword_orderid";
-                        $params[':search_keyword_orderid'] = '%' . $orderIdPart . '%';
-                    }
-                } elseif (strlen($cleanKeyword) < 8) {
-                    // 8자리 미만이면 날짜/시간 부분으로 검색
-                    if (strlen($cleanKeyword) >= 6) {
-                        // YYMMDD 형식
-                        $year = '20' . substr($cleanKeyword, 0, 2);
-                        $month = substr($cleanKeyword, 2, 2);
-                        $day = substr($cleanKeyword, 4, 2);
-                        $searchConditions[] = "DATE_FORMAT(a.created_at, '%Y%m%d') LIKE :search_keyword_date";
-                        $params[':search_keyword_date'] = '%' . $year . $month . $day . '%';
-                    } else {
-                        // YYMM 또는 YY 형식
-                        $searchConditions[] = "DATE_FORMAT(a.created_at, '%y%m') LIKE :search_keyword_ym";
-                        $params[':search_keyword_ym'] = '%' . $cleanKeyword . '%';
-                    }
+                // order_number 컬럼으로 검색 (하이픈 제거 후 검색)
+                $searchConditions[] = "REPLACE(a.order_number, '-', '') LIKE :search_keyword_order_number";
+                $params[':search_keyword_order_number'] = '%' . $cleanKeyword . '%';
+                
+                // 날짜 기반 검색도 지원 (하위 호환성)
+                if (strlen($cleanKeyword) >= 6) {
+                    // YYMMDD 형식
+                    $year = '20' . substr($cleanKeyword, 0, 2);
+                    $month = substr($cleanKeyword, 2, 2);
+                    $day = substr($cleanKeyword, 4, 2);
+                    $searchConditions[] = "DATE_FORMAT(a.created_at, '%Y%m%d') LIKE :search_keyword_date";
+                    $params[':search_keyword_date'] = '%' . $year . $month . $day . '%';
                 }
             }
             $params[':search_keyword'] = '%' . $searchKeyword . '%';
@@ -181,6 +166,7 @@ try {
         $sql = "
             SELECT 
                 a.id as application_id,
+                a.order_number,
                 a.product_id,
                 a.application_status,
                 a.created_at,
@@ -245,6 +231,21 @@ try {
         
         // additional_info 및 JSON 필드 디코딩
         foreach ($orders as &$order) {
+            // application_status 정규화 및 기본값 설정
+            $status = trim($order['application_status'] ?? '');
+            if (empty($status)) {
+                $order['application_status'] = 'received';
+            } else {
+                // 공백 제거 후 소문자로 정규화
+                $status = strtolower(trim($status));
+                // 'pending' 값도 'received'로 매핑 (노란색 → 파란색 일관성)
+                if ($status === 'pending') {
+                    $order['application_status'] = 'received';
+                } else {
+                    $order['application_status'] = $status;
+                }
+            }
+            
             if (!empty($order['additional_info'])) {
                 $order['additional_info'] = json_decode($order['additional_info'], true) ?: [];
             } else {
@@ -255,8 +256,8 @@ try {
             $productSnapshot = $order['additional_info']['product_snapshot'] ?? [];
             if (!empty($productSnapshot) && is_array($productSnapshot)) {
                 // product_snapshot의 모든 정보로 현재 상품 정보 덮어쓰기 (신청 당시 정보 유지)
-                // 단, id, product_id, seller_id 등은 제외
-                $excludeKeys = ['id', 'product_id', 'seller_id'];
+                // 단, id, product_id, seller_id, order_number 등은 제외 (주문번호는 DB 값 유지)
+                $excludeKeys = ['id', 'product_id', 'seller_id', 'order_number', 'application_id', 'created_at'];
                 foreach ($productSnapshot as $key => $value) {
                     if (!in_array($key, $excludeKeys) && $value !== null) {
                         $order[$key] = $value;
@@ -279,6 +280,7 @@ try {
                 }
             }
         }
+        unset($order); // 참조 해제
     }
 } catch (PDOException $e) {
     error_log("Error fetching orders: " . $e->getMessage());
@@ -928,13 +930,13 @@ include __DIR__ . '/../includes/seller-header.php';
                 <div class="filter-group">
                     <label class="filter-label">진행상황</label>
                     <select name="status" class="filter-select">
-                        <option value="">전체</option>
-                        <option value="received" <?php echo (!empty($status) && $status === 'received') ? 'selected' : ''; ?>>접수</option>
-                        <option value="activating" <?php echo (!empty($status) && $status === 'activating') ? 'selected' : ''; ?>>개통중</option>
-                        <option value="on_hold" <?php echo (!empty($status) && $status === 'on_hold') ? 'selected' : ''; ?>>보류</option>
-                        <option value="cancelled" <?php echo (!empty($status) && $status === 'cancelled') ? 'selected' : ''; ?>>취소</option>
-                        <option value="activation_completed" <?php echo (!empty($status) && $status === 'activation_completed') ? 'selected' : ''; ?>>개통완료</option>
-                        <option value="installation_completed" <?php echo (!empty($status) && $status === 'installation_completed') ? 'selected' : ''; ?>>설치완료</option>
+                        <option value="" <?php echo (empty($status) || $status === null) ? 'selected' : ''; ?>>전체</option>
+                        <option value="received" <?php echo ($status === 'received') ? 'selected' : ''; ?>>접수</option>
+                        <option value="activating" <?php echo ($status === 'activating') ? 'selected' : ''; ?>>개통중</option>
+                        <option value="on_hold" <?php echo ($status === 'on_hold') ? 'selected' : ''; ?>>보류</option>
+                        <option value="cancelled" <?php echo ($status === 'cancelled') ? 'selected' : ''; ?>>취소</option>
+                        <option value="activation_completed" <?php echo ($status === 'activation_completed') ? 'selected' : ''; ?>>개통완료</option>
+                        <option value="installation_completed" <?php echo ($status === 'installation_completed') ? 'selected' : ''; ?>>설치완료</option>
                     </select>
                 </div>
                 
@@ -1006,21 +1008,13 @@ include __DIR__ . '/../includes/seller-header.php';
                                     $orderId = 0;
                                 }
                                 
-                                $createdAt = new DateTime($order['created_at']);
-                                // 앞 8자리: YY(년 2자리) + MM(월 2자리) + DD(일 2자리) + HH(시간 2자리)
-                                $dateTimePart = $createdAt->format('ymdH'); // 년(2자리)월일시간
-                                // 뒤 8자리: MM(분 2자리) + 주문ID(6자리)
-                                $minutePart = $createdAt->format('i'); // 분 2자리
-                                $orderIdPadded = str_pad($orderId, 6, '0', STR_PAD_LEFT); // 주문ID 6자리
-                                
-                                // 형식: YYMMDDHH-MMXXXXXX (8자리-8자리)
-                                // 예: 25121518-0004000001, 25121518-0004000002
-                                $orderNumber = $dateTimePart . '-' . $minutePart . $orderIdPadded;
-                                
-                                // 디버깅: 주문 ID 확인 (임시)
-                                // echo '<!-- Order ID: ' . $orderId . ', Keys: ' . implode(', ', array_keys($order)) . ' -->';
-                                
-                                echo htmlspecialchars($orderNumber);
+                                // DB에 저장된 주문번호만 사용 (NULL이면 NULL 표시)
+                                if (!empty($order['order_number']) && $order['order_number'] !== null) {
+                                    echo htmlspecialchars($order['order_number']);
+                                } else {
+                                    // 주문번호가 없는 경우 (DB에 저장되지 않은 기존 주문)
+                                    echo '<span style="color: #999;">-</span>';
+                                }
                                 ?>
                             </td>
                             <td>
@@ -1083,10 +1077,16 @@ include __DIR__ . '/../includes/seller-header.php';
             </table>
             
             <!-- 페이지네이션 -->
-            <?php if ($totalPages > 1): ?>
+            <?php if ($totalPages > 1): 
+                // 페이지네이션용 GET 파라미터 준비 (빈 status 제거)
+                $paginationParams = $_GET;
+                if (isset($paginationParams['status']) && ($paginationParams['status'] === '' || $paginationParams['status'] === null)) {
+                    unset($paginationParams['status']);
+                }
+            ?>
                 <div class="pagination">
                     <?php if ($page > 1): ?>
-                        <a href="?<?php echo http_build_query(array_merge($_GET, ['page' => $page - 1])); ?>">이전</a>
+                        <a href="?<?php echo http_build_query(array_merge($paginationParams, ['page' => $page - 1])); ?>">이전</a>
                     <?php endif; ?>
                     
                     <?php
@@ -1097,12 +1097,12 @@ include __DIR__ . '/../includes/seller-header.php';
                         <?php if ($i == $page): ?>
                             <span class="current"><?php echo $i; ?></span>
                         <?php else: ?>
-                            <a href="?<?php echo http_build_query(array_merge($_GET, ['page' => $i])); ?>"><?php echo $i; ?></a>
+                            <a href="?<?php echo http_build_query(array_merge($paginationParams, ['page' => $i])); ?>"><?php echo $i; ?></a>
                         <?php endif; ?>
                     <?php endfor; ?>
                     
                     <?php if ($page < $totalPages): ?>
-                        <a href="?<?php echo http_build_query(array_merge($_GET, ['page' => $page + 1])); ?>">다음</a>
+                        <a href="?<?php echo http_build_query(array_merge($paginationParams, ['page' => $page + 1])); ?>">다음</a>
                     <?php endif; ?>
                 </div>
             <?php endif; ?>
@@ -1115,6 +1115,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const dateRangeSelect = document.getElementById('date_range');
     const dateFromInput = document.getElementById('date_from');
     const dateToInput = document.getElementById('date_to');
+    const statusSelect = document.querySelector('select[name="status"]');
+    const filterForm = document.querySelector('.orders-filters form');
     
     if (dateRangeSelect && dateFromInput && dateToInput) {
         // 기간 선택 변경 시 날짜 자동 업데이트
@@ -1159,6 +1161,24 @@ document.addEventListener('DOMContentLoaded', function() {
         dateToInput.addEventListener('change', function() {
             if (this.value || dateFromInput.value) {
                 dateRangeSelect.value = 'all';
+            }
+        });
+    }
+    
+    // 폼 제출 시 status가 빈 문자열이면 파라미터에서 제거
+    if (filterForm && statusSelect) {
+        filterForm.addEventListener('submit', function(e) {
+            if (statusSelect.value === '') {
+                // status가 빈 문자열이면 name 속성을 임시로 제거하여 파라미터로 전송되지 않도록 함
+                const originalName = statusSelect.getAttribute('name');
+                statusSelect.removeAttribute('name');
+                
+                // 폼 제출 후 name 속성 복원
+                setTimeout(function() {
+                    if (originalName) {
+                        statusSelect.setAttribute('name', originalName);
+                    }
+                }, 0);
             }
         });
     }
@@ -1267,88 +1287,98 @@ function showProductInfo(order, productType) {
             if (subscriptionType === 'change' || (order.contract_period && order.contract_period.includes('기기변경'))) subscriptionTypes.push('기기변경');
             const subscriptionTypesLabel = subscriptionTypes.length > 0 ? subscriptionTypes.join(', ') : subscriptionTypeLabel;
             
-            // 데이터 제공량
+            // 데이터 제공량 (저장된 값 그대로 표시 - 단위 포함 가능)
             const dataAmount = getValue('data_amount', 'data_amount');
             const dataAmountValue = getValue('data_amount_value', 'data_amount_value');
             const dataUnit = getValue('data_unit', 'data_unit');
             let dataAmountLabel = '-';
-            if (dataAmountValue && dataAmountValue !== '-' && dataUnit && dataUnit !== '-') {
-                dataAmountLabel = '월 ' + dataAmountValue + dataUnit;
-            } else if (dataAmount && dataAmount !== '-') {
+            if (dataAmount === '직접입력' && dataAmountValue && dataAmountValue !== '-') {
+                // 직접입력인 경우 저장된 값 그대로 표시 (단위가 이미 포함되어 있을 수 있음)
+                // "월" 접두사가 없으면 추가
+                if (dataAmountValue.toLowerCase().includes('월') || dataAmountValue.toLowerCase().includes('month')) {
+                    dataAmountLabel = dataAmountValue;
+                } else {
+                    dataAmountLabel = '월 ' + dataAmountValue;
+                }
+            } else if (dataAmount && dataAmount !== '-' && dataAmount !== '직접입력') {
                 dataAmountLabel = '월 ' + dataAmount;
             }
             
-            // 데이터 추가제공
+            // 데이터 추가제공 (저장된 값 그대로 표시)
             const dataAdditional = getValue('data_additional', 'data_additional');
             const dataAdditionalValue = getValue('data_additional_value', 'data_additional_value');
             let dataAdditionalLabel = '-';
             if (dataAdditional === '직접입력' && dataAdditionalValue) {
-                dataAdditionalLabel = removeDirectInputText(dataAdditionalValue);
+                // 직접입력인 경우 저장된 값 그대로 표시 (단위 포함 가능)
+                dataAdditionalLabel = dataAdditionalValue;
             } else if (dataAdditional && dataAdditional !== '없음') {
-                dataAdditionalLabel = removeDirectInputText(dataAdditional);
+                dataAdditionalLabel = dataAdditional;
             } else {
                 dataAdditionalLabel = '없음';
             }
             
-            // 데이터 소진시
+            // 데이터 소진시 (저장된 값 그대로 표시)
             const dataExhausted = getValue('data_exhausted', 'data_exhausted');
             const dataExhaustedValue = getValue('data_exhausted_value', 'data_exhausted_value');
             let dataExhaustedLabel = '-';
-            if (dataExhaustedValue && dataExhaustedValue !== '-') {
-                let combined = dataExhaustedValue + (dataExhausted && dataExhausted !== '-' ? ' ' + dataExhausted : '');
-                dataExhaustedLabel = removeDirectInputText(combined);
-            } else if (dataExhausted && dataExhausted !== '-') {
-                dataExhaustedLabel = removeDirectInputText(dataExhausted);
+            if (dataExhausted === '직접입력' && dataExhaustedValue && dataExhaustedValue !== '-') {
+                // 직접입력인 경우 저장된 값 그대로 표시 (단위 포함 가능)
+                dataExhaustedLabel = dataExhaustedValue;
+            } else if (dataExhausted && dataExhausted !== '-' && dataExhausted !== '직접입력') {
+                dataExhaustedLabel = dataExhausted;
             }
             
-            // 통화
+            // 통화 (저장된 값 그대로 표시 - 단위 포함 가능)
             const callType = getValue('call_type', 'call_type');
             const callAmount = getValue('call_amount', 'call_amount');
             let callLabel = '-';
             if (callType) {
                 if (callAmount && callAmount !== '-') {
-                    let combined = callType + ' ' + callAmount;
-                    callLabel = removeDirectInputText(combined);
+                    // "직접입력" 텍스트 제거 후 값 표시 (단위가 포함되어 있을 수 있음)
+                    const cleanedType = callType === '직접입력' ? '' : callType;
+                    callLabel = cleanedType ? (cleanedType + ' ' + callAmount) : callAmount;
                 } else {
-                    callLabel = removeDirectInputText(callType);
+                    callLabel = callType === '직접입력' ? '-' : callType;
                 }
             }
             
-            // 부가통화
+            // 부가통화 (저장된 값 그대로 표시 - 단위 포함 가능)
             const additionalCallType = getValue('additional_call_type', 'additional_call_type');
             const additionalCall = getValue('additional_call', 'additional_call');
             let additionalCallLabel = '-';
             if (additionalCallType) {
                 if (additionalCall && additionalCall !== '-') {
-                    let combined = additionalCallType + ' ' + additionalCall;
-                    additionalCallLabel = removeDirectInputText(combined);
+                    // "직접입력" 텍스트 제거 후 값 표시 (단위가 포함되어 있을 수 있음)
+                    const cleanedType = additionalCallType === '직접입력' ? '' : additionalCallType;
+                    additionalCallLabel = cleanedType ? (cleanedType + ' ' + additionalCall) : additionalCall;
                 } else {
-                    additionalCallLabel = removeDirectInputText(additionalCallType);
+                    additionalCallLabel = additionalCallType === '직접입력' ? '-' : additionalCallType;
                 }
             }
             
-            // 문자
+            // 문자 (저장된 값 그대로 표시 - 단위 포함 가능)
             const smsType = getValue('sms_type', 'sms_type');
             const smsAmount = getValue('sms_amount', 'sms_amount');
             let smsLabel = '-';
             if (smsType) {
                 if (smsAmount && smsAmount !== '-') {
-                    let combined = smsType + ' ' + smsAmount;
-                    smsLabel = removeDirectInputText(combined);
+                    // "직접입력" 텍스트 제거 후 값 표시 (단위가 포함되어 있을 수 있음)
+                    const cleanedType = smsType === '직접입력' ? '' : smsType;
+                    smsLabel = cleanedType ? (cleanedType + ' ' + smsAmount) : smsAmount;
                 } else {
-                    smsLabel = removeDirectInputText(smsType);
+                    smsLabel = smsType === '직접입력' ? '-' : smsType;
                 }
             }
             
-            // 테더링(핫스팟)
+            // 테더링(핫스팟) (저장된 값 그대로 표시)
             const mobileHotspot = getValue('mobile_hotspot', 'mobile_hotspot');
             const mobileHotspotValue = getValue('mobile_hotspot_value', 'mobile_hotspot_value');
             let mobileHotspotLabel = '-';
-            if (mobileHotspotValue && mobileHotspotValue !== '-') {
-                let combined = mobileHotspotValue + (mobileHotspot && mobileHotspot !== '-' ? ' ' + mobileHotspot : '');
-                mobileHotspotLabel = removeDirectInputText(combined);
-            } else if (mobileHotspot && mobileHotspot !== '-') {
-                mobileHotspotLabel = removeDirectInputText(mobileHotspot);
+            if (mobileHotspot === '직접선택' && mobileHotspotValue && mobileHotspotValue !== '-') {
+                // 직접선택인 경우 저장된 값 그대로 표시 (단위 포함 가능)
+                mobileHotspotLabel = mobileHotspotValue;
+            } else if (mobileHotspot && mobileHotspot !== '-' && mobileHotspot !== '직접선택') {
+                mobileHotspotLabel = mobileHotspot;
             }
             
             // 유심 정보
@@ -1373,13 +1403,34 @@ function showProductInfo(order, productType) {
                              esimAvailable === '개통불가' ? '개통불가' : 
                              esimAvailable || '-';
             
-            // 기본 제공 초과 시
-            const overDataPrice = getValue('over_data_price', 'over_data_price');
-            const overVoicePrice = getValue('over_voice_price', 'over_voice_price');
-            const overVideoPrice = getValue('over_video_price', 'over_video_price');
-            const overSmsPrice = getValue('over_sms_price', 'over_sms_price');
-            const overLmsPrice = getValue('over_lms_price', 'over_lms_price');
-            const overMmsPrice = getValue('over_mms_price', 'over_mms_price');
+            // 기본 제공 초과 시 (단위 추가 및 숫자 포맷팅)
+            // DB에는 숫자만 저장되지만, 혹시 단위가 포함되어 있을 수 있으므로 숫자만 추출
+            const formatOverPrice = (price, unit) => {
+                if (!price || price === '-' || price === '' || price === null) return null;
+                // 숫자만 추출 (소수점 포함) - DB에 단위가 포함되어 있어도 숫자만 추출
+                const numValue = String(price).replace(/[^0-9.]/g, '');
+                if (!numValue || numValue === '') return null;
+                // 숫자 포맷팅 (천단위 콤마)
+                const num = parseFloat(numValue);
+                if (isNaN(num)) return null;
+                const formatted = num.toLocaleString('ko-KR');
+                return formatted + unit;
+            };
+            
+            const overDataPriceRaw = getValue('over_data_price', 'over_data_price');
+            const overVoicePriceRaw = getValue('over_voice_price', 'over_voice_price');
+            const overVideoPriceRaw = getValue('over_video_price', 'over_video_price');
+            const overSmsPriceRaw = getValue('over_sms_price', 'over_sms_price');
+            const overLmsPriceRaw = getValue('over_lms_price', 'over_lms_price');
+            const overMmsPriceRaw = getValue('over_mms_price', 'over_mms_price');
+            
+            // DB에 저장된 값(숫자)에 단위 추가하여 표시
+            const overDataPrice = formatOverPrice(overDataPriceRaw, '원/MB');
+            const overVoicePrice = formatOverPrice(overVoicePriceRaw, '원');
+            const overVideoPrice = formatOverPrice(overVideoPriceRaw, '원');
+            const overSmsPrice = formatOverPrice(overSmsPriceRaw, '원');
+            const overLmsPrice = formatOverPrice(overLmsPriceRaw, '원');
+            const overMmsPrice = formatOverPrice(overMmsPriceRaw, '원');
             
             // 프로모션 및 혜택
             const parseJsonField = (field) => {
@@ -1403,9 +1454,9 @@ function showProductInfo(order, productType) {
             const benefits = parseJsonField(benefitsRaw);
             const promotionTitle = promotionTitleRaw || '';
             
-            // 값이 '-'가 아닌 경우에만 행 추가하는 헬퍼 함수
+            // 값이 '-'가 아니고 null이 아닌 경우에만 행 추가하는 헬퍼 함수
             const addRowIfNotDash = (rows, label, value) => {
-                if (value && value !== '-') {
+                if (value && value !== '-' && value !== null && value !== '') {
                     rows.push(`<tr><th>${label}</th><td>${value}</td></tr>`);
                 }
             };
@@ -1565,8 +1616,25 @@ function openStatusEditModal(applicationId, currentStatus) {
     
     if (!modal || !select) return;
     
-    // 현재 상태 선택
-    select.value = currentStatus;
+    // 현재 상태 정규화 및 기본값 설정
+    let status = 'received'; // 기본값
+    if (currentStatus) {
+        const normalizedStatus = String(currentStatus).trim().toLowerCase();
+        if (normalizedStatus !== '') {
+            // 'pending' 값도 'received'로 매핑
+            status = (normalizedStatus === 'pending') ? 'received' : normalizedStatus;
+        }
+    }
+    
+    // 셀렉트박스에 값 설정 (값이 유효한 옵션인지 확인)
+    const validStatuses = ['received', 'activating', 'on_hold', 'cancelled', 'activation_completed', 'installation_completed'];
+    if (validStatuses.includes(status)) {
+        select.value = status;
+    } else {
+        // 유효하지 않은 값이면 기본값 'received' 사용
+        select.value = 'received';
+    }
+    
     select.setAttribute('data-application-id', applicationId);
     
     // 모달 표시
@@ -1671,7 +1739,7 @@ document.addEventListener('DOMContentLoaded', function() {
         <div class="status-modal-body">
             <label for="statusEditSelect">진행상황 선택</label>
             <select id="statusEditSelect" class="status-modal-select">
-                <option value="received">접수</option>
+                <option value="received" selected>접수</option>
                 <option value="activating">개통중</option>
                 <option value="on_hold">보류</option>
                 <option value="cancelled">취소</option>

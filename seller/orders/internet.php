@@ -34,7 +34,8 @@ if (isset($currentUser['withdrawal_requested']) && $currentUser['withdrawal_requ
 }
 
 // 필터 파라미터
-$status = isset($_GET['status']) && $_GET['status'] !== '' ? $_GET['status'] : null;
+// status가 빈 문자열이거나 설정되지 않았으면 null로 설정 (전체 검색)
+$status = isset($_GET['status']) && trim($_GET['status']) !== '' ? trim($_GET['status']) : null;
 $searchKeyword = $_GET['search_keyword'] ?? ''; // 통합검색 (주문번호, 고객명, 전화번호)
 $dateFrom = $_GET['date_from'] ?? '';
 $dateTo = $_GET['date_to'] ?? '';
@@ -89,8 +90,14 @@ try {
         
         // 진행상황 필터
         if (!empty($status)) {
-            $whereConditions[] = 'a.application_status = :status';
-            $params[':status'] = $status;
+            // 'received' 필터링 시 빈 문자열, null, 'pending'도 포함 (정규화 로직과 일치)
+            if ($status === 'received') {
+                $whereConditions[] = "(a.application_status = :status OR a.application_status = '' OR a.application_status IS NULL OR LOWER(TRIM(a.application_status)) = 'pending')";
+                $params[':status'] = $status;
+            } else {
+                $whereConditions[] = 'a.application_status = :status';
+                $params[':status'] = $status;
+            }
         }
         
         // 통합검색 (주문번호, 고객명, 전화번호)
@@ -106,24 +113,22 @@ try {
                 // 3자리 미만이면 원본 검색어로도 검색
                 $searchConditions[] = 'c.phone LIKE :search_keyword';
             }
-            // 주문번호 검색 (created_at 기반: YYYYMMDD-HHMMSS00 형식, 하이픈 없이도 검색 가능)
+            // 주문번호 검색 (order_number 컬럼 기반: YYMMDDHH-0001 형식)
+            // 하이픈 제거 후 검색 (하이픈 포함/미포함 모두 검색 가능)
             $cleanKeyword = preg_replace('/[^0-9]/', '', $searchKeyword); // 숫자만 추출
-            if (strlen($cleanKeyword) >= 4) {
-                // 날짜 부분 검색 (YYYYMMDD)
-                if (strlen($cleanKeyword) >= 8) {
-                    $datePart = substr($cleanKeyword, 0, 8);
+            if (strlen($cleanKeyword) >= 2) {
+                // order_number 컬럼으로 검색 (하이픈 제거 후 검색)
+                $searchConditions[] = "REPLACE(a.order_number, '-', '') LIKE :search_keyword_order_number";
+                $params[':search_keyword_order_number'] = '%' . $cleanKeyword . '%';
+                
+                // 날짜 기반 검색도 지원 (하위 호환성)
+                if (strlen($cleanKeyword) >= 6) {
+                    // YYMMDD 형식
+                    $year = '20' . substr($cleanKeyword, 0, 2);
+                    $month = substr($cleanKeyword, 2, 2);
+                    $day = substr($cleanKeyword, 4, 2);
                     $searchConditions[] = "DATE_FORMAT(a.created_at, '%Y%m%d') LIKE :search_keyword_date";
-                    $params[':search_keyword_date'] = '%' . $datePart . '%';
-                }
-                // 시간 부분 검색 (HHMMSS)
-                if (strlen($cleanKeyword) > 8) {
-                    $timePart = substr($cleanKeyword, 8);
-                    $searchConditions[] = "DATE_FORMAT(a.created_at, '%H%i%s') LIKE :search_keyword_time";
-                    $params[':search_keyword_time'] = '%' . $timePart . '%';
-                } elseif (strlen($cleanKeyword) < 8) {
-                    // 8자리 미만이면 날짜 부분으로 검색
-                    $searchConditions[] = "DATE_FORMAT(a.created_at, '%Y%m%d') LIKE :search_keyword_date";
-                    $params[':search_keyword_date'] = '%' . $cleanKeyword . '%';
+                    $params[':search_keyword_date'] = '%' . $year . $month . $day . '%';
                 }
             }
             $params[':search_keyword'] = '%' . $searchKeyword . '%';
@@ -159,6 +164,7 @@ try {
         $sql = "
             SELECT DISTINCT
                 a.id,
+                a.order_number,
                 a.product_id,
                 a.application_status,
                 a.created_at,
@@ -197,6 +203,21 @@ try {
         
         // additional_info 및 JSON 필드 디코딩
         foreach ($orders as &$order) {
+            // application_status 정규화 및 기본값 설정
+            $status = trim($order['application_status'] ?? '');
+            if (empty($status)) {
+                $order['application_status'] = 'received';
+            } else {
+                // 공백 제거 후 소문자로 정규화
+                $status = strtolower(trim($status));
+                // 'pending' 값도 'received'로 매핑 (노란색 → 파란색 일관성)
+                if ($status === 'pending') {
+                    $order['application_status'] = 'received';
+                } else {
+                    $order['application_status'] = $status;
+                }
+            }
+            
             if (!empty($order['additional_info'])) {
                 $order['additional_info'] = json_decode($order['additional_info'], true) ?: [];
             } else {
@@ -207,8 +228,8 @@ try {
             $productSnapshot = $order['additional_info']['product_snapshot'] ?? [];
             if (!empty($productSnapshot) && is_array($productSnapshot)) {
                 // product_snapshot의 모든 정보로 현재 상품 정보 덮어쓰기 (신청 당시 정보 유지)
-                // 단, id, product_id, seller_id 등은 제외
-                $excludeKeys = ['id', 'product_id', 'seller_id'];
+                // 단, id, product_id, seller_id, order_number 등은 제외 (주문번호는 DB 값 유지)
+                $excludeKeys = ['id', 'product_id', 'seller_id', 'order_number', 'application_id', 'created_at'];
                 foreach ($productSnapshot as $key => $value) {
                     if (!in_array($key, $excludeKeys) && $value !== null) {
                         $order[$key] = $value;
@@ -237,6 +258,7 @@ try {
                 }
             }
         }
+        unset($order); // 참조 해제
     }
 } catch (PDOException $e) {
     error_log("Error fetching orders: " . $e->getMessage());
@@ -250,6 +272,8 @@ $statusLabels = [
     'cancelled' => '취소',
     'activation_completed' => '개통완료',
     'installation_completed' => '설치완료',
+    // 기존 상태 호환성 유지
+    'pending' => '접수',
     // 기존 상태 호환성 유지
     'pending' => '접수',
     'processing' => '개통중',
@@ -786,13 +810,13 @@ include __DIR__ . '/../includes/seller-header.php';
                 <div class="filter-group">
                     <label class="filter-label">진행상황</label>
                     <select name="status" class="filter-select">
-                        <option value="">전체</option>
-                        <option value="received" <?php echo (!empty($status) && $status === 'received') ? 'selected' : ''; ?>>접수</option>
-                        <option value="activating" <?php echo (!empty($status) && $status === 'activating') ? 'selected' : ''; ?>>개통중</option>
-                        <option value="on_hold" <?php echo (!empty($status) && $status === 'on_hold') ? 'selected' : ''; ?>>보류</option>
-                        <option value="cancelled" <?php echo (!empty($status) && $status === 'cancelled') ? 'selected' : ''; ?>>취소</option>
-                        <option value="activation_completed" <?php echo (!empty($status) && $status === 'activation_completed') ? 'selected' : ''; ?>>개통완료</option>
-                        <option value="installation_completed" <?php echo (!empty($status) && $status === 'installation_completed') ? 'selected' : ''; ?>>설치완료</option>
+                        <option value="" <?php echo (empty($status) || $status === null) ? 'selected' : ''; ?>>전체</option>
+                        <option value="received" <?php echo ($status === 'received') ? 'selected' : ''; ?>>접수</option>
+                        <option value="activating" <?php echo ($status === 'activating') ? 'selected' : ''; ?>>개통중</option>
+                        <option value="on_hold" <?php echo ($status === 'on_hold') ? 'selected' : ''; ?>>보류</option>
+                        <option value="cancelled" <?php echo ($status === 'cancelled') ? 'selected' : ''; ?>>취소</option>
+                        <option value="activation_completed" <?php echo ($status === 'activation_completed') ? 'selected' : ''; ?>>개통완료</option>
+                        <option value="installation_completed" <?php echo ($status === 'installation_completed') ? 'selected' : ''; ?>>설치완료</option>
                     </select>
                 </div>
                 
@@ -855,17 +879,13 @@ include __DIR__ . '/../includes/seller-header.php';
                             <td><?php echo $orderIndex--; ?></td>
                             <td>
                                 <?php 
-                                $createdAt = new DateTime($order['created_at']);
-                                // 앞 8자리: YY(년 2자리) + MM(월 2자리) + DD(일 2자리) + HH(시간 2자리)
-                                $dateTimePart = $createdAt->format('ymdH'); // 년(2자리)월일시간
-                                // 뒤 8자리: MM(분 2자리) + 주문ID(6자리)
-                                $minutePart = $createdAt->format('i'); // 분 2자리
-                                $orderIdPadded = str_pad($order['id'], 6, '0', STR_PAD_LEFT); // 주문ID 6자리
-                                
-                                // 형식: YYMMDDHH-MMXXXXXX (8자리-8자리)
-                                // 예: 25121518-0004000001, 25121518-0004000002
-                                $orderNumber = $dateTimePart . '-' . $minutePart . $orderIdPadded;
-                                echo $orderNumber;
+                                // DB에 저장된 주문번호만 사용 (NULL이면 NULL 표시)
+                                if (!empty($order['order_number']) && $order['order_number'] !== null) {
+                                    echo htmlspecialchars($order['order_number']);
+                                } else {
+                                    // 주문번호가 없는 경우 (DB에 저장되지 않은 기존 주문)
+                                    echo '<span style="color: #999;">-</span>';
+                                }
                                 ?>
                             </td>
                             <td>
@@ -1158,8 +1178,25 @@ function openStatusEditModal(applicationId, currentStatus) {
     
     if (!modal || !select) return;
     
-    // 현재 상태 선택
-    select.value = currentStatus;
+    // 현재 상태 정규화 및 기본값 설정
+    let status = 'received'; // 기본값
+    if (currentStatus) {
+        const normalizedStatus = String(currentStatus).trim().toLowerCase();
+        if (normalizedStatus !== '') {
+            // 'pending' 값도 'received'로 매핑
+            status = (normalizedStatus === 'pending') ? 'received' : normalizedStatus;
+        }
+    }
+    
+    // 셀렉트박스에 값 설정 (값이 유효한 옵션인지 확인)
+    const validStatuses = ['received', 'activating', 'on_hold', 'cancelled', 'activation_completed', 'installation_completed'];
+    if (validStatuses.includes(status)) {
+        select.value = status;
+    } else {
+        // 유효하지 않은 값이면 기본값 'received' 사용
+        select.value = 'received';
+    }
+    
     select.setAttribute('data-application-id', applicationId);
     
     // 모달 표시
@@ -1264,7 +1301,7 @@ document.addEventListener('DOMContentLoaded', function() {
         <div class="status-modal-body">
             <label for="statusEditSelect">진행상황 선택</label>
             <select id="statusEditSelect" class="status-modal-select">
-                <option value="received">접수</option>
+                <option value="received" selected>접수</option>
                 <option value="activating">개통중</option>
                 <option value="on_hold">보류</option>
                 <option value="cancelled">취소</option>
