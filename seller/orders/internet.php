@@ -154,6 +154,7 @@ try {
                 c.additional_info,
                 p.id as product_id,
                 internet.registration_place,
+                internet.service_type,
                 internet.speed_option,
                 internet.monthly_fee,
                 internet.cash_payment_names,
@@ -807,6 +808,7 @@ include __DIR__ . '/../includes/seller-header.php';
                         <th>순번</th>
                         <th>주문번호</th>
                         <th>신청 인터넷 회선</th>
+                        <th>결합여부</th>
                         <th>속도</th>
                         <th>기존 인터넷 회선</th>
                         <th>고객명</th>
@@ -832,12 +834,22 @@ include __DIR__ . '/../includes/seller-header.php';
                                 </span>
                             </td>
                             <td>
-                                <span class="product-name-link" onclick="showProductInfo(<?php echo htmlspecialchars(json_encode($order)); ?>, 'internet')">
-                                    <?php 
-                                    $speed = htmlspecialchars($order['speed_option'] ?? '');
-                                    echo $speed ?: '-';
-                                    ?>
-                                </span>
+                                <?php
+                                $serviceType = $order['service_type'] ?? '인터넷';
+                                $serviceTypeDisplay = $serviceType;
+                                if ($serviceType === '인터넷+TV') {
+                                    $serviceTypeDisplay = '인터넷 + TV 결합';
+                                } elseif ($serviceType === '인터넷+TV+핸드폰') {
+                                    $serviceTypeDisplay = '인터넷 + TV + 핸드폰 결합';
+                                }
+                                echo htmlspecialchars($serviceTypeDisplay);
+                                ?>
+                            </td>
+                            <td>
+                                <?php 
+                                $speed = htmlspecialchars($order['speed_option'] ?? '');
+                                echo $speed ?: '-';
+                                ?>
                             </td>
                             <td>
                                 <?php 
@@ -945,14 +957,114 @@ function showProductInfo(order, productType) {
             return Array.isArray(field) ? field : [];
         };
         
-        const cashNames = parseJsonField(order.cash_payment_names);
-        const cashPrices = parseJsonField(order.cash_payment_prices);
-        const giftNames = parseJsonField(order.gift_card_names);
-        const giftPrices = parseJsonField(order.gift_card_prices);
-        const equipNames = parseJsonField(order.equipment_names);
-        const equipPrices = parseJsonField(order.equipment_prices);
-        const installNames = parseJsonField(order.installation_names);
-        const installPrices = parseJsonField(order.installation_prices);
+        // 필드명 정리 함수 (인코딩 오류 및 오타 수정)
+        const cleanFieldName = (name) => {
+            if (!name || typeof name !== 'string') return name;
+            
+            // 공백 제거
+            name = name.trim();
+            
+            // 일반적인 오타 및 인코딩 오류 수정
+            const corrections = [
+                // 와이파이공유기 관련 오타
+                { pattern: /와이파이공유기\s*[ㅇㄹㅁㄴㅂㅅ]+/g, replacement: '와이파이공유기' },
+                { pattern: /와이파이공유기\s*[ㅇㄹ]/g, replacement: '와이파이공유기' },
+                // 설치비 관련 오타
+                { pattern: /스?\s*설[ㅊㅈ]?이비/g, replacement: '설치비' },
+                { pattern: /설[ㅊㅈ]?이비/g, replacement: '설치비' },
+                // 연속된 공백을 하나로
+                { pattern: /\s+/g, replacement: ' ' },
+            ];
+            
+            // 패턴 기반 수정
+            corrections.forEach(({ pattern, replacement }) => {
+                name = name.replace(pattern, replacement);
+            });
+            
+            // 특수문자나 이상한 문자 제거 (한글, 숫자, 영문, 공백만 허용)
+            // 단, 의미있는 한글 자음은 보존 (예: "ㅇㄹ" 같은 의미없는 자음만 제거)
+            name = name.replace(/[^\uAC00-\uD7A3a-zA-Z0-9\s]/g, '');
+            
+            // 단어 끝에 의미없는 자음이 붙은 경우 제거 (예: "와이파이공유기 ㅇㄹ" -> "와이파이공유기")
+            name = name.replace(/\s+[ㅇㄹㅁㄴㅂㅅㅇㄹ]+$/g, '');
+            
+            // 앞뒤 공백 제거
+            name = name.trim();
+            
+            return name;
+        };
+        
+        // 중복 제거 및 유효성 검사 함수
+        const cleanNamePricePairs = (names, prices) => {
+            const seen = new Set();
+            const result = [];
+            
+            for (let i = 0; i < names.length; i++) {
+                const name = cleanFieldName(names[i]);
+                const price = prices[i] || '';
+                
+                // 빈 이름 제거
+                if (!name || name.trim() === '' || name === '-') continue;
+                
+                // 중복 제거 (이름 기준)
+                const key = name.toLowerCase().trim();
+                if (seen.has(key)) continue;
+                seen.add(key);
+                
+                result.push({ name: name, price: price });
+            }
+            
+            return result;
+        };
+        
+        // 월 요금제 검증 및 정리
+        const validateMonthlyFee = (fee) => {
+            if (!fee) return '-';
+            
+            // 숫자 추출
+            const numericValue = parseInt(String(fee).replace(/[^0-9]/g, ''));
+            
+            // 비정상적으로 큰 값 검증 (월 요금제는 보통 20만원 이하)
+            if (numericValue > 200000) {
+                // 100만원 이상은 심각한 오류로 표시
+                if (numericValue >= 1000000) {
+                    // 가능한 보정값 제안 (100으로 나눈 값)
+                    const suggestedValue = Math.floor(numericValue / 100);
+                    return formatPrice(fee) + 
+                        ' <span style="color: #ef4444; font-size: 0.85em; display: block; margin-top: 4px;">⚠ 데이터 오류 의심 (예상값: ' + 
+                        formatPrice(suggestedValue + '원') + ')</span>';
+                }
+                // 20만원 초과 100만원 미만은 경고만 표시
+                return formatPrice(fee) + ' <span style="color: #f59e0b; font-size: 0.85em;">⚠ 비정상적으로 높은 값 (확인 권장)</span>';
+            }
+            
+            return formatPrice(fee);
+        };
+        
+        const cashPairs = cleanNamePricePairs(
+            parseJsonField(order.cash_payment_names),
+            parseJsonField(order.cash_payment_prices)
+        );
+        const giftPairs = cleanNamePricePairs(
+            parseJsonField(order.gift_card_names),
+            parseJsonField(order.gift_card_prices)
+        );
+        const equipPairs = cleanNamePricePairs(
+            parseJsonField(order.equipment_names),
+            parseJsonField(order.equipment_prices)
+        );
+        const installPairs = cleanNamePricePairs(
+            parseJsonField(order.installation_names),
+            parseJsonField(order.installation_prices)
+        );
+        
+        const serviceType = order.service_type || '인터넷';
+        let serviceTypeDisplay = serviceType;
+        if (serviceType === '인터넷+TV') {
+            serviceTypeDisplay = '인터넷 + TV 결합';
+        } else if (serviceType === '인터넷+TV+핸드폰') {
+            serviceTypeDisplay = '인터넷 + TV + 핸드폰 결합';
+        }
         
         html = `
             <table class="product-info-table">
@@ -961,26 +1073,29 @@ function showProductInfo(order, productType) {
                     <td>${order.registration_place || '-'}</td>
                 </tr>
                 <tr>
+                    <th>결합여부</th>
+                    <td>${serviceTypeDisplay}</td>
+                </tr>
+                <tr>
                     <th>가입 속도</th>
                     <td>${order.speed_option || '-'}</td>
                 </tr>
                 <tr>
                     <th>월 요금제</th>
-                    <td>${formatPrice(order.monthly_fee)}</td>
+                    <td>${validateMonthlyFee(order.monthly_fee)}</td>
                 </tr>
             </table>
         `;
         
         // 현금지급 정보
-        if (cashNames.length > 0) {
+        if (cashPairs.length > 0) {
             html += `<h3 style="margin-top: 24px; margin-bottom: 12px; font-size: 16px; color: #1f2937;">현금지급</h3>`;
             html += `<table class="product-info-table">`;
-            cashNames.forEach((name, index) => {
-                const price = cashPrices[index] || '';
+            cashPairs.forEach((item) => {
                 html += `
                     <tr>
-                        <th>${name || '-'}</th>
-                        <td>${formatPrice(price)}</td>
+                        <th>${item.name || '-'}</th>
+                        <td>${formatPrice(item.price)}</td>
                     </tr>
                 `;
             });
@@ -988,15 +1103,14 @@ function showProductInfo(order, productType) {
         }
         
         // 상품권 지급 정보
-        if (giftNames.length > 0) {
+        if (giftPairs.length > 0) {
             html += `<h3 style="margin-top: 24px; margin-bottom: 12px; font-size: 16px; color: #1f2937;">상품권 지급</h3>`;
             html += `<table class="product-info-table">`;
-            giftNames.forEach((name, index) => {
-                const price = giftPrices[index] || '';
+            giftPairs.forEach((item) => {
                 html += `
                     <tr>
-                        <th>${name || '-'}</th>
-                        <td>${formatPrice(price)}</td>
+                        <th>${item.name || '-'}</th>
+                        <td>${formatPrice(item.price)}</td>
                     </tr>
                 `;
             });
@@ -1004,15 +1118,14 @@ function showProductInfo(order, productType) {
         }
         
         // 장비 제공 정보
-        if (equipNames.length > 0) {
+        if (equipPairs.length > 0) {
             html += `<h3 style="margin-top: 24px; margin-bottom: 12px; font-size: 16px; color: #1f2937;">장비 제공</h3>`;
             html += `<table class="product-info-table">`;
-            equipNames.forEach((name, index) => {
-                const price = equipPrices[index] || '';
+            equipPairs.forEach((item) => {
                 html += `
                     <tr>
-                        <th>${name || '-'}</th>
-                        <td>${formatPrice(price)}</td>
+                        <th>${item.name || '-'}</th>
+                        <td>${formatPrice(item.price)}</td>
                     </tr>
                 `;
             });
@@ -1020,15 +1133,14 @@ function showProductInfo(order, productType) {
         }
         
         // 설치 및 기타 서비스 정보
-        if (installNames.length > 0) {
+        if (installPairs.length > 0) {
             html += `<h3 style="margin-top: 24px; margin-bottom: 12px; font-size: 16px; color: #1f2937;">설치 및 기타 서비스</h3>`;
             html += `<table class="product-info-table">`;
-            installNames.forEach((name, index) => {
-                const price = installPrices[index] || '';
+            installPairs.forEach((item) => {
                 html += `
                     <tr>
-                        <th>${name || '-'}</th>
-                        <td>${formatPrice(price)}</td>
+                        <th>${item.name || '-'}</th>
+                        <td>${formatPrice(item.price)}</td>
                     </tr>
                 `;
             });

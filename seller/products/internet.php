@@ -75,6 +75,11 @@ if ($productId > 0) {
                     $isEditMode = true;
                     $productData = array_merge($product, $productDetail);
                     
+                    // service_type 기본값 설정 (기존 데이터에 없을 수 있음)
+                    if (empty($productData['service_type'])) {
+                        $productData['service_type'] = '인터넷';
+                    }
+                    
                     // JSON 필드 디코딩
                     $jsonFields = [
                         'cash_payment_names', 'cash_payment_prices',
@@ -83,12 +88,81 @@ if ($productId > 0) {
                         'installation_names', 'installation_prices'
                     ];
                     
+                    // 필드명 정리 함수 (인코딩 오류 및 오타 수정)
+                    $cleanFieldName = function($name) {
+                        if (empty($name) || !is_string($name)) return '';
+                        
+                        // 공백 제거
+                        $name = trim($name);
+                        
+                        // 일반적인 오타 및 인코딩 오류 수정
+                        $corrections = [
+                            // 와이파이공유기 관련 오타
+                            '/와이파이공유기\s*[ㅇㄹㅁㄴㅂㅅ]+/u' => '와이파이공유기',
+                            '/와이파이공유기\s*[ㅇㄹ]/u' => '와이파이공유기',
+                            // 설치비 관련 오타
+                            '/스?\s*설[ㅊㅈ]?이비/u' => '설치비',
+                            '/설[ㅊㅈ]?이비/u' => '설치비',
+                        ];
+                        
+                        // 패턴 기반 수정
+                        foreach ($corrections as $pattern => $replacement) {
+                            $name = preg_replace($pattern, $replacement, $name);
+                        }
+                        
+                        // 특수문자나 이상한 문자 제거 (한글, 숫자, 영문, 공백만 허용)
+                        $name = preg_replace('/[^\p{Hangul}\p{L}\p{N}\s]/u', '', $name);
+                        
+                        // 단어 끝에 의미없는 자음이 붙은 경우 제거
+                        $name = preg_replace('/\s+[ㅇㄹㅁㄴㅂㅅㅇㄹ]+$/u', '', $name);
+                        
+                        // 앞뒤 공백 제거
+                        $name = trim($name);
+                        
+                        return $name;
+                    };
+                    
+                    // 중복 제거 및 정리 함수
+                    $cleanArrayData = function($names, $prices) use ($cleanFieldName) {
+                        if (empty($names) || !is_array($names)) return ['names' => [], 'prices' => []];
+                        
+                        $seen = [];
+                        $cleaned = ['names' => [], 'prices' => []];
+                        
+                        foreach ($names as $index => $name) {
+                            $cleanedName = $cleanFieldName($name);
+                            
+                            if (empty($cleanedName) || $cleanedName === '-') continue;
+                            
+                            // 중복 제거
+                            $key = mb_strtolower($cleanedName, 'UTF-8');
+                            if (isset($seen[$key])) continue;
+                            $seen[$key] = true;
+                            
+                            $cleaned['names'][] = $cleanedName;
+                            $cleaned['prices'][] = $prices[$index] ?? '';
+                        }
+                        
+                        return $cleaned;
+                    };
+                    
                     foreach ($jsonFields as $field) {
                         if (!empty($productData[$field])) {
                             $decoded = json_decode($productData[$field], true);
                             $productData[$field] = is_array($decoded) ? $decoded : [];
                         } else {
                             $productData[$field] = [];
+                        }
+                    }
+                    
+                    // 이름 필드 정리 및 중복 제거
+                    $nameFields = ['cash_payment_names', 'gift_card_names', 'equipment_names', 'installation_names'];
+                    foreach ($nameFields as $nameField) {
+                        $priceField = str_replace('_names', '_prices', $nameField);
+                        if (isset($productData[$nameField]) && isset($productData[$priceField])) {
+                            $cleaned = $cleanArrayData($productData[$nameField], $productData[$priceField]);
+                            $productData[$nameField] = $cleaned['names'];
+                            $productData[$priceField] = $cleaned['prices'];
                         }
                     }
                 }
@@ -102,7 +176,7 @@ if ($productId > 0) {
 // 페이지별 스타일
 $pageStyles = '
     .product-register-container {
-        max-width: 900px;
+        max-width: 1125px;
         margin: 0 auto;
     }
     
@@ -140,7 +214,7 @@ $pageStyles = '
     
     .form-section-row {
         display: grid;
-        grid-template-columns: 1fr 1fr 1fr;
+        grid-template-columns: 1fr 1fr 1fr 1fr;
         gap: 16px;
         margin-bottom: 32px;
         background: #f9fafb;
@@ -161,6 +235,13 @@ $pageStyles = '
         margin-bottom: 12px;
         padding-bottom: 8px;
         border-bottom: 2px solid #e5e7eb;
+    }
+    
+    @media (max-width: 1200px) {
+        .form-section-row {
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
     }
     
     @media (max-width: 768px) {
@@ -645,7 +726,7 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
         </div>
         
-        <!-- 인터넷가입처 / 인터넷속도 / 사용요금 한 줄 -->
+        <!-- 인터넷가입처 / 결합여부 / 인터넷속도 / 사용요금 한 줄 -->
         <div class="form-section-row">
             <!-- 인터넷가입처 -->
             <div class="form-section-item">
@@ -721,6 +802,20 @@ document.addEventListener('DOMContentLoaded', function() {
                         </div>
                     </div>
                     <div class="form-help">가입 가능한 업체를 선택하세요</div>
+                </div>
+            </div>
+            
+            <!-- 결합여부 -->
+            <div class="form-section-item">
+                <div class="form-section-title">결합여부</div>
+                <div class="form-group">
+                    <select name="service_type" id="service_type" class="form-select" required>
+                        <option value="">선택하세요</option>
+                        <option value="인터넷" <?php echo (isset($productData['service_type']) && $productData['service_type'] === '인터넷') ? 'selected' : ''; ?>>인터넷</option>
+                        <option value="인터넷+TV" <?php echo (isset($productData['service_type']) && $productData['service_type'] === '인터넷+TV') ? 'selected' : ''; ?>>인터넷 + TV 결합</option>
+                        <option value="인터넷+TV+핸드폰" <?php echo (isset($productData['service_type']) && $productData['service_type'] === '인터넷+TV+핸드폰') ? 'selected' : ''; ?>>인터넷 + TV + 핸드폰 결합</option>
+                    </select>
+                    <div class="form-help">결합여부를 선택하세요</div>
                 </div>
             </div>
             
@@ -1351,17 +1446,20 @@ document.getElementById('productForm').addEventListener('submit', function(e) {
         monthlyFeeInput.removeAttribute('readonly');
     }
     
-    // 현금지급 가격 필드 처리: 쉼표 제거 및 단위와 결합
+    // 현금지급 가격 필드 처리: 쉼표 및 소수점 제거 후 정수로 변환, 단위와 결합하여 텍스트로 저장
     document.querySelectorAll('input[name="cash_payment_prices[]"]').forEach(function(input, index) {
         // 포커스 제거 및 readonly 설정으로 포커스 이동 방지
         input.blur();
         input.setAttribute('readonly', 'readonly');
         
         if (input.value) {
+            // 쉼표와 소수점 제거 후 숫자만 추출
             const cleanValue = input.value.toString().replace(/[,.]/g, '').replace(/[^0-9]/g, '');
+            // 정수로 변환 (소수점 완전 제거)
             const value = parseInt(cleanValue) || 0;
             const unitSelect = document.querySelectorAll('select[name="cash_payment_price_units[]"]')[index];
             const unit = unitSelect ? unitSelect.value : '원';
+            // 텍스트 형식으로 저장 (예: "50000원")
             input.value = value + unit;
         }
         
@@ -1369,17 +1467,20 @@ document.getElementById('productForm').addEventListener('submit', function(e) {
         input.removeAttribute('readonly');
     });
     
-    // 상품권 지급 가격 필드 처리: 쉼표 제거 및 단위와 결합
+    // 상품권 지급 가격 필드 처리: 쉼표 및 소수점 제거 후 정수로 변환, 단위와 결합하여 텍스트로 저장
     document.querySelectorAll('input[name="gift_card_prices[]"]').forEach(function(input, index) {
         // 포커스 제거 및 readonly 설정으로 포커스 이동 방지
         input.blur();
         input.setAttribute('readonly', 'readonly');
         
         if (input.value) {
+            // 쉼표와 소수점 제거 후 숫자만 추출
             const cleanValue = input.value.toString().replace(/[,.]/g, '').replace(/[^0-9]/g, '');
+            // 정수로 변환 (소수점 완전 제거)
             const value = parseInt(cleanValue) || 0;
             const unitSelect = document.querySelectorAll('select[name="gift_card_price_units[]"]')[index];
             const unit = unitSelect ? unitSelect.value : '원';
+            // 텍스트 형식으로 저장 (예: "170000원")
             input.value = value + unit;
         }
         
@@ -1409,18 +1510,92 @@ document.getElementById('productForm').addEventListener('submit', function(e) {
     setTimeout(function() {
         console.log('API 호출 시작');
         
-        // FormData 생성 및 제출
-        const formData = new FormData(document.getElementById('productForm'));
+        // FormData 생성 전에 빈 필드 제거
+        const form = document.getElementById('productForm');
+        
+        // 장비 및 설치 필드에서 빈 값 제거
+        // 이름과 가격이 모두 비어있는 행 제거
+        const removeEmptyFields = function(nameSelector, priceSelector) {
+            const nameInputs = Array.from(form.querySelectorAll(nameSelector));
+            const priceInputs = Array.from(form.querySelectorAll(priceSelector));
+            
+            // 역순으로 순회하여 제거 (인덱스 변경 방지)
+            for (let i = nameInputs.length - 1; i >= 0; i--) {
+                const nameValue = (nameInputs[i].value || '').trim();
+                const priceValue = (priceInputs[i] ? (priceInputs[i].value || '').trim() : '');
+                
+                // 이름과 가격이 모두 비어있으면 해당 행의 모든 필드 제거
+                if (!nameValue && !priceValue) {
+                    const group = nameInputs[i].closest('.gift-input-group');
+                    if (group && group.parentElement.children.length > 1) {
+                        // 첫 번째 행이 아니면 제거
+                        group.remove();
+                    } else if (group) {
+                        // 첫 번째 행이면 값만 비우기
+                        nameInputs[i].value = '';
+                        if (priceInputs[i]) priceInputs[i].value = '';
+                    }
+                }
+            }
+        };
+        
+        // 빈 필드 제거 실행
+        removeEmptyFields('input[name="equipment_names[]"]', 'input[name="equipment_prices[]"]');
+        removeEmptyFields('input[name="installation_names[]"]', 'input[name="installation_prices[]"]');
+        
+        // FormData 생성
+        const formData = new FormData(form);
+        
+        // 빈 값 제거: 장비 및 설치 필드에서 이름이 비어있는 항목의 가격도 제거
+        const cleanFormData = new FormData();
+        const equipmentNames = [];
+        const equipmentPrices = [];
+        const installationNames = [];
+        const installationPrices = [];
+        
+        // FormData를 순회하며 빈 값 필터링
+        for (let [key, value] of formData.entries()) {
+            if (key === 'equipment_names[]') {
+                const trimmedValue = (value || '').trim();
+                if (trimmedValue) {
+                    equipmentNames.push(trimmedValue);
+                }
+            } else if (key === 'equipment_prices[]') {
+                equipmentPrices.push((value || '').trim());
+            } else if (key === 'installation_names[]') {
+                const trimmedValue = (value || '').trim();
+                if (trimmedValue) {
+                    installationNames.push(trimmedValue);
+                }
+            } else if (key === 'installation_prices[]') {
+                installationPrices.push((value || '').trim());
+            } else {
+                // 다른 필드는 그대로 추가
+                cleanFormData.append(key, value);
+            }
+        }
+        
+        // 장비 필드: 이름과 가격을 쌍으로 매칭하여 이름이 있는 것만 추가
+        equipmentNames.forEach((name, index) => {
+            cleanFormData.append('equipment_names[]', name);
+            cleanFormData.append('equipment_prices[]', equipmentPrices[index] || '');
+        });
+        
+        // 설치 필드: 이름과 가격을 쌍으로 매칭하여 이름이 있는 것만 추가
+        installationNames.forEach((name, index) => {
+            cleanFormData.append('installation_names[]', name);
+            cleanFormData.append('installation_prices[]', installationPrices[index] || '');
+        });
         
         // FormData 내용 확인 (디버깅용)
-        console.log('FormData 생성 완료');
-        for (let pair of formData.entries()) {
+        console.log('FormData 생성 완료 (빈 값 제거됨)');
+        for (let pair of cleanFormData.entries()) {
             console.log(pair[0] + ': ' + pair[1]);
         }
         
         fetch('/MVNO/api/product-register-internet.php', {
             method: 'POST',
-            body: formData
+            body: cleanFormData
         })
         .then(response => {
             // 응답 상태 확인
@@ -1462,8 +1637,17 @@ document.getElementById('productForm').addEventListener('submit', function(e) {
                 }
             } else {
                 // 오류 메시지를 상단에 표시
-                const errorMsg = (data && data.message) || (isEditMode ? '상품 수정에 실패했습니다.' : '상품 등록에 실패했습니다.');
+                let errorMsg = (data && data.message) || (isEditMode ? '상품 수정에 실패했습니다.' : '상품 등록에 실패했습니다.');
+                
+                // 개발 환경에서 상세 오류 정보 표시
+                if (data && data.error_detail && window.location.hostname === 'localhost') {
+                    errorMsg += '\n\n상세 오류: ' + data.error_detail;
+                }
+                
                 console.error('API 오류:', errorMsg);
+                if (data && data.error_detail) {
+                    console.error('오류 상세:', data.error_detail);
+                }
                 showMessage(errorMsg, 'error');
             }
         })

@@ -25,6 +25,7 @@ try {
                 p.favorite_count,
                 p.application_count,
                 inet.registration_place,
+                inet.service_type,
                 inet.speed_option,
                 inet.monthly_fee,
                 inet.cash_payment_names,
@@ -122,10 +123,23 @@ function getInternetIconPath($registrationPlace) {
                         $applicationCount = number_format($product['application_count'] ?? 0);
                         // 월 요금 처리: DB에 저장된 값이 "17000원" 형식이면 그대로 표시
                         $monthlyFeeRaw = $product['monthly_fee'] ?? '';
-                        if (!empty($monthlyFeeRaw) && preg_match('/^(\d+)(.+)$/', $monthlyFeeRaw, $matches)) {
-                            $monthlyFee = number_format((float)$matches[1]) . $matches[2];
+                        if (!empty($monthlyFeeRaw)) {
+                            // DECIMAL 타입에서 가져온 경우 소수점 제거
+                            if (is_numeric($monthlyFeeRaw)) {
+                                // 숫자만 있는 경우 (DECIMAL에서 가져온 경우)
+                                $numericValue = (int)floatval($monthlyFeeRaw); // 소수점 제거하고 정수로 변환
+                                $monthlyFee = number_format($numericValue, 0, '', ',') . '원';
+                            } elseif (preg_match('/^(\d+)(.+)$/', $monthlyFeeRaw, $matches)) {
+                                // "17000원" 형식인 경우
+                                $numericValue = (int)$matches[1]; // 정수로 변환
+                                $monthlyFee = number_format($numericValue, 0, '', ',') . $matches[2];
+                            } else {
+                                // 그 외의 경우
+                                $numericValue = (int)floatval($monthlyFeeRaw);
+                                $monthlyFee = number_format($numericValue, 0, '', ',') . '원';
+                            }
                         } else {
-                            $monthlyFee = number_format((float)$monthlyFeeRaw) . '원';
+                            $monthlyFee = '0원';
                         }
                         
                         // 혜택 정보 파싱
@@ -149,6 +163,18 @@ function getInternetIconPath($registrationPlace) {
                                     <?php else: ?>
                                         <span><?php echo htmlspecialchars($product['registration_place']); ?></span>
                                     <?php endif; ?>
+                                    <?php 
+                                    // 서비스 타입 표시
+                                    $serviceType = $product['service_type'] ?? '인터넷';
+                                    $serviceTypeDisplay = $serviceType;
+                                    if ($serviceType === '인터넷+TV') {
+                                        $serviceTypeDisplay = '인터넷 + TV 결합';
+                                    } elseif ($serviceType === '인터넷+TV+핸드폰') {
+                                        $serviceTypeDisplay = '인터넷 + TV + 핸드폰 결합';
+                                    }
+                                    ?>
+                                    <span style="margin-left: 0.5em; margin-right: 0.5em; font-size: 1.2rem; color: #9ca3af;">|</span>
+                                    <span style="font-size: 1.2rem; color: #374151; text-align: left; display: inline-block;"><?php echo htmlspecialchars($serviceTypeDisplay); ?></span>
                                     <div class="css-huskxe e82z5mt13">
                                         <div class="css-1fd5u73 e82z5mt14">
                                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

@@ -108,6 +108,7 @@ try {
             SELECT 
                 p.*,
                 inet.registration_place AS provider,
+                inet.service_type AS service_type,
                 inet.speed_option AS speed_option,
                 inet.monthly_fee AS monthly_fee
             FROM products p
@@ -564,6 +565,7 @@ include __DIR__ . '/../includes/seller-header.php';
                         </th>
                         <th>상품등록번호</th>
                         <th>가입처</th>
+                        <th>결합여부</th>
                         <th>인터넷속도</th>
                         <th>월 요금</th>
                         <th>조회수</th>
@@ -585,6 +587,16 @@ include __DIR__ . '/../includes/seller-header.php';
                                 echo $productNumber ? htmlspecialchars($productNumber) : htmlspecialchars($product['id'] ?? '-');
                             ?></td>
                             <td><?php echo htmlspecialchars($product['provider'] ?? '-'); ?></td>
+                            <td><?php 
+                                $serviceType = $product['service_type'] ?? '인터넷';
+                                $serviceTypeDisplay = $serviceType;
+                                if ($serviceType === '인터넷+TV') {
+                                    $serviceTypeDisplay = '인터넷 + TV 결합';
+                                } elseif ($serviceType === '인터넷+TV+핸드폰') {
+                                    $serviceTypeDisplay = '인터넷 + TV + 핸드폰 결합';
+                                }
+                                echo htmlspecialchars($serviceTypeDisplay);
+                            ?></td>
                             <td><?php echo htmlspecialchars($product['speed_option'] ?? '-'); ?></td>
                             <td><?php echo number_format($product['monthly_fee'] ?? 0); ?>원</td>
                             <td><?php echo number_format($product['view_count'] ?? 0); ?></td>

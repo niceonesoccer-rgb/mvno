@@ -641,7 +641,7 @@ function saveInternetProduct($productData) {
         return false;
     }
     
-    // 테이블 자동 생성
+    // 테이블 자동 생성 (테이블이 없을 때만)
     try {
         if (!$pdo->query("SHOW TABLES LIKE 'product_internet_details'")->fetch()) {
             $pdo->exec("
@@ -649,8 +649,9 @@ function saveInternetProduct($productData) {
                     `id` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
                     `product_id` INT(11) UNSIGNED NOT NULL COMMENT '상품 ID',
                     `registration_place` VARCHAR(50) NOT NULL COMMENT '인터넷가입처',
+                    `service_type` VARCHAR(20) NOT NULL DEFAULT '인터넷' COMMENT '서비스 타입 (인터넷 또는 인터넷+TV)',
                     `speed_option` VARCHAR(20) DEFAULT NULL COMMENT '가입속도',
-                    `monthly_fee` DECIMAL(10,2) NOT NULL DEFAULT 0.00 COMMENT '월 요금제',
+                    `monthly_fee` VARCHAR(50) NOT NULL DEFAULT '' COMMENT '월 요금제 (텍스트 형식)',
                     `cash_payment_names` TEXT DEFAULT NULL COMMENT '현금지급 항목명 (JSON)',
                     `cash_payment_prices` TEXT DEFAULT NULL COMMENT '현금지급 가격 (JSON)',
                     `gift_card_names` TEXT DEFAULT NULL COMMENT '상품권 지급 항목명 (JSON)',
@@ -664,9 +665,11 @@ function saveInternetProduct($productData) {
                     PRIMARY KEY (`id`),
                     UNIQUE KEY `uk_product_id` (`product_id`),
                     KEY `idx_registration_place` (`registration_place`),
+                    KEY `idx_service_type` (`service_type`),
                     KEY `idx_speed_option` (`speed_option`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Internet 상품 상세 정보'
             ");
+            error_log("product_internet_details 테이블이 생성되었습니다.");
         }
         
         // products 테이블 확인 및 생성
@@ -702,51 +705,104 @@ function saveInternetProduct($productData) {
             $productId = $pdo->lastInsertId();
         }
         
-        // 가격 데이터 처리 및 필터링 (단위 포함, 정수로 저장)
+        // 가격 데이터 처리 및 필터링 (입력한 값 그대로 텍스트로 저장, 소수점 제거)
         $processPrices = function($prices, $units = []) {
             if (empty($prices) || !is_array($prices)) return [];
             return array_map(function($price, $index) use ($units) {
                 if (empty($price)) return '';
-                // 이미 단위가 포함된 경우 숫자 부분만 정수로 변환
+                
+                // 이미 단위가 포함된 경우 (예: "50000원")
                 if (preg_match('/^(\d+)([가-힣]+)$/', $price, $matches)) {
-                    $numericValue = intval($matches[1]); // 정수로 변환
-                    return $numericValue . $matches[2];
+                    // 숫자 부분의 쉼표와 소수점 제거 후 정수로 변환
+                    $numericPart = str_replace([',', '.'], '', $matches[1]);
+                    $numericValue = intval($numericPart); // 정수로 변환 (소수점 제거)
+                    $unit = $matches[2];
+                    return $numericValue . $unit;
                 }
-                // 숫자만 있는 경우 정수로 변환 후 단위 추가
-                $numericValue = intval(preg_replace('/[^0-9]/', '', str_replace(',', '', $price)));
+                
+                // 숫자만 있는 경우 (쉼표, 소수점 제거 후 정수로 변환)
+                $cleanNumeric = str_replace([',', '.'], '', preg_replace('/[^0-9.,]/', '', $price));
+                $numericValue = intval($cleanNumeric); // 정수로 변환 (소수점 제거)
                 $unit = isset($units[$index]) && !empty($units[$index]) ? $units[$index] : '원';
                 return $numericValue ? ($numericValue . $unit) : '';
             }, $prices, array_keys($prices));
         };
         
-        $filterArrays = function($names, $prices) {
+        // 필드명 정리 함수 (인코딩 오류 및 오타 수정)
+        $cleanFieldName = function($name) {
+            if (empty($name) || !is_string($name)) return '';
+            
+            // 공백 제거
+            $name = trim($name);
+            
+            // 일반적인 오타 및 인코딩 오류 수정
+            $corrections = [
+                // 와이파이공유기 관련 오타
+                '/와이파이공유기\s*[ㅇㄹㅁㄴㅂㅅ]+/u' => '와이파이공유기',
+                '/와이파이공유기\s*[ㅇㄹ]/u' => '와이파이공유기',
+                // 설치비 관련 오타
+                '/스?\s*설[ㅊㅈ]?이비/u' => '설치비',
+                '/설[ㅊㅈ]?이비/u' => '설치비',
+            ];
+            
+            // 패턴 기반 수정
+            foreach ($corrections as $pattern => $replacement) {
+                $name = preg_replace($pattern, $replacement, $name);
+            }
+            
+            // 특수문자나 이상한 문자 제거 (한글, 숫자, 영문, 공백만 허용)
+            $name = preg_replace('/[^\p{Hangul}\p{L}\p{N}\s]/u', '', $name);
+            
+            // 단어 끝에 의미없는 자음이 붙은 경우 제거
+            $name = preg_replace('/\s+[ㅇㄹㅁㄴㅂㅅㅇㄹ]+$/u', '', $name);
+            
+            // 앞뒤 공백 제거
+            $name = trim($name);
+            
+            return $name;
+        };
+        
+        $filterArrays = function($names, $prices) use ($cleanFieldName) {
             $filtered = ['names' => [], 'prices' => []];
             if (empty($names) || !is_array($names)) return $filtered;
+            
+            $seen = []; // 중복 체크용
+            
             foreach ($names as $index => $name) {
-                if (!empty(trim($name))) {
-                    $filtered['names'][] = trim($name);
-                    $filtered['prices'][] = $prices[$index] ?? '';
-                }
+                // 필드명 정리
+                $cleanedName = $cleanFieldName($name);
+                
+                // 빈 이름 제거
+                if (empty($cleanedName) || $cleanedName === '-') continue;
+                
+                // 중복 제거 (이름 기준, 대소문자 구분 없이)
+                $key = mb_strtolower($cleanedName, 'UTF-8');
+                if (isset($seen[$key])) continue;
+                $seen[$key] = true;
+                
+                $filtered['names'][] = $cleanedName;
+                $filtered['prices'][] = $prices[$index] ?? '';
             }
             return $filtered;
         };
         
-        // 월 요금 처리 (정수로 저장, 쉼표 및 소수점 제거)
+        // 월 요금 처리 (입력한 값을 그대로 텍스트로 저장)
         $monthlyFee = '';
         if (!empty($productData['monthly_fee'])) {
-            // 표시용 쉼표 제거 후 숫자만 추출
-            $cleanValue = str_replace(',', '', $productData['monthly_fee']);
+            // 입력한 값을 그대로 저장 (쉼표는 제거하되, 숫자와 단위는 그대로 유지)
+            $inputValue = trim($productData['monthly_fee']);
             
-            // 이미 단위가 포함된 경우 숫자 부분만 추출하여 정수로 변환
-            if (preg_match('/^(\d+)([가-힣]+)$/', $cleanValue, $matches)) {
-                $numericValue = intval($matches[1]); // 정수로 변환 (소수점 제거)
+            // 이미 단위가 포함된 경우 그대로 저장 (쉼표만 제거)
+            if (preg_match('/^(\d+)([가-힣]+)$/', $inputValue, $matches)) {
+                // 숫자 부분의 쉼표만 제거하고 단위는 그대로 유지
+                $numericPart = str_replace(',', '', $matches[1]);
                 $unit = $matches[2];
-                $monthlyFee = $numericValue . $unit;
+                $monthlyFee = $numericPart . $unit;
             } else {
-                // 숫자만 있는 경우 소수점 제거 후 정수로 변환하고 단위 추가
-                $numericValue = intval(preg_replace('/[^0-9]/', '', $cleanValue));
+                // 숫자만 있는 경우 쉼표 제거 후 단위 추가
+                $numericPart = str_replace(',', '', preg_replace('/[^0-9]/', '', $inputValue));
                 $unit = $productData['monthly_fee_unit'] ?? '원';
-                $monthlyFee = $numericValue ? ($numericValue . $unit) : '';
+                $monthlyFee = $numericPart ? ($numericPart . $unit) : '';
             }
         }
         
@@ -759,20 +815,39 @@ function saveInternetProduct($productData) {
             $processPrices($productData['gift_card_prices'] ?? [], $productData['gift_card_price_units'] ?? [])
         );
         // 장비 및 설치 가격은 텍스트 그대로 저장 (숫자 변환 없이, 앞뒤 공백만 제거)
-        $equipmentPrices = array_map(function($price) {
-            return is_string($price) ? trim($price) : (string)$price;
-        }, $productData['equipment_prices'] ?? []);
-        $installationPrices = array_map(function($price) {
-            return is_string($price) ? trim($price) : (string)$price;
-        }, $productData['installation_prices'] ?? []);
+        // 빈 값 필터링: 이름이 비어있으면 해당 항목 제거
+        $equipmentNames = $productData['equipment_names'] ?? [];
+        $equipmentPrices = $productData['equipment_prices'] ?? [];
+        $filteredEquipment = [];
+        foreach ($equipmentNames as $index => $name) {
+            $trimmedName = is_string($name) ? trim($name) : '';
+            // 이름이 비어있지 않으면 포함 (가격은 비어있어도 됨)
+            if (!empty($trimmedName)) {
+                $filteredEquipment['names'][] = $trimmedName;
+                $filteredEquipment['prices'][] = isset($equipmentPrices[$index]) ? (is_string($equipmentPrices[$index]) ? trim($equipmentPrices[$index]) : (string)$equipmentPrices[$index]) : '';
+            }
+        }
         
+        $installationNames = $productData['installation_names'] ?? [];
+        $installationPrices = $productData['installation_prices'] ?? [];
+        $filteredInstallation = [];
+        foreach ($installationNames as $index => $name) {
+            $trimmedName = is_string($name) ? trim($name) : '';
+            // 이름이 비어있지 않으면 포함 (가격은 비어있어도 됨)
+            if (!empty($trimmedName)) {
+                $filteredInstallation['names'][] = $trimmedName;
+                $filteredInstallation['prices'][] = isset($installationPrices[$index]) ? (is_string($installationPrices[$index]) ? trim($installationPrices[$index]) : (string)$installationPrices[$index]) : '';
+            }
+        }
+        
+        // 필드명 정리 적용
         $equipmentData = $filterArrays(
-            $productData['equipment_names'] ?? [],
-            $equipmentPrices
+            $filteredEquipment['names'] ?? [],
+            $filteredEquipment['prices'] ?? []
         );
         $installationData = $filterArrays(
-            $productData['installation_names'] ?? [],
-            $installationPrices
+            $filteredInstallation['names'] ?? [],
+            $filteredInstallation['prices'] ?? []
         );
         
         // 상세 정보 저장/업데이트
@@ -783,10 +858,17 @@ function saveInternetProduct($productData) {
             $detailExists = $checkStmt->fetchColumn() > 0;
         }
         
+        // service_type 처리 (인터넷, 인터넷+TV, 인터넷+TV+핸드폰)
+        $serviceType = '인터넷'; // 기본값
+        if (!empty($productData['service_type']) && in_array($productData['service_type'], ['인터넷', '인터넷+TV', '인터넷+TV+핸드폰'])) {
+            $serviceType = $productData['service_type'];
+        }
+        
         if ($isEditMode && $detailExists) {
             $stmt = $pdo->prepare("
                 UPDATE product_internet_details SET
                     registration_place = :registration_place,
+                    service_type = :service_type,
                     speed_option = :speed_option,
                     monthly_fee = :monthly_fee,
                     cash_payment_names = :cash_payment_names,
@@ -802,13 +884,13 @@ function saveInternetProduct($productData) {
         } else {
             $stmt = $pdo->prepare("
                 INSERT INTO product_internet_details (
-                    product_id, registration_place, speed_option, monthly_fee,
+                    product_id, registration_place, service_type, speed_option, monthly_fee,
                     cash_payment_names, cash_payment_prices,
                     gift_card_names, gift_card_prices,
                     equipment_names, equipment_prices,
                     installation_names, installation_prices
                 ) VALUES (
-                    :product_id, :registration_place, :speed_option, :monthly_fee,
+                    :product_id, :registration_place, :service_type, :speed_option, :monthly_fee,
                     :cash_payment_names, :cash_payment_prices,
                     :gift_card_names, :gift_card_prices,
                     :equipment_names, :equipment_prices,
@@ -817,24 +899,62 @@ function saveInternetProduct($productData) {
             ");
         }
         
-        $stmt->execute([
+        // 모든 가격 값은 텍스트 형식으로 저장 (입력한 값 그대로, 소수점 없이)
+        $monthlyFeeValue = (string)$monthlyFee; // 명시적으로 문자열로 변환
+        
+        // 가격 배열도 모두 텍스트 형식으로 보장
+        $cashPricesText = array_map(function($price) {
+            return (string)$price; // 텍스트로 변환
+        }, $cashData['prices'] ?? []);
+        
+        $giftCardPricesText = array_map(function($price) {
+            return (string)$price; // 텍스트로 변환
+        }, $giftCardData['prices'] ?? []);
+        
+        $equipmentPricesText = array_map(function($price) {
+            return (string)$price; // 텍스트로 변환
+        }, $equipmentData['prices'] ?? []);
+        
+        $installationPricesText = array_map(function($price) {
+            return (string)$price; // 텍스트로 변환
+        }, $installationData['prices'] ?? []);
+        
+        $executeParams = [
             ':product_id' => $productId,
             ':registration_place' => $productData['registration_place'] ?? '',
-            ':monthly_fee' => $monthlyFee,
+            ':service_type' => $serviceType, // 인터넷 또는 인터넷+TV
             ':speed_option' => $productData['speed_option'] ?? null,
-            ':monthly_fee' => $monthlyFee,
+            ':monthly_fee' => $monthlyFeeValue, // 텍스트 형식으로 저장 (예: "3250원")
             ':cash_payment_names' => json_encode($cashData['names'] ?? [], JSON_UNESCAPED_UNICODE),
-            ':cash_payment_prices' => json_encode($cashData['prices'] ?? [], JSON_UNESCAPED_UNICODE),
+            ':cash_payment_prices' => json_encode($cashPricesText, JSON_UNESCAPED_UNICODE), // 텍스트 배열 (예: ["50000원", "36500원"])
             ':gift_card_names' => json_encode($giftCardData['names'] ?? [], JSON_UNESCAPED_UNICODE),
-            ':gift_card_prices' => json_encode($giftCardData['prices'] ?? [], JSON_UNESCAPED_UNICODE),
+            ':gift_card_prices' => json_encode($giftCardPricesText, JSON_UNESCAPED_UNICODE), // 텍스트 배열 (예: ["150000원", "15400원"])
             ':equipment_names' => json_encode($equipmentData['names'] ?? [], JSON_UNESCAPED_UNICODE),
-            ':equipment_prices' => json_encode($equipmentData['prices'] ?? [], JSON_UNESCAPED_UNICODE),
+            ':equipment_prices' => json_encode($equipmentPricesText, JSON_UNESCAPED_UNICODE), // 텍스트 배열 (예: ["10000원", "무료"])
             ':installation_names' => json_encode($installationData['names'] ?? [], JSON_UNESCAPED_UNICODE),
-            ':installation_prices' => json_encode($installationData['prices'] ?? [], JSON_UNESCAPED_UNICODE),
-        ]);
+            ':installation_prices' => json_encode($installationPricesText, JSON_UNESCAPED_UNICODE), // 텍스트 배열 (예: ["무료", "설치비"])
+        ];
         
-        $pdo->commit();
-        return $productId;
+        // 디버깅: 실행 파라미터 로그
+        error_log("Executing SQL with params - service_type: " . $serviceType . ", product_id: " . $productId);
+        
+        try {
+            $stmt->execute($executeParams);
+            $pdo->commit();
+            return $productId;
+        } catch (PDOException $executeError) {
+            $pdo->rollBack();
+            $errorMsg = "SQL 실행 오류: " . $executeError->getMessage();
+            $errorMsg .= "\nSQL State: " . $executeError->getCode();
+            $errorMsg .= "\nError Info: " . json_encode($pdo->errorInfo() ?? []);
+            $errorMsg .= "\nService Type: " . $serviceType;
+            $errorMsg .= "\nProduct ID: " . $productId;
+            error_log($errorMsg);
+            
+            global $lastDbError;
+            $lastDbError = $errorMsg;
+            throw $executeError;
+        }
     } catch (PDOException $e) {
         if (isset($pdo)) {
             $pdo->rollBack();

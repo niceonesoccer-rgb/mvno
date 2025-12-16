@@ -40,6 +40,7 @@ $productData = [
     'product_id' => isset($_POST['product_id']) ? intval($_POST['product_id']) : 0,
     'status' => isset($_POST['status']) ? $_POST['status'] : 'active',
     'registration_place' => trim($_POST['registration_place'] ?? ''),
+    'service_type' => trim($_POST['service_type'] ?? ''), // 인터넷 또는 인터넷+TV
     'speed_option' => trim($_POST['speed_option'] ?? ''),
     'monthly_fee' => isset($_POST['monthly_fee']) ? trim($_POST['monthly_fee']) : '', // 값+단위가 결합된 문자열 (정수만)
     'monthly_fee_unit' => $_POST['monthly_fee_unit'] ?? '원',
@@ -67,6 +68,22 @@ if (empty($productData['registration_place'])) {
     exit;
 }
 
+if (empty($productData['service_type'])) {
+    echo json_encode([
+        'success' => false,
+        'message' => '결합여부를 선택해주세요.'
+    ]);
+    exit;
+}
+
+if (!in_array($productData['service_type'], ['인터넷', '인터넷+TV', '인터넷+TV+핸드폰'])) {
+    echo json_encode([
+        'success' => false,
+        'message' => '결합여부를 올바르게 선택해주세요.'
+    ]);
+    exit;
+}
+
 if (empty($productData['speed_option'])) {
     echo json_encode([
         'success' => false,
@@ -77,29 +94,46 @@ if (empty($productData['speed_option'])) {
 
 // 인터넷 상품 데이터 저장
 try {
+    // 디버깅: 전송된 데이터 로그
+    error_log("Product data received: " . json_encode($productData, JSON_UNESCAPED_UNICODE));
+    
     $productId = saveInternetProduct($productData);
     
     if ($productId === false) {
         global $lastDbError;
         $errorMessage = '상품 등록에 실패했습니다.';
+        $detailedError = '';
+        
         if (isset($lastDbError) && !empty($lastDbError)) {
             error_log("DB Error: " . $lastDbError);
-            // 사용자에게는 간단한 메시지만 표시
+            $detailedError = $lastDbError;
+            // 개발 환경에서는 상세 오류 표시
             $errorMessage = '상품 등록에 실패했습니다. 입력 정보를 확인해주세요.';
+            if (strpos($_SERVER['HTTP_HOST'] ?? '', 'localhost') !== false) {
+                $errorMessage .= "\n오류: " . $lastDbError;
+            }
         }
         
         echo json_encode([
             'success' => false,
-            'message' => $errorMessage
+            'message' => $errorMessage,
+            'error_detail' => $detailedError // 개발 환경에서만 사용
         ]);
         exit;
     }
 } catch (Exception $e) {
     error_log("Product registration error: " . $e->getMessage());
     error_log("Stack trace: " . $e->getTraceAsString());
+    
+    $errorMessage = '상품 등록 중 오류가 발생했습니다. 다시 시도해주세요.';
+    if (strpos($_SERVER['HTTP_HOST'] ?? '', 'localhost') !== false) {
+        $errorMessage .= "\n오류: " . $e->getMessage();
+    }
+    
     echo json_encode([
         'success' => false,
-        'message' => '상품 등록 중 오류가 발생했습니다. 다시 시도해주세요.'
+        'message' => $errorMessage,
+        'error_detail' => $e->getMessage() // 개발 환경에서만 사용
     ]);
     exit;
 }
