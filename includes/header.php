@@ -131,14 +131,8 @@ else if (!isset($is_main_page)) {
             <div class="left-addon-mobile" id="mobileLogo">
                 <a class="nav-logo" href="/MVNO/">
                     <span class="moyo-logo-full">
-                        <img src="/MVNO/assets/images/logo/moyo-full.svg" alt="모요" width="130" height="30" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-block';">
-                        <span class="logo-text" style="display:none; font-weight: 700; font-size: 18px; color: #6366f1;">모요</span>
+                        <span class="logo-text" style="display:inline-block; font-weight: 700; font-size: 18px; color: #6366f1;">모요</span>
                     </span>
-                    <div class="moyo-logo-icon-wrapper">
-                        <span class="moyo-logo-icon">
-                            <img src="/MVNO/assets/images/logo/moyo-icon.svg" alt="모요" width="40" height="40" onerror="this.style.display='none';">
-                        </span>
-                    </div>
                 </a>
             </div>
             
@@ -146,14 +140,8 @@ else if (!isset($is_main_page)) {
             <div class="left-addon-desktop">
                 <a class="nav-logo" href="/MVNO/">
                     <span class="moyo-logo-full">
-                        <img src="/MVNO/assets/images/logo/moyo-full.svg" alt="모요" width="130" height="30" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-block';">
-                        <span class="logo-text" style="display:none; font-weight: 700; font-size: 18px; color: #6366f1;">모요</span>
+                        <span class="logo-text" style="display:inline-block; font-weight: 700; font-size: 18px; color: #6366f1;">모요</span>
                     </span>
-                    <div class="moyo-logo-icon-wrapper">
-                        <span class="moyo-logo-icon">
-                            <img src="/MVNO/assets/images/logo/moyo-icon.svg" alt="모요" width="40" height="40" onerror="this.style.display='none';">
-                        </span>
-                    </div>
                 </a>
             </div>
             

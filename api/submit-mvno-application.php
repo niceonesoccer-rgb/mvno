@@ -87,6 +87,16 @@ try {
         }
     }
     
+    // product_snapshot이 비어있으면 에러 (상품 정보가 없음)
+    if (empty($productSnapshot)) {
+        throw new Exception('상품 정보를 가져올 수 없습니다. 상품이 삭제되었거나 정보가 없습니다.');
+    }
+    
+    // 디버깅: product_snapshot 확인
+    error_log("MVNO Application - Product Snapshot keys: " . implode(', ', array_keys($productSnapshot)));
+    error_log("MVNO Application - Product Snapshot plan_name: " . ($productSnapshot['plan_name'] ?? 'NULL'));
+    error_log("MVNO Application - Product Snapshot provider: " . ($productSnapshot['provider'] ?? 'NULL'));
+    
     // 고객 정보 준비
     $customerData = [
         'user_id' => $userId, // 로그인한 사용자 ID

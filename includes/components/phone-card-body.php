@@ -22,7 +22,7 @@ $provider = $phone['provider'] ?? 'SKT';
 $plan_name = $phone['plan_name'] ?? '요금제명';
 $price_main = $phone['monthly_price'] ?? $phone['price'] ?? '월 0원';
 $maintenance_period = $phone['maintenance_period'] ?? '0일';
-$selection_count = $phone['selection_count'] ?? '29,448명이 신청';
+$selection_count = $phone['selection_count'] ?? '29,448명이 선택';
 
 // 요금제명에서 통신사명 제거 (이미 provider에 있음)
 $plan_name_clean = str_replace([$provider . ' ', 'SKT ', 'KT ', 'LG U+ '], '', $plan_name);

@@ -13,6 +13,10 @@ $plan_id = isset($_GET['id']) ? intval($_GET['id']) : 32627;
 // 헤더 포함
 include '../includes/header.php';
 
+// 조회수 업데이트
+require_once '../includes/data/product-functions.php';
+incrementProductView($plan_id);
+
 // 요금제 데이터 가져오기
 require_once '../includes/data/plan-data.php';
 $plan = getPlanDetailData($plan_id);
@@ -693,36 +697,9 @@ if (!$plan) {
             </button>
         </div>
         <div class="share-modal-grid">
-            <a href="#" class="share-modal-item" data-platform="kakao" target="_blank" rel="noopener noreferrer">
-                <div class="share-modal-icon share-icon-kakao">
-                    <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M16 4C9.37258 4 4 8.37258 4 14C4 17.5 6.1 20.6 9.3 22.3L8.5 27.5C8.4 27.8 8.6 28.1 8.9 28L13.2 25.7C13.8 25.8 14.4 25.9 15 25.9C21.6274 25.9 26.9 21.5274 26.9 15.9C26.9 9.27258 22.5274 4 16 4Z" fill="#3C1E1E"/>
-                    </svg>
-                </div>
-                <span class="share-modal-label">카카오톡</span>
-            </a>
-            <a href="#" class="share-modal-item" data-platform="facebook" target="_blank" rel="noopener noreferrer">
-                <div class="share-modal-icon share-icon-facebook">
-                    <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M16 4C9.37258 4 4 9.37258 4 16C4 22.6274 9.37258 28 16 28C22.6274 28 28 22.6274 28 16C28 9.37258 22.6274 4 16 4ZM18.5 12.5H17C16.4 12.5 16 12.9 16 13.5V15.5H18.5C18.8 15.5 19 15.7 19 16V18C19 18.3 18.8 18.5 18.5 18.5H16V24H13.5V18.5H11.5C11.2 18.5 11 18.3 11 18V16C11 15.7 11.2 15.5 11.5 15.5H13.5V13.5C13.5 11.3 15.3 9.5 17.5 9.5H18.5C18.8 9.5 19 9.7 19 10V11.5C19 11.8 18.8 12 18.5 12H17.5C16.9 12 16.5 12.4 16.5 13V15.5H18.5C18.8 15.5 19 15.7 19 16V18C19 18.3 18.8 18.5 18.5 18.5H16.5V24H13.5V18.5H11.5C11.2 18.5 11 18.3 11 18V16C11 15.7 11.2 15.5 11.5 15.5H13.5V13.5C13.5 11.3 15.3 9.5 17.5 9.5H18.5C18.8 9.5 19 9.7 19 10V11.5C19 11.8 18.8 12 18.5 12Z" fill="#FFFFFF"/>
-                    </svg>
-                </div>
-                <span class="share-modal-label">페이스북</span>
-            </a>
-            <a href="#" class="share-modal-item" data-platform="twitter" target="_blank" rel="noopener noreferrer">
-                <div class="share-modal-icon share-icon-twitter">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M22.46 6c-.77.35-1.6.58-2.46.69.88-.53 1.56-1.37 1.88-2.38-.83.5-1.75.85-2.72 1.05C18.37 4.5 17.26 4 16 4c-2.35 0-4.27 1.92-4.27 4.29 0 .34.04.67.11.98C8.28 9.09 5.11 7.38 3 4.79c-.37.63-.58 1.37-.58 2.15 0 1.49.75 2.81 1.91 3.56-.71 0-1.37-.2-1.95-.5v.03c0 2.08 1.48 3.82 3.44 4.21a4.22 4.22 0 0 1-1.93.07 4.28 4.28 0 0 0 4 2.98 8.521 8.521 0 0 1-5.33 1.84c-.34 0-.68-.02-1.02-.06C3.44 20.29 5.7 21 8.12 21 16 21 20.33 14.46 20.33 8.79c0-.19 0-.37-.01-.56.84-.6 1.56-1.36 2.14-2.23z" fill="#FFFFFF"/>
-                    </svg>
-                </div>
-                <span class="share-modal-label">트위터</span>
-            </a>
             <button class="share-modal-item" data-platform="link" id="shareLinkBtn">
                 <div class="share-modal-icon share-icon-link">
-                    <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M13 11C13 10.4477 13.4477 10 14 10H18C18.5523 10 19 10.4477 19 11C19 11.5523 18.5523 12 18 12H15V20H18C18.5523 20 19 20.4477 19 21C19 21.5523 18.5523 22 18 22H14C13.4477 22 13 21.5523 13 21V11Z" fill="#868E96"/>
-                        <path d="M16 4C9.37258 4 4 9.37258 4 16C4 22.6274 9.37258 28 16 28C22.6274 28 28 22.6274 28 16C28 9.37258 22.6274 4 16 4Z" fill="none" stroke="#868E96" stroke-width="2"/>
-                    </svg>
+                    <img src="/MVNO/assets/images/icons/share-link.svg" alt="링크 복사" width="32" height="32">
                 </div>
                 <span class="share-modal-label">링크 복사</span>
             </button>
@@ -916,13 +893,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const shareModal = document.getElementById('shareModal');
     const shareModalOverlay = document.getElementById('shareModalOverlay');
     const shareModalClose = document.getElementById('shareModalClose');
-    const shareLinkBtn = document.getElementById('shareLinkBtn');
-    const shareItems = document.querySelectorAll('.share-modal-item');
-
-    // 현재 페이지 URL과 제목 가져오기
+    // 현재 페이지 URL 가져오기
     const currentUrl = window.location.href;
-    const planTitle = document.querySelector('.plan-title-text')?.textContent || '요금제 상세';
-    const shareText = `${planTitle} - 모요`;
 
     // 링크 복사 함수
     function copyToClipboard(text) {
@@ -1022,39 +994,50 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // 소셜 공유 링크 설정
-    shareItems.forEach(item => {
-        const platform = item.getAttribute('data-platform');
-        
-        if (platform === 'kakao') {
-            // 카카오톡 공유 (카카오 SDK 필요 시 사용, 여기서는 링크 공유)
-            item.href = `https://story.kakao.com/share?url=${encodeURIComponent(currentUrl)}`;
-        } else if (platform === 'facebook') {
-            // 페이스북 공유
-            item.href = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(currentUrl)}`;
-        } else if (platform === 'twitter') {
-            // 트위터 공유
-            item.href = `https://twitter.com/intent/tweet?url=${encodeURIComponent(currentUrl)}&text=${encodeURIComponent(shareText)}`;
-        } else if (platform === 'link') {
-            // 링크 복사
-            item.addEventListener('click', function(e) {
-                e.preventDefault();
+    // 링크 복사 기능
+    const shareLinkBtn = document.getElementById('shareLinkBtn');
+    if (shareLinkBtn) {
+        shareLinkBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // URL 복사 함수
+            function copyUrl() {
                 if (navigator.clipboard && navigator.clipboard.writeText) {
-                    navigator.clipboard.writeText(currentUrl).then(function() {
-                        showAlert('링크가 복사되었습니다.').then(() => {
-                            closeModal();
-                        });
+                    return navigator.clipboard.writeText(currentUrl).then(function() {
+                        return true;
                     }).catch(function() {
                         // 클립보드 API 실패 시 fallback
-                        fallbackCopyTextToClipboard(currentUrl);
+                        return fallbackCopyTextToClipboard(currentUrl);
                     });
                 } else {
                     // 클립보드 API 미지원 시 fallback
-                    fallbackCopyTextToClipboard(currentUrl);
+                    return fallbackCopyTextToClipboard(currentUrl);
+                }
+            }
+            
+            // URL 복사 실행
+            copyUrl().then(function(success) {
+                if (success) {
+                    // 모달로 복사 완료 알림
+                    if (typeof showAlert === 'function') {
+                        showAlert('복사되었습니다.', '링크 복사 완료').then(() => {
+                            closeModal();
+                        });
+                    } else {
+                        alert('복사되었습니다.');
+                        closeModal();
+                    }
+                } else {
+                    // 복사 실패 시
+                    if (typeof showAlert === 'function') {
+                        showAlert('링크 복사에 실패했습니다.', '오류');
+                    } else {
+                        alert('링크 복사에 실패했습니다.');
+                    }
                 }
             });
-        }
-    });
+        });
+    }
 
     // 클립보드 복사 fallback 함수
     function fallbackCopyTextToClipboard(text) {

@@ -28,25 +28,11 @@ $user_id = $currentUser['user_id'];
 
 // 포인트 설정 및 함수 포함
 require_once '../includes/data/point-settings.php';
+require_once '../includes/data/product-functions.php';
+require_once '../includes/data/db-config.php';
 
-// 통신사폰 데이터 배열
-$phones = [
-    ['id' => 1, 'provider' => 'SKT', 'company_name' => '이야기모바일', 'device_name' => 'Galaxy Z Fold7', 'device_storage' => '256GB', 'plan_name' => 'SKT 프리미어 슈퍼', 'price' => '월 109,000원', 'maintenance_period' => '185일', 'order_date' => '2024.11.15', 'order_time' => '14:30', 'activation_date' => '2024.11.16', 'activation_time' => '10:00', 'has_review' => false],
-    ['id' => 2, 'provider' => 'KT', 'company_name' => '이야기모바일', 'device_name' => 'iPhone 16 Pro', 'device_storage' => '512GB', 'plan_name' => 'KT 슈퍼플랜', 'price' => '월 125,000원', 'maintenance_period' => '180일', 'order_date' => '2024.11.12', 'order_time' => '09:15', 'activation_date' => '2024.11.13', 'activation_time' => '14:30', 'has_review' => true],
-    ['id' => 3, 'provider' => 'LG U+', 'company_name' => '이야기모바일', 'device_name' => 'Galaxy S25', 'device_storage' => '256GB', 'plan_name' => 'LG U+ 5G 슈퍼플랜', 'price' => '월 95,000원', 'maintenance_period' => '200일', 'order_date' => '2024.11.10', 'order_time' => '16:45', 'activation_date' => '2024.11.11', 'activation_time' => '09:00', 'has_review' => false],
-    ['id' => 4, 'provider' => 'SKT', 'company_name' => '이야기모바일', 'device_name' => 'iPhone 16', 'device_storage' => '128GB', 'plan_name' => 'SKT 스탠다드', 'price' => '월 85,000원', 'maintenance_period' => '150일', 'order_date' => '2024.11.08', 'order_time' => '11:20', 'activation_date' => '', 'activation_time' => '', 'has_review' => false, 'consultation_url' => 'https://example.com/consultation'],
-    ['id' => 5, 'provider' => 'KT', 'company_name' => '이야기모바일', 'device_name' => 'Galaxy S24 Ultra', 'device_storage' => '512GB', 'plan_name' => 'KT 프리미엄', 'price' => '월 115,000원', 'maintenance_period' => '190일', 'order_date' => '2024.11.05', 'order_time' => '13:50', 'activation_date' => '2024.11.06', 'activation_time' => '16:20', 'has_review' => false],
-    ['id' => 6, 'provider' => 'LG U+', 'company_name' => '이야기모바일', 'device_name' => 'iPhone 15 Pro Max', 'device_storage' => '256GB', 'plan_name' => 'LG U+ 5G 플랜', 'price' => '월 105,000원', 'maintenance_period' => '175일', 'order_date' => '2024.11.03', 'order_time' => '10:05', 'activation_date' => '', 'activation_time' => '', 'has_review' => false, 'consultation_url' => 'https://consult.example.com/inquiry?id=6'],
-    ['id' => 7, 'provider' => 'SKT', 'company_name' => '이야기모바일', 'device_name' => 'Galaxy Z Flip6', 'device_storage' => '256GB', 'plan_name' => 'SKT 베이직', 'price' => '월 75,000원', 'maintenance_period' => '140일', 'order_date' => '2024.11.01', 'order_time' => '15:30', 'activation_date' => '', 'activation_time' => '', 'has_review' => false, 'consultation_url' => 'https://consult.example.com/inquiry?id=7'],
-    ['id' => 8, 'provider' => 'KT', 'company_name' => '이야기모바일', 'device_name' => 'iPhone 15', 'device_storage' => '128GB', 'plan_name' => 'KT 스탠다드', 'price' => '월 80,000원', 'maintenance_period' => '160일', 'order_date' => '2024.10.28', 'order_time' => '12:15', 'activation_date' => '', 'activation_time' => '', 'has_review' => false, 'consultation_url' => 'https://consult.example.com/inquiry?id=8'],
-    ['id' => 9, 'provider' => 'LG U+', 'company_name' => '이야기모바일', 'device_name' => 'Galaxy S23', 'device_storage' => '256GB', 'plan_name' => 'LG U+ 5G 베이직', 'price' => '월 70,000원', 'maintenance_period' => '130일', 'order_date' => '2024.10.25', 'order_time' => '14:00', 'activation_date' => '', 'activation_time' => '', 'has_review' => false, 'consultation_url' => 'https://consult.example.com/inquiry?id=9'],
-    ['id' => 10, 'provider' => 'SKT', 'company_name' => '이야기모바일', 'device_name' => 'iPhone 14 Pro', 'device_storage' => '256GB', 'plan_name' => 'SKT 프리미엄', 'price' => '월 100,000원', 'maintenance_period' => '170일', 'order_date' => '2024.10.22', 'order_time' => '09:40', 'activation_date' => '', 'activation_time' => '', 'has_review' => false, 'consultation_url' => 'https://consult.example.com/inquiry?id=10'],
-    ['id' => 11, 'provider' => 'KT', 'company_name' => '이야기모바일', 'device_name' => 'Galaxy A54', 'device_storage' => '128GB', 'plan_name' => 'KT 베이직', 'price' => '월 65,000원', 'maintenance_period' => '120일', 'order_date' => '2024.10.20', 'order_time' => '16:20', 'activation_date' => '', 'activation_time' => '', 'has_review' => false, 'consultation_url' => 'https://consult.example.com/inquiry?id=11'],
-    ['id' => 12, 'provider' => 'LG U+', 'company_name' => '이야기모바일', 'device_name' => 'iPhone 13', 'device_storage' => '128GB', 'plan_name' => 'LG U+ 5G 스탠다드', 'price' => '월 75,000원', 'maintenance_period' => '145일', 'order_date' => '2024.10.18', 'order_time' => '11:55', 'activation_date' => '', 'activation_time' => '', 'has_review' => false, 'consultation_url' => 'https://consult.example.com/inquiry?id=12'],
-    ['id' => 13, 'provider' => 'SKT', 'company_name' => '이야기모바일', 'device_name' => 'Galaxy Note20', 'device_storage' => '256GB', 'plan_name' => 'SKT 스탠다드', 'price' => '월 90,000원', 'maintenance_period' => '165일', 'order_date' => '2024.10.15', 'order_time' => '13:25', 'activation_date' => '', 'activation_time' => '', 'has_review' => false, 'consultation_url' => 'https://consult.example.com/inquiry?id=13'],
-    ['id' => 14, 'provider' => 'KT', 'company_name' => '이야기모바일', 'device_name' => 'iPhone 12', 'device_storage' => '128GB', 'plan_name' => 'KT 베이직', 'price' => '월 70,000원', 'maintenance_period' => '135일', 'order_date' => '2024.10.12', 'order_time' => '10:30', 'activation_date' => '', 'activation_time' => '', 'has_review' => false, 'consultation_url' => 'https://consult.example.com/inquiry?id=14'],
-    ['id' => 15, 'provider' => 'LG U+', 'company_name' => '이야기모바일', 'device_name' => 'Galaxy S22', 'device_storage' => '256GB', 'plan_name' => 'LG U+ 5G 프리미엄', 'price' => '월 95,000원', 'maintenance_period' => '180일', 'order_date' => '2024.10.10', 'order_time' => '15:10', 'activation_date' => '', 'activation_time' => '', 'has_review' => false, 'consultation_url' => 'https://consult.example.com/inquiry?id=15'],
-];
+// DB에서 실제 신청 내역 가져오기
+$phones = getUserMnoApplications($user_id);
 
 // 헤더 포함
 include '../includes/header.php';
@@ -70,75 +56,66 @@ include '../includes/header.php';
 
                 <!-- 신청한 통신사폰 목록 -->
                 <div style="margin-bottom: 32px;" id="phonesContainer">
-                    <div class="mno-order-list-container">
-                <?php foreach ($phones as $index => $phone): ?>
-                    <div class="phone-item" data-index="<?php echo $index; ?>" data-phone-id="<?php echo $phone['id']; ?>" style="<?php echo $index >= 10 ? 'display: none;' : ''; ?> position: relative;">
-                        <?php
-                        // 포인트 사용 내역 가져오기
-                        $point_history = getPointHistoryByItem($user_id, 'mno', $phone['id']);
-                        
-                        // 통신사폰 데이터 준비
-                        $phone_data = [
-                            'id' => $phone['id'],
-                            'device_name' => $phone['device_name'],
-                            'device_storage' => $phone['device_storage'],
-                            'release_price' => $phone['release_price'] ?? '2,387,000',
-                            'provider' => $phone['provider'],
-                            'plan_name' => $phone['plan_name'],
-                            'price' => $phone['price'],
-                            'maintenance_period' => $phone['maintenance_period'],
-                            'company_name' => $phone['company_name'] ?? '이야기모바일',
-                            'rating' => '4.5',
-                            'order_date' => $phone['order_date'] ?? '',
-                            'order_time' => $phone['order_time'] ?? '',
-                            'activation_date' => $phone['activation_date'] ?? '',
-                            'activation_time' => $phone['activation_time'] ?? '',
-                            'has_review' => $phone['has_review'] ?? false,
-                            'is_sold_out' => $phone['is_sold_out'] ?? false,
-                            'consultation_url' => $phone['consultation_url'] ?? '',
-                            'common_support' => $phone['common_support'] ?? [
-                                'number_port' => -198,
-                                'device_change' => 191.6
-                            ],
-                            'contract_support' => $phone['contract_support'] ?? [
-                                'number_port' => 198,
-                                'device_change' => -150
-                            ],
-                            'additional_supports' => $phone['additional_supports'] ?? ['추가 지원금', '부가 서비스 1', '부가 서비스 2'],
-                            'link_url' => '/MVNO/mno/mno-phone-detail.php?id=' . $phone['id'],
-                            'point_used' => $point_history ? $point_history['amount'] : 0,
-                            'point_used_date' => $point_history ? $point_history['date'] : ''
-                        ];
-                        // 통신사폰 데이터 설정
-                        $phone = $phone_data;
-                        $layout_type = 'list';
-                        $card_wrapper_class = '';
-                        include '../includes/components/mno-order-phone-card.php';
-                        ?>
-                    </div>
-                    <!-- 카드 구분선 (모바일용) -->
-                    <hr class="mno-order-card-divider">
-                <?php endforeach; ?>
-                    </div>
+                    <?php if (empty($phones)): ?>
+                        <div style="padding: 40px 20px; text-align: center; color: #6b7280;">
+                            신청한 통신사폰이 없습니다.
+                        </div>
+                    <?php else: ?>
+                        <div style="display: flex; flex-direction: column; gap: 16px;">
+                            <?php foreach ($phones as $index => $phone): ?>
+                                <div class="phone-item" data-index="<?php echo $index; ?>" data-phone-id="<?php echo $phone['id']; ?>" style="<?php echo $index >= 10 ? 'display: none;' : ''; ?> padding: 16px; border-bottom: 1px solid #e5e7eb;">
+                                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                                            <div style="flex: 1;">
+                                                <div style="font-size: 16px; font-weight: 600; color: #1f2937; margin-bottom: 4px;">
+                                                    <?php echo htmlspecialchars($phone['provider'] ?? ''); ?> <?php echo htmlspecialchars($phone['device_name'] ?? ''); ?>
+                                                </div>
+                                                <?php if (!empty($phone['device_storage'])): ?>
+                                                    <div style="font-size: 14px; color: #6b7280; margin-bottom: 4px;">
+                                                        용량: <?php echo htmlspecialchars($phone['device_storage']); ?>
+                                                    </div>
+                                                <?php endif; ?>
+                                                <div style="font-size: 14px; color: #6b7280; margin-bottom: 4px;">
+                                                    <?php echo htmlspecialchars($phone['plan_name'] ?? ''); ?>
+                                                </div>
+                                                <div style="font-size: 14px; color: #374151; font-weight: 500;">
+                                                    <?php echo htmlspecialchars($phone['price'] ?? ''); ?>
+                                                </div>
+                                            </div>
+                                            <div style="font-size: 12px; color: #9ca3af;">
+                                                <?php echo htmlspecialchars($phone['order_date'] ?? ''); ?>
+                                                <?php if (!empty($phone['order_time'])): ?>
+                                                    <?php echo htmlspecialchars($phone['order_time']); ?>
+                                                <?php endif; ?>
+                                            </div>
+                                        </div>
+                                        <?php if (!empty($phone['status'])): ?>
+                                            <div style="font-size: 12px; color: #6366f1;">
+                                                상태: <?php echo htmlspecialchars($phone['status']); ?>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
                 </div>
 
                 <!-- 더보기 버튼 -->
+                <?php if (count($phones) > 10): ?>
                 <div style="margin-top: 32px; margin-bottom: 32px;" id="moreButtonContainer">
-            <button class="plan-review-more-btn" id="morePhonesBtn">
-                더보기 (<?php 
-                $remaining = count($phones) - 10;
-                echo $remaining > 10 ? 10 : $remaining;
-                ?>개)
-            </button>
-        </div>
+                    <button class="plan-review-more-btn" id="morePhonesBtn" style="width: 100%; padding: 12px; background: #6366f1; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer;">
+                        더보기 (<?php 
+                        $remaining = count($phones) - 10;
+                        echo $remaining > 10 ? 10 : $remaining;
+                        ?>개)
+                    </button>
+                </div>
+                <?php endif; ?>
             </div>
         </div>
     </div>
 </main>
-
-<script src="../assets/js/plan-accordion.js" defer></script>
-<script src="../assets/js/favorite-heart.js" defer></script>
-<script src="../assets/js/order-review.js" defer></script>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -150,6 +127,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const loadCount = 10;
 
     function updateButtonText() {
+        if (!moreBtn) return;
         const remaining = totalPhones - visibleCount;
         if (remaining > 0) {
             const showCount = remaining > loadCount ? loadCount : remaining;
@@ -157,7 +135,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    if (moreBtn) {
+    if (moreBtn && totalPhones > 10) {
         updateButtonText();
         
         moreBtn.addEventListener('click', function() {
@@ -179,157 +157,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 updateButtonText();
             }
         });
-    }
-
-    if (visibleCount >= totalPhones) {
+    } else if (moreBtn && totalPhones <= 10) {
         const moreButtonContainer = document.getElementById('moreButtonContainer');
         if (moreButtonContainer) {
             moreButtonContainer.style.display = 'none';
         }
     }
-
-    // 리뷰 관리 공통 모듈 초기화
-    const reviewManager = new OrderReviewManager({
-        prefix: 'mno',
-        itemIdAttr: 'data-phone-id',
-        speedLabel: '개통 빨라요',
-        textareaId: 'reviewText',
-        onReviewSubmit: function(phoneId, reviewData) {
-            // TODO: 서버로 리뷰 데이터 전송
-            console.log('리뷰 작성 - Phone ID:', phoneId, 'Review Data:', reviewData);
-        },
-        onReviewDelete: function(phoneId) {
-            // TODO: 서버로 삭제 요청
-            console.log('리뷰 삭제 - Phone ID:', phoneId);
-        },
-        onReviewUpdate: function(phoneId) {
-            // 리뷰 작성 완료 후 리뷰 쓰기 버튼 제거하고 점 3개 메뉴 표시
-            const reviewBtn = document.querySelector(`.mno-order-review-btn[data-phone-id="${phoneId}"]`);
-            if (reviewBtn) {
-                const parentItem = reviewBtn.closest('.mno-order-action-item');
-                if (parentItem) {
-                    const prevDivider = parentItem.previousElementSibling;
-                    if (prevDivider && prevDivider.classList.contains('mno-order-action-divider')) {
-                        prevDivider.remove();
-                    }
-                    parentItem.remove();
-                } else {
-                    reviewBtn.remove();
-                }
-            }
-            
-            // 헤더에 점 3개 메뉴 추가
-            const phoneItem = document.querySelector(`.phone-item[data-phone-id="${phoneId}"]`);
-            const cardHeader = phoneItem ? phoneItem.querySelector('.mno-order-card-top-header') : null;
-            if (cardHeader) {
-                const menuGroup = cardHeader.querySelector('.mno-order-menu-group');
-                if (!menuGroup) {
-                    const newMenuGroup = document.createElement('div');
-                    newMenuGroup.className = 'mno-order-menu-group';
-                    newMenuGroup.style.cssText = 'position: relative;';
-                    
-                    const menuBtn = document.createElement('button');
-                    menuBtn.type = 'button';
-                    menuBtn.className = 'mno-order-menu-btn';
-                    menuBtn.setAttribute('data-phone-id', phoneId);
-                    menuBtn.setAttribute('aria-label', '메뉴');
-                    menuBtn.innerHTML = `
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <circle cx="12" cy="6" r="1.5" fill="#868E96"/>
-                            <circle cx="12" cy="12" r="1.5" fill="#868E96"/>
-                            <circle cx="12" cy="18" r="1.5" fill="#868E96"/>
-                        </svg>
-                    `;
-                    
-                    const dropdown = document.createElement('div');
-                    dropdown.className = 'mno-order-menu-dropdown';
-                    dropdown.id = `mno-order-menu-${phoneId}`;
-                    dropdown.style.cssText = 'display: none; position: absolute; top: 100%; right: 0; margin-top: 4px; background: white; border: 1px solid #e5e7eb; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); z-index: 1000; min-width: 120px; overflow: hidden; flex-direction: column;';
-                    
-                    const editBtn = document.createElement('button');
-                    editBtn.type = 'button';
-                    editBtn.className = 'mno-order-menu-item mno-order-review-edit-btn';
-                    editBtn.setAttribute('data-phone-id', phoneId);
-                    editBtn.textContent = '수정';
-                    editBtn.style.cssText = 'width: 100%; padding: 12px 16px; background: none; border: none; text-align: left; font-size: 14px; color: #374151; cursor: pointer; transition: background-color 0.2s;';
-                    
-                    const deleteBtn = document.createElement('button');
-                    deleteBtn.type = 'button';
-                    deleteBtn.className = 'mno-order-menu-item mno-order-review-delete-btn';
-                    deleteBtn.setAttribute('data-phone-id', phoneId);
-                    deleteBtn.textContent = '삭제';
-                    deleteBtn.style.cssText = 'width: 100%; padding: 12px 16px; background: none; border: none; border-top: 1px solid #e5e7eb; text-align: left; font-size: 14px; color: #ef4444; cursor: pointer; transition: background-color 0.2s;';
-                    
-                    dropdown.appendChild(editBtn);
-                    dropdown.appendChild(deleteBtn);
-                    newMenuGroup.appendChild(menuBtn);
-                    newMenuGroup.appendChild(dropdown);
-                    cardHeader.appendChild(newMenuGroup);
-                }
-            }
-        },
-        onReviewDeleteUpdate: function(phoneId) {
-            console.log('리뷰 삭제 후 UI 업데이트:', phoneId);
-            
-            // 점 3개 메뉴 제거
-            const phoneItem = document.querySelector(`.phone-item[data-phone-id="${phoneId}"]`);
-            if (phoneItem) {
-                const cardHeader = phoneItem.querySelector('.mno-order-card-top-header');
-                if (cardHeader) {
-                    const menuGroup = cardHeader.querySelector('.mno-order-menu-group');
-                    if (menuGroup) {
-                        console.log('점 3개 메뉴 제거');
-                        menuGroup.remove();
-                    }
-                }
-                
-                // 리뷰 쓰기 버튼 추가
-                const actionsContent = phoneItem.querySelector('.mno-order-card-actions-content');
-                if (actionsContent) {
-                    // 기존 리뷰 쓰기 버튼이 있는지 확인
-                    const existingBtn = actionsContent.querySelector('.mno-order-review-btn');
-                    if (!existingBtn) {
-                        console.log('리뷰 쓰기 버튼 추가');
-                        const actionItem = document.createElement('div');
-                        actionItem.className = 'mno-order-action-item';
-                        
-                        const divider = document.createElement('div');
-                        divider.className = 'mno-order-action-divider';
-                        
-                        const reviewBtn = document.createElement('button');
-                        reviewBtn.type = 'button';
-                        reviewBtn.className = 'mno-order-review-btn';
-                        reviewBtn.setAttribute('data-phone-id', phoneId);
-                        reviewBtn.textContent = '리뷰쓰기';
-                        
-                        actionsContent.appendChild(divider);
-                        actionItem.appendChild(reviewBtn);
-                        actionsContent.appendChild(actionItem);
-                    }
-                }
-            } else {
-                console.error('phone-item을 찾을 수 없습니다:', phoneId);
-            }
-        }
-    });
-
 });
 </script>
-
-<?php
-// 공통 리뷰 모달 포함
-$prefix = 'mno';
-$speedLabel = '개통 빨라요';
-$formId = 'mnoReviewForm';
-$modalId = 'mnoReviewModal';
-$textareaId = 'reviewText';
-include '../includes/components/order-review-modal.php';
-
-// 공통 리뷰 삭제 모달 포함
-$prefix = 'mno';
-$modalId = 'mnoReviewDeleteModal';
-include '../includes/components/order-review-delete-modal.php';
-?>
 
 <?php
 // 푸터 포함

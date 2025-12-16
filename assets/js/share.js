@@ -158,7 +158,11 @@
     function copyToClipboardAndShowMessage(url, buttonElement) {
         if (!url || url.trim() === '') {
             console.error('공유할 URL이 없습니다.');
-            showToastMessage('공유할 링크가 없습니다.', buttonElement);
+            if (typeof showAlert === 'function') {
+                showAlert('공유할 링크가 없습니다.', '오류');
+            } else {
+                alert('공유할 링크가 없습니다.');
+            }
             return;
         }
         
@@ -172,13 +176,27 @@
         
         copyToClipboard(absoluteUrl).then((success) => {
             if (success) {
-                showToastMessage('공유 링크를 복사했어요', buttonElement);
+                // 모달로 복사 완료 알림
+                if (typeof showAlert === 'function') {
+                    showAlert('복사되었습니다.', '링크 복사 완료');
+                } else {
+                    alert('복사되었습니다.');
+                }
             } else {
-                showToastMessage('링크 복사에 실패했습니다. 브라우저를 확인해주세요.', buttonElement);
+                // 복사 실패 시
+                if (typeof showAlert === 'function') {
+                    showAlert('링크 복사에 실패했습니다. 브라우저를 확인해주세요.', '오류');
+                } else {
+                    alert('링크 복사에 실패했습니다. 브라우저를 확인해주세요.');
+                }
             }
         }).catch((err) => {
             console.error('클립보드 복사 오류:', err);
-            showToastMessage('링크 복사에 실패했습니다. 브라우저를 확인해주세요.', buttonElement);
+            if (typeof showAlert === 'function') {
+                showAlert('링크 복사에 실패했습니다. 브라우저를 확인해주세요.', '오류');
+            } else {
+                alert('링크 복사에 실패했습니다. 브라우저를 확인해주세요.');
+            }
         });
     }
 
@@ -311,7 +329,11 @@
                     }
                 } else {
                     console.warn('공유 버튼에 URL이 없습니다:', shareButton);
-                    showToastMessage('공유할 링크가 없습니다.', shareButton);
+                    if (typeof showAlert === 'function') {
+                        showAlert('공유할 링크가 없습니다.', '오류');
+                    } else {
+                        alert('공유할 링크가 없습니다.');
+                    }
                 }
                 
                 return false;

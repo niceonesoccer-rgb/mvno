@@ -13,6 +13,10 @@ require_once '../includes/data/auth-functions.php';
 // 헤더 포함
 include '../includes/header.php';
 
+// 조회수 업데이트
+require_once '../includes/data/product-functions.php';
+incrementProductView($phone_id);
+
 // 통신사폰 데이터 가져오기
 require_once '../includes/data/phone-data.php';
 require_once '../includes/data/plan-data.php';

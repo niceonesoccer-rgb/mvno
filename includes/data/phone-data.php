@@ -269,7 +269,7 @@ function getPhonesData($limit = 10) {
             
             // 신청 수
             $applicationCount = (int)($product['application_count'] ?? 0);
-            $selectionCount = number_format($applicationCount) . '명이 신청';
+            $selectionCount = number_format($applicationCount) . '명이 선택';
             
             $phones[] = [
                 'id' => (int)$product['id'],
@@ -578,7 +578,7 @@ function getPhoneDetailData($phone_id) {
         
         // 신청 수
         $applicationCount = (int)($product['application_count'] ?? 0);
-        $selectionCount = number_format($applicationCount) . '명이 신청';
+        $selectionCount = number_format($applicationCount) . '명이 선택';
         
         // 단말기 색상 정보 파싱
         $deviceColors = [];

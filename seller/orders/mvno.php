@@ -6,6 +6,7 @@
 
 require_once __DIR__ . '/../../includes/data/auth-functions.php';
 require_once __DIR__ . '/../../includes/data/db-config.php';
+require_once __DIR__ . '/../../includes/data/product-functions.php';
 
 // 세션 시작
 if (session_status() === PHP_SESSION_NONE) {
@@ -237,19 +238,10 @@ try {
     error_log("Error fetching orders: " . $e->getMessage());
 }
 
-// 상태별 한글명
-$statusLabels = [
-    'received' => '접수',
-    'activating' => '개통중',
-    'on_hold' => '보류',
-    'cancelled' => '취소',
-    'activation_completed' => '개통완료',
-    'installation_completed' => '설치완료',
-    'pending' => '접수',
-    'processing' => '개통중',
-    'completed' => '설치완료',
-    'rejected' => '보류'
-];
+// 상태별 한글명 (공통 함수 사용)
+// getApplicationStatusLabel() 함수가 product-functions.php에 정의되어 있음
+// 기존 코드와의 호환성을 위해 $statusLabels를 공통 함수를 호출하는 방식으로 변경
+// 배열 대신 함수를 사용하도록 변경
 
 // 가입형태 한글명
 $subscriptionTypeLabels = [
@@ -966,7 +958,7 @@ include __DIR__ . '/../includes/seller-header.php';
                             <td>
                                 <div class="status-cell-wrapper">
                                     <span class="status-badge status-<?php echo $order['application_status']; ?>">
-                                        <?php echo $statusLabels[$order['application_status']] ?? $order['application_status']; ?>
+                                        <?php echo getApplicationStatusLabel($order['application_status']); ?>
                                     </span>
                                     <button type="button" class="status-edit-btn" onclick="openStatusEditModal(<?php echo $order['application_id'] ?? $order['id']; ?>, '<?php echo htmlspecialchars($order['application_status'], ENT_QUOTES); ?>')" title="상태 변경">
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

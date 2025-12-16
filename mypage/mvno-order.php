@@ -26,31 +26,108 @@ if (!$currentUser) {
 
 $user_id = $currentUser['user_id'];
 
-// 포인트 설정 및 함수 포함
-require_once '../includes/data/point-settings.php';
+// 필요한 함수 포함
 require_once '../includes/data/product-functions.php';
 require_once '../includes/data/db-config.php';
 
 // DB에서 실제 신청 내역 가져오기
-$plans = getUserMvnoApplications($user_id);
+$applications = getUserMvnoApplications($user_id);
+
+// 디버깅: 실제 데이터 확인 및 DB 직접 조회
+$debugInfo = [];
+$pdo = getDBConnection();
+if ($pdo) {
+    // DB에서 직접 조회해서 비교
+    $stmt = $pdo->prepare("
+        SELECT 
+            a.id as application_id,
+            a.order_number,
+            a.product_id,
+            a.application_status,
+            a.created_at as order_date,
+            c.additional_info,
+            c.user_id
+        FROM product_applications a
+        INNER JOIN application_customers c ON a.id = c.application_id
+        WHERE c.user_id = :user_id 
+        AND a.product_type = 'mvno'
+        ORDER BY a.created_at DESC
+        LIMIT 3
+    ");
+    $stmt->execute([':user_id' => $user_id]);
+    $rawApplications = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    $debugInfo['raw_count'] = count($rawApplications);
+    $debugInfo['formatted_count'] = count($applications);
+    
+    if (!empty($rawApplications)) {
+        $firstRaw = $rawApplications[0];
+        $debugInfo['first_application_id'] = $firstRaw['application_id'];
+        $debugInfo['first_product_id'] = $firstRaw['product_id'];
+        $debugInfo['first_order_number'] = $firstRaw['order_number'];
+        
+        // additional_info 파싱
+        if (!empty($firstRaw['additional_info'])) {
+            $decoded = json_decode($firstRaw['additional_info'], true);
+            if (json_last_error() === JSON_ERROR_NONE) {
+                $debugInfo['additional_info_parsed'] = true;
+                $debugInfo['additional_info_keys'] = implode(', ', array_keys($decoded));
+                $debugInfo['has_product_snapshot'] = isset($decoded['product_snapshot']) ? 'YES' : 'NO';
+                if (isset($decoded['product_snapshot'])) {
+                    $snapshot = $decoded['product_snapshot'];
+                    $debugInfo['snapshot_plan_name'] = $snapshot['plan_name'] ?? 'NULL';
+                    $debugInfo['snapshot_provider'] = $snapshot['provider'] ?? 'NULL';
+                    $debugInfo['snapshot_keys_count'] = count($snapshot);
+                }
+            } else {
+                $debugInfo['additional_info_parsed'] = false;
+                $debugInfo['json_error'] = json_last_error_msg();
+            }
+        } else {
+            $debugInfo['additional_info_parsed'] = false;
+            $debugInfo['additional_info_empty'] = true;
+        }
+        
+        // 함수가 반환한 첫 번째 데이터 확인
+        if (!empty($applications)) {
+            $firstApp = $applications[0];
+            $debugInfo['formatted_provider'] = $firstApp['provider'] ?? 'NULL';
+            $debugInfo['formatted_title'] = $firstApp['title'] ?? 'NULL';
+            $debugInfo['formatted_data_main'] = $firstApp['data_main'] ?? 'NULL';
+            $debugInfo['formatted_price_main'] = $firstApp['price_main'] ?? 'NULL';
+            
+            // 추가: 함수가 반환한 모든 응용 프로그램 ID 확인
+            $debugInfo['formatted_application_ids'] = array_column($applications, 'application_id');
+            $debugInfo['formatted_count_detail'] = count($applications);
+            
+            // 첫 번째 application_id로 직접 확인
+            if (!empty($debugInfo['first_application_id'])) {
+                $checkStmt = $pdo->prepare("
+                    SELECT additional_info 
+                    FROM application_customers 
+                    WHERE application_id = :application_id 
+                    LIMIT 1
+                ");
+                $checkStmt->execute([':application_id' => $debugInfo['first_application_id']]);
+                $checkResult = $checkStmt->fetch(PDO::FETCH_ASSOC);
+                if ($checkResult && !empty($checkResult['additional_info'])) {
+                    $checkDecoded = json_decode($checkResult['additional_info'], true);
+                    if (json_last_error() === JSON_ERROR_NONE && isset($checkDecoded['product_snapshot'])) {
+                        $checkSnapshot = $checkDecoded['product_snapshot'];
+                        $debugInfo['direct_check_plan_name'] = $checkSnapshot['plan_name'] ?? 'NULL';
+                        $debugInfo['direct_check_provider'] = $checkSnapshot['provider'] ?? 'NULL';
+                    }
+                }
+            }
+            
+            // 에러 로그에서 확인할 수 있도록 로그 출력
+            error_log("DEBUG PAGE: First application from function - provider: " . ($firstApp['provider'] ?? 'NULL') . ", title: " . ($firstApp['title'] ?? 'NULL'));
+        }
+    }
+}
 
 // 헤더 포함
 include '../includes/header.php';
-
-// 사은품 아이콘 매핑
-$giftIcons = [
-    '이마트 상품권' => 'emart',
-    '네이버페이' => 'naverpay',
-    '데이터쿠폰' => 'ticket',
-    '밀리의 서재' => 'millie',
-    'SOLO결합' => 'subscription',
-    'CU 상품권' => 'cu',
-    'KT유심&배송비 무료' => 'etc',
-    '추가데이터' => 'ticket',
-    '유심/배송비 무료' => 'etc',
-    '매월' => 'ticket',
-    '추가 데이터' => 'ticket',
-];
 ?>
 
 <main class="main-content">
@@ -69,403 +146,164 @@ $giftIcons = [
                     </div>
                 </div>
 
+                <!-- 디버깅 정보 (상단 표시) -->
+                <?php if (!empty($debugInfo)): ?>
+                    <div style="padding: 20px; background: #fef3c7; border: 2px solid #f59e0b; border-radius: 8px; margin-bottom: 24px; font-size: 13px; color: #92400e;">
+                        <h3 style="margin: 0 0 12px 0; font-size: 16px; font-weight: 700;">디버깅 정보</h3>
+                        <div style="display: grid; grid-template-columns: auto 1fr; gap: 8px 16px;">
+                            <strong>User ID:</strong>
+                            <span><?php echo htmlspecialchars($user_id); ?></span>
+                            
+                            <strong>DB에서 직접 조회한 건수:</strong>
+                            <span><?php echo htmlspecialchars($debugInfo['raw_count'] ?? 0); ?></span>
+                            
+                            <strong>함수에서 반환된 건수:</strong>
+                            <span><?php echo htmlspecialchars($debugInfo['formatted_count'] ?? 0); ?></span>
+                            
+                            <?php if (!empty($debugInfo['first_application_id'])): ?>
+                                <strong>첫 번째 신청 ID:</strong>
+                                <span><?php echo htmlspecialchars($debugInfo['first_application_id']); ?></span>
+                                
+                                <strong>Product ID:</strong>
+                                <span><?php echo htmlspecialchars($debugInfo['first_product_id'] ?? 'NULL'); ?></span>
+                                
+                                <strong>Order Number:</strong>
+                                <span><?php echo htmlspecialchars($debugInfo['first_order_number'] ?? 'NULL'); ?></span>
+                            <?php endif; ?>
+                            
+                            <?php if (isset($debugInfo['additional_info_parsed'])): ?>
+                                <strong>additional_info 파싱:</strong>
+                                <span><?php echo $debugInfo['additional_info_parsed'] ? '성공' : '실패'; ?></span>
+                                
+                                <?php if (!empty($debugInfo['additional_info_keys'])): ?>
+                                    <strong>additional_info 키:</strong>
+                                    <span><?php echo htmlspecialchars($debugInfo['additional_info_keys']); ?></span>
+                                <?php endif; ?>
+                                
+                                <strong>product_snapshot 존재:</strong>
+                                <span><?php echo htmlspecialchars($debugInfo['has_product_snapshot'] ?? 'UNKNOWN'); ?></span>
+                                
+                                <?php if (!empty($debugInfo['snapshot_plan_name'])): ?>
+                                    <strong>Snapshot plan_name:</strong>
+                                    <span><?php echo htmlspecialchars($debugInfo['snapshot_plan_name']); ?></span>
+                                <?php endif; ?>
+                                
+                                <?php if (!empty($debugInfo['snapshot_provider'])): ?>
+                                    <strong>Snapshot provider:</strong>
+                                    <span><?php echo htmlspecialchars($debugInfo['snapshot_provider']); ?></span>
+                                <?php endif; ?>
+                                
+                                <?php if (isset($debugInfo['snapshot_keys_count'])): ?>
+                                    <strong>Snapshot 키 개수:</strong>
+                                    <span><?php echo htmlspecialchars($debugInfo['snapshot_keys_count']); ?></span>
+                                <?php endif; ?>
+                            <?php endif; ?>
+                            
+                            <strong style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #fbbf24;">함수 반환값:</strong>
+                            <span style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #fbbf24;"></span>
+                            
+                            <strong>반환된 건수:</strong>
+                            <span><?php echo htmlspecialchars($debugInfo['formatted_count'] ?? 0); ?></span>
+                            
+                            <?php if (!empty($debugInfo['formatted_application_ids'])): ?>
+                                <strong>반환된 Application IDs:</strong>
+                                <span><?php echo htmlspecialchars(implode(', ', $debugInfo['formatted_application_ids'])); ?></span>
+                            <?php endif; ?>
+                            
+                            <?php if (!empty($debugInfo['formatted_provider'])): ?>
+                                <strong>첫 번째 provider:</strong>
+                                <span><?php echo htmlspecialchars($debugInfo['formatted_provider']); ?></span>
+                                
+                                <strong>첫 번째 title:</strong>
+                                <span><?php echo htmlspecialchars($debugInfo['formatted_title'] ?? 'NULL'); ?></span>
+                                
+                                <strong>첫 번째 data_main:</strong>
+                                <span><?php echo htmlspecialchars($debugInfo['formatted_data_main'] ?? 'NULL'); ?></span>
+                                
+                                <strong>첫 번째 price_main:</strong>
+                                <span><?php echo htmlspecialchars($debugInfo['formatted_price_main'] ?? 'NULL'); ?></span>
+                            <?php else: ?>
+                                <strong style="color: #dc2626;">함수 반환값 없음:</strong>
+                                <span style="color: #dc2626;">applications 배열이 비어있거나 첫 번째 항목이 없습니다.</span>
+                            <?php endif; ?>
+                            
+                            <?php if (!empty($debugInfo['json_error'])): ?>
+                                <strong style="color: #dc2626;">JSON 에러:</strong>
+                                <span style="color: #dc2626;"><?php echo htmlspecialchars($debugInfo['json_error']); ?></span>
+                            <?php endif; ?>
+                            
+                            <?php if (!empty($debugInfo['direct_check_plan_name'])): ?>
+                                <strong style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #fbbf24; color: #059669;">직접 조회한 값:</strong>
+                                <span style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #fbbf24;"></span>
+                                
+                                <strong style="color: #059669;">직접 조회 plan_name:</strong>
+                                <span style="color: #059669;"><?php echo htmlspecialchars($debugInfo['direct_check_plan_name']); ?></span>
+                                
+                                <strong style="color: #059669;">직접 조회 provider:</strong>
+                                <span style="color: #059669;"><?php echo htmlspecialchars($debugInfo['direct_check_provider'] ?? 'NULL'); ?></span>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                <?php endif; ?>
+                
                 <!-- 신청한 알뜰폰 목록 -->
-                <div style="margin-bottom: 32px;" id="plansContainer">
-                    <div class="mvno-order-list-container">
-                <?php foreach ($plans as $index => $plan): ?>
-                    <div class="plan-item" data-index="<?php echo $index; ?>" style="<?php echo $index >= 10 ? 'display: none;' : ''; ?> position: relative;">
-                        <?php
-                        // 요금제 데이터 준비
-                        $plan_data = $plan;
-                        
-                        // 포인트 사용 내역 가져오기
-                        $point_history = getPointHistoryByItem($user_id, 'mvno', $plan['id']);
-                        $plan_data['point_used'] = $point_history ? $point_history['amount'] : 0;
-                        $plan_data['point_used_date'] = $point_history ? $point_history['date'] : '';
-                        
-                        $plan = $plan_data; // 컴포넌트에서 사용할 변수
-                        $layout_type = 'list';
-                        $card_wrapper_class = '';
-                        include '../includes/components/mvno-order-plan-card.php';
-                        ?>
-                    </div>
-                    <!-- 카드 구분선 (모바일용) -->
-                    <hr class="mvno-order-card-divider">
-                <?php endforeach; ?>
-                    </div>
-                </div>
-
-                <!-- 더보기 버튼 -->
-                <div style="margin-top: 32px; margin-bottom: 32px;" id="moreButtonContainer">
-                    <button class="plan-review-more-btn" id="morePlansBtn">
-                        더보기 (<?php 
-                        $remaining = count($plans) - 10;
-                        echo $remaining > 10 ? 10 : $remaining;
-                        ?>개)
-                    </button>
+                <div style="margin-bottom: 32px;">
+                    <?php if (empty($applications)): ?>
+                        <div style="padding: 40px 20px; text-align: center; color: #6b7280;">
+                            신청한 알뜰폰이 없습니다.
+                        </div>
+                    <?php else: ?>
+                        <div style="display: flex; flex-direction: column; gap: 16px;">
+                            <?php foreach ($applications as $index => $app): ?>
+                                <div class="plan-item" style="padding: 20px; border: 1px solid #e5e7eb; border-radius: 12px; background: white;">
+                                    <div style="display: flex; flex-direction: column; gap: 12px;">
+                                        <!-- 헤더: 통신사 및 요금제명 -->
+                                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                                            <div style="flex: 1;">
+                                                <div style="font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 8px;">
+                                                    <?php echo htmlspecialchars($app['provider'] ?? '알 수 없음'); ?> <?php echo htmlspecialchars($app['title'] ?? '요금제 정보 없음'); ?>
+                                                </div>
+                                                <?php if (!empty($app['data_main'])): ?>
+                                                    <div style="font-size: 14px; color: #6b7280; margin-bottom: 6px;">
+                                                        <?php echo htmlspecialchars($app['data_main']); ?>
+                                                    </div>
+                                                <?php endif; ?>
+                                                <?php if (!empty($app['price_main'])): ?>
+                                                    <div style="font-size: 16px; color: #374151; font-weight: 600;">
+                                                        <?php echo htmlspecialchars($app['price_main']); ?>
+                                                    </div>
+                                                <?php endif; ?>
+                                            </div>
+                                            <div style="font-size: 12px; color: #9ca3af; text-align: right;">
+                                                <?php echo htmlspecialchars($app['order_date'] ?? ''); ?>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- 정보: 주문번호 및 상태 -->
+                                        <div style="display: flex; gap: 16px; flex-wrap: wrap; padding-top: 12px; border-top: 1px solid #f3f4f6; font-size: 13px;">
+                                            <?php if (!empty($app['order_number'])): ?>
+                                                <div>
+                                                    <span style="color: #6b7280;">주문번호:</span>
+                                                    <span style="color: #374151; font-weight: 500; margin-left: 4px;"><?php echo htmlspecialchars($app['order_number']); ?></span>
+                                                </div>
+                                            <?php endif; ?>
+                                            <?php if (!empty($app['status'])): ?>
+                                                <div>
+                                                    <span style="color: #6b7280;">진행상황:</span>
+                                                    <span style="color: #6366f1; font-weight: 600; margin-left: 4px;"><?php echo htmlspecialchars($app['status']); ?></span>
+                                                </div>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
     </div>
 </main>
-
-<?php
-// 공통 리뷰 모달 포함 (스크립트 전에 포함)
-$prefix = 'mvno';
-$speedLabel = '개통 빨라요';
-$formId = 'mvnoReviewForm';
-$modalId = 'mvnoReviewModal';
-$textareaId = 'reviewText';
-include '../includes/components/order-review-modal.php';
-
-// 공통 리뷰 삭제 모달 포함
-$prefix = 'mvno';
-$modalId = 'mvnoReviewDeleteModal';
-include '../includes/components/order-review-delete-modal.php';
-
-// 공통 리뷰 작성 완료 모달 포함
-$prefix = 'mvno';
-$modalId = 'mvnoReviewSuccessModal';
-include '../includes/components/order-review-success-modal.php';
-?>
-
-<script src="../assets/js/plan-accordion.js" defer></script>
-<script src="../assets/js/share.js" defer></script>
-
-<script>
-// order-review.js가 로드된 후 실행되도록 확인
-function initMvnoOrderReview() {
-    if (typeof OrderReviewManager === 'undefined') {
-        console.log('OrderReviewManager 아직 로드되지 않음, 재시도...');
-        setTimeout(initMvnoOrderReview, 100);
-        return;
-    }
-    
-    document.addEventListener('DOMContentLoaded', function() {
-    // 더보기 기능
-    const moreBtn = document.getElementById('morePlansBtn');
-    const planItems = document.querySelectorAll('.plan-item');
-    let visibleCount = 10;
-    const totalPlans = planItems.length;
-    const loadCount = 10;
-
-    function updateButtonText() {
-        const remaining = totalPlans - visibleCount;
-        if (remaining > 0) {
-            const showCount = remaining > loadCount ? loadCount : remaining;
-            moreBtn.textContent = `더보기 (${showCount}개)`;
-        }
-    }
-
-    if (moreBtn) {
-        updateButtonText();
-        
-        moreBtn.addEventListener('click', function() {
-            const endCount = Math.min(visibleCount + loadCount, totalPlans);
-            for (let i = visibleCount; i < endCount; i++) {
-                if (planItems[i]) {
-                    planItems[i].style.display = 'block';
-                }
-            }
-            
-            visibleCount = endCount;
-            
-            if (visibleCount >= totalPlans) {
-                const moreButtonContainer = document.getElementById('moreButtonContainer');
-                if (moreButtonContainer) {
-                    moreButtonContainer.style.display = 'none';
-                }
-            } else {
-                updateButtonText();
-            }
-        });
-    }
-
-    if (visibleCount >= totalPlans) {
-        const moreButtonContainer = document.getElementById('moreButtonContainer');
-        if (moreButtonContainer) {
-            moreButtonContainer.style.display = 'none';
-        }
-    }
-
-    // 리뷰 관리 공통 모듈 초기화
-    console.log('OrderReviewManager 초기화 시작 - mvno');
-    const reviewButtons = document.querySelectorAll('.mvno-order-review-btn');
-    console.log('리뷰쓰기 버튼 개수:', reviewButtons.length);
-    reviewButtons.forEach((btn, idx) => {
-        console.log(`버튼 ${idx}:`, btn.className, btn.getAttribute('data-plan-id'));
-    });
-    
-    // 모달 존재 확인
-    const modal = document.getElementById('mvnoReviewModal');
-    console.log('모달 존재 여부:', modal ? '있음' : '없음', modal);
-    
-    const reviewManager = new OrderReviewManager({
-        prefix: 'mvno',
-        itemIdAttr: 'data-plan-id',
-        speedLabel: '개통 빨라요',
-        textareaId: 'reviewText',
-        showSuccessModal: true,
-        onReviewSubmit: function(planId, reviewData) {
-            // TODO: 서버로 리뷰 데이터 전송
-            console.log('리뷰 작성 - Plan ID:', planId, 'Review Data:', reviewData);
-        },
-        onReviewDelete: function(planId) {
-            // TODO: 서버로 삭제 요청
-            console.log('리뷰 삭제 - Plan ID:', planId);
-        },
-        onReviewUpdate: function(planId) {
-            // 리뷰 작성 완료 후 헤더에 점 3개 메뉴 표시
-            
-            const reviewBtn = document.querySelector(`.mvno-order-review-btn[data-plan-id="${planId}"]`);
-            if (reviewBtn) {
-                const actionItem = reviewBtn.closest('.mvno-order-action-item');
-                const actionsContent = actionItem ? actionItem.closest('.mvno-order-card-actions-content') : null;
-                
-                if (actionItem && actionsContent) {
-                    const prevDivider = actionItem.previousElementSibling;
-                    if (prevDivider && prevDivider.classList.contains('mvno-order-action-divider')) {
-                        prevDivider.remove();
-                    }
-                    actionItem.remove();
-                } else {
-                    reviewBtn.remove();
-                }
-                
-                const cardHeader = document.querySelector(`.mvno-order-card[data-plan-id="${planId}"] .mvno-order-card-top-header`);
-                if (cardHeader) {
-                    const menuGroup = cardHeader.querySelector('.mvno-order-menu-group');
-                    if (!menuGroup) {
-                        const newMenuGroup = document.createElement('div');
-                        newMenuGroup.className = 'mvno-order-menu-group';
-                        
-                        const menuBtn = document.createElement('button');
-                        menuBtn.type = 'button';
-                        menuBtn.className = 'mvno-order-menu-btn';
-                        menuBtn.setAttribute('data-plan-id', planId);
-                        menuBtn.setAttribute('aria-label', '메뉴');
-                        menuBtn.innerHTML = `
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <circle cx="12" cy="6" r="1.5" fill="#868E96"/>
-                                <circle cx="12" cy="12" r="1.5" fill="#868E96"/>
-                                <circle cx="12" cy="18" r="1.5" fill="#868E96"/>
-                            </svg>
-                        `;
-                        
-                        const dropdown = document.createElement('div');
-                        dropdown.className = 'mvno-order-menu-dropdown';
-                        dropdown.id = 'mvno-order-menu-' + planId;
-                        
-                        const editBtn = document.createElement('button');
-                        editBtn.type = 'button';
-                        editBtn.className = 'mvno-order-menu-item mvno-order-review-edit-btn';
-                        editBtn.setAttribute('data-plan-id', planId);
-                        editBtn.textContent = '수정';
-                        
-                        const deleteBtn = document.createElement('button');
-                        deleteBtn.type = 'button';
-                        deleteBtn.className = 'mvno-order-menu-item mvno-order-review-delete-btn';
-                        deleteBtn.setAttribute('data-plan-id', planId);
-                        deleteBtn.textContent = '삭제';
-                        
-                        dropdown.appendChild(editBtn);
-                        dropdown.appendChild(deleteBtn);
-                        newMenuGroup.appendChild(menuBtn);
-                        newMenuGroup.appendChild(dropdown);
-                        cardHeader.appendChild(newMenuGroup);
-                        
-                        menuBtn.addEventListener('click', function(e) {
-                            e.stopPropagation();
-                            const menuId = 'mvno-order-menu-' + planId;
-                            
-                            if (openMenuId && openMenuId !== menuId) {
-                                const prevDropdown = document.getElementById(openMenuId);
-                                if (prevDropdown) {
-                                    prevDropdown.classList.remove('mvno-order-menu-open');
-                                }
-                            }
-                            
-                            if (dropdown.classList.contains('mvno-order-menu-open')) {
-                                dropdown.classList.remove('mvno-order-menu-open');
-                                openMenuId = null;
-                            } else {
-                                dropdown.classList.add('mvno-order-menu-open');
-                                openMenuId = menuId;
-                            }
-                        });
-                        
-                        editBtn.addEventListener('click', function(e) {
-                            e.stopPropagation();
-                            dropdown.classList.remove('mvno-order-menu-open');
-                            openMenuId = null;
-                            reviewManager.openReviewModal(planId);
-                        });
-                        
-                        deleteBtn.addEventListener('click', function(e) {
-                            e.stopPropagation();
-                            dropdown.classList.remove('mvno-order-menu-open');
-                            openMenuId = null;
-                            reviewManager.openDeleteModal(planId);
-                        });
-                    }
-                }
-            }
-        },
-        onReviewDeleteUpdate: function(planId) {
-            const cardHeader = document.querySelector(`.mvno-order-card[data-plan-id="${planId}"] .mvno-order-card-top-header`);
-            if (cardHeader) {
-                const menuGroup = cardHeader.querySelector('.mvno-order-menu-group');
-                if (menuGroup) {
-                    menuGroup.remove();
-                }
-            }
-            
-            const actionItem = document.querySelector(`.mvno-order-card[data-plan-id="${planId}"] .mvno-order-action-item:last-child`);
-            if (actionItem && !actionItem.querySelector('.mvno-order-review-btn')) {
-                const newReviewBtn = document.createElement('button');
-                newReviewBtn.type = 'button';
-                newReviewBtn.className = 'mvno-order-review-btn';
-                newReviewBtn.setAttribute('data-plan-id', planId);
-                newReviewBtn.textContent = '리뷰쓰기';
-                actionItem.appendChild(newReviewBtn);
-            }
-        }
-    });
-
-    // 점 3개 메뉴 관련 함수들 (기존 로직 유지)
-    let openMenuId = null;
-    
-    function openDeleteModal(planId) {
-        reviewManager.openDeleteModal(planId);
-    }
-    
-    function showReviewToast(message) {
-        reviewManager.showToast(message);
-    }
-
-    // 토스트 메시지 표시 함수 (공유 아이콘과 같은 행, 왼쪽)
-    function showToast(message, buttonElement) {
-        // 기존 토스트가 있으면 제거
-        const existingToast = document.querySelector('.mvno-order-toast');
-        if (existingToast) {
-            existingToast.remove();
-        }
-
-        // 버튼의 위치 계산
-        const buttonRect = buttonElement.getBoundingClientRect();
-        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-        const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
-        
-        // 버튼과 같은 높이 (세로 중앙)
-        const buttonCenterTop = scrollTop + buttonRect.top + (buttonRect.height / 2);
-
-        // 토스트 메시지 생성
-        const toast = document.createElement('div');
-        toast.className = 'mvno-order-toast';
-        toast.textContent = message;
-        document.body.appendChild(toast);
-
-        // 공유 아이콘 왼쪽, 같은 행에 위치 설정
-        const toastTop = buttonCenterTop;
-        const toastLeft = buttonRect.left + scrollLeft - 8; // 버튼 왼쪽 8px
-
-        toast.style.top = toastTop + 'px';
-        toast.style.left = toastLeft + 'px';
-        toast.style.transform = 'translateX(-100%) translateY(-50%) translateY(10px)';
-
-        // 애니메이션을 위해 약간의 지연 후 visible 클래스 추가
-        setTimeout(() => {
-            toast.classList.add('mvno-order-toast-visible');
-        }, 10);
-
-        // 0.7초 후 자동 제거
-        setTimeout(() => {
-            toast.classList.remove('mvno-order-toast-visible');
-            setTimeout(() => {
-                if (toast.parentNode) {
-                    toast.parentNode.removeChild(toast);
-                }
-            }, 300); // 애니메이션 시간
-        }, 700); // 0.7초
-    }
-
-    // 점 3개 메뉴 버튼 클릭 이벤트 (슬라이드 메뉴 토글)
-    const menuButtons = document.querySelectorAll('.mvno-order-menu-btn');
-    let openMenuId = null; // 현재 열린 메뉴 ID
-    
-    menuButtons.forEach(button => {
-        button.addEventListener('click', function(e) {
-            e.stopPropagation();
-            const planId = this.getAttribute('data-plan-id');
-            const menuId = 'mvno-order-menu-' + planId;
-            const dropdown = document.getElementById(menuId);
-            
-            if (!dropdown) return;
-            
-            // 다른 메뉴가 열려있으면 닫기
-            if (openMenuId && openMenuId !== menuId) {
-                const prevDropdown = document.getElementById(openMenuId);
-                if (prevDropdown) {
-                    prevDropdown.classList.remove('mvno-order-menu-open');
-                }
-            }
-            
-            // 현재 메뉴 토글
-            if (dropdown.classList.contains('mvno-order-menu-open')) {
-                dropdown.classList.remove('mvno-order-menu-open');
-                openMenuId = null;
-            } else {
-                dropdown.classList.add('mvno-order-menu-open');
-                openMenuId = menuId;
-            }
-        });
-    });
-    
-    // 메뉴 외부 클릭 시 닫기
-    document.addEventListener('click', function(e) {
-        if (openMenuId) {
-            const dropdown = document.getElementById(openMenuId);
-            const menuBtn = document.querySelector(`.mvno-order-menu-btn[data-plan-id="${openMenuId.replace('mvno-order-menu-', '')}"]`);
-            
-            if (dropdown && menuBtn && 
-                !dropdown.contains(e.target) && 
-                !menuBtn.contains(e.target)) {
-                dropdown.classList.remove('mvno-order-menu-open');
-                openMenuId = null;
-            }
-        }
-    });
-    
-    // 드롭다운 메뉴 내부의 수정/삭제 버튼 이벤트 (동적으로 추가된 버튼 포함)
-    document.addEventListener('click', function(e) {
-        if (e.target.classList.contains('mvno-order-menu-item')) {
-            const planId = e.target.getAttribute('data-plan-id');
-            const menuId = 'mvno-order-menu-' + planId;
-            const dropdown = document.getElementById(menuId);
-            if (dropdown) {
-                dropdown.classList.remove('mvno-order-menu-open');
-                openMenuId = null;
-            }
-            if (planId) {
-                if (e.target.classList.contains('mvno-order-review-edit-btn')) {
-                    reviewManager.openReviewModal(planId);
-                } else if (e.target.classList.contains('mvno-order-review-delete-btn')) {
-                    reviewManager.openDeleteModal(planId);
-                }
-            }
-        }
-    });
-}
-
-// order-review.js 스크립트 동적 로드
-const orderReviewScript = document.createElement('script');
-orderReviewScript.src = '../assets/js/order-review.js';
-orderReviewScript.onload = function() {
-    console.log('order-review.js 로드 완료');
-    initMvnoOrderReview();
-};
-document.head.appendChild(orderReviewScript);
-</script>
 
 <?php
 // 푸터 포함

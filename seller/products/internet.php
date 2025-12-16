@@ -627,7 +627,7 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
     <?php endif; ?>
     
-    <form id="productForm" class="product-form" method="POST" action="/MVNO/api/product-register-internet.php">
+    <form id="productForm" class="product-form" method="POST" action="/MVNO/api/product-register-internet.php" novalidate>
         <?php if ($isEditMode): ?>
             <input type="hidden" name="product_id" value="<?php echo htmlspecialchars($productId); ?>">
         <?php endif; ?>
@@ -1284,6 +1284,21 @@ window.addGiftCardField = function() { addField('giftCard'); };
 window.addEquipmentField = function() { addField('equipment'); };
 window.addInstallationField = function() { addField('installation'); };
 
+// 제출 버튼 클릭 시 즉시 포커스 제거 (mousedown 이벤트로 submit보다 먼저 처리)
+document.addEventListener('DOMContentLoaded', function() {
+    const submitButton = document.querySelector('button[type="submit"]');
+    if (submitButton) {
+        submitButton.addEventListener('mousedown', function(e) {
+            // 모든 입력 필드의 포커스 즉시 제거
+            document.querySelectorAll('input, select, textarea').forEach(function(el) {
+                if (document.activeElement === el) {
+                    el.blur();
+                }
+            });
+        });
+    }
+});
+
 document.getElementById('productForm').addEventListener('submit', function(e) {
     e.preventDefault();
     
@@ -1291,15 +1306,20 @@ document.getElementById('productForm').addEventListener('submit', function(e) {
     
     const isEditMode = <?php echo $isEditMode ? 'true' : 'false'; ?>;
     
-    // 폼 제출 시 모든 입력 필드의 포커스 제거 (커서가 필드에 남지 않도록)
-    if (document.activeElement && document.activeElement.tagName !== 'BUTTON') {
-        document.activeElement.blur();
+    // 즉시 모든 입력 필드의 포커스 제거 (제출 버튼 클릭 시 즉시 처리)
+    const activeElement = document.activeElement;
+    if (activeElement && activeElement.tagName !== 'BUTTON') {
+        activeElement.blur();
     }
     
     // 모든 입력 필드의 포커스 제거
     document.querySelectorAll('input, select, textarea').forEach(function(el) {
-        if (document.activeElement === el) {
+        if (el === activeElement) {
             el.blur();
+        }
+        // 추가로 readonly를 임시로 설정하여 포커스 이동 방지
+        if (el.tagName === 'INPUT' && el.type !== 'hidden') {
+            el.setAttribute('readonly', 'readonly');
         }
     });
     
@@ -1309,6 +1329,10 @@ document.getElementById('productForm').addEventListener('submit', function(e) {
     const monthlyFeeInput = document.getElementById('monthly_fee');
     const monthlyFeeUnit = document.getElementById('monthly_fee_unit');
     if (monthlyFeeInput) {
+        // 포커스 제거 및 readonly 설정으로 포커스 이동 방지
+        monthlyFeeInput.blur();
+        monthlyFeeInput.setAttribute('readonly', 'readonly');
+        
         if (monthlyFeeInput.value) {
             // 표시용 쉼표와 소수점 제거 후 순수 정수만 추출
             const cleanValue = monthlyFeeInput.value.toString().replace(/[,.]/g, '').replace(/[^0-9]/g, '');
@@ -1322,10 +1346,17 @@ document.getElementById('productForm').addEventListener('submit', function(e) {
                 monthlyFeeInput.value = value;
             }
         }
+        
+        // readonly 제거
+        monthlyFeeInput.removeAttribute('readonly');
     }
     
     // 현금지급 가격 필드 처리: 쉼표 제거 및 단위와 결합
     document.querySelectorAll('input[name="cash_payment_prices[]"]').forEach(function(input, index) {
+        // 포커스 제거 및 readonly 설정으로 포커스 이동 방지
+        input.blur();
+        input.setAttribute('readonly', 'readonly');
+        
         if (input.value) {
             const cleanValue = input.value.toString().replace(/[,.]/g, '').replace(/[^0-9]/g, '');
             const value = parseInt(cleanValue) || 0;
@@ -1333,10 +1364,17 @@ document.getElementById('productForm').addEventListener('submit', function(e) {
             const unit = unitSelect ? unitSelect.value : '원';
             input.value = value + unit;
         }
+        
+        // readonly 제거
+        input.removeAttribute('readonly');
     });
     
     // 상품권 지급 가격 필드 처리: 쉼표 제거 및 단위와 결합
     document.querySelectorAll('input[name="gift_card_prices[]"]').forEach(function(input, index) {
+        // 포커스 제거 및 readonly 설정으로 포커스 이동 방지
+        input.blur();
+        input.setAttribute('readonly', 'readonly');
+        
         if (input.value) {
             const cleanValue = input.value.toString().replace(/[,.]/g, '').replace(/[^0-9]/g, '');
             const value = parseInt(cleanValue) || 0;
@@ -1344,11 +1382,18 @@ document.getElementById('productForm').addEventListener('submit', function(e) {
             const unit = unitSelect ? unitSelect.value : '원';
             input.value = value + unit;
         }
+        
+        // readonly 제거
+        input.removeAttribute('readonly');
     });
     
-    // 모든 입력 필드의 포커스 제거 (값 변경 후)
+    // 모든 입력 필드의 포커스 제거 및 readonly 제거 (값 변경 후)
     document.querySelectorAll('input, select, textarea').forEach(function(el) {
         el.blur();
+        // readonly 제거
+        if (el.tagName === 'INPUT' && el.type !== 'hidden') {
+            el.removeAttribute('readonly');
+        }
     });
     
     // 버튼에 포커스 주기 (입력 필드로 포커스가 가지 않도록)

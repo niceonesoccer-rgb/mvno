@@ -2052,6 +2052,18 @@ document.addEventListener('DOMContentLoaded', function() {
             const productId = card.getAttribute('data-product-id');
             if (productId) {
                 selectedData.product_id = productId;
+                
+                // 조회수 증가 API 호출
+                fetch('/MVNO/api/increment-product-view.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ product_id: productId })
+                }).catch(error => {
+                    // 에러는 무시 (조회수 증가 실패해도 계속 진행)
+                    console.error('조회수 증가 실패:', error);
+                });
             }
             
             // 카드에서 회사 정보 추출

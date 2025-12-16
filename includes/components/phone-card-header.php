@@ -23,7 +23,7 @@ if (strpos($company_name_raw, '스마트모바일') !== false) {
 $rating = $phone['rating'] ?? '4.3';
 $phone_id = $phone['id'] ?? 0;
 $share_url = $phone['link_url'] ?? '/MVNO/mno/mno-phone-detail.php?id=' . $phone_id;
-$selection_count = $phone['selection_count'] ?? '29,448명이 신청';
+$selection_count = $phone['selection_count'] ?? '29,448명이 선택';
 ?>
 
 <!-- 헤더: 통신사, 찜 -->

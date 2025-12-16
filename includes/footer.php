@@ -43,15 +43,6 @@
                 <a href="/terms/privacy-policy" target="_blank" rel="noopener noreferrer" class="footer-terms-link-bold">개인정보처리방침</a>
                 <a href="/information-security" target="_blank" rel="noopener noreferrer" class="footer-terms-link">정보보호현황</a>
             </div>
-            
-            <!-- 소셜 미디어 링크 -->
-            <div class="footer-social-links">
-                <a href="https://www.youtube.com/@moyoplan" aria-label="youtube" target="_blank" rel="noopener noreferrer" class="footer-social-icon" style="background-image: url(assets/images/footer/icon/youtube_icon.svg)"></a>
-                <a href="https://blog.naver.com/moyocompany" aria-label="naver-blog" target="_blank" rel="noopener noreferrer" class="footer-social-icon" style="background-image: url(assets/images/footer/icon/naver_blog_icon.svg)"></a>
-                <a href="https://www.instagram.com/moyo_.official" aria-label="instagram" target="_blank" rel="noopener noreferrer" class="footer-social-icon" style="background-image: url(assets/images/footer/icon/instagram_icon.svg)"></a>
-                <a href="https://www.facebook.com/moyo.company.page" aria-label="facebook" target="_blank" rel="noopener noreferrer" class="footer-social-icon" style="background-image: url(assets/images/footer/icon/facebook_icon.svg)"></a>
-                <a href="https://twitter.com/moyo_company" aria-label="twitter" target="_blank" rel="noopener noreferrer" class="footer-social-icon" style="background-image: url(assets/images/footer/icon/twitter_icon.svg)"></a>
-            </div>
         </div>
     </footer>
 <?php endif; ?>
