@@ -85,6 +85,9 @@ try {
         }
     }
     
+    // 기존 인터넷 회선 정보 가져오기
+    $currentCompany = isset($_POST['currentCompany']) ? trim($_POST['currentCompany']) : '';
+    
     // 고객 정보 준비
     $customerData = [
         'user_id' => $userId, // 로그인한 사용자 ID
@@ -96,7 +99,10 @@ try {
         'birth_date' => null,
         'gender' => null,
         'additional_info' => [
-            'product_snapshot' => $productSnapshot // 신청 당시 상품 정보 전체 저장 (클레임 처리용)
+            'product_snapshot' => $productSnapshot, // 신청 당시 상품 정보 전체 저장 (클레임 처리용)
+            'currentCompany' => $currentCompany, // 기존 인터넷 회선 정보
+            'existing_company' => $currentCompany, // 호환성을 위한 별칭
+            'existingCompany' => $currentCompany // 호환성을 위한 별칭
         ]
     ];
     

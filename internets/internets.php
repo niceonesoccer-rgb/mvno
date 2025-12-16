@@ -120,7 +120,13 @@ function getInternetIconPath($registrationPlace) {
                         $iconPath = getInternetIconPath($product['registration_place']);
                         $speedOption = htmlspecialchars($product['speed_option'] ?? '');
                         $applicationCount = number_format($product['application_count'] ?? 0);
-                        $monthlyFee = number_format($product['monthly_fee'] ?? 0);
+                        // 월 요금 처리: DB에 저장된 값이 "17000원" 형식이면 그대로 표시
+                        $monthlyFeeRaw = $product['monthly_fee'] ?? '';
+                        if (!empty($monthlyFeeRaw) && preg_match('/^(\d+)(.+)$/', $monthlyFeeRaw, $matches)) {
+                            $monthlyFee = number_format((float)$matches[1]) . $matches[2];
+                        } else {
+                            $monthlyFee = number_format((float)$monthlyFeeRaw) . '원';
+                        }
                         
                         // 혜택 정보 파싱
                         $cashNames = $product['cash_payment_names'] ?? [];
@@ -175,7 +181,17 @@ function getInternetIconPath($registrationPlace) {
                                     // 현금 지급 혜택 표시
                                     for ($i = 0; $i < count($cashNames); $i++):
                                         if (!empty($cashNames[$i])):
-                                            $priceValue = isset($cashPrices[$i]) && $cashPrices[$i] > 0 ? $cashPrices[$i] : 0;
+                                            $priceRaw = isset($cashPrices[$i]) ? $cashPrices[$i] : '';
+                                            // DB에 저장된 값이 "50000원" 형식이면 그대로 표시 (정수로 처리)
+                                            if (!empty($priceRaw) && preg_match('/^(\d+)(.+)$/', $priceRaw, $matches)) {
+                                                $priceDisplay = number_format((int)$matches[1]) . $matches[2];
+                                                $hasPrice = true;
+                                            } elseif (!empty($priceRaw) && is_numeric($priceRaw)) {
+                                                $priceDisplay = number_format((int)$priceRaw) . '원';
+                                                $hasPrice = true;
+                                            } else {
+                                                $hasPrice = false;
+                                            }
                                     ?>
                                     <div class="css-12zfa6z e82z5mt8">
                                         <img src="/MVNO/assets/images/icons/cash.svg" alt="현금" class="css-xj5cz0 e82z5mt9">
@@ -183,9 +199,9 @@ function getInternetIconPath($registrationPlace) {
                                             <p class="css-2ht76o e82z5mt12 item-name-text">
                                                 <?php echo htmlspecialchars($cashNames[$i]); ?>
                                             </p>
-                                            <?php if ($priceValue > 0): ?>
+                                            <?php if ($hasPrice): ?>
                                                 <p class="css-2ht76o e82z5mt12 item-price-text" style="margin-top: 1.28px;">
-                                                    <?php echo number_format($priceValue); ?>원
+                                                    <?php echo htmlspecialchars($priceDisplay); ?>
                                                 </p>
                                             <?php else: ?>
                                                 <p class="css-2ht76o e82z5mt12 item-price-text" style="margin-top: 1.28px;">무료</p>
@@ -199,7 +215,17 @@ function getInternetIconPath($registrationPlace) {
                                     // 상품권 지급 혜택 표시
                                     for ($i = 0; $i < count($giftNames); $i++):
                                         if (!empty($giftNames[$i])):
-                                            $priceValue = isset($giftPrices[$i]) && $giftPrices[$i] > 0 ? $giftPrices[$i] : 0;
+                                            $priceRaw = isset($giftPrices[$i]) ? $giftPrices[$i] : '';
+                                            // DB에 저장된 값이 "170000원" 형식이면 그대로 표시 (정수로 처리)
+                                            if (!empty($priceRaw) && preg_match('/^(\d+)(.+)$/', $priceRaw, $matches)) {
+                                                $priceDisplay = number_format((int)$matches[1]) . $matches[2];
+                                                $hasPrice = true;
+                                            } elseif (!empty($priceRaw) && is_numeric($priceRaw)) {
+                                                $priceDisplay = number_format((int)$priceRaw) . '원';
+                                                $hasPrice = true;
+                                            } else {
+                                                $hasPrice = false;
+                                            }
                                     ?>
                                     <div class="css-12zfa6z e82z5mt8">
                                         <img src="/MVNO/assets/images/icons/gift-card.svg" alt="상품권" class="css-xj5cz0 e82z5mt9">
@@ -207,9 +233,9 @@ function getInternetIconPath($registrationPlace) {
                                             <p class="css-2ht76o e82z5mt12 item-name-text">
                                                 <?php echo htmlspecialchars($giftNames[$i]); ?>
                                             </p>
-                                            <?php if ($priceValue > 0): ?>
+                                            <?php if ($hasPrice): ?>
                                                 <p class="css-2ht76o e82z5mt12 item-price-text" style="margin-top: 1.28px;">
-                                                    <?php echo number_format($priceValue); ?>원
+                                                    <?php echo htmlspecialchars($priceDisplay); ?>
                                                 </p>
                                             <?php else: ?>
                                                 <p class="css-2ht76o e82z5mt12 item-price-text" style="margin-top: 1.28px;">무료</p>
@@ -266,7 +292,7 @@ function getInternetIconPath($registrationPlace) {
                                     ?>
                                 </div>
                                 <div data-testid="full-price-information" class="css-rkh09p e82z5mt2">
-                                    <p class="css-16qot29 e82z5mt6">월 <?php echo $monthlyFee; ?>원</p>
+                                    <p class="css-16qot29 e82z5mt6">월 <?php echo htmlspecialchars($monthlyFee); ?></p>
                                 </div>
                             </div>
                         </div>
@@ -2640,6 +2666,11 @@ function submitInternetForm() {
     formData.append('name', name);
     formData.append('phone', phone);
     formData.append('email', email);
+    
+    // 기존 인터넷 회선 정보 추가
+    if (selectedData.currentCompany) {
+        formData.append('currentCompany', selectedData.currentCompany);
+    }
     
     // 실제 제출 로직
     fetch('/MVNO/api/submit-internet-application.php', {

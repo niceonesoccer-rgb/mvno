@@ -146,43 +146,73 @@ function saveMvnoProduct($productData) {
             $priceAfterValue = floatval($productData['price_after']);
         }
         
+        // 약정기간 단위 처리: 값과 단위를 함께 저장 (예: "181일", "2개월")
+        $contractPeriod = $productData['contract_period'] ?? '';
+        $contractPeriodDays = null;
+        if ($contractPeriod === '직접입력' && !empty($productData['contract_period_days'])) {
+            $days = intval($productData['contract_period_days']);
+            $unit = $productData['contract_period_unit'] ?? '일';
+            // 기존 데이터 호환성: "월"도 "개월"로 처리
+            if ($unit === '월') {
+                $unit = '개월';
+            }
+            // 값과 단위를 함께 저장 (예: "181일", "2개월")
+            $contractPeriod = $days . $unit;
+            // contract_period_days는 하위 호환성을 위해 유지 (일 단위일 때만)
+            if ($unit === '일') {
+                $contractPeriodDays = $days;
+            }
+        }
+        
+        // 할인기간 단위 처리: 직접입력일 때 값과 단위를 조합
+        $discountPeriod = $productData['discount_period'] ?? '';
+        if ($discountPeriod === '직접입력' && !empty($productData['discount_period_value'])) {
+            $discountValue = intval($productData['discount_period_value']);
+            $discountUnit = $productData['discount_period_unit'] ?? '개월';
+            // 기존 데이터 호환성: "월"도 "개월"로 변환
+            if ($discountUnit === '월') {
+                $discountUnit = '개월';
+            }
+            $discountPeriod = $discountValue . $discountUnit;
+        }
+        
         // 파라미터 배열 준비 (공통)
         $params = [
             ':provider' => $productData['provider'] ?? '',
             ':service_type' => $productData['service_type'] ?? null,
             ':plan_name' => $productData['plan_name'] ?? '',
-            ':contract_period' => $productData['contract_period'] ?? null,
-            ':contract_period_days' => $productData['contract_period_days'] ?? null,
-            ':discount_period' => $productData['discount_period'] ?? null,
+            ':contract_period' => $contractPeriod ?: null,
+            ':contract_period_days' => $contractPeriodDays,
+            ':discount_period' => $discountPeriod ?: null,
             ':price_main' => isset($productData['price_main']) ? floatval($productData['price_main']) : 0,
             ':price_after' => $priceAfterValue,
             ':data_amount' => $productData['data_amount'] ?? null,
-            ':data_amount_value' => $productData['data_amount_value'] ?? null,
+            ':data_amount_value' => ($productData['data_amount'] === '직접입력' && !empty($productData['data_amount_value'])) ? ($productData['data_amount_value'] . ($productData['data_unit'] ?? 'GB')) : ($productData['data_amount_value'] ?? null),
             ':data_unit' => $productData['data_unit'] ?? null,
             ':data_additional' => $productData['data_additional'] ?? null,
             ':data_additional_value' => $productData['data_additional_value'] ?? null,
             ':data_exhausted' => $productData['data_exhausted'] ?? null,
             ':data_exhausted_value' => $productData['data_exhausted_value'] ?? null,
             ':call_type' => $productData['call_type'] ?? null,
-            ':call_amount' => $productData['call_amount'] ?? null,
+            ':call_amount' => ($productData['call_type'] === '직접입력' && !empty($productData['call_amount'])) ? ($productData['call_amount'] . ($productData['call_amount_unit'] ?? '분')) : ($productData['call_amount'] ?? null),
             ':additional_call_type' => $productData['additional_call_type'] ?? null,
-            ':additional_call' => $productData['additional_call'] ?? null,
+            ':additional_call' => ($productData['additional_call_type'] === '직접입력' && !empty($productData['additional_call'])) ? ($productData['additional_call'] . ($productData['additional_call_unit'] ?? '분')) : ($productData['additional_call'] ?? null),
             ':sms_type' => $productData['sms_type'] ?? null,
-            ':sms_amount' => $productData['sms_amount'] ?? null,
+            ':sms_amount' => ($productData['sms_type'] === '직접입력' && !empty($productData['sms_amount'])) ? ($productData['sms_amount'] . ($productData['sms_amount_unit'] ?? '건')) : ($productData['sms_amount'] ?? null),
             ':mobile_hotspot' => $productData['mobile_hotspot'] ?? null,
-            ':mobile_hotspot_value' => $productData['mobile_hotspot_value'] ?? null,
+            ':mobile_hotspot_value' => ($productData['mobile_hotspot'] === '직접선택' && !empty($productData['mobile_hotspot_value'])) ? ($productData['mobile_hotspot_value'] . ($productData['mobile_hotspot_unit'] ?? 'GB')) : ($productData['mobile_hotspot_value'] ?? null),
             ':regular_sim_available' => $productData['regular_sim_available'] ?? null,
-            ':regular_sim_price' => $productData['regular_sim_price'] ?? null,
+            ':regular_sim_price' => (!empty($productData['regular_sim_price']) && ($productData['regular_sim_available'] ?? '') === '배송가능') ? ($productData['regular_sim_price'] . ($productData['regular_sim_price_unit'] ?? '원')) : ($productData['regular_sim_price'] ?? null),
             ':nfc_sim_available' => $productData['nfc_sim_available'] ?? null,
-            ':nfc_sim_price' => $productData['nfc_sim_price'] ?? null,
+            ':nfc_sim_price' => (!empty($productData['nfc_sim_price']) && ($productData['nfc_sim_available'] ?? '') === '배송가능') ? ($productData['nfc_sim_price'] . ($productData['nfc_sim_price_unit'] ?? '원')) : ($productData['nfc_sim_price'] ?? null),
             ':esim_available' => $productData['esim_available'] ?? null,
-            ':esim_price' => $productData['esim_price'] ?? null,
-            ':over_data_price' => $productData['over_data_price'] ?? null,
-            ':over_voice_price' => $productData['over_voice_price'] ?? null,
-            ':over_video_price' => $productData['over_video_price'] ?? null,
-            ':over_sms_price' => $productData['over_sms_price'] ?? null,
-            ':over_lms_price' => $productData['over_lms_price'] ?? null,
-            ':over_mms_price' => $productData['over_mms_price'] ?? null,
+            ':esim_price' => (!empty($productData['esim_price']) && ($productData['esim_available'] ?? '') === '개통가능') ? ($productData['esim_price'] . ($productData['esim_price_unit'] ?? '원')) : ($productData['esim_price'] ?? null),
+            ':over_data_price' => (!empty($productData['over_data_price'])) ? ($productData['over_data_price'] . ($productData['over_data_price_unit'] ?? '원/MB')) : null,
+            ':over_voice_price' => (!empty($productData['over_voice_price'])) ? ($productData['over_voice_price'] . ($productData['over_voice_price_unit'] ?? '원/초')) : null,
+            ':over_video_price' => (!empty($productData['over_video_price'])) ? ($productData['over_video_price'] . ($productData['over_video_price_unit'] ?? '원/초')) : null,
+            ':over_sms_price' => (!empty($productData['over_sms_price'])) ? ($productData['over_sms_price'] . ($productData['over_sms_price_unit'] ?? '원/건')) : null,
+            ':over_lms_price' => (!empty($productData['over_lms_price'])) ? ($productData['over_lms_price'] . ($productData['over_lms_price_unit'] ?? '원/건')) : null,
+            ':over_mms_price' => (!empty($productData['over_mms_price'])) ? ($productData['over_mms_price'] . ($productData['over_mms_price_unit'] ?? '원/건')) : null,
             ':promotion_title' => $productData['promotion_title'] ?? null,
             ':promotions' => !empty($productData['promotions']) ? json_encode($productData['promotions']) : null,
             ':benefits' => !empty($productData['benefits']) ? json_encode($productData['benefits']) : null,
@@ -672,13 +702,21 @@ function saveInternetProduct($productData) {
             $productId = $pdo->lastInsertId();
         }
         
-        // 가격 데이터 처리 및 필터링
-        $processPrices = function($prices) {
+        // 가격 데이터 처리 및 필터링 (단위 포함, 정수로 저장)
+        $processPrices = function($prices, $units = []) {
             if (empty($prices) || !is_array($prices)) return [];
-            return array_map(function($price) {
+            return array_map(function($price, $index) use ($units) {
                 if (empty($price)) return '';
-                return preg_replace('/[^0-9.-]/', '', str_replace(',', '', $price)) ?: '';
-            }, $prices);
+                // 이미 단위가 포함된 경우 숫자 부분만 정수로 변환
+                if (preg_match('/^(\d+)([가-힣]+)$/', $price, $matches)) {
+                    $numericValue = intval($matches[1]); // 정수로 변환
+                    return $numericValue . $matches[2];
+                }
+                // 숫자만 있는 경우 정수로 변환 후 단위 추가
+                $numericValue = intval(preg_replace('/[^0-9]/', '', str_replace(',', '', $price)));
+                $unit = isset($units[$index]) && !empty($units[$index]) ? $units[$index] : '원';
+                return $numericValue ? ($numericValue . $unit) : '';
+            }, $prices, array_keys($prices));
         };
         
         $filterArrays = function($names, $prices) {
@@ -693,21 +731,48 @@ function saveInternetProduct($productData) {
             return $filtered;
         };
         
+        // 월 요금 처리 (정수로 저장, 쉼표 및 소수점 제거)
+        $monthlyFee = '';
+        if (!empty($productData['monthly_fee'])) {
+            // 표시용 쉼표 제거 후 숫자만 추출
+            $cleanValue = str_replace(',', '', $productData['monthly_fee']);
+            
+            // 이미 단위가 포함된 경우 숫자 부분만 추출하여 정수로 변환
+            if (preg_match('/^(\d+)([가-힣]+)$/', $cleanValue, $matches)) {
+                $numericValue = intval($matches[1]); // 정수로 변환 (소수점 제거)
+                $unit = $matches[2];
+                $monthlyFee = $numericValue . $unit;
+            } else {
+                // 숫자만 있는 경우 소수점 제거 후 정수로 변환하고 단위 추가
+                $numericValue = intval(preg_replace('/[^0-9]/', '', $cleanValue));
+                $unit = $productData['monthly_fee_unit'] ?? '원';
+                $monthlyFee = $numericValue ? ($numericValue . $unit) : '';
+            }
+        }
+        
         $cashData = $filterArrays(
             $productData['cash_payment_names'] ?? [],
-            $processPrices($productData['cash_payment_prices'] ?? [])
+            $processPrices($productData['cash_payment_prices'] ?? [], $productData['cash_payment_price_units'] ?? [])
         );
         $giftCardData = $filterArrays(
             $productData['gift_card_names'] ?? [],
-            $processPrices($productData['gift_card_prices'] ?? [])
+            $processPrices($productData['gift_card_prices'] ?? [], $productData['gift_card_price_units'] ?? [])
         );
+        // 장비 및 설치 가격은 텍스트 그대로 저장 (숫자 변환 없이, 앞뒤 공백만 제거)
+        $equipmentPrices = array_map(function($price) {
+            return is_string($price) ? trim($price) : (string)$price;
+        }, $productData['equipment_prices'] ?? []);
+        $installationPrices = array_map(function($price) {
+            return is_string($price) ? trim($price) : (string)$price;
+        }, $productData['installation_prices'] ?? []);
+        
         $equipmentData = $filterArrays(
             $productData['equipment_names'] ?? [],
-            $processPrices($productData['equipment_prices'] ?? [])
+            $equipmentPrices
         );
         $installationData = $filterArrays(
             $productData['installation_names'] ?? [],
-            $processPrices($productData['installation_prices'] ?? [])
+            $installationPrices
         );
         
         // 상세 정보 저장/업데이트
@@ -755,8 +820,9 @@ function saveInternetProduct($productData) {
         $stmt->execute([
             ':product_id' => $productId,
             ':registration_place' => $productData['registration_place'] ?? '',
+            ':monthly_fee' => $monthlyFee,
             ':speed_option' => $productData['speed_option'] ?? null,
-            ':monthly_fee' => $productData['monthly_fee'] ?? 0,
+            ':monthly_fee' => $monthlyFee,
             ':cash_payment_names' => json_encode($cashData['names'] ?? [], JSON_UNESCAPED_UNICODE),
             ':cash_payment_prices' => json_encode($cashData['prices'] ?? [], JSON_UNESCAPED_UNICODE),
             ':gift_card_names' => json_encode($giftCardData['names'] ?? [], JSON_UNESCAPED_UNICODE),
@@ -1091,6 +1157,19 @@ function addProductApplication($productId, $sellerId, $productType, $customerDat
         }
         
         $applicationId = $pdo->lastInsertId();
+        
+        // application_count 업데이트 (트리거가 작동하지 않을 경우를 대비)
+        try {
+            $updateStmt = $pdo->prepare("
+                UPDATE products 
+                SET application_count = application_count + 1 
+                WHERE id = :product_id
+            ");
+            $updateStmt->execute([':product_id' => $productId]);
+        } catch (PDOException $e) {
+            // 업데이트 실패해도 계속 진행 (트리거가 처리할 수 있음)
+            error_log("Failed to update application_count: " . $e->getMessage());
+        }
         
         // 2. 고객 정보 등록
         $stmt = $pdo->prepare("
@@ -1427,6 +1506,551 @@ function getUserMvnoApplications($userId) {
     } catch (PDOException $e) {
         error_log("Error fetching user MVNO applications: " . $e->getMessage());
         return [];
+    }
+}
+
+/**
+ * 관리자용 - 모든 판매자의 알뜰폰 접수건 조회
+ * @param array $filters 필터 조건 (seller_id, status, date_from, date_to 등)
+ * @param int $page 페이지 번호
+ * @param int $perPage 페이지당 항목 수
+ * @return array ['applications' => [], 'total' => 0, 'totalPages' => 0]
+ */
+function getAllAdminMvnoApplications($filters = [], $page = 1, $perPage = 20) {
+    $pdo = getDBConnection();
+    if (!$pdo) {
+        return ['applications' => [], 'total' => 0, 'totalPages' => 0];
+    }
+    
+    try {
+        // WHERE 조건 구성
+        $whereConditions = ["a.product_type = 'mvno'"];
+        $params = [];
+        
+        // 판매자 필터
+        if (!empty($filters['seller_id'])) {
+            $whereConditions[] = 'a.seller_id = :seller_id';
+            $params[':seller_id'] = $filters['seller_id'];
+        }
+        
+        // 상태 필터 (판매자 페이지와 동일하게)
+        if (!empty($filters['status'])) {
+            if ($filters['status'] === 'received') {
+                // 'received' 필터링 시 빈 문자열, null, 'pending'도 포함
+                $whereConditions[] = "(a.application_status = :status OR a.application_status = '' OR a.application_status IS NULL OR LOWER(TRIM(a.application_status)) = 'pending')";
+                $params[':status'] = 'received';
+            } else {
+                $whereConditions[] = 'a.application_status = :status';
+                $params[':status'] = $filters['status'];
+            }
+        }
+        
+        // 날짜 필터
+        if (!empty($filters['date_from'])) {
+            $whereConditions[] = 'DATE(a.created_at) >= :date_from';
+            $params[':date_from'] = $filters['date_from'];
+        }
+        if (!empty($filters['date_to'])) {
+            $whereConditions[] = 'DATE(a.created_at) <= :date_to';
+            $params[':date_to'] = $filters['date_to'];
+        }
+        
+        // 고객정보 검색 필터 (고객명, 전화번호, 이메일, 회원아이디)
+        if (!empty($filters['customer_search'])) {
+            $whereConditions[] = '(c.name LIKE :customer_search OR c.phone LIKE :customer_search OR c.email LIKE :customer_search OR CAST(c.user_id AS CHAR) LIKE :customer_search)';
+            $params[':customer_search'] = '%' . $filters['customer_search'] . '%';
+        }
+        
+        // 판매자정보 검색 필터는 나중에 PHP에서 처리 (users 테이블이 없을 수 있음)
+        // seller_search는 쿼리 결과를 가져온 후 PHP에서 필터링
+        
+        // 주문번호 검색
+        if (!empty($filters['order_number'])) {
+            $whereConditions[] = 'a.order_number LIKE :order_number';
+            $params[':order_number'] = '%' . $filters['order_number'] . '%';
+        }
+        
+        $whereClause = implode(' AND ', $whereConditions);
+        
+        // COUNT 쿼리용 JOIN 구성 (users 테이블은 JSON 파일에서 가져오므로 JOIN 제거)
+        $countJoins = ["INNER JOIN application_customers c ON a.id = c.application_id"];
+        
+        // seller_search 필터는 나중에 PHP에서 처리 (users 테이블이 없을 수 있음)
+        
+        // 전체 개수 조회
+        $countSql = "
+            SELECT COUNT(*) as total
+            FROM product_applications a
+            " . implode("\n            ", $countJoins) . "
+            WHERE {$whereClause}
+        ";
+        
+        // 디버깅: 쿼리 정보 로깅
+        error_log("MVNO COUNT 쿼리 디버깅:");
+        error_log("WHERE 절: " . $whereClause);
+        error_log("파라미터: " . json_encode($params));
+        error_log("SQL: " . $countSql);
+        
+        try {
+            $countStmt = $pdo->prepare($countSql);
+            
+            // 파라미터 바인딩
+            foreach ($params as $key => $value) {
+                $countStmt->bindValue($key, $value);
+            }
+            
+            if (!$countStmt->execute()) {
+                $errorInfo = $countStmt->errorInfo();
+                error_log("MVNO COUNT 쿼리 실행 실패: " . json_encode($errorInfo));
+                error_log("SQL: " . $countSql);
+                error_log("Params: " . json_encode($params));
+                throw new PDOException("COUNT 쿼리 실행 실패: " . ($errorInfo[2] ?? 'Unknown error'));
+            }
+            
+            $countResult = $countStmt->fetch(PDO::FETCH_ASSOC);
+            $total = $countResult ? (int)$countResult['total'] : 0;
+            error_log("MVNO COUNT 쿼리 결과: " . $total);
+        } catch (PDOException $e) {
+            error_log("MVNO COUNT 쿼리 예외: " . $e->getMessage());
+            error_log("SQL: " . $countSql);
+            error_log("Params: " . json_encode($params));
+            error_log("WHERE 절: " . $whereClause);
+            
+            // 오류 발생 시 간단한 COUNT 쿼리로 대체 시도
+            try {
+                $fallbackSql = "
+                    SELECT COUNT(*) as total
+                    FROM product_applications a
+                    INNER JOIN application_customers c ON a.id = c.application_id
+                    WHERE a.product_type = 'mvno'
+                ";
+                $fallbackStmt = $pdo->query($fallbackSql);
+                $fallbackResult = $fallbackStmt->fetch(PDO::FETCH_ASSOC);
+                $total = $fallbackResult ? (int)$fallbackResult['total'] : 0;
+                error_log("MVNO COUNT 대체 쿼리 결과: " . $total);
+            } catch (Exception $fallbackE) {
+                error_log("MVNO COUNT 대체 쿼리도 실패: " . $fallbackE->getMessage());
+                $total = 0;
+            }
+        }
+        
+        $totalPages = ceil($total / $perPage);
+        
+        // 디버깅: COUNT 결과 확인
+        if ($total == 0) {
+            error_log("MVNO 접수건 COUNT 쿼리 결과: " . $total);
+            error_log("WHERE 절: " . $whereClause);
+            error_log("파라미터: " . json_encode($params));
+            error_log("SQL: " . $countSql);
+            
+            // 간단한 COUNT 쿼리로 비교
+            try {
+                $simpleCountStmt = $pdo->query("
+                    SELECT COUNT(*) as cnt 
+                    FROM product_applications a
+                    INNER JOIN application_customers c ON a.id = c.application_id
+                    WHERE a.product_type = 'mvno'
+                ");
+                $simpleCount = $simpleCountStmt->fetch(PDO::FETCH_ASSOC);
+                error_log("간단한 COUNT 결과: " . ($simpleCount['cnt'] ?? 0));
+            } catch (Exception $e) {
+                error_log("간단한 COUNT 오류: " . $e->getMessage());
+            }
+        }
+        
+        // 접수건 목록 조회
+        $offset = ($page - 1) * $perPage;
+        $applications = [];
+        
+        try {
+            $selectSql = "
+                SELECT 
+                    a.id as application_id,
+                    a.product_id,
+                    a.seller_id,
+                    a.order_number,
+                    a.application_status,
+                    a.created_at as order_date,
+                    a.updated_at,
+                    c.id as customer_id,
+                    c.user_id as customer_user_id,
+                    c.name as customer_name,
+                    c.phone as customer_phone,
+                    c.email as customer_email,
+                    c.address,
+                    c.address_detail,
+                    c.birth_date,
+                    c.gender,
+                    c.additional_info,
+                    mvno.plan_name,
+                    mvno.provider,
+                    mvno.contract_type,
+                    mvno.price_main,
+                    mvno.price_after,
+                    mvno.discount_period,
+                    mvno.data_amount,
+                    mvno.data_amount_value,
+                    mvno.data_unit,
+                    mvno.data_additional,
+                    mvno.data_additional_value,
+                    mvno.data_exhausted,
+                    mvno.data_exhausted_value,
+                    mvno.call_type,
+                    mvno.call_amount,
+                    mvno.sms_type,
+                    mvno.sms_amount,
+                    mvno.service_type,
+                    mvno.promotions,
+                    p.status as product_status
+                FROM product_applications a
+                INNER JOIN application_customers c ON a.id = c.application_id
+                LEFT JOIN products p ON a.product_id = p.id
+                LEFT JOIN product_mvno_details mvno ON p.id = mvno.product_id
+                WHERE {$whereClause}
+                ORDER BY a.created_at DESC
+                LIMIT :limit OFFSET :offset
+            ";
+            
+            $stmt = $pdo->prepare($selectSql);
+            
+            foreach ($params as $key => $value) {
+                $stmt->bindValue($key, $value);
+            }
+            $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
+            $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+            
+            if (!$stmt->execute()) {
+                $errorInfo = $stmt->errorInfo();
+                error_log("MVNO SELECT 쿼리 실행 실패: " . json_encode($errorInfo));
+                error_log("SQL: " . $selectSql);
+                error_log("WHERE 절: " . $whereClause);
+                error_log("Params: " . json_encode($params));
+                throw new PDOException("SELECT 쿼리 실행 실패: " . ($errorInfo[2] ?? 'Unknown error'));
+            }
+            
+            $applications = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("MVNO SELECT 쿼리 예외: " . $e->getMessage());
+            error_log("WHERE 절: " . $whereClause);
+            error_log("Params: " . json_encode($params));
+            $applications = [];
+        }
+        
+        // 디버깅: 쿼리 결과 로깅
+        if (empty($applications) && $total > 0) {
+            error_log("MVNO 접수건 조회 오류: 총 " . $total . "건인데 결과가 없음. WHERE 조건: " . $whereClause);
+            error_log("파라미터: " . json_encode($params));
+        }
+        
+        // 판매자 정보를 JSON 파일에서 가져와서 추가
+        require_once __DIR__ . '/plan-data.php';
+        foreach ($applications as &$app) {
+            $sellerId = $app['seller_id'] ?? null;
+            if ($sellerId) {
+                $seller = getSellerById($sellerId);
+                if ($seller) {
+                    $app['seller_user_id'] = $seller['user_id'] ?? $sellerId;
+                    $app['seller_name'] = $seller['name'] ?? ($seller['company_name'] ?? '판매자 정보 없음');
+                    $app['seller_company_name'] = $seller['company_name'] ?? '';
+                } else {
+                    $app['seller_user_id'] = $sellerId;
+                    $app['seller_name'] = '판매자 정보 없음';
+                    $app['seller_company_name'] = '';
+                }
+            }
+        }
+        unset($app);
+        
+        // seller_search 필터가 있으면 PHP에서 필터링
+        if (!empty($filters['seller_search'])) {
+            $searchTerm = strtolower($filters['seller_search']);
+            $applications = array_filter($applications, function($app) use ($searchTerm) {
+                $sellerId = strtolower($app['seller_user_id'] ?? '');
+                $sellerName = strtolower($app['seller_name'] ?? '');
+                $companyName = strtolower($app['seller_company_name'] ?? '');
+                return strpos($sellerId, $searchTerm) !== false || 
+                       strpos($sellerName, $searchTerm) !== false || 
+                       strpos($companyName, $searchTerm) !== false;
+            });
+            $applications = array_values($applications);
+            // 필터링 후 total 재계산
+            $total = count($applications);
+            $totalPages = ceil($total / $perPage);
+        }
+        
+        return [
+            'applications' => $applications,
+            'total' => $total,
+            'totalPages' => $totalPages
+        ];
+    } catch (PDOException $e) {
+        error_log("Error fetching admin MVNO applications: " . $e->getMessage());
+        error_log("SQL Error Info: " . json_encode($e->errorInfo ?? []));
+        error_log("WHERE Clause: " . ($whereClause ?? 'N/A'));
+        error_log("Params: " . json_encode($params ?? []));
+        return ['applications' => [], 'total' => 0, 'totalPages' => 0];
+    }
+}
+
+/**
+ * 관리자용 - 모든 판매자의 통신사폰 접수건 조회
+ */
+function getAllAdminMnoApplications($filters = [], $page = 1, $perPage = 20) {
+    $pdo = getDBConnection();
+    if (!$pdo) {
+        return ['applications' => [], 'total' => 0, 'totalPages' => 0];
+    }
+    
+    try {
+        $whereConditions = ["a.product_type = 'mno'"];
+        $params = [];
+        
+        if (!empty($filters['seller_id'])) {
+            $whereConditions[] = 'a.seller_id = :seller_id';
+            $params[':seller_id'] = $filters['seller_id'];
+        }
+        // 상태 필터 (판매자 페이지와 동일하게)
+        if (!empty($filters['status'])) {
+            if ($filters['status'] === 'received') {
+                // 'received' 필터링 시 빈 문자열, null, 'pending'도 포함
+                $whereConditions[] = "(a.application_status = :status OR a.application_status = '' OR a.application_status IS NULL OR LOWER(TRIM(a.application_status)) = 'pending')";
+                $params[':status'] = 'received';
+            } else {
+                $whereConditions[] = 'a.application_status = :status';
+                $params[':status'] = $filters['status'];
+            }
+        }
+        if (!empty($filters['date_from'])) {
+            $whereConditions[] = 'DATE(a.created_at) >= :date_from';
+            $params[':date_from'] = $filters['date_from'];
+        }
+        if (!empty($filters['date_to'])) {
+            $whereConditions[] = 'DATE(a.created_at) <= :date_to';
+            $params[':date_to'] = $filters['date_to'];
+        }
+        // 고객정보 검색 필터
+        if (!empty($filters['customer_search'])) {
+            $whereConditions[] = '(c.name LIKE :customer_search OR c.phone LIKE :customer_search OR c.email LIKE :customer_search OR CAST(c.user_id AS CHAR) LIKE :customer_search)';
+            $params[':customer_search'] = '%' . $filters['customer_search'] . '%';
+        }
+        
+        // 판매자정보 검색 필터
+        if (!empty($filters['seller_search'])) {
+            $whereConditions[] = '(CAST(u.user_id AS CHAR) LIKE :seller_search OR u.name LIKE :seller_search OR u.company_name LIKE :seller_search)';
+            $params[':seller_search'] = '%' . $filters['seller_search'] . '%';
+        }
+        
+        // 주문번호 검색
+        if (!empty($filters['order_number'])) {
+            $whereConditions[] = 'a.order_number LIKE :order_number';
+            $params[':order_number'] = '%' . $filters['order_number'] . '%';
+        }
+        
+        $whereClause = implode(' AND ', $whereConditions);
+        
+        $countStmt = $pdo->prepare("
+            SELECT COUNT(*) as total
+            FROM product_applications a
+            INNER JOIN application_customers c ON a.id = c.application_id
+            LEFT JOIN users u ON a.seller_id = u.user_id
+            WHERE {$whereClause}
+        ");
+        $countStmt->execute($params);
+        $total = $countStmt->fetch()['total'];
+        $totalPages = ceil($total / $perPage);
+        
+        $offset = ($page - 1) * $perPage;
+        $stmt = $pdo->prepare("
+            SELECT 
+                a.id as application_id,
+                a.product_id,
+                a.seller_id,
+                a.order_number,
+                a.application_status,
+                a.created_at as order_date,
+                a.updated_at,
+                c.id as customer_id,
+                c.user_id as customer_user_id,
+                c.name as customer_name,
+                c.phone as customer_phone,
+                c.email as customer_email,
+                c.address,
+                c.address_detail,
+                c.birth_date,
+                c.gender,
+                c.additional_info,
+                mno.device_name,
+                mno.device_model,
+                mno.device_capacity,
+                mno.device_colors,
+                mno.delivery_method,
+                mno.device_price,
+                mno.contract_period,
+                mno.contract_period_days,
+                mno.discount_amount,
+                mno.discount_type,
+                mno.contract_type,
+                mno.contract_provider,
+                p.status as product_status,
+                u.user_id as seller_user_id,
+                u.name as seller_name,
+                u.company_name as seller_company_name
+            FROM product_applications a
+            INNER JOIN application_customers c ON a.id = c.application_id
+            LEFT JOIN products p ON a.product_id = p.id
+            LEFT JOIN product_mno_details mno ON p.id = mno.product_id
+            LEFT JOIN users u ON a.seller_id = u.user_id
+            WHERE {$whereClause}
+            ORDER BY a.created_at DESC
+            LIMIT :limit OFFSET :offset
+        ");
+        
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value);
+        }
+        $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
+        $applications = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        return [
+            'applications' => $applications,
+            'total' => $total,
+            'totalPages' => $totalPages
+        ];
+    } catch (PDOException $e) {
+        error_log("Error fetching admin MNO applications: " . $e->getMessage());
+        return ['applications' => [], 'total' => 0, 'totalPages' => 0];
+    }
+}
+
+/**
+ * 관리자용 - 모든 판매자의 인터넷 접수건 조회
+ */
+function getAllAdminInternetApplications($filters = [], $page = 1, $perPage = 20) {
+    $pdo = getDBConnection();
+    if (!$pdo) {
+        return ['applications' => [], 'total' => 0, 'totalPages' => 0];
+    }
+    
+    try {
+        $whereConditions = ["a.product_type = 'internet'"];
+        $params = [];
+        
+        if (!empty($filters['seller_id'])) {
+            $whereConditions[] = 'a.seller_id = :seller_id';
+            $params[':seller_id'] = $filters['seller_id'];
+        }
+        // 상태 필터 (판매자 페이지와 동일하게)
+        if (!empty($filters['status'])) {
+            if ($filters['status'] === 'received') {
+                // 'received' 필터링 시 빈 문자열, null, 'pending'도 포함
+                $whereConditions[] = "(a.application_status = :status OR a.application_status = '' OR a.application_status IS NULL OR LOWER(TRIM(a.application_status)) = 'pending')";
+                $params[':status'] = 'received';
+            } else {
+                $whereConditions[] = 'a.application_status = :status';
+                $params[':status'] = $filters['status'];
+            }
+        }
+        if (!empty($filters['date_from'])) {
+            $whereConditions[] = 'DATE(a.created_at) >= :date_from';
+            $params[':date_from'] = $filters['date_from'];
+        }
+        if (!empty($filters['date_to'])) {
+            $whereConditions[] = 'DATE(a.created_at) <= :date_to';
+            $params[':date_to'] = $filters['date_to'];
+        }
+        // 고객정보 검색 필터
+        if (!empty($filters['customer_search'])) {
+            $whereConditions[] = '(c.name LIKE :customer_search OR c.phone LIKE :customer_search OR c.email LIKE :customer_search OR CAST(c.user_id AS CHAR) LIKE :customer_search)';
+            $params[':customer_search'] = '%' . $filters['customer_search'] . '%';
+        }
+        
+        // 판매자정보 검색 필터
+        if (!empty($filters['seller_search'])) {
+            $whereConditions[] = '(CAST(u.user_id AS CHAR) LIKE :seller_search OR u.name LIKE :seller_search OR u.company_name LIKE :seller_search)';
+            $params[':seller_search'] = '%' . $filters['seller_search'] . '%';
+        }
+        
+        // 주문번호 검색
+        if (!empty($filters['order_number'])) {
+            $whereConditions[] = 'a.order_number LIKE :order_number';
+            $params[':order_number'] = '%' . $filters['order_number'] . '%';
+        }
+        
+        $whereClause = implode(' AND ', $whereConditions);
+        
+        $countStmt = $pdo->prepare("
+            SELECT COUNT(*) as total
+            FROM product_applications a
+            INNER JOIN application_customers c ON a.id = c.application_id
+            LEFT JOIN products p ON a.product_id = p.id
+            LEFT JOIN users u ON a.seller_id = u.user_id
+            WHERE {$whereClause}
+        ");
+        $countStmt->execute($params);
+        $total = $countStmt->fetch()['total'];
+        $totalPages = ceil($total / $perPage);
+        
+        $offset = ($page - 1) * $perPage;
+        $stmt = $pdo->prepare("
+            SELECT 
+                a.id as application_id,
+                a.product_id,
+                a.seller_id,
+                a.order_number,
+                a.application_status,
+                a.created_at as order_date,
+                a.updated_at,
+                c.id as customer_id,
+                c.user_id as customer_user_id,
+                c.name as customer_name,
+                c.phone as customer_phone,
+                c.email as customer_email,
+                c.address,
+                c.address_detail,
+                c.birth_date,
+                c.gender,
+                c.additional_info,
+                internet.service_name,
+                internet.service_type,
+                internet.speed,
+                internet.price,
+                internet.contract_period,
+                internet.contract_period_days,
+                internet.installation_fee,
+                internet.promotions,
+                internet.existing_line,
+                p.status as product_status,
+                u.user_id as seller_user_id,
+                u.name as seller_name,
+                u.company_name as seller_company_name
+            FROM product_applications a
+            INNER JOIN application_customers c ON a.id = c.application_id
+            LEFT JOIN products p ON a.product_id = p.id
+            LEFT JOIN product_internet_details internet ON p.id = internet.product_id
+            LEFT JOIN users u ON a.seller_id = u.user_id
+            WHERE {$whereClause}
+            ORDER BY a.created_at DESC
+            LIMIT :limit OFFSET :offset
+        ");
+        
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value);
+        }
+        $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
+        $applications = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        return [
+            'applications' => $applications,
+            'total' => $total,
+            'totalPages' => $totalPages
+        ];
+    } catch (PDOException $e) {
+        error_log("Error fetching admin Internet applications: " . $e->getMessage());
+        return ['applications' => [], 'total' => 0, 'totalPages' => 0];
     }
 }
 

@@ -178,19 +178,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <form method="POST" id="loginForm">
                 <div class="form-group">
                     <label for="user_id">아이디</label>
-                    <input type="text" id="user_id" name="user_id" value="57575757" required autofocus>
+                    <input type="text" id="user_id" name="user_id" value="<?php echo htmlspecialchars($_POST['user_id'] ?? ''); ?>" required autofocus>
                 </div>
                 
                 <div class="form-group">
                     <label for="password">비밀번호</label>
-                    <input type="password" id="password" name="password" value="57575757" required>
+                    <input type="password" id="password" name="password" required>
                 </div>
                 
                 <button type="submit" class="login-button">로그인</button>
             </form>
             
             <div class="register-link">
-                계정이 없으신가요? <a href="/MVNO/seller/register.php">판매자 가입</a>
+                계정이 없으신가요? <a href="register.php">판매자 가입</a>
             </div>
         </div>
     </div>

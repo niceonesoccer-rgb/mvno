@@ -354,6 +354,22 @@ if (file_exists($adminsFile)) {
         }
         
         .menu-section:nth-child(4) .menu-item-icon {
+            background: rgba(239, 68, 68, 0.2);
+        }
+        
+        .menu-section:nth-child(4) .menu-item-icon svg {
+            stroke: #f87171;
+        }
+        
+        .menu-section:nth-child(4) .menu-item:hover .menu-item-icon {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.4) 0%, rgba(220, 38, 38, 0.3) 100%);
+        }
+        
+        .menu-section:nth-child(4) .menu-item.active .menu-item-icon {
+            background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+        }
+        
+        .menu-section:nth-child(5) .menu-item-icon {
             background: rgba(236, 72, 153, 0.2);
         }
         
@@ -430,6 +446,22 @@ if (file_exists($adminsFile)) {
         }
         
         .menu-section:nth-child(8) .menu-item.active .menu-item-icon {
+            background: linear-gradient(135deg, #a5b4fc 0%, #818cf8 100%);
+        }
+        
+        .menu-section:nth-child(9) .menu-item-icon {
+            background: rgba(99, 102, 241, 0.2);
+        }
+        
+        .menu-section:nth-child(9) .menu-item-icon svg {
+            stroke: #a5b4fc;
+        }
+        
+        .menu-section:nth-child(9) .menu-item:hover .menu-item-icon {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.4) 0%, rgba(79, 70, 229, 0.3) 100%);
+        }
+        
+        .menu-section:nth-child(9) .menu-item.active .menu-item-icon {
             background: linear-gradient(135deg, #a5b4fc 0%, #818cf8 100%);
         }
         
@@ -562,6 +594,38 @@ if (file_exists($adminsFile)) {
                         </svg>
                     </span>
                     회원 관리
+                </a>
+            </div>
+            
+            <!-- 주문 관리 -->
+            <div class="menu-section">
+                <div class="menu-section-title">주문 관리</div>
+                <a href="/MVNO/admin/orders/mvno-list.php" class="menu-item <?php echo ($currentPage === 'mvno-list.php' && strpos($_SERVER['REQUEST_URI'], '/orders/') !== false) ? 'active' : ''; ?>">
+                    <span class="menu-item-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
+                            <line x1="12" y1="18" x2="12.01" y2="18"/>
+                        </svg>
+                    </span>
+                    알뜰폰
+                </a>
+                <a href="/MVNO/admin/orders/mno-list.php" class="menu-item <?php echo ($currentPage === 'mno-list.php' && strpos($_SERVER['REQUEST_URI'], '/orders/') !== false) ? 'active' : ''; ?>">
+                    <span class="menu-item-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                        </svg>
+                    </span>
+                    통신사폰
+                </a>
+                <a href="/MVNO/admin/orders/internet-list.php" class="menu-item <?php echo ($currentPage === 'internet-list.php' && strpos($_SERVER['REQUEST_URI'], '/orders/') !== false) ? 'active' : ''; ?>">
+                    <span class="menu-item-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="2" y1="12" x2="22" y2="12"/>
+                            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                        </svg>
+                    </span>
+                    인터넷
                 </a>
             </div>
             

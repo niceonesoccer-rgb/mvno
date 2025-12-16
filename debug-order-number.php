@@ -81,3 +81,5 @@ if (!empty($duplicates)) {
     }
     echo "</table>";
 }
+
+

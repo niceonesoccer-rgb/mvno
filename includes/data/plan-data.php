@@ -21,7 +21,13 @@ function convertMvnoProductToPlanCard($product) {
         if ($product['data_amount'] === '무제한') {
             $dataMain = '무제한';
         } elseif ($product['data_amount'] === '직접입력' && !empty($product['data_amount_value'])) {
-            $dataMain = '월 ' . number_format($product['data_amount_value']) . $product['data_unit'];
+            // DB에 저장된 값이 "100GB" 형식이면 그대로 표시
+            $dataAmountValue = $product['data_amount_value'];
+            if (preg_match('/^(\d+)(.+)$/', $dataAmountValue, $matches)) {
+                $dataMain = '월 ' . number_format((float)$matches[1]) . $matches[2];
+            } else {
+                $dataMain = '월 ' . htmlspecialchars($dataAmountValue);
+            }
         } else {
             $dataMain = $product['data_amount'];
         }
@@ -56,7 +62,12 @@ function convertMvnoProductToPlanCard($product) {
         } elseif ($callType === '직접입력' && !empty($product['call_amount'])) {
             $callAmount = trim($product['call_amount']);
             if ($callAmount !== '') {
-                $features[] = '통화 ' . number_format((float)$callAmount) . '분';
+                // DB에 저장된 값이 "300분" 형식이면 그대로 표시
+                if (preg_match('/^(\d+)(.+)$/', $callAmount, $matches)) {
+                    $features[] = '통화 ' . number_format((float)$matches[1]) . $matches[2];
+                } else {
+                    $features[] = '통화 ' . htmlspecialchars($callAmount);
+                }
             }
         }
     }
@@ -71,7 +82,28 @@ function convertMvnoProductToPlanCard($product) {
         } elseif ($smsType === '직접입력' && !empty($product['sms_amount'])) {
             $smsAmount = trim($product['sms_amount']);
             if ($smsAmount !== '') {
-                $features[] = '문자 ' . number_format((float)$smsAmount) . '건';
+                // DB에 저장된 값이 "50건" 또는 "10원/건" 형식이면 그대로 표시
+                if (preg_match('/^(\d+)(.+)$/', $smsAmount, $matches)) {
+                    $features[] = '문자 ' . number_format((float)$matches[1]) . $matches[2];
+                } else {
+                    $features[] = '문자 ' . htmlspecialchars($smsAmount);
+                }
+            }
+        }
+    }
+    
+    // 부가·영상통화 정보 (DB에서 가져온 additional_call_type, additional_call 사용)
+    if (!empty($product['additional_call_type'])) {
+        $additionalCallType = trim($product['additional_call_type']);
+        if ($additionalCallType === '직접입력' && !empty($product['additional_call'])) {
+            $additionalCall = trim($product['additional_call']);
+            if ($additionalCall !== '') {
+                // DB에 저장된 값이 "100분" 형식이면 그대로 표시
+                if (preg_match('/^(\d+)(.+)$/', $additionalCall, $matches)) {
+                    $features[] = '부가·영상 ' . number_format((float)$matches[1]) . $matches[2];
+                } else {
+                    $features[] = '부가·영상 ' . htmlspecialchars($additionalCall);
+                }
             }
         }
     }
@@ -120,13 +152,9 @@ function convertMvnoProductToPlanCard($product) {
         $priceAfter = '월 ' . number_format((float)$originalPriceMain) . '원';
     }
     
-    // 선택 수 포맷팅
-    $selectionCount = '';
-    if (!empty($product['application_count']) && $product['application_count'] > 0) {
-        $selectionCount = number_format($product['application_count']) . '명이 선택';
-    } else {
-        $selectionCount = '0명이 선택';
-    }
+    // 선택 수 포맷팅 (실제 DB의 application_count 사용)
+    $applicationCount = isset($product['application_count']) ? (int)$product['application_count'] : 0;
+    $selectionCount = number_format($applicationCount) . '명이 선택';
     
     // 프로모션 목록 (gifts) - 항목만 포함 (제목 제외)
     $gifts = [];
@@ -217,6 +245,8 @@ function getAllMvnoProductsList($status = 'active') {
                 mvno.data_exhausted_value,
                 mvno.call_type,
                 mvno.call_amount,
+                mvno.additional_call_type,
+                mvno.additional_call,
                 mvno.sms_type,
                 mvno.sms_amount,
                 mvno.promotion_title,
@@ -658,6 +688,8 @@ function getPlansDataFromDB($limit = 10, $status = 'active') {
                 mvno.data_exhausted_value,
                 mvno.call_type,
                 mvno.call_amount,
+                mvno.additional_call_type,
+                mvno.additional_call,
                 mvno.sms_type,
                 mvno.sms_amount,
                 mvno.promotion_title,

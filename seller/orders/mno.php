@@ -34,41 +34,20 @@ if (isset($currentUser['withdrawal_requested']) && $currentUser['withdrawal_requ
 }
 
 // 필터 파라미터
-// status가 빈 문자열이거나 설정되지 않았으면 null로 설정 (전체 검색)
 $status = isset($_GET['status']) && trim($_GET['status']) !== '' ? trim($_GET['status']) : null;
-$searchKeyword = $_GET['search_keyword'] ?? ''; // 통합검색 (주문번호, 고객명, 전화번호)
-$dateFrom = $_GET['date_from'] ?? '';
-$dateTo = $_GET['date_to'] ?? '';
-$dateRange = $_GET['date_range'] ?? '7'; // 기본값 7일
+$searchKeyword = trim($_GET['search_keyword'] ?? '');
+$dateRange = $_GET['date_range'] ?? '7';
 $page = max(1, intval($_GET['page'] ?? 1));
+$perPageValue = isset($_GET['per_page']) ? intval($_GET['per_page']) : 10;
+$perPage = in_array($perPageValue, [10, 20, 50, 100]) ? $perPageValue : 10;
 
-// 기간 선택에 따라 날짜 자동 설정 (기본값 7일)
-if (empty($dateRange)) {
-    $dateRange = '7';
-}
-if ($dateRange && $dateRange !== 'all') {
-    $endDate = date('Y-m-d');
-    switch ($dateRange) {
-        case '7':
-            $dateFrom = date('Y-m-d', strtotime('-7 days'));
-            $dateTo = $endDate;
-            break;
-        case '30':
-            $dateFrom = date('Y-m-d', strtotime('-30 days'));
-            $dateTo = $endDate;
-            break;
-        case '365':
-            $dateFrom = date('Y-m-d', strtotime('-365 days'));
-            $dateTo = $endDate;
-            break;
-    }
-} elseif ($dateRange === 'all') {
-    $dateFrom = '';
-    $dateTo = '';
-}
-$perPage = isset($_GET['per_page']) ? intval($_GET['per_page']) : 10;
-if (!in_array($perPage, [10, 20, 50, 100])) {
-    $perPage = 10;
+// 날짜 설정
+$dateFrom = '';
+$dateTo = '';
+if ($dateRange !== 'all') {
+    $days = ['7' => 7, '30' => 30, '365' => 365][$dateRange] ?? 7;
+    $dateFrom = date('Y-m-d', strtotime("-{$days} days"));
+    $dateTo = date('Y-m-d');
 }
 
 // DB에서 주문 목록 가져오기
@@ -100,39 +79,40 @@ try {
             }
         }
         
-        // 통합검색 (주문번호, 고객명, 전화번호)
+        // 통합검색
         if ($searchKeyword && $searchKeyword !== '') {
             $searchConditions = [];
-            $searchConditions[] = 'c.name LIKE :search_keyword';
-            // 전화번호 검색 (하이픈, 공백 제거 후 검색)
-            $cleanPhoneKeyword = preg_replace('/[^0-9]/', '', $searchKeyword); // 숫자만 추출
-            if (strlen($cleanPhoneKeyword) >= 3) {
-                $searchConditions[] = "REPLACE(REPLACE(REPLACE(c.phone, '-', ''), ' ', ''), '.', '') LIKE :search_keyword_phone";
-                $params[':search_keyword_phone'] = '%' . $cleanPhoneKeyword . '%';
+            
+            // 고객명 검색
+            $searchConditions[] = 'c.name LIKE :search_name';
+            $params[':search_name'] = '%' . $searchKeyword . '%';
+            
+            // 전화번호 검색
+            $cleanPhone = preg_replace('/[^0-9]/', '', $searchKeyword);
+            if (strlen($cleanPhone) >= 3) {
+                $searchConditions[] = "REPLACE(REPLACE(REPLACE(c.phone, '-', ''), ' ', ''), '.', '') LIKE :search_phone";
+                $params[':search_phone'] = '%' . $cleanPhone . '%';
             } else {
-                // 3자리 미만이면 원본 검색어로도 검색
-                $searchConditions[] = 'c.phone LIKE :search_keyword';
+                $searchConditions[] = 'c.phone LIKE :search_phone_fallback';
+                $params[':search_phone_fallback'] = '%' . $searchKeyword . '%';
             }
-            // 주문번호 검색 (order_number 컬럼 기반: YYMMDDHH-0001 형식)
-            // 하이픈 제거 후 검색 (하이픈 포함/미포함 모두 검색 가능)
-            $cleanKeyword = preg_replace('/[^0-9]/', '', $searchKeyword); // 숫자만 추출
-            if (strlen($cleanKeyword) >= 2) {
-                // order_number 컬럼으로 검색 (하이픈 제거 후 검색)
-                $searchConditions[] = "REPLACE(a.order_number, '-', '') LIKE :search_keyword_order_number";
-                $params[':search_keyword_order_number'] = '%' . $cleanKeyword . '%';
+            
+            // 주문번호 검색
+            $cleanOrder = preg_replace('/[^0-9]/', '', $searchKeyword);
+            if (strlen($cleanOrder) >= 2) {
+                $searchConditions[] = "REPLACE(a.order_number, '-', '') LIKE :search_order";
+                $params[':search_order'] = '%' . $cleanOrder . '%';
                 
-                // 날짜 기반 검색도 지원 (하위 호환성)
-                if (strlen($cleanKeyword) >= 6) {
-                    // YYMMDD 형식
-                    $year = '20' . substr($cleanKeyword, 0, 2);
-                    $month = substr($cleanKeyword, 2, 2);
-                    $day = substr($cleanKeyword, 4, 2);
-                    $searchConditions[] = "DATE_FORMAT(a.created_at, '%Y%m%d') LIKE :search_keyword_date";
-                    $params[':search_keyword_date'] = '%' . $year . $month . $day . '%';
+                if (strlen($cleanOrder) >= 6) {
+                    $dateStr = '20' . substr($cleanOrder, 0, 2) . substr($cleanOrder, 2, 2) . substr($cleanOrder, 4, 2);
+                    $searchConditions[] = "DATE_FORMAT(a.created_at, '%Y%m%d') LIKE :search_date";
+                    $params[':search_date'] = '%' . $dateStr . '%';
                 }
             }
-            $params[':search_keyword'] = '%' . $searchKeyword . '%';
-            $whereConditions[] = '(' . implode(' OR ', $searchConditions) . ')';
+            
+            if (!empty($searchConditions)) {
+                $whereConditions[] = '(' . implode(' OR ', $searchConditions) . ')';
+            }
         }
         
         // 날짜 필터
@@ -157,7 +137,7 @@ try {
         $countStmt = $pdo->prepare($countSql);
         $countStmt->execute($params);
         $totalOrders = $countStmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
-        $totalPages = max(1, ceil($totalOrders / $perPage));
+        $totalPages = $perPage > 0 ? max(1, ceil($totalOrders / $perPage)) : 1;
         
         // 주문 목록 조회 (중복 방지를 위해 DISTINCT 사용)
         $offset = ($page - 1) * $perPage;
@@ -216,62 +196,32 @@ try {
         $stmt->execute();
         $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
-        // additional_info JSON 디코딩 및 상품 정보 JSON 디코딩
+        // 주문 데이터 정규화
         foreach ($orders as &$order) {
-            // application_status 정규화 및 기본값 설정
-            $status = trim($order['application_status'] ?? '');
-            if (empty($status)) {
-                $order['application_status'] = 'received';
-            } else {
-                // 공백 제거 후 소문자로 정규화
-                $status = strtolower(trim($status));
-                // 'pending' 값도 'received'로 매핑 (노란색 → 파란색 일관성)
-                if ($status === 'pending') {
-                    $order['application_status'] = 'received';
-                } else {
-                    $order['application_status'] = $status;
-                }
-            }
+            $orderStatus = strtolower(trim($order['application_status'] ?? ''));
+            $order['application_status'] = in_array($orderStatus, ['pending', '']) ? 'received' : ($orderStatus ?: 'received');
             
-            if (!empty($order['additional_info'])) {
-                $order['additional_info'] = json_decode($order['additional_info'], true) ?: [];
-            } else {
-                $order['additional_info'] = [];
-            }
+            $order['additional_info'] = json_decode($order['additional_info'] ?? '{}', true) ?: [];
             
-            // product_snapshot에서 상품 정보 가져오기 (신청 당시 정보)
-            $productSnapshot = $order['additional_info']['product_snapshot'] ?? [];
-            if (!empty($productSnapshot) && is_array($productSnapshot)) {
-                // product_snapshot의 모든 정보로 현재 상품 정보 덮어쓰기 (신청 당시 정보 유지)
-                // 단, id, product_id, seller_id, order_number 등은 제외 (주문번호는 DB 값 유지)
-                $excludeKeys = ['id', 'product_id', 'seller_id', 'order_number', 'application_id', 'created_at'];
-                foreach ($productSnapshot as $key => $value) {
-                    if (!in_array($key, $excludeKeys) && $value !== null) {
+            $snapshot = $order['additional_info']['product_snapshot'] ?? [];
+            if ($snapshot) {
+                $exclude = ['id', 'product_id', 'seller_id', 'order_number', 'application_id', 'created_at'];
+                foreach ($snapshot as $key => $value) {
+                    if (!in_array($key, $exclude) && $value !== null) {
                         $order[$key] = $value;
                     }
                 }
             }
             
-            // 상품 정보 JSON 디코딩
-            $jsonFields = [
-                'common_provider', 'common_discount_new', 'common_discount_port', 'common_discount_change',
-                'contract_provider', 'contract_discount_new', 'contract_discount_port', 'contract_discount_change'
-            ];
+            $jsonFields = ['common_provider', 'common_discount_new', 'common_discount_port', 'common_discount_change',
+                          'contract_provider', 'contract_discount_new', 'contract_discount_port', 'contract_discount_change'];
             foreach ($jsonFields as $field) {
-                if (!empty($order[$field])) {
-                    // 문자열인 경우에만 디코딩
-                    if (is_string($order[$field])) {
-                        $decoded = json_decode($order[$field], true);
-                        $order[$field] = is_array($decoded) ? $decoded : [];
-                    } elseif (!is_array($order[$field])) {
-                        $order[$field] = [];
-                    }
-                } else {
-                    $order[$field] = [];
-                }
+                $order[$field] = is_string($order[$field] ?? null) 
+                    ? (json_decode($order[$field], true) ?: []) 
+                    : (is_array($order[$field] ?? null) ? $order[$field] : []);
             }
         }
-        unset($order); // 참조 해제
+        unset($order);
     }
 } catch (PDOException $e) {
     error_log("Error fetching orders: " . $e->getMessage());
@@ -285,9 +235,6 @@ $statusLabels = [
     'cancelled' => '취소',
     'activation_completed' => '개통완료',
     'installation_completed' => '설치완료',
-    // 기존 상태 호환성 유지
-    'pending' => '접수',
-    // 기존 상태 호환성 유지
     'pending' => '접수',
     'processing' => '개통중',
     'completed' => '설치완료',
@@ -1071,17 +1018,7 @@ include __DIR__ . '/../includes/seller-header.php';
                     ?>
                         <tr>
                             <td><?php echo $orderIndex--; ?></td>
-                            <td>
-                                <?php 
-                                // DB에 저장된 주문번호만 사용 (NULL이면 NULL 표시)
-                                if (!empty($order['order_number']) && $order['order_number'] !== null) {
-                                    echo htmlspecialchars($order['order_number']);
-                                } else {
-                                    // 주문번호가 없는 경우 (DB에 저장되지 않은 기존 주문)
-                                    echo '<span style="color: #999;">-</span>';
-                                }
-                                ?>
-                            </td>
+                            <td><?php echo htmlspecialchars($order['order_number'] ?? '-'); ?></td>
                             <td>
                                 <span class="product-name-link" onclick="showProductInfo(<?php echo htmlspecialchars(json_encode($order)); ?>, 'mno')">
                                     <?php echo htmlspecialchars($order['device_name'] ?? '상품명 없음'); ?>
@@ -1179,37 +1116,18 @@ document.addEventListener('DOMContentLoaded', function() {
     const dateToInput = document.getElementById('date_to');
     
     if (dateRangeSelect && dateFromInput && dateToInput) {
-        // 기간 선택 변경 시 날짜 자동 업데이트
-        dateRangeSelect.addEventListener('change', function() {
-            const today = new Date();
-            const endDate = today.toISOString().split('T')[0];
-            let startDate = '';
-            
-            switch(this.value) {
-                case '7':
-                    const date7 = new Date(today);
-                    date7.setDate(date7.getDate() - 7);
-                    startDate = date7.toISOString().split('T')[0];
-                    break;
-                case '30':
-                    const date30 = new Date(today);
-                    date30.setDate(date30.getDate() - 30);
-                    startDate = date30.toISOString().split('T')[0];
-                    break;
-                case '365':
-                    const date365 = new Date(today);
-                    date365.setDate(date365.getDate() - 365);
-                    startDate = date365.toISOString().split('T')[0];
-                    break;
-                case 'all':
-                    startDate = '';
-                    endDate = '';
-                    break;
+        const updateDates = () => {
+            const days = {7: 7, 30: 30, 365: 365}[dateRangeSelect.value];
+            if (days) {
+                const date = new Date();
+                date.setDate(date.getDate() - days);
+                dateFromInput.value = date.toISOString().split('T')[0];
+                dateToInput.value = new Date().toISOString().split('T')[0];
+            } else {
+                dateFromInput.value = dateToInput.value = '';
             }
-            
-            dateFromInput.value = startDate;
-            dateToInput.value = endDate;
-        });
+        };
+        dateRangeSelect.addEventListener('change', updateDates);
     }
 });
 

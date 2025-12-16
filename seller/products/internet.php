@@ -447,6 +447,17 @@ $pageStyles = '
         border: 1px solid #ef4444;
     }
     
+    #messageContainer {
+        margin-bottom: 24px;
+        min-height: 0;
+    }
+    
+    #messageContainer .alert {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+    
     .gift-input-group {
         display: flex;
         gap: 8px;
@@ -541,10 +552,16 @@ $pageStyles = '
         position: relative;
         display: flex;
         align-items: center;
+        gap: 8px;
     }
     
     .price-input-wrapper .form-control {
         text-align: right;
+        flex: 1;
+    }
+    
+    .price-input-wrapper .form-select {
+        max-width: 80px;
     }
     
     .price-input-suffix {
@@ -558,6 +575,16 @@ $pageStyles = '
     
     .price-input-wrapper .form-control[data-suffix] {
         padding-right: 50px;
+    }
+    
+    .item-price-input-wrapper .form-select {
+        border-left: none;
+        border-radius: 0 8px 8px 0;
+    }
+    
+    .item-price-input-wrapper .form-control {
+        border-right: none;
+        border-radius: 8px 0 0 8px;
     }
 ';
 
@@ -584,6 +611,9 @@ document.addEventListener('DOMContentLoaded', function() {
         <h1><?php echo $isEditMode ? '인터넷 상품 수정' : '인터넷 상품 등록'; ?></h1>
         <p><?php echo $isEditMode ? '인터넷 상품 정보를 수정하세요' : '새로운 인터넷 상품을 등록하세요'; ?></p>
     </div>
+    
+    <!-- 동적 메시지 표시 영역 -->
+    <div id="messageContainer" style="display: block; min-height: 0;"></div>
     
     <?php if (isset($_GET['success'])): ?>
         <div class="alert alert-success">
@@ -715,9 +745,30 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="form-section-item">
                 <div class="form-section-title">사용요금</div>
                 <div class="form-group">
-                    <div class="price-input-wrapper">
-                        <input type="text" name="monthly_fee" id="monthly_fee" class="form-control" placeholder="0" maxlength="10" data-suffix="원" value="<?php echo isset($productData['monthly_fee']) ? number_format($productData['monthly_fee']) : ''; ?>">
-                        <span class="price-input-suffix">원</span>
+                    <div class="price-input-wrapper" style="display: flex; gap: 8px; align-items: center;">
+                        <input type="text" name="monthly_fee" id="monthly_fee" class="form-control" placeholder="0" maxlength="10" inputmode="numeric" pattern="[0-9]*" style="flex: 1;" value="<?php 
+                            if (isset($productData['monthly_fee']) && !empty($productData['monthly_fee'])) {
+                                // DB에 저장된 값이 "17000원" 형식이면 숫자만 추출
+                                if (preg_match('/^(\d+)(.+)$/', $productData['monthly_fee'], $matches)) {
+                                    echo number_format((int)$matches[1]);
+                                } else {
+                                    echo number_format((int)$productData['monthly_fee']);
+                                }
+                            }
+                        ?>">
+                        <select name="monthly_fee_unit" id="monthly_fee_unit" class="form-select" style="max-width: 80px;">
+                            <option value="원" <?php 
+                                if (isset($productData['monthly_fee']) && !empty($productData['monthly_fee'])) {
+                                    if (preg_match('/^(\d+)(.+)$/', $productData['monthly_fee'], $matches)) {
+                                        echo $matches[2] === '원' ? 'selected' : '';
+                                    } else {
+                                        echo 'selected';
+                                    }
+                                } else {
+                                    echo 'selected';
+                                }
+                            ?>>원</option>
+                        </select>
                     </div>
                     <div class="form-help">월 요금제 금액을 입력하세요 (최대 10자)</div>
                 </div>
@@ -745,9 +796,30 @@ document.addEventListener('DOMContentLoaded', function() {
                             <img src="/MVNO/assets/images/icons/cash.svg" alt="현금" style="width: 20px; height: 20px; object-fit: contain;">
                         </div>
                         <input type="text" name="cash_payment_names[]" class="form-control item-name-input" placeholder="현금" maxlength="30" value="<?php echo htmlspecialchars($cashNames[$i] ?? ''); ?>">
-                        <div class="item-price-input-wrapper">
-                            <input type="text" name="cash_payment_prices[]" class="form-control" placeholder="50,000원" value="<?php echo isset($cashPrices[$i]) && !empty($cashPrices[$i]) ? number_format($cashPrices[$i]) : ''; ?>">
-                            <span class="item-price-suffix">원</span>
+                        <div class="item-price-input-wrapper" style="display: flex; gap: 8px; align-items: center;">
+                            <input type="text" name="cash_payment_prices[]" class="form-control" placeholder="50,000" maxlength="10" inputmode="numeric" pattern="[0-9]*" style="flex: 1; border: none; padding-right: 8px;" value="<?php 
+                                if (isset($cashPrices[$i]) && !empty($cashPrices[$i])) {
+                                    // DB에 저장된 값이 "50000원" 형식이면 숫자만 추출하여 정수로 표시
+                                    if (preg_match('/^(\d+)(.+)$/', $cashPrices[$i], $matches)) {
+                                        echo number_format((int)$matches[1]);
+                                    } else {
+                                        echo number_format((int)$cashPrices[$i]);
+                                    }
+                                }
+                            ?>">
+                            <select name="cash_payment_price_units[]" class="form-select" style="max-width: 80px; border: none; padding: 12px 8px;">
+                                <option value="원" <?php 
+                                    if (isset($cashPrices[$i]) && !empty($cashPrices[$i])) {
+                                        if (preg_match('/^(\d+)(.+)$/', $cashPrices[$i], $matches)) {
+                                            echo $matches[2] === '원' ? 'selected' : '';
+                                        } else {
+                                            echo 'selected';
+                                        }
+                                    } else {
+                                        echo 'selected';
+                                    }
+                                ?>>원</option>
+                            </select>
                         </div>
                         <?php if ($i === 0): ?>
                             <button type="button" class="btn-add" onclick="addCashPaymentField()" style="margin-top: 0;">추가</button>
@@ -781,9 +853,30 @@ document.addEventListener('DOMContentLoaded', function() {
                             <img src="/MVNO/assets/images/icons/gift-card.svg" alt="상품권" style="width: 20px; height: 20px; object-fit: contain;">
                         </div>
                         <input type="text" name="gift_card_names[]" class="form-control item-name-input" placeholder="상품권" maxlength="30" value="<?php echo htmlspecialchars($giftNames[$i] ?? ''); ?>">
-                        <div class="item-price-input-wrapper">
-                            <input type="text" name="gift_card_prices[]" class="form-control" placeholder="170,000원" value="<?php echo isset($giftPrices[$i]) && !empty($giftPrices[$i]) ? number_format($giftPrices[$i]) : ''; ?>">
-                            <span class="item-price-suffix">원</span>
+                        <div class="item-price-input-wrapper" style="display: flex; gap: 8px; align-items: center;">
+                            <input type="text" name="gift_card_prices[]" class="form-control" placeholder="170,000" maxlength="10" inputmode="numeric" pattern="[0-9]*" style="flex: 1; border: none; padding-right: 8px;" value="<?php 
+                                if (isset($giftPrices[$i]) && !empty($giftPrices[$i])) {
+                                    // DB에 저장된 값이 "170000원" 형식이면 숫자만 추출하여 정수로 표시
+                                    if (preg_match('/^(\d+)(.+)$/', $giftPrices[$i], $matches)) {
+                                        echo number_format((int)$matches[1]);
+                                    } else {
+                                        echo number_format((int)$giftPrices[$i]);
+                                    }
+                                }
+                            ?>">
+                            <select name="gift_card_price_units[]" class="form-select" style="max-width: 80px; border: none; padding: 12px 8px;">
+                                <option value="원" <?php 
+                                    if (isset($giftPrices[$i]) && !empty($giftPrices[$i])) {
+                                        if (preg_match('/^(\d+)(.+)$/', $giftPrices[$i], $matches)) {
+                                            echo $matches[2] === '원' ? 'selected' : '';
+                                        } else {
+                                            echo 'selected';
+                                        }
+                                    } else {
+                                        echo 'selected';
+                                    }
+                                ?>>원</option>
+                            </select>
                         </div>
                         <?php if ($i === 0): ?>
                             <button type="button" class="btn-add" onclick="addGiftCardField()" style="margin-top: 0;">추가</button>
@@ -1012,7 +1105,7 @@ const fieldConfigs = {
         nameField: 'cash_payment_names[]',
         priceField: 'cash_payment_prices[]',
         namePlaceholder: '현금',
-        pricePlaceholder: '50,000원'
+        pricePlaceholder: '50,000'
     },
     giftCard: {
         container: 'gift-card-container',
@@ -1055,9 +1148,11 @@ function addField(type) {
     const isTextOnlyField = (type === 'equipment' || type === 'installation');
     const priceInputHTML = isTextOnlyField 
         ? `<input type="text" name="${config.priceField}" class="form-control" placeholder="${config.pricePlaceholder}">`
-        : `<div class="item-price-input-wrapper">
-            <input type="text" name="${config.priceField}" class="form-control" placeholder="${config.pricePlaceholder}">
-            <span class="item-price-suffix">원</span>
+        : `<div class="item-price-input-wrapper" style="display: flex; gap: 8px; align-items: center;">
+            <input type="text" name="${config.priceField}" class="form-control" placeholder="${config.pricePlaceholder.replace('원', '')}" maxlength="10" style="flex: 1; border: none; padding-right: 8px;">
+            <select name="${type === 'cash' ? 'cash_payment_price_units[]' : 'gift_card_price_units[]'}" class="form-select" style="max-width: 80px; border: none; padding: 12px 8px;">
+                <option value="원" selected>원</option>
+            </select>
         </div>`;
     
     newField.innerHTML = `
@@ -1089,27 +1184,77 @@ function removeField(type, button) {
     }
 }
 
-// 숫자만 입력받는 필드 설정 함수
+// 정수만 입력받는 필드 설정 함수 (소수점, 문자 등 모든 비정수 입력 차단)
 function setupNumericInput(input) {
     if (!input) return;
     
-    // 입력 시 숫자만 허용
+    // 키보드 입력 차단: 소수점, 마이너스, e, E 등 입력 방지
+    input.addEventListener('keydown', function(e) {
+        // 허용된 키: 숫자(0-9), 백스페이스, Delete, Tab, Arrow keys, Home, End
+        const allowedKeys = [
+            'Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown',
+            'Home', 'End'
+        ];
+        
+        // Ctrl/Cmd + A, C, V, X 허용 (복사/붙여넣기)
+        if ((e.ctrlKey || e.metaKey) && ['a', 'c', 'v', 'x'].includes(e.key.toLowerCase())) {
+            return true;
+        }
+        
+        // 숫자 키 허용
+        if (e.key >= '0' && e.key <= '9') {
+            return true;
+        }
+        
+        // 허용된 키인지 확인
+        if (allowedKeys.includes(e.key)) {
+            return true;
+        }
+        
+        // 그 외 모든 키 차단 (소수점, 마이너스, e, E 등)
+        e.preventDefault();
+        return false;
+    });
+    
+    // 붙여넣기 시 정수만 추출
+    input.addEventListener('paste', function(e) {
+        e.preventDefault();
+        const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+        // 붙여넣은 텍스트에서 숫자만 추출
+        const numericOnly = pastedText.replace(/[^0-9]/g, '');
+        if (numericOnly) {
+            const maxLength = parseInt(this.getAttribute('maxlength')) || 10;
+            const value = numericOnly.substring(0, maxLength);
+            this.value = value;
+        }
+    });
+    
+    // 입력 시 숫자만 허용 (추가 보안) 및 최대 길이 제한
     input.addEventListener('input', function() {
+        // 소수점, 쉼표 등 모든 비숫자 제거
         let value = this.value.replace(/[^0-9]/g, '');
+        // maxlength 속성이 있으면 그 값으로, 없으면 10자리로 제한
+        const maxLength = parseInt(this.getAttribute('maxlength')) || 10;
+        if (value.length > maxLength) {
+            value = value.substring(0, maxLength);
+        }
         this.value = value;
     });
     
-    // 포커스 시 쉼표 제거
+    // 포커스 시 쉼표 및 소수점 제거
     input.addEventListener('focus', function() {
-        this.value = this.value.replace(/,/g, '');
+        this.value = this.value.replace(/[^0-9]/g, '');
     });
     
-    // 블러 시 천단위 구분자 추가
+    // 블러 시 천단위 구분자 추가 (정수로 변환)
     input.addEventListener('blur', function() {
         if (this.value) {
-            const numValue = parseInt(this.value.replace(/,/g, ''));
+            // 소수점 제거 후 정수로 변환
+            const numValue = parseInt(this.value.replace(/[^0-9]/g, ''));
             if (!isNaN(numValue)) {
                 this.value = numValue.toLocaleString('ko-KR');
+            } else {
+                this.value = '';
             }
         }
     });
@@ -1133,60 +1278,203 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// 필드 추가 함수 (기존 호출 호환성 유지)
-function addCashPaymentField() { addField('cash'); }
-function addGiftCardField() { addField('giftCard'); }
-function addEquipmentField() { addField('equipment'); }
-function addInstallationField() { addField('installation'); }
+// 필드 추가 함수 (기존 호출 호환성 유지 - 전역 스코프에 정의)
+window.addCashPaymentField = function() { addField('cash'); };
+window.addGiftCardField = function() { addField('giftCard'); };
+window.addEquipmentField = function() { addField('equipment'); };
+window.addInstallationField = function() { addField('installation'); };
 
 document.getElementById('productForm').addEventListener('submit', function(e) {
     e.preventDefault();
     
+    console.log('폼 제출 시작');
+    
     const isEditMode = <?php echo $isEditMode ? 'true' : 'false'; ?>;
     
-    // 월 요금제 필드에서 쉼표 제거
-    const monthlyFeeInput = document.getElementById('monthly_fee');
-    if (monthlyFeeInput && monthlyFeeInput.value) {
-        monthlyFeeInput.value = monthlyFeeInput.value.replace(/,/g, '');
+    // 폼 제출 시 모든 입력 필드의 포커스 제거 (커서가 필드에 남지 않도록)
+    if (document.activeElement && document.activeElement.tagName !== 'BUTTON') {
+        document.activeElement.blur();
     }
     
-    // 가격 필드들에서 쉼표 제거 (현금지급, 상품권만 - 장비와 설치 필드는 텍스트 필드이므로 제외)
-    document.querySelectorAll('input[name="cash_payment_prices[]"], input[name="gift_card_prices[]"]').forEach(input => {
-        if (input.value) {
-            input.value = input.value.replace(/,/g, '');
+    // 모든 입력 필드의 포커스 제거
+    document.querySelectorAll('input, select, textarea').forEach(function(el) {
+        if (document.activeElement === el) {
+            el.blur();
         }
     });
     
-    fetch('/MVNO/api/product-register-internet.php', {
-        method: 'POST',
-        body: new FormData(this)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            if (isEditMode) {
-                // 수정 모드: 성공 메시지와 함께 리스트 페이지로 이동
-                if (typeof showAlert === 'function') {
-                    showAlert('상품이 성공적으로 수정되었습니다.', '완료').then(() => {
-                        window.location.href = '/MVNO/seller/products/internet-list.php?success=1';
-                    });
+    console.log('포커스 제거 완료, 데이터 처리 시작');
+    
+    // 월 요금제 필드 처리: 쉼표 및 소수점 제거 후 정수로 변환 및 단위와 결합
+    const monthlyFeeInput = document.getElementById('monthly_fee');
+    const monthlyFeeUnit = document.getElementById('monthly_fee_unit');
+    if (monthlyFeeInput) {
+        if (monthlyFeeInput.value) {
+            // 표시용 쉼표와 소수점 제거 후 순수 정수만 추출
+            const cleanValue = monthlyFeeInput.value.toString().replace(/[,.]/g, '').replace(/[^0-9]/g, '');
+            const value = parseInt(cleanValue) || 0;
+            
+            if (monthlyFeeUnit) {
+                const unit = monthlyFeeUnit.value || '원';
+                // 저장 시에는 쉼표 없이 숫자+단위만 저장
+                monthlyFeeInput.value = value + unit;
+            } else {
+                monthlyFeeInput.value = value;
+            }
+        }
+    }
+    
+    // 현금지급 가격 필드 처리: 쉼표 제거 및 단위와 결합
+    document.querySelectorAll('input[name="cash_payment_prices[]"]').forEach(function(input, index) {
+        if (input.value) {
+            const cleanValue = input.value.toString().replace(/[,.]/g, '').replace(/[^0-9]/g, '');
+            const value = parseInt(cleanValue) || 0;
+            const unitSelect = document.querySelectorAll('select[name="cash_payment_price_units[]"]')[index];
+            const unit = unitSelect ? unitSelect.value : '원';
+            input.value = value + unit;
+        }
+    });
+    
+    // 상품권 지급 가격 필드 처리: 쉼표 제거 및 단위와 결합
+    document.querySelectorAll('input[name="gift_card_prices[]"]').forEach(function(input, index) {
+        if (input.value) {
+            const cleanValue = input.value.toString().replace(/[,.]/g, '').replace(/[^0-9]/g, '');
+            const value = parseInt(cleanValue) || 0;
+            const unitSelect = document.querySelectorAll('select[name="gift_card_price_units[]"]')[index];
+            const unit = unitSelect ? unitSelect.value : '원';
+            input.value = value + unit;
+        }
+    });
+    
+    // 모든 입력 필드의 포커스 제거 (값 변경 후)
+    document.querySelectorAll('input, select, textarea').forEach(function(el) {
+        el.blur();
+    });
+    
+    // 버튼에 포커스 주기 (입력 필드로 포커스가 가지 않도록)
+    const submitButton = document.querySelector('button[type="submit"]');
+    if (submitButton) {
+        submitButton.focus();
+        setTimeout(function() {
+            submitButton.blur();
+        }, 10);
+    }
+    
+    // 포커스 제거를 확실히 하기 위해 약간의 지연 후 제출
+    setTimeout(function() {
+        console.log('API 호출 시작');
+        
+        // FormData 생성 및 제출
+        const formData = new FormData(document.getElementById('productForm'));
+        
+        // FormData 내용 확인 (디버깅용)
+        console.log('FormData 생성 완료');
+        for (let pair of formData.entries()) {
+            console.log(pair[0] + ': ' + pair[1]);
+        }
+        
+        fetch('/MVNO/api/product-register-internet.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => {
+            // 응답 상태 확인
+            if (!response.ok) {
+                throw new Error('HTTP error! status: ' + response.status);
+            }
+            // JSON 파싱 시도
+            return response.text().then(text => {
+                try {
+                    return JSON.parse(text);
+                } catch (e) {
+                    console.error('JSON 파싱 오류:', text);
+                    throw new Error('서버 응답을 파싱할 수 없습니다: ' + text.substring(0, 100));
+                }
+            });
+        })
+        .then(data => {
+            console.log('API 응답:', data);
+            
+            if (data && data.success) {
+                if (isEditMode) {
+                    // 수정 모드: 성공 메시지와 함께 리스트 페이지로 이동
+                    if (typeof showAlert === 'function') {
+                        showAlert('상품이 성공적으로 수정되었습니다.', '완료').then(() => {
+                            window.location.href = '/MVNO/seller/products/internet-list.php?success=1';
+                        });
+                    } else {
+                        showMessage('상품이 성공적으로 수정되었습니다.', 'success');
+                        setTimeout(() => {
+                            window.location.href = '/MVNO/seller/products/internet-list.php?success=1';
+                        }, 1500);
+                    }
                 } else {
-                    alert('상품이 성공적으로 수정되었습니다.');
-                    window.location.href = '/MVNO/seller/products/internet-list.php?success=1';
+                    // 등록 모드: 리스트 페이지로 이동
+                    showMessage('상품이 성공적으로 등록되었습니다.', 'success');
+                    setTimeout(() => {
+                        window.location.href = '/MVNO/seller/products/internet-list.php?success=1';
+                    }, 1500);
                 }
             } else {
-                // 등록 모드: 리스트 페이지로 이동
-                window.location.href = '/MVNO/seller/products/internet-list.php?success=1';
+                // 오류 메시지를 상단에 표시
+                const errorMsg = (data && data.message) || (isEditMode ? '상품 수정에 실패했습니다.' : '상품 등록에 실패했습니다.');
+                console.error('API 오류:', errorMsg);
+                showMessage(errorMsg, 'error');
             }
-        } else {
-            alert(data.message || (isEditMode ? '상품 수정에 실패했습니다.' : '상품 등록에 실패했습니다.'));
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert(isEditMode ? '상품 수정 중 오류가 발생했습니다.' : '상품 등록 중 오류가 발생했습니다.');
-    });
+        })
+        .catch(error => {
+            console.error('Fetch 오류:', error);
+            const errorMsg = isEditMode ? '상품 수정 중 오류가 발생했습니다: ' + error.message : '상품 등록 중 오류가 발생했습니다: ' + error.message;
+            showMessage(errorMsg, 'error');
+        });
+    }, 50); // 50ms 지연으로 포커스 제거 확실히 처리
 });
+
+// 상단에 메시지를 표시하는 함수
+function showMessage(message, type) {
+    console.log('showMessage 호출:', message, type);
+    
+    const messageContainer = document.getElementById('messageContainer');
+    if (!messageContainer) {
+        console.error('messageContainer를 찾을 수 없습니다!');
+        // 메시지 컨테이너가 없으면 alert로 대체
+        alert(message);
+        return;
+    }
+    
+    // 기존 메시지 제거
+    messageContainer.innerHTML = '';
+    
+    // 새 메시지 생성
+    const alertDiv = document.createElement('div');
+    alertDiv.className = 'alert alert-' + (type === 'success' ? 'success' : 'error');
+    alertDiv.textContent = message;
+    alertDiv.style.display = 'block'; // 확실히 표시되도록
+    
+    // 메시지 컨테이너에 추가
+    messageContainer.appendChild(alertDiv);
+    
+    // 메시지 컨테이너가 보이도록 스타일 설정
+    messageContainer.style.display = 'block';
+    
+    // 페이지 상단으로 스크롤
+    setTimeout(function() {
+        messageContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+    
+    // 성공 메시지는 3초 후 자동 제거, 오류 메시지는 수동 제거
+    if (type === 'success') {
+        setTimeout(function() {
+            alertDiv.style.transition = 'opacity 0.3s';
+            alertDiv.style.opacity = '0';
+            setTimeout(function() {
+                if (alertDiv.parentNode) {
+                    alertDiv.remove();
+                }
+            }, 300);
+        }, 3000);
+    }
+}
 </script>
 
 <?php include __DIR__ . '/../includes/seller-footer.php'; ?>

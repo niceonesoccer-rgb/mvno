@@ -82,10 +82,12 @@ if (!$plan) {
                                 
                                 if ($contractPeriod === '무약정' || $contractPeriod === 'none') {
                                     echo '무약정';
-                                } elseif ($contractPeriodDays > 0) {
-                                    echo htmlspecialchars($contractPeriodDays . '일');
-                                } elseif ($contractPeriod) {
+                                } elseif (!empty($contractPeriod) && $contractPeriod !== '직접입력') {
+                                    // DB에 저장된 값이 "181일" 또는 "2개월" 형식이면 그대로 표시
                                     echo htmlspecialchars($contractPeriod);
+                                } elseif ($contractPeriodDays > 0) {
+                                    // 하위 호환성: contract_period_days만 있는 경우
+                                    echo htmlspecialchars($contractPeriodDays . '일');
                                 } else {
                                     echo '없음';
                                 }
@@ -144,7 +146,12 @@ if (!$plan) {
                                 $callType = $rawData['call_type'] ?? '';
                                 $callAmount = $rawData['call_amount'] ?? '';
                                 if ($callType === '직접입력' && !empty($callAmount)) {
-                                    echo number_format((float)$callAmount) . '분';
+                                    // DB에 저장된 값이 "300분" 형식이면 그대로 표시, 아니면 숫자만 추출해서 표시
+                                    if (preg_match('/^(\d+)(.+)$/', $callAmount, $matches)) {
+                                        echo number_format((float)$matches[1]) . $matches[2];
+                                    } else {
+                                        echo htmlspecialchars($callAmount);
+                                    }
                                 } elseif (!empty($callType)) {
                                     echo htmlspecialchars($callType);
                                 } else {
@@ -160,7 +167,12 @@ if (!$plan) {
                                 $smsType = $rawData['sms_type'] ?? '';
                                 $smsAmount = $rawData['sms_amount'] ?? '';
                                 if ($smsType === '직접입력' && !empty($smsAmount)) {
-                                    echo number_format((float)$smsAmount) . '건';
+                                    // DB에 저장된 값이 "50건" 또는 "10원/건" 형식이면 그대로 표시
+                                    if (preg_match('/^(\d+)(.+)$/', $smsAmount, $matches)) {
+                                        echo number_format((float)$matches[1]) . $matches[2];
+                                    } else {
+                                        echo htmlspecialchars($smsAmount);
+                                    }
                                 } elseif (!empty($smsType)) {
                                     echo htmlspecialchars($smsType);
                                 } else {
@@ -175,22 +187,16 @@ if (!$plan) {
                                 <?php
                                 $dataAmount = $rawData['data_amount'] ?? '';
                                 $dataAmountValue = $rawData['data_amount_value'] ?? '';
-                                $dataUnit = $rawData['data_unit'] ?? '';
                                 if ($dataAmount === '직접입력' && !empty($dataAmountValue)) {
-                                    // 직접입력인 경우: 값 + 단위 표시
-                                    $displayValue = '월 ' . number_format((float)$dataAmountValue);
-                                    if (!empty($dataUnit)) {
-                                        $displayValue .= $dataUnit;
+                                    // DB에 저장된 값이 "100GB" 형식이면 그대로 표시
+                                    if (preg_match('/^(\d+)(.+)$/', $dataAmountValue, $matches)) {
+                                        echo '월 ' . number_format((float)$matches[1]) . $matches[2];
+                                    } else {
+                                        echo '월 ' . htmlspecialchars($dataAmountValue);
                                     }
-                                    echo $displayValue;
                                 } elseif (!empty($dataAmount)) {
                                     // 그 외는 type 값 그대로 표시 (무제한 등)
-                                    $displayValue = htmlspecialchars($dataAmount);
-                                    // 단위가 있고 무제한이 아닌 경우에만 단위 추가
-                                    if (!empty($dataUnit) && $dataAmount !== '무제한') {
-                                        $displayValue .= ' ' . htmlspecialchars($dataUnit);
-                                    }
-                                    echo $displayValue;
+                                    echo htmlspecialchars($dataAmount);
                                 } else {
                                     echo '정보 없음';
                                 }
@@ -230,13 +236,18 @@ if (!$plan) {
                             </div>
                         </div>
                         <div class="plan-detail-item">
-                            <div class="plan-detail-label">부가통화</div>
+                            <div class="plan-detail-label">부가·영상통화</div>
                             <div class="plan-detail-value">
                                 <?php
                                 $additionalCallType = $rawData['additional_call_type'] ?? '';
                                 $additionalCall = $rawData['additional_call'] ?? '';
                                 if ($additionalCallType === '직접입력' && !empty($additionalCall)) {
-                                    echo number_format((float)$additionalCall) . '분';
+                                    // DB에 저장된 값이 "100분" 형식이면 그대로 표시
+                                    if (preg_match('/^(\d+)(.+)$/', $additionalCall, $matches)) {
+                                        echo number_format((float)$matches[1]) . $matches[2];
+                                    } else {
+                                        echo htmlspecialchars($additionalCall);
+                                    }
                                 } elseif (!empty($additionalCallType)) {
                                     echo htmlspecialchars($additionalCallType);
                                 } else {
@@ -252,6 +263,7 @@ if (!$plan) {
                                 $mobileHotspot = $rawData['mobile_hotspot'] ?? '';
                                 $mobileHotspotValue = $rawData['mobile_hotspot_value'] ?? '';
                                 if ($mobileHotspot === '직접선택' && !empty($mobileHotspotValue)) {
+                                    // DB에 저장된 값이 "50GB" 형식이면 그대로 표시
                                     echo htmlspecialchars($mobileHotspotValue);
                                 } elseif (!empty($mobileHotspot)) {
                                     echo htmlspecialchars($mobileHotspot);
@@ -277,7 +289,12 @@ if (!$plan) {
                                 $regularSimAvailable = $rawData['regular_sim_available'] ?? '';
                                 $regularSimPrice = $rawData['regular_sim_price'] ?? '';
                                 if ($regularSimAvailable === '배송가능' && !empty($regularSimPrice)) {
-                                    echo '배송가능 (' . number_format((float)$regularSimPrice) . '원)';
+                                    // DB에 저장된 값이 "7700원" 형식이면 그대로 표시
+                                    if (preg_match('/^(\d+)(.+)$/', $regularSimPrice, $matches)) {
+                                        echo '배송가능 (' . number_format((float)$matches[1]) . $matches[2] . ')';
+                                    } else {
+                                        echo '배송가능 (' . number_format((float)$regularSimPrice) . '원)';
+                                    }
                                 } elseif ($regularSimAvailable === '배송가능') {
                                     echo '배송가능';
                                 } else {
@@ -293,7 +310,12 @@ if (!$plan) {
                                 $nfcSimAvailable = $rawData['nfc_sim_available'] ?? '';
                                 $nfcSimPrice = $rawData['nfc_sim_price'] ?? '';
                                 if ($nfcSimAvailable === '배송가능' && !empty($nfcSimPrice)) {
-                                    echo '배송가능 (' . number_format((float)$nfcSimPrice) . '원)';
+                                    // DB에 저장된 값이 "7700원" 형식이면 그대로 표시
+                                    if (preg_match('/^(\d+)(.+)$/', $nfcSimPrice, $matches)) {
+                                        echo '배송가능 (' . number_format((float)$matches[1]) . $matches[2] . ')';
+                                    } else {
+                                        echo '배송가능 (' . number_format((float)$nfcSimPrice) . '원)';
+                                    }
                                 } elseif ($nfcSimAvailable === '배송가능') {
                                     echo '배송가능';
                                 } else {
@@ -309,7 +331,12 @@ if (!$plan) {
                                 $esimAvailable = $rawData['esim_available'] ?? '';
                                 $esimPrice = $rawData['esim_price'] ?? '';
                                 if ($esimAvailable === '개통가능' && !empty($esimPrice)) {
-                                    echo '개통가능 (' . number_format((float)$esimPrice) . '원)';
+                                    // DB에 저장된 값이 "7700원" 형식이면 그대로 표시
+                                    if (preg_match('/^(\d+)(.+)$/', $esimPrice, $matches)) {
+                                        echo '개통가능 (' . number_format((float)$matches[1]) . $matches[2] . ')';
+                                    } else {
+                                        echo '개통가능 (' . number_format((float)$esimPrice) . '원)';
+                                    }
                                 } elseif ($esimAvailable === '개통가능') {
                                     echo '개통가능';
                                 } else {
@@ -338,9 +365,8 @@ if (!$plan) {
                                 <?php
                                 $overDataPrice = $rawData['over_data_price'] ?? '';
                                 if (!empty($overDataPrice)) {
-                                    preg_match('/[\d.]+/', $overDataPrice, $matches);
-                                    $value = $matches[0] ?? $overDataPrice;
-                                    echo htmlspecialchars($value) . '원/MB';
+                                    // DB에 저장된 값이 "22.53원/MB" 형식이면 그대로 표시
+                                    echo htmlspecialchars($overDataPrice);
                                 } else {
                                     echo '정보 없음';
                                 }
@@ -353,9 +379,8 @@ if (!$plan) {
                                 <?php
                                 $overVoicePrice = $rawData['over_voice_price'] ?? '';
                                 if (!empty($overVoicePrice)) {
-                                    preg_match('/[\d.]+/', $overVoicePrice, $matches);
-                                    $value = $matches[0] ?? $overVoicePrice;
-                                    echo htmlspecialchars($value) . '원/초';
+                                    // DB에 저장된 값이 "1.98원/초" 형식이면 그대로 표시
+                                    echo htmlspecialchars($overVoicePrice);
                                 } else {
                                     echo '정보 없음';
                                 }
@@ -368,9 +393,8 @@ if (!$plan) {
                                 <?php
                                 $overVideoPrice = $rawData['over_video_price'] ?? '';
                                 if (!empty($overVideoPrice)) {
-                                    preg_match('/[\d.]+/', $overVideoPrice, $matches);
-                                    $value = $matches[0] ?? $overVideoPrice;
-                                    echo htmlspecialchars($value) . '원/초';
+                                    // DB에 저장된 값이 "1.98원/초" 형식이면 그대로 표시
+                                    echo htmlspecialchars($overVideoPrice);
                                 } else {
                                     echo '정보 없음';
                                 }
@@ -383,9 +407,8 @@ if (!$plan) {
                                 <?php
                                 $overSmsPrice = $rawData['over_sms_price'] ?? '';
                                 if (!empty($overSmsPrice)) {
-                                    preg_match('/[\d.]+/', $overSmsPrice, $matches);
-                                    $value = $matches[0] ?? $overSmsPrice;
-                                    echo htmlspecialchars($value) . '원/건';
+                                    // DB에 저장된 값이 "22원/건" 형식이면 그대로 표시
+                                    echo htmlspecialchars($overSmsPrice);
                                 } else {
                                     echo '정보 없음';
                                 }
@@ -398,13 +421,8 @@ if (!$plan) {
                                 <?php
                                 $overLmsPrice = $rawData['over_lms_price'] ?? '';
                                 if (!empty($overLmsPrice) && trim($overLmsPrice) !== '') {
-                                    preg_match('/[\d.]+/', $overLmsPrice, $matches);
-                                    $value = $matches[0] ?? $overLmsPrice;
-                                    if (!empty($value)) {
-                                        echo htmlspecialchars($value) . '원/건';
-                                    } else {
-                                        echo '정보 없음';
-                                    }
+                                    // DB에 저장된 값이 "33원/건" 형식이면 그대로 표시
+                                    echo htmlspecialchars($overLmsPrice);
                                 } else {
                                     echo '정보 없음';
                                 }
@@ -417,9 +435,8 @@ if (!$plan) {
                                 <?php
                                 $overMmsPrice = $rawData['over_mms_price'] ?? '';
                                 if (!empty($overMmsPrice)) {
-                                    preg_match('/[\d.]+/', $overMmsPrice, $matches);
-                                    $value = $matches[0] ?? $overMmsPrice;
-                                    echo htmlspecialchars($value) . '원/건';
+                                    // DB에 저장된 값이 "110원/건" 형식이면 그대로 표시
+                                    echo htmlspecialchars($overMmsPrice);
                                 } else {
                                     echo '정보 없음';
                                 }

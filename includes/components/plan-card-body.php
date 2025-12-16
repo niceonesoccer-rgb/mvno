@@ -21,7 +21,7 @@ $data_main = $plan['data_main'] ?? '월 100GB + 5Mbps';
 $features = $plan['features'] ?? ['통화 무제한', '문자 무제한', 'KT망', 'LTE'];
 $price_main = $plan['price_main'] ?? '월 17,000원';
 $price_after = $plan['price_after'] ?? '7개월 이후 42,900원';
-$selection_count = $plan['selection_count'] ?? '29,448명이 선택';
+$selection_count = $plan['selection_count'] ?? '0명이 선택';
 $show_features = ($layout_type === 'list');
 ?>
 
