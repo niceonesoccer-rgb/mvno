@@ -31,7 +31,7 @@ $notices = array_slice($all_notices, $offset, $per_page);
         <!-- 페이지 헤더 -->
         <div style="margin-bottom: 32px;">
             <h1 style="font-size: 28px; font-weight: bold; margin: 0 0 8px 0;">공지사항</h1>
-            <p style="color: #6b7280; font-size: 14px; margin: 0;">모요의 새로운 소식과 중요한 안내사항을 확인하세요.</p>
+            <p style="color: #6b7280; font-size: 14px; margin: 0;">유심킹의 새로운 소식과 중요한 안내사항을 확인하세요.</p>
         </div>
 
         <!-- 공지사항 목록 -->

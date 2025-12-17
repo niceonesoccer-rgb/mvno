@@ -107,7 +107,7 @@ admin/
     ],
     'gift_icons' => [                      // 혜택 아이콘 배열
         [
-            'src' => 'https://assets.moyoplan.com/image/mvno-gifts/badge/emart.svg',
+            'src' => '/MVNO/assets/images/icons/gift-card.svg',
             'alt' => '이마트 상품권'
         ],
         // ...

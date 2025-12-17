@@ -361,13 +361,13 @@ button {
     gap: var(--spacing-sm);
 }
 
-.moyo-logo-full {
+.usimking-logo-full {
     display: flex;
     align-items: center;
     min-width: 100px;
 }
 
-.moyo-logo-full img {
+.usimking-logo-full img {
     max-width: 130px;
     height: auto;
 }
@@ -376,7 +376,7 @@ button {
     display: inline-block;
 }
 
-.moyo-logo-icon-wrapper {
+.usimking-logo-icon-wrapper {
     display: none;
 }
 
@@ -1619,7 +1619,7 @@ button {
         display: flex;
     }
     
-    .moyo-logo-icon-wrapper {
+    .usimking-logo-icon-wrapper {
         display: block;
     }
     

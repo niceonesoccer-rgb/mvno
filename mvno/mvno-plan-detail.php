@@ -46,11 +46,11 @@ if (!$plan) {
             '3대 마트 상품권 2만원'
         ],
         'gift_icons' => [
-            ['src' => 'https://assets.moyoplan.com/image/mvno-gifts/badge/emart.svg', 'alt' => '이마트 상품권'],
-            ['src' => 'https://assets.moyoplan.com/image/mvno-gifts/badge/naverpay.svg', 'alt' => '네이버페이'],
-            ['src' => 'https://assets.moyoplan.com/image/mvno-gifts/badge/ticket.svg', 'alt' => '데이터쿠폰 20GB'],
-            ['src' => 'https://assets.moyoplan.com/image/mvno-gifts/badge/millie.svg', 'alt' => '밀리의 서재'],
-            ['src' => 'https://assets.moyoplan.com/image/mvno-gifts/badge/subscription.svg', 'alt' => 'SOLO결합(+20GB)']
+            ['src' => '/MVNO/assets/images/icons/gift-card.svg', 'alt' => '혜택'],
+            ['src' => '/MVNO/assets/images/icons/gift-card.svg', 'alt' => '혜택'],
+            ['src' => '/MVNO/assets/images/icons/gift-card.svg', 'alt' => '혜택'],
+            ['src' => '/MVNO/assets/images/icons/gift-card.svg', 'alt' => '혜택'],
+            ['src' => '/MVNO/assets/images/icons/gift-card.svg', 'alt' => '혜택']
         ]
     ];
     $rawData = []; // 기본값 사용 시에도 빈 배열로 초기화

@@ -10,6 +10,10 @@
 
 // 세션 및 인증 함수를 가장 먼저 로드 (HTML 출력 전에 세션 시작)
 require_once __DIR__ . '/data/auth-functions.php';
+require_once __DIR__ . '/data/site-settings.php';
+
+$siteSettings = getSiteSettings();
+$site = $siteSettings['site'] ?? [];
 
 // 쿼리 파라미터가 서브페이지인지 먼저 확인 (수동 설정보다 우선)
 $query_string = isset($_SERVER['QUERY_STRING']) ? $_SERVER['QUERY_STRING'] : '';
@@ -111,7 +115,7 @@ else if (!isset($is_main_page)) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>알뜰폰 요금제 모요(MOYO), 모두의 요금제</title>
+    <title><?php echo htmlspecialchars(($site['name_ko'] ?? '유심킹') . ' - 알뜰폰 요금제'); ?></title>
     <link rel="stylesheet" href="/MVNO/assets/css/style.css">
     <script>
         // 메인 페이지 여부 (하단 메뉴 및 푸터 표시 제어용)
@@ -130,8 +134,8 @@ else if (!isset($is_main_page)) {
             <!-- 모바일 로고 -->
             <div class="left-addon-mobile" id="mobileLogo">
                 <a class="nav-logo" href="/MVNO/">
-                    <span class="moyo-logo-full">
-                        <span class="logo-text" style="display:inline-block; font-weight: 700; font-size: 18px; color: #6366f1;">모요</span>
+                    <span class="usimking-logo-full">
+                        <span class="logo-text" style="display:inline-block; font-weight: 700; font-size: 18px; color: #6366f1;"><?php echo htmlspecialchars($site['name_ko'] ?? '유심킹'); ?></span>
                     </span>
                 </a>
             </div>
@@ -139,8 +143,8 @@ else if (!isset($is_main_page)) {
             <!-- 데스크톱 로고 -->
             <div class="left-addon-desktop">
                 <a class="nav-logo" href="/MVNO/">
-                    <span class="moyo-logo-full">
-                        <span class="logo-text" style="display:inline-block; font-weight: 700; font-size: 18px; color: #6366f1;">모요</span>
+                    <span class="usimking-logo-full">
+                        <span class="logo-text" style="display:inline-block; font-weight: 700; font-size: 18px; color: #6366f1;"><?php echo htmlspecialchars($site['name_ko'] ?? '유심킹'); ?></span>
                     </span>
                 </a>
             </div>
@@ -151,7 +155,7 @@ else if (!isset($is_main_page)) {
             
             <!-- 헤더 가운데 텍스트 -->
             <div class="header-center-text">
-                <span>알뜰요금의 리더</span>
+                <span><?php echo htmlspecialchars($site['tagline'] ?? '알뜰요금의 리더'); ?></span>
             </div>
             
             <!-- 데스크톱 로그인 버튼 -->

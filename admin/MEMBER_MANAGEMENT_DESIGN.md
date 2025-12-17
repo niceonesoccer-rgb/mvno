@@ -10,7 +10,7 @@
   "users": [
     {
       "user_id": "admin",
-      "email": "admin@moyo.com",
+      "email": "admin@usimking.com",
       "name": "관리자",
       "password": "$2y$10$...",  // 직접 가입 시에만 존재
       "role": "admin",            // admin, sub_admin, seller, user
@@ -177,7 +177,7 @@
 │ 기본 정보                                │
 │ - 아이디: admin                          │
 │ - 이름: 관리자                           │
-│ - 이메일: admin@moyo.com                 │
+│ - 이메일: admin@usimking.com             │
 │ - 역할: 관리자                           │
 │ - 가입일: 2025-12-04 15:29:04            │
 │                                          │
@@ -385,7 +385,7 @@ function getUserStats($userId) {
 1. **CSRF 토큰**: POST 요청 시 CSRF 토큰 검증
 2. **감사 로그**: 회원 정보 변경 이력 기록
 3. **권한 세분화**: 서브관리자는 회원 조회만, 수정은 관리자만
-4. **민감 정보 마스킹**: 이메일 일부만 표시 (예: ad***@moyo.com)
+4. **민감 정보 마스킹**: 이메일 일부만 표시 (예: ad***@usimking.com)
 
 ### 7. 성능 최적화
 

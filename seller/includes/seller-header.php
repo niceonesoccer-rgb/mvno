@@ -77,7 +77,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>판매자 센터 - 모요</title>
+    <title>판매자 센터 - 유심킹</title>
     <link rel="stylesheet" href="/MVNO/assets/css/style.css">
     <script src="/MVNO/assets/js/modal.js" defer></script>
     <style>

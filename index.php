@@ -218,22 +218,22 @@ if (!empty($home_settings['mno_phones']) && is_array($home_settings['mno_phones'
                                         <div class="plan-card-content internet-card">
                                             <div class="internet-card-header">
                                                 <div class="internet-company">
-                                                    <img src="https://assets-legacy.moyoplan.com/internets/assets/ktskylife.svg" alt="KT skylife" class="internet-company-logo">
+                                                    <img src="/MVNO/assets/images/internets/ktskylife.svg" alt="KT skylife" class="internet-company-logo">
                                                 </div>
                                                 <div class="internet-specs">
                                                     <div class="internet-spec">
-                                                        <img src="https://assets-legacy.moyoplan.com/internets/assets/thunder_s.svg" alt="인터넷 속도" class="internet-spec-icon">
+                                                        <img src="/MVNO/assets/images/icons/cash.svg" alt="인터넷 속도" class="internet-spec-icon">
                                                         <span>500MB</span>
                                                     </div>
                                                     <div class="internet-spec">
-                                                        <img src="https://assets-legacy.moyoplan.com/internets/assets/tv_s.svg" alt="TV 채널" class="internet-spec-icon">
+                                                        <img src="/MVNO/assets/images/icons/installation.svg" alt="TV 채널" class="internet-spec-icon">
                                                         <span>194개</span>
                                                     </div>
                                                 </div>
                                             </div>
                                             <div class="internet-benefits">
                                                 <div class="internet-benefit">
-                                                    <img src="https://assets-legacy.moyoplan.com/internets/assets/gift.svg" alt="혜택" class="internet-benefit-icon">
+                                                    <img src="/MVNO/assets/images/icons/gift-card.svg" alt="혜택" class="internet-benefit-icon">
                                                     <div class="internet-benefit-text">
                                                         <p class="internet-benefit-title">인터넷,TV 설치비 무료</p>
                                                         <p class="internet-benefit-sub">무료(36,300원 상당)</p>

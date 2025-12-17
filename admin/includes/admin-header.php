@@ -33,7 +33,7 @@ if (file_exists($adminsFile)) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>관리자 페이지 - 모요</title>
+    <title>관리자 페이지 - 유심킹</title>
     <link rel="stylesheet" href="/MVNO/assets/css/style.css">
     <script src="/MVNO/assets/js/modal.js" defer></script>
     <style>
@@ -530,7 +530,7 @@ if (file_exists($adminsFile)) {
     <!-- 상단 헤더 -->
     <header class="admin-top-header">
         <div class="admin-top-header-left">
-            <a href="/MVNO/admin/" class="admin-top-header-logo" style="text-decoration: none; color: inherit;">모요관리자</a>
+            <a href="/MVNO/admin/" class="admin-top-header-logo" style="text-decoration: none; color: inherit;">유심킹 관리자</a>
         </div>
         <div class="admin-top-header-right">
             <a href="/MVNO/" target="_blank" class="admin-top-header-link">사이트보기</a>
@@ -690,6 +690,15 @@ if (file_exists($adminsFile)) {
                         </svg>
                     </span>
                     관리자 관리
+                </a>
+                <a href="/MVNO/admin/settings/site-settings.php" class="menu-item <?php echo $currentPage === 'site-settings.php' ? 'active' : ''; ?>">
+                    <span class="menu-item-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="3"/>
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 5 15.4a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9c.13.33.2.68.2 1.03s-.07.7-.2 1.03"/>
+                        </svg>
+                    </span>
+                    사이트설정
                 </a>
                 <button type="button" class="menu-add-button" onclick="showAddSubAdminModal()">
                     <span>+ 부관리자 추가</span>

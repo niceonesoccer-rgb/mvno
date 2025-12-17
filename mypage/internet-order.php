@@ -173,11 +173,11 @@ include '../includes/header.php';
                                         $provider = $internet['provider'] ?? '';
                                         $logoUrl = '';
                                         if (stripos($provider, 'SKT') !== false || stripos($provider, 'SK') !== false) {
-                                            $logoUrl = 'https://assets-legacy.moyoplan.com/internets/assets/broadband.svg';
+                                            $logoUrl = '/MVNO/assets/images/internets/broadband.svg';
                                         } elseif (stripos($provider, 'KT') !== false) {
-                                            $logoUrl = 'https://assets-legacy.moyoplan.com/internets/assets/kt.svg';
+                                            $logoUrl = '/MVNO/assets/images/internets/kt.svg';
                                         } elseif (stripos($provider, 'LG') !== false || stripos($provider, 'LGU') !== false) {
-                                            $logoUrl = 'https://assets-legacy.moyoplan.com/internets/assets/lgu.svg';
+                                            $logoUrl = '/MVNO/assets/images/internets/lgu.svg';
                                         }
                                         ?>
                                         <?php if ($logoUrl): ?>
@@ -444,11 +444,11 @@ document.addEventListener('DOMContentLoaded', function() {
         const registrationPlace = productSnapshot.registration_place || '';
         let logoUrl = '';
         if (registrationPlace.indexOf('SKT') !== -1 || registrationPlace.indexOf('SK') !== -1) {
-            logoUrl = 'https://assets-legacy.moyoplan.com/internets/assets/broadband.svg';
+            logoUrl = '/MVNO/assets/images/internets/broadband.svg';
         } else if (registrationPlace.indexOf('KT') !== -1) {
-            logoUrl = 'https://assets-legacy.moyoplan.com/internets/assets/kt.svg';
+            logoUrl = '/MVNO/assets/images/internets/kt.svg';
         } else if (registrationPlace.indexOf('LG') !== -1 || registrationPlace.indexOf('LGU') !== -1) {
-            logoUrl = 'https://assets-legacy.moyoplan.com/internets/assets/lgu.svg';
+            logoUrl = '/MVNO/assets/images/internets/lgu.svg';
         }
         
         if (logoUrl) {

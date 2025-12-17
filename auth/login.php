@@ -48,7 +48,7 @@ $isRegisterMode = isset($_GET['register']) && $_GET['register'] === 'true';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>로그인 - 모요</title>
+    <title>로그인 - 유심킹</title>
     <link rel="stylesheet" href="/MVNO/assets/css/style.css">
     <style>
         .login-container {
@@ -236,7 +236,7 @@ $isRegisterMode = isset($_GET['register']) && $_GET['register'] === 'true';
     <div class="login-container">
         <div class="login-header">
             <h1><?php echo $isRegisterMode ? '회원가입' : '로그인'; ?></h1>
-            <p>모요에 오신 것을 환영합니다</p>
+            <p>유심킹에 오신 것을 환영합니다</p>
         </div>
         
         <?php if ($errorMessage): ?>

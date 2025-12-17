@@ -77,7 +77,7 @@ if (file_exists($privacySettingsFile)) {
     $privacySettings = [
         'purpose' => [
             'title' => '개인정보 수집 및 이용목적',
-            'content' => '<div class="privacy-content-text"><p><strong>1. 개인정보의 수집 및 이용목적</strong></p><p>&lt;엔씨/빵삼텔레콤&gt;(\'http://www.dtmall.net\' 이하 \'회사\') 은(는) 다음의 목적을 위하여 개인정보를 처리하고 있으며, 다음의 목적 이외의 용도로는 이용하지 않습니다.</p></div>'
+            'content' => '<div class="privacy-content-text"><p><strong>1. 개인정보의 수집 및 이용목적</strong></p><p>&lt;유심킹&gt;(\'http://www.dtmall.net\' 이하 \'회사\') 은(는) 다음의 목적을 위하여 개인정보를 처리하고 있으며, 다음의 목적 이외의 용도로는 이용하지 않습니다.</p></div>'
         ],
         'items' => [
             'title' => '개인정보 수집하는 항목',
@@ -89,7 +89,7 @@ if (file_exists($privacySettingsFile)) {
         ],
         'thirdParty' => [
             'title' => '개인정보 제3자 제공',
-            'content' => '<div class="privacy-content-text"><p><strong>모요 개인정보 제3자 제공에 동의</strong></p></div>'
+            'content' => '<div class="privacy-content-text"><p><strong>유심킹 개인정보 제3자 제공에 동의</strong></p></div>'
         ]
     ];
 }

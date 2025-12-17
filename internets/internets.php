@@ -366,31 +366,31 @@ function getInternetIconPath($registrationPlace) {
                 <div class="internet-company-scroll-wrapper">
                     <div class="internet-company-scroll">
                         <button class="internet-company-btn" onclick="selectInternetCompany('KT SkyLife', 'ktskylife')">
-                            <img src="https://assets-legacy.moyoplan.com/internets/assets/ktskylife.svg" alt="KT SkyLife" class="internet-company-logo">
+                            <img src="/MVNO/assets/images/internets/ktskylife.svg" alt="KT SkyLife" class="internet-company-logo">
                             <span class="internet-company-name">KT SkyLife</span>
                         </button>
                         <button class="internet-company-btn" onclick="selectInternetCompany('HelloVision', 'hellovision')">
-                            <img src="https://assets-legacy.moyoplan.com/internets/assets/hellovision.svg" alt="HelloVision" class="internet-company-logo">
+                            <img src="/MVNO/assets/images/internets/hellovision.svg" alt="HelloVision" class="internet-company-logo">
                             <span class="internet-company-name">HelloVision</span>
                         </button>
                         <button class="internet-company-btn" onclick="selectInternetCompany('BTV', 'btv')">
-                            <img src="https://assets-legacy.moyoplan.com/internets/assets/btv.svg" alt="BTV" class="internet-company-logo">
+                            <img src="/MVNO/assets/images/internets/btv.svg" alt="BTV" class="internet-company-logo">
                             <span class="internet-company-name">BTV</span>
                         </button>
                         <button class="internet-company-btn" onclick="selectInternetCompany('DLive', 'dlive')">
-                            <img src="https://assets-legacy.moyoplan.com/internets/assets/dlive.svg" alt="DLive" class="internet-company-logo">
+                            <img src="/MVNO/assets/images/internets/dlive.svg" alt="DLive" class="internet-company-logo">
                             <span class="internet-company-name">DLive</span>
                         </button>
                         <button class="internet-company-btn" onclick="selectInternetCompany('LG U+', 'lgu')">
-                            <img src="https://assets-legacy.moyoplan.com/internets/assets/lgu.svg" alt="LG U+" class="internet-company-logo">
+                            <img src="/MVNO/assets/images/internets/lgu.svg" alt="LG U+" class="internet-company-logo">
                             <span class="internet-company-name">LG U+</span>
                         </button>
                         <button class="internet-company-btn" onclick="selectInternetCompany('KT', 'kt')">
-                            <img src="https://assets-legacy.moyoplan.com/internets/assets/kt.svg" alt="KT" class="internet-company-logo">
+                            <img src="/MVNO/assets/images/internets/kt.svg" alt="KT" class="internet-company-logo">
                             <span class="internet-company-name">KT</span>
                         </button>
                         <button class="internet-company-btn" onclick="selectInternetCompany('Broadband', 'broadband')">
-                            <img src="https://assets-legacy.moyoplan.com/internets/assets/broadband.svg" alt="Broadband" class="internet-company-logo">
+                            <img src="/MVNO/assets/images/internets/broadband.svg" alt="Broadband" class="internet-company-logo">
                             <span class="internet-company-name">Broadband</span>
                         </button>
                         <button class="internet-company-btn" onclick="selectInternetCompany('기타', 'other')">
@@ -2480,17 +2480,17 @@ function showCurrentCompanyInfo(company, icon) {
     if (infoEl) {
         // 회사 이름과 아이콘 매핑
         const companyLogos = {
-            'KT SkyLife': 'https://assets-legacy.moyoplan.com/internets/assets/ktskylife.svg',
-            'HelloVision': 'https://assets-legacy.moyoplan.com/internets/assets/hellovision.svg',
-            'BTV': 'https://assets-legacy.moyoplan.com/internets/assets/btv.svg',
-            'DLive': 'https://assets-legacy.moyoplan.com/internets/assets/dlive.svg',
-            'LG U+': 'https://assets-legacy.moyoplan.com/internets/assets/lgu.svg',
-            'KT': 'https://assets-legacy.moyoplan.com/internets/assets/kt.svg',
-            'Broadband': 'https://assets-legacy.moyoplan.com/internets/assets/broadband.svg',
+            'KT SkyLife': '/MVNO/assets/images/internets/ktskylife.svg',
+            'HelloVision': '/MVNO/assets/images/internets/hellovision.svg',
+            'BTV': '/MVNO/assets/images/internets/btv.svg',
+            'DLive': '/MVNO/assets/images/internets/dlive.svg',
+            'LG U+': '/MVNO/assets/images/internets/lgu.svg',
+            'KT': '/MVNO/assets/images/internets/kt.svg',
+            'Broadband': '/MVNO/assets/images/internets/broadband.svg',
             '기타': null
         };
         
-        const logoPath = companyLogos[company] || (icon ? `https://assets-legacy.moyoplan.com/internets/assets/${icon}.svg` : null);
+        const logoPath = companyLogos[company] || (icon ? `/MVNO/assets/images/internets/${icon}.svg` : null);
         
         if (logoPath && logoEl) {
             // 텍스트 먼저 숨기기
@@ -2541,7 +2541,7 @@ function showNewCompanyInfo() {
     
     if (infoEl && selectedData.newCompany) {
         const logoPath = selectedData.newCompanyLogo || 
-            (selectedData.newCompanyIcon ? `https://assets-legacy.moyoplan.com/internets/assets/${selectedData.newCompanyIcon}.svg` : null);
+            (selectedData.newCompanyIcon ? `/MVNO/assets/images/internets/${selectedData.newCompanyIcon}.svg` : null);
         
         if (logoPath && logoEl) {
             // 텍스트 먼저 숨기기

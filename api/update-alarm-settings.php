@@ -145,3 +145,4 @@ echo json_encode([
     'message' => '알림 설정이 업데이트되었습니다.',
     'settings' => $alarmSettings
 ]);
+

@@ -44,19 +44,19 @@ include '../includes/header.php';
         <div style="background-color: #ffffff; border-radius: 8px; padding: 24px; margin-bottom: 24px;">
             <ol style="list-style: decimal; padding-left: 20px; margin: 0; line-height: 1.8;">
                 <li style="margin-bottom: 16px; font-size: 15px; color: #212529;">
-                    신청 중 또는 개통 대기 중인 요금제에 대해 모요로부터 더이상 알림을 받으실 수 없게돼요
+                    신청 중 또는 개통 대기 중인 요금제에 대해 유심킹으로부터 더이상 알림을 받으실 수 없게돼요
                 </li>
                 <li style="margin-bottom: 16px; font-size: 15px; color: #212529;">
                     지급 예정된 이벤트 혜택이 있었다면 탈퇴 즉시 모두 취소돼요
                 </li>
                 <li style="margin-bottom: 16px; font-size: 15px; color: #212529;">
-                    모요 포인트는 액수와 상관없이 자동 소멸되며, 적립된 포인트는 반환할 수 없어요.
+                    유심킹 포인트는 액수와 상관없이 자동 소멸되며, 적립된 포인트는 반환할 수 없어요.
                 </li>
                 <li style="margin-bottom: 16px; font-size: 15px; color: #212529;">
                     재가입을 하더라도 한번 삭제된 기존 정보(신청 내역, 개통 정보 등) 가 복구되지는 않아요
                 </li>
                 <li style="margin-bottom: 16px; font-size: 15px; color: #212529;">
-                    탈퇴하시면 모요개통 내역은 개통완료 시 60일 후 파기, 개통 전 철회(취소) 시 30일 후 파기, 신청 후 미개통 시 60일 후 파기, (타인 납부 시) 개통완료 후 90일 후 파기 돼요.
+                    탈퇴하시면 유심킹 개통 내역은 개통완료 시 60일 후 파기, 개통 전 철회(취소) 시 30일 후 파기, 신청 후 미개통 시 60일 후 파기, (타인 납부 시) 개통완료 후 90일 후 파기 돼요.
                 </li>
                 <li style="margin-bottom: 16px; font-size: 15px; color: #212529;">
                     리뷰와 커뮤니티 글, 댓글은 삭제되지 않아요

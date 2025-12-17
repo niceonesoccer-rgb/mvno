@@ -410,7 +410,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>판매자 가입 - 모요</title>
+    <title>판매자 가입 - 유심킹</title>
     <link rel="stylesheet" href="/MVNO/assets/css/style.css">
     <script src="/MVNO/assets/js/modal.js" defer></script>
 
@@ -1132,7 +1132,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="seller-register-container">
         <div class="register-header">
             <h1>판매자 가입</h1>
-            <p>모요 판매자로 가입하여 상품을 등록하고 판매하세요</p>
+            <p>유심킹 판매자로 가입하여 상품을 등록하고 판매하세요</p>
         </div>
         
         <?php if ($error): ?>

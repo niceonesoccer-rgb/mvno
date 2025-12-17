@@ -27,7 +27,7 @@ if (!$phone) {
         'id' => $phone_id,
         'provider' => 'SKT',
         'device_name' => 'Galaxy Z Fold7',
-        'device_image' => 'https://assets.moyoplan.com/image/phone/model/galaxy_z_fold7.png',
+        'device_image' => '/MVNO/assets/images/icons/equipment.svg',
         'device_storage' => '256GB',
         'device_price' => '출고가 2,387,000원',
         'plan_name' => 'SKT 프리미어 슈퍼',

@@ -14,3 +14,4 @@ ADD COLUMN `alarm_settings_updated_at` DATETIME DEFAULT NULL COMMENT '알림 설
 -- ADD COLUMN `advertising_push` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '광고성 앱 푸시 수신 동의' AFTER `advertising_email`,
 -- ADD COLUMN `advertising_kakao` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '광고성 카카오 알림톡 수신 동의' AFTER `advertising_push`,
 -- ADD COLUMN `alarm_settings_updated_at` DATETIME DEFAULT NULL COMMENT '알림 설정 업데이트일' AFTER `advertising_kakao`;
+

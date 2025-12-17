@@ -38,7 +38,7 @@ $defaultPhone = $currentUser['phone'] ?? '';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>추가 정보 입력 - 모요</title>
+    <title>추가 정보 입력 - 유심킹</title>
     <link rel="stylesheet" href="/MVNO/assets/css/style.css">
     <style>
         .complete-profile-container {

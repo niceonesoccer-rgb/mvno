@@ -11,13 +11,13 @@
             "permissions": [],
             "phone": "010-1111-1111",
             "alarm_settings": {
-                "benefit_notification": true,
+                "benefit_notification": false,
                 "advertising_sms": true,
                 "advertising_phone": true,
                 "advertising_email": false,
                 "advertising_push": true,
                 "advertising_kakao": false,
-                "updated_at": "2025-12-17 23:04:38"
+                "updated_at": "2025-12-18 07:44:33"
             }
         }
     ]

@@ -68,7 +68,9 @@ include '../includes/header.php';
                             </svg>
                             <span style="font-size: 16px;">찜한 알뜰폰 내역</span>
                         </div>
-                        <img alt=">" src="https://assets-legacy.moyoplan.com/img/icons/rightArrow.svg" style="width: 16px; height: 16px;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width: 16px; height: 16px;">
+                            <path d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
                     </a>
                 </li>
 
@@ -81,7 +83,9 @@ include '../includes/header.php';
                             </svg>
                             <span style="font-size: 16px;">찜한 통신사폰 내역</span>
                         </div>
-                        <img alt=">" src="https://assets-legacy.moyoplan.com/img/icons/rightArrow.svg" style="width: 16px; height: 16px;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width: 16px; height: 16px;">
+                            <path d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
                     </a>
                 </li>
 
@@ -95,7 +99,9 @@ include '../includes/header.php';
                             </svg>
                             <span style="font-size: 16px;">포인트 내역</span>
                         </div>
-                        <img alt=">" src="https://assets-legacy.moyoplan.com/img/icons/rightArrow.svg" style="width: 16px; height: 16px;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width: 16px; height: 16px;">
+                            <path d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
                     </a>
                 </li>
 
@@ -109,7 +115,9 @@ include '../includes/header.php';
                             </svg>
                             <span style="font-size: 16px;">알뜰폰 주문 내역</span>
                         </div>
-                        <img alt=">" src="https://assets-legacy.moyoplan.com/img/icons/rightArrow.svg" style="width: 16px; height: 16px;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width: 16px; height: 16px;">
+                            <path d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
                     </a>
                 </li>
 
@@ -123,7 +131,9 @@ include '../includes/header.php';
                             </svg>
                             <span style="font-size: 16px;">통신사폰 주문 내역</span>
                         </div>
-                        <img alt=">" src="https://assets-legacy.moyoplan.com/img/icons/rightArrow.svg" style="width: 16px; height: 16px;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width: 16px; height: 16px;">
+                            <path d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
                     </a>
                 </li>
 
@@ -137,7 +147,9 @@ include '../includes/header.php';
                             </svg>
                             <span style="font-size: 16px;">인터넷 주문 내역</span>
                         </div>
-                        <img alt=">" src="https://assets-legacy.moyoplan.com/img/icons/rightArrow.svg" style="width: 16px; height: 16px;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width: 16px; height: 16px;">
+                            <path d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
                     </a>
                 </li>
 
@@ -151,7 +163,9 @@ include '../includes/header.php';
                             </svg>
                             <span style="font-size: 16px;">계정 관리</span>
                         </div>
-                        <img alt=">" src="https://assets-legacy.moyoplan.com/img/icons/rightArrow.svg" style="width: 16px; height: 16px;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width: 16px; height: 16px;">
+                            <path d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
                     </a>
                 </li>
 
@@ -165,7 +179,9 @@ include '../includes/header.php';
                             </svg>
                             <span style="font-size: 16px;">알림 설정</span>
                         </div>
-                        <img alt=">" src="https://assets-legacy.moyoplan.com/img/icons/rightArrow.svg" style="width: 16px; height: 16px;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width: 16px; height: 16px;">
+                            <path d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
                     </a>
                 </li>
 
@@ -182,7 +198,9 @@ include '../includes/header.php';
                             </svg>
                             <span style="font-size: 16px;">공지 사항</span>
                         </div>
-                        <img alt=">" src="https://assets-legacy.moyoplan.com/img/icons/rightArrow.svg" style="width: 16px; height: 16px;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width: 16px; height: 16px;">
+                            <path d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
                     </a>
                 </li>
 
@@ -196,7 +214,9 @@ include '../includes/header.php';
                             </svg>
                             <span style="font-size: 16px;">질문과 답변</span>
                         </div>
-                        <img alt=">" src="https://assets-legacy.moyoplan.com/img/icons/rightArrow.svg" style="width: 16px; height: 16px;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width: 16px; height: 16px;">
+                            <path d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
                     </a>
                 </li>
             </ul>

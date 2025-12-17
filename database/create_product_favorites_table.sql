@@ -13,3 +13,4 @@ CREATE TABLE IF NOT EXISTS product_favorites (
     KEY idx_created_at (created_at),
     CONSTRAINT fk_favorite_product FOREIGN KEY (product_id) REFERENCES products (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+

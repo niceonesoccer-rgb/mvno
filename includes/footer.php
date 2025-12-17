@@ -1,39 +1,59 @@
+<?php
+require_once __DIR__ . '/data/site-settings.php';
+$siteSettings = getSiteSettings();
+$footer = $siteSettings['footer'] ?? [];
+$site = $siteSettings['site'] ?? [];
+?>
+
 <?php if (isset($is_main_page) && $is_main_page): ?>
     <footer class="footer">
         <div class="footer-body">
             <!-- 브랜드 로고 -->
-            <a href="/" aria-label="모요" class="footer-brand"></a>
+            <a href="/MVNO/" aria-label="<?php echo htmlspecialchars($site['name_ko'] ?? '유심킹'); ?>" class="footer-brand"></a>
             
             <!-- 사이트맵 -->
             <nav class="footer-sitemap">
-                <a href="https://docs.channel.io/moyofaq/ko" target="_blank" rel="noopener noreferrer" class="footer-sitemap-link">자주 묻는 질문</a>
-                <a href="/tips" target="_blank" rel="noopener noreferrer" class="footer-sitemap-link">가이드</a>
-                <a href="/notice" target="_blank" rel="noopener noreferrer" class="footer-sitemap-link">공지사항</a>
-                <a href="https://moyo.career.greetinghr.com" target="_blank" rel="noopener noreferrer" class="footer-sitemap-link">채용 안내</a>
-                <a href="/ad-link/first/login" target="_blank" rel="noopener noreferrer" class="footer-sitemap-link">애드링크</a>
-                <a href="https://docs.google.com/forms/d/e/1FAIpQLSdkIAfvyTAWkQCZ-wOjkfgHoJBJOP-etvXq9ypvN0n0cI1BVw/viewform" target="_blank" rel="noopener noreferrer" class="footer-sitemap-link">제휴 문의</a>
+                <a href="/MVNO/qna/qna.php" class="footer-sitemap-link">자주 묻는 질문</a>
+                <a href="/MVNO/notice/notice.php" class="footer-sitemap-link">공지사항</a>
             </nav>
             
             <!-- 회사 정보 및 고객센터 -->
             <div class="footer-info-wrapper">
                 <address class="footer-contact">
-                    <strong class="font-bold">(주)모요</strong>
-                    사업자등록번호 : 716-87-02405 | 대표 : 안동건<br>
-                    통신판매업 신고번호 : 2025-서울서초-0573<br>
-                    주소 : 서울 서초구 강남대로 343 11층 (주)모요<br>
-                    이메일 : help@moyoplan.com
+                    <strong class="font-bold"><?php echo htmlspecialchars($footer['company_name'] ?? '(주)유심킹'); ?></strong>
+                    <?php if (!empty($footer['business_number'])): ?>
+                        사업자등록번호 : <?php echo htmlspecialchars($footer['business_number']); ?><br>
+                    <?php endif; ?>
+                    <?php if (!empty($footer['mail_order_number'])): ?>
+                        통신판매업 신고번호 : <?php echo htmlspecialchars($footer['mail_order_number']); ?><br>
+                    <?php endif; ?>
+                    <?php if (!empty($footer['address'])): ?>
+                        주소 : <?php echo htmlspecialchars($footer['address']); ?><br>
+                    <?php endif; ?>
+                    <?php if (!empty($footer['email'])): ?>
+                        이메일 : <?php echo htmlspecialchars($footer['email']); ?>
+                    <?php endif; ?>
                 </address>
                 
                 <div class="footer-customer-service">
                     <strong>고객센터</strong>
-                    카카오톡 : @모두의요금제<br>
-                    전화번호 : 070-8287-0500<br>
-                    *유선 문의량이 많아 카카오톡 채널 "모두의요금제" 검색 후 문의하시면 빠른 상담이 가능합니다.
+                    <?php if (!empty($footer['kakao'])): ?>
+                        카카오톡 : <?php echo htmlspecialchars($footer['kakao']); ?><br>
+                    <?php endif; ?>
+                    <?php if (!empty($footer['phone'])): ?>
+                        전화번호 : <?php echo htmlspecialchars($footer['phone']); ?><br>
+                    <?php endif; ?>
+                    <?php if (!empty($footer['cs_notice'])): ?>
+                        <?php echo nl2br(htmlspecialchars($footer['cs_notice'])); ?>
+                    <?php endif; ?>
                     
                     <strong>운영시간</strong>
-                    - 월-목 : 10:00 ~ 18:00<br>
-                    - 금 : 10:00 ~ 17:00<br>
-                    - 점심시간 : 12:00 ~ 13:30 (주말, 공휴일 제외)
+                    <?php if (!empty($footer['hours']['weekday']) || !empty($footer['hours']['hours'])): ?>
+                        - <?php echo htmlspecialchars(($footer['hours']['weekday'] ?? '월~금')); ?> : <?php echo htmlspecialchars(($footer['hours']['hours'] ?? '')); ?><br>
+                    <?php endif; ?>
+                    <?php if (!empty($footer['hours']['lunch'])): ?>
+                        - <?php echo htmlspecialchars($footer['hours']['lunch']); ?>
+                    <?php endif; ?>
                 </div>
             </div>
             

@@ -21,7 +21,7 @@ include 'includes/header.php';
                     </div>
                 </section>
 
-                <!-- 모요 요금제 랭킹 -->
+                <!-- 유심킹 요금제 랭킹 -->
                 <section class="ranking-section">
                     <div class="ranking-list">
                         <a href="../plans/" class="ranking-card">
@@ -149,7 +149,7 @@ include 'includes/header.php';
                                     <span class="discount-badge">105만원 할인</span>
                                 </div>
                                 <div class="phone-image">
-                                    <img src="https://assets.moyoplan.com/image/phone/model/galaxy_s_25.png" alt="갤럭시 S25" onerror="this.style.display='none'; this.parentElement.style.minHeight='200px';">
+                                    <img src="/MVNO/assets/images/icons/equipment.svg" alt="갤럭시 S25" onerror="this.style.display='none'; this.parentElement.style.minHeight='200px';">
                                 </div>
                                 <div class="phone-price-info">
                                     <span class="phone-price">105,000원부터</span>
@@ -172,7 +172,7 @@ include 'includes/header.php';
                                     <span class="discount-badge">110만원 할인</span>
                                 </div>
                                 <div class="phone-image">
-                                    <img src="https://assets.moyoplan.com/image/phone/model/galaxy_s_25.png" alt="아이폰16 프로" onerror="this.style.display='none'; this.parentElement.style.minHeight='200px';">
+                                    <img src="/MVNO/assets/images/icons/equipment.svg" alt="아이폰16 프로" onerror="this.style.display='none'; this.parentElement.style.minHeight='200px';">
                                 </div>
                                 <div class="phone-price-info">
                                     <span class="phone-price">891,000원부터</span>
@@ -195,7 +195,7 @@ include 'includes/header.php';
                                     <span class="discount-badge">100만원 할인</span>
                                 </div>
                                 <div class="phone-image">
-                                    <img src="https://assets.moyoplan.com/image/phone/model/galaxy_s_25.png" alt="갤럭시 Z 폴드7" onerror="this.style.display='none'; this.parentElement.style.minHeight='200px';">
+                                    <img src="/MVNO/assets/images/icons/equipment.svg" alt="갤럭시 Z 폴드7" onerror="this.style.display='none'; this.parentElement.style.minHeight='200px';">
                                 </div>
                                 <div class="phone-price-info">
                                     <span class="phone-price">1,379,300원부터</span>
@@ -218,7 +218,7 @@ include 'includes/header.php';
                                     <span class="discount-badge">할인</span>
                                 </div>
                                 <div class="phone-image">
-                                    <img src="https://assets.moyoplan.com/image/phone/model/galaxy_s_25.png" alt="아이폰" onerror="this.style.display='none'; this.parentElement.style.minHeight='200px';">
+                                    <img src="/MVNO/assets/images/icons/equipment.svg" alt="아이폰" onerror="this.style.display='none'; this.parentElement.style.minHeight='200px';">
                                 </div>
                                 <div class="phone-price-info">
                                     <span class="phone-price">237,000원부터</span>
@@ -241,7 +241,7 @@ include 'includes/header.php';
                                     <span class="discount-badge">90만원 할인</span>
                                 </div>
                                 <div class="phone-image">
-                                    <img src="https://assets.moyoplan.com/image/phone/model/galaxy_s_25.png" alt="갤럭시 S24" onerror="this.style.display='none'; this.parentElement.style.minHeight='200px';">
+                                    <img src="/MVNO/assets/images/icons/equipment.svg" alt="갤럭시 S24" onerror="this.style.display='none'; this.parentElement.style.minHeight='200px';">
                                 </div>
                                 <div class="phone-price-info">
                                     <span class="phone-price">95,000원부터</span>
@@ -264,7 +264,7 @@ include 'includes/header.php';
                                     <span class="discount-badge">100만원 할인</span>
                                 </div>
                                 <div class="phone-image">
-                                    <img src="https://assets.moyoplan.com/image/phone/model/galaxy_s_25.png" alt="아이폰15 프로" onerror="this.style.display='none'; this.parentElement.style.minHeight='200px';">
+                                    <img src="/MVNO/assets/images/icons/equipment.svg" alt="아이폰15 프로" onerror="this.style.display='none'; this.parentElement.style.minHeight='200px';">
                                 </div>
                                 <div class="phone-price-info">
                                     <span class="phone-price">791,000원부터</span>
@@ -287,7 +287,7 @@ include 'includes/header.php';
                                     <span class="discount-badge">95만원 할인</span>
                                 </div>
                                 <div class="phone-image">
-                                    <img src="https://assets.moyoplan.com/image/phone/model/galaxy_s_25.png" alt="갤럭시 Z 플립7" onerror="this.style.display='none'; this.parentElement.style.minHeight='200px';">
+                                    <img src="/MVNO/assets/images/icons/equipment.svg" alt="갤럭시 Z 플립7" onerror="this.style.display='none'; this.parentElement.style.minHeight='200px';">
                                 </div>
                                 <div class="phone-price-info">
                                     <span class="phone-price">1,179,300원부터</span>
@@ -310,7 +310,7 @@ include 'includes/header.php';
                                     <span class="discount-badge">85만원 할인</span>
                                 </div>
                                 <div class="phone-image">
-                                    <img src="https://assets.moyoplan.com/image/phone/model/galaxy_s_25.png" alt="아이폰15" onerror="this.style.display='none'; this.parentElement.style.minHeight='200px';">
+                                    <img src="/MVNO/assets/images/icons/equipment.svg" alt="아이폰15" onerror="this.style.display='none'; this.parentElement.style.minHeight='200px';">
                                 </div>
                                 <div class="phone-price-info">
                                     <span class="phone-price">637,000원부터</span>
@@ -333,7 +333,7 @@ include 'includes/header.php';
                                     <span class="discount-badge">80만원 할인</span>
                                 </div>
                                 <div class="phone-image">
-                                    <img src="https://assets.moyoplan.com/image/phone/model/galaxy_s_25.png" alt="갤럭시 노트" onerror="this.style.display='none'; this.parentElement.style.minHeight='200px';">
+                                    <img src="/MVNO/assets/images/icons/equipment.svg" alt="갤럭시 노트" onerror="this.style.display='none'; this.parentElement.style.minHeight='200px';">
                                 </div>
                                 <div class="phone-price-info">
                                     <span class="phone-price">1,079,300원부터</span>
@@ -385,15 +385,15 @@ include 'includes/header.php';
                                     <!-- 상단: 통신사 로고 + 인터넷/TV 정보 -->
                                     <div class="internet-card-header">
                                         <div class="internet-company">
-                                            <img src="https://assets-legacy.moyoplan.com/internets/assets/ktskylife.svg" alt="KT skylife" class="internet-company-logo">
+                                                    <img src="/MVNO/assets/images/internets/ktskylife.svg" alt="KT skylife" class="internet-company-logo">
                                         </div>
                                         <div class="internet-specs">
                                             <div class="internet-spec">
-                                                <img src="https://assets-legacy.moyoplan.com/internets/assets/thunder_s.svg" alt="인터넷 속도" class="internet-spec-icon">
+                                                        <img src="/MVNO/assets/images/icons/cash.svg" alt="인터넷 속도" class="internet-spec-icon">
                                                 <span>500MB</span>
                                             </div>
                                             <div class="internet-spec">
-                                                <img src="https://assets-legacy.moyoplan.com/internets/assets/tv_s.svg" alt="TV 채널" class="internet-spec-icon">
+                                                        <img src="/MVNO/assets/images/icons/installation.svg" alt="TV 채널" class="internet-spec-icon">
                                                 <span>194개</span>
                                             </div>
                                         </div>
@@ -402,21 +402,21 @@ include 'includes/header.php';
                                     <!-- 중간: 혜택 리스트 -->
                                     <div class="internet-benefits">
                                         <div class="internet-benefit">
-                                            <img src="https://assets-legacy.moyoplan.com/internets/assets/gift.svg" alt="혜택" class="internet-benefit-icon">
+                                                    <img src="/MVNO/assets/images/icons/gift-card.svg" alt="혜택" class="internet-benefit-icon">
                                             <div class="internet-benefit-text">
                                                 <p class="internet-benefit-title">인터넷,TV 설치비 무료</p>
                                                 <p class="internet-benefit-sub">무료(36,300원 상당)</p>
                                             </div>
                                         </div>
                                         <div class="internet-benefit">
-                                            <img src="https://assets-legacy.moyoplan.com/internets/assets/gift.svg" alt="혜택" class="internet-benefit-icon">
+                                                    <img src="/MVNO/assets/images/icons/gift-card.svg" alt="혜택" class="internet-benefit-icon">
                                             <div class="internet-benefit-text">
                                                 <p class="internet-benefit-title">셋톱박스 임대료 무료</p>
                                                 <p class="internet-benefit-sub">무료(월 3,300원 상당)</p>
                                             </div>
                                         </div>
                                         <div class="internet-benefit">
-                                            <img src="https://assets-legacy.moyoplan.com/internets/assets/gift.svg" alt="혜택" class="internet-benefit-icon">
+                                                    <img src="/MVNO/assets/images/icons/gift-card.svg" alt="혜택" class="internet-benefit-icon">
                                             <div class="internet-benefit-text">
                                                 <p class="internet-benefit-title">와이파이 공유기</p>
                                                 <p class="internet-benefit-sub">무료(월 1,100원 상당)</p>
@@ -438,15 +438,15 @@ include 'includes/header.php';
                                     <!-- 상단: 통신사 로고 + 인터넷/TV 정보 -->
                                     <div class="internet-card-header">
                                         <div class="internet-company">
-                                            <img src="https://assets-legacy.moyoplan.com/internets/assets/ktskylife.svg" alt="KT skylife" class="internet-company-logo">
+                                            <img src="/MVNO/assets/images/internets/ktskylife.svg" alt="KT skylife" class="internet-company-logo">
                                         </div>
                                         <div class="internet-specs">
                                             <div class="internet-spec">
-                                                <img src="https://assets-legacy.moyoplan.com/internets/assets/thunder_s.svg" alt="인터넷 속도" class="internet-spec-icon">
+                                                <img src="/MVNO/assets/images/icons/cash.svg" alt="인터넷 속도" class="internet-spec-icon">
                                                 <span>500MB</span>
                                             </div>
                                             <div class="internet-spec">
-                                                <img src="https://assets-legacy.moyoplan.com/internets/assets/tv_s.svg" alt="TV 채널" class="internet-spec-icon">
+                                                <img src="/MVNO/assets/images/icons/installation.svg" alt="TV 채널" class="internet-spec-icon">
                                                 <span>194개</span>
                                             </div>
                                         </div>
@@ -455,21 +455,21 @@ include 'includes/header.php';
                                     <!-- 중간: 혜택 리스트 -->
                                     <div class="internet-benefits">
                                         <div class="internet-benefit">
-                                            <img src="https://assets-legacy.moyoplan.com/internets/assets/gift.svg" alt="혜택" class="internet-benefit-icon">
+                                            <img src="/MVNO/assets/images/icons/gift-card.svg" alt="혜택" class="internet-benefit-icon">
                                             <div class="internet-benefit-text">
                                                 <p class="internet-benefit-title">인터넷,TV 설치비 무료</p>
                                                 <p class="internet-benefit-sub">무료(36,300원 상당)</p>
                                             </div>
                                         </div>
                                         <div class="internet-benefit">
-                                            <img src="https://assets-legacy.moyoplan.com/internets/assets/gift.svg" alt="혜택" class="internet-benefit-icon">
+                                            <img src="/MVNO/assets/images/icons/gift-card.svg" alt="혜택" class="internet-benefit-icon">
                                             <div class="internet-benefit-text">
                                                 <p class="internet-benefit-title">셋톱박스 임대료 무료</p>
                                                 <p class="internet-benefit-sub">무료(월 3,300원 상당)</p>
                                             </div>
                                         </div>
                                         <div class="internet-benefit">
-                                            <img src="https://assets-legacy.moyoplan.com/internets/assets/gift.svg" alt="혜택" class="internet-benefit-icon">
+                                            <img src="/MVNO/assets/images/icons/gift-card.svg" alt="혜택" class="internet-benefit-icon">
                                             <div class="internet-benefit-text">
                                                 <p class="internet-benefit-title">와이파이 공유기</p>
                                                 <p class="internet-benefit-sub">무료(월 1,100원 상당)</p>
@@ -492,15 +492,15 @@ include 'includes/header.php';
                                     <!-- 상단: 통신사 로고 + 인터넷/TV 정보 -->
                                     <div class="internet-card-header">
                                         <div class="internet-company">
-                                            <img src="https://assets-legacy.moyoplan.com/internets/assets/ktskylife.svg" alt="KT skylife" class="internet-company-logo">
+                                            <img src="/MVNO/assets/images/internets/ktskylife.svg" alt="KT skylife" class="internet-company-logo">
                                         </div>
                                         <div class="internet-specs">
                                             <div class="internet-spec">
-                                                <img src="https://assets-legacy.moyoplan.com/internets/assets/thunder_s.svg" alt="인터넷 속도" class="internet-spec-icon">
+                                                <img src="/MVNO/assets/images/icons/cash.svg" alt="인터넷 속도" class="internet-spec-icon">
                                                 <span>500MB</span>
                                             </div>
                                             <div class="internet-spec">
-                                                <img src="https://assets-legacy.moyoplan.com/internets/assets/tv_s.svg" alt="TV 채널" class="internet-spec-icon">
+                                                <img src="/MVNO/assets/images/icons/installation.svg" alt="TV 채널" class="internet-spec-icon">
                                                 <span>194개</span>
                                             </div>
                                         </div>
@@ -509,21 +509,21 @@ include 'includes/header.php';
                                     <!-- 중간: 혜택 리스트 -->
                                     <div class="internet-benefits">
                                         <div class="internet-benefit">
-                                            <img src="https://assets-legacy.moyoplan.com/internets/assets/gift.svg" alt="혜택" class="internet-benefit-icon">
+                                            <img src="/MVNO/assets/images/icons/gift-card.svg" alt="혜택" class="internet-benefit-icon">
                                             <div class="internet-benefit-text">
                                                 <p class="internet-benefit-title">인터넷,TV 설치비 무료</p>
                                                 <p class="internet-benefit-sub">무료(36,300원 상당)</p>
                                             </div>
                                         </div>
                                         <div class="internet-benefit">
-                                            <img src="https://assets-legacy.moyoplan.com/internets/assets/gift.svg" alt="혜택" class="internet-benefit-icon">
+                                            <img src="/MVNO/assets/images/icons/gift-card.svg" alt="혜택" class="internet-benefit-icon">
                                             <div class="internet-benefit-text">
                                                 <p class="internet-benefit-title">셋톱박스 임대료 무료</p>
                                                 <p class="internet-benefit-sub">무료(월 3,300원 상당)</p>
                                             </div>
                                         </div>
                                         <div class="internet-benefit">
-                                            <img src="https://assets-legacy.moyoplan.com/internets/assets/gift.svg" alt="혜택" class="internet-benefit-icon">
+                                            <img src="/MVNO/assets/images/icons/gift-card.svg" alt="혜택" class="internet-benefit-icon">
                                             <div class="internet-benefit-text">
                                                 <p class="internet-benefit-title">와이파이 공유기</p>
                                                 <p class="internet-benefit-sub">무료(월 1,100원 상당)</p>
