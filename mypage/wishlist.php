@@ -21,21 +21,76 @@ $is_mno = ($type === 'mno');
 // 헤더 포함
 include '../includes/header.php';
 
+// 현재 사용자 ID 가져오기
+$currentUserId = getCurrentUserId();
+if (!$currentUserId) {
+    header('Location: /MVNO/?show_login=1');
+    exit;
+}
+
+// 데이터베이스에서 찜한 상품 ID 가져오기
+require_once '../includes/data/db-config.php';
+$pdo = getDBConnection();
+
 // 변수 초기화 (혼선 방지)
 $plans = [];
 $phones = [];
+$wishlistProductIds = [];
+
+if ($pdo) {
+    try {
+        $productType = $is_mno ? 'mno' : 'mvno';
+        $stmt = $pdo->prepare("
+            SELECT product_id 
+            FROM product_favorites 
+            WHERE user_id = :user_id AND product_type = :product_type
+        ");
+        $stmt->execute([
+            ':user_id' => (int)$currentUserId,
+            ':product_type' => $productType
+        ]);
+        $wishlistProductIds = array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
+    } catch (PDOException $e) {
+        error_log("Error fetching wishlist: " . $e->getMessage());
+        $wishlistProductIds = [];
+    }
+}
 
 // 타입에 따라 데이터 가져오기
 if ($is_mno) {
     // 통신사폰 데이터
     require_once '../includes/data/phone-data.php';
-    $phones = getPhonesData(10);
+    
+    // 모든 통신사폰 데이터 가져오기 (큰 limit 사용)
+    $allPhones = getPhonesData(1000);
+    
+    // 위시리스트에 있는 상품만 필터링
+    if (!empty($wishlistProductIds)) {
+        $phones = array_filter($allPhones, function($phone) use ($wishlistProductIds) {
+            $phoneId = isset($phone['id']) ? (int)$phone['id'] : null;
+            return $phoneId && in_array($phoneId, $wishlistProductIds, true);
+        });
+        $phones = array_values($phones); // 인덱스 재정렬
+    }
+    
     $page_title = '찜한 통신사폰 요금제';
     $result_count = count($phones) . '개의 결과';
 } else {
     // 알뜰폰 데이터
     require_once '../includes/data/plan-data.php';
-    $plans = getPlansData(10);
+    
+    // 모든 알뜰폰 데이터 가져오기 (큰 limit 사용)
+    $allPlans = getPlansData(1000);
+    
+    // 위시리스트에 있는 상품만 필터링
+    if (!empty($wishlistProductIds)) {
+        $plans = array_filter($allPlans, function($plan) use ($wishlistProductIds) {
+            $planId = isset($plan['id']) ? (int)$plan['id'] : null;
+            return $planId && in_array($planId, $wishlistProductIds, true);
+        });
+        $plans = array_values($plans); // 인덱스 재정렬
+    }
+    
     $page_title = '찜한 알뜰폰 요금제';
     $result_count = count($plans) . '개의 결과';
 }

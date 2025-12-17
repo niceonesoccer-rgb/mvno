@@ -96,6 +96,9 @@ function normalizeUserData($user) {
     if (isset($user['permissions']) && is_string($user['permissions'])) {
         $user['permissions'] = json_decode($user['permissions'], true) ?: [];
     }
+    if (isset($user['alarm_settings']) && is_string($user['alarm_settings'])) {
+        $user['alarm_settings'] = json_decode($user['alarm_settings'], true) ?: [];
+    }
     if (isset($user['seller_approved'])) {
         $user['seller_approved'] = (bool)$user['seller_approved'];
     }
@@ -326,11 +329,13 @@ function getCurrentUser() {
 /**
  * 현재 사용자 ID 가져오기
  */
-function getCurrentUserId() {
-    if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
-        session_start();
+if (!function_exists('getCurrentUserId')) {
+    function getCurrentUserId() {
+        if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
+            session_start();
+        }
+        return $_SESSION['user_id'] ?? null;
     }
-    return $_SESSION['user_id'] ?? null;
 }
 
 /**

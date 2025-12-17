@@ -33,99 +33,6 @@ require_once '../includes/data/db-config.php';
 // DB에서 실제 신청 내역 가져오기
 $applications = getUserMvnoApplications($user_id);
 
-// 디버깅: 실제 데이터 확인 및 DB 직접 조회
-$debugInfo = [];
-$pdo = getDBConnection();
-if ($pdo) {
-    // DB에서 직접 조회해서 비교
-    $stmt = $pdo->prepare("
-        SELECT 
-            a.id as application_id,
-            a.order_number,
-            a.product_id,
-            a.application_status,
-            a.created_at as order_date,
-            c.additional_info,
-            c.user_id
-        FROM product_applications a
-        INNER JOIN application_customers c ON a.id = c.application_id
-        WHERE c.user_id = :user_id 
-        AND a.product_type = 'mvno'
-        ORDER BY a.created_at DESC
-        LIMIT 3
-    ");
-    $stmt->execute([':user_id' => $user_id]);
-    $rawApplications = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
-    $debugInfo['raw_count'] = count($rawApplications);
-    $debugInfo['formatted_count'] = count($applications);
-    
-    if (!empty($rawApplications)) {
-        $firstRaw = $rawApplications[0];
-        $debugInfo['first_application_id'] = $firstRaw['application_id'];
-        $debugInfo['first_product_id'] = $firstRaw['product_id'];
-        $debugInfo['first_order_number'] = $firstRaw['order_number'];
-        
-        // additional_info 파싱
-        if (!empty($firstRaw['additional_info'])) {
-            $decoded = json_decode($firstRaw['additional_info'], true);
-            if (json_last_error() === JSON_ERROR_NONE) {
-                $debugInfo['additional_info_parsed'] = true;
-                $debugInfo['additional_info_keys'] = implode(', ', array_keys($decoded));
-                $debugInfo['has_product_snapshot'] = isset($decoded['product_snapshot']) ? 'YES' : 'NO';
-                if (isset($decoded['product_snapshot'])) {
-                    $snapshot = $decoded['product_snapshot'];
-                    $debugInfo['snapshot_plan_name'] = $snapshot['plan_name'] ?? 'NULL';
-                    $debugInfo['snapshot_provider'] = $snapshot['provider'] ?? 'NULL';
-                    $debugInfo['snapshot_keys_count'] = count($snapshot);
-                }
-            } else {
-                $debugInfo['additional_info_parsed'] = false;
-                $debugInfo['json_error'] = json_last_error_msg();
-            }
-        } else {
-            $debugInfo['additional_info_parsed'] = false;
-            $debugInfo['additional_info_empty'] = true;
-        }
-        
-        // 함수가 반환한 첫 번째 데이터 확인
-        if (!empty($applications)) {
-            $firstApp = $applications[0];
-            $debugInfo['formatted_provider'] = $firstApp['provider'] ?? 'NULL';
-            $debugInfo['formatted_title'] = $firstApp['title'] ?? 'NULL';
-            $debugInfo['formatted_data_main'] = $firstApp['data_main'] ?? 'NULL';
-            $debugInfo['formatted_price_main'] = $firstApp['price_main'] ?? 'NULL';
-            
-            // 추가: 함수가 반환한 모든 응용 프로그램 ID 확인
-            $debugInfo['formatted_application_ids'] = array_column($applications, 'application_id');
-            $debugInfo['formatted_count_detail'] = count($applications);
-            
-            // 첫 번째 application_id로 직접 확인
-            if (!empty($debugInfo['first_application_id'])) {
-                $checkStmt = $pdo->prepare("
-                    SELECT additional_info 
-                    FROM application_customers 
-                    WHERE application_id = :application_id 
-                    LIMIT 1
-                ");
-                $checkStmt->execute([':application_id' => $debugInfo['first_application_id']]);
-                $checkResult = $checkStmt->fetch(PDO::FETCH_ASSOC);
-                if ($checkResult && !empty($checkResult['additional_info'])) {
-                    $checkDecoded = json_decode($checkResult['additional_info'], true);
-                    if (json_last_error() === JSON_ERROR_NONE && isset($checkDecoded['product_snapshot'])) {
-                        $checkSnapshot = $checkDecoded['product_snapshot'];
-                        $debugInfo['direct_check_plan_name'] = $checkSnapshot['plan_name'] ?? 'NULL';
-                        $debugInfo['direct_check_provider'] = $checkSnapshot['provider'] ?? 'NULL';
-                    }
-                }
-            }
-            
-            // 에러 로그에서 확인할 수 있도록 로그 출력
-            error_log("DEBUG PAGE: First application from function - provider: " . ($firstApp['provider'] ?? 'NULL') . ", title: " . ($firstApp['title'] ?? 'NULL'));
-        }
-    }
-}
-
 // 헤더 포함
 include '../includes/header.php';
 ?>
@@ -136,7 +43,7 @@ include '../includes/header.php';
             <div class="plans-left-section">
                 <!-- 페이지 헤더 -->
                 <div style="margin-bottom: 24px; padding: 20px 0;">
-                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
                         <a href="/MVNO/mypage/mypage.php" style="display: flex; align-items: center; text-decoration: none; color: inherit;">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -144,107 +51,8 @@ include '../includes/header.php';
                         </a>
                         <h2 style="font-size: 24px; font-weight: bold; margin: 0;">신청한 알뜰폰</h2>
                     </div>
+                    <p style="font-size: 14px; color: #6b7280; margin: 0; margin-left: 36px;">카드를 클릭하면 신청 정보를 확인할 수 있습니다.</p>
                 </div>
-
-                <!-- 디버깅 정보 (상단 표시) -->
-                <?php if (!empty($debugInfo)): ?>
-                    <div style="padding: 20px; background: #fef3c7; border: 2px solid #f59e0b; border-radius: 8px; margin-bottom: 24px; font-size: 13px; color: #92400e;">
-                        <h3 style="margin: 0 0 12px 0; font-size: 16px; font-weight: 700;">디버깅 정보</h3>
-                        <div style="display: grid; grid-template-columns: auto 1fr; gap: 8px 16px;">
-                            <strong>User ID:</strong>
-                            <span><?php echo htmlspecialchars($user_id); ?></span>
-                            
-                            <strong>DB에서 직접 조회한 건수:</strong>
-                            <span><?php echo htmlspecialchars($debugInfo['raw_count'] ?? 0); ?></span>
-                            
-                            <strong>함수에서 반환된 건수:</strong>
-                            <span><?php echo htmlspecialchars($debugInfo['formatted_count'] ?? 0); ?></span>
-                            
-                            <?php if (!empty($debugInfo['first_application_id'])): ?>
-                                <strong>첫 번째 신청 ID:</strong>
-                                <span><?php echo htmlspecialchars($debugInfo['first_application_id']); ?></span>
-                                
-                                <strong>Product ID:</strong>
-                                <span><?php echo htmlspecialchars($debugInfo['first_product_id'] ?? 'NULL'); ?></span>
-                                
-                                <strong>Order Number:</strong>
-                                <span><?php echo htmlspecialchars($debugInfo['first_order_number'] ?? 'NULL'); ?></span>
-                            <?php endif; ?>
-                            
-                            <?php if (isset($debugInfo['additional_info_parsed'])): ?>
-                                <strong>additional_info 파싱:</strong>
-                                <span><?php echo $debugInfo['additional_info_parsed'] ? '성공' : '실패'; ?></span>
-                                
-                                <?php if (!empty($debugInfo['additional_info_keys'])): ?>
-                                    <strong>additional_info 키:</strong>
-                                    <span><?php echo htmlspecialchars($debugInfo['additional_info_keys']); ?></span>
-                                <?php endif; ?>
-                                
-                                <strong>product_snapshot 존재:</strong>
-                                <span><?php echo htmlspecialchars($debugInfo['has_product_snapshot'] ?? 'UNKNOWN'); ?></span>
-                                
-                                <?php if (!empty($debugInfo['snapshot_plan_name'])): ?>
-                                    <strong>Snapshot plan_name:</strong>
-                                    <span><?php echo htmlspecialchars($debugInfo['snapshot_plan_name']); ?></span>
-                                <?php endif; ?>
-                                
-                                <?php if (!empty($debugInfo['snapshot_provider'])): ?>
-                                    <strong>Snapshot provider:</strong>
-                                    <span><?php echo htmlspecialchars($debugInfo['snapshot_provider']); ?></span>
-                                <?php endif; ?>
-                                
-                                <?php if (isset($debugInfo['snapshot_keys_count'])): ?>
-                                    <strong>Snapshot 키 개수:</strong>
-                                    <span><?php echo htmlspecialchars($debugInfo['snapshot_keys_count']); ?></span>
-                                <?php endif; ?>
-                            <?php endif; ?>
-                            
-                            <strong style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #fbbf24;">함수 반환값:</strong>
-                            <span style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #fbbf24;"></span>
-                            
-                            <strong>반환된 건수:</strong>
-                            <span><?php echo htmlspecialchars($debugInfo['formatted_count'] ?? 0); ?></span>
-                            
-                            <?php if (!empty($debugInfo['formatted_application_ids'])): ?>
-                                <strong>반환된 Application IDs:</strong>
-                                <span><?php echo htmlspecialchars(implode(', ', $debugInfo['formatted_application_ids'])); ?></span>
-                            <?php endif; ?>
-                            
-                            <?php if (!empty($debugInfo['formatted_provider'])): ?>
-                                <strong>첫 번째 provider:</strong>
-                                <span><?php echo htmlspecialchars($debugInfo['formatted_provider']); ?></span>
-                                
-                                <strong>첫 번째 title:</strong>
-                                <span><?php echo htmlspecialchars($debugInfo['formatted_title'] ?? 'NULL'); ?></span>
-                                
-                                <strong>첫 번째 data_main:</strong>
-                                <span><?php echo htmlspecialchars($debugInfo['formatted_data_main'] ?? 'NULL'); ?></span>
-                                
-                                <strong>첫 번째 price_main:</strong>
-                                <span><?php echo htmlspecialchars($debugInfo['formatted_price_main'] ?? 'NULL'); ?></span>
-                            <?php else: ?>
-                                <strong style="color: #dc2626;">함수 반환값 없음:</strong>
-                                <span style="color: #dc2626;">applications 배열이 비어있거나 첫 번째 항목이 없습니다.</span>
-                            <?php endif; ?>
-                            
-                            <?php if (!empty($debugInfo['json_error'])): ?>
-                                <strong style="color: #dc2626;">JSON 에러:</strong>
-                                <span style="color: #dc2626;"><?php echo htmlspecialchars($debugInfo['json_error']); ?></span>
-                            <?php endif; ?>
-                            
-                            <?php if (!empty($debugInfo['direct_check_plan_name'])): ?>
-                                <strong style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #fbbf24; color: #059669;">직접 조회한 값:</strong>
-                                <span style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #fbbf24;"></span>
-                                
-                                <strong style="color: #059669;">직접 조회 plan_name:</strong>
-                                <span style="color: #059669;"><?php echo htmlspecialchars($debugInfo['direct_check_plan_name']); ?></span>
-                                
-                                <strong style="color: #059669;">직접 조회 provider:</strong>
-                                <span style="color: #059669;"><?php echo htmlspecialchars($debugInfo['direct_check_provider'] ?? 'NULL'); ?></span>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-                <?php endif; ?>
                 
                 <!-- 신청한 알뜰폰 목록 -->
                 <div style="margin-bottom: 32px;">
@@ -255,45 +63,78 @@ include '../includes/header.php';
                     <?php else: ?>
                         <div style="display: flex; flex-direction: column; gap: 16px;">
                             <?php foreach ($applications as $index => $app): ?>
-                                <div class="plan-item" style="padding: 20px; border: 1px solid #e5e7eb; border-radius: 12px; background: white;">
-                                    <div style="display: flex; flex-direction: column; gap: 12px;">
-                                        <!-- 헤더: 통신사 및 요금제명 -->
-                                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                                            <div style="flex: 1;">
-                                                <div style="font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 8px;">
-                                                    <?php echo htmlspecialchars($app['provider'] ?? '알 수 없음'); ?> <?php echo htmlspecialchars($app['title'] ?? '요금제 정보 없음'); ?>
+                                <div class="plan-item application-card" 
+                                     data-application-id="<?php echo htmlspecialchars($app['application_id'] ?? ''); ?>"
+                                     style="padding: 24px; border: 1px solid #e5e7eb; border-radius: 12px; background: white; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.05);"
+                                     onmouseover="this.style.borderColor='#6366f1'; this.style.boxShadow='0 4px 12px rgba(99, 102, 241, 0.15)'"
+                                     onmouseout="this.style.borderColor='#e5e7eb'; this.style.boxShadow='0 1px 3px rgba(0,0,0,0.05)'">
+                                    
+                                    <!-- 상단: 요금제 정보 -->
+                                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;">
+                                        <div style="flex: 1;">
+                                            <div style="font-size: 20px; font-weight: 700; color: #1f2937; margin-bottom: 6px; line-height: 1.3;">
+                                                <?php echo htmlspecialchars($app['provider'] ?? '알 수 없음'); ?> <?php echo htmlspecialchars($app['title'] ?? '요금제 정보 없음'); ?>
+                                            </div>
+                                            <?php if (!empty($app['data_main'])): ?>
+                                                <div style="font-size: 14px; color: #6b7280; margin-bottom: 8px;">
+                                                    <?php echo htmlspecialchars($app['data_main']); ?>
                                                 </div>
-                                                <?php if (!empty($app['data_main'])): ?>
-                                                    <div style="font-size: 14px; color: #6b7280; margin-bottom: 6px;">
-                                                        <?php echo htmlspecialchars($app['data_main']); ?>
-                                                    </div>
-                                                <?php endif; ?>
+                                            <?php endif; ?>
+                                            <div style="display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap;">
                                                 <?php if (!empty($app['price_main'])): ?>
-                                                    <div style="font-size: 16px; color: #374151; font-weight: 600;">
+                                                    <div style="font-size: 18px; color: #1f2937; font-weight: 700;">
                                                         <?php echo htmlspecialchars($app['price_main']); ?>
                                                     </div>
                                                 <?php endif; ?>
-                                            </div>
-                                            <div style="font-size: 12px; color: #9ca3af; text-align: right;">
-                                                <?php echo htmlspecialchars($app['order_date'] ?? ''); ?>
+                                                <?php if (!empty($app['price_after'])): ?>
+                                                    <div style="font-size: 14px; color: #6b7280;">
+                                                        <?php echo htmlspecialchars($app['price_after']); ?>
+                                                    </div>
+                                                <?php endif; ?>
                                             </div>
                                         </div>
-                                        
-                                        <!-- 정보: 주문번호 및 상태 -->
-                                        <div style="display: flex; gap: 16px; flex-wrap: wrap; padding-top: 12px; border-top: 1px solid #f3f4f6; font-size: 13px;">
+                                        <div style="font-size: 12px; color: #9ca3af; text-align: right; white-space: nowrap; margin-left: 16px;">
+                                            <?php echo htmlspecialchars($app['order_date'] ?? ''); ?>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- 중간: 약정기간 및 프로모션 기간 -->
+                                    <div style="display: flex; gap: 16px; flex-wrap: wrap; padding: 12px 0; margin-bottom: 12px;">
+                                        <?php if (!empty($app['contract_period'])): ?>
+                                            <div style="display: flex; align-items: center; gap: 6px;">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="color: #6366f1; flex-shrink: 0;">
+                                                    <path d="M8 2V6M16 2V6M3 10H21M5 4H19C20.1046 4 21 4.89543 21 6V20C21 21.1046 20.1046 22 19 22H5C3.89543 22 3 21.1046 3 20V6C3 4.89543 3.89543 4 5 4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                                </svg>
+                                                <span style="font-size: 13px; color: #6b7280;">약정기간:</span>
+                                                <span style="font-size: 13px; color: #374151; font-weight: 600;"><?php echo htmlspecialchars($app['contract_period']); ?></span>
+                                            </div>
+                                        <?php endif; ?>
+                                        <?php if (!empty($app['discount_period'])): ?>
+                                            <div style="display: flex; align-items: center; gap: 6px;">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="color: #10b981; flex-shrink: 0;">
+                                                    <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                                </svg>
+                                                <span style="font-size: 13px; color: #6b7280;">프로모션:</span>
+                                                <span style="font-size: 13px; color: #10b981; font-weight: 600;"><?php echo htmlspecialchars($app['discount_period']); ?></span>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                    
+                                    <!-- 하단: 주문번호 및 진행상황 -->
+                                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                                        <div style="display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px;">
                                             <?php if (!empty($app['order_number'])): ?>
-                                                <div>
-                                                    <span style="color: #6b7280;">주문번호:</span>
-                                                    <span style="color: #374151; font-weight: 500; margin-left: 4px;"><?php echo htmlspecialchars($app['order_number']); ?></span>
-                                                </div>
-                                            <?php endif; ?>
-                                            <?php if (!empty($app['status'])): ?>
-                                                <div>
-                                                    <span style="color: #6b7280;">진행상황:</span>
-                                                    <span style="color: #6366f1; font-weight: 600; margin-left: 4px;"><?php echo htmlspecialchars($app['status']); ?></span>
+                                                <div style="display: flex; align-items: center; gap: 6px;">
+                                                    <span style="color: #6b7280;">주문번호</span>
+                                                    <span style="color: #374151; font-weight: 600;"><?php echo htmlspecialchars($app['order_number']); ?></span>
                                                 </div>
                                             <?php endif; ?>
                                         </div>
+                                        <?php if (!empty($app['status'])): ?>
+                                            <div style="display: inline-flex; align-items: center; padding: 6px 12px; background: #eef2ff; border-radius: 6px;">
+                                                <span style="font-size: 13px; color: #6366f1; font-weight: 600;"><?php echo htmlspecialchars($app['status']); ?></span>
+                                            </div>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
                             <?php endforeach; ?>
@@ -304,6 +145,344 @@ include '../includes/header.php';
         </div>
     </div>
 </main>
+
+<!-- 신청 상세 정보 모달 -->
+<div id="applicationDetailModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.5); z-index: 10000; overflow-y: auto; padding: 20px;">
+    <div style="max-width: 800px; margin: 40px auto; background: white; border-radius: 12px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2); position: relative;">
+        <!-- 모달 헤더 -->
+        <div style="padding: 24px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center;">
+            <h2 style="font-size: 24px; font-weight: bold; margin: 0; color: #1f2937;">등록정보</h2>
+            <button id="closeModalBtn" style="background: none; border: none; cursor: pointer; padding: 8px; display: flex; align-items: center; justify-content: center; border-radius: 6px; transition: background 0.2s;" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='transparent'">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M18 6L6 18M6 6L18 18" stroke="#374151" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+        </div>
+        
+        <!-- 모달 내용 -->
+        <div id="modalContent" style="padding: 24px; max-height: calc(100vh - 200px); overflow-y: auto;">
+            <div style="text-align: center; padding: 40px; color: #6b7280;">
+                <div class="spinner" style="border: 3px solid #f3f4f6; border-top: 3px solid #6366f1; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 16px;"></div>
+                <p>정보를 불러오는 중...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('applicationDetailModal');
+    const modalContent = document.getElementById('modalContent');
+    const closeBtn = document.getElementById('closeModalBtn');
+    const applicationCards = document.querySelectorAll('.application-card');
+    
+    // 카드 클릭 이벤트
+    applicationCards.forEach(card => {
+        card.addEventListener('click', function(e) {
+            const applicationId = this.getAttribute('data-application-id');
+            if (applicationId) {
+                openModal(applicationId);
+            }
+        });
+    });
+    
+    // 모달 닫기 버튼
+    closeBtn.addEventListener('click', closeModal);
+    
+    // 배경 클릭 시 모달 닫기
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            closeModal();
+        }
+    });
+    
+    // ESC 키로 모달 닫기
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && modal.style.display === 'block') {
+            closeModal();
+        }
+    });
+    
+    function openModal(applicationId) {
+        modal.style.display = 'block';
+        document.body.style.overflow = 'hidden'; // 배경 스크롤 방지
+        
+        // 로딩 표시
+        modalContent.innerHTML = `
+            <div style="text-align: center; padding: 40px; color: #6b7280;">
+                <div class="spinner" style="border: 3px solid #f3f4f6; border-top: 3px solid #6366f1; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 16px;"></div>
+                <p>정보를 불러오는 중...</p>
+            </div>
+        `;
+        
+        // API 호출
+        fetch(`/MVNO/api/get-application-details.php?application_id=${applicationId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    displayApplicationDetails(data.data);
+                } else {
+                    modalContent.innerHTML = `
+                        <div style="text-align: center; padding: 40px; color: #dc2626;">
+                            <p>정보를 불러오는 중 오류가 발생했습니다.</p>
+                            <p style="font-size: 14px; margin-top: 8px;">${data.message || '알 수 없는 오류'}</p>
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                modalContent.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: #dc2626;">
+                        <p>정보를 불러오는 중 오류가 발생했습니다.</p>
+                        <p style="font-size: 14px; margin-top: 8px;">네트워크 오류가 발생했습니다.</p>
+                    </div>
+                `;
+            });
+    }
+    
+    function closeModal() {
+        modal.style.display = 'none';
+        document.body.style.overflow = ''; // 배경 스크롤 복원
+    }
+    
+    function displayApplicationDetails(data) {
+        const customer = data.customer || {};
+        const additionalInfo = data.additional_info || {};
+        const productSnapshot = additionalInfo.product_snapshot || {};
+        
+        let html = '<div style="display: flex; flex-direction: column; gap: 24px;">';
+        
+        // 주문 정보 섹션 (맨 위로 이동)
+        html += '<div>';
+        html += '<h3 style="font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #6366f1;">주문 정보</h3>';
+        html += '<div style="display: grid; grid-template-columns: 150px 1fr; gap: 12px 16px; font-size: 14px;">';
+        
+        if (data.order_number) {
+            html += `<div style="color: #6b7280; font-weight: 500;">주문번호:</div>`;
+            html += `<div style="color: #1f2937; font-weight: 600;">${escapeHtml(data.order_number)}</div>`;
+        }
+        
+        if (data.status) {
+            html += `<div style="color: #6b7280; font-weight: 500;">진행상황:</div>`;
+            html += `<div style="color: #6366f1; font-weight: 600;">${escapeHtml(data.status)}</div>`;
+        }
+        
+        if (data.status_changed_at) {
+            html += `<div style="color: #6b7280; font-weight: 500;">상태 변경일시:</div>`;
+            html += `<div style="color: #1f2937;">${escapeHtml(data.status_changed_at)}</div>`;
+        }
+        
+        html += '</div></div>';
+        
+        // 고객 정보 섹션
+        html += '<div>';
+        html += '<h3 style="font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #6366f1;">고객 정보</h3>';
+        html += '<div style="display: grid; grid-template-columns: 150px 1fr; gap: 12px 16px; font-size: 14px;">';
+        
+        if (customer.name) {
+            html += `<div style="color: #6b7280; font-weight: 500;">이름:</div>`;
+            html += `<div style="color: #1f2937;">${escapeHtml(customer.name)}</div>`;
+        }
+        
+        if (customer.phone) {
+            html += `<div style="color: #6b7280; font-weight: 500;">전화번호:</div>`;
+            html += `<div style="color: #1f2937;">${escapeHtml(customer.phone)}</div>`;
+        }
+        
+        if (customer.email) {
+            html += `<div style="color: #6b7280; font-weight: 500;">이메일:</div>`;
+            html += `<div style="color: #1f2937;">${escapeHtml(customer.email)}</div>`;
+        }
+        
+        if (customer.address) {
+            html += `<div style="color: #6b7280; font-weight: 500;">주소:</div>`;
+            html += `<div style="color: #1f2937;">${escapeHtml(customer.address)}${customer.address_detail ? ' ' + escapeHtml(customer.address_detail) : ''}</div>`;
+        }
+        
+        if (customer.birth_date) {
+            html += `<div style="color: #6b7280; font-weight: 500;">생년월일:</div>`;
+            html += `<div style="color: #1f2937;">${escapeHtml(customer.birth_date)}</div>`;
+        }
+        
+        if (customer.gender) {
+            html += `<div style="color: #6b7280; font-weight: 500;">성별:</div>`;
+            const genderText = customer.gender === 'male' ? '남성' : customer.gender === 'female' ? '여성' : '기타';
+            html += `<div style="color: #1f2937;">${genderText}</div>`;
+        }
+        
+        html += '</div></div>';
+        
+        // 상품 정보 섹션 (신청 시점)
+        html += '<div>';
+        html += '<h3 style="font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #6366f1;">상품정보</h3>';
+        html += '<div style="display: grid; grid-template-columns: 150px 1fr; gap: 12px 16px; font-size: 14px;">';
+        
+        // 가입 형태를 상품 정보 섹션 첫 번째 항목으로 추가
+        if (additionalInfo.subscription_type) {
+            html += `<div style="color: #6b7280; font-weight: 500;">가입 형태:</div>`;
+            // 가입 형태 한글 변환
+            let subscriptionTypeText = additionalInfo.subscription_type;
+            const subscriptionTypeMap = {
+                'new': '신규가입',
+                'port': '번호이동',
+                'change': '기기변경'
+            };
+            if (subscriptionTypeMap[subscriptionTypeText]) {
+                subscriptionTypeText = subscriptionTypeMap[subscriptionTypeText];
+            }
+            html += `<div style="color: #1f2937;">${escapeHtml(subscriptionTypeText)}</div>`;
+        }
+        
+        if (productSnapshot.provider) {
+            html += `<div style="color: #6b7280; font-weight: 500;">통신사:</div>`;
+            html += `<div style="color: #1f2937;">${escapeHtml(productSnapshot.provider)}</div>`;
+        }
+        
+        if (productSnapshot.plan_name) {
+            html += `<div style="color: #6b7280; font-weight: 500;">요금제명:</div>`;
+            html += `<div style="color: #1f2937; font-weight: 600;">${escapeHtml(productSnapshot.plan_name)}</div>`;
+        }
+        
+        if (productSnapshot.service_type) {
+            html += `<div style="color: #6b7280; font-weight: 500;">데이터 속도:</div>`;
+            html += `<div style="color: #1f2937;">${escapeHtml(productSnapshot.service_type)}</div>`;
+        }
+        
+        if (productSnapshot.contract_period) {
+            html += `<div style="color: #6b7280; font-weight: 500;">약정 기간:</div>`;
+            html += `<div style="color: #1f2937;">${escapeHtml(productSnapshot.contract_period)}</div>`;
+        }
+        
+        // 데이터 정보
+        if (productSnapshot.data_amount) {
+            html += `<div style="color: #6b7280; font-weight: 500;">데이터:</div>`;
+            let dataText = productSnapshot.data_amount;
+            if (productSnapshot.data_amount === '직접입력' && productSnapshot.data_amount_value) {
+                // data_amount_value에 이미 단위가 포함되어 있는지 확인
+                const dataValueStr = String(productSnapshot.data_amount_value);
+                const unit = productSnapshot.data_unit || 'GB';
+                // 끝에 단위가 이미 포함되어 있으면 추가하지 않음
+                if (dataValueStr.endsWith('GB') || dataValueStr.endsWith('MB') || dataValueStr.endsWith('TB') || 
+                    dataValueStr.endsWith('Mbps') || dataValueStr.endsWith('Gbps') || dataValueStr.endsWith('Kbps')) {
+                    dataText = dataValueStr;
+                } else {
+                    dataText = dataValueStr + unit;
+                }
+            }
+            if (productSnapshot.data_additional && productSnapshot.data_additional !== '없음') {
+                if (productSnapshot.data_additional === '직접입력' && productSnapshot.data_additional_value) {
+                    dataText += ' + ' + productSnapshot.data_additional_value;
+                } else {
+                    dataText += ' + ' + productSnapshot.data_additional;
+                }
+            }
+            if (productSnapshot.data_exhausted && productSnapshot.data_exhausted !== '직접입력') {
+                dataText += ' + ' + productSnapshot.data_exhausted;
+            } else if (productSnapshot.data_exhausted === '직접입력' && productSnapshot.data_exhausted_value) {
+                dataText += ' + ' + productSnapshot.data_exhausted_value;
+            }
+            html += `<div style="color: #1f2937;">${escapeHtml(dataText)}</div>`;
+        }
+        
+        // 통화 정보
+        if (productSnapshot.call_type) {
+            html += `<div style="color: #6b7280; font-weight: 500;">통화:</div>`;
+            let callText = productSnapshot.call_type;
+            if (productSnapshot.call_type === '직접입력' && productSnapshot.call_amount) {
+                // call_amount에 이미 단위가 포함되어 있는지 확인
+                const callAmountStr = String(productSnapshot.call_amount);
+                const unit = productSnapshot.call_amount_unit || '분';
+                // 끝에 단위가 이미 포함되어 있으면 추가하지 않음
+                if (callAmountStr.endsWith('분') || callAmountStr.endsWith('초') || callAmountStr.endsWith('건')) {
+                    callText = callAmountStr;
+                } else {
+                    callText = callAmountStr + unit;
+                }
+            }
+            html += `<div style="color: #1f2937;">${escapeHtml(callText)}</div>`;
+        }
+        
+        // 문자 정보
+        if (productSnapshot.sms_type) {
+            html += `<div style="color: #6b7280; font-weight: 500;">문자:</div>`;
+            let smsText = productSnapshot.sms_type;
+            if (productSnapshot.sms_type === '직접입력' && productSnapshot.sms_amount) {
+                // sms_amount에 이미 단위가 포함되어 있는지 확인
+                const smsAmountStr = String(productSnapshot.sms_amount);
+                const unit = productSnapshot.sms_amount_unit || '건';
+                // 끝에 단위가 이미 포함되어 있으면 추가하지 않음
+                if (smsAmountStr.endsWith('분') || smsAmountStr.endsWith('초') || smsAmountStr.endsWith('건')) {
+                    smsText = smsAmountStr;
+                } else {
+                    smsText = smsAmountStr + unit;
+                }
+            }
+            html += `<div style="color: #1f2937;">${escapeHtml(smsText)}</div>`;
+        }
+        
+        // 가격 정보
+        if (productSnapshot.price_main) {
+            html += `<div style="color: #6b7280; font-weight: 500;">기본 요금:</div>`;
+            html += `<div style="color: #1f2937; font-weight: 600;">월 ${formatNumber(productSnapshot.price_main)}원</div>`;
+        }
+        
+        if (productSnapshot.price_after) {
+            html += `<div style="color: #6b7280; font-weight: 500;">할인 후 요금:</div>`;
+            html += `<div style="color: #6366f1; font-weight: 600;">월 ${formatNumber(productSnapshot.price_after)}원</div>`;
+        }
+        
+        if (productSnapshot.discount_period) {
+            html += `<div style="color: #6b7280; font-weight: 500;">할인 기간:</div>`;
+            html += `<div style="color: #1f2937;">${escapeHtml(productSnapshot.discount_period)}</div>`;
+        }
+        
+        // 프로모션 정보
+        if (productSnapshot.promotions) {
+            let promotions = [];
+            try {
+                if (typeof productSnapshot.promotions === 'string') {
+                    promotions = JSON.parse(productSnapshot.promotions);
+                } else if (Array.isArray(productSnapshot.promotions)) {
+                    promotions = productSnapshot.promotions;
+                }
+            } catch(e) {
+                // JSON 파싱 실패 시 무시
+            }
+            
+            if (promotions.length > 0) {
+                html += `<div style="color: #6b7280; font-weight: 500;">프로모션:</div>`;
+                html += `<div style="color: #1f2937;">${promotions.map(p => escapeHtml(p)).join(', ')}</div>`;
+            }
+        }
+        
+        html += '</div></div>';
+        
+        html += '</div>';
+        
+        modalContent.innerHTML = html;
+    }
+    
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+    
+    function formatNumber(num) {
+        if (!num) return '0';
+        return parseInt(num).toLocaleString('ko-KR');
+    }
+});
+</script>
 
 <?php
 // 푸터 포함

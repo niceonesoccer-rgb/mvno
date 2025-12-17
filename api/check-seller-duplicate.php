@@ -95,17 +95,48 @@ if ($type === 'user_id') {
     }
 } elseif ($type === 'seller_name') {
     // 판매자명 중복확인 (대소문자 구분 없이)
-    $valueLower = mb_strtolower($value, 'UTF-8');
-    foreach ($sellers as $seller) {
-        // 현재 수정 중인 사용자는 제외
-        if (!empty($currentUserId) && isset($seller['user_id']) && $seller['user_id'] === $currentUserId) {
-            continue;
-        }
-        if (isset($seller['seller_name']) && !empty($seller['seller_name'])) {
-            $sellerNameLower = mb_strtolower($seller['seller_name'], 'UTF-8');
-            if ($sellerNameLower === $valueLower) {
+    // DB에서 먼저 확인
+    $pdo = getDBConnection();
+    if ($pdo) {
+        try {
+            $stmt = $pdo->prepare("
+                SELECT user_id, seller_name 
+                FROM users 
+                WHERE role = 'seller' 
+                AND seller_name IS NOT NULL 
+                AND LOWER(seller_name) = LOWER(:seller_name)
+            ");
+            $stmt->execute([':seller_name' => $value]);
+            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            foreach ($results as $row) {
+                // 현재 수정 중인 사용자는 제외
+                if (!empty($currentUserId) && isset($row['user_id']) && $row['user_id'] === $currentUserId) {
+                    continue;
+                }
                 $isDuplicate = true;
                 break;
+            }
+        } catch (PDOException $e) {
+            error_log("판매자명 중복 검사 API DB 오류: " . $e->getMessage());
+            // DB 오류 시 JSON 파일로 fallback
+        }
+    }
+    
+    // DB에서 확인되지 않았거나 DB 연결 실패 시 JSON 파일 확인 (fallback)
+    if (!$isDuplicate) {
+        $valueLower = mb_strtolower($value, 'UTF-8');
+        foreach ($sellers as $seller) {
+            // 현재 수정 중인 사용자는 제외
+            if (!empty($currentUserId) && isset($seller['user_id']) && $seller['user_id'] === $currentUserId) {
+                continue;
+            }
+            if (isset($seller['seller_name']) && !empty($seller['seller_name'])) {
+                $sellerNameLower = mb_strtolower($seller['seller_name'], 'UTF-8');
+                if ($sellerNameLower === $valueLower) {
+                    $isDuplicate = true;
+                    break;
+                }
             }
         }
     }

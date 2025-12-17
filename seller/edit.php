@@ -281,26 +281,125 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_seller'])) {
         // 판매자명 중복 검사
         $sellerName = trim($_POST['seller_name'] ?? ($seller['seller_name'] ?? ''));
         if (!empty($sellerName)) {
-            // 판매자 데이터 가져오기
-            $sellersFile = getSellersFilePath();
-            $allSellers = [];
-            if (file_exists($sellersFile)) {
-                $data = json_decode(file_get_contents($sellersFile), true) ?: ['sellers' => []];
-                $allSellers = $data['sellers'] ?? [];
-            }
-            
-            // 중복 검사 (대소문자 구분 없이, 자기 자신 제외)
-            $sellerNameLower = mb_strtolower($sellerName, 'UTF-8');
-            foreach ($allSellers as $otherSeller) {
-                if (isset($otherSeller['user_id']) && $otherSeller['user_id'] === $userId) {
-                    continue; // 자기 자신은 제외
-                }
-                if (isset($otherSeller['seller_name']) && !empty($otherSeller['seller_name'])) {
-                    $otherSellerNameLower = mb_strtolower($otherSeller['seller_name'], 'UTF-8');
-                    if ($otherSellerNameLower === $sellerNameLower) {
-                        $error_message = '이미 사용 중인 판매자명입니다.';
-                        break;
+            // 기존 판매자명과 동일한 경우 중복 검사 통과
+            $currentSellerName = trim($seller['seller_name'] ?? '');
+            if (!empty($currentSellerName)) {
+                $sellerNameLower = mb_strtolower($sellerName, 'UTF-8');
+                $currentSellerNameLower = mb_strtolower($currentSellerName, 'UTF-8');
+                if ($sellerNameLower === $currentSellerNameLower) {
+                    // 기존 값과 동일하면 중복 검사 통과
+                } else {
+                    // 판매자명이 변경된 경우에만 중복 검사 수행
+                    // DB에서 먼저 확인
+                    $pdo = getDBConnection();
+                    $isDuplicate = false;
+                    
+                    if ($pdo) {
+                        try {
+                            $stmt = $pdo->prepare("
+                                SELECT user_id, seller_name 
+                                FROM users 
+                                WHERE role = 'seller' 
+                                AND user_id != :user_id 
+                                AND seller_name IS NOT NULL 
+                                AND LOWER(seller_name) = LOWER(:seller_name)
+                            ");
+                            $stmt->execute([
+                                ':user_id' => $userId,
+                                ':seller_name' => $sellerName
+                            ]);
+                            if ($stmt->rowCount() > 0) {
+                                $isDuplicate = true;
+                            }
+                        } catch (PDOException $e) {
+                            error_log("판매자명 중복 검사 DB 오류: " . $e->getMessage());
+                        }
                     }
+                    
+                    // DB에서 확인되지 않으면 JSON 파일 확인 (fallback)
+                    if (!$isDuplicate) {
+                        $sellersFile = getSellersFilePath();
+                        $allSellers = [];
+                        if (file_exists($sellersFile)) {
+                            $data = json_decode(file_get_contents($sellersFile), true) ?: ['sellers' => []];
+                            $allSellers = $data['sellers'] ?? [];
+                        }
+                        
+                        // 중복 검사 (대소문자 구분 없이, 자기 자신 제외)
+                        $sellerNameLower = mb_strtolower($sellerName, 'UTF-8');
+                        foreach ($allSellers as $otherSeller) {
+                            if (isset($otherSeller['user_id']) && $otherSeller['user_id'] === $userId) {
+                                continue; // 자기 자신은 제외
+                            }
+                            if (isset($otherSeller['seller_name']) && !empty($otherSeller['seller_name'])) {
+                                $otherSellerNameLower = mb_strtolower($otherSeller['seller_name'], 'UTF-8');
+                                if ($otherSellerNameLower === $sellerNameLower) {
+                                    $isDuplicate = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    
+                    if ($isDuplicate) {
+                        $error_message = '이미 사용 중인 판매자명입니다.';
+                    }
+                }
+            } else {
+                // 기존 판매자명이 없는 경우 중복 검사 수행
+                // DB에서 먼저 확인
+                $pdo = getDBConnection();
+                $isDuplicate = false;
+                
+                if ($pdo) {
+                    try {
+                        $stmt = $pdo->prepare("
+                            SELECT user_id, seller_name 
+                            FROM users 
+                            WHERE role = 'seller' 
+                            AND user_id != :user_id 
+                            AND seller_name IS NOT NULL 
+                            AND LOWER(seller_name) = LOWER(:seller_name)
+                        ");
+                        $stmt->execute([
+                            ':user_id' => $userId,
+                            ':seller_name' => $sellerName
+                        ]);
+                        if ($stmt->rowCount() > 0) {
+                            $isDuplicate = true;
+                        }
+                    } catch (PDOException $e) {
+                        error_log("판매자명 중복 검사 DB 오류: " . $e->getMessage());
+                    }
+                }
+                
+                // DB에서 확인되지 않으면 JSON 파일 확인 (fallback)
+                if (!$isDuplicate) {
+                    $sellersFile = getSellersFilePath();
+                    $allSellers = [];
+                    if (file_exists($sellersFile)) {
+                        $data = json_decode(file_get_contents($sellersFile), true) ?: ['sellers' => []];
+                        $allSellers = $data['sellers'] ?? [];
+                    }
+                    
+                    // 중복 검사 (대소문자 구분 없이, 자기 자신 제외)
+                    $sellerNameLower = mb_strtolower($sellerName, 'UTF-8');
+                    foreach ($allSellers as $otherSeller) {
+                        if (isset($otherSeller['user_id']) && $otherSeller['user_id'] === $userId) {
+                            continue; // 자기 자신은 제외
+                        }
+                        if (isset($otherSeller['seller_name']) && !empty($otherSeller['seller_name'])) {
+                            $otherSellerNameLower = mb_strtolower($otherSeller['seller_name'], 'UTF-8');
+                            if ($otherSellerNameLower === $sellerNameLower) {
+                                $isDuplicate = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+                
+                if ($isDuplicate) {
+                    $error_message = '이미 사용 중인 판매자명입니다.';
                 }
             }
         }
@@ -312,10 +411,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_seller'])) {
                 'email' => $email,
                 'phone' => $phone,
                 'mobile' => $mobile,
+                'seller_name' => $sellerName, // 판매자명 (사이트에서 사용할 닉네임)
                 'address' => $_POST['address'] ?? ($seller['address'] ?? ''),
                 'address_detail' => $_POST['address_detail'] ?? ($seller['address_detail'] ?? ''),
                 // 'business_number'는 변경 불가이므로 제외
-                'seller_name' => $sellerName, // 판매자명 (사이트에서 사용할 닉네임)
                 'company_name' => $_POST['company_name'] ?? ($seller['company_name'] ?? ''),
                 'company_representative' => $_POST['company_representative'] ?? ($seller['company_representative'] ?? ''),
                 'business_type' => $_POST['business_type'] ?? ($seller['business_type'] ?? ''),
@@ -778,6 +877,38 @@ require_once __DIR__ . '/includes/seller-header.php';
     .modal-btn-primary:hover {
         background: #4f46e5;
     }
+    
+    /* 중복확인 버튼 */
+    .check-duplicate-btn {
+        padding: 10px 20px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.25);
+        letter-spacing: 0.2px;
+    }
+    
+    .check-duplicate-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.35);
+    }
+    
+    .check-duplicate-btn:active {
+        transform: translateY(0);
+    }
+    
+    .check-duplicate-btn:disabled {
+        background: #9ca3af;
+        cursor: not-allowed;
+        box-shadow: none;
+        transform: none;
+    }
 </style>
 
 <div class="seller-edit-container">
@@ -816,7 +947,7 @@ require_once __DIR__ . '/includes/seller-header.php';
             </div>
             <div class="form-group">
                 <label class="form-label">판매자명 (닉네임)</label>
-                <input type="text" name="seller_name" id="seller_name" class="form-input" value="<?php echo htmlspecialchars($seller['seller_name'] ?? ''); ?>" placeholder="사이트에서 사용할 판매자명을 입력하세요" maxlength="50" oninput="checkSellerNameDuplicate()">
+                <input type="text" name="seller_name" id="seller_name" class="form-input" value="<?php echo htmlspecialchars($seller['seller_name'] ?? ''); ?>" placeholder="사이트에서 사용할 판매자명을 입력하세요" maxlength="50">
                 <div id="sellerNameCheckResult" class="check-result" style="margin-top: 4px;"></div>
                 <small style="display: block; margin-top: 4px; color: #6b7280; font-size: 13px;">사이트에서 활동할 때 표시될 이름입니다. 회사명과 다르게 설정할 수 있습니다.</small>
             </div>
@@ -1286,9 +1417,11 @@ require_once __DIR__ . '/includes/seller-header.php';
         updateEmailField();
     });
     
-    // 판매자명 중복 검사 (실시간)
+    // 판매자명 중복 검사
     let sellerNameCheckTimeout = null;
     let sellerNameValid = false;
+    // 기존 판매자명 저장 (대소문자 구분 없이 비교)
+    const originalSellerName = '<?php echo htmlspecialchars($seller['seller_name'] ?? ''); ?>'.toLowerCase();
     
     function checkSellerNameDuplicate() {
         const sellerNameInput = document.getElementById('seller_name');
@@ -1324,6 +1457,17 @@ require_once __DIR__ . '/includes/seller-header.php';
             return;
         }
         
+        // 기존 판매자명과 동일한 경우 (대소문자 구분 없이) 자동 통과
+        const valueLower = value.toLowerCase();
+        if (originalSellerName && valueLower === originalSellerName) {
+            resultDiv.innerHTML = '<span style="color: #10b981;">✓ 사용 가능한 판매자명입니다.</span>';
+            resultDiv.className = 'check-result success';
+            sellerNameInput.classList.remove('checked-invalid');
+            sellerNameInput.classList.add('checked-valid');
+            sellerNameValid = true;
+            return;
+        }
+        
         // 500ms 후 검사 (디바운싱)
         sellerNameCheckTimeout = setTimeout(() => {
             resultDiv.innerHTML = '<span style="color: #6b7280;">확인 중...</span>';
@@ -1356,13 +1500,43 @@ require_once __DIR__ . '/includes/seller-header.php';
         }, 500);
     }
     
-    // 폼 제출 시 판매자명 중복 검사 확인
+    // 입력 시 자동 검사
     document.addEventListener('DOMContentLoaded', function() {
+        const sellerNameInput = document.getElementById('seller_name');
+        if (sellerNameInput) {
+            sellerNameInput.addEventListener('input', function() {
+                sellerNameValid = false; // 입력 시 유효성 초기화
+                checkSellerNameDuplicate();
+            });
+        }
+    });
+    
+    // 페이지 로드 시 기존 판매자명이 있으면 자동으로 유효 처리
+    document.addEventListener('DOMContentLoaded', function() {
+        const sellerNameInput = document.getElementById('seller_name');
+        const originalValue = sellerNameInput ? sellerNameInput.value.trim() : '';
+        
+        if (originalValue && originalValue.length >= 2) {
+            // 기존 판매자명이 있으면 유효한 것으로 표시
+            sellerNameValid = true;
+            if (sellerNameInput) {
+                sellerNameInput.classList.add('checked-valid');
+            }
+        }
+        
+        // 폼 제출 시 판매자명 중복 검사 확인
         const editForm = document.querySelector('.edit-form-card');
         if (editForm) {
             editForm.addEventListener('submit', function(e) {
                 const sellerNameInput = document.getElementById('seller_name');
                 if (sellerNameInput && sellerNameInput.value.trim() !== '') {
+                    const currentValue = sellerNameInput.value.trim().toLowerCase();
+                    
+                    // 기존 값과 동일하면 통과
+                    if (originalSellerName && currentValue === originalSellerName) {
+                        sellerNameValid = true;
+                    }
+                    
                     // 중복 검사가 완료되지 않았거나 중복인 경우 제출 방지
                     if (!sellerNameValid) {
                         e.preventDefault();

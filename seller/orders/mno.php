@@ -143,10 +143,11 @@ try {
         $offset = ($page - 1) * $perPage;
         $sql = "
             SELECT DISTINCT
-                a.id,
+                a.id as application_id,
                 a.order_number,
                 a.product_id,
                 a.application_status,
+                a.status_changed_at,
                 a.created_at,
                 c.name,
                 c.phone,
@@ -198,8 +199,21 @@ try {
         
         // 주문 데이터 정규화
         foreach ($orders as &$order) {
+            // 디버깅: 원본 상태 값 저장
+            $order['_debug_original_status'] = $order['application_status'] ?? null;
             $orderStatus = strtolower(trim($order['application_status'] ?? ''));
-            $order['application_status'] = in_array($orderStatus, ['pending', '']) ? 'received' : ($orderStatus ?: 'received');
+            $order['_debug_normalized_status'] = $orderStatus;
+            
+            // 정규화 로직 수정: pending과 빈 값만 received로 변환
+            if (in_array($orderStatus, ['pending', ''])) {
+                $order['application_status'] = 'received';
+            } else {
+                // 유효한 상태 값이면 그대로 사용, 아니면 원본 유지
+                $validStatuses = ['received', 'activating', 'on_hold', 'cancelled', 'activation_completed', 'installation_completed', 'closed', 'processing', 'completed', 'rejected'];
+                $order['application_status'] = in_array($orderStatus, $validStatuses) ? $orderStatus : ($order['application_status'] ?? 'received');
+            }
+            
+            $order['_debug_final_status'] = $order['application_status'];
             
             $order['additional_info'] = json_decode($order['additional_info'] ?? '{}', true) ?: [];
             
@@ -238,7 +252,9 @@ $statusLabels = [
     'pending' => '접수',
     'processing' => '개통중',
     'completed' => '설치완료',
-    'rejected' => '보류'
+    'rejected' => '보류',
+    'closed' => '종료',
+    'terminated' => '종료'
 ];
 
 // 가입형태 한글명
@@ -715,6 +731,11 @@ $pageStyles = '
         color: #065f46;
     }
     
+    .status-closed {
+        background: #f3f4f6;
+        color: #374151;
+    }
+    
     .pagination {
         display: flex;
         justify-content: center;
@@ -923,6 +944,38 @@ $pageStyles = '
 include __DIR__ . '/../includes/seller-header.php';
 ?>
 
+<!-- 디버깅 정보 -->
+<?php if (!empty($orders) && isset($_GET['debug'])): ?>
+<div style="background: #fff3cd; border: 2px solid #ffc107; padding: 15px; margin: 20px; border-radius: 8px; font-family: monospace; font-size: 12px;">
+    <h3 style="margin-top: 0; color: #856404;">🔍 디버깅 정보</h3>
+    <table style="width: 100%; border-collapse: collapse;">
+        <thead>
+            <tr style="background: #ffeaa7;">
+                <th style="padding: 8px; border: 1px solid #ddd;">주문번호</th>
+                <th style="padding: 8px; border: 1px solid #ddd;">DB 원본</th>
+                <th style="padding: 8px; border: 1px solid #ddd;">정규화 후</th>
+                <th style="padding: 8px; border: 1px solid #ddd;">최종 상태</th>
+                <th style="padding: 8px; border: 1px solid #ddd;">application_id</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php foreach (array_slice($orders, 0, 5) as $order): ?>
+            <tr>
+                <td style="padding: 8px; border: 1px solid #ddd;"><?php echo htmlspecialchars($order['order_number'] ?? '-'); ?></td>
+                <td style="padding: 8px; border: 1px solid #ddd;"><?php echo htmlspecialchars(var_export($order['_debug_original_status'] ?? 'NULL', true)); ?></td>
+                <td style="padding: 8px; border: 1px solid #ddd;"><?php echo htmlspecialchars(var_export($order['_debug_normalized_status'] ?? 'NULL', true)); ?></td>
+                <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold; color: #d63031;"><?php echo htmlspecialchars($order['_debug_final_status'] ?? 'NULL'); ?></td>
+                <td style="padding: 8px; border: 1px solid #ddd;"><?php echo htmlspecialchars($order['application_id'] ?? 'NULL'); ?></td>
+            </tr>
+            <?php endforeach; ?>
+        </tbody>
+    </table>
+    <p style="margin: 10px 0 0 0; color: #856404;">
+        <strong>참고:</strong> URL에 <code>?debug=1</code>을 추가하면 이 정보가 표시됩니다.
+    </p>
+</div>
+<?php endif; ?>
+
 <div class="orders-container">
     <div class="orders-header">
         <h1>통신사폰 주문 관리</h1>
@@ -953,6 +1006,7 @@ include __DIR__ . '/../includes/seller-header.php';
                         <option value="cancelled" <?php echo ($status === 'cancelled') ? 'selected' : ''; ?>>취소</option>
                         <option value="activation_completed" <?php echo ($status === 'activation_completed') ? 'selected' : ''; ?>>개통완료</option>
                         <option value="installation_completed" <?php echo ($status === 'installation_completed') ? 'selected' : ''; ?>>설치완료</option>
+                        <option value="closed" <?php echo ($status === 'closed') ? 'selected' : ''; ?>>종료</option>
                     </select>
                 </div>
                 
@@ -1008,6 +1062,7 @@ include __DIR__ . '/../includes/seller-header.php';
                         <th>고객명</th>
                         <th>전화번호</th>
                         <th>이메일</th>
+                        <th>상태변경시각</th>
                         <th>진행상황</th>
                     </tr>
                 </thead>
@@ -1064,11 +1119,28 @@ include __DIR__ . '/../includes/seller-header.php';
                             <td><?php echo htmlspecialchars($order['phone']); ?></td>
                             <td><?php echo htmlspecialchars($order['email'] ?? '-'); ?></td>
                             <td>
+                                <?php 
+                                $statusChangedAt = $order['status_changed_at'] ?? null;
+                                if ($statusChangedAt) {
+                                    echo date('Y-m-d H:i', strtotime($statusChangedAt));
+                                } else {
+                                    echo '-';
+                                }
+                                ?>
+                            </td>
+                            <td>
                                 <div class="status-cell-wrapper">
                                     <span class="status-badge status-<?php echo $order['application_status']; ?>">
                                         <?php echo $statusLabels[$order['application_status']] ?? $order['application_status']; ?>
                                     </span>
-                                    <button type="button" class="status-edit-btn" onclick="openStatusEditModal(<?php echo $order['id']; ?>, '<?php echo htmlspecialchars($order['application_status'], ENT_QUOTES); ?>')" title="상태 변경">
+                                    <?php 
+                                    $appId = $order['application_id'] ?? $order['id'] ?? null;
+                                    $currentStatus = htmlspecialchars($order['application_status'] ?? 'received', ENT_QUOTES);
+                                    if (!$appId) {
+                                        error_log("Missing application_id for order: " . json_encode($order));
+                                    }
+                                    ?>
+                                    <button type="button" class="status-edit-btn" onclick="openStatusEditModal(<?php echo $appId; ?>, '<?php echo $currentStatus; ?>')" title="상태 변경" data-app-id="<?php echo $appId; ?>" data-status="<?php echo $currentStatus; ?>">
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                                             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
@@ -1371,10 +1443,15 @@ function number_format(num) {
 
 // 상태 변경 모달 열기
 function openStatusEditModal(applicationId, currentStatus) {
+    console.log('openStatusEditModal called:', { applicationId, currentStatus });
+    
     const modal = document.getElementById('statusEditModal');
     const select = document.getElementById('statusEditSelect');
     
-    if (!modal || !select) return;
+    if (!modal || !select) {
+        console.error('Modal or select element not found:', { modal: !!modal, select: !!select });
+        return;
+    }
     
     // 현재 상태 정규화 및 기본값 설정
     let status = 'received'; // 기본값
@@ -1387,7 +1464,7 @@ function openStatusEditModal(applicationId, currentStatus) {
     }
     
     // 셀렉트박스에 값 설정 (값이 유효한 옵션인지 확인)
-    const validStatuses = ['received', 'activating', 'on_hold', 'cancelled', 'activation_completed', 'installation_completed'];
+    const validStatuses = ['received', 'activating', 'on_hold', 'cancelled', 'activation_completed', 'installation_completed', 'closed'];
     if (validStatuses.includes(status)) {
         select.value = status;
     } else {
@@ -1396,6 +1473,7 @@ function openStatusEditModal(applicationId, currentStatus) {
     }
     
     select.setAttribute('data-application-id', applicationId);
+    console.log('Modal opened with:', { applicationId, status, selectValue: select.value });
     
     // 모달 표시
     modal.style.display = 'flex';
@@ -1412,14 +1490,21 @@ function closeStatusEditModal() {
 // 주문 상태 변경 함수
 function updateOrderStatus() {
     const select = document.getElementById('statusEditSelect');
-    if (!select) return;
+    if (!select) {
+        console.error('statusEditSelect element not found');
+        return;
+    }
     
     const applicationId = select.getAttribute('data-application-id');
     const newStatus = select.value;
     
     if (!applicationId || !newStatus) {
+        console.error('Missing applicationId or newStatus:', { applicationId, newStatus });
+        alert('필수 정보가 누락되었습니다.');
         return;
     }
+    
+    console.log('Updating order status:', { applicationId, newStatus });
     
     // 상태 레이블 매핑
     const statusLabels = {
@@ -1428,21 +1513,46 @@ function updateOrderStatus() {
         'on_hold': '보류',
         'cancelled': '취소',
         'activation_completed': '개통완료',
-        'installation_completed': '설치완료'
+        'installation_completed': '설치완료',
+        'closed': '종료',
+        'terminated': '종료'
     };
     
     const statusLabel = statusLabels[newStatus] || newStatus;
     
     // API 호출
+    const requestBody = `application_id=${applicationId}&status=${encodeURIComponent(newStatus)}`;
+    console.log('API Request:', {
+        url: '/MVNO/api/update-order-status.php',
+        method: 'POST',
+        body: requestBody
+    });
+    
     fetch('/MVNO/api/update-order-status.php', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
         },
-        body: `application_id=${applicationId}&status=${encodeURIComponent(newStatus)}`
+        body: requestBody
     })
-    .then(response => response.json())
-    .then(data => {
+    .then(response => {
+        console.log('API Response status:', response.status, response.statusText);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.text();
+    })
+    .then(text => {
+        console.log('API Response text:', text);
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch (e) {
+            console.error('JSON parse error:', e, 'Response text:', text);
+            throw new Error('서버 응답을 파싱할 수 없습니다: ' + text.substring(0, 100));
+        }
+        console.log('API Response data:', data);
+        
         if (data.success) {
             closeStatusEditModal();
             if (typeof showAlert === 'function') {
@@ -1451,21 +1561,25 @@ function updateOrderStatus() {
                 alert('상태가 변경되었습니다.');
             }
             // 페이지 새로고침
-            location.reload();
+            setTimeout(() => {
+                location.reload();
+            }, 500);
         } else {
+            const errorMsg = data.message || '상태 변경에 실패했습니다.';
+            console.error('API Error:', data);
             if (typeof showAlert === 'function') {
-                showAlert(data.message || '상태 변경에 실패했습니다.', '오류', true);
+                showAlert(errorMsg + (data.debug ? '\n디버그: ' + JSON.stringify(data.debug) : ''), '오류', true);
             } else {
-                alert(data.message || '상태 변경에 실패했습니다.');
+                alert(errorMsg + (data.debug ? '\n디버그: ' + JSON.stringify(data.debug) : ''));
             }
         }
     })
     .catch(error => {
-        console.error('Error:', error);
+        console.error('Fetch Error:', error);
         if (typeof showAlert === 'function') {
-            showAlert('상태 변경 중 오류가 발생했습니다.', '오류', true);
+            showAlert('상태 변경 중 오류가 발생했습니다: ' + error.message, '오류', true);
         } else {
-            alert('상태 변경 중 오류가 발생했습니다.');
+            alert('상태 변경 중 오류가 발생했습니다: ' + error.message);
         }
     });
 }
@@ -1535,6 +1649,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <option value="cancelled">취소</option>
                 <option value="activation_completed">개통완료</option>
                 <option value="installation_completed">설치완료</option>
+                <option value="closed">종료</option>
             </select>
         </div>
         <div class="status-modal-actions">

@@ -5,6 +5,10 @@
  */
 
 require_once __DIR__ . '/db-config.php';
+// auth-functions.php는 조건부로 로드 (에러 발생 시 무시)
+if (file_exists(__DIR__ . '/auth-functions.php')) {
+    require_once __DIR__ . '/auth-functions.php';
+}
 
 /**
  * 통신사폰 목록 데이터 가져오기
@@ -15,6 +19,23 @@ function getPhonesData($limit = 10) {
     $pdo = getDBConnection();
     if (!$pdo) {
         return [];
+    }
+    
+    // 현재 로그인한 사용자 ID 가져오기 (에러 발생 시 무시)
+    $currentUserId = null;
+    try {
+        if (function_exists('isLoggedIn') && function_exists('getCurrentUser')) {
+            if (isLoggedIn()) {
+                $currentUser = getCurrentUser();
+                $currentUserId = $currentUser['user_id'] ?? null;
+            }
+        }
+    } catch (Exception $e) {
+        // 로그인 체크 실패해도 상품 목록은 표시
+        error_log("Warning: Failed to get current user in getPhonesData: " . $e->getMessage());
+    } catch (Error $e) {
+        // PHP 7+ Fatal Error도 처리
+        error_log("Warning: Fatal error getting current user in getPhonesData: " . $e->getMessage());
     }
     
     try {
@@ -53,6 +74,31 @@ function getPhonesData($limit = 10) {
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
         $stmt->execute();
         $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // 사용자의 찜 상태 가져오기 (에러 발생 시 무시)
+        $favoriteProductIds = [];
+        if ($currentUserId && !empty($products)) {
+            try {
+                $productIds = array_column($products, 'id');
+                if (!empty($productIds)) {
+                    $placeholders = implode(',', array_fill(0, count($productIds), '?'));
+                    $favStmt = $pdo->prepare("
+                        SELECT product_id 
+                        FROM product_favorites 
+                        WHERE user_id = ? 
+                        AND product_id IN ($placeholders)
+                        AND product_type = 'mno'
+                    ");
+                    $favStmt->execute(array_merge([$currentUserId], $productIds));
+                    $favoriteProductIdsRaw = $favStmt->fetchAll(PDO::FETCH_COLUMN);
+                    // 정수 배열로 변환하여 타입 일치 보장
+                    $favoriteProductIds = array_map('intval', $favoriteProductIdsRaw);
+                }
+            } catch (Exception $e) {
+                // 찜 상태 조회 실패해도 상품 목록은 표시
+                error_log("Warning: Failed to get favorite status in getPhonesData: " . $e->getMessage());
+            }
+        }
         
         // 판매자 정보 로드
         $sellersData = [];
@@ -271,6 +317,13 @@ function getPhonesData($limit = 10) {
             $applicationCount = (int)($product['application_count'] ?? 0);
             $selectionCount = number_format($applicationCount) . '명이 선택';
             
+            // 찜 상태 확인 (엄격한 타입 비교)
+            $isFavorited = false;
+            if ($currentUserId && !empty($favoriteProductIds)) {
+                $productIdInt = (int)$product['id'];
+                $isFavorited = in_array($productIdInt, $favoriteProductIds, true); // strict mode
+            }
+            
             $phones[] = [
                 'id' => (int)$product['id'],
                 'provider' => $provider,
@@ -289,7 +342,8 @@ function getPhonesData($limit = 10) {
                 'additional_supports' => $additionalSupports,
                 'delivery_method' => $deliveryMethod,
                 'visit_region' => $visitRegion,
-                'promotion_title' => $product['promotion_title'] ?? '부가서비스 없음'
+                'promotion_title' => $product['promotion_title'] ?? '부가서비스 없음',
+                'is_favorited' => $isFavorited
             ];
         }
         
@@ -321,6 +375,23 @@ function getPhoneDetailData($phone_id) {
     $pdo = getDBConnection();
     if (!$pdo) {
         return null;
+    }
+    
+    // 현재 로그인한 사용자 ID 가져오기 (에러 발생 시 무시)
+    $currentUserId = null;
+    try {
+        if (function_exists('isLoggedIn') && function_exists('getCurrentUser')) {
+            if (isLoggedIn()) {
+                $currentUser = getCurrentUser();
+                $currentUserId = $currentUser['user_id'] ?? null;
+            }
+        }
+    } catch (Exception $e) {
+        // 로그인 체크 실패해도 상품 정보는 반환
+        error_log("Warning: Failed to get current user in getPhoneDetailData: " . $e->getMessage());
+    } catch (Error $e) {
+        // PHP 7+ Fatal Error도 처리
+        error_log("Warning: Fatal error getting current user in getPhoneDetailData: " . $e->getMessage());
     }
     
     try {
@@ -363,6 +434,29 @@ function getPhoneDetailData($phone_id) {
         
         if (!$product) {
             return null;
+        }
+        
+        // 찜 상태 확인 (에러 발생 시 무시)
+        $isFavorited = false;
+        if ($currentUserId) {
+            try {
+                $favStmt = $pdo->prepare("
+                    SELECT COUNT(*) 
+                    FROM product_favorites 
+                    WHERE user_id = :user_id 
+                    AND product_id = :product_id
+                    AND product_type = 'mno'
+                ");
+                $favStmt->execute([
+                    ':user_id' => $currentUserId,
+                    ':product_id' => $phone_id
+                ]);
+                $favCount = $favStmt->fetchColumn();
+                $isFavorited = ($favCount > 0);
+            } catch (Exception $e) {
+                // 찜 상태 조회 실패해도 상품 정보는 반환
+                error_log("Warning: Failed to get favorite status in getPhoneDetailData: " . $e->getMessage());
+            }
         }
         
         // 판매자 정보 로드
@@ -609,7 +703,8 @@ function getPhoneDetailData($phone_id) {
             'delivery_method' => $deliveryMethod,
             'visit_region' => $visitRegion,
             'promotion_title' => $product['promotion_title'] ?? '부가서비스 없음',
-            'device_colors' => $deviceColors
+            'device_colors' => $deviceColors,
+            'is_favorited' => $isFavorited
         ];
         
     } catch (PDOException $e) {

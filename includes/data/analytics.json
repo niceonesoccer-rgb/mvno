@@ -1063,6 +1063,359 @@
             "timestamp": "2025-12-11 23:30:11",
             "date": "2025-12-11",
             "user_id": "admin"
+        },
+        {
+            "type": "favorite_add",
+            "data": {
+                "type": "mno",
+                "id": 2,
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-17 20:11:14",
+            "date": "2025-12-17",
+            "user_id": "1111111111"
+        },
+        {
+            "type": "favorite_add",
+            "data": {
+                "type": "mvno",
+                "id": 1,
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-17 20:11:21",
+            "date": "2025-12-17",
+            "user_id": "1111111111"
+        },
+        {
+            "type": "favorite_remove",
+            "data": {
+                "type": "mvno",
+                "id": 1,
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-17 20:11:32",
+            "date": "2025-12-17",
+            "user_id": "1111111111"
+        },
+        {
+            "type": "favorite_remove",
+            "data": {
+                "type": "mno",
+                "id": 2,
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-17 20:11:43",
+            "date": "2025-12-17",
+            "user_id": "1111111111"
+        },
+        {
+            "type": "favorite_add",
+            "data": {
+                "type": "mno",
+                "id": 2,
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-17 20:12:45",
+            "date": "2025-12-17",
+            "user_id": "6868686868"
+        },
+        {
+            "type": "favorite_add",
+            "data": {
+                "type": "mvno",
+                "id": 13,
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-17 20:17:29",
+            "date": "2025-12-17",
+            "user_id": "1111111111"
+        },
+        {
+            "type": "favorite_add",
+            "data": {
+                "type": "mvno",
+                "id": 12,
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-17 20:17:30",
+            "date": "2025-12-17",
+            "user_id": "1111111111"
+        },
+        {
+            "type": "favorite_add",
+            "data": {
+                "type": "mno",
+                "id": 15,
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-17 20:17:33",
+            "date": "2025-12-17",
+            "user_id": "1111111111"
+        },
+        {
+            "type": "favorite_remove",
+            "data": {
+                "type": "mno",
+                "id": 15,
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-17 20:17:40",
+            "date": "2025-12-17",
+            "user_id": "1111111111"
+        },
+        {
+            "type": "favorite_add",
+            "data": {
+                "type": "mno",
+                "id": 14,
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-17 20:17:41",
+            "date": "2025-12-17",
+            "user_id": "1111111111"
+        },
+        {
+            "type": "favorite_add",
+            "data": {
+                "type": "mno",
+                "id": 15,
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-17 20:18:26",
+            "date": "2025-12-17",
+            "user_id": "1111111111"
+        },
+        {
+            "type": "favorite_remove",
+            "data": {
+                "type": "mno",
+                "id": 15,
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-17 20:18:28",
+            "date": "2025-12-17",
+            "user_id": "1111111111"
+        },
+        {
+            "type": "favorite_remove",
+            "data": {
+                "type": "mvno",
+                "id": 13,
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-17 20:18:41",
+            "date": "2025-12-17",
+            "user_id": "1111111111"
+        },
+        {
+            "type": "favorite_add",
+            "data": {
+                "type": "mno",
+                "id": 2,
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-17 20:20:57",
+            "date": "2025-12-17",
+            "user_id": "1111111111"
+        },
+        {
+            "type": "favorite_remove",
+            "data": {
+                "type": "mno",
+                "id": 2,
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-17 20:21:08",
+            "date": "2025-12-17",
+            "user_id": "1111111111"
+        },
+        {
+            "type": "favorite_add",
+            "data": {
+                "type": "mno",
+                "id": 2,
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-17 20:24:53",
+            "date": "2025-12-17",
+            "user_id": "1111111111"
+        },
+        {
+            "type": "favorite_remove",
+            "data": {
+                "type": "mno",
+                "id": 14,
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-17 20:25:01",
+            "date": "2025-12-17",
+            "user_id": "1111111111"
+        },
+        {
+            "type": "favorite_remove",
+            "data": {
+                "type": "mno",
+                "id": 2,
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-17 20:25:21",
+            "date": "2025-12-17",
+            "user_id": "1111111111"
+        },
+        {
+            "type": "favorite_remove",
+            "data": {
+                "type": "mvno",
+                "id": 12,
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-17 20:25:29",
+            "date": "2025-12-17",
+            "user_id": "1111111111"
+        },
+        {
+            "type": "favorite_add",
+            "data": {
+                "type": "mvno",
+                "id": 13,
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-17 20:25:39",
+            "date": "2025-12-17",
+            "user_id": "1111111111"
+        },
+        {
+            "type": "favorite_add",
+            "data": {
+                "type": "mvno",
+                "id": 12,
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-17 20:25:40",
+            "date": "2025-12-17",
+            "user_id": "1111111111"
+        },
+        {
+            "type": "favorite_add",
+            "data": {
+                "type": "mvno",
+                "id": 1,
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-17 20:25:41",
+            "date": "2025-12-17",
+            "user_id": "1111111111"
+        },
+        {
+            "type": "favorite_remove",
+            "data": {
+                "type": "mvno",
+                "id": 13,
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-17 20:25:46",
+            "date": "2025-12-17",
+            "user_id": "1111111111"
+        },
+        {
+            "type": "favorite_remove",
+            "data": {
+                "type": "mvno",
+                "id": 1,
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-17 20:25:47",
+            "date": "2025-12-17",
+            "user_id": "1111111111"
+        },
+        {
+            "type": "favorite_remove",
+            "data": {
+                "type": "mvno",
+                "id": 12,
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-17 20:25:48",
+            "date": "2025-12-17",
+            "user_id": "1111111111"
+        },
+        {
+            "type": "favorite_add",
+            "data": {
+                "type": "mvno",
+                "id": 1,
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-17 20:25:50",
+            "date": "2025-12-17",
+            "user_id": "1111111111"
+        },
+        {
+            "type": "favorite_add",
+            "data": {
+                "type": "mno",
+                "id": 15,
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-17 20:26:03",
+            "date": "2025-12-17",
+            "user_id": "1111111111"
+        },
+        {
+            "type": "favorite_add",
+            "data": {
+                "type": "mno",
+                "id": 14,
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-17 20:26:04",
+            "date": "2025-12-17",
+            "user_id": "1111111111"
+        },
+        {
+            "type": "favorite_add",
+            "data": {
+                "type": "mno",
+                "id": 2,
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-17 20:26:05",
+            "date": "2025-12-17",
+            "user_id": "1111111111"
+        },
+        {
+            "type": "favorite_remove",
+            "data": {
+                "type": "mno",
+                "id": 14,
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-17 20:26:12",
+            "date": "2025-12-17",
+            "user_id": "1111111111"
+        },
+        {
+            "type": "favorite_remove",
+            "data": {
+                "type": "mno",
+                "id": 15,
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-17 20:26:13",
+            "date": "2025-12-17",
+            "user_id": "1111111111"
+        },
+        {
+            "type": "share",
+            "data": {
+                "type": "mno",
+                "id": "mno-phone-detail.php?id=15",
+                "method": "link",
+                "seller_id": ""
+            },
+            "timestamp": "2025-12-17 22:01:57",
+            "date": "2025-12-17",
+            "user_id": "1111111111"
         }
     ],
     "daily_stats": []

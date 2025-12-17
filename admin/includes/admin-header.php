@@ -449,22 +449,6 @@ if (file_exists($adminsFile)) {
             background: linear-gradient(135deg, #a5b4fc 0%, #818cf8 100%);
         }
         
-        .menu-section:nth-child(9) .menu-item-icon {
-            background: rgba(99, 102, 241, 0.2);
-        }
-        
-        .menu-section:nth-child(9) .menu-item-icon svg {
-            stroke: #a5b4fc;
-        }
-        
-        .menu-section:nth-child(9) .menu-item:hover .menu-item-icon {
-            background: linear-gradient(135deg, rgba(99, 102, 241, 0.4) 0%, rgba(79, 70, 229, 0.3) 100%);
-        }
-        
-        .menu-section:nth-child(9) .menu-item.active .menu-item-icon {
-            background: linear-gradient(135deg, #a5b4fc 0%, #818cf8 100%);
-        }
-        
         .menu-sub-item {
             padding-left: 52px;
             font-size: 13px;
@@ -772,6 +756,16 @@ if (file_exists($adminsFile)) {
                         </svg>
                     </span>
                     단말기 설정
+                </a>
+                <a href="/MVNO/admin/review-settings.php" class="menu-item <?php echo $currentPage === 'review-settings.php' ? 'active' : ''; ?>">
+                    <span class="menu-item-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                            <path d="M13 8H7"/>
+                            <path d="M17 12H7"/>
+                        </svg>
+                    </span>
+                    리뷰 작성 권한
                 </a>
                 <a href="/MVNO/admin/settings/data-delete.php" class="menu-item <?php echo $currentPage === 'data-delete.php' ? 'active' : ''; ?>">
                     <span class="menu-item-icon">

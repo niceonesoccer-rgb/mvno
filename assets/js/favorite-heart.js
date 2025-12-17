@@ -44,6 +44,12 @@
      * 서버에 찜 추적 요청
      */
     function trackFavoriteToServer(itemType, itemId, action) {
+        // 인터넷 타입은 찜 불가
+        if (itemType === 'internet') {
+            console.warn('인터넷 상품은 찜할 수 없습니다.');
+            return;
+        }
+        
         const sellerId = document.querySelector('[data-seller-id]')?.getAttribute('data-seller-id') || null;
         
         fetch('/MVNO/api/analytics/track-favorite.php', {
@@ -57,8 +63,46 @@
                 action: action,
                 seller_id: sellerId || ''
             })
-        }).catch(error => {
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                console.log('찜 처리 성공:', data);
+                // 필요시 favorite_count 업데이트
+                if (data.favorite_count !== undefined) {
+                    const favoriteCountElements = document.querySelectorAll(`[data-product-id="${itemId}"] .favorite-count`);
+                    favoriteCountElements.forEach(el => {
+                        el.textContent = data.favorite_count;
+                    });
+                }
+            } else {
+                console.error('찜 처리 실패:', data.message || '알 수 없는 오류', data);
+                // 실패 시 UI 되돌리기
+                const button = document.querySelector(`[data-item-id="${itemId}"]`);
+                if (button) {
+                    if (action === 'add') {
+                        button.classList.remove('favorited');
+                        updateFavoriteIcon(button, false);
+                    } else {
+                        button.classList.add('favorited');
+                        updateFavoriteIcon(button, true);
+                    }
+                }
+            }
+        })
+        .catch(error => {
             console.error('찜 추적 오류:', error);
+            // 네트워크 오류 시에도 UI 되돌리기
+            const button = document.querySelector(`[data-item-id="${itemId}"]`);
+            if (button) {
+                if (action === 'add') {
+                    button.classList.remove('favorited');
+                    updateFavoriteIcon(button, false);
+                } else {
+                    button.classList.add('favorited');
+                    updateFavoriteIcon(button, true);
+                }
+            }
         });
     }
 
@@ -81,40 +125,69 @@
     }
 
     /**
+     * 페이지 로드 시 찜 상태 초기화
+     * PHP에서 설정한 찜 상태에 맞게 아이콘 업데이트
+     */
+    function initializeFavoriteStates() {
+        const favoriteButtons = document.querySelectorAll('.plan-favorite-btn-inline[data-item-id]');
+        favoriteButtons.forEach(button => {
+            const isFavorited = button.classList.contains('favorited');
+            // 아이콘을 현재 찜 상태에 맞게 업데이트
+            updateFavoriteIcon(button, isFavorited);
+        });
+    }
+
+    /**
      * 찜 버튼 이벤트 리스너 등록
      */
     function initFavoriteButtons() {
-        // 이벤트 위임 방식으로 모든 찜 버튼 처리
-        // 캡처 단계에서 처리하여 다른 이벤트보다 먼저 실행
-        document.addEventListener('mousedown', function(e) {
-            const favoriteButton = e.target.closest('.plan-favorite-btn-inline');
-            if (favoriteButton && favoriteButton.hasAttribute('data-item-id')) {
-                e.preventDefault();
-                e.stopPropagation();
-                e.stopImmediatePropagation();
-            }
-        }, true);
-
+        // 1. 판매자/관리자 페이지에서는 찜 기능 비활성화
+        const currentPath = window.location.pathname;
+        if (currentPath.includes('/seller/') || 
+            currentPath.includes('/admin/')) {
+            return; // 판매자/관리자 페이지에서는 찜 기능 사용 안 함
+        }
+        
+        // 2. 찜 버튼이 실제로 존재하는지 확인
+        const favoriteButtons = document.querySelectorAll('.plan-favorite-btn-inline[data-item-id]');
+        if (favoriteButtons.length === 0) {
+            return; // 찜 버튼이 없으면 실행하지 않음
+        }
+        
+        // 3. 페이지 로드 시 찜 상태 초기화 (PHP에서 설정한 상태 반영)
+        initializeFavoriteStates();
+        
+        // 4. 이벤트 위임 방식으로 찜 버튼 처리
+        // stopImmediatePropagation() 제거하여 다른 이벤트에 영향 최소화
         document.addEventListener('click', function(e) {
             const favoriteButton = e.target.closest('.plan-favorite-btn-inline');
             
-            if (favoriteButton && favoriteButton.hasAttribute('data-item-id')) {
-                // 이벤트 전파 완전 차단
-                e.preventDefault();
-                e.stopPropagation();
-                e.stopImmediatePropagation();
+            // 정확히 찜 버튼인지 확인
+            if (favoriteButton && 
+                favoriteButton.hasAttribute('data-item-id') &&
+                favoriteButton.classList.contains('plan-favorite-btn-inline')) {
                 
-                // 부모 링크 찾기 및 클릭 방지
+                // 인터넷 타입 체크 (인터넷은 찜 불가)
+                const itemType = favoriteButton.getAttribute('data-item-type');
+                if (itemType === 'internet') {
+                    return; // 인터넷 상품은 찜 불가
+                }
+                
+                // 기본 동작만 방지 (이벤트 전파는 허용)
+                e.preventDefault();
+                e.stopPropagation(); // stopImmediatePropagation() 제거
+                
+                // 부모 링크가 있으면 링크 이동 방지
                 const parentLink = favoriteButton.closest('a.plan-card-link');
                 if (parentLink) {
-                    // 링크의 기본 동작 방지 (캡처 단계에서)
-                    const preventLinkClick = function(linkEvent) {
-                        linkEvent.preventDefault();
-                        linkEvent.stopPropagation();
-                        linkEvent.stopImmediatePropagation();
+                    // 링크의 기본 동작만 방지 (한 번만 실행)
+                    const preventLinkNavigation = function(linkEvent) {
+                        if (linkEvent.target.closest('.plan-favorite-btn-inline')) {
+                            linkEvent.preventDefault();
+                            linkEvent.stopPropagation();
+                        }
                     };
-                    parentLink.addEventListener('click', preventLinkClick, { capture: true, once: true });
-                    parentLink.addEventListener('mousedown', preventLinkClick, { capture: true, once: true });
+                    parentLink.addEventListener('click', preventLinkNavigation, { capture: true, once: true });
                 }
                 
                 // 찜 상태 토글
@@ -122,7 +195,7 @@
                 
                 return false;
             }
-        }, true);
+        }, false); // capture: false로 변경하여 다른 이벤트와 충돌 방지
     }
 
     // DOM이 로드되면 초기화

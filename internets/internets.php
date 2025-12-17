@@ -20,6 +20,7 @@ try {
         $stmt = $pdo->prepare("
             SELECT 
                 p.id,
+                p.seller_id,
                 p.status,
                 p.view_count,
                 p.favorite_count,
@@ -173,9 +174,9 @@ function getInternetIconPath($registrationPlace) {
                                         $serviceTypeDisplay = '인터넷 + TV + 핸드폰 결합';
                                     }
                                     ?>
-                                    <span style="margin-left: 0.5em; margin-right: 0.5em; font-size: 1.2rem; color: #9ca3af;">|</span>
-                                    <span style="font-size: 1.2rem; color: #374151; text-align: left; display: inline-block;"><?php echo htmlspecialchars($serviceTypeDisplay); ?></span>
-                                    <div class="css-huskxe e82z5mt13">
+                                    <span style="margin-left: 0.5em; margin-right: 0.5em; font-size: 1.0584rem; color: #9ca3af;">|</span>
+                                    <span style="font-size: 1.0584rem; color: #6b7280; text-align: left; display: inline-block; white-space: nowrap;"><?php echo htmlspecialchars($serviceTypeDisplay); ?></span>
+                                    <div class="css-huskxe e82z5mt13" style="margin-left: auto;">
                                         <div class="css-1fd5u73 e82z5mt14">
                                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                                 <rect x="2" y="3" width="20" height="14" rx="2" fill="#E9D5FF" stroke="#A855F7" stroke-width="1.5"/>
@@ -190,13 +191,13 @@ function getInternetIconPath($registrationPlace) {
                                         <div class="css-1fd5u73 e82z5mt14">
                                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                                 <defs>
-                                                    <linearGradient id="checkGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                                        <stop offset="0%" style="stop-color:#10B981;stop-opacity:1" />
-                                                        <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
+                                                    <linearGradient id="userGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                                        <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
+                                                        <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:1" />
                                                     </linearGradient>
                                                 </defs>
-                                                <circle cx="12" cy="12" r="10" fill="url(#checkGradient)" stroke="#047857" stroke-width="1"/>
-                                                <path d="M8 12L10.5 14.5L16 9" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                                <circle cx="12" cy="8" r="4" fill="url(#userGradient)"/>
+                                                <path d="M6 21c0-3.314 2.686-6 6-6s6 2.686 6 6" stroke="url(#userGradient)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                                             </svg>
                                             <?php echo $applicationCount; ?>개 신청
                                         </div>
@@ -632,6 +633,13 @@ function getInternetIconPath($registrationPlace) {
     padding-top: 50px;
 }
 
+/* Product card wrapper */
+.css-2l6pil.e1ebrc9o0 > div {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
 /* Product card */
 .css-58gch7.e82z5mt0 {
     border: 1px solid #e5e7eb;
@@ -641,6 +649,10 @@ function getInternetIconPath($registrationPlace) {
     box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
     transition: box-shadow 0.3s ease, transform 0.3s ease, border-color 0.3s ease;
     cursor: pointer;
+    width: 100%;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
 }
 
 .css-58gch7.e82z5mt0:hover {
@@ -655,6 +667,13 @@ function getInternetIconPath($registrationPlace) {
     justify-content: space-between;
     gap: 1rem;
     margin-bottom: 1rem;
+    width: 100%;
+    flex-wrap: wrap;
+}
+
+.css-1kjyj6z.e82z5mt1 > *:first-child,
+.css-1kjyj6z.e82z5mt1 > span {
+    flex-shrink: 0;
 }
 
 .css-1pg8bi.e82z5mt15 {
@@ -668,6 +687,9 @@ function getInternetIconPath($registrationPlace) {
     gap: 0.75rem;
     flex-wrap: nowrap;
     flex-shrink: 0;
+    align-items: center;
+    justify-content: flex-end;
+    margin-left: auto;
 }
 
 .css-1fd5u73.e82z5mt14 {
@@ -675,7 +697,9 @@ function getInternetIconPath($registrationPlace) {
     align-items: center;
     gap: 0.25rem;
     font-size: 1.2rem;
-    color: #374151;
+    color: #6b7280;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .css-1fd5u73.e82z5mt14 img {
@@ -692,12 +716,15 @@ function getInternetIconPath($registrationPlace) {
     padding: 1rem;
     background-color: #f9fafb;
     border-radius: 0.5rem;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .css-12zfa6z.e82z5mt8 {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 0.75rem;
+    width: 100%;
 }
 
 .css-xj5cz0.e82z5mt9 {
@@ -714,7 +741,7 @@ function getInternetIconPath($registrationPlace) {
 .css-2ht76o.e82z5mt12 {
     font-size: 1.3125rem;
     font-weight: 500;
-    color: #1a1a1a;
+    color: #4b5563;
     margin: 0;
     line-height: 1.5;
 }
@@ -726,7 +753,7 @@ function getInternetIconPath($registrationPlace) {
 }
 
 .item-price-text {
-    color: #1a1a1a;
+    color: #4b5563;
     font-weight: 600;
 }
 
@@ -739,37 +766,61 @@ function getInternetIconPath($registrationPlace) {
 
 /* Price section */
 .css-rkh09p.e82z5mt2 {
-    margin-top: 1rem;
+    margin-top: auto;
     padding-top: 1rem;
     border-top: 1px solid #e5e7eb;
+    width: 100%;
 }
 
 .css-16qot29.e82z5mt6 {
-    font-size: 1.05rem;
+    font-size: 1.5rem;
     font-weight: 700;
-    color: #1a1a1a;
+    color: #4b5563;
     margin: 0;
     text-align: right;
 }
 
 @media (max-width: 767px) {
+    .css-2l6pil.e1ebrc9o0 {
+        padding: 1rem;
+        gap: 1rem;
+    }
+    
     .css-58gch7.e82z5mt0 {
         padding: 1rem;
+        width: 100%;
     }
     
     .css-1kjyj6z.e82z5mt1 {
-        flex-wrap: nowrap;
+        flex-wrap: wrap;
         gap: 0.5rem;
+        align-items: center;
+        justify-content: space-between;
     }
     
     .css-huskxe.e82z5mt13 {
         gap: 0.5rem;
-        flex-shrink: 1;
+        flex-shrink: 0;
+        flex-wrap: nowrap;
+        justify-content: flex-end;
+        margin-left: auto;
+        width: auto;
     }
     
     .css-1fd5u73.e82z5mt14 {
-        font-size: 1.2rem;
         white-space: nowrap;
+        font-size: 1rem;
+    }
+    
+    @media (min-width: 480px) {
+        .css-huskxe.e82z5mt13 {
+            width: auto;
+        }
+    }
+    
+    .css-1fd5u73.e82z5mt14 {
+        font-size: 1rem;
+        white-space: normal;
     }
     
     .css-1pg8bi.e82z5mt15 {

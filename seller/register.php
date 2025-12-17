@@ -228,6 +228,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $additionalData = [];
         $additionalData['phone'] = trim($_POST['phone'] ?? '');
         $additionalData['mobile'] = trim($_POST['mobile'] ?? '');
+        $additionalData['seller_name'] = trim($_POST['seller_name'] ?? '');
         $additionalData['postal_code'] = trim($_POST['postal_code'] ?? '');
         $additionalData['address'] = trim($_POST['address'] ?? '');
         $additionalData['address_detail'] = trim($_POST['address_detail'] ?? '');
@@ -372,6 +373,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (empty($error)) {
             $result = registerDirectUser($userId, $password, $email, $name, 'seller', $additionalData);
             if ($result['success']) {
+                // 판매자명이 입력된 경우 자동 로그인 후 프로필로 이동
+                if (!empty($additionalData['seller_name'])) {
+                    loginUser($userId);
+                    header('Location: /MVNO/seller/profile.php');
+                    exit;
+                }
+                
                 // 가입 성공 - 리다이렉트하지 않고 정보 표시
                 $registerSuccess = true;
                 $registeredData = [
@@ -1389,6 +1397,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <label for="company_name">회사명 <span class="required">*</span></label>
                             <input type="text" id="company_name" name="company_name" placeholder="(주)회사명" required maxlength="20" value="<?php echo htmlspecialchars($_SERVER['REQUEST_METHOD'] === 'POST' ? ($_POST['company_name'] ?? '') : ''); ?>">
                             <div class="form-help">20자 이내로 입력해주세요.</div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="seller_name">판매자명</label>
+                            <input type="text" id="seller_name" name="seller_name" placeholder="사이트에서 표시될 판매자명" maxlength="100" value="<?php echo htmlspecialchars($_SERVER['REQUEST_METHOD'] === 'POST' ? ($_POST['seller_name'] ?? '') : ''); ?>">
+                            <div class="form-help">사이트에서 고객에게 표시될 판매자명을 입력해주세요. (선택사항, 미입력 시 회사명이 표시됩니다)</div>
                         </div>
                         
                         <div class="form-group">

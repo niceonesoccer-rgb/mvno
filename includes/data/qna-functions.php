@@ -13,12 +13,14 @@ function getQnaDataFile() {
 }
 
 // 사용자 ID 가져오기 (세션에서, 임시로 'default' 사용)
-function getCurrentUserId() {
-    // 실제로는 세션에서 가져옴
-    if (session_status() === PHP_SESSION_NONE) {
-        session_start();
+if (!function_exists('getCurrentUserId')) {
+    function getCurrentUserId() {
+        // 실제로는 세션에서 가져옴
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        return isset($_SESSION['user_id']) ? $_SESSION['user_id'] : 'default';
     }
-    return isset($_SESSION['user_id']) ? $_SESSION['user_id'] : 'default';
 }
 
 // Q&A 목록 가져오기 (사용자별)

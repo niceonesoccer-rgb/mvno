@@ -1031,35 +1031,92 @@ function addProductReview($productId, $userId, $productType, $rating, $content, 
  * @param bool $isFavorite 찜 추가(true) 또는 삭제(false)
  * @return bool
  */
+/**
+ * 찜 추가/삭제 (MVNO, MNO만)
+ * @param int $productId 상품 ID
+ * @param int $userId 사용자 ID
+ * @param string $productType 상품 타입 (mvno, mno)
+ * @param bool $isFavorite 찜 추가(true) 또는 삭제(false)
+ * @return bool
+ */
 function toggleProductFavorite($productId, $userId, $productType, $isFavorite = true) {
+    // 인터넷 상품은 찜 불가
+    if ($productType === 'internet') {
+        return false;
+    }
+    
     $pdo = getDBConnection();
     if (!$pdo) {
         return false;
     }
     
     try {
+        $pdo->beginTransaction();
+        
+        // 먼저 products 테이블에 해당 상품이 존재하는지 확인
+        $productIdInt = (int)$productId;
+        $checkStmt = $pdo->prepare("
+            SELECT id, product_type FROM products 
+            WHERE id = ?
+        ");
+        $checkStmt->execute([$productIdInt]);
+        $product = $checkStmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$product) {
+            error_log("toggleProductFavorite: Product not found - product_id=$productId");
+            $pdo->rollBack();
+            return false;
+        }
+        
+        // product_type 일치 확인
+        if ($product['product_type'] !== $productType) {
+            error_log("toggleProductFavorite: Product type mismatch - product_id=$productId, expected=$productType, actual={$product['product_type']}");
+            $pdo->rollBack();
+            return false;
+        }
+        
+        // 파라미터를 명시적으로 정수로 변환
+        $userIdInt = (int)$userId;
+        
         if ($isFavorite) {
+            // 찜 추가
             $stmt = $pdo->prepare("
                 INSERT INTO product_favorites (product_id, user_id, product_type)
-                VALUES (:product_id, :user_id, :product_type)
+                VALUES (?, ?, ?)
                 ON DUPLICATE KEY UPDATE created_at = CURRENT_TIMESTAMP
             ");
+            $stmt->execute([$productIdInt, $userIdInt, $productType]);
         } else {
+            // 찜 삭제
             $stmt = $pdo->prepare("
                 DELETE FROM product_favorites
                 WHERE product_id = :product_id AND user_id = :user_id
             ");
+            $stmt->bindValue(':product_id', $productIdInt, PDO::PARAM_INT);
+            $stmt->bindValue(':user_id', $userIdInt, PDO::PARAM_INT);
+            $stmt->execute();
         }
         
-        $stmt->execute([
-            ':product_id' => $productId,
-            ':user_id' => $userId,
-            ':product_type' => $productType
-        ]);
+        // favorite_count 수동 업데이트 (트리거가 없어도 작동하도록)
+        $updateStmt = $pdo->prepare("
+            UPDATE products 
+            SET favorite_count = (
+                SELECT COUNT(*) FROM product_favorites 
+                WHERE product_id = ?
+            )
+            WHERE id = ?
+        ");
+        $updateStmt->execute([$productIdInt, $productIdInt]);
         
+        $pdo->commit();
         return true;
     } catch (PDOException $e) {
-        error_log("Error toggling favorite: " . $e->getMessage());
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        error_log("Error toggling favorite: product_id=$productId, user_id=$userId, product_type=$productType, isFavorite=$isFavorite, error=" . $e->getMessage());
+        error_log("SQL Error Code: " . $e->getCode() . ", SQL State: " . $e->errorInfo[0] ?? 'N/A');
+        error_log("Error Info: " . print_r($e->errorInfo, true));
         return false;
     }
 }
@@ -1191,7 +1248,8 @@ function getApplicationStatusLabel($status) {
         $normalizedStatus = 'received';
     }
     
-    // 상태별 한글명 매핑 (판매자 페이지와 동일)
+    // 상태별 한글명 매핑 (판매자 페이지 internet.php의 옵션과 동일)
+    // received(접수), activating(개통중), activation_completed(개통완료), installation_completed(설치완료)
     $statusLabels = [
         'received' => '접수',
         'activating' => '개통중',
@@ -1199,10 +1257,12 @@ function getApplicationStatusLabel($status) {
         'cancelled' => '취소',
         'activation_completed' => '개통완료',
         'installation_completed' => '설치완료',
-        'pending' => '접수',
-        'processing' => '개통중',
+        'pending' => '접수',  // pending도 received와 동일하게 처리
+        'processing' => '개통중',  // processing도 activating과 동일하게 처리
         'completed' => '설치완료',
-        'rejected' => '보류'
+        'rejected' => '보류',
+        'closed' => '종료',
+        'terminated' => '종료'
     ];
     
     return $statusLabels[$normalizedStatus] ?? $status;
@@ -1263,10 +1323,10 @@ function addProductApplication($productId, $sellerId, $productType, $customerDat
             try {
                 $orderNumber = generateOrderNumber($pdo, $currentDateTime);
                 
-                // 주문번호로 INSERT 시도
+                // 주문번호로 INSERT 시도 (status_changed_at도 함께 설정)
                 $stmt = $pdo->prepare("
-                    INSERT INTO product_applications (order_number, product_id, seller_id, product_type, application_status, created_at)
-                    VALUES (:order_number, :product_id, :seller_id, :product_type, :application_status, :created_at)
+                    INSERT INTO product_applications (order_number, product_id, seller_id, product_type, application_status, created_at, status_changed_at)
+                    VALUES (:order_number, :product_id, :seller_id, :product_type, :application_status, :created_at, :status_changed_at)
                 ");
                 $stmt->execute([
                     ':order_number' => $orderNumber,
@@ -1274,7 +1334,8 @@ function addProductApplication($productId, $sellerId, $productType, $customerDat
                     ':seller_id' => $sellerId,
                     ':product_type' => $productType,
                     ':application_status' => $initialStatus,
-                    ':created_at' => $currentDateTimeStr
+                    ':created_at' => $currentDateTimeStr,
+                    ':status_changed_at' => $currentDateTimeStr
                 ]);
                 
                 // INSERT 성공 시 루프 종료
@@ -1449,6 +1510,7 @@ function getUserMvnoApplications($userId) {
                 a.product_id,
                 a.application_status,
                 a.created_at as order_date,
+                p.seller_id,
                 c.name,
                 c.phone,
                 c.email,
@@ -1565,6 +1627,7 @@ function getUserMvnoApplications($userId) {
             $provider = '';
             $priceMain = 0;
             $priceAfter = null;
+            $contractPeriod = '';
             $discountPeriod = '';
             $dataAmount = '';
             $dataAmountValue = '';
@@ -1614,6 +1677,7 @@ function getUserMvnoApplications($userId) {
                 }
                 $priceMain = isset($productSnapshot['price_main']) && is_numeric($productSnapshot['price_main']) ? (float)$productSnapshot['price_main'] : 0;
                 $priceAfter = isset($productSnapshot['price_after']) && is_numeric($productSnapshot['price_after']) && $productSnapshot['price_after'] != '0' ? (float)$productSnapshot['price_after'] : null;
+                $contractPeriod = isset($productSnapshot['contract_period']) && $productSnapshot['contract_period'] !== null ? trim((string)$productSnapshot['contract_period']) : '';
                 $discountPeriod = isset($productSnapshot['discount_period']) && $productSnapshot['discount_period'] !== null ? trim((string)$productSnapshot['discount_period']) : '';
                 $dataAmount = isset($productSnapshot['data_amount']) && $productSnapshot['data_amount'] !== null ? trim((string)$productSnapshot['data_amount']) : '';
                 $dataAmountValue = isset($productSnapshot['data_amount_value']) && $productSnapshot['data_amount_value'] !== null ? trim((string)$productSnapshot['data_amount_value']) : '';
@@ -1660,6 +1724,7 @@ function getUserMvnoApplications($userId) {
                     $provider = $currentProduct['provider'] ?? '';
                     $priceMain = isset($currentProduct['price_main']) && $currentProduct['price_main'] !== null && $currentProduct['price_main'] !== '' ? (float)$currentProduct['price_main'] : 0;
                     $priceAfter = isset($currentProduct['price_after']) && $currentProduct['price_after'] !== null && $currentProduct['price_after'] !== '' ? (float)$currentProduct['price_after'] : null;
+                    $contractPeriod = $currentProduct['contract_period'] ?? '';
                     $discountPeriod = $currentProduct['discount_period'] ?? '';
                     $dataAmount = $currentProduct['data_amount'] ?? '';
                     $dataAmountValue = $currentProduct['data_amount_value'] ?? '';
@@ -1681,6 +1746,7 @@ function getUserMvnoApplications($userId) {
                     $provider = !empty($app['provider']) ? $app['provider'] : '';
                     $priceMain = isset($app['price_main']) && $app['price_main'] !== null && $app['price_main'] !== '' ? (float)$app['price_main'] : 0;
                     $priceAfter = isset($app['price_after']) && $app['price_after'] !== null && $app['price_after'] !== '' ? (float)$app['price_after'] : null;
+                    $contractPeriod = !empty($app['contract_period']) ? $app['contract_period'] : '';
                     $discountPeriod = !empty($app['discount_period']) ? $app['discount_period'] : '';
                     $dataAmount = !empty($app['data_amount']) ? $app['data_amount'] : '';
                     $dataAmountValue = !empty($app['data_amount_value']) ? $app['data_amount_value'] : '';
@@ -1858,6 +1924,8 @@ function getUserMvnoApplications($userId) {
                 'features' => $features,
                 'price_main' => !empty($priceMainFormatted) ? $priceMainFormatted : '가격 정보 없음',
                 'price_after' => $priceAfterFormatted,
+                'contract_period' => $contractPeriod,
+                'discount_period' => $discountPeriod,
                 'gifts' => $gifts,
                 'gift_count' => count($gifts),
                 'order_date' => !empty($app['order_date']) ? date('Y.m.d', strtotime($app['order_date'])) : date('Y.m.d'),
@@ -1935,16 +2003,22 @@ function getUserMvnoApplications($userId) {
 function getUserMnoApplications($userId) {
     $pdo = getDBConnection();
     if (!$pdo) {
+        error_log("getUserMnoApplications: DB connection failed");
         return [];
     }
     
     try {
+        // 디버깅: user_id 확인
+        error_log("getUserMnoApplications: userId = " . var_export($userId, true));
+        
         $stmt = $pdo->prepare("
             SELECT 
                 a.id as application_id,
+                a.order_number,
                 a.product_id,
                 a.application_status,
                 a.created_at as order_date,
+                p.seller_id,
                 c.name,
                 c.phone,
                 c.email,
@@ -1987,9 +2061,31 @@ function getUserMnoApplications($userId) {
         $stmt->execute([':user_id' => $userId]);
         $applications = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
+        // 디버깅: 쿼리 결과 확인
+        error_log("getUserMnoApplications: Found " . count($applications) . " applications for user_id: " . $userId);
+        if (count($applications) > 0) {
+            error_log("getUserMnoApplications: First application keys: " . implode(', ', array_keys($applications[0])));
+            error_log("getUserMnoApplications: First application_id: " . ($applications[0]['application_id'] ?? 'N/A'));
+            error_log("getUserMnoApplications: First product_id: " . ($applications[0]['product_id'] ?? 'N/A'));
+            error_log("getUserMnoApplications: First additional_info exists: " . (isset($applications[0]['additional_info']) ? 'YES' : 'NO'));
+        } else {
+            error_log("getUserMnoApplications: No applications found - checking query...");
+            // 쿼리 재실행하여 확인
+            $testStmt = $pdo->prepare("
+                SELECT COUNT(*) as cnt 
+                FROM product_applications a
+                INNER JOIN application_customers c ON a.id = c.application_id
+                WHERE c.user_id = :user_id AND a.product_type = 'mno'
+            ");
+            $testStmt->execute([':user_id' => $userId]);
+            $testResult = $testStmt->fetch(PDO::FETCH_ASSOC);
+            error_log("getUserMnoApplications: Test query count: " . ($testResult['cnt'] ?? 0));
+        }
+        
         // 데이터 포맷팅
         $formattedApplications = [];
-        foreach ($applications as $app) {
+        foreach ($applications as $index => $app) {
+            try {
             // additional_info 파싱
             $additionalInfo = [];
             if (!empty($app['additional_info'])) {
@@ -2018,20 +2114,48 @@ function getUserMnoApplications($userId) {
                 $promotions = $app['promotions'] ?? '';
             }
             
-            // 통신사 추출
+            // 통신사 추출 (additional_info에서 carrier 정보 우선 사용)
             $provider = 'SKT';
-            if (!empty($commonProvider)) {
+            if (!empty($additionalInfo['carrier'])) {
+                $provider = $additionalInfo['carrier'];
+            } else if (!empty($commonProvider)) {
                 $commonProviderArray = json_decode($commonProvider, true);
                 if (is_array($commonProviderArray) && !empty($commonProviderArray)) {
                     $provider = $commonProviderArray[0] ?? 'SKT';
                 }
             }
             
-            // 요금제명 생성
+            // 요금제명 생성 (product_snapshot에서 가져온 정보 사용)
             $planName = $provider . ' ' . ($dataAmount ?: '기본 요금제');
+            if (empty($dataAmount) && empty($planName)) {
+                $planName = $provider . ' 요금제';
+            }
             
-            // 가격 포맷팅
-            $priceFormatted = '월 ' . number_format((float)$priceMain) . '원';
+            // 가격 포맷팅 (additional_info에서 price 정보 우선 사용)
+            $displayPrice = $priceMain;
+            if (isset($additionalInfo['price']) && $additionalInfo['price'] !== '' && $additionalInfo['price'] !== '0') {
+                $displayPrice = (float)$additionalInfo['price'];
+            }
+            $priceFormatted = '월 ' . number_format((float)$displayPrice) . '원';
+            if ($displayPrice == 0 || empty($displayPrice)) {
+                $priceFormatted = '요금 정보 없음';
+            }
+            
+            // 색상 정보 추출
+            $deviceColor = '';
+            if (!empty($additionalInfo['device_colors']) && is_array($additionalInfo['device_colors']) && count($additionalInfo['device_colors']) > 0) {
+                $deviceColor = $additionalInfo['device_colors'][0];
+            }
+            
+            // 할인 정보 추출
+            $discountType = $additionalInfo['discount_type'] ?? '';
+            $subscriptionType = $additionalInfo['subscription_type'] ?? '';
+            $discountPrice = $additionalInfo['price'] ?? '';
+            $discountInfo = '';
+            if ($discountType && $subscriptionType && $discountPrice !== '') {
+                // 가격이 0이어도 표시
+                $discountInfo = $provider . ' ' . $discountType . ' ' . $subscriptionType . ' ' . $discountPrice;
+            }
             
             // 프로모션 파싱
             $gifts = [];
@@ -2048,24 +2172,41 @@ function getUserMnoApplications($userId) {
             $hasReview = false;
             $rating = '';
             if (!empty($app['product_id'])) {
-                $reviewStmt = $pdo->prepare("
-                    SELECT COUNT(*) as count
-                    FROM product_reviews
-                    WHERE product_id = :product_id 
-                    AND user_id = :user_id 
-                    AND status = 'approved'
-                ");
-                $reviewStmt->execute([
-                    ':product_id' => $app['product_id'],
-                    ':user_id' => $userId
-                ]);
-                $reviewResult = $reviewStmt->fetch(PDO::FETCH_ASSOC);
-                $hasReview = ($reviewResult['count'] ?? 0) > 0;
-                
-                // 평균 별점 가져오기
-                require_once __DIR__ . '/plan-data.php';
-                $averageRating = getProductAverageRating($app['product_id'], 'mno');
-                $rating = $averageRating > 0 ? number_format($averageRating, 1) : '';
+                try {
+                    $reviewStmt = $pdo->prepare("
+                        SELECT COUNT(*) as count
+                        FROM product_reviews
+                        WHERE product_id = :product_id 
+                        AND user_id = :user_id 
+                        AND status = 'approved'
+                    ");
+                    $reviewStmt->execute([
+                        ':product_id' => $app['product_id'],
+                        ':user_id' => $userId
+                    ]);
+                    $reviewResult = $reviewStmt->fetch(PDO::FETCH_ASSOC);
+                    $hasReview = ($reviewResult['count'] ?? 0) > 0;
+                    
+                    // 평균 별점 가져오기 (선택사항, 에러가 발생해도 계속 진행)
+                    try {
+                        if (!function_exists('getProductAverageRating')) {
+                            $planDataFile = __DIR__ . '/plan-data.php';
+                            if (file_exists($planDataFile)) {
+                                require_once $planDataFile;
+                            }
+                        }
+                        if (function_exists('getProductAverageRating')) {
+                            $averageRating = getProductAverageRating($app['product_id'], 'mno');
+                            $rating = $averageRating > 0 ? number_format($averageRating, 1) : '';
+                        }
+                    } catch (Exception $e) {
+                        error_log("Error getting average rating for product {$app['product_id']}: " . $e->getMessage());
+                        // 에러가 발생해도 계속 진행
+                    }
+                } catch (Exception $e) {
+                    error_log("Error fetching review info for product {$app['product_id']}: " . $e->getMessage());
+                    // 에러가 발생해도 계속 진행
+                }
             }
             
             // 상태 한글 변환
@@ -2074,23 +2215,32 @@ function getUserMnoApplications($userId) {
                 'processing' => '처리중',
                 'completed' => '완료',
                 'cancelled' => '취소',
-                'rejected' => '거부'
+                'rejected' => '거부',
+                'closed' => '종료',
+                'activating' => '개통중',
+                'activation_completed' => '개통완료',
+                'on_hold' => '보류',
+                '' => '접수완료' // 빈 문자열도 접수완료로 처리
             ];
-            $statusKor = $statusMap[$app['application_status']] ?? $app['application_status'];
+            $applicationStatus = $app['application_status'] ?? '';
+            $statusKor = $statusMap[$applicationStatus] ?? ($applicationStatus ?: '접수완료');
             
             $formattedApplications[] = [
                 'id' => (int)$app['product_id'],
                 'application_id' => (int)$app['application_id'],
+                'order_number' => $app['order_number'] ?? null,
                 'provider' => $provider,
                 'device_name' => $deviceName,
                 'device_storage' => $deviceCapacity,
-                'device_price' => $devicePrice ? '출고가 ' . number_format((float)$devicePrice) . '원' : '',
+                'device_price' => $devicePrice ? number_format((float)$devicePrice) . '원' : '',
+                'device_color' => $deviceColor,
+                'discount_info' => $discountInfo,
                 'plan_name' => $planName,
                 'price' => $priceFormatted,
                 'company_name' => '이야기모바일', // 기본값
                 'rating' => $rating,
-                'order_date' => date('Y.m.d', strtotime($app['order_date'])),
-                'order_time' => date('H:i', strtotime($app['order_date'])),
+                'order_date' => !empty($app['order_date']) ? date('Y.m.d', strtotime($app['order_date'])) : '',
+                'order_time' => !empty($app['order_date']) ? date('H:i', strtotime($app['order_date'])) : '',
                 'activation_date' => '', // 개통일은 별도 관리 필요
                 'activation_time' => '',
                 'has_review' => $hasReview,
@@ -2100,11 +2250,26 @@ function getUserMnoApplications($userId) {
                 'gifts' => $gifts,
                 'link_url' => '/MVNO/mno/mno-phone-detail.php?id=' . $app['product_id']
             ];
+            } catch (Exception $e) {
+                error_log("Error formatting application #{$index} (application_id: " . ($app['application_id'] ?? 'unknown') . "): " . $e->getMessage());
+                error_log("Application data: " . json_encode($app, JSON_UNESCAPED_UNICODE));
+                // 에러가 발생해도 계속 진행
+                continue;
+            }
         }
         
+        error_log("getUserMnoApplications: Formatted " . count($formattedApplications) . " applications");
+        error_log("getUserMnoApplications: Returning array with " . count($formattedApplications) . " items");
+        if (count($formattedApplications) > 0) {
+            error_log("getUserMnoApplications: First formatted item keys: " . implode(', ', array_keys($formattedApplications[0])));
+        }
         return $formattedApplications;
     } catch (PDOException $e) {
         error_log("Error fetching user MNO applications: " . $e->getMessage());
+        error_log("Error trace: " . $e->getTraceAsString());
+        return [];
+    } catch (Exception $e) {
+        error_log("General error in getUserMnoApplications: " . $e->getMessage());
         return [];
     }
 }
@@ -2117,21 +2282,26 @@ function getUserMnoApplications($userId) {
 function getUserInternetApplications($userId) {
     $pdo = getDBConnection();
     if (!$pdo) {
+        error_log("getUserInternetApplications: Database connection failed for user_id: " . $userId);
         return [];
     }
     
     try {
+        error_log("getUserInternetApplications: Querying for user_id: " . $userId);
         $stmt = $pdo->prepare("
             SELECT 
                 a.id as application_id,
+                a.order_number,
                 a.product_id,
                 a.application_status,
                 a.created_at as order_date,
+                p.seller_id,
                 c.name,
                 c.phone,
                 c.email,
                 c.additional_info,
                 internet.registration_place,
+                internet.service_type,
                 internet.speed_option,
                 internet.monthly_fee,
                 internet.cash_payment_names,
@@ -2153,40 +2323,131 @@ function getUserInternetApplications($userId) {
         ");
         $stmt->execute([':user_id' => $userId]);
         $applications = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        error_log("getUserInternetApplications: Found " . count($applications) . " raw applications for user_id: " . $userId);
+        
+        if (count($applications) > 0) {
+            error_log("getUserInternetApplications: First application keys: " . implode(', ', array_keys($applications[0])));
+            error_log("getUserInternetApplications: First application application_id: " . ($applications[0]['application_id'] ?? 'N/A'));
+            error_log("getUserInternetApplications: First application has additional_info: " . (!empty($applications[0]['additional_info']) ? 'yes (' . strlen($applications[0]['additional_info']) . ' chars)' : 'no'));
+            if (!empty($applications[0]['additional_info'])) {
+                error_log("getUserInternetApplications: First application additional_info preview: " . substr($applications[0]['additional_info'], 0, 100));
+            }
+        } else {
+            error_log("getUserInternetApplications: WARNING - No applications found for user_id: " . $userId);
+            error_log("getUserInternetApplications: Query executed but returned 0 results. Check if user_id matches.");
+        }
         
         // 데이터 포맷팅
         $formattedApplications = [];
-        foreach ($applications as $app) {
-            // additional_info 파싱
-            $additionalInfo = [];
+        foreach ($applications as $index => $app) {
+            try {
+                error_log("getUserInternetApplications: Processing application " . ($index + 1) . " (application_id: " . ($app['application_id'] ?? 'unknown') . ")");
+                
+                // additional_info 파싱
+                $additionalInfo = [];
             if (!empty($app['additional_info'])) {
-                $additionalInfo = json_decode($app['additional_info'], true) ?: [];
+                // JSON 문자열이 이스케이프된 경우 처리
+                $additionalInfoStr = $app['additional_info'];
+                
+                // 실제 줄바꿈 문자 제거 (JSON 파싱 전에)
+                $additionalInfoStr = str_replace(["\n", "\r", "\t"], ['', '', ''], $additionalInfoStr);
+                
+                // JSON 파싱 시도
+                $additionalInfo = json_decode($additionalInfoStr, true);
+                
+                if (json_last_error() !== JSON_ERROR_NONE) {
+                    // JSON 파싱 실패 시 빈 배열
+                    error_log("JSON decode error for application_id " . ($app['application_id'] ?? 'unknown') . ": " . json_last_error_msg() . " | JSON: " . substr($additionalInfoStr, 0, 200));
+                    $additionalInfo = [];
+                } else {
+                    error_log("JSON decode success for application_id " . ($app['application_id'] ?? 'unknown'));
+                }
             }
             
-            // 상품 스냅샷이 있으면 사용 (신청 당시 상품 정보)
+            // 판매자 페이지와 동일하게 product_internet_details 테이블의 현재 값을 우선 사용
+            // product_snapshot은 테이블 값이 없을 때만 fallback으로 사용
             $productSnapshot = $additionalInfo['product_snapshot'] ?? null;
-            if ($productSnapshot) {
-                $registrationPlace = $productSnapshot['registration_place'] ?? $app['registration_place'] ?? '';
-                $speedOption = $productSnapshot['speed_option'] ?? $app['speed_option'] ?? '';
-                $monthlyFee = $productSnapshot['monthly_fee'] ?? $app['monthly_fee'] ?? 0;
-                $cashPaymentNames = $productSnapshot['cash_payment_names'] ?? $app['cash_payment_names'] ?? '';
-                $giftCardNames = $productSnapshot['gift_card_names'] ?? $app['gift_card_names'] ?? '';
-                $equipmentNames = $productSnapshot['equipment_names'] ?? $app['equipment_names'] ?? '';
-                $installationNames = $productSnapshot['installation_names'] ?? $app['installation_names'] ?? '';
-            } else {
+            error_log("getUserInternetApplications: application_id " . ($app['application_id'] ?? 'unknown') . " - productSnapshot exists: " . ($productSnapshot ? 'yes' : 'no'));
+            
+            // 테이블 값이 있으면 우선 사용 (판매자 페이지와 동일)
+            if (!empty($app['registration_place']) || !empty($app['service_type']) || !empty($app['speed_option']) || isset($app['monthly_fee'])) {
                 $registrationPlace = $app['registration_place'] ?? '';
                 $speedOption = $app['speed_option'] ?? '';
-                $monthlyFee = $app['monthly_fee'] ?? 0;
-                $cashPaymentNames = $app['cash_payment_names'] ?? '';
-                $giftCardNames = $app['gift_card_names'] ?? '';
-                $equipmentNames = $app['equipment_names'] ?? '';
-                $installationNames = $app['installation_names'] ?? '';
+                $serviceType = $app['service_type'] ?? '';
+                $monthlyFee = isset($app['monthly_fee']) && is_numeric($app['monthly_fee']) ? (float)$app['monthly_fee'] : 0;
+            } elseif ($productSnapshot) {
+                // 테이블 값이 없으면 product_snapshot 사용 (fallback)
+                $registrationPlace = $productSnapshot['registration_place'] ?? '';
+                $speedOption = $productSnapshot['speed_option'] ?? '';
+                $serviceType = $productSnapshot['service_type'] ?? '';
+                
+                // monthly_fee는 문자열일 수 있으므로 숫자로 변환
+                $monthlyFee = 0;
+                if (isset($productSnapshot['monthly_fee'])) {
+                    $monthlyFee = is_numeric($productSnapshot['monthly_fee']) ? (float)$productSnapshot['monthly_fee'] : 0;
+                }
+            } else {
+                $registrationPlace = '';
+                $speedOption = '';
+                $serviceType = '';
+                $monthlyFee = 0;
             }
             
-            // 요금제명 생성
-            $planName = '인터넷 ' . ($speedOption ?: '기본');
-            if (!empty($cashPaymentNames) || !empty($giftCardNames) || !empty($equipmentNames) || !empty($installationNames)) {
-                $planName .= ' + TV';
+            // 현금지급, 상품권, 장비, 설치 정보도 테이블 값을 우선 사용 (판매자 페이지와 동일)
+            $cashPaymentNames = $app['cash_payment_names'] ?? '';
+            $giftCardNames = $app['gift_card_names'] ?? '';
+            $equipmentNames = $app['equipment_names'] ?? '';
+            $installationNames = $app['installation_names'] ?? '';
+            
+            // 테이블 값이 없으면 product_snapshot에서 가져오기 (fallback)
+            if (empty($cashPaymentNames) && empty($giftCardNames) && empty($equipmentNames) && empty($installationNames) && $productSnapshot) {
+                // JSON 문자열로 저장된 필드들 파싱
+                if (isset($productSnapshot['cash_payment_names'])) {
+                    if (is_string($productSnapshot['cash_payment_names'])) {
+                        $decoded = json_decode($productSnapshot['cash_payment_names'], true);
+                        $cashPaymentNames = is_array($decoded) ? implode(', ', $decoded) : $productSnapshot['cash_payment_names'];
+                    } else {
+                        $cashPaymentNames = is_array($productSnapshot['cash_payment_names']) ? implode(', ', $productSnapshot['cash_payment_names']) : '';
+                    }
+                }
+                
+                if (isset($productSnapshot['gift_card_names'])) {
+                    if (is_string($productSnapshot['gift_card_names'])) {
+                        $decoded = json_decode($productSnapshot['gift_card_names'], true);
+                        $giftCardNames = is_array($decoded) ? implode(', ', $decoded) : $productSnapshot['gift_card_names'];
+                    } else {
+                        $giftCardNames = is_array($productSnapshot['gift_card_names']) ? implode(', ', $productSnapshot['gift_card_names']) : '';
+                    }
+                }
+                
+                if (isset($productSnapshot['equipment_names'])) {
+                    if (is_string($productSnapshot['equipment_names'])) {
+                        $decoded = json_decode($productSnapshot['equipment_names'], true);
+                        $equipmentNames = is_array($decoded) ? implode(', ', $decoded) : $productSnapshot['equipment_names'];
+                    } else {
+                        $equipmentNames = is_array($productSnapshot['equipment_names']) ? implode(', ', $productSnapshot['equipment_names']) : '';
+                    }
+                }
+                
+                if (isset($productSnapshot['installation_names'])) {
+                    if (is_string($productSnapshot['installation_names'])) {
+                        $decoded = json_decode($productSnapshot['installation_names'], true);
+                        $installationNames = is_array($decoded) ? implode(', ', $decoded) : $productSnapshot['installation_names'];
+                    } else {
+                        $installationNames = is_array($productSnapshot['installation_names']) ? implode(', ', $productSnapshot['installation_names']) : '';
+                    }
+                }
+            }
+            
+            // 요금제명 생성 (DB에 저장된 service_type 그대로 사용)
+            if (!empty($serviceType)) {
+                $planName = $serviceType;
+            } else {
+                // service_type이 없으면 기본 생성
+                $planName = '인터넷 ' . ($speedOption ?: '기본');
+                if (!empty($cashPaymentNames) || !empty($giftCardNames) || !empty($equipmentNames) || !empty($installationNames)) {
+                    $planName .= ' + TV';
+                }
             }
             
             // 가격 포맷팅
@@ -2195,49 +2456,56 @@ function getUserInternetApplications($userId) {
             // 속도 포맷팅
             $speedFormatted = $speedOption ?: '100MB';
             
-            // 리뷰 작성 여부 확인
+            // 리뷰 작성 여부 확인 (테이블이 없을 수 있으므로 try-catch로 처리)
             $hasReview = false;
             $reviewCount = 0;
             if (!empty($app['product_id'])) {
-                $reviewStmt = $pdo->prepare("
-                    SELECT COUNT(*) as count
-                    FROM product_reviews
-                    WHERE product_id = :product_id 
-                    AND user_id = :user_id 
-                    AND status = 'approved'
-                ");
-                $reviewStmt->execute([
-                    ':product_id' => $app['product_id'],
-                    ':user_id' => $userId
-                ]);
-                $reviewResult = $reviewStmt->fetch(PDO::FETCH_ASSOC);
-                $hasReview = ($reviewResult['count'] ?? 0) > 0;
-                
-                // 전체 리뷰 개수
-                $allReviewStmt = $pdo->prepare("
-                    SELECT COUNT(*) as count
-                    FROM product_reviews
-                    WHERE product_id = :product_id 
-                    AND status = 'approved'
-                ");
-                $allReviewStmt->execute([':product_id' => $app['product_id']]);
-                $allReviewResult = $allReviewStmt->fetch(PDO::FETCH_ASSOC);
-                $reviewCount = (int)($allReviewResult['count'] ?? 0);
+                try {
+                    $reviewStmt = $pdo->prepare("
+                        SELECT COUNT(*) as count
+                        FROM product_reviews
+                        WHERE product_id = :product_id 
+                        AND user_id = :user_id 
+                        AND status = 'approved'
+                    ");
+                    $reviewStmt->execute([
+                        ':product_id' => $app['product_id'],
+                        ':user_id' => $userId
+                    ]);
+                    $reviewResult = $reviewStmt->fetch(PDO::FETCH_ASSOC);
+                    $hasReview = ($reviewResult['count'] ?? 0) > 0;
+                    
+                    // 전체 리뷰 개수
+                    $allReviewStmt = $pdo->prepare("
+                        SELECT COUNT(*) as count
+                        FROM product_reviews
+                        WHERE product_id = :product_id 
+                        AND status = 'approved'
+                    ");
+                    $allReviewStmt->execute([':product_id' => $app['product_id']]);
+                    $allReviewResult = $allReviewStmt->fetch(PDO::FETCH_ASSOC);
+                    $reviewCount = (int)($allReviewResult['count'] ?? 0);
+                } catch (PDOException $e) {
+                    // product_reviews 테이블이 없거나 에러가 발생해도 계속 진행
+                    error_log("getUserInternetApplications: Could not fetch reviews for application_id " . ($app['application_id'] ?? 'unknown') . ": " . $e->getMessage());
+                    $hasReview = false;
+                    $reviewCount = 0;
+                }
             }
             
-            // 상태 한글 변환
-            $statusMap = [
-                'pending' => '접수완료',
-                'processing' => '처리중',
-                'completed' => '완료',
-                'cancelled' => '취소',
-                'rejected' => '거부'
-            ];
-            $statusKor = $statusMap[$app['application_status']] ?? $app['application_status'];
+            // 기존 인터넷 회선 정보 가져오기 (additional_info에서)
+            $existingCompany = '';
+            if (!empty($additionalInfo)) {
+                $existingCompany = $additionalInfo['currentCompany'] ?? $additionalInfo['existing_company'] ?? $additionalInfo['existingCompany'] ?? '';
+            }
+            
+            // 상태 한글 변환 (공통 함수 사용 - 알뜰폰과 동일)
+            $statusKor = getApplicationStatusLabel($app['application_status']);
             
             $formattedApplications[] = [
                 'id' => (int)$app['product_id'],
                 'application_id' => (int)$app['application_id'],
+                'order_number' => $app['order_number'] ?? null,
                 'provider' => $registrationPlace,
                 'plan_name' => $planName,
                 'speed' => $speedFormatted,
@@ -2250,13 +2518,23 @@ function getUserInternetApplications($userId) {
                 'review_count' => $reviewCount,
                 'is_sold_out' => ($app['product_status'] ?? 'active') !== 'active',
                 'status' => $statusKor,
-                'application_status' => $app['application_status']
+                'application_status' => $app['application_status'],
+                'existing_company' => $existingCompany
             ];
+            
+            error_log("getUserInternetApplications: Successfully formatted application_id " . ($app['application_id'] ?? 'unknown') . " - provider: " . $registrationPlace . ", plan_name: " . $planName);
+            } catch (Exception $e) {
+                error_log("getUserInternetApplications: Error processing application " . ($app['application_id'] ?? 'unknown') . ": " . $e->getMessage());
+                // 에러가 발생해도 계속 진행
+                continue;
+            }
         }
         
+        error_log("getUserInternetApplications: Returning " . count($formattedApplications) . " formatted applications for user_id: " . $userId);
         return $formattedApplications;
     } catch (PDOException $e) {
-        error_log("Error fetching user Internet applications: " . $e->getMessage());
+        error_log("Error fetching user Internet applications for user_id " . $userId . ": " . $e->getMessage());
+        error_log("Error trace: " . $e->getTraceAsString());
         return [];
     }
 }

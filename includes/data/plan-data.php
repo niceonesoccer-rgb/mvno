@@ -660,6 +660,23 @@ function getPlansDataFromDB($limit = 10, $status = 'active') {
         return [];
     }
     
+    // 현재 로그인한 사용자 ID 가져오기 (에러 발생 시 무시)
+    $currentUserId = null;
+    try {
+        if (function_exists('isLoggedIn') && function_exists('getCurrentUser')) {
+            if (isLoggedIn()) {
+                $currentUser = getCurrentUser();
+                $currentUserId = $currentUser['user_id'] ?? null;
+            }
+        }
+    } catch (Exception $e) {
+        // 로그인 체크 실패해도 상품 목록은 표시
+        error_log("Warning: Failed to get current user in getPlansDataFromDB: " . $e->getMessage());
+    } catch (Error $e) {
+        // PHP 7+ Fatal Error도 처리
+        error_log("Warning: Fatal error getting current user in getPlansDataFromDB: " . $e->getMessage());
+    }
+    
     try {
         $stmt = $pdo->prepare("
             SELECT 
@@ -708,10 +725,44 @@ function getPlansDataFromDB($limit = 10, $status = 'active') {
         
         $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
+        // 사용자의 찜 상태 가져오기 (에러 발생 시 무시)
+        $favoriteProductIds = [];
+        if ($currentUserId && !empty($products)) {
+            try {
+                $productIds = array_column($products, 'id');
+                if (!empty($productIds)) {
+                    $placeholders = implode(',', array_fill(0, count($productIds), '?'));
+                    $favStmt = $pdo->prepare("
+                        SELECT product_id 
+                        FROM product_favorites 
+                        WHERE user_id = ? 
+                        AND product_id IN ($placeholders)
+                        AND product_type = 'mvno'
+                    ");
+                    $favStmt->execute(array_merge([$currentUserId], $productIds));
+                    $favoriteProductIdsRaw = $favStmt->fetchAll(PDO::FETCH_COLUMN);
+                    // 정수 배열로 변환하여 타입 일치 보장
+                    $favoriteProductIds = array_map('intval', $favoriteProductIdsRaw);
+                }
+            } catch (Exception $e) {
+                // 찜 상태 조회 실패해도 상품 목록은 표시
+                error_log("Warning: Failed to get favorite status in getPlansDataFromDB: " . $e->getMessage());
+            }
+        }
+        
         // 카드 형식으로 변환
         $plans = [];
         foreach ($products as $product) {
-            $plans[] = convertMvnoProductToPlanCard($product);
+            try {
+                $plan = convertMvnoProductToPlanCard($product);
+                // 찜 상태 추가 (엄격한 타입 비교)
+                $productIdInt = (int)$product['id'];
+                $plan['is_favorited'] = ($currentUserId && !empty($favoriteProductIds) && in_array($productIdInt, $favoriteProductIds, true));
+                $plans[] = $plan;
+            } catch (Exception $e) {
+                // 개별 상품 변환 실패해도 다른 상품은 표시
+                error_log("Warning: Failed to convert product to plan card (id={$product['id']}): " . $e->getMessage());
+            }
         }
         
         return $plans;
@@ -979,6 +1030,23 @@ function getPlanDetailData($plan_id) {
     return null;
 }
 
+    // 현재 로그인한 사용자 ID 가져오기 (에러 발생 시 무시)
+    $currentUserId = null;
+    try {
+        if (function_exists('isLoggedIn') && function_exists('getCurrentUser')) {
+            if (isLoggedIn()) {
+                $currentUser = getCurrentUser();
+                $currentUserId = $currentUser['user_id'] ?? null;
+            }
+        }
+    } catch (Exception $e) {
+        // 로그인 체크 실패해도 상품 정보는 반환
+        error_log("Warning: Failed to get current user in getPlanDetailData: " . $e->getMessage());
+    } catch (Error $e) {
+        // PHP 7+ Fatal Error도 처리
+        error_log("Warning: Fatal error getting current user in getPlanDetailData: " . $e->getMessage());
+    }
+
     try {
         $stmt = $pdo->prepare("
             SELECT 
@@ -1044,6 +1112,32 @@ function getPlanDetailData($plan_id) {
         
         if ($product) {
             $planCard = convertMvnoProductToPlanCard($product);
+            
+            // 찜 상태 확인 (에러 발생 시 무시)
+            $isFavorited = false;
+            if ($currentUserId) {
+                try {
+                    $favStmt = $pdo->prepare("
+                        SELECT COUNT(*) 
+                        FROM product_favorites 
+                        WHERE user_id = :user_id 
+                        AND product_id = :product_id
+                        AND product_type = 'mvno'
+                    ");
+                    $favStmt->execute([
+                        ':user_id' => $currentUserId,
+                        ':product_id' => $plan_id
+                    ]);
+                    $favCount = $favStmt->fetchColumn();
+                    $isFavorited = ($favCount > 0);
+                } catch (Exception $e) {
+                    // 찜 상태 조회 실패해도 상품 정보는 반환
+                    error_log("Warning: Failed to get favorite status in getPlanDetailData: " . $e->getMessage());
+                }
+            }
+            
+            $planCard['is_favorited'] = $isFavorited;
+            
             // 원본 상세 데이터도 함께 반환 (상세 페이지에서 사용)
             $planCard['_raw_data'] = $product;
             return $planCard;

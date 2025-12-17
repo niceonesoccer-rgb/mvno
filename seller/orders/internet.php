@@ -147,6 +147,7 @@ try {
                 a.order_number,
                 a.product_id,
                 a.application_status,
+                a.status_changed_at,
                 a.created_at,
                 c.name,
                 c.phone,
@@ -224,7 +225,9 @@ $statusLabels = [
     'pending' => '접수',
     'processing' => '개통중',
     'completed' => '설치완료',
-    'rejected' => '보류'
+    'rejected' => '보류',
+    'closed' => '종료',
+    'terminated' => '종료'
 ];
 
 // 가입형태 한글명
@@ -584,6 +587,11 @@ $pageStyles = '
         color: #065f46;
     }
     
+    .status-closed {
+        background: #f3f4f6;
+        color: #374151;
+    }
+    
     .pagination {
         display: flex;
         justify-content: center;
@@ -763,6 +771,7 @@ include __DIR__ . '/../includes/seller-header.php';
                         <option value="cancelled" <?php echo ($status === 'cancelled') ? 'selected' : ''; ?>>취소</option>
                         <option value="activation_completed" <?php echo ($status === 'activation_completed') ? 'selected' : ''; ?>>개통완료</option>
                         <option value="installation_completed" <?php echo ($status === 'installation_completed') ? 'selected' : ''; ?>>설치완료</option>
+                        <option value="closed" <?php echo ($status === 'closed') ? 'selected' : ''; ?>>종료</option>
                     </select>
                 </div>
                 
@@ -814,6 +823,7 @@ include __DIR__ . '/../includes/seller-header.php';
                         <th>고객명</th>
                         <th>전화번호</th>
                         <th>이메일</th>
+                        <th>상태변경시각</th>
                         <th>진행상황</th>
                     </tr>
                 </thead>
@@ -863,6 +873,16 @@ include __DIR__ . '/../includes/seller-header.php';
                             <td><?php echo htmlspecialchars($order['name']); ?></td>
                             <td><?php echo htmlspecialchars($order['phone']); ?></td>
                             <td><?php echo htmlspecialchars($order['email'] ?? '-'); ?></td>
+                            <td>
+                                <?php 
+                                $statusChangedAt = $order['status_changed_at'] ?? null;
+                                if ($statusChangedAt) {
+                                    echo date('Y-m-d H:i', strtotime($statusChangedAt));
+                                } else {
+                                    echo '-';
+                                }
+                                ?>
+                            </td>
                             <td>
                                 <div class="status-cell-wrapper">
                                     <span class="status-badge status-<?php echo $order['application_status']; ?>">
@@ -1236,7 +1256,7 @@ function openStatusEditModal(applicationId, currentStatus) {
     }
     
     // 셀렉트박스에 값 설정 (값이 유효한 옵션인지 확인)
-    const validStatuses = ['received', 'activating', 'on_hold', 'cancelled', 'activation_completed', 'installation_completed'];
+    const validStatuses = ['received', 'activating', 'on_hold', 'cancelled', 'activation_completed', 'installation_completed', 'closed'];
     if (validStatuses.includes(status)) {
         select.value = status;
     } else {
@@ -1354,6 +1374,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <option value="cancelled">취소</option>
                 <option value="activation_completed">개통완료</option>
                 <option value="installation_completed">설치완료</option>
+                <option value="closed">종료</option>
             </select>
         </div>
         <div class="status-modal-actions">

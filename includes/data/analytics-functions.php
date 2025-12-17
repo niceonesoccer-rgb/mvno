@@ -184,11 +184,13 @@ function updateDailyStats(&$data, $pageview) {
 /**
  * 현재 사용자 ID 가져오기
  */
-function getCurrentUserId() {
-    if (session_status() === PHP_SESSION_NONE) {
-        session_start();
+if (!function_exists('getCurrentUserId')) {
+    function getCurrentUserId() {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        return $_SESSION['user_id'] ?? null;
     }
-    return $_SESSION['user_id'] ?? null;
 }
 
 /**
