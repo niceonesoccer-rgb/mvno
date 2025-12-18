@@ -267,6 +267,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = '주소는 필수 입력 항목입니다.';
         } elseif (empty($additionalData['mobile'])) {
             $error = '휴대폰 번호는 필수 입력 항목입니다.';
+        } elseif (!empty($additionalData['seller_name']) && mb_strlen($additionalData['seller_name']) < 2) {
+            $error = '판매자명은 2자 이상 입력해주세요.';
+        } elseif (!empty($additionalData['seller_name']) && mb_strlen($additionalData['seller_name']) > 50) {
+            $error = '판매자명은 50자 이내로 입력해주세요.';
         } elseif (mb_strlen($additionalData['company_name']) > 20) {
             $error = '회사명은 20자 이내로 입력해주세요.';
         } elseif (mb_strlen($additionalData['company_representative']) > 20) {
@@ -373,19 +377,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (empty($error)) {
             $result = registerDirectUser($userId, $password, $email, $name, 'seller', $additionalData);
             if ($result['success']) {
-                // 판매자명이 입력된 경우 자동 로그인 후 프로필로 이동
-                if (!empty($additionalData['seller_name'])) {
-                    loginUser($userId);
-                    header('Location: /MVNO/seller/profile.php');
-                    exit;
-                }
-                
                 // 가입 성공 - 리다이렉트하지 않고 정보 표시
                 $registerSuccess = true;
                 $registeredData = [
                     'user_id' => $userId,
                     'email' => $email,
                     'name' => $name,
+                    'seller_name' => $additionalData['seller_name'] ?? '',
                     'phone' => $additionalData['phone'] ?? '',
                     'mobile' => $additionalData['mobile'] ?? '',
                     'address' => $additionalData['address'] ?? '',
@@ -1158,6 +1156,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <span class="info-label">이름</span>
                             <span class="info-value"><?php echo htmlspecialchars($registeredData['name']); ?></span>
                         </div>
+                        <?php if (!empty($registeredData['seller_name'])): ?>
+                        <div class="info-item">
+                            <span class="info-label">판매자명</span>
+                            <span class="info-value"><?php echo htmlspecialchars($registeredData['seller_name']); ?></span>
+                        </div>
+                        <?php endif; ?>
                         <div class="info-item">
                             <span class="info-label">회사명</span>
                             <span class="info-value"><?php echo htmlspecialchars($registeredData['company_name']); ?></span>
@@ -1301,6 +1305,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <label for="name">이름 <span class="required">*</span></label>
                             <input type="text" id="name" name="name" required value="<?php echo htmlspecialchars($_SERVER['REQUEST_METHOD'] === 'POST' ? ($_POST['name'] ?? '') : ''); ?>">
                         </div>
+
+                        <div class="form-group">
+                            <label for="seller_name">판매자명 (사이트 표시명)</label>
+                            <input type="text" id="seller_name" name="seller_name" placeholder="사이트에서 고객에게 표시될 판매자명" maxlength="50" value="<?php echo htmlspecialchars($_SERVER['REQUEST_METHOD'] === 'POST' ? ($_POST['seller_name'] ?? '') : ''); ?>">
+                            <div class="form-help">
+                                - 선택사항이며, 미입력 시 기본적으로 <strong>회사명</strong>이 표시됩니다.<br>
+                                - 2~50자 이내로 입력해주세요.
+                            </div>
+                        </div>
                         
                         <div class="form-group">
                             <label for="password">비밀번호 <span class="required">*</span></label>
@@ -1397,12 +1410,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <label for="company_name">회사명 <span class="required">*</span></label>
                             <input type="text" id="company_name" name="company_name" placeholder="(주)회사명" required maxlength="20" value="<?php echo htmlspecialchars($_SERVER['REQUEST_METHOD'] === 'POST' ? ($_POST['company_name'] ?? '') : ''); ?>">
                             <div class="form-help">20자 이내로 입력해주세요.</div>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="seller_name">판매자명</label>
-                            <input type="text" id="seller_name" name="seller_name" placeholder="사이트에서 표시될 판매자명" maxlength="100" value="<?php echo htmlspecialchars($_SERVER['REQUEST_METHOD'] === 'POST' ? ($_POST['seller_name'] ?? '') : ''); ?>">
-                            <div class="form-help">사이트에서 고객에게 표시될 판매자명을 입력해주세요. (선택사항, 미입력 시 회사명이 표시됩니다)</div>
                         </div>
                         
                         <div class="form-group">

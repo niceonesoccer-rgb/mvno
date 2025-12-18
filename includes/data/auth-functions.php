@@ -559,11 +559,11 @@ function registerDirectUser($userId, $password, $email, $name, $role, $additiona
         // users(공통) 저장
         $stmt = $pdo->prepare("
             INSERT INTO users (
-                user_id, email, name, password, phone, mobile, role,
+                user_id, email, name, password, phone, mobile, seller_name, role,
                 seller_approved, approval_status,
                 created_at
             ) VALUES (
-                :user_id, :email, :name, :password, :phone, :mobile, :role,
+                :user_id, :email, :name, :password, :phone, :mobile, :seller_name, :role,
                 :seller_approved, :approval_status,
                 NOW()
             )
@@ -576,6 +576,7 @@ function registerDirectUser($userId, $password, $email, $name, $role, $additiona
             ':password' => $newUser['password'],
             ':phone' => $newUser['phone'] ?? null,
             ':mobile' => $newUser['mobile'] ?? null,
+            ':seller_name' => $newUser['seller_name'] ?? null,
             ':role' => $role,
             ':seller_approved' => ($role === 'seller') ? 0 : 1,
             ':approval_status' => ($role === 'seller') ? 'pending' : null

@@ -521,8 +521,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_seller'])) {
 
                         $sp = $pdo->prepare("
                             UPDATE seller_profiles
-                            SET seller_name = :seller_name,
-                                address = :address,
+                            SET address = :address,
                                 address_detail = :address_detail,
                                 company_name = :company_name,
                                 company_representative = :company_representative,
@@ -534,7 +533,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_seller'])) {
                             LIMIT 1
                         ");
                         $sp->execute([
-                            ':seller_name' => $updateData['seller_name'] ?? ($seller['seller_name'] ?? null),
                             ':address' => $updateData['address'] ?? ($seller['address'] ?? null),
                             ':address_detail' => $updateData['address_detail'] ?? ($seller['address_detail'] ?? null),
                             ':company_name' => $updateData['company_name'] ?? ($seller['company_name'] ?? null),
