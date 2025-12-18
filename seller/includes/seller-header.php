@@ -39,7 +39,7 @@ if ($skipAuthCheck === true) {
     }
     // seller-edit.php에서 이미 인증 및 승인 체크를 완료했으므로 추가 체크 불필요
     // 판매자명 체크 (seller-edit.php에서 체크한 경우에도 판매자명 확인)
-    $sellerName = $currentUser['seller_name'] ?? '';
+$sellerName = $currentUser['company_name'] ?? ($currentUser['seller_name'] ?? '');
     $hasSellerName = !empty(trim($sellerName));
     $showSellerNameModal = !$hasSellerName;
 } else {
@@ -65,7 +65,7 @@ if ($skipAuthCheck === true) {
     }
     
     // 판매자명 체크 (승인된 판매자만)
-    $sellerName = $currentUser['seller_name'] ?? '';
+    $sellerName = $currentUser['company_name'] ?? ($currentUser['seller_name'] ?? '');
     $hasSellerName = !empty(trim($sellerName));
     $showSellerNameModal = !$hasSellerName;
 }

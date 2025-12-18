@@ -298,8 +298,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_seller'])) {
                             $error_message = '이미지 파일만 업로드 가능합니다. (jpg, jpeg, png)';
                         } else {
                             // 기존 이미지 삭제 (있는 경우)
-                            if (!empty($seller['business_license_image']) && file_exists(__DIR__ . '/../..' . $seller['business_license_image'])) {
-                                @unlink(__DIR__ . '/../..' . $seller['business_license_image']);
+                            // DB에는 "/MVNO/uploads/..." 같은 웹경로로 저장되어 있으므로 파일시스템 경로로 안전하게 변환한다.
+                            $projectRoot = realpath(__DIR__ . '/../../');
+                            $uploadRoot = $projectRoot ? ($projectRoot . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR . 'sellers') : null;
+                            if (!empty($seller['business_license_image']) && $projectRoot && $uploadRoot) {
+                                $webPath = (string)$seller['business_license_image'];
+                                // "/MVNO" 접두 제거 후 실제 파일 경로 생성
+                                if (strpos($webPath, '/MVNO/') === 0) {
+                                    $webPath = substr($webPath, 5); // "/MVNO" 길이
+                                }
+                                $candidate = $projectRoot . str_replace('/', DIRECTORY_SEPARATOR, $webPath);
+                                $candidateReal = realpath($candidate);
+                                if ($candidateReal && strpos($candidateReal, $uploadRoot) === 0 && is_file($candidateReal)) {
+                                    @unlink($candidateReal);
+                                }
                             }
                             
                             // 새 파일명 생성
@@ -310,6 +322,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_seller'])) {
                             if (compressImage($tempPath, $targetPath)) {
                                 // 상대 경로 저장
                                 $updateData['business_license_image'] = '/MVNO/uploads/sellers/' . $fileName;
+
+                                // 같은 사용자 예전 파일 정리(폴더에 고아 파일이 남지 않게)
+                                // - 방금 저장된 파일은 유지
+                                $keep = realpath($targetPath);
+                                foreach (glob($uploadDir . $userId . '_license_*.*') ?: [] as $p) {
+                                    $real = realpath($p);
+                                    if ($real && $keep && $real !== $keep && is_file($real)) {
+                                        @unlink($real);
+                                    }
+                                }
                             } else {
                                 $error_message = '이미지 업로드에 실패했습니다.';
                             }

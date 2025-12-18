@@ -53,14 +53,15 @@ if (!$pdo) {
 
 try {
     // 중복 검사 (자기 자신 제외)
+    // DB-only 스키마 기준: seller_name 컬럼이 없을 수 있어 company_name 기준으로 검사한다.
+    // (환경에 따라 seller_profiles.company_name도 존재하므로 JOIN으로 보조)
     $stmt = $pdo->prepare("
         SELECT 1
-        FROM users
-        WHERE role = 'seller'
-          AND user_id <> :user_id
-          AND seller_name IS NOT NULL
-          AND seller_name <> ''
-          AND LOWER(seller_name) = LOWER(:seller_name)
+        FROM users u
+        LEFT JOIN seller_profiles sp ON sp.user_id = u.user_id
+        WHERE u.role = 'seller'
+          AND u.user_id <> :user_id
+          AND LOWER(COALESCE(NULLIF(u.company_name, ''), NULLIF(sp.company_name, ''))) = LOWER(:seller_name)
         LIMIT 1
     ");
     $stmt->execute([
@@ -77,7 +78,7 @@ try {
 
     $u = $pdo->prepare("
         UPDATE users
-        SET seller_name = :seller_name,
+        SET company_name = :seller_name,
             updated_at = NOW()
         WHERE user_id = :user_id
           AND role = 'seller'
@@ -90,7 +91,7 @@ try {
 
     $sp = $pdo->prepare("
         UPDATE seller_profiles
-        SET seller_name = :seller_name,
+        SET company_name = :seller_name,
             updated_at = NOW()
         WHERE user_id = :user_id
         LIMIT 1

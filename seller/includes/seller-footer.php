@@ -124,8 +124,15 @@
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                // 저장 성공 시 회원정보 페이지로 이동
-                window.location.href = '/MVNO/seller/profile.php';
+                // 저장 성공 시: 모달 닫기 -> 계정정보 페이지로 이동
+                const overlay = document.getElementById('sellerNameModalOverlay');
+                if (overlay) {
+                    overlay.style.display = 'none';
+                }
+                document.body.classList.remove('modal-open');
+
+                // 저장 확인용 파라미터를 붙여서 이동(페이지에서 메시지 표시 등에 활용 가능)
+                window.location.assign('/MVNO/seller/profile.php?seller_name_saved=1');
             } else {
                 alert(data.message || '판매자명 저장에 실패했습니다.');
                 if (saveBtn) {
