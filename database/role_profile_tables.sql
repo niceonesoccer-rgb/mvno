@@ -56,3 +56,5 @@ CREATE TABLE IF NOT EXISTS `admin_profiles` (
   UNIQUE KEY `uk_admin_profiles_user_id` (`user_id`),
   CONSTRAINT `fk_admin_profiles_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='관리자 프로필';
+
+

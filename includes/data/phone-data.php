@@ -113,9 +113,9 @@ function getPhonesData($limit = 10) {
             $sellerStmt = $pdo->prepare("
                 SELECT
                     user_id,
-                    COALESCE(NULLIF(company_name,''), NULLIF(seller_name,''), NULLIF(name,''), '알뜰폰') AS company_name,
-                    seller_name,
-                    name
+                    NULLIF(company_name,'') AS company_name,
+                    NULLIF(seller_name,'') AS seller_name,
+                    NULLIF(name,'') AS name
                 FROM users
                 WHERE role = 'seller'
                   AND user_id IN ($placeholders)
@@ -132,7 +132,8 @@ function getPhonesData($limit = 10) {
             // 판매자 정보
             $sellerId = (string)($product['seller_id'] ?? '');
             $seller = $sellersData[$sellerId] ?? null;
-            $companyName = $seller['company_name'] ?? $seller['seller_name'] ?? '알뜰폰';
+            // 카드/리스트에서는 "판매자명"이 보여야 하므로 seller_name 우선
+            $companyName = $seller['seller_name'] ?? $seller['company_name'] ?? $seller['name'] ?? '알뜰폰';
             
             // 통신사 정보 추출
             $provider = '-';
@@ -338,7 +339,10 @@ function getPhonesData($limit = 10) {
             $phones[] = [
                 'id' => (int)$product['id'],
                 'provider' => $provider,
+                // UI에서 phone['company_name']을 표시하는 곳이 많아 하위호환 유지:
+                // - seller_name 우선값을 company_name 키에 넣어준다.
                 'company_name' => $companyName,
+                'seller_name' => $seller['seller_name'] ?? null,
                 'rating' => '4.3', // 기본값, 나중에 리뷰 시스템 연동
                 'device_name' => $product['device_name'] ?? '',
                 'device_storage' => $product['device_capacity'] ?? '',
@@ -478,9 +482,9 @@ function getPhoneDetailData($phone_id) {
                 $sellerStmt = $pdo->prepare("
                     SELECT
                         user_id,
-                        COALESCE(NULLIF(company_name,''), NULLIF(seller_name,''), NULLIF(name,''), '알뜰폰') AS company_name,
-                        seller_name,
-                        name
+                        NULLIF(company_name,'') AS company_name,
+                        NULLIF(seller_name,'') AS seller_name,
+                        NULLIF(name,'') AS name
                     FROM users
                     WHERE role = 'seller'
                       AND user_id = :user_id
@@ -493,7 +497,8 @@ function getPhoneDetailData($phone_id) {
             }
         }
         
-        $companyName = $seller['company_name'] ?? $seller['seller_name'] ?? '알뜰폰';
+        // 상세에서도 "판매자명"이 보여야 하므로 seller_name 우선
+        $companyName = $seller['seller_name'] ?? $seller['company_name'] ?? $seller['name'] ?? '알뜰폰';
         
         // 통신사 정보 추출
         $provider = '-';
@@ -704,6 +709,7 @@ function getPhoneDetailData($phone_id) {
             'id' => (int)$product['id'],
             'provider' => $provider,
             'company_name' => $companyName,
+            'seller_name' => $seller['seller_name'] ?? null,
             'rating' => '4.3', // 기본값
             'device_name' => $product['device_name'] ?? '',
             'device_storage' => $product['device_capacity'] ?? '',

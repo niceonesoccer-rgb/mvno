@@ -255,7 +255,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         
         // 판매자 필수 필드 확인
-        if (empty($additionalData['business_number']) || empty($additionalData['company_name'])) {
+        if (empty($additionalData['seller_name'])) {
+            $error = '판매자명은 필수 입력 항목입니다.';
+        } elseif (empty($additionalData['business_number']) || empty($additionalData['company_name'])) {
             $error = '사업자등록번호와 회사명은 필수 입력 항목입니다.';
         } elseif (empty($additionalData['company_representative'])) {
             $error = '대표자명은 필수 입력 항목입니다.';
@@ -1307,8 +1309,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
 
                         <div class="form-group">
-                            <label for="seller_name">판매자명 (사이트 표시명)</label>
-                            <input type="text" id="seller_name" name="seller_name" placeholder="사이트에서 고객에게 표시될 판매자명" maxlength="50" value="<?php echo htmlspecialchars($_SERVER['REQUEST_METHOD'] === 'POST' ? ($_POST['seller_name'] ?? '') : ''); ?>">
+                            <label for="seller_name">판매자명 (사이트 표시명) <span class="required">*</span></label>
+                            <input type="text" id="seller_name" name="seller_name" placeholder="사이트에서 고객에게 표시될 판매자명" maxlength="50" required value="<?php echo htmlspecialchars($_SERVER['REQUEST_METHOD'] === 'POST' ? ($_POST['seller_name'] ?? '') : ''); ?>">
                             <div class="form-help">
                                 - 선택사항이며, 미입력 시 기본적으로 <strong>회사명</strong>이 표시됩니다.<br>
                                 - 2~50자 이내로 입력해주세요.

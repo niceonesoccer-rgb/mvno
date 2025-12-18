@@ -183,7 +183,7 @@ try {
             $sellerStmt = $pdo->prepare("
                 SELECT
                     u.user_id,
-                    COALESCE(NULLIF(u.company_name,''), NULLIF(u.name,''), u.user_id) AS display_name,
+                    COALESCE(NULLIF(u.seller_name,''), NULLIF(u.name,''), u.user_id) AS display_name,
                     COALESCE(u.company_name,'') AS company_name
                 FROM users u
                 WHERE u.role = 'seller'
@@ -287,7 +287,7 @@ try {
         $sellerListStmt = $pdo->query("
             SELECT DISTINCT
                 u.user_id,
-                COALESCE(NULLIF(u.company_name,''), NULLIF(u.name,''), u.user_id) AS name,
+                COALESCE(NULLIF(u.seller_name,''), NULLIF(u.name,''), u.user_id) AS name,
                 COALESCE(u.company_name,'') AS company_name
             FROM products p
             INNER JOIN users u ON u.user_id = p.seller_id AND u.role = 'seller'

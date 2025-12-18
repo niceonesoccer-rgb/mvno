@@ -5,3 +5,5 @@
 ALTER TABLE `application_customers`
   MODIFY COLUMN `user_id` VARCHAR(50) NULL COMMENT '회원 user_id (비회원 신청 가능)';
 
+
+

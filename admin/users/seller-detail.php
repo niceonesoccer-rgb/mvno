@@ -586,11 +586,37 @@ if (!$seller || $seller['role'] !== 'seller') {
             </div>
         <?php endif; ?>
         
-        <!-- 전체 데이터 (JSON) -->
-        <div class="detail-card">
-            <h2 class="detail-card-title">전체 데이터 (JSON)</h2>
-            <pre style="background: #f9fafb; padding: 16px; border-radius: 8px; overflow-x: auto; font-size: 12px; line-height: 1.6; max-height: 400px; overflow-y: auto;"><?php echo htmlspecialchars(json_encode($seller, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)); ?></pre>
-        </div>
+        <!-- 전체 데이터 (JSON) - 디버그용 (기본 숨김) -->
+        <?php
+        // seller-detail.php는 관리자 페이지이므로 $currentUser가 이미 존재한다고 가정
+        $currentRole = $currentUser['role'] ?? null;
+        $isSuperAdmin = ($currentRole === 'admin');
+        $debugEnabled = $isSuperAdmin && (($_GET['debug'] ?? '') === '1');
+        ?>
+        <?php if ($debugEnabled): ?>
+            <?php
+            // 민감 필드 제거/마스킹 후 출력
+            $sellerDebug = $seller;
+            if (array_key_exists('password', $sellerDebug)) {
+                unset($sellerDebug['password']);
+            }
+            if (array_key_exists('sns_id', $sellerDebug)) {
+                $sellerDebug['sns_id'] = $sellerDebug['sns_id'] ? '***' : null;
+            }
+            ?>
+            <div class="detail-card">
+                <h2 class="detail-card-title">전체 데이터 (JSON) - DEBUG</h2>
+                <div style="margin-bottom: 10px; font-size: 12px; color: #6b7280;">
+                    디버그 모드로 표시 중입니다. (민감 정보는 일부 제외/마스킹됩니다)
+                </div>
+                <pre style="background: #f9fafb; padding: 16px; border-radius: 8px; overflow-x: auto; font-size: 12px; line-height: 1.6; max-height: 400px; overflow-y: auto;"><?php echo htmlspecialchars(json_encode($sellerDebug, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)); ?></pre>
+            </div>
+        <?php else: ?>
+            <div class="detail-card" style="display: none;">
+                <h2 class="detail-card-title">전체 데이터 (JSON)</h2>
+                <pre style="background: #f9fafb; padding: 16px; border-radius: 8px; overflow-x: auto; font-size: 12px; line-height: 1.6; max-height: 400px; overflow-y: auto;"><?php echo htmlspecialchars(json_encode([], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)); ?></pre>
+            </div>
+        <?php endif; ?>
     </div>
 </div>
 

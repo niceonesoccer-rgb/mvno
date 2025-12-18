@@ -587,6 +587,79 @@ $isRegisterMode = false; // 기본값은 로그인 모드
     text-decoration: underline;
 }
 
+/* 회원가입 완료 안내 모달 */
+.register-success-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 11000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+
+.register-success-modal.active {
+    display: flex;
+}
+
+.register-success-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(3px);
+}
+
+.register-success-content {
+    position: relative;
+    z-index: 11001;
+    width: 90%;
+    max-width: 360px;
+    background: #ffffff;
+    border-radius: 14px;
+    box-shadow: 0 20px 25px -5px rgba(0,0,0,.18), 0 10px 10px -5px rgba(0,0,0,.08);
+    padding: 20px 18px 16px;
+    animation: slideUp 0.2s ease-out;
+}
+
+.register-success-title {
+    margin: 0 0 10px;
+    font-size: 18px;
+    font-weight: 700;
+    color: #111827;
+    letter-spacing: -0.01em;
+}
+
+.register-success-message {
+    margin: 0 0 16px;
+    font-size: 14px;
+    color: #374151;
+    line-height: 1.6;
+}
+
+.register-success-actions {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.register-success-ok {
+    border: none;
+    background: #6366f1;
+    color: #fff;
+    font-weight: 600;
+    padding: 10px 14px;
+    border-radius: 10px;
+    cursor: pointer;
+}
+
+.register-success-ok:hover {
+    background: #4f46e5;
+}
+
 @keyframes fadeIn {
     from {
         opacity: 0;
@@ -729,7 +802,7 @@ $isRegisterMode = false; // 기본값은 로그인 모드
                             <input type="hidden" id="register_user_id_checked" name="user_id_checked" value="0">
                             <div class="login-form-group">
                                 <label for="register_user_id">아이디 <span style="color: #ef4444;">*</span></label>
-                                <input type="text" id="register_user_id" name="user_id" required placeholder="아이디 입력 (영문, 숫자만 가능, 5-20자)" pattern="[A-Za-z0-9]{5,20}" title="영문과 숫자만 입력 가능하며 5-20자입니다" minlength="5" maxlength="20">
+                                <input type="text" id="register_user_id" name="user_id" required placeholder="아이디 입력 (영문 소문자, 숫자만 가능, 5-20자)" pattern="[a-z0-9]{5,20}" title="영문 소문자와 숫자만 입력 가능하며 5-20자입니다" minlength="5" maxlength="20" autocomplete="username" autocapitalize="none" inputmode="text">
                                 <div id="userIdCheckResult" style="margin-top: 6px; font-size: 13px; min-height: 18px;"></div>
                             </div>
                             <div class="login-form-group">
@@ -743,7 +816,7 @@ $isRegisterMode = false; // 기본값은 로그인 모드
                             <div class="login-form-group">
                                 <label for="register_email">이메일 <span style="color: #ef4444;">*</span></label>
                                 <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-                                    <input type="text" id="register_email_local" name="email_local" required placeholder="이메일 아이디 (영문 소문자, 숫자만)" maxlength="20" pattern="[a-z0-9]+" title="영문 소문자와 숫자만 입력 가능합니다" style="flex: 1; min-width: 120px;">
+                                    <input type="text" id="register_email_local" name="email_local" required placeholder="이메일 아이디 (영문 소문자, 숫자만)" maxlength="50" pattern="[a-z0-9]+" title="영문 소문자와 숫자만 입력 가능합니다" style="flex: 1; min-width: 120px;">
                                     <span style="line-height: 44px; flex-shrink: 0;">@</span>
                                     <select id="register_email_domain" name="email_domain" required style="flex: 1; min-width: 140px;">
                                         <option value="">도메인 선택</option>
@@ -795,9 +868,43 @@ $isRegisterMode = false; // 기본값은 로그인 모드
     </div>
 </div>
 
+<!-- 회원가입 완료 안내 모달 -->
+<div id="registerSuccessModal" class="register-success-modal" aria-hidden="true">
+    <div class="register-success-overlay" onclick="closeRegisterSuccessModal()"></div>
+    <div class="register-success-content" role="dialog" aria-modal="true" aria-labelledby="registerSuccessTitle">
+        <h4 id="registerSuccessTitle" class="register-success-title">회원가입 완료</h4>
+        <p id="registerSuccessMessage" class="register-success-message">회원가입이 완료되었습니다. 로그인해주세요.</p>
+        <div class="register-success-actions">
+            <button type="button" class="register-success-ok" onclick="closeRegisterSuccessModal()">확인</button>
+        </div>
+    </div>
+</div>
+
 <script>
 // 로그인 상태 확인 (PHP에서 전달)
 const isLoggedIn = <?php echo $isLoggedIn ? 'true' : 'false'; ?>;
+
+function openRegisterSuccessModal(message) {
+    const modal = document.getElementById('registerSuccessModal');
+    const msgEl = document.getElementById('registerSuccessMessage');
+    if (msgEl) msgEl.textContent = message || '회원가입이 완료되었습니다. 로그인해주세요.';
+    if (modal) {
+        modal.classList.add('active');
+        modal.setAttribute('aria-hidden', 'false');
+    }
+}
+
+function closeRegisterSuccessModal() {
+    const modal = document.getElementById('registerSuccessModal');
+    if (modal) {
+        modal.classList.remove('active');
+        modal.setAttribute('aria-hidden', 'true');
+    }
+    // 확인 후 로그인 모드로 전환 (모달은 열린 채로 로그인 화면 표시)
+    if (typeof switchToLoginMode === 'function') {
+        switchToLoginMode();
+    }
+}
 
 // 로그인 모달 열기/닫기
 function openLoginModal(isRegister = false) {
@@ -960,10 +1067,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
-            // 아이디 검증: 영문, 숫자만 가능, 5-20자
-            const userIdPattern = /^[A-Za-z0-9]{5,20}$/;
+            // 아이디 검증: 영문 소문자, 숫자만 가능, 5-20자
+            const userIdPattern = /^[a-z0-9]{5,20}$/;
             if (!userIdPattern.test(userId)) {
-                alert('아이디는 영문과 숫자만 사용할 수 있으며 5자 이상 20자 이내여야 합니다.');
+                alert('아이디는 영문 소문자와 숫자만 사용할 수 있으며 5자 이상 20자 이내여야 합니다.');
                 document.getElementById('register_user_id').focus();
                 return;
             }
@@ -1015,8 +1122,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
-            if (emailLocal.length > 20) {
-                alert('이메일 아이디는 20자 이내로 입력해주세요.');
+            if (emailLocal.length > 50) {
+                alert('이메일 아이디는 50자 이내로 입력해주세요.');
                 document.getElementById('register_email_local').focus();
                 return;
             }
@@ -1038,9 +1145,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 finalEmail = emailLocal + '@' + emailDomain;
             }
             
-            // 전체 이메일 주소 길이 검증 (20자 이내)
-            if (finalEmail.length > 20) {
-                alert('이메일 주소는 20자 이내로 입력해주세요.');
+            // 전체 이메일 주소 길이 검증 (50자 이내)
+            if (finalEmail.length > 50) {
+                alert('이메일 주소는 50자 이내로 입력해주세요.');
                 return;
             }
             
@@ -1101,7 +1208,7 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(response => response.json())
             .then(data => {
                 if (data && data.success) {
-                    alert(data.message || '회원가입이 완료되었습니다. 로그인해주세요.');
+                    openRegisterSuccessModal(data.message || '회원가입이 완료되었습니다. 로그인해주세요.');
                     // 가입 완료 후 로그인 모드로 전환 + 입력 초기화
                     this.reset();
                     const userIdCheckedHidden2 = document.getElementById('register_user_id_checked');
@@ -1113,7 +1220,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         userIdCheckResult2.textContent = '';
                         userIdCheckResult2.className = 'user-id-check-result';
                     }
-                    switchToLoginMode();
                 } else {
                     alert((data && data.message) ? data.message : '회원가입에 실패했습니다.');
                 }
@@ -1338,6 +1444,12 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (userIdInput && userIdCheckResult) {
             userIdInput.addEventListener('input', function(e) {
+                // 대문자 입력 시 소문자로 강제 변환 + 영문 소문자/숫자만 허용
+                const normalized = e.target.value.toLowerCase().replace(/[^a-z0-9]/g, '');
+                if (e.target.value !== normalized) {
+                    e.target.value = normalized;
+                }
+
                 const userId = e.target.value.trim();
                 
                 // 입력 필드 클래스 초기화
@@ -1361,9 +1473,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     return;
                 }
                 
-                // 영문, 숫자만 허용
-                if (!/^[A-Za-z0-9]+$/.test(userId)) {
-                    userIdCheckResult.textContent = '아이디는 영문과 숫자만 사용할 수 있습니다.';
+                // 영문 소문자, 숫자만 허용
+                if (!/^[a-z0-9]+$/.test(userId)) {
+                    userIdCheckResult.textContent = '아이디는 영문 소문자와 숫자만 사용할 수 있습니다.';
                     userIdCheckResult.className = 'user-id-check-result error';
                     userIdInput.classList.add('checked-invalid');
                     return;
@@ -1518,7 +1630,11 @@ window.closeLoginModal = closeLoginModal;
 window.switchToRegisterMode = switchToRegisterMode;
 window.switchToLoginMode = switchToLoginMode;
 window.togglePasswordVisibility = togglePasswordVisibility;
+window.openRegisterSuccessModal = openRegisterSuccessModal;
+window.closeRegisterSuccessModal = closeRegisterSuccessModal;
 </script>
+
+
 
 
 

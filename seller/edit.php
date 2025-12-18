@@ -205,6 +205,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_seller'])) {
         
         $phone = trim($_POST['phone'] ?? '');
         $mobile = trim($_POST['mobile'] ?? '');
+        $address = trim($_POST['address'] ?? '');
+        $addressDetail = trim($_POST['address_detail'] ?? '');
+        $companyName = trim($_POST['company_name'] ?? '');
+        $companyRepresentative = trim($_POST['company_representative'] ?? '');
+        $businessType = trim($_POST['business_type'] ?? '');
+        $businessItem = trim($_POST['business_item'] ?? '');
+        // business_number는 변경 불가이지만 "필수" 조건 충족을 위해 존재 여부는 확인한다.
+        $businessNumber = trim($_POST['business_number'] ?? ($seller['business_number'] ?? ''));
         
         // 이메일 검증
         if (empty($emailLocal)) {
@@ -221,8 +229,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_seller'])) {
             $error_message = '올바른 이메일 형식을 입력해주세요.';
         }
         
-        // 전화번호 검증 (입력된 경우에만)
-        if (empty($error_message) && !empty($phone)) {
+        // 필수 입력값 검증 (전체 필수)
+        if (empty($error_message) && empty($phone)) {
+            $error_message = '전화번호는 필수 입력 항목입니다.';
+        } elseif (empty($error_message) && empty($mobile)) {
+            $error_message = '휴대폰 번호는 필수 입력 항목입니다.';
+        } elseif (empty($error_message) && empty($address)) {
+            $error_message = '주소는 필수 입력 항목입니다.';
+        } elseif (empty($error_message) && empty($addressDetail)) {
+            $error_message = '상세주소는 필수 입력 항목입니다.';
+        } elseif (empty($error_message) && empty($companyName)) {
+            $error_message = '회사명은 필수 입력 항목입니다.';
+        } elseif (empty($error_message) && empty($companyRepresentative)) {
+            $error_message = '대표자명은 필수 입력 항목입니다.';
+        } elseif (empty($error_message) && empty($businessType)) {
+            $error_message = '업태는 필수 입력 항목입니다.';
+        } elseif (empty($error_message) && empty($businessItem)) {
+            $error_message = '종목은 필수 입력 항목입니다.';
+        } elseif (empty($error_message) && empty($businessNumber)) {
+            $error_message = '사업자등록번호가 없습니다. 관리자에게 문의해주세요.';
+        }
+
+        // 전화번호 검증 (필수이므로 항상 검증)
+        if (empty($error_message)) {
             // 하이픈 제거 후 숫자만 추출
             $phoneNumbers = preg_replace('/[^0-9]/', '', $phone);
             $phoneLength = strlen($phoneNumbers);
@@ -265,8 +294,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_seller'])) {
             }
         }
         
-        // 휴대폰번호 검증 (입력된 경우에만)
-        if (empty($error_message) && !empty($mobile)) {
+        // 휴대폰번호 검증 (필수이므로 항상 검증)
+        if (empty($error_message)) {
             // 하이픈 제거 후 숫자만 추출
             $mobileNumbers = preg_replace('/[^0-9]/', '', $mobile);
             
@@ -280,7 +309,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_seller'])) {
         
         // 판매자명 중복 검사
         $sellerName = trim($_POST['seller_name'] ?? ($seller['seller_name'] ?? ''));
-        if (!empty($sellerName)) {
+        if (empty($error_message) && $sellerName === '') {
+            $error_message = '판매자명은 필수 입력 항목입니다.';
+        }
+        if (empty($error_message)) {
             // 기존 판매자명과 동일한 경우 중복 검사 통과
             $currentSellerName = trim($seller['seller_name'] ?? '');
             if (!empty($currentSellerName)) {
@@ -358,6 +390,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_seller'])) {
             }
         }
         
+        // 사업자등록증(이미지) 필수: 기존이 없으면 업로드를 강제
+        if (empty($error_message)) {
+            $hasExistingLicense = !empty($seller['business_license_image']);
+            $hasNewUpload = (isset($_FILES['business_license_image']) && ($_FILES['business_license_image']['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK);
+            if (!$hasExistingLicense && !$hasNewUpload) {
+                $error_message = '사업자등록증 이미지는 필수입니다. 이미지를 업로드해주세요.';
+            }
+        }
+
         // 수정할 정보 수집 (사업자등록번호는 변경 불가)
         if (empty($error_message)) {
             $updateData = [
@@ -366,13 +407,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_seller'])) {
                 'phone' => $phone,
                 'mobile' => $mobile,
                 'seller_name' => $sellerName, // 판매자명 (사이트에서 사용할 닉네임)
-                'address' => $_POST['address'] ?? ($seller['address'] ?? ''),
-                'address_detail' => $_POST['address_detail'] ?? ($seller['address_detail'] ?? ''),
+                'address' => $address,
+                'address_detail' => $addressDetail,
                 // 'business_number'는 변경 불가이므로 제외
-                'company_name' => $_POST['company_name'] ?? ($seller['company_name'] ?? ''),
-                'company_representative' => $_POST['company_representative'] ?? ($seller['company_representative'] ?? ''),
-                'business_type' => $_POST['business_type'] ?? ($seller['business_type'] ?? ''),
-                'business_item' => $_POST['business_item'] ?? ($seller['business_item'] ?? ''),
+                'company_name' => $companyName,
+                'company_representative' => $companyRepresentative,
+                'business_type' => $businessType,
+                'business_item' => $businessItem,
             ];
             
             // 비밀번호 변경이 있는 경우
@@ -946,8 +987,8 @@ require_once __DIR__ . '/includes/seller-header.php';
                 </div>
             </div>
             <div class="form-group">
-                <label class="form-label">판매자명 (닉네임)</label>
-                <input type="text" name="seller_name" id="seller_name" class="form-input" value="<?php echo htmlspecialchars($seller['seller_name'] ?? ''); ?>" placeholder="사이트에서 사용할 판매자명을 입력하세요" maxlength="50">
+                <label class="form-label">판매자명 (닉네임) <span class="required">*</span></label>
+                <input type="text" name="seller_name" id="seller_name" class="form-input" value="<?php echo htmlspecialchars($seller['seller_name'] ?? ''); ?>" placeholder="사이트에서 사용할 판매자명을 입력하세요" maxlength="50" required>
                 <div id="sellerNameCheckResult" class="check-result" style="margin-top: 4px;"></div>
                 <small style="display: block; margin-top: 4px; color: #6b7280; font-size: 13px;">사이트에서 활동할 때 표시될 이름입니다. 회사명과 다르게 설정할 수 있습니다.</small>
             </div>
@@ -990,12 +1031,12 @@ require_once __DIR__ . '/includes/seller-header.php';
             <h2 class="form-section-title">연락처 정보</h2>
             <div class="form-grid">
                 <div class="form-group">
-                    <label class="form-label">전화번호</label>
-                    <input type="tel" name="phone" id="phone" class="form-input" value="<?php echo htmlspecialchars($seller['phone'] ?? ''); ?>" placeholder="1588-1588, 02-1234-1234">
+                    <label class="form-label">전화번호 <span class="required">*</span></label>
+                    <input type="tel" name="phone" id="phone" class="form-input" value="<?php echo htmlspecialchars($seller['phone'] ?? ''); ?>" placeholder="1588-1588, 02-1234-1234" required>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">휴대폰</label>
-                    <input type="tel" name="mobile" id="mobile" class="form-input" value="<?php echo htmlspecialchars($seller['mobile'] ?? ''); ?>" placeholder="010-1234-5678">
+                    <label class="form-label">휴대폰 <span class="required">*</span></label>
+                    <input type="tel" name="mobile" id="mobile" class="form-input" value="<?php echo htmlspecialchars($seller['mobile'] ?? ''); ?>" placeholder="010-1234-5678" required>
                 </div>
             </div>
         </div>
@@ -1004,15 +1045,15 @@ require_once __DIR__ . '/includes/seller-header.php';
         <div class="form-section">
             <h2 class="form-section-title">주소 정보</h2>
             <div class="form-group">
-                <label class="form-label">주소</label>
+                <label class="form-label">주소 <span class="required">*</span></label>
                 <div style="display: flex; gap: 8px;">
-                    <input type="text" id="address" name="address" class="form-input" value="<?php echo htmlspecialchars($seller['address'] ?? ''); ?>" placeholder="서울시 강남구 테헤란로 123" readonly style="flex: 1;">
+                    <input type="text" id="address" name="address" class="form-input" value="<?php echo htmlspecialchars($seller['address'] ?? ''); ?>" placeholder="서울시 강남구 테헤란로 123" readonly required style="flex: 1;">
                     <button type="button" id="searchAddressBtn" class="btn btn-primary" onclick="searchAddress()" style="white-space: nowrap; padding: 10px 20px;">주소 검색</button>
                 </div>
             </div>
             <div class="form-group">
-                <label class="form-label">상세주소</label>
-                <input type="text" id="address_detail" name="address_detail" class="form-input" value="<?php echo htmlspecialchars($seller['address_detail'] ?? ''); ?>" placeholder="101호">
+                <label class="form-label">상세주소 <span class="required">*</span></label>
+                <input type="text" id="address_detail" name="address_detail" class="form-input" value="<?php echo htmlspecialchars($seller['address_detail'] ?? ''); ?>" placeholder="101호" required>
             </div>
         </div>
         
@@ -1021,37 +1062,38 @@ require_once __DIR__ . '/includes/seller-header.php';
             <h2 class="form-section-title">사업자 정보</h2>
             <div class="form-grid">
                 <div class="form-group">
-                    <label class="form-label">사업자등록번호</label>
+                    <label class="form-label">사업자등록번호 <span class="required">*</span></label>
                     <input type="text" name="business_number" class="form-input" value="<?php echo htmlspecialchars($seller['business_number'] ?? ''); ?>" placeholder="123-45-67890" disabled>
+                    <input type="hidden" name="business_number" value="<?php echo htmlspecialchars($seller['business_number'] ?? ''); ?>">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">회사명</label>
-                    <input type="text" name="company_name" class="form-input" value="<?php echo htmlspecialchars($seller['company_name'] ?? ''); ?>">
+                    <label class="form-label">회사명 <span class="required">*</span></label>
+                    <input type="text" name="company_name" class="form-input" value="<?php echo htmlspecialchars($seller['company_name'] ?? ''); ?>" required>
                 </div>
             </div>
             <div class="form-grid">
                 <div class="form-group">
-                    <label class="form-label">대표자명</label>
-                    <input type="text" name="company_representative" class="form-input" value="<?php echo htmlspecialchars($seller['company_representative'] ?? ''); ?>">
+                    <label class="form-label">대표자명 <span class="required">*</span></label>
+                    <input type="text" name="company_representative" class="form-input" value="<?php echo htmlspecialchars($seller['company_representative'] ?? ''); ?>" required>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">업태</label>
-                    <input type="text" name="business_type" class="form-input" value="<?php echo htmlspecialchars($seller['business_type'] ?? ''); ?>">
+                    <label class="form-label">업태 <span class="required">*</span></label>
+                    <input type="text" name="business_type" class="form-input" value="<?php echo htmlspecialchars($seller['business_type'] ?? ''); ?>" required>
                 </div>
             </div>
             <div class="form-group">
-                <label class="form-label">종목</label>
-                <input type="text" name="business_item" class="form-input" value="<?php echo htmlspecialchars($seller['business_item'] ?? ''); ?>">
+                <label class="form-label">종목 <span class="required">*</span></label>
+                <input type="text" name="business_item" class="form-input" value="<?php echo htmlspecialchars($seller['business_item'] ?? ''); ?>" required>
             </div>
             <div class="form-group">
-                <label class="form-label">사업자등록증</label>
+                <label class="form-label">사업자등록증 <span class="required">*</span></label>
                 <?php if (!empty($seller['business_license_image'])): ?>
                     <div style="margin-bottom: 12px;">
                         <img src="<?php echo htmlspecialchars($seller['business_license_image']); ?>" alt="사업자등록증" style="max-width: 400px; max-height: 300px; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 8px;">
                         <div class="password-note">현재 등록된 사업자등록증입니다. 새로 업로드하면 기존 이미지가 교체됩니다.</div>
                     </div>
                 <?php endif; ?>
-                <input type="file" name="business_license_image" accept="image/jpeg,image/jpg,image/png" class="form-input">
+                <input type="file" name="business_license_image" accept="image/jpeg,image/jpg,image/png" class="form-input" <?php echo empty($seller['business_license_image']) ? 'required' : ''; ?>>
                 <div class="password-note">이미지 파일만 업로드 가능합니다. (jpg, jpeg, png) - GIF 및 문서 파일은 업로드 불가</div>
             </div>
         </div>
@@ -1529,7 +1571,13 @@ require_once __DIR__ . '/includes/seller-header.php';
         if (editForm) {
             editForm.addEventListener('submit', function(e) {
                 const sellerNameInput = document.getElementById('seller_name');
-                if (sellerNameInput && sellerNameInput.value.trim() !== '') {
+                if (sellerNameInput && sellerNameInput.value.trim() === '') {
+                    e.preventDefault();
+                    alert('판매자명은 필수 입력 항목입니다.');
+                    sellerNameInput.focus();
+                    return false;
+                }
+                if (sellerNameInput) {
                     const currentValue = sellerNameInput.value.trim().toLowerCase();
                     
                     // 기존 값과 동일하면 통과

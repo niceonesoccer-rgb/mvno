@@ -6,9 +6,11 @@
 require_once __DIR__ . '/../../includes/data/auth-functions.php';
 
 /**
- * 이미지 리사이징 및 압축 함수 (500MB 이하로 자동 축소)
+ * 이미지 리사이징 및 압축 함수 (지정 용량 이하로 자동 축소)
+ * - 기본값: 5MB
+ * - JPEG/PNG/GIF 지원 (업로드 허용 확장자는 호출부에서 제한)
  */
-function compressImage($sourcePath, $targetPath, $maxSizeMB = 500) {
+function compressImage($sourcePath, $targetPath, $maxSizeMB = 5) {
     $maxSizeBytes = $maxSizeMB * 1024 * 1024;
     
     // 파일 크기 확인
@@ -131,7 +133,7 @@ function compressImage($sourcePath, $targetPath, $maxSizeMB = 500) {
         
     } while ($quality >= 30 && $attempts < $maxAttempts);
     
-    // 최종 시도
+    // 최종 시도(최저 품질/압축)
     $tempPath = $targetPath . '.tmp';
     switch ($mimeType) {
         case 'image/jpeg':
@@ -146,12 +148,20 @@ function compressImage($sourcePath, $targetPath, $maxSizeMB = 500) {
     }
     
     if (file_exists($tempPath)) {
-        rename($tempPath, $targetPath);
+        $finalSize = @filesize($tempPath);
+        if ($finalSize !== false && $finalSize <= $maxSizeBytes) {
+            rename($tempPath, $targetPath);
+            imagedestroy($sourceImage);
+            imagedestroy($newImage);
+            return true;
+        }
+        // 목표 용량 이하로 줄이지 못한 경우
+        @unlink($tempPath);
     }
     
     imagedestroy($sourceImage);
     imagedestroy($newImage);
-    return true;
+    return false;
 }
 
 // 관리자 권한 체크
@@ -213,10 +223,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_seller'])) {
         $email = trim($email);
         
         // 수정할 정보 수집
-        // DB-only 스키마 기준: users/seller_profiles에 seller_name 컬럼이 없을 수 있어 company_name으로 통합 저장
         $postedSellerName = trim($_POST['seller_name'] ?? '');
         $updateData = [
             'name' => $_POST['name'] ?? $seller['name'],
+            'seller_name' => $postedSellerName !== '' ? $postedSellerName : ($seller['seller_name'] ?? ''),
             'email' => $email,
             'phone' => $_POST['phone'] ?? ($seller['phone'] ?? ''),
             'mobile' => $_POST['mobile'] ?? ($seller['mobile'] ?? ''),
@@ -228,11 +238,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_seller'])) {
             'business_type' => $_POST['business_type'] ?? ($seller['business_type'] ?? ''),
             'business_item' => $_POST['business_item'] ?? ($seller['business_item'] ?? ''),
         ];
-
-        // UI의 "판매자명" 입력값은 company_name이 비어있을 때 대체 저장
-        if (empty(trim((string)($updateData['company_name'] ?? ''))) && $postedSellerName !== '') {
-            $updateData['company_name'] = $postedSellerName;
-        }
         
         // 비밀번호 변경이 있는 경우
         if (!empty($_POST['password'])) {
@@ -318,8 +323,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_seller'])) {
                             $fileName = $userId . '_license_' . time() . '.' . $fileExtension;
                             $targetPath = $uploadDir . $fileName;
                             
-                            // 이미지 압축 및 저장 (500MB 이하로 자동 압축)
-                            if (compressImage($tempPath, $targetPath)) {
+                            // 이미지 압축 및 저장 (5MB 이하로 자동 압축)
+                            if (compressImage($tempPath, $targetPath, 5)) {
                                 // 상대 경로 저장
                                 $updateData['business_license_image'] = '/MVNO/uploads/sellers/' . $fileName;
 
@@ -333,7 +338,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_seller'])) {
                                     }
                                 }
                             } else {
-                                $error_message = '이미지 업로드에 실패했습니다.';
+                                $error_message = '이미지 업로드에 실패했습니다. (5MB 이하로 압축할 수 없습니다)';
                             }
                         }
                     }
@@ -383,6 +388,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_seller'])) {
                         $u = $pdo->prepare("
                             UPDATE users
                             SET name = :name,
+                                seller_name = :seller_name,
                                 email = :email,
                                 phone = :phone,
                                 mobile = :mobile,
@@ -408,6 +414,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_seller'])) {
 
                         $u->execute([
                             ':name' => $updateData['name'] ?? ($seller['name'] ?? ''),
+                            ':seller_name' => $updateData['seller_name'] ?? ($seller['seller_name'] ?? null),
                             ':email' => $updateData['email'] ?? ($seller['email'] ?? null),
                             ':phone' => $updateData['phone'] ?? ($seller['phone'] ?? null),
                             ':mobile' => $updateData['mobile'] ?? ($seller['mobile'] ?? null),
@@ -918,7 +925,7 @@ require_once __DIR__ . '/../includes/admin-header.php';
                 <div class="form-grid">
                     <div class="form-group">
                         <label class="form-label">판매자명</label>
-                        <input type="text" name="seller_name" id="seller_name" class="form-input" value="<?php echo htmlspecialchars($seller['company_name'] ?? ''); ?>" placeholder="판매자명을 입력하세요">
+                        <input type="text" name="seller_name" id="seller_name" class="form-input" value="<?php echo htmlspecialchars($seller['seller_name'] ?? ''); ?>" placeholder="판매자명을 입력하세요" maxlength="50">
                         <div id="seller_name_check_result" class="seller-name-check-result" style="margin-top: 4px; font-size: 12px; min-height: 18px;"></div>
                         <div class="password-note">판매자명이 설정되면 상품 목록 등에서 표시됩니다.</div>
                     </div>

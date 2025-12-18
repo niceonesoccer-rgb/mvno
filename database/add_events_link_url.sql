@@ -4,3 +4,5 @@
 ALTER TABLE `events`
   ADD COLUMN `link_url` VARCHAR(1000) DEFAULT NULL AFTER `image_url`;
 
+
+

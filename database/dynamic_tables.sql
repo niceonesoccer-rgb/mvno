@@ -83,3 +83,5 @@ CREATE TABLE IF NOT EXISTS `user_point_ledger` (
   PRIMARY KEY (`id`),
   KEY `idx_points_user_created` (`user_id`, `created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='포인트 원장';
+
+

@@ -19,3 +19,5 @@ ALTER TABLE `product_shares`
 ALTER TABLE `product_applications`
   ADD COLUMN `user_id` VARCHAR(50) NULL AFTER `seller_id`;
 
+
+

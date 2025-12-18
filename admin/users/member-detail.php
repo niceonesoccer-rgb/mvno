@@ -1240,11 +1240,37 @@ if (!$isSeller && !$isAdmin) {
         </div>
         <?php endif; ?>
         
-        <!-- 전체 데이터 (JSON) -->
-        <div class="detail-card">
-            <h2 class="detail-card-title">전체 데이터 (JSON)</h2>
-            <pre style="background: #f9fafb; padding: 16px; border-radius: 8px; overflow-x: auto; font-size: 12px; line-height: 1.6;"><?php echo htmlspecialchars(json_encode($user, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)); ?></pre>
-        </div>
+        <!-- 전체 데이터 (JSON) - 디버그용 (기본 숨김) -->
+        <?php
+        $currentRole = $currentUser['role'] ?? null;
+        $isSuperAdmin = ($currentRole === 'admin');
+        $debugEnabled = $isSuperAdmin && (($_GET['debug'] ?? '') === '1');
+        ?>
+        <?php if ($debugEnabled): ?>
+            <?php
+            // 민감 필드 제거/마스킹 후 출력
+            $userDebug = $user;
+            if (array_key_exists('password', $userDebug)) {
+                unset($userDebug['password']);
+            }
+            if (array_key_exists('sns_id', $userDebug)) {
+                // 필요 시만 확인하도록 기본 마스킹
+                $userDebug['sns_id'] = $userDebug['sns_id'] ? '***' : null;
+            }
+            ?>
+            <div class="detail-card">
+                <h2 class="detail-card-title">전체 데이터 (JSON) - DEBUG</h2>
+                <div style="margin-bottom: 10px; font-size: 12px; color: #6b7280;">
+                    디버그 모드로 표시 중입니다. (민감 정보는 일부 제외/마스킹됩니다)
+                </div>
+                <pre style="background: #f9fafb; padding: 16px; border-radius: 8px; overflow-x: auto; font-size: 12px; line-height: 1.6;"><?php echo htmlspecialchars(json_encode($userDebug, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)); ?></pre>
+            </div>
+        <?php else: ?>
+            <div class="detail-card" style="display: none;">
+                <h2 class="detail-card-title">전체 데이터 (JSON)</h2>
+                <pre style="background: #f9fafb; padding: 16px; border-radius: 8px; overflow-x: auto; font-size: 12px; line-height: 1.6;"><?php echo htmlspecialchars(json_encode([], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)); ?></pre>
+            </div>
+        <?php endif; ?>
     </div>
 </div>
 

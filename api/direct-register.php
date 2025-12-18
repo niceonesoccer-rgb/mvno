@@ -15,7 +15,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 $role = $_POST['role'] ?? 'user';
-$userId = trim($_POST['user_id'] ?? '');
+// 아이디 정책: 영문 소문자 + 숫자만 허용, 대문자는 소문자로 정규화
+$userId = strtolower(trim($_POST['user_id'] ?? ''));
 $password = $_POST['password'] ?? '';
 $passwordConfirm = $_POST['password_confirm'] ?? '';
 $email = trim($_POST['email'] ?? '');
@@ -35,9 +36,9 @@ if (empty($userId) || empty($phone) || empty($name) || empty($email)) {
     exit;
 }
 
-// 아이디 형식 검증
-if (!preg_match('/^[A-Za-z0-9]{5,20}$/', $userId)) {
-    echo json_encode(['success' => false, 'message' => '아이디는 영문과 숫자만 사용할 수 있으며 5자 이상 20자 이내여야 합니다.']);
+// 아이디 형식 검증 (영문 소문자 + 숫자, 5-20자)
+if (!preg_match('/^[a-z0-9]{5,20}$/', $userId)) {
+    echo json_encode(['success' => false, 'message' => '아이디는 영문 소문자와 숫자만 사용할 수 있으며 5자 이상 20자 이내여야 합니다.']);
     exit;
 }
 
@@ -60,8 +61,8 @@ if (!preg_match('/^010-\d{4}-\d{4}$/', $phone) || !str_starts_with($phone, '010-
 }
 
 // 이메일 검증 (기존 register.php 정책과 동일하게 간단 검증 + 길이 제한)
-if (strlen($email) > 20) {
-    echo json_encode(['success' => false, 'message' => '이메일 주소는 20자 이내로 입력해주세요.']);
+if (strlen($email) > 50) {
+    echo json_encode(['success' => false, 'message' => '이메일 주소는 50자 이내로 입력해주세요.']);
     exit;
 }
 
@@ -129,4 +130,6 @@ echo json_encode([
     'success' => true,
     'message' => '회원가입이 완료되었습니다. 로그인해주세요.'
 ]);
+
+
 

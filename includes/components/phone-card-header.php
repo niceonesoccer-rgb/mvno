@@ -11,7 +11,7 @@ if (!isset($phone)) {
 }
 $layout_type = $layout_type ?? 'list';
 $provider = $phone['provider'] ?? 'SKT';
-$company_name_raw = $phone['company_name'] ?? '쉐이크모바일';
+$company_name_raw = $phone['seller_name'] ?? ($phone['company_name'] ?? '쉐이크모바일');
 // "스마트모바일" → "스마트"로 변환
 $company_name = $company_name_raw;
 if (strpos($company_name_raw, '스마트모바일') !== false) {
