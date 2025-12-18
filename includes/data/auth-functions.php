@@ -4,7 +4,7 @@
  * 
  * 주요 기능:
  * - 세션 관리
- * - 사용자 조회 (DB 및 JSON 파일)
+ * - 사용자 조회 (DB-only)
  * - 로그인/로그아웃
  * - 회원가입 (SNS, 직접 가입)
  * - 판매자 관리 (승인, 권한 등)
@@ -40,50 +40,115 @@ if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
 require_once __DIR__ . '/db-config.php';
 
 // ============================================================================
-// 파일 경로 함수
+// DB-only 모드
+// - 레거시 JSON(users/admins/sellers) 경로/헬퍼 제거
 // ============================================================================
 
-function getUsersFilePath() {
-    return __DIR__ . '/users.json';
-}
-
-function getAdminsFilePath() {
-    return __DIR__ . '/admins.json';
-}
-
-function getSellersFilePath() {
-    return __DIR__ . '/sellers.json';
-}
-
 // ============================================================================
-// 공통 헬퍼 함수
+// 판매자 입력값 검증(공용)
+// - seller/register.php 의 "4단계" 검증 규칙을 공용 함수로 제공
+// - 가입 화면 코드는 그대로 두고, 다른 화면에서 재사용한다.
 // ============================================================================
 
 /**
- * JSON 파일에서 사용자 검색 (공통 로직)
- * 
- * @param string $filePath 파일 경로
- * @param string $key 검색할 키 (user_id, email, sns_provider 등)
- * @param mixed $value 검색할 값
- * @param string $dataKey JSON 데이터 키 (users, admins, sellers)
- * @return array|null 사용자 데이터 또는 null
+ * 휴대폰 번호 검증 + 포맷팅 (010 + 11자리)
+ *
+ * @param mixed $mobileRaw 입력값(하이픈 포함 가능)
+ * @param string|null $errorMessage 실패 시 메시지
+ * @return string|null 성공 시 010-XXXX-XXXX, 실패 시 null
  */
-function searchUserInJsonFile($filePath, $key, $value, $dataKey) {
-    if (!file_exists($filePath)) {
+function validateAndFormatSellerMobile($mobileRaw, &$errorMessage = null) {
+    $mobileRaw = trim((string)$mobileRaw);
+    $digits = preg_replace('/[^\d]/', '', $mobileRaw);
+
+    if (!preg_match('/^010\d{8}$/', $digits)) {
+        $errorMessage = '휴대폰 번호는 010으로 시작하는 11자리 숫자여야 합니다.';
         return null;
     }
-    
-    clearstatcache(true, $filePath);
-    $content = file_get_contents($filePath);
-    $data = json_decode($content, true) ?: [$dataKey => []];
-    
-    foreach ($data[$dataKey] ?? [] as $user) {
-        if (isset($user[$key]) && $user[$key] === $value) {
-            return $user;
-        }
+
+    return '010-' . substr($digits, 3, 4) . '-' . substr($digits, 7, 4);
+}
+
+/**
+ * 전화번호 1개를 검증하고 하이픈 포맷팅하여 반환
+ * - 휴대폰 / 대표번호 / 지역번호 / 070 / 080 등 포함
+ *
+ * @param string $digits 숫자만 남긴 문자열
+ * @param string|null $errorMessage 실패 시 메시지
+ * @return string|null 성공 시 하이픈 포함 포맷, 실패 시 null
+ */
+function validateAndFormatSingleKoreanPhoneDigits($digits, &$errorMessage = null) {
+    $digits = preg_replace('/[^\d]/', '', (string)$digits);
+    $len = strlen($digits);
+
+    // 대표번호: 1XXX-XXXX (8자리) ex) 1588-1234, 1688-6547, 1544-0000, 1577-9999
+    // 입력 중/붙여넣기로 8자리 초과가 들어오는 경우가 있어 8자리까지만 사용(UX 일치)
+    if ($len >= 8 && preg_match('/^1\d{3}\d{4}$/', substr($digits, 0, 8))) {
+        $digits8 = substr($digits, 0, 8);
+        return substr($digits8, 0, 4) . '-' . substr($digits8, 4, 4);
     }
-    
+
+    // 휴대폰: 01X-XXXX-XXXX (11자리)
+    if ($len === 11 && preg_match('/^01[0-9]\d{8}$/', $digits)) {
+        return substr($digits, 0, 3) . '-' . substr($digits, 3, 4) . '-' . substr($digits, 7, 4);
+    }
+
+    // 서울(02): 02-XXX-XXXX (9자리) 또는 02-XXXX-XXXX (10자리)
+    if ($len === 9 && preg_match('/^02\d{7}$/', $digits)) {
+        return '02-' . substr($digits, 2, 3) . '-' . substr($digits, 5, 4);
+    }
+    if ($len === 10 && preg_match('/^02\d{8}$/', $digits)) {
+        return '02-' . substr($digits, 2, 4) . '-' . substr($digits, 6, 4);
+    }
+
+    // 인터넷/수신자부담: 070/080 - 10자리(3-3-4) 또는 11자리(3-4-4)
+    if ($len === 10 && preg_match('/^0[78]0\d{7}$/', $digits)) {
+        return substr($digits, 0, 3) . '-' . substr($digits, 3, 3) . '-' . substr($digits, 6, 4);
+    }
+    if ($len === 11 && preg_match('/^0[78]0\d{8}$/', $digits)) {
+        return substr($digits, 0, 3) . '-' . substr($digits, 3, 4) . '-' . substr($digits, 7, 4);
+    }
+
+    // 지역번호(3자리): 0XX-XXX-XXXX (10자리) 또는 0XX-XXXX-XXXX (11자리)
+    if ($len === 10 && preg_match('/^0[3-6]\d{8}$/', $digits)) {
+        return substr($digits, 0, 3) . '-' . substr($digits, 3, 3) . '-' . substr($digits, 6, 4);
+    }
+    if ($len === 11 && preg_match('/^0[3-6]\d{9}$/', $digits)) {
+        return substr($digits, 0, 3) . '-' . substr($digits, 3, 4) . '-' . substr($digits, 7, 4);
+    }
+
+    $errorMessage = '전화번호 형식이 올바르지 않습니다. (예: 02-1234-5678, 031-123-4567, 010-1234-5678, 1588-1234, 070-1234-5678, 080-1234-5678)';
     return null;
+}
+
+/**
+ * 전화번호 검증 + 자동 하이픈 포맷(쉼표로 구분된 여러 번호 지원)
+ *
+ * @param mixed $phoneRaw 입력값
+ * @param string|null $errorMessage 실패 시 메시지
+ * @param string|null $formatted 성공 시 표준 포맷(쉼표 구분)
+ * @return bool
+ */
+function validateSellerPhoneList($phoneRaw, &$errorMessage = null, &$formatted = null) {
+    $phoneRaw = trim((string)$phoneRaw);
+    if ($phoneRaw === '') return true; // 선택 입력
+
+    $phoneList = array_map('trim', explode(',', $phoneRaw));
+    $phoneList = array_filter($phoneList, static fn($v) => $v !== '');
+
+    $formattedList = [];
+    foreach ($phoneList as $phoneItem) {
+        $digits = preg_replace('/[^\d]/', '', $phoneItem);
+        $formattedOne = validateAndFormatSingleKoreanPhoneDigits($digits, $errorMessage);
+        if ($formattedOne === null) {
+            return false;
+        }
+        $formattedList[] = $formattedOne;
+    }
+
+    // 표준 포맷으로 정규화(저장 시 하이픈 포함, 쉼표+공백으로 구분)
+    $formatted = implode(', ', $formattedList);
+    return true;
 }
 
 /**
@@ -110,13 +175,50 @@ function normalizeUserData($user) {
 // ============================================================================
 
 /**
- * 사용자 ID로 사용자 찾기 (DB 우선, 실패 시 JSON)
+ * 사용자 ID로 사용자 찾기 (DB-only)
  */
 function getUserById($userId) {
     $pdo = getDBConnection();
     if ($pdo) {
         try {
-            $stmt = $pdo->prepare("SELECT * FROM users WHERE user_id = :user_id LIMIT 1");
+            // A안: users(공통) + 역할별 프로필(seller_profiles/admin_profiles)
+            // 기존 코드 호환을 위해 seller 관련 필드는 COALESCE로 내려준다.
+            $stmt = $pdo->prepare("
+                SELECT
+                    u.*,
+                    COALESCE(sp.seller_approved, u.seller_approved) AS seller_approved,
+                    COALESCE(sp.approval_status, u.approval_status) AS approval_status,
+                    COALESCE(sp.approved_at, u.approved_at) AS approved_at,
+                    COALESCE(sp.held_at, u.held_at) AS held_at,
+                    COALESCE(sp.withdrawal_requested, u.withdrawal_requested) AS withdrawal_requested,
+                    COALESCE(sp.withdrawal_requested_at, u.withdrawal_requested_at) AS withdrawal_requested_at,
+                    COALESCE(sp.withdrawal_reason, u.withdrawal_reason) AS withdrawal_reason,
+                    COALESCE(sp.withdrawal_completed, u.withdrawal_completed) AS withdrawal_completed,
+                    COALESCE(sp.withdrawal_completed_at, u.withdrawal_completed_at) AS withdrawal_completed_at,
+                    COALESCE(sp.scheduled_delete_date, u.scheduled_delete_date) AS scheduled_delete_date,
+                    COALESCE(sp.scheduled_delete_processed, u.scheduled_delete_processed) AS scheduled_delete_processed,
+                    COALESCE(sp.scheduled_delete_processed_at, u.scheduled_delete_processed_at) AS scheduled_delete_processed_at,
+                    COALESCE(sp.postal_code, u.postal_code) AS postal_code,
+                    COALESCE(sp.address, u.address) AS address,
+                    COALESCE(sp.address_detail, u.address_detail) AS address_detail,
+                    COALESCE(sp.business_number, u.business_number) AS business_number,
+                    COALESCE(sp.company_name, u.company_name) AS company_name,
+                    COALESCE(sp.company_representative, u.company_representative) AS company_representative,
+                    COALESCE(sp.business_type, u.business_type) AS business_type,
+                    COALESCE(sp.business_item, u.business_item) AS business_item,
+                    COALESCE(sp.business_license_image, u.business_license_image) AS business_license_image,
+                    COALESCE(sp.permissions, u.permissions) AS permissions,
+                    COALESCE(sp.permissions_updated_at, u.permissions_updated_at) AS permissions_updated_at,
+                    sp.info_checked_by_admin AS info_checked_by_admin,
+                    sp.info_checked_at AS info_checked_at,
+                    ap.created_by AS admin_created_by,
+                    ap.memo AS admin_memo
+                FROM users u
+                LEFT JOIN seller_profiles sp ON sp.user_id = u.user_id
+                LEFT JOIN admin_profiles ap ON ap.user_id = u.user_id
+                WHERE u.user_id = :user_id
+                LIMIT 1
+            ");
             $stmt->execute([':user_id' => $userId]);
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
             
@@ -127,16 +229,6 @@ function getUserById($userId) {
             error_log("getUserById error: " . $e->getMessage());
         }
     }
-    
-    // JSON 파일에서 검색 (하위 호환성)
-    $user = searchUserInJsonFile(getUsersFilePath(), 'user_id', $userId, 'users');
-    if ($user) return $user;
-    
-    $user = searchUserInJsonFile(getAdminsFilePath(), 'user_id', $userId, 'admins');
-    if ($user) return $user;
-    
-    $user = searchUserInJsonFile(getSellersFilePath(), 'user_id', $userId, 'sellers');
-    if ($user) return $user;
     
     return null;
 }
@@ -159,16 +251,6 @@ function getUserByEmail($email) {
             error_log("getUserByEmail error: " . $e->getMessage());
         }
     }
-    
-    // JSON 파일에서 검색 (하위 호환성)
-    $user = searchUserInJsonFile(getUsersFilePath(), 'email', $email, 'users');
-    if ($user) return $user;
-    
-    $user = searchUserInJsonFile(getAdminsFilePath(), 'email', $email, 'admins');
-    if ($user) return $user;
-    
-    $user = searchUserInJsonFile(getSellersFilePath(), 'email', $email, 'sellers');
-    if ($user) return $user;
     
     return null;
 }
@@ -195,19 +277,6 @@ function getUserBySnsId($provider, $snsId) {
         }
     }
     
-    // JSON 파일에서 검색 (하위 호환성)
-    $usersFile = getUsersFilePath();
-    if (file_exists($usersFile)) {
-        $content = file_get_contents($usersFile);
-        $data = json_decode($content, true) ?: ['users' => []];
-        foreach ($data['users'] ?? [] as $user) {
-            if (isset($user['sns_provider']) && $user['sns_provider'] === $provider && 
-                isset($user['sns_id']) && $user['sns_id'] === $snsId) {
-                return $user;
-            }
-        }
-    }
-    
     return null;
 }
 
@@ -218,11 +287,44 @@ function getUserBySnsId($provider, $snsId) {
 function getUsersData() {
     $allUsers = [];
     
-    // 일반 회원 (DB에서 조회)
+    // A안: users 테이블에서 모든 역할 조회 (seller/admin/sub_admin 포함)
     $pdo = getDBConnection();
     if ($pdo) {
         try {
-            $stmt = $pdo->query("SELECT * FROM users WHERE role = 'user'");
+            $stmt = $pdo->query("
+                SELECT
+                    u.*,
+                    COALESCE(sp.seller_approved, u.seller_approved) AS seller_approved,
+                    COALESCE(sp.approval_status, u.approval_status) AS approval_status,
+                    COALESCE(sp.approved_at, u.approved_at) AS approved_at,
+                    COALESCE(sp.held_at, u.held_at) AS held_at,
+                    COALESCE(sp.withdrawal_requested, u.withdrawal_requested) AS withdrawal_requested,
+                    COALESCE(sp.withdrawal_requested_at, u.withdrawal_requested_at) AS withdrawal_requested_at,
+                    COALESCE(sp.withdrawal_reason, u.withdrawal_reason) AS withdrawal_reason,
+                    COALESCE(sp.withdrawal_completed, u.withdrawal_completed) AS withdrawal_completed,
+                    COALESCE(sp.withdrawal_completed_at, u.withdrawal_completed_at) AS withdrawal_completed_at,
+                    COALESCE(sp.scheduled_delete_date, u.scheduled_delete_date) AS scheduled_delete_date,
+                    COALESCE(sp.scheduled_delete_processed, u.scheduled_delete_processed) AS scheduled_delete_processed,
+                    COALESCE(sp.scheduled_delete_processed_at, u.scheduled_delete_processed_at) AS scheduled_delete_processed_at,
+                    COALESCE(sp.postal_code, u.postal_code) AS postal_code,
+                    COALESCE(sp.address, u.address) AS address,
+                    COALESCE(sp.address_detail, u.address_detail) AS address_detail,
+                    COALESCE(sp.business_number, u.business_number) AS business_number,
+                    COALESCE(sp.company_name, u.company_name) AS company_name,
+                    COALESCE(sp.company_representative, u.company_representative) AS company_representative,
+                    COALESCE(sp.business_type, u.business_type) AS business_type,
+                    COALESCE(sp.business_item, u.business_item) AS business_item,
+                    COALESCE(sp.business_license_image, u.business_license_image) AS business_license_image,
+                    COALESCE(sp.permissions, u.permissions) AS permissions,
+                    COALESCE(sp.permissions_updated_at, u.permissions_updated_at) AS permissions_updated_at,
+                    sp.info_checked_by_admin AS info_checked_by_admin,
+                    sp.info_checked_at AS info_checked_at,
+                    ap.created_by AS admin_created_by,
+                    ap.memo AS admin_memo
+                FROM users u
+                LEFT JOIN seller_profiles sp ON sp.user_id = u.user_id
+                LEFT JOIN admin_profiles ap ON ap.user_id = u.user_id
+            ");
             $dbUsers = $stmt->fetchAll(PDO::FETCH_ASSOC);
             
             foreach ($dbUsers as $user) {
@@ -233,62 +335,10 @@ function getUsersData() {
         }
     }
     
-    // DB 연결 실패 시 JSON 파일에서 읽기 (하위 호환성)
-    if (empty($allUsers) || !$pdo) {
-        $usersFile = getUsersFilePath();
-        if (file_exists($usersFile)) {
-            clearstatcache(true, $usersFile);
-            $content = file_get_contents($usersFile);
-            $data = json_decode($content, true) ?: ['users' => []];
-            $allUsers = array_merge($allUsers, $data['users'] ?? []);
-        }
-    }
-    
-    // 관리자 (admins.json)
-    $adminsFile = getAdminsFilePath();
-    if (file_exists($adminsFile)) {
-        clearstatcache(true, $adminsFile);
-        $content = file_get_contents($adminsFile);
-        $data = json_decode($content, true) ?: ['admins' => []];
-        $allUsers = array_merge($allUsers, $data['admins'] ?? []);
-    }
-    
-    // 판매자 (sellers.json)
-    $sellersFile = getSellersFilePath();
-    if (file_exists($sellersFile)) {
-        clearstatcache(true, $sellersFile);
-        $content = file_get_contents($sellersFile);
-        $data = json_decode($content, true) ?: ['sellers' => []];
-        $allUsers = array_merge($allUsers, $data['sellers'] ?? []);
-    }
-    
     return ['users' => $allUsers];
 }
 
-/**
- * 사용자 데이터 저장 (역할에 따라 적절한 파일에 저장)
- */
-function saveUsersData($data) {
-    $users = $data['users'] ?? [];
-    $usersData = ['users' => []];
-    $adminsData = ['admins' => []];
-    $sellersData = ['sellers' => []];
-    
-    foreach ($users as $user) {
-        $role = $user['role'] ?? 'user';
-        if ($role === 'admin' || $role === 'sub_admin') {
-            $adminsData['admins'][] = $user;
-        } elseif ($role === 'seller') {
-            $sellersData['sellers'][] = $user;
-        } else {
-            $usersData['users'][] = $user;
-        }
-    }
-    
-    file_put_contents(getUsersFilePath(), json_encode($usersData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-    file_put_contents(getAdminsFilePath(), json_encode($adminsData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-    file_put_contents(getSellersFilePath(), json_encode($sellersData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-}
+// saveUsersData() 제거 (DB-only)
 
 // ============================================================================
 // 인증 관련 함수
@@ -455,25 +505,9 @@ function registerSnsUser($provider, $snsId, $email, $name) {
             error_log("registerSnsUser DB error: " . $e->getMessage());
         }
     }
-    
-    // DB 연결 실패 또는 오류 시 JSON 파일에 저장 (하위 호환성)
-    $newUser = [
-        'user_id' => $userId,
-        'email' => $email,
-        'name' => $name,
-        'role' => 'user',
-        'sns_provider' => $provider,
-        'sns_id' => $snsId,
-        'created_at' => date('Y-m-d H:i:s'),
-        'seller_approved' => false
-    ];
-    
-    $file = getUsersFilePath();
-    $data = file_exists($file) ? json_decode(file_get_contents($file), true) : ['users' => []];
-    $data['users'][] = $newUser;
-    file_put_contents($file, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-    
-    return $newUser;
+
+    // DB-only: DB 연결 실패 시 가입 실패 처리
+    return null;
 }
 
 /**
@@ -513,49 +547,121 @@ function registerDirectUser($userId, $password, $email, $name, $role, $additiona
         $newUser = array_merge($newUser, $additionalData);
     }
     
-    // 일반 회원(user)만 DB에 저장, 나머지는 JSON 파일에 저장
-    if ($role === 'user') {
-        $pdo = getDBConnection();
-        if ($pdo) {
-            try {
-                $stmt = $pdo->prepare("
-                    INSERT INTO users (user_id, email, name, password, phone, role, seller_approved, created_at)
-                    VALUES (:user_id, :email, :name, :password, :phone, 'user', 1, NOW())
-                ");
-                
-                $stmt->execute([
-                    ':user_id' => $newUser['user_id'],
-                    ':email' => $newUser['email'],
-                    ':name' => $newUser['name'],
-                    ':password' => $newUser['password'],
-                    ':phone' => $newUser['phone'] ?? null
-                ]);
-                
-                $savedUser = getUserById($userId);
-                return ['success' => true, 'user' => $savedUser];
-            } catch (PDOException $e) {
-                error_log("registerDirectUser DB error: " . $e->getMessage());
-            }
-        }
-        
-        // DB 연결 실패 시 JSON 파일에 저장 (하위 호환성)
-        $file = getUsersFilePath();
-        $data = file_exists($file) ? json_decode(file_get_contents($file), true) : ['users' => []];
-        $data['users'][] = $newUser;
-        file_put_contents($file, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-    } elseif ($role === 'admin' || $role === 'sub_admin') {
-        $file = getAdminsFilePath();
-        $data = file_exists($file) ? json_decode(file_get_contents($file), true) : ['admins' => []];
-        $data['admins'][] = $newUser;
-        file_put_contents($file, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-    } elseif ($role === 'seller') {
-        $file = getSellersFilePath();
-        $data = file_exists($file) ? json_decode(file_get_contents($file), true) : ['sellers' => []];
-        $data['sellers'][] = $newUser;
-        file_put_contents($file, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+    // A안: 모든 역할은 users(DB)에 저장 + 역할별 프로필 테이블에 분리 저장
+    $pdo = getDBConnection();
+    if (!$pdo) {
+        return ['success' => false, 'message' => 'DB 연결에 실패했습니다.'];
     }
-    
-    return ['success' => true, 'user' => $newUser];
+
+    try {
+        $pdo->beginTransaction();
+
+        // users(공통) 저장
+        $stmt = $pdo->prepare("
+            INSERT INTO users (
+                user_id, email, name, password, phone, mobile, role,
+                seller_approved, approval_status,
+                created_at
+            ) VALUES (
+                :user_id, :email, :name, :password, :phone, :mobile, :role,
+                :seller_approved, :approval_status,
+                NOW()
+            )
+        ");
+
+        $stmt->execute([
+            ':user_id' => $newUser['user_id'],
+            ':email' => $newUser['email'] ?? null,
+            ':name' => $newUser['name'],
+            ':password' => $newUser['password'],
+            ':phone' => $newUser['phone'] ?? null,
+            ':mobile' => $newUser['mobile'] ?? null,
+            ':role' => $role,
+            ':seller_approved' => ($role === 'seller') ? 0 : 1,
+            ':approval_status' => ($role === 'seller') ? 'pending' : null
+        ]);
+
+        // seller_profiles 저장 (판매자 전용)
+        if ($role === 'seller') {
+            $sp = $pdo->prepare("
+                INSERT INTO seller_profiles (
+                    user_id,
+                    seller_approved, approval_status,
+                    postal_code, address, address_detail,
+                    business_number, company_name, company_representative, business_type, business_item,
+                    business_license_image,
+                    permissions, permissions_updated_at,
+                    created_at
+                ) VALUES (
+                    :user_id,
+                    0, 'pending',
+                    :postal_code, :address, :address_detail,
+                    :business_number, :company_name, :company_representative, :business_type, :business_item,
+                    :business_license_image,
+                    :permissions, NULL,
+                    NOW()
+                )
+                ON DUPLICATE KEY UPDATE
+                    postal_code = VALUES(postal_code),
+                    address = VALUES(address),
+                    address_detail = VALUES(address_detail),
+                    business_number = VALUES(business_number),
+                    company_name = VALUES(company_name),
+                    company_representative = VALUES(company_representative),
+                    business_type = VALUES(business_type),
+                    business_item = VALUES(business_item),
+                    business_license_image = VALUES(business_license_image),
+                    permissions = COALESCE(VALUES(permissions), permissions),
+                    updated_at = NOW()
+            ");
+
+            $permissionsJson = null;
+            if (!empty($newUser['permissions']) && is_array($newUser['permissions'])) {
+                $permissionsJson = json_encode($newUser['permissions'], JSON_UNESCAPED_UNICODE);
+            }
+
+            $sp->execute([
+                ':user_id' => $newUser['user_id'],
+                ':postal_code' => $newUser['postal_code'] ?? null,
+                ':address' => $newUser['address'] ?? null,
+                ':address_detail' => $newUser['address_detail'] ?? null,
+                ':business_number' => $newUser['business_number'] ?? null,
+                ':company_name' => $newUser['company_name'] ?? null,
+                ':company_representative' => $newUser['company_representative'] ?? null,
+                ':business_type' => $newUser['business_type'] ?? null,
+                ':business_item' => $newUser['business_item'] ?? null,
+                ':business_license_image' => $newUser['business_license_image'] ?? null,
+                ':permissions' => $permissionsJson
+            ]);
+        }
+
+        // admin_profiles 저장 (관리자 전용)
+        if ($role === 'admin' || $role === 'sub_admin') {
+            $ap = $pdo->prepare("
+                INSERT INTO admin_profiles (user_id, created_by, memo, created_at)
+                VALUES (:user_id, :created_by, :memo, NOW())
+                ON DUPLICATE KEY UPDATE
+                    memo = COALESCE(VALUES(memo), memo),
+                    updated_at = NOW()
+            ");
+            $ap->execute([
+                ':user_id' => $newUser['user_id'],
+                ':created_by' => $newUser['created_by'] ?? null,
+                ':memo' => $newUser['memo'] ?? null
+            ]);
+        }
+
+        $pdo->commit();
+
+        $savedUser = getUserById($userId);
+        return ['success' => true, 'user' => $savedUser];
+    } catch (PDOException $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        error_log("registerDirectUser DB error: " . $e->getMessage());
+        return ['success' => false, 'message' => '회원가입 처리 중 오류가 발생했습니다.'];
+    }
 }
 
 /**
@@ -585,109 +691,78 @@ function loginDirectUser($userId, $password) {
 // 판매자 관리 함수
 // ============================================================================
 
-/**
- * 판매자 데이터 파일 저장 (공통 함수)
- */
-function saveSellersData($file, $data) {
-    $jsonData = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
-    
-    $fp = fopen($file, 'c+');
-    if (!$fp) {
-        return false;
-    }
-    
-    if (!flock($fp, LOCK_EX)) {
-        fclose($fp);
-        return false;
-    }
-    
-    ftruncate($fp, 0);
-    rewind($fp);
-    
-    $written = fwrite($fp, $jsonData);
-    if ($written === false || $written === 0) {
-        flock($fp, LOCK_UN);
-        fclose($fp);
-        return false;
-    }
-    
-    fflush($fp);
-    
-    if (function_exists('fsync')) {
-        fsync($fp);
-    }
-    
-    flock($fp, LOCK_UN);
-    fclose($fp);
-    clearstatcache(true, $file);
-    
-    return true;
-}
-
-/**
- * 판매자 데이터 로드 및 업데이트 헬퍼
- */
-function loadAndUpdateSeller($userId, $callback) {
-    $user = getUserById($userId);
-    if (!$user || $user['role'] !== 'seller') {
-        return false;
-    }
-    
-    $file = getSellersFilePath();
-    if (!file_exists($file)) {
-        return false;
-    }
-    
-    clearstatcache(true, $file);
-    $content = @file_get_contents($file);
-    if ($content === false) {
-        return false;
-    }
-    
-    $data = @json_decode($content, true);
-    if (!is_array($data) || !isset($data['sellers'])) {
-        return false;
-    }
-    
-    $foundUser = false;
-    foreach ($data['sellers'] as &$u) {
-        if (isset($u['user_id']) && $u['user_id'] === $userId) {
-            $foundUser = true;
-            $callback($u);
-            break;
-        }
-    }
-    
-    if (!$foundUser) {
-        return false;
-    }
-    
-    return saveSellersData($file, $data);
-}
+// saveSellersData/loadAndUpdateSeller 제거 (DB-only)
 
 /**
  * 판매자 승인
  */
 function approveSeller($userId) {
-    return loadAndUpdateSeller($userId, function(&$u) use ($userId) {
-        $u['approved_at'] = date('Y-m-d H:i:s');
-        $u['seller_approved'] = true;
-        $u['approval_status'] = 'approved';
-        if (!isset($u['permissions'])) {
-            $u['permissions'] = [];
+    $pdo = getDBConnection();
+    if ($pdo) {
+        try {
+            $pdo->beginTransaction();
+            $pdo->prepare("
+                UPDATE users
+                SET seller_approved = 1,
+                    approval_status = 'approved',
+                    approved_at = NOW()
+                WHERE user_id = :user_id AND role = 'seller'
+            ")->execute([':user_id' => $userId]);
+
+            $pdo->prepare("
+                UPDATE seller_profiles
+                SET seller_approved = 1,
+                    approval_status = 'approved',
+                    approved_at = NOW(),
+                    updated_at = NOW()
+                WHERE user_id = :user_id
+            ")->execute([':user_id' => $userId]);
+
+            $pdo->commit();
+            return true;
+        } catch (PDOException $e) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            error_log("approveSeller DB error: " . $e->getMessage());
         }
-    });
+    }
+
+    return false;
 }
 
 /**
  * 판매자 승인보류
  */
 function holdSeller($userId) {
-    return loadAndUpdateSeller($userId, function(&$u) {
-        $u['held_at'] = date('Y-m-d H:i:s');
-        $u['seller_approved'] = false;
-        $u['approval_status'] = 'on_hold';
-    });
+    $pdo = getDBConnection();
+    if ($pdo) {
+        try {
+            $pdo->beginTransaction();
+            $pdo->prepare("
+                UPDATE users
+                SET seller_approved = 0,
+                    approval_status = 'on_hold',
+                    held_at = NOW()
+                WHERE user_id = :user_id AND role = 'seller'
+            ")->execute([':user_id' => $userId]);
+
+            $pdo->prepare("
+                UPDATE seller_profiles
+                SET seller_approved = 0,
+                    approval_status = 'on_hold',
+                    held_at = NOW(),
+                    updated_at = NOW()
+                WHERE user_id = :user_id
+            ")->execute([':user_id' => $userId]);
+
+            $pdo->commit();
+            return true;
+        } catch (PDOException $e) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            error_log("holdSeller DB error: " . $e->getMessage());
+        }
+    }
+
+    return false;
 }
 
 /**
@@ -698,23 +773,36 @@ function rejectSeller($userId) {
     if (!$user || $user['role'] !== 'seller') {
         return false;
     }
-    
-    $file = getSellersFilePath();
-    if (!file_exists($file)) {
-        return false;
-    }
-    
-    $data = json_decode(file_get_contents($file), true) ?: ['sellers' => []];
-    foreach ($data['sellers'] as &$u) {
-        if ($u['user_id'] === $userId) {
-            $u['seller_approved'] = false;
-            $u['approval_status'] = 'rejected';
-            break;
+
+    $pdo = getDBConnection();
+    if ($pdo) {
+        try {
+            $pdo->beginTransaction();
+            $pdo->prepare("
+                UPDATE users
+                SET seller_approved = 0,
+                    approval_status = 'rejected',
+                    updated_at = NOW()
+                WHERE user_id = :user_id AND role = 'seller'
+            ")->execute([':user_id' => $userId]);
+
+            $pdo->prepare("
+                UPDATE seller_profiles
+                SET seller_approved = 0,
+                    approval_status = 'rejected',
+                    updated_at = NOW()
+                WHERE user_id = :user_id
+            ")->execute([':user_id' => $userId]);
+
+            $pdo->commit();
+            return true;
+        } catch (PDOException $e) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            error_log('rejectSeller DB error: ' . $e->getMessage());
         }
     }
-    
-    file_put_contents($file, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-    return true;
+
+    return false;
 }
 
 /**
@@ -725,23 +813,40 @@ function cancelSellerApproval($userId) {
     if (!$user || $user['role'] !== 'seller') {
         return false;
     }
-    
-    $file = getSellersFilePath();
-    if (!file_exists($file)) {
-        return false;
-    }
-    
-    $data = json_decode(file_get_contents($file), true) ?: ['sellers' => []];
-    foreach ($data['sellers'] as &$u) {
-        if ($u['user_id'] === $userId) {
-            $u['seller_approved'] = false;
-            $u['approval_status'] = 'pending';
-            break;
+
+    $pdo = getDBConnection();
+    if ($pdo) {
+        try {
+            $pdo->beginTransaction();
+            $pdo->prepare("
+                UPDATE users
+                SET seller_approved = 0,
+                    approval_status = 'pending',
+                    approved_at = NULL,
+                    held_at = NULL,
+                    updated_at = NOW()
+                WHERE user_id = :user_id AND role = 'seller'
+            ")->execute([':user_id' => $userId]);
+
+            $pdo->prepare("
+                UPDATE seller_profiles
+                SET seller_approved = 0,
+                    approval_status = 'pending',
+                    approved_at = NULL,
+                    held_at = NULL,
+                    updated_at = NOW()
+                WHERE user_id = :user_id
+            ")->execute([':user_id' => $userId]);
+
+            $pdo->commit();
+            return true;
+        } catch (PDOException $e) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            error_log('cancelSellerApproval DB error: ' . $e->getMessage());
         }
     }
-    
-    file_put_contents($file, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-    return true;
+
+    return false;
 }
 
 /**
@@ -758,26 +863,42 @@ function requestSellerWithdrawal($userId, $reason = '') {
     if (!$user || $user['role'] !== 'seller') {
         return false;
     }
-    
-    $file = getSellersFilePath();
-    if (!file_exists($file)) {
-        return false;
-    }
-    
-    $data = json_decode(file_get_contents($file), true) ?: ['sellers' => []];
-    foreach ($data['sellers'] as &$u) {
-        if ($u['user_id'] === $userId) {
-            $u['withdrawal_requested'] = true;
-            $u['withdrawal_requested_at'] = date('Y-m-d H:i:s');
-            $u['withdrawal_reason'] = $reason;
-            $u['approval_status'] = 'withdrawal_requested';
-            $u['seller_approved'] = false;
-            break;
+
+    $pdo = getDBConnection();
+    if ($pdo) {
+        try {
+            $pdo->beginTransaction();
+            $pdo->prepare("
+                UPDATE users
+                SET withdrawal_requested = 1,
+                    withdrawal_requested_at = NOW(),
+                    withdrawal_reason = :reason,
+                    approval_status = 'withdrawal_requested',
+                    seller_approved = 0,
+                    updated_at = NOW()
+                WHERE user_id = :user_id AND role = 'seller'
+            ")->execute([':user_id' => $userId, ':reason' => $reason]);
+
+            $pdo->prepare("
+                UPDATE seller_profiles
+                SET withdrawal_requested = 1,
+                    withdrawal_requested_at = NOW(),
+                    withdrawal_reason = :reason,
+                    approval_status = 'withdrawal_requested',
+                    seller_approved = 0,
+                    updated_at = NOW()
+                WHERE user_id = :user_id
+            ")->execute([':user_id' => $userId, ':reason' => $reason]);
+
+            $pdo->commit();
+            return true;
+        } catch (PDOException $e) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            error_log('requestSellerWithdrawal DB error: ' . $e->getMessage());
         }
     }
-    
-    file_put_contents($file, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-    return true;
+
+    return false;
 }
 
 /**
@@ -799,124 +920,93 @@ function completeSellerWithdrawal($userId, $deleteDate = null) {
         return false;
     }
     
-    $file = getSellersFilePath();
-    if (!file_exists($file)) {
-        return false;
-    }
-    
-    $data = json_decode(file_get_contents($file), true) ?: ['sellers' => []];
-    foreach ($data['sellers'] as &$u) {
-        if ($u['user_id'] === $userId) {
-            $u['withdrawal_completed'] = true;
-            $u['withdrawal_completed_at'] = date('Y-m-d H:i:s');
-            $u['approval_status'] = 'withdrawn';
-            $u['seller_approved'] = false;
-            
-            if (!empty($deleteDate)) {
-                $u['scheduled_delete_date'] = $deleteDate;
-            } else {
-                $u['scheduled_delete_date'] = null;
-                $u['scheduled_delete_time'] = null;
-                $u['email'] = 'withdrawn_' . $userId . '@withdrawn';
-                if (isset($u['phone'])) unset($u['phone']);
-                if (isset($u['mobile'])) unset($u['mobile']);
-                if (isset($u['address'])) unset($u['address']);
-                if (isset($u['address_detail'])) unset($u['address_detail']);
-                if (isset($u['postal_code'])) unset($u['postal_code']);
-                
-                // 업로드된 파일 삭제 (사업자등록증 등)
-                if (isset($u['business_license_image']) && !empty($u['business_license_image'])) {
-                    $imagePath = $_SERVER['DOCUMENT_ROOT'] . $u['business_license_image'];
-                    if (file_exists($imagePath)) {
-                        @unlink($imagePath);
-                    }
-                }
-                
-                // 기타 첨부파일 삭제
-                if (isset($u['other_documents']) && is_array($u['other_documents'])) {
-                    foreach ($u['other_documents'] as $doc) {
-                        if (isset($doc['url']) && !empty($doc['url'])) {
-                            $docPath = $_SERVER['DOCUMENT_ROOT'] . $doc['url'];
-                            if (file_exists($docPath)) {
-                                @unlink($docPath);
-                            }
-                        }
-                    }
+    $pdo = getDBConnection();
+    if (!$pdo) return false;
+
+    try {
+        $pdo->beginTransaction();
+
+        // seller_profiles 업데이트 (탈퇴 완료 + 스케줄)
+        $pdo->prepare("
+            UPDATE seller_profiles
+            SET withdrawal_completed = 1,
+                withdrawal_completed_at = NOW(),
+                approval_status = 'withdrawn',
+                seller_approved = 0,
+                scheduled_delete_date = :scheduled_delete_date,
+                updated_at = NOW()
+            WHERE user_id = :user_id
+        ")->execute([
+            ':user_id' => $userId,
+            ':scheduled_delete_date' => !empty($deleteDate) ? $deleteDate : null
+        ]);
+
+        // users 업데이트 (표시/로그인용 최소 동기화)
+        // deleteDate가 없으면 개인정보 비식별화 일부 적용
+        if (empty($deleteDate)) {
+            $pdo->prepare("
+                UPDATE users
+                SET seller_approved = 0,
+                    approval_status = 'withdrawn',
+                    withdrawal_completed = 1,
+                    withdrawal_completed_at = NOW(),
+                    email = :email,
+                    phone = NULL,
+                    mobile = NULL,
+                    postal_code = NULL,
+                    address = NULL,
+                    address_detail = NULL,
+                    business_number = NULL,
+                    company_name = NULL,
+                    company_representative = NULL,
+                    business_type = NULL,
+                    business_item = NULL,
+                    business_license_image = NULL,
+                    updated_at = NOW()
+                WHERE user_id = :user_id AND role = 'seller'
+            ")->execute([
+                ':user_id' => $userId,
+                ':email' => 'withdrawn_' . $userId . '@withdrawn'
+            ]);
+        } else {
+            $pdo->prepare("
+                UPDATE users
+                SET seller_approved = 0,
+                    approval_status = 'withdrawn',
+                    withdrawal_completed = 1,
+                    withdrawal_completed_at = NOW(),
+                    scheduled_delete_date = :scheduled_delete_date,
+                    updated_at = NOW()
+                WHERE user_id = :user_id AND role = 'seller'
+            ")->execute([
+                ':user_id' => $userId,
+                ':scheduled_delete_date' => $deleteDate
+            ]);
+        }
+
+        $pdo->commit();
+
+        // 파일 삭제(업로드된 사업자등록증) - DB에서 경로 조회 후 삭제
+        if (empty($deleteDate)) {
+            $seller = getUserById($userId);
+            $imageRelPath = $seller['business_license_image'] ?? null;
+            if (!empty($imageRelPath)) {
+                $imagePath = $_SERVER['DOCUMENT_ROOT'] . $imageRelPath;
+                if (file_exists($imagePath)) {
+                    @unlink($imagePath);
                 }
             }
-            break;
         }
+
+        return true;
+    } catch (PDOException $e) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        error_log('completeSellerWithdrawal DB error: ' . $e->getMessage());
+        return false;
     }
-    
-    file_put_contents($file, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-    
-    if (!empty($deleteDate) && $deleteDate <= date('Y-m-d')) {
-        processScheduledDeletions();
-    }
-    
-    return true;
 }
 
-/**
- * 예정된 삭제 처리 (삭제 예정일이 지난 판매자들 처리)
- */
-function processScheduledDeletions() {
-    $file = getSellersFilePath();
-    if (!file_exists($file)) {
-        return false;
-    }
-    
-    $data = json_decode(file_get_contents($file), true) ?: ['sellers' => []];
-    $currentDate = date('Y-m-d');
-    $currentDateTime = date('Y-m-d H:i:s');
-    $updated = false;
-    
-    foreach ($data['sellers'] as &$u) {
-        if (isset($u['scheduled_delete_date']) && !empty($u['scheduled_delete_date']) 
-            && (!isset($u['scheduled_delete_processed']) || $u['scheduled_delete_processed'] !== true)) {
-            $scheduledDate = $u['scheduled_delete_date'];
-            
-            if ($scheduledDate <= $currentDate) {
-                $u['email'] = 'withdrawn_' . $u['user_id'] . '@withdrawn';
-                if (isset($u['phone'])) unset($u['phone']);
-                if (isset($u['mobile'])) unset($u['mobile']);
-                if (isset($u['address'])) unset($u['address']);
-                if (isset($u['address_detail'])) unset($u['address_detail']);
-                if (isset($u['postal_code'])) unset($u['postal_code']);
-                
-                // 업로드된 파일 삭제 (사업자등록증 등)
-                if (isset($u['business_license_image']) && !empty($u['business_license_image'])) {
-                    $imagePath = $_SERVER['DOCUMENT_ROOT'] . $u['business_license_image'];
-                    if (file_exists($imagePath)) {
-                        @unlink($imagePath);
-                    }
-                }
-                
-                // 기타 첨부파일 삭제
-                if (isset($u['other_documents']) && is_array($u['other_documents'])) {
-                    foreach ($u['other_documents'] as $doc) {
-                        if (isset($doc['url']) && !empty($doc['url'])) {
-                            $docPath = $_SERVER['DOCUMENT_ROOT'] . $doc['url'];
-                            if (file_exists($docPath)) {
-                                @unlink($docPath);
-                            }
-                        }
-                    }
-                }
-                
-                $u['scheduled_delete_processed'] = true;
-                $u['scheduled_delete_processed_at'] = $currentDateTime;
-                $updated = true;
-            }
-        }
-    }
-    
-    if ($updated) {
-        file_put_contents($file, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-    }
-    
-    return $updated;
-}
+// processScheduledDeletions 제거 (DB-only)
 
 /**
  * 판매자 탈퇴 요청 취소 (판매자가 취소하거나 관리자가 거부)
@@ -927,24 +1017,40 @@ function cancelSellerWithdrawal($userId) {
         return false;
     }
     
-    $file = getSellersFilePath();
-    if (!file_exists($file)) {
+    $pdo = getDBConnection();
+    if (!$pdo) return false;
+
+    try {
+        $pdo->beginTransaction();
+        $pdo->prepare("
+            UPDATE seller_profiles
+            SET withdrawal_requested = 0,
+                withdrawal_requested_at = NULL,
+                withdrawal_reason = NULL,
+                approval_status = 'approved',
+                seller_approved = 1,
+                updated_at = NOW()
+            WHERE user_id = :user_id
+        ")->execute([':user_id' => $userId]);
+
+        $pdo->prepare("
+            UPDATE users
+            SET withdrawal_requested = 0,
+                withdrawal_requested_at = NULL,
+                withdrawal_reason = NULL,
+                approval_status = 'approved',
+                seller_approved = 1,
+                updated_at = NOW()
+            WHERE user_id = :user_id AND role = 'seller'
+        ")->execute([':user_id' => $userId]);
+
+        $pdo->commit();
+        return true;
+    } catch (PDOException $e) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        error_log('cancelSellerWithdrawal DB error: ' . $e->getMessage());
         return false;
     }
-    
-    $data = json_decode(file_get_contents($file), true) ?: ['sellers' => []];
-    foreach ($data['sellers'] as &$u) {
-        if ($u['user_id'] === $userId) {
-            $u['withdrawal_requested'] = false;
-            $u['approval_status'] = 'approved';
-            $u['seller_approved'] = true;
-            if (isset($u['withdrawal_reason'])) unset($u['withdrawal_reason']);
-            break;
-        }
-    }
-    
-    file_put_contents($file, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-    return true;
 }
 
 /**
@@ -955,31 +1061,51 @@ function setSellerPermissions($userId, $permissions) {
     if (!$user || $user['role'] !== 'seller') {
         return false;
     }
-    
+
     $allowedPermissions = ['mvno', 'mno', 'internet'];
     $validPermissions = [];
-    foreach ($permissions as $perm) {
-        if (in_array($perm, $allowedPermissions)) {
+    foreach ((array)$permissions as $perm) {
+        if (in_array($perm, $allowedPermissions, true)) {
             $validPermissions[] = $perm;
         }
     }
-    
-    $file = getSellersFilePath();
-    if (!file_exists($file)) {
+
+    $pdo = getDBConnection();
+    if (!$pdo) return false;
+
+    try {
+        $json = json_encode(array_values(array_unique($validPermissions)), JSON_UNESCAPED_UNICODE);
+        $pdo->beginTransaction();
+
+        $pdo->prepare("
+            INSERT INTO seller_profiles (user_id, permissions, permissions_updated_at, created_at)
+            VALUES (:user_id, :permissions_insert, NOW(), NOW())
+            ON DUPLICATE KEY UPDATE
+                permissions = :permissions_update,
+                permissions_updated_at = NOW(),
+                updated_at = NOW()
+        ")->execute([
+            ':user_id' => $userId,
+            ':permissions_insert' => $json,
+            ':permissions_update' => $json
+        ]);
+
+        // users 테이블에도 동기화(기존 화면 호환)
+        $pdo->prepare("
+            UPDATE users
+            SET permissions = :permissions,
+                permissions_updated_at = NOW(),
+                updated_at = NOW()
+            WHERE user_id = :user_id AND role = 'seller'
+        ")->execute([':user_id' => $userId, ':permissions' => $json]);
+
+        $pdo->commit();
+        return true;
+    } catch (PDOException $e) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        error_log('setSellerPermissions DB error: ' . $e->getMessage());
         return false;
     }
-    
-    $data = json_decode(file_get_contents($file), true) ?: ['sellers' => []];
-    foreach ($data['sellers'] as &$u) {
-        if ($u['user_id'] === $userId) {
-            $u['permissions'] = $validPermissions;
-            $u['permissions_updated_at'] = date('Y-m-d H:i:s');
-            break;
-        }
-    }
-    
-    file_put_contents($file, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-    return true;
 }
 
 /**
@@ -999,7 +1125,7 @@ function hasSellerPermission($userId, $permission) {
         return false;
     }
     
-    return in_array($permission, $user['permissions']);
+    return in_array($permission, $user['permissions'], true);
 }
 
 /**
@@ -1013,6 +1139,8 @@ function canSellerPost($permission) {
     
     return hasSellerPermission($user['user_id'], $permission);
 }
+
+
 
 
 

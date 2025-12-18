@@ -46,7 +46,7 @@ if ($pdo) {
             WHERE user_id = :user_id AND product_type = :product_type
         ");
         $stmt->execute([
-            ':user_id' => (int)$currentUserId,
+            ':user_id' => (string)$currentUserId,
             ':product_type' => $productType
         ]);
         $wishlistProductIds = array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));

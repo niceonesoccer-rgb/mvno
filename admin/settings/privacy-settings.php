@@ -5,6 +5,7 @@
  */
 
 require_once __DIR__ . '/../../includes/data/auth-functions.php';
+require_once __DIR__ . '/../../includes/data/app-settings.php';
 
 // 세션 시작
 if (session_status() === PHP_SESSION_NONE) {
@@ -20,9 +21,6 @@ if (!isAdmin()) {
 $currentUser = getCurrentUser();
 $error = '';
 $success = '';
-
-// 개인정보 설정 파일 경로
-$privacySettingsFile = __DIR__ . '/../../includes/data/privacy-settings.json';
 
 // POST 요청 처리 (설정 저장)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_settings'])) {
@@ -55,9 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_settings'])) {
     }
     
     if ($isValid) {
-        // JSON 파일로 저장
-        $jsonData = json_encode($privacySettings, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-        if (file_put_contents($privacySettingsFile, $jsonData)) {
+        if (saveAppSettings('privacy', $privacySettings, $currentUser['user_id'] ?? null)) {
             $success = '개인정보 설정이 저장되었습니다.';
         } else {
             $error = '설정 저장에 실패했습니다.';
@@ -68,31 +64,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_settings'])) {
 }
 
 // 현재 설정 읽기
-$privacySettings = [];
-if (file_exists($privacySettingsFile)) {
-    $jsonContent = file_get_contents($privacySettingsFile);
-    $privacySettings = json_decode($jsonContent, true) ?: [];
-} else {
-    // 기본값 설정
-    $privacySettings = [
-        'purpose' => [
-            'title' => '개인정보 수집 및 이용목적',
-            'content' => '<div class="privacy-content-text"><p><strong>1. 개인정보의 수집 및 이용목적</strong></p><p>&lt;유심킹&gt;(\'http://www.dtmall.net\' 이하 \'회사\') 은(는) 다음의 목적을 위하여 개인정보를 처리하고 있으며, 다음의 목적 이외의 용도로는 이용하지 않습니다.</p></div>'
-        ],
-        'items' => [
-            'title' => '개인정보 수집하는 항목',
-            'content' => '<div class="privacy-content-text"><p><strong>2. 개인정보 수집항목 및 수집방법</strong></p></div>'
-        ],
-        'period' => [
-            'title' => '개인정보 보유 및 이용기간',
-            'content' => '<div class="privacy-content-text"><p><strong>3. 개인정보의 보유 및 이용기간</strong></p></div>'
-        ],
-        'thirdParty' => [
-            'title' => '개인정보 제3자 제공',
-            'content' => '<div class="privacy-content-text"><p><strong>유심킹 개인정보 제3자 제공에 동의</strong></p></div>'
-        ]
-    ];
-}
+$privacySettings = getAppSettings('privacy', [
+    'purpose' => [
+        'title' => '개인정보 수집 및 이용목적',
+        'content' => '<div class="privacy-content-text"><p><strong>1. 개인정보의 수집 및 이용목적</strong></p><p>&lt;유심킹&gt;(\'http://www.dtmall.net\' 이하 \'회사\') 은(는) 다음의 목적을 위하여 개인정보를 처리하고 있으며, 다음의 목적 이외의 용도로는 이용하지 않습니다.</p></div>'
+    ],
+    'items' => [
+        'title' => '개인정보 수집하는 항목',
+        'content' => '<div class="privacy-content-text"><p><strong>2. 개인정보 수집항목 및 수집방법</strong></p></div>'
+    ],
+    'period' => [
+        'title' => '개인정보 보유 및 이용기간',
+        'content' => '<div class="privacy-content-text"><p><strong>3. 개인정보의 보유 및 이용기간</strong></p></div>'
+    ],
+    'thirdParty' => [
+        'title' => '개인정보 제3자 제공',
+        'content' => '<div class="privacy-content-text"><p><strong>유심킹 개인정보 제3자 제공에 동의</strong></p></div>'
+    ]
+]);
 
 // 현재 페이지 설정
 $currentPage = 'privacy-settings.php';

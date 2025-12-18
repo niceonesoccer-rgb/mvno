@@ -316,30 +316,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_seller'])) {
                         }
                     }
                     
-                    // DB에서 확인되지 않으면 JSON 파일 확인 (fallback)
-                    if (!$isDuplicate) {
-                        $sellersFile = getSellersFilePath();
-                        $allSellers = [];
-                        if (file_exists($sellersFile)) {
-                            $data = json_decode(file_get_contents($sellersFile), true) ?: ['sellers' => []];
-                            $allSellers = $data['sellers'] ?? [];
-                        }
-                        
-                        // 중복 검사 (대소문자 구분 없이, 자기 자신 제외)
-                        $sellerNameLower = mb_strtolower($sellerName, 'UTF-8');
-                        foreach ($allSellers as $otherSeller) {
-                            if (isset($otherSeller['user_id']) && $otherSeller['user_id'] === $userId) {
-                                continue; // 자기 자신은 제외
-                            }
-                            if (isset($otherSeller['seller_name']) && !empty($otherSeller['seller_name'])) {
-                                $otherSellerNameLower = mb_strtolower($otherSeller['seller_name'], 'UTF-8');
-                                if ($otherSellerNameLower === $sellerNameLower) {
-                                    $isDuplicate = true;
-                                    break;
-                                }
-                            }
-                        }
-                    }
+                    // DB-only: JSON fallback 제거
                     
                     if ($isDuplicate) {
                         $error_message = '이미 사용 중인 판매자명입니다.';
@@ -373,30 +350,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_seller'])) {
                     }
                 }
                 
-                // DB에서 확인되지 않으면 JSON 파일 확인 (fallback)
-                if (!$isDuplicate) {
-                    $sellersFile = getSellersFilePath();
-                    $allSellers = [];
-                    if (file_exists($sellersFile)) {
-                        $data = json_decode(file_get_contents($sellersFile), true) ?: ['sellers' => []];
-                        $allSellers = $data['sellers'] ?? [];
-                    }
-                    
-                    // 중복 검사 (대소문자 구분 없이, 자기 자신 제외)
-                    $sellerNameLower = mb_strtolower($sellerName, 'UTF-8');
-                    foreach ($allSellers as $otherSeller) {
-                        if (isset($otherSeller['user_id']) && $otherSeller['user_id'] === $userId) {
-                            continue; // 자기 자신은 제외
-                        }
-                        if (isset($otherSeller['seller_name']) && !empty($otherSeller['seller_name'])) {
-                            $otherSellerNameLower = mb_strtolower($otherSeller['seller_name'], 'UTF-8');
-                            if ($otherSellerNameLower === $sellerNameLower) {
-                                $isDuplicate = true;
-                                break;
-                            }
-                        }
-                    }
-                }
+                // DB-only: JSON fallback 제거
                 
                 if ($isDuplicate) {
                     $error_message = '이미 사용 중인 판매자명입니다.';
@@ -515,43 +469,91 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_seller'])) {
             
             // 변경 사항이 있을 때만 업데이트 진행
             if ($hasChanges) {
-                // 판매자 정보 업데이트
-                $file = getSellersFilePath();
-                if (file_exists($file)) {
-                    $data = json_decode(file_get_contents($file), true) ?: ['sellers' => []];
-                    $updated = false;
-                    
-                    foreach ($data['sellers'] as &$u) {
-                        if ($u['user_id'] === $userId) {
-                            // 기존 데이터에 업데이트 데이터 병합
-                            foreach ($updateData as $key => $value) {
-                                $u[$key] = $value;
-                            }
-                            // 우편번호 필드 제거 (더 이상 사용하지 않음)
-                            if (isset($u['postal_code'])) {
-                                unset($u['postal_code']);
-                            }
-                            $u['updated_at'] = date('Y-m-d H:i:s');
-                            // 정보 업데이트 플래그 설정 (관리자 확인 전까지 유지)
-                            $u['info_updated'] = true;
-                            $u['info_updated_at'] = date('Y-m-d H:i:s');
-                            $u['info_checked_by_admin'] = false; // 관리자 확인 전
-                            $updated = true;
-                            break;
+                // DB-only: users + seller_profiles 업데이트
+                $pdo = getDBConnection();
+                if (!$pdo) {
+                    $error_message = 'DB 연결에 실패했습니다.';
+                } else {
+                    try {
+                        $pdo->beginTransaction();
+
+                        $passwordHashed = null;
+                        if (!empty($_POST['password'])) {
+                            $passwordHashed = $updateData['password'] ?? password_hash($_POST['password'], PASSWORD_DEFAULT);
                         }
-                    }
-                    
-                    if ($updated) {
-                        file_put_contents($file, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-                        // 저장 성공 플래그 설정
+
+                        $u = $pdo->prepare("
+                            UPDATE users
+                            SET name = :name,
+                                seller_name = :seller_name,
+                                email = :email,
+                                phone = :phone,
+                                mobile = :mobile,
+                                address = :address,
+                                address_detail = :address_detail,
+                                company_name = :company_name,
+                                company_representative = :company_representative,
+                                business_type = :business_type,
+                                business_item = :business_item,
+                                business_license_image = :business_license_image,
+                                password = COALESCE(:password, password),
+                                updated_at = NOW()
+                            WHERE user_id = :user_id
+                              AND role = 'seller'
+                            LIMIT 1
+                        ");
+                        $u->execute([
+                            ':name' => $updateData['name'] ?? ($seller['name'] ?? ''),
+                            ':seller_name' => $updateData['seller_name'] ?? ($seller['seller_name'] ?? null),
+                            ':email' => $updateData['email'] ?? ($seller['email'] ?? null),
+                            ':phone' => $updateData['phone'] ?? ($seller['phone'] ?? null),
+                            ':mobile' => $updateData['mobile'] ?? ($seller['mobile'] ?? null),
+                            ':address' => $updateData['address'] ?? ($seller['address'] ?? null),
+                            ':address_detail' => $updateData['address_detail'] ?? ($seller['address_detail'] ?? null),
+                            ':company_name' => $updateData['company_name'] ?? ($seller['company_name'] ?? null),
+                            ':company_representative' => $updateData['company_representative'] ?? ($seller['company_representative'] ?? null),
+                            ':business_type' => $updateData['business_type'] ?? ($seller['business_type'] ?? null),
+                            ':business_item' => $updateData['business_item'] ?? ($seller['business_item'] ?? null),
+                            ':business_license_image' => $updateData['business_license_image'] ?? ($seller['business_license_image'] ?? null),
+                            ':password' => $passwordHashed,
+                            ':user_id' => $userId
+                        ]);
+
+                        $sp = $pdo->prepare("
+                            UPDATE seller_profiles
+                            SET seller_name = :seller_name,
+                                address = :address,
+                                address_detail = :address_detail,
+                                company_name = :company_name,
+                                company_representative = :company_representative,
+                                business_type = :business_type,
+                                business_item = :business_item,
+                                business_license_image = :business_license_image,
+                                updated_at = NOW()
+                            WHERE user_id = :user_id
+                            LIMIT 1
+                        ");
+                        $sp->execute([
+                            ':seller_name' => $updateData['seller_name'] ?? ($seller['seller_name'] ?? null),
+                            ':address' => $updateData['address'] ?? ($seller['address'] ?? null),
+                            ':address_detail' => $updateData['address_detail'] ?? ($seller['address_detail'] ?? null),
+                            ':company_name' => $updateData['company_name'] ?? ($seller['company_name'] ?? null),
+                            ':company_representative' => $updateData['company_representative'] ?? ($seller['company_representative'] ?? null),
+                            ':business_type' => $updateData['business_type'] ?? ($seller['business_type'] ?? null),
+                            ':business_item' => $updateData['business_item'] ?? ($seller['business_item'] ?? null),
+                            ':business_license_image' => $updateData['business_license_image'] ?? ($seller['business_license_image'] ?? null),
+                            ':user_id' => $userId
+                        ]);
+
+                        $pdo->commit();
+
                         $success_saved = true;
-                        // 판매자 정보 다시 로드 (업데이트된 정보 반영)
                         $seller = getUserById($userId);
-                    } else {
+                    } catch (PDOException $e) {
+                        if ($pdo->inTransaction()) $pdo->rollBack();
+                        error_log('seller/edit DB error: ' . $e->getMessage());
                         $error_message = '판매자 정보 업데이트에 실패했습니다.';
                     }
-                } else {
-                    $error_message = '판매자 데이터 파일을 찾을 수 없습니다.';
                 }
             } else {
                 // 변경 사항이 없으면 메시지 표시

@@ -141,32 +141,41 @@ try {
             throw $e;
         }
         
-        // 판매자 정보 매핑
-        $sellersFile = __DIR__ . '/../../includes/data/sellers.json';
-        $sellersData = [];
-        if (file_exists($sellersFile)) {
-            $sellersContent = file_get_contents($sellersFile);
-            $sellersJson = json_decode($sellersContent, true);
-            if ($sellersJson && isset($sellersJson['sellers'])) {
-                foreach ($sellersJson['sellers'] as $seller) {
-                    if (isset($seller['user_id'])) {
-                        $sellersData[(string)$seller['user_id']] = $seller;
-                    }
-                }
+        // 판매자 정보 매핑 (DB-only)
+        $sellerIds = [];
+        foreach ($products as $p) {
+            $sid = (string)($p['seller_id'] ?? '');
+            if ($sid !== '') $sellerIds[$sid] = true;
+        }
+
+        $sellerMap = [];
+        if (!empty($sellerIds)) {
+            $idList = array_keys($sellerIds);
+            $placeholders = implode(',', array_fill(0, count($idList), '?'));
+            $sellerStmt = $pdo->prepare("
+                SELECT
+                    u.user_id,
+                    COALESCE(NULLIF(u.company_name,''), NULLIF(u.name,''), u.user_id) AS display_name,
+                    COALESCE(u.company_name,'') AS company_name
+                FROM users u
+                WHERE u.role = 'seller'
+                  AND u.user_id IN ($placeholders)
+            ");
+            $sellerStmt->execute($idList);
+            foreach ($sellerStmt->fetchAll(PDO::FETCH_ASSOC) as $s) {
+                $sellerMap[(string)$s['user_id']] = $s;
             }
         }
-        
+
         foreach ($products as &$product) {
             $sellerId = (string)($product['seller_id'] ?? '');
-            if ($sellerId && isset($sellersData[$sellerId])) {
-                $seller = $sellersData[$sellerId];
-                $product['seller_name'] = $seller['seller_name'] ?? $seller['name'] ?? '-';
-                $product['company_name'] = $seller['company_name'] ?? '-';
-                $product['seller_user_id'] = $sellerId;
+            $product['seller_user_id'] = $sellerId;
+            if ($sellerId && isset($sellerMap[$sellerId])) {
+                $product['seller_name'] = $sellerMap[$sellerId]['display_name'] ?? '-';
+                $product['company_name'] = $sellerMap[$sellerId]['company_name'] ?? '-';
             } else {
                 $product['seller_name'] = '-';
                 $product['company_name'] = '-';
-                $product['seller_user_id'] = $sellerId;
             }
         }
         unset($product);
@@ -222,44 +231,22 @@ try {
     error_log("Error fetching Internet products: " . $e->getMessage());
 }
 
-// 판매자 목록 가져오기 (필터용) - sellers.json에서 가져오기
+// 판매자 목록 가져오기 (필터용) - DB-only
 $sellers = [];
 try {
     if ($pdo) {
-        // 먼저 인터넷 상품을 등록한 판매자 ID 목록 가져오기
-        $sellerIdsStmt = $pdo->prepare("
-            SELECT DISTINCT p.seller_id as user_id
+        $sellerListStmt = $pdo->query("
+            SELECT DISTINCT
+                u.user_id,
+                COALESCE(NULLIF(u.company_name,''), NULLIF(u.name,''), u.user_id) AS name,
+                COALESCE(u.company_name,'') AS company_name
             FROM products p
-            INNER JOIN product_internet_details inet ON p.id = inet.product_id
-            WHERE p.product_type = 'internet' AND p.status != 'deleted'
+            INNER JOIN users u ON u.user_id = p.seller_id AND u.role = 'seller'
+            WHERE p.product_type = 'internet'
+              AND p.status != 'deleted'
+            ORDER BY name ASC
         ");
-        $sellerIdsStmt->execute();
-        $sellerIds = $sellerIdsStmt->fetchAll(PDO::FETCH_COLUMN);
-        $sellerIds = array_map('strval', $sellerIds);
-        
-        // sellers.json에서 해당 판매자 정보 가져오기
-        $sellersFile = __DIR__ . '/../../includes/data/sellers.json';
-        if (file_exists($sellersFile)) {
-            $sellersContent = file_get_contents($sellersFile);
-            $sellersJson = json_decode($sellersContent, true);
-            if ($sellersJson && isset($sellersJson['sellers'])) {
-                foreach ($sellersJson['sellers'] as $seller) {
-                    $sellerUserId = (string)($seller['user_id'] ?? '');
-                    if ($sellerUserId && in_array($sellerUserId, $sellerIds)) {
-                        $sellers[] = [
-                            'user_id' => $seller['user_id'],
-                            'name' => $seller['seller_name'] ?? $seller['name'] ?? $seller['user_id'],
-                            'company_name' => $seller['company_name'] ?? ''
-                        ];
-                    }
-                }
-            }
-        }
-        
-        // 이름으로 정렬
-        usort($sellers, function($a, $b) {
-            return strcmp($a['name'], $b['name']);
-        });
+        $sellers = $sellerListStmt->fetchAll(PDO::FETCH_ASSOC);
     }
 } catch (PDOException $e) {
     error_log("Error fetching sellers: " . $e->getMessage());

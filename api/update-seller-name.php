@@ -43,45 +43,74 @@ if (mb_strlen($sellerName) > 50) {
     exit;
 }
 
-// 중복 검사
+// DB-only: 중복 검사 + 업데이트
 $userId = $currentUser['user_id'];
-$sellersFile = getSellersFilePath();
-$allSellers = [];
-
-if (file_exists($sellersFile)) {
-    $data = json_decode(file_get_contents($sellersFile), true) ?: ['sellers' => []];
-    $allSellers = $data['sellers'] ?? [];
+$pdo = getDBConnection();
+if (!$pdo) {
+    echo json_encode(['success' => false, 'message' => 'DB 연결에 실패했습니다.']);
+    exit;
 }
 
-$sellerNameLower = mb_strtolower($sellerName, 'UTF-8');
-foreach ($allSellers as $otherSeller) {
-    if (isset($otherSeller['user_id']) && $otherSeller['user_id'] === $userId) {
-        continue; // 자기 자신은 제외
+try {
+    // 중복 검사 (자기 자신 제외)
+    $stmt = $pdo->prepare("
+        SELECT 1
+        FROM users
+        WHERE role = 'seller'
+          AND user_id <> :user_id
+          AND seller_name IS NOT NULL
+          AND seller_name <> ''
+          AND LOWER(seller_name) = LOWER(:seller_name)
+        LIMIT 1
+    ");
+    $stmt->execute([
+        ':user_id' => $userId,
+        ':seller_name' => $sellerName
+    ]);
+    if ($stmt->fetchColumn()) {
+        echo json_encode(['success' => false, 'message' => '이미 사용 중인 판매자명입니다.']);
+        exit;
     }
-    if (isset($otherSeller['seller_name']) && !empty($otherSeller['seller_name'])) {
-        $otherSellerNameLower = mb_strtolower($otherSeller['seller_name'], 'UTF-8');
-        if ($otherSellerNameLower === $sellerNameLower) {
-            echo json_encode(['success' => false, 'message' => '이미 사용 중인 판매자명입니다.']);
-            exit;
-        }
-    }
-}
 
-// 판매자명 업데이트
-$updated = false;
-foreach ($allSellers as &$seller) {
-    if (isset($seller['user_id']) && $seller['user_id'] === $userId) {
-        $seller['seller_name'] = $sellerName;
-        $seller['updated_at'] = date('Y-m-d H:i:s');
-        $updated = true;
-        break;
-    }
-}
+    // 업데이트 (users + seller_profiles 동기화)
+    $pdo->beginTransaction();
 
-if ($updated) {
-    file_put_contents($sellersFile, json_encode(['sellers' => $allSellers], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+    $u = $pdo->prepare("
+        UPDATE users
+        SET seller_name = :seller_name,
+            updated_at = NOW()
+        WHERE user_id = :user_id
+          AND role = 'seller'
+        LIMIT 1
+    ");
+    $u->execute([
+        ':seller_name' => $sellerName,
+        ':user_id' => $userId
+    ]);
+
+    $sp = $pdo->prepare("
+        UPDATE seller_profiles
+        SET seller_name = :seller_name,
+            updated_at = NOW()
+        WHERE user_id = :user_id
+        LIMIT 1
+    ");
+    $sp->execute([
+        ':seller_name' => $sellerName,
+        ':user_id' => $userId
+    ]);
+
+    $pdo->commit();
+
+    if ($u->rowCount() < 1) {
+        echo json_encode(['success' => false, 'message' => '판매자 정보를 찾을 수 없습니다.']);
+        exit;
+    }
+
     echo json_encode(['success' => true, 'message' => '판매자명이 저장되었습니다.']);
-} else {
-    echo json_encode(['success' => false, 'message' => '판매자 정보를 찾을 수 없습니다.']);
+} catch (PDOException $e) {
+    if ($pdo->inTransaction()) $pdo->rollBack();
+    error_log('update-seller-name DB error: ' . $e->getMessage());
+    echo json_encode(['success' => false, 'message' => '판매자명 저장에 실패했습니다.']);
 }
 

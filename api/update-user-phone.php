@@ -82,63 +82,57 @@ if (mb_strlen($name) > 50) {
     exit;
 }
 
-// users.json 파일 읽기
-$file = getUsersFilePath();
-if (!file_exists($file)) {
+// DB-only: users 테이블 업데이트
+$pdo = getDBConnection();
+if (!$pdo) {
     echo json_encode([
         'success' => false,
-        'message' => '사용자 데이터 파일을 찾을 수 없습니다.'
+        'message' => 'DB 연결에 실패했습니다.'
     ]);
     exit;
 }
 
-$content = file_get_contents($file);
-$data = json_decode($content, true);
-if (!is_array($data) || !isset($data['users'])) {
-    echo json_encode([
-        'success' => false,
-        'message' => '데이터 형식이 올바르지 않습니다.'
+try {
+    $stmt = $pdo->prepare("
+        UPDATE users
+        SET name = :name,
+            email = :email,
+            phone = :phone,
+            updated_at = NOW()
+        WHERE user_id = :user_id
+          AND role = 'user'
+        LIMIT 1
+    ");
+    $stmt->execute([
+        ':name' => $name,
+        ':email' => $email,
+        ':phone' => $formattedPhone,
+        ':user_id' => $currentUser['user_id']
     ]);
-    exit;
-}
 
-// 사용자 정보 업데이트
-$updated = false;
-foreach ($data['users'] as &$user) {
-    if (isset($user['user_id']) && $user['user_id'] === $currentUser['user_id']) {
-        $user['name'] = $name;
-        $user['email'] = $email;
-        $user['phone'] = $formattedPhone;
-        $updated = true;
-        break;
+    if ($stmt->rowCount() < 1) {
+        echo json_encode([
+            'success' => false,
+            'message' => '사용자를 찾을 수 없습니다.'
+        ]);
+        exit;
     }
-}
 
-if (!$updated) {
-    echo json_encode([
-        'success' => false,
-        'message' => '사용자를 찾을 수 없습니다.'
-    ]);
-    exit;
-}
-
-// 파일 저장
-if (file_put_contents($file, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE))) {
     // 세션에 저장된 리다이렉트 URL 확인
     $redirectUrl = $_SESSION['redirect_url'] ?? '/MVNO/';
     $response = [
         'success' => true,
         'message' => '정보가 성공적으로 업데이트되었습니다.'
     ];
-    
-    // 리다이렉트 URL이 있으면 반환하고 세션에서 제거
+
     if (isset($_SESSION['redirect_url'])) {
         $response['redirect_url'] = $redirectUrl;
         unset($_SESSION['redirect_url']);
     }
-    
+
     echo json_encode($response);
-} else {
+} catch (PDOException $e) {
+    error_log('update-user-phone DB error: ' . $e->getMessage());
     echo json_encode([
         'success' => false,
         'message' => '정보 업데이트에 실패했습니다.'

@@ -19,10 +19,12 @@ if (!isset($item_name)) {
 
 // 포인트 설정 로드
 require_once __DIR__ . '/../data/point-settings.php';
+require_once __DIR__ . '/../data/auth-functions.php';
 
 // 현재 사용자 포인트 조회
-$user_id = 'default'; // 실제로는 세션에서 가져옴
-$user_point = getUserPoint($user_id);
+$currentUser = getCurrentUser();
+$user_id = $currentUser['user_id'] ?? null;
+$user_point = $user_id ? getUserPoint($user_id) : ['balance' => 0, 'history' => []];
 $current_balance = $user_point['balance'] ?? 0;
 $max_usable = $point_settings['max_usable_point'];
 

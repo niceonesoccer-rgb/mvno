@@ -5,8 +5,16 @@
 header('Content-Type: application/json; charset=utf-8');
 
 require_once __DIR__ . '/../includes/data/point-settings.php';
+require_once __DIR__ . '/../includes/data/auth-functions.php';
 
-$user_id = $_GET['user_id'] ?? 'default'; // 실제로는 세션에서 가져옴
+// 실서비스: 세션 기반 사용자
+$currentUser = getCurrentUser();
+$user_id = $currentUser['user_id'] ?? null;
+if (!$user_id) {
+    http_response_code(401);
+    echo json_encode(['success' => false, 'message' => '로그인이 필요합니다.']);
+    exit;
+}
 
 $user_point = getUserPoint($user_id);
 

@@ -1,74 +1,44 @@
 <?php
 /**
  * 웹 통계 관련 함수
+ * DB-only:
+ * - settings: app_settings(namespace='analytics_settings')
+ * - data: app_settings(namespace='analytics_data')
+ * - meta(last cleanup): app_settings(namespace='analytics_meta')
  */
 
 // 한국 시간대 설정 (KST, UTC+9)
 date_default_timezone_set('Asia/Seoul');
 
-/**
- * 통계 데이터 파일 경로
- */
-function getAnalyticsFilePath() {
-    return __DIR__ . '/analytics.json';
-}
-
-/**
- * 통계 설정 파일 경로
- */
-function getAnalyticsSettingsPath() {
-    return __DIR__ . '/analytics-settings.json';
-}
+require_once __DIR__ . '/app-settings.php';
 
 /**
  * 통계 설정 읽기
  */
 function getAnalyticsSettings() {
-    $file = getAnalyticsSettingsPath();
-    if (!file_exists($file)) {
-        return [
-            'max_pageviews' => 10000,
-            'max_events' => 10000,
-            'max_sessions' => 10000,
-            'auto_cleanup_years' => 2,
-            'auto_cleanup_enabled' => true
-        ];
-    }
-    $content = file_get_contents($file);
-    return json_decode($content, true) ?: [
+    $defaults = [
         'max_pageviews' => 10000,
         'max_events' => 10000,
         'max_sessions' => 10000,
         'auto_cleanup_years' => 2,
         'auto_cleanup_enabled' => true
     ];
+    return getAppSettings('analytics_settings', $defaults);
 }
 
 /**
  * 통계 설정 저장
  */
 function saveAnalyticsSettings($settings) {
-    $file = getAnalyticsSettingsPath();
-    file_put_contents($file, json_encode($settings, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+    $updatedBy = function_exists('getCurrentUserId') ? getCurrentUserId() : null;
+    saveAppSettings('analytics_settings', (array)$settings, $updatedBy);
 }
 
 /**
  * 통계 데이터 읽기
  */
 function getAnalyticsData() {
-    $file = getAnalyticsFilePath();
-    if (!file_exists($file)) {
-        return [
-            'pageviews' => [],
-            'sessions' => [],
-            'events' => [],
-            'daily_stats' => [],
-            'active_sessions' => [],
-            'session_data' => []
-        ];
-    }
-    $content = file_get_contents($file);
-    return json_decode($content, true) ?: [
+    $defaults = [
         'pageviews' => [],
         'sessions' => [],
         'events' => [],
@@ -76,14 +46,15 @@ function getAnalyticsData() {
         'active_sessions' => [],
         'session_data' => []
     ];
+    return getAppSettings('analytics_data', $defaults);
 }
 
 /**
  * 통계 데이터 저장
  */
 function saveAnalyticsData($data) {
-    $file = getAnalyticsFilePath();
-    file_put_contents($file, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+    // 데이터는 커질 수 있으므로 pretty_print는 app-settings.php에서 처리(현재 pretty_print 저장)
+    saveAppSettings('analytics_data', (array)$data, null);
 }
 
 /**
@@ -764,15 +735,16 @@ function autoCleanupOldData() {
         return;
     }
     
-    $cleanupFile = __DIR__ . '/analytics-cleanup-last-run.txt';
-    $lastRun = file_exists($cleanupFile) ? (int)file_get_contents($cleanupFile) : 0;
+    $meta = getAppSettings('analytics_meta', ['cleanup_last_run' => 0]);
+    $lastRun = (int)($meta['cleanup_last_run'] ?? 0);
     $now = time();
     
     // 마지막 실행으로부터 24시간이 지났을 때만 실행
     if ($now - $lastRun > 86400) {
         $years = $settings['auto_cleanup_years'] ?? 2;
         cleanupOldAnalyticsData($years);
-        file_put_contents($cleanupFile, $now);
+        $meta['cleanup_last_run'] = $now;
+        saveAppSettings('analytics_meta', $meta, null);
     }
 }
 

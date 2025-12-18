@@ -113,24 +113,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['check_info_update']))
     $perPage = isset($_POST['per_page']) ? (int)$_POST['per_page'] : (isset($_GET['per_page']) ? (int)$_GET['per_page'] : 10);
     
     if ($userId) {
-        $file = getSellersFilePath();
-        if (file_exists($file)) {
-            $data = json_decode(file_get_contents($file), true) ?: ['sellers' => []];
-            $updated = false;
-            
-            foreach ($data['sellers'] as &$u) {
-                if ($u['user_id'] === $userId) {
-                    $u['info_checked_by_admin'] = true;
-                    $u['info_checked_at'] = date('Y-m-d H:i:s');
-                    $updated = true;
-                    break;
+        $pdo = getDBConnection();
+        if ($pdo) {
+            try {
+                $stmt = $pdo->prepare("
+                    UPDATE seller_profiles
+                    SET info_checked_by_admin = 1,
+                        info_checked_at = NOW(),
+                        updated_at = NOW()
+                    WHERE user_id = :user_id
+                ");
+                $stmt->execute([':user_id' => $userId]);
+
+                if ($stmt->rowCount() > 0) {
+                    header('Location: /MVNO/admin/seller-approval.php?tab=' . $currentTab . '&page=' . $currentPage . '&per_page=' . $perPage . '&success=check_info_update');
+                    exit;
                 }
-            }
-            
-            if ($updated) {
-                file_put_contents($file, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-                header('Location: /MVNO/admin/seller-approval.php?tab=' . $currentTab . '&page=' . $currentPage . '&per_page=' . $perPage . '&success=check_info_update');
-                exit;
+            } catch (PDOException $e) {
+                error_log('check_info_update DB error: ' . $e->getMessage());
             }
         }
     }
@@ -139,7 +139,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['check_info_update']))
 }
 
 // 헤더 포함 (출력 시작)
-// 주의: processScheduledDeletions()는 admin-header.php에서 호출됨
+// DB-only: processScheduledDeletions() 사용하지 않음
 require_once __DIR__ . '/includes/admin-header.php';
 
 // 성공/에러 메시지 처리
@@ -216,7 +216,9 @@ $pendingSellers = array_filter($sellers, function($seller) {
     $approvalStatus = $seller['approval_status'] ?? null;
     $isApproved = isset($seller['seller_approved']) && $seller['seller_approved'] === true;
     // 승인되지 않았고, approval_status가 없거나 pending인 경우 (on_hold 제외, 탈퇴 요청 제외)
-    return !$isApproved && ($approvalStatus === null || $approvalStatus === 'pending') && !isset($seller['withdrawal_requested']);
+    // DB에는 withdrawal_requested 컬럼이 항상 존재할 수 있으므로 "값"으로 판단해야 함 (0이면 제외하지 않음)
+    $isWithdrawalRequested = !empty($seller['withdrawal_requested']);
+    return !$isApproved && ($approvalStatus === null || $approvalStatus === 'pending') && !$isWithdrawalRequested;
 });
 
 // 승인된 판매자 (on_hold가 아닌 승인된 판매자만, 탈퇴 요청 제외)

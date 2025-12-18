@@ -14,18 +14,20 @@ if (!$currentUser || !isAdmin($currentUser['user_id'])) {
     exit;
 }
 
-// 예정된 삭제 처리 (모든 관리자 페이지 접속 시마다 확인)
-processScheduledDeletions();
+// DB-only: JSON 기반 scheduled deletion 처리 제거
 
 $currentPage = basename($_SERVER['PHP_SELF']);
 
-// 관리자/부관리자 수 계산
-$adminsFile = getAdminsFilePath();
+// 관리자/부관리자 수 계산 (DB)
 $adminCount = 0;
-if (file_exists($adminsFile)) {
-    $data = json_decode(file_get_contents($adminsFile), true) ?: ['admins' => []];
-    $admins = $data['admins'] ?? [];
-    $adminCount = count($admins);
+$pdo = getDBConnection();
+if ($pdo) {
+    try {
+        $stmt = $pdo->query("SELECT COUNT(*) FROM users WHERE role IN ('admin','sub_admin')");
+        $adminCount = (int)$stmt->fetchColumn();
+    } catch (PDOException $e) {
+        error_log('admin-header adminCount DB error: ' . $e->getMessage());
+    }
 }
 ?>
 <!DOCTYPE html>

@@ -8,12 +8,8 @@ require_once __DIR__ . '/../includes/data/auth-functions.php';
 
 // API 설정 읽기
 function getApiSettings() {
-    $file = __DIR__ . '/../includes/data/api-settings.json';
-    if (!file_exists($file)) {
-        return [];
-    }
-    $content = file_get_contents($file);
-    return json_decode($content, true) ?: [];
+    require_once __DIR__ . '/../includes/data/app-settings.php';
+    return getAppSettings('api', []);
 }
 
 $provider = $_GET['provider'] ?? '';
@@ -92,6 +88,11 @@ if ($provider === 'naver') {
     if (!$user) {
         $user = registerSnsUser('naver', $snsId, $email, $name);
     }
+
+    if (!$user) {
+        header('Location: /MVNO/auth/login.php?error=invalid_request');
+        exit;
+    }
     
     // 관리자/판매자는 SNS 로그인 불가
     if ($user['role'] === 'admin' || $user['role'] === 'sub_admin' || $user['role'] === 'seller') {
@@ -168,6 +169,11 @@ if ($provider === 'kakao') {
     $user = getUserBySnsId('kakao', $snsId);
     if (!$user) {
         $user = registerSnsUser('kakao', $snsId, $email, $name);
+    }
+
+    if (!$user) {
+        header('Location: /MVNO/auth/login.php?error=invalid_request');
+        exit;
     }
     
     // 관리자/판매자는 SNS 로그인 불가
@@ -254,6 +260,11 @@ if ($provider === 'google') {
     $user = getUserBySnsId('google', $snsId);
     if (!$user) {
         $user = registerSnsUser('google', $snsId, $email, $name);
+    }
+
+    if (!$user) {
+        header('Location: /MVNO/auth/login.php?error=invalid_request');
+        exit;
     }
     
     // 관리자/판매자는 SNS 로그인 불가

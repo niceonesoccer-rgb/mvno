@@ -32,13 +32,11 @@ $sellerUsers = array_filter($users, function($user) {
     return ($user['role'] ?? 'user') === 'seller';
 });
 
-// 관리자 데이터는 admins.json에서 가져오기
-$adminUsers = [];
-$adminsFile = getAdminsFilePath();
-if (file_exists($adminsFile)) {
-    $adminsData = json_decode(file_get_contents($adminsFile), true) ?: ['admins' => []];
-    $adminUsers = $adminsData['admins'] ?? [];
-}
+// A안: 관리자도 users(DB)에서 가져오기
+$adminUsers = array_filter($users, function($user) {
+    $role = $user['role'] ?? 'user';
+    return $role === 'admin' || $role === 'sub_admin';
+});
 
 // 최신순 정렬 (created_at 기준 내림차순)
 usort($regularUsers, function($a, $b) {

@@ -36,60 +36,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             switch ($action) {
                 case 'delete_users':
                     // 일반회원 삭제
-                    $usersFile = getUsersFilePath();
-                    if (file_exists($usersFile)) {
-                        $data = json_decode(file_get_contents($usersFile), true) ?: ['users' => []];
-                        $beforeCount = count($data['users'] ?? []);
-                        $data['users'] = [];
-                        file_put_contents($usersFile, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-                        $deleteResult = ['type' => '일반회원', 'count' => $beforeCount];
-                        $success = "일반회원 {$beforeCount}명이 삭제되었습니다.";
-                    }
+                    $pdo = getDBConnection();
+                    if (!$pdo) throw new Exception('DB 연결에 실패했습니다.');
+
+                    $stmt = $pdo->query("SELECT COUNT(*) FROM users WHERE role = 'user'");
+                    $beforeCount = (int)$stmt->fetchColumn();
+
+                    $pdo->beginTransaction();
+                    $pdo->prepare("DELETE FROM users WHERE role = 'user'")->execute();
+                    $pdo->commit();
+
+                    $deleteResult = ['type' => '일반회원', 'count' => $beforeCount];
+                    $success = "일반회원 {$beforeCount}명이 삭제되었습니다.";
                     break;
                     
                 case 'delete_sellers':
                     // 판매자 삭제
-                    $sellersFile = getSellersFilePath();
-                    if (file_exists($sellersFile)) {
-                        $data = json_decode(file_get_contents($sellersFile), true) ?: ['sellers' => []];
-                        $beforeCount = count($data['sellers'] ?? []);
-                        $data['sellers'] = [];
-                        file_put_contents($sellersFile, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-                        $deleteResult = ['type' => '판매자', 'count' => $beforeCount];
-                        $success = "판매자 {$beforeCount}명이 삭제되었습니다.";
-                    }
+                    $pdo = getDBConnection();
+                    if (!$pdo) throw new Exception('DB 연결에 실패했습니다.');
+
+                    $stmt = $pdo->query("SELECT COUNT(*) FROM users WHERE role = 'seller'");
+                    $beforeCount = (int)$stmt->fetchColumn();
+
+                    $pdo->beginTransaction();
+                    $pdo->prepare("DELETE FROM seller_profiles")->execute();
+                    $pdo->prepare("DELETE FROM users WHERE role = 'seller'")->execute();
+                    $pdo->commit();
+
+                    $deleteResult = ['type' => '판매자', 'count' => $beforeCount];
+                    $success = "판매자 {$beforeCount}명이 삭제되었습니다.";
                     break;
                     
                 case 'delete_sub_admins':
                     // 부관리자 삭제 (admin 제외)
-                    $adminsFile = getAdminsFilePath();
-                    if (file_exists($adminsFile)) {
-                        $data = json_decode(file_get_contents($adminsFile), true) ?: ['admins' => []];
-                        $admins = $data['admins'] ?? [];
-                        
-                        // admin 계정 찾기
-                        $adminAccount = null;
-                        $subAdminCount = 0;
-                        foreach ($admins as $key => $admin) {
-                            if (isset($admin['user_id']) && $admin['user_id'] === 'admin') {
-                                $adminAccount = $admin;
-                            } else {
-                                // admin이 아닌 계정은 부관리자로 카운트
-                                $subAdminCount++;
-                            }
-                        }
-                        
-                        // admin 계정만 남기고 나머지 모두 삭제
-                        $newAdmins = [];
-                        if ($adminAccount !== null) {
-                            $newAdmins[] = $adminAccount;
-                        }
-                        
-                        $data['admins'] = $newAdmins;
-                        file_put_contents($adminsFile, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-                        $deleteResult = ['type' => '부관리자', 'count' => $subAdminCount];
-                        $success = "부관리자 {$subAdminCount}명이 삭제되었습니다. (admin 계정은 보존되었습니다)";
-                    }
+                    $pdo = getDBConnection();
+                    if (!$pdo) throw new Exception('DB 연결에 실패했습니다.');
+
+                    $stmt = $pdo->query("SELECT COUNT(*) FROM users WHERE role = 'sub_admin'");
+                    $subAdminCount = (int)$stmt->fetchColumn();
+
+                    $pdo->beginTransaction();
+                    $pdo->prepare("DELETE FROM admin_profiles WHERE user_id <> 'admin'")->execute();
+                    $pdo->prepare("DELETE FROM users WHERE role = 'sub_admin'")->execute();
+                    $pdo->commit();
+
+                    $deleteResult = ['type' => '부관리자', 'count' => $subAdminCount];
+                    $success = "부관리자 {$subAdminCount}명이 삭제되었습니다. (admin 계정은 보존되었습니다)";
                     break;
                     
                 case 'delete_orders':
@@ -216,28 +208,16 @@ $stats = [
     'products' => 0
 ];
 
-// 일반회원 수
-$usersFile = getUsersFilePath();
-if (file_exists($usersFile)) {
-    $data = json_decode(file_get_contents($usersFile), true) ?: ['users' => []];
-    $stats['users'] = count($data['users'] ?? []);
-}
-
-// 판매자 수
-$sellersFile = getSellersFilePath();
-if (file_exists($sellersFile)) {
-    $data = json_decode(file_get_contents($sellersFile), true) ?: ['sellers' => []];
-    $stats['sellers'] = count($data['sellers'] ?? []);
-}
-
-// 부관리자 수 (admin 제외)
-$adminsFile = getAdminsFilePath();
-if (file_exists($adminsFile)) {
-    $data = json_decode(file_get_contents($adminsFile), true) ?: ['admins' => []];
-    $admins = $data['admins'] ?? [];
-    $stats['sub_admins'] = count(array_filter($admins, function($admin) {
-        return ($admin['user_id'] ?? '') !== 'admin';
-    }));
+// 사용자 통계 (DB-only)
+$pdo = getDBConnection();
+if ($pdo) {
+    try {
+        $stats['users'] = (int)$pdo->query("SELECT COUNT(*) FROM users WHERE role = 'user'")->fetchColumn();
+        $stats['sellers'] = (int)$pdo->query("SELECT COUNT(*) FROM users WHERE role = 'seller'")->fetchColumn();
+        $stats['sub_admins'] = (int)$pdo->query("SELECT COUNT(*) FROM users WHERE role = 'sub_admin'")->fetchColumn();
+    } catch (PDOException $e) {
+        // ignore
+    }
 }
 
 // 주문 수
@@ -625,6 +605,8 @@ document.getElementById('deleteModal')?.addEventListener('click', function(e) {
 <?php
 require_once __DIR__ . '/../includes/admin-footer.php';
 ?>
+
+
 
 
 

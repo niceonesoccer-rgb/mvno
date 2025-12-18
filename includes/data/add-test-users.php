@@ -6,8 +6,7 @@
 
 require_once __DIR__ . '/auth-functions.php';
 
-// 기존 사용자 데이터 가져오기
-$data = getUsersData();
+// DB-only: 테스트 계정 생성은 DB에 직접 반영
 
 // 일반회원 15명 추가 (SNS 가입)
 $snsProviders = ['naver', 'kakao', 'google'];
@@ -28,26 +27,9 @@ for ($i = 0; $i < 15; $i++) {
     if ($existingUser) {
         continue;
     }
-    
-    $userId = generateSnsUserId($provider, $snsId);
-    
-    // 중복 확인 및 재생성
-    while (getUserById($userId)) {
-        $userId = generateSnsUserId($provider, $snsId . rand(1000, 9999));
-    }
-    
-    $newUser = [
-        'user_id' => $userId,
-        'email' => $email,
-        'name' => $name,
-        'role' => 'user',
-        'sns_provider' => $provider,
-        'sns_id' => $snsId,
-        'created_at' => date('Y-m-d H:i:s', strtotime('-' . (14 - $i) . ' days')),
-        'seller_approved' => false
-    ];
-    
-    $data['users'][] = $newUser;
+
+    // DB에 SNS 유저 생성
+    registerSnsUser($provider, $snsId, $email, $name);
 }
 
 // 판매자 회원 15명 추가
@@ -67,23 +49,16 @@ for ($i = 0; $i < 15; $i++) {
     if (getUserById($userId)) {
         continue;
     }
-    
-    $newUser = [
-        'user_id' => $userId,
-        'email' => $email,
-        'name' => $name,
-        'password' => password_hash($password, PASSWORD_DEFAULT),
-        'role' => 'seller',
-        'created_at' => date('Y-m-d H:i:s', strtotime('-' . (14 - $i) . ' days')),
-        'seller_approved' => false, // 초기값: 미승인
-        'permissions' => [] // 초기값: 권한 없음
-    ];
-    
-    $data['users'][] = $newUser;
-}
 
-// 데이터 저장
-saveUsersData($data);
+    $additional = [
+        'phone' => '010-0000-0000',
+        'mobile' => '010-0000-0000',
+        'business_number' => '000-00-00000',
+        'company_name' => '테스트회사' . ($i + 1),
+        'business_license_image' => '/MVNO/uploads/sellers/test.png'
+    ];
+    registerDirectUser($userId, $password, $email, $name, 'seller', $additional);
+}
 
 echo "테스트 회원 데이터가 추가되었습니다.\n";
 echo "- 일반회원: 15명\n";

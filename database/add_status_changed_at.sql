@@ -10,3 +10,5 @@ UPDATE `product_applications`
 SET `status_changed_at` = `updated_at` 
 WHERE `status_changed_at` IS NULL;
 
+
+

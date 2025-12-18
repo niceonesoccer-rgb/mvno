@@ -11,8 +11,7 @@
 //     exit;
 // }
 
-// API 설정 파일 경로
-$settings_file = __DIR__ . '/../includes/data/api-settings.json';
+require_once __DIR__ . '/../includes/data/app-settings.php';
 
 // POST 요청 처리 (설정 저장)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_settings'])) {
@@ -34,17 +33,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_settings'])) {
         ]
     ];
     
-    file_put_contents($settings_file, json_encode($new_settings, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+    saveAppSettings('api', $new_settings, 'admin');
     
     $success_message = 'API 설정이 저장되었습니다.';
 }
 
 // 현재 설정 읽기
-$settings = [];
-if (file_exists($settings_file)) {
-    $content = file_get_contents($settings_file);
-    $settings = json_decode($content, true) ?: [];
-}
+$settings = getAppSettings('api', []);
 
 $naver_settings = $settings['naver'] ?? ['client_id' => '', 'client_secret' => '', 'redirect_uri' => ''];
 $kakao_settings = $settings['kakao'] ?? ['client_id' => '', 'rest_api_key' => '', 'redirect_uri' => ''];

@@ -1,52 +1,44 @@
 <?php
 /**
  * 메인 페이지 관련 함수
- * JSON 파일 기반 데이터 저장
+ * DB-only:
+ * - home 설정: app_settings(namespace='home')
+ * - 이벤트: events 테이블
  */
 
 // 한국 시간대 설정 (KST, UTC+9)
 date_default_timezone_set('Asia/Seoul');
 
-// 메인 페이지 설정 파일 경로
-function getHomeDataFile() {
-    return __DIR__ . '/home-settings.json';
-}
-
-// 이벤트 데이터 파일 경로
-function getEventDataFile() {
-    return __DIR__ . '/events.json';
-}
+require_once __DIR__ . '/db-config.php';
+require_once __DIR__ . '/app-settings.php';
 
 // 메인 페이지 설정 가져오기
 function getHomeSettings() {
-    $file = getHomeDataFile();
-    
-    if (!file_exists($file)) {
-        // 기본 설정 반환
-        return [
-            'main_banners' => [],
-            'ranking_banners' => [],
-            'data_plans' => [],
-            'mvno_plans' => [],
-            'mno_phones' => [],
-            'internet_products' => []
-        ];
-    }
-    
-    $settings = json_decode(file_get_contents($file), true);
-    // 기존 main_banner를 main_banners 배열로 마이그레이션
+    $defaults = [
+        'main_banners' => [],
+        'ranking_banners' => [],
+        'data_plans' => [],
+        'mvno_plans' => [],
+        'mno_phones' => [],
+        'internet_products' => []
+    ];
+
+    $settings = getAppSettings('home', $defaults);
+
+    // 과거 키(main_banner) -> main_banners로 1회 마이그레이션
     if (isset($settings['main_banner']) && !isset($settings['main_banners'])) {
         $settings['main_banners'] = $settings['main_banner'] ? [$settings['main_banner']] : [];
         unset($settings['main_banner']);
+        saveHomeSettings($settings);
     }
-    return $settings ?: [];
+
+    return $settings;
 }
 
 // 메인 페이지 설정 저장
 function saveHomeSettings($settings) {
-    $file = getHomeDataFile();
-    file_put_contents($file, json_encode($settings, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-    return true;
+    $updatedBy = function_exists('getCurrentUserId') ? getCurrentUserId() : null;
+    return saveAppSettings('home', (array)$settings, $updatedBy);
 }
 
 // 메인 배너 설정 (3개)
@@ -93,66 +85,52 @@ function setInternetProducts($product_ids) {
 
 // 이벤트 목록 가져오기
 function getEvents($limit = null) {
-    $file = getEventDataFile();
-    
-    if (!file_exists($file)) {
-        return [];
-    }
-    
-    $events = json_decode(file_get_contents($file), true);
-    if (!is_array($events)) {
-        return [];
-    }
-    
-    // 활성 이벤트만 필터링
-    $events = array_filter($events, function($event) {
-        if (!isset($event['is_active']) || !$event['is_active']) {
-            return false;
-        }
-        
-        // 날짜 확인
-        $now = time();
-        $start = isset($event['start_date']) ? strtotime($event['start_date']) : 0;
-        $end = isset($event['end_date']) ? strtotime($event['end_date']) : PHP_INT_MAX;
-        
-        return $now >= $start && $now <= $end;
-    });
-    
-    // 날짜순 정렬 (최신순)
-    usort($events, function($a, $b) {
-        return strtotime($b['created_at'] ?? '') - strtotime($a['created_at'] ?? '');
-    });
-    
+    $pdo = getDBConnection();
+    if (!$pdo) return [];
+
+    $sql = "
+        SELECT id, title, image_url AS image, link_url AS link, category,
+               start_at AS start_date, end_at AS end_date,
+               is_published AS is_active,
+               created_at, updated_at
+        FROM events
+        WHERE is_published = 1
+          AND (start_at IS NULL OR start_at <= CURDATE())
+          AND (end_at IS NULL OR end_at >= CURDATE())
+        ORDER BY created_at DESC
+    ";
     if ($limit !== null) {
-        return array_slice($events, 0, $limit);
+        $sql .= " LIMIT :limit";
     }
-    
-    return array_values($events);
+
+    $stmt = $pdo->prepare($sql);
+    if ($limit !== null) {
+        $stmt->bindValue(':limit', (int)$limit, PDO::PARAM_INT);
+    }
+    $stmt->execute();
+    return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
 }
 
 // 이벤트 ID로 가져오기
 function getEventById($id) {
-    $events = getEvents();
-    foreach ($events as $event) {
-        if (isset($event['id']) && $event['id'] == $id) {
-            return $event;
-        }
-    }
-    return null;
+    $pdo = getDBConnection();
+    if (!$pdo) return null;
+    $stmt = $pdo->prepare("
+        SELECT id, title, image_url AS image, link_url AS link, category,
+               start_at AS start_date, end_at AS end_date,
+               is_published AS is_active,
+               created_at, updated_at
+        FROM events
+        WHERE id = :id
+        LIMIT 1
+    ");
+    $stmt->execute([':id' => (string)$id]);
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    return $row ?: null;
 }
 
 // 이벤트 생성
 function createEvent($title, $image, $link, $start_date, $end_date, $category = 'all') {
-    $file = getEventDataFile();
-    $events = [];
-    
-    if (file_exists($file)) {
-        $events = json_decode(file_get_contents($file), true);
-        if (!is_array($events)) {
-            $events = [];
-        }
-    }
-    
     $event = [
         'id' => uniqid('event_'),
         'title' => $title,
@@ -165,89 +143,78 @@ function createEvent($title, $image, $link, $start_date, $end_date, $category = 
         'created_at' => date('Y-m-d H:i:s'),
         'updated_at' => date('Y-m-d H:i:s')
     ];
-    
-    $events[] = $event;
-    file_put_contents($file, json_encode($events, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-    
+
+    $pdo = getDBConnection();
+    if (!$pdo) return false;
+
+    $stmt = $pdo->prepare("
+        INSERT INTO events (id, title, image_url, link_url, category, start_at, end_at, is_published, created_at, updated_at)
+        VALUES (:id, :title, :img, :link, :cat, :start, :end, :pub, NOW(), NOW())
+    ");
+    $stmt->execute([
+        ':id' => (string)$event['id'],
+        ':title' => (string)$event['title'],
+        ':img' => (string)$event['image'],
+        ':link' => (string)$event['link'],
+        ':cat' => (string)$event['category'],
+        ':start' => $event['start_date'] ? (string)$event['start_date'] : null,
+        ':end' => $event['end_date'] ? (string)$event['end_date'] : null,
+        ':pub' => $event['is_active'] ? 1 : 0,
+    ]);
+
     return $event;
 }
 
 // 이벤트 수정
 function updateEvent($id, $title, $image, $link, $start_date, $end_date, $category, $is_active) {
-    $file = getEventDataFile();
-    
-    if (!file_exists($file)) {
-        return false;
-    }
-    
-    $events = json_decode(file_get_contents($file), true);
-    if (!is_array($events)) {
-        return false;
-    }
-    
-    $found = false;
-    foreach ($events as &$event) {
-        if (isset($event['id']) && $event['id'] == $id) {
-            $event['title'] = $title;
-            $event['image'] = $image;
-            $event['link'] = $link;
-            $event['start_date'] = $start_date;
-            $event['end_date'] = $end_date;
-            $event['category'] = $category;
-            $event['is_active'] = $is_active;
-            $event['updated_at'] = date('Y-m-d H:i:s');
-            $found = true;
-            break;
-        }
-    }
-    
-    if ($found) {
-        file_put_contents($file, json_encode($events, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-        return true;
-    }
-    
-    return false;
+    $pdo = getDBConnection();
+    if (!$pdo) return false;
+    $stmt = $pdo->prepare("
+        UPDATE events
+        SET title = :title,
+            image_url = :img,
+            link_url = :link,
+            category = :cat,
+            start_at = :start,
+            end_at = :end,
+            is_published = :pub,
+            updated_at = NOW()
+        WHERE id = :id
+    ");
+    $stmt->execute([
+        ':id' => (string)$id,
+        ':title' => (string)$title,
+        ':img' => (string)$image,
+        ':link' => (string)$link,
+        ':cat' => (string)$category,
+        ':start' => $start_date ? (string)$start_date : null,
+        ':end' => $end_date ? (string)$end_date : null,
+        ':pub' => $is_active ? 1 : 0,
+    ]);
+    return $stmt->rowCount() > 0;
 }
 
 // 이벤트 삭제
 function deleteEvent($id) {
-    $file = getEventDataFile();
-    
-    if (!file_exists($file)) {
-        return false;
-    }
-    
-    $events = json_decode(file_get_contents($file), true);
-    if (!is_array($events)) {
-        return false;
-    }
-    
-    $events = array_filter($events, function($event) use ($id) {
-        return !isset($event['id']) || $event['id'] != $id;
-    });
-    
-    file_put_contents($file, json_encode(array_values($events), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-    return true;
+    $pdo = getDBConnection();
+    if (!$pdo) return false;
+    $stmt = $pdo->prepare("DELETE FROM events WHERE id = :id");
+    $stmt->execute([':id' => (string)$id]);
+    return $stmt->rowCount() > 0;
 }
 
 // 모든 이벤트 가져오기 (관리자용)
 function getAllEvents() {
-    $file = getEventDataFile();
-    
-    if (!file_exists($file)) {
-        return [];
-    }
-    
-    $events = json_decode(file_get_contents($file), true);
-    if (!is_array($events)) {
-        return [];
-    }
-    
-    // 날짜순 정렬 (최신순)
-    usort($events, function($a, $b) {
-        return strtotime($b['created_at'] ?? '') - strtotime($a['created_at'] ?? '');
-    });
-    
-    return $events;
+    $pdo = getDBConnection();
+    if (!$pdo) return [];
+    $stmt = $pdo->query("
+        SELECT id, title, image_url AS image, link_url AS link, category,
+               start_at AS start_date, end_at AS end_date,
+               is_published AS is_active,
+               created_at, updated_at
+        FROM events
+        ORDER BY created_at DESC
+    ");
+    return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
 }
 

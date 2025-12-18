@@ -8,18 +8,8 @@
  * @return array 개인정보 설정 배열
  */
 function getPrivacySettings() {
-    $privacySettingsFile = __DIR__ . '/privacy-settings.json';
-    
-    if (file_exists($privacySettingsFile)) {
-        $jsonContent = file_get_contents($privacySettingsFile);
-        $settings = json_decode($jsonContent, true);
-        if ($settings) {
-            return $settings;
-        }
-    }
-    
-    // 기본값 반환
-    return [
+    require_once __DIR__ . '/app-settings.php';
+    $defaults = [
         'purpose' => [
             'title' => '개인정보 수집 및 이용목적',
             'content' => '<div class="privacy-content-text"><p><strong>1. 개인정보의 수집 및 이용목적</strong></p><p>&lt;유심킹&gt;(\'http://www.dtmall.net\' 이하 \'회사\') 은(는) 다음의 목적을 위하여 개인정보를 처리하고 있으며, 다음의 목적 이외의 용도로는 이용하지 않습니다.</p></div>'
@@ -37,6 +27,10 @@ function getPrivacySettings() {
             'content' => '<div class="privacy-content-text"><p><strong>유심킹 개인정보 제3자 제공에 동의</strong></p></div>'
         ]
     ];
+
+    return getAppSettings('privacy', $defaults);
+    
+    // 기본값 반환
 }
 
 /**

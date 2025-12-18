@@ -46,60 +46,56 @@ if (isset($currentUser['withdrawal_requested']) && $currentUser['withdrawal_requ
 
 $userId = $currentUser['user_id'];
 
-// 판매자 데이터 파일에서 삭제
-$file = getSellersFilePath();
-if (!file_exists($file)) {
+// DB-only: 판매자 삭제 (pending/on_hold/rejected 상태에서만)
+$pdo = getDBConnection();
+if (!$pdo) {
     http_response_code(500);
-    echo json_encode(['success' => false, 'message' => '데이터 파일을 찾을 수 없습니다.']);
+    echo json_encode(['success' => false, 'message' => 'DB 연결에 실패했습니다.']);
     exit;
 }
 
-$data = json_decode(file_get_contents($file), true) ?: ['sellers' => []];
-$sellerFound = false;
+try {
+    // 삭제 전 업로드 파일 경로 조회
+    $stmt = $pdo->prepare("
+        SELECT business_license_image
+        FROM seller_profiles
+        WHERE user_id = :user_id
+        LIMIT 1
+    ");
+    $stmt->execute([':user_id' => $userId]);
+    $businessLicenseImage = $stmt->fetchColumn();
 
-foreach ($data['sellers'] as $key => $seller) {
-    if ($seller['user_id'] === $userId) {
-        $sellerFound = true;
-        
-        // 업로드된 파일 삭제 (사업자등록증 등)
-        if (isset($seller['business_license_image']) && !empty($seller['business_license_image'])) {
-            $imagePath = $_SERVER['DOCUMENT_ROOT'] . $seller['business_license_image'];
-            if (file_exists($imagePath)) {
-                @unlink($imagePath);
-            }
-        }
-        
-        // 기타 첨부파일 삭제
-        if (isset($seller['other_documents']) && is_array($seller['other_documents'])) {
-            foreach ($seller['other_documents'] as $doc) {
-                if (isset($doc['url']) && !empty($doc['url'])) {
-                    $docPath = $_SERVER['DOCUMENT_ROOT'] . $doc['url'];
-                    if (file_exists($docPath)) {
-                        @unlink($docPath);
-                    }
-                }
-            }
-        }
-        
-        // 판매자 정보 삭제
-        unset($data['sellers'][$key]);
-        break;
+    $pdo->beginTransaction();
+
+    // seller_profiles 먼저 삭제
+    $pdo->prepare("DELETE FROM seller_profiles WHERE user_id = :user_id")
+        ->execute([':user_id' => $userId]);
+
+    // users 삭제 (판매자만)
+    $u = $pdo->prepare("DELETE FROM users WHERE user_id = :user_id AND role = 'seller' LIMIT 1");
+    $u->execute([':user_id' => $userId]);
+
+    if ($u->rowCount() < 1) {
+        $pdo->rollBack();
+        http_response_code(404);
+        echo json_encode(['success' => false, 'message' => '판매자 정보를 찾을 수 없습니다.']);
+        exit;
     }
-}
 
-if (!$sellerFound) {
-    http_response_code(404);
-    echo json_encode(['success' => false, 'message' => '판매자 정보를 찾을 수 없습니다.']);
-    exit;
-}
+    $pdo->commit();
 
-// 배열 인덱스 재정렬
-$data['sellers'] = array_values($data['sellers']);
-
-// 파일에 저장
-if (file_put_contents($file, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)) === false) {
+    // 업로드된 파일 삭제 (DB 커밋 후)
+    if (!empty($businessLicenseImage)) {
+        $imagePath = $_SERVER['DOCUMENT_ROOT'] . $businessLicenseImage;
+        if (file_exists($imagePath)) {
+            @unlink($imagePath);
+        }
+    }
+} catch (PDOException $e) {
+    if ($pdo->inTransaction()) $pdo->rollBack();
+    error_log('delete-seller-account DB error: ' . $e->getMessage());
     http_response_code(500);
-    echo json_encode(['success' => false, 'message' => '데이터 저장에 실패했습니다.']);
+    echo json_encode(['success' => false, 'message' => '계정 삭제에 실패했습니다.']);
     exit;
 }
 

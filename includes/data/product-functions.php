@@ -1075,8 +1075,8 @@ function toggleProductFavorite($productId, $userId, $productType, $isFavorite = 
             return false;
         }
         
-        // 파라미터를 명시적으로 정수로 변환
-        $userIdInt = (int)$userId;
+        // user_id는 users.user_id(VARCHAR) 기반으로 저장/조회 (DB-only 정합성)
+        $userIdStr = (string)$userId;
         
         if ($isFavorite) {
             // 찜 추가
@@ -1085,7 +1085,7 @@ function toggleProductFavorite($productId, $userId, $productType, $isFavorite = 
                 VALUES (?, ?, ?)
                 ON DUPLICATE KEY UPDATE created_at = CURRENT_TIMESTAMP
             ");
-            $stmt->execute([$productIdInt, $userIdInt, $productType]);
+            $stmt->execute([$productIdInt, $userIdStr, $productType]);
         } else {
             // 찜 삭제
             $stmt = $pdo->prepare("
@@ -1093,7 +1093,7 @@ function toggleProductFavorite($productId, $userId, $productType, $isFavorite = 
                 WHERE product_id = :product_id AND user_id = :user_id
             ");
             $stmt->bindValue(':product_id', $productIdInt, PDO::PARAM_INT);
-            $stmt->bindValue(':user_id', $userIdInt, PDO::PARAM_INT);
+            $stmt->bindValue(':user_id', $userIdStr, PDO::PARAM_STR);
             $stmt->execute();
         }
         
@@ -1313,6 +1313,10 @@ function addProductApplication($productId, $sellerId, $productType, $customerDat
         $currentDateTime = new DateTime('now', new DateTimeZone('Asia/Seoul'));
         $currentDateTimeStr = $currentDateTime->format('Y-m-d H:i:s');
         $initialStatus = 'pending';
+
+        // 신청자 user_id(users.user_id) - DB-only 정합성
+        $userId = $customerData['user_id'] ?? null;
+        $userId = ($userId === null) ? null : (string)$userId;
         
         // 주문번호 생성 (트랜잭션 내에서, UNIQUE 제약조건으로 중복 방지)
         $orderNumber = null;
@@ -1325,13 +1329,14 @@ function addProductApplication($productId, $sellerId, $productType, $customerDat
                 
                 // 주문번호로 INSERT 시도 (status_changed_at도 함께 설정)
                 $stmt = $pdo->prepare("
-                    INSERT INTO product_applications (order_number, product_id, seller_id, product_type, application_status, created_at, status_changed_at)
-                    VALUES (:order_number, :product_id, :seller_id, :product_type, :application_status, :created_at, :status_changed_at)
+                    INSERT INTO product_applications (order_number, product_id, seller_id, user_id, product_type, application_status, created_at, status_changed_at)
+                    VALUES (:order_number, :product_id, :seller_id, :user_id, :product_type, :application_status, :created_at, :status_changed_at)
                 ");
                 $stmt->execute([
                     ':order_number' => $orderNumber,
                     ':product_id' => $productId,
                     ':seller_id' => $sellerId,
+                    ':user_id' => $userId,
                     ':product_type' => $productType,
                     ':application_status' => $initialStatus,
                     ':created_at' => $currentDateTimeStr,
@@ -1383,7 +1388,6 @@ function addProductApplication($productId, $sellerId, $productType, $customerDat
         }
         
         // 2. 고객 정보 등록
-        $userId = $customerData['user_id'] ?? null;
         
         // user_id 검증 (비회원 신청이 불가능한 경우)
         if (empty($userId) || $userId === null) {
@@ -2602,7 +2606,7 @@ function getAllAdminMvnoApplications($filters = [], $page = 1, $perPage = 20) {
         
         $whereClause = implode(' AND ', $whereConditions);
         
-        // COUNT 쿼리용 JOIN 구성 (users 테이블은 JSON 파일에서 가져오므로 JOIN 제거)
+        // COUNT 쿼리용 JOIN 구성 (DB-only: users는 DB 테이블이므로 필요 시 JOIN 가능)
         $countJoins = ["INNER JOIN application_customers c ON a.id = c.application_id"];
         
         // seller_search 필터는 나중에 PHP에서 처리 (users 테이블이 없을 수 있음)
@@ -2772,7 +2776,7 @@ function getAllAdminMvnoApplications($filters = [], $page = 1, $perPage = 20) {
             error_log("파라미터: " . json_encode($params));
         }
         
-        // 판매자 정보를 JSON 파일에서 가져와서 추가
+        // 판매자 정보는 DB(users)에서 조회/조인하도록 정리 필요 (DB-only)
         require_once __DIR__ . '/plan-data.php';
         foreach ($applications as &$app) {
             $sellerId = $app['seller_id'] ?? null;

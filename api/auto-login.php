@@ -29,11 +29,35 @@ if (isLoggedIn()) {
 }
 
 // 기존 회원 목록에서 회원 찾기
-$usersFile = getUsersFilePath();
-$data = file_exists($usersFile) ? json_decode(file_get_contents($usersFile), true) : ['users' => []];
+$pdo = getDBConnection();
+if (!$pdo) {
+    echo json_encode([
+        'success' => false,
+        'message' => 'DB 연결에 실패했습니다.'
+    ]);
+    exit;
+}
 
-if (!is_array($data) || !isset($data['users']) || empty($data['users'])) {
-    // 회원이 없으면 에러 반환
+try {
+    // 테스트용: user 역할만 순환 로그인 (SNS/일반 포함)
+    $stmt = $pdo->query("
+        SELECT user_id, name, role
+        FROM users
+        WHERE role = 'user'
+        ORDER BY created_at DESC, user_id DESC
+        LIMIT 200
+    ");
+    $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    error_log('auto-login DB error: ' . $e->getMessage());
+    echo json_encode([
+        'success' => false,
+        'message' => '사용자 목록을 불러오지 못했습니다.'
+    ]);
+    exit;
+}
+
+if (empty($users)) {
     echo json_encode([
         'success' => false,
         'message' => '등록된 회원이 없습니다.'
@@ -41,7 +65,6 @@ if (!is_array($data) || !isset($data['users']) || empty($data['users'])) {
     exit;
 }
 
-$users = $data['users'];
 $totalUsers = count($users);
 
 // 마지막 로그인한 회원 인덱스를 세션에서 가져오기
@@ -64,10 +87,12 @@ echo json_encode([
     'message' => '로그인되었습니다.',
     'user' => [
         'user_id' => $user['user_id'],
-        'name' => $user['name'],
-        'role' => $user['role']
+        'name' => $user['name'] ?? '사용자',
+        'role' => $user['role'] ?? 'user'
     ]
 ]);
+
+
 
 
 

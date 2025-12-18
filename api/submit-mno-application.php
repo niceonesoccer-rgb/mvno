@@ -106,8 +106,6 @@ try {
         $amount = trim($_POST['selected_amount']);
         // '0'도 유효한 값이므로 그대로 저장
         $additionalInfo['price'] = $amount;
-        // 디버깅: price 값 확인
-        error_log("submit-mno-application: selected_amount = " . var_export($_POST['selected_amount'], true) . ", amount = " . var_export($amount, true) . ", price = " . var_export($additionalInfo['price'], true));
     }
     
     // 단말기 색상 정보 (1개만 선택 가능)

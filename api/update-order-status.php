@@ -42,9 +42,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $applicationId = isset($_POST['application_id']) ? intval($_POST['application_id']) : 0;
 $newStatus = isset($_POST['status']) ? trim($_POST['status']) : '';
 
-// 디버깅 로그
-error_log("Update Order Status API Called - application_id: " . var_export($applicationId, true) . ", status: " . var_export($newStatus, true));
-error_log("POST data: " . var_export($_POST, true));
+// 운영 안전: PII/전체 POST 로깅 금지 (필요 시 최소 정보만)
+error_log("Update Order Status called - application_id={$applicationId}, status={$newStatus}");
 
 // 유효한 상태 값 체크
 $validStatuses = ['received', 'activating', 'on_hold', 'cancelled', 'activation_completed', 'installation_completed', 'closed'];

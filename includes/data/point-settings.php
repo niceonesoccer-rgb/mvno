@@ -25,112 +25,131 @@ $point_settings = [
     'usage_message' => '신청 시 포인트가 차감됩니다.',
 ];
 
-// 사용자 포인트 데이터 (실제로는 데이터베이스에서 가져옴)
-// 현재는 파일 기반으로 구현
+require_once __DIR__ . '/db-config.php';
+
+// 사용자 포인트 조회(DB)
 function getUserPoint($user_id = 'default') {
-    $point_file = __DIR__ . '/../data/user-points.json';
-    
-    if (!file_exists($point_file)) {
-        // 기본 포인트 설정
-        $default_points = [
-            'default' => [
-                'balance' => 100000, // 기본 잔액
-                'history' => []
-            ]
-        ];
-        file_put_contents($point_file, json_encode($default_points, JSON_PRETTY_PRINT));
-        return $default_points[$user_id] ?? ['balance' => 0, 'history' => []];
+    $pdo = getDBConnection();
+    if (!$pdo) {
+        return ['balance' => 0, 'history' => []];
     }
-    
-    $points_data = json_decode(file_get_contents($point_file), true);
-    return $points_data[$user_id] ?? ['balance' => 0, 'history' => []];
+
+    // 계정이 없으면 0으로 생성
+    $pdo->prepare("INSERT IGNORE INTO user_point_accounts (user_id, balance) VALUES (:user, 0)")
+        ->execute([':user' => (string)$user_id]);
+
+    $stmt = $pdo->prepare("SELECT balance FROM user_point_accounts WHERE user_id = :user LIMIT 1");
+    $stmt->execute([':user' => (string)$user_id]);
+    $balance = (int)($stmt->fetchColumn() ?? 0);
+
+    $histStmt = $pdo->prepare("SELECT id, created_at as date, type, ABS(delta) as amount, item_id, description, balance_after FROM user_point_ledger WHERE user_id = :user ORDER BY created_at DESC LIMIT 100");
+    $histStmt->execute([':user' => (string)$user_id]);
+    $history = $histStmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+    return ['balance' => $balance, 'history' => $history];
 }
 
 // 포인트 차감
 function deductPoint($user_id, $amount, $type, $item_id, $description = '') {
-    $point_file = __DIR__ . '/../data/user-points.json';
-    $points_data = [];
-    
-    if (file_exists($point_file)) {
-        $points_data = json_decode(file_get_contents($point_file), true);
+    $pdo = getDBConnection();
+    if (!$pdo) return ['success' => false, 'message' => 'DB 연결 실패'];
+
+    try {
+        $pdo->beginTransaction();
+
+        $pdo->prepare("INSERT IGNORE INTO user_point_accounts (user_id, balance) VALUES (:user, 0)")
+            ->execute([':user' => (string)$user_id]);
+
+        // 행 잠금
+        $stmt = $pdo->prepare("SELECT balance FROM user_point_accounts WHERE user_id = :user FOR UPDATE");
+        $stmt->execute([':user' => (string)$user_id]);
+        $current_balance = (int)($stmt->fetchColumn() ?? 0);
+
+        if ($current_balance < $amount) {
+            $pdo->rollBack();
+            return ['success' => false, 'message' => '포인트가 부족합니다.'];
+        }
+
+        $new_balance = $current_balance - $amount;
+        $pdo->prepare("UPDATE user_point_accounts SET balance = :bal WHERE user_id = :user")
+            ->execute([':bal' => $new_balance, ':user' => (string)$user_id]);
+
+        $history_item = [
+            'date' => date('Y-m-d H:i:s'),
+            'type' => $type,
+            'amount' => $amount,
+            'item_id' => $item_id,
+            'description' => $description ?: "{$type} 신청",
+            'balance_after' => $new_balance
+        ];
+
+        $pdo->prepare("
+            INSERT INTO user_point_ledger (user_id, delta, type, item_id, description, balance_after, created_at)
+            VALUES (:user, :delta, :type, :item, :desc, :bal_after, NOW())
+        ")->execute([
+            ':user' => (string)$user_id,
+            ':delta' => -abs((int)$amount),
+            ':type' => (string)$type,
+            ':item' => (string)$item_id,
+            ':desc' => (string)$history_item['description'],
+            ':bal_after' => $new_balance
+        ]);
+
+        $pdo->commit();
+
+        return ['success' => true, 'balance' => $new_balance, 'history_item' => $history_item];
+    } catch (PDOException $e) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        error_log('deductPoint DB error: ' . $e->getMessage());
+        return ['success' => false, 'message' => '포인트 차감 처리 중 오류'];
     }
-    
-    if (!isset($points_data[$user_id])) {
-        $points_data[$user_id] = ['balance' => 0, 'history' => []];
-    }
-    
-    $current_balance = $points_data[$user_id]['balance'] ?? 0;
-    
-    if ($current_balance < $amount) {
-        return ['success' => false, 'message' => '포인트가 부족합니다.'];
-    }
-    
-    $new_balance = $current_balance - $amount;
-    $points_data[$user_id]['balance'] = $new_balance;
-    
-    // 내역 추가
-    $history_item = [
-        'id' => uniqid(),
-        'date' => date('Y-m-d H:i:s'),
-        'type' => $type, // 'mvno', 'mno', 'internet'
-        'amount' => $amount,
-        'item_id' => $item_id,
-        'description' => $description ?: "{$type} 신청",
-        'balance_after' => $new_balance
-    ];
-    
-    $points_data[$user_id]['history'][] = $history_item;
-    
-    // 최근 100개만 유지
-    if (count($points_data[$user_id]['history']) > 100) {
-        $points_data[$user_id]['history'] = array_slice($points_data[$user_id]['history'], -100);
-    }
-    
-    file_put_contents($point_file, json_encode($points_data, JSON_PRETTY_PRINT));
-    
-    return [
-        'success' => true,
-        'balance' => $new_balance,
-        'history_item' => $history_item
-    ];
 }
 
 // 포인트 추가 (관리자용)
 function addPoint($user_id, $amount, $description = '') {
-    $point_file = __DIR__ . '/../data/user-points.json';
-    $points_data = [];
-    
-    if (file_exists($point_file)) {
-        $points_data = json_decode(file_get_contents($point_file), true);
+    $pdo = getDBConnection();
+    if (!$pdo) return ['success' => false, 'message' => 'DB 연결 실패'];
+
+    try {
+        $pdo->beginTransaction();
+
+        $pdo->prepare("INSERT IGNORE INTO user_point_accounts (user_id, balance) VALUES (:user, 0)")
+            ->execute([':user' => (string)$user_id]);
+
+        $stmt = $pdo->prepare("SELECT balance FROM user_point_accounts WHERE user_id = :user FOR UPDATE");
+        $stmt->execute([':user' => (string)$user_id]);
+        $current_balance = (int)($stmt->fetchColumn() ?? 0);
+
+        $new_balance = $current_balance + (int)$amount;
+        $pdo->prepare("UPDATE user_point_accounts SET balance = :bal WHERE user_id = :user")
+            ->execute([':bal' => $new_balance, ':user' => (string)$user_id]);
+
+        $history_item = [
+            'date' => date('Y-m-d H:i:s'),
+            'type' => 'add',
+            'amount' => (int)$amount,
+            'description' => $description ?: '포인트 충전',
+            'balance_after' => $new_balance
+        ];
+
+        $pdo->prepare("
+            INSERT INTO user_point_ledger (user_id, delta, type, item_id, description, balance_after, created_at)
+            VALUES (:user, :delta, 'add', NULL, :desc, :bal_after, NOW())
+        ")->execute([
+            ':user' => (string)$user_id,
+            ':delta' => abs((int)$amount),
+            ':desc' => (string)$history_item['description'],
+            ':bal_after' => $new_balance
+        ]);
+
+        $pdo->commit();
+
+        return ['success' => true, 'balance' => $new_balance, 'history_item' => $history_item];
+    } catch (PDOException $e) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        error_log('addPoint DB error: ' . $e->getMessage());
+        return ['success' => false, 'message' => '포인트 적립 처리 중 오류'];
     }
-    
-    if (!isset($points_data[$user_id])) {
-        $points_data[$user_id] = ['balance' => 0, 'history' => []];
-    }
-    
-    $current_balance = $points_data[$user_id]['balance'] ?? 0;
-    $new_balance = $current_balance + $amount;
-    $points_data[$user_id]['balance'] = $new_balance;
-    
-    // 내역 추가
-    $history_item = [
-        'id' => uniqid(),
-        'date' => date('Y-m-d H:i:s'),
-        'type' => 'add',
-        'amount' => $amount,
-        'description' => $description ?: '포인트 충전',
-        'balance_after' => $new_balance
-    ];
-    
-    $points_data[$user_id]['history'][] = $history_item;
-    
-    file_put_contents($point_file, json_encode($points_data, JSON_PRETTY_PRINT));
-    
-    return [
-        'success' => true,
-        'balance' => $new_balance,
-        'history_item' => $history_item
-    ];
 }
 
 // 특정 아이템의 포인트 사용 내역 가져오기

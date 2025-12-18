@@ -32,44 +32,74 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     if (empty($editUserId) || empty($phone) || empty($name)) {
         $error = '모든 필드를 입력해주세요.';
     } else {
-        $adminsFile = getAdminsFilePath();
-        if (file_exists($adminsFile)) {
-            $data = json_decode(file_get_contents($adminsFile), true) ?: ['admins' => []];
-            $admins = $data['admins'] ?? [];
-            
-            $updated = false;
-            foreach ($admins as &$admin) {
-                if (isset($admin['user_id']) && $admin['user_id'] === $editUserId) {
-                    $admin['phone'] = $phone;
-                    $admin['name'] = $name;
-                    
-                    // admin 아이디가 아닌 경우 관리자 역할로 변경 불가
-                    if ($editUserId === 'admin') {
-                        $admin['role'] = 'admin'; // admin은 항상 관리자
-                    } else {
-                        $admin['role'] = 'sub_admin'; // 그 외는 부관리자만 가능
-                    }
-                    
-                    // 비밀번호가 입력된 경우에만 업데이트
+        // DB-only: users 테이블 업데이트 (admin/sub_admin)
+        $pdo = getDBConnection();
+        if (!$pdo) {
+            $error = 'DB 연결에 실패했습니다.';
+        } else {
+            // admin 아이디가 아닌 경우 관리자 역할로 변경 불가
+            $finalRole = ($editUserId === 'admin') ? 'admin' : 'sub_admin';
+
+            if (!empty($password) && strlen($password) < 8) {
+                $error = '비밀번호는 최소 8자 이상이어야 합니다.';
+            } else {
+                try {
+                    $pdo->beginTransaction();
+
                     if (!empty($password)) {
-                        if (strlen($password) < 8) {
-                            $error = '비밀번호는 최소 8자 이상이어야 합니다.';
-                            break;
-                        }
-                        $admin['password'] = password_hash($password, PASSWORD_DEFAULT);
+                        $stmt = $pdo->prepare("
+                            UPDATE users
+                            SET phone = :phone,
+                                name = :name,
+                                role = :role,
+                                password = :password,
+                                updated_at = NOW()
+                            WHERE user_id = :user_id
+                              AND role IN ('admin','sub_admin')
+                            LIMIT 1
+                        ");
+                        $stmt->execute([
+                            ':phone' => $phone,
+                            ':name' => $name,
+                            ':role' => $finalRole,
+                            ':password' => password_hash($password, PASSWORD_DEFAULT),
+                            ':user_id' => $editUserId
+                        ]);
+                    } else {
+                        $stmt = $pdo->prepare("
+                            UPDATE users
+                            SET phone = :phone,
+                                name = :name,
+                                role = :role,
+                                updated_at = NOW()
+                            WHERE user_id = :user_id
+                              AND role IN ('admin','sub_admin')
+                            LIMIT 1
+                        ");
+                        $stmt->execute([
+                            ':phone' => $phone,
+                            ':name' => $name,
+                            ':role' => $finalRole,
+                            ':user_id' => $editUserId
+                        ]);
                     }
-                    
-                    $updated = true;
-                    break;
-                }
-            }
-            
-            if ($updated && empty($error)) {
-                $data = ['admins' => $admins];
-                if (file_put_contents($adminsFile, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE))) {
-                    // 수정 후 관리자 목록으로 리다이렉트
-                    header('Location: /MVNO/admin/users/member-list.php?tab=admins&success=update');
-                    exit;
+
+                    if ($stmt->rowCount() < 1) {
+                        $pdo->rollBack();
+                        $error = '관리자 정보를 찾을 수 없습니다.';
+                    } else {
+                        // admin_profiles에도 updated_at 반영 (존재하는 경우)
+                        $pdo->prepare("UPDATE admin_profiles SET updated_at = NOW() WHERE user_id = :user_id")
+                            ->execute([':user_id' => $editUserId]);
+
+                        $pdo->commit();
+                        header('Location: /MVNO/admin/users/member-list.php?tab=admins&success=update');
+                        exit;
+                    }
+                } catch (PDOException $e) {
+                    if ($pdo->inTransaction()) $pdo->rollBack();
+                    error_log('admin-manage update DB error: ' . $e->getMessage());
+                    $error = '관리자 정보 저장에 실패했습니다.';
                 }
             }
         }
@@ -81,16 +111,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 $editAdmin = null;
 $editUserId = $_GET['edit'] ?? '';
 if (!empty($editUserId)) {
-    $adminsFile = getAdminsFilePath();
-    if (file_exists($adminsFile)) {
-        $data = json_decode(file_get_contents($adminsFile), true) ?: ['admins' => []];
-        $admins = $data['admins'] ?? [];
-        foreach ($admins as $admin) {
-            if (isset($admin['user_id']) && $admin['user_id'] === $editUserId) {
-                $editAdmin = $admin;
-                break;
-            }
-        }
+    $editAdmin = getUserById($editUserId);
+    if (!$editAdmin || !in_array(($editAdmin['role'] ?? ''), ['admin', 'sub_admin'], true)) {
+        $editAdmin = null;
     }
 }
 

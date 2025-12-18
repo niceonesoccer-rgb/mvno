@@ -5,6 +5,8 @@
 
 // 필요한 함수 파일 먼저 포함
 require_once __DIR__ . '/../../includes/data/auth-functions.php';
+require_once __DIR__ . '/../../includes/data/point-settings.php';
+require_once __DIR__ . '/../../includes/data/db-config.php';
 
 // POST 요청 처리 (헤더 출력 전에 처리)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -85,23 +87,42 @@ $isAdmin = isset($user['role']) && ($user['role'] === 'admin' || $user['role'] =
 
 // 판매자가 아니고 관리자/부관리자가 아닌 경우에만 일반 회원 정보 가져오기
 if (!$isSeller && !$isAdmin) {
-    // 포인트 정보 가져오기
-    $pointsData = [];
-    $pointsFile = __DIR__ . '/../../includes/data/user-points.json';
-    if (file_exists($pointsFile)) {
-        $pointsContent = file_get_contents($pointsFile);
-        $pointsData = json_decode($pointsContent, true) ?: [];
-    }
-    $userPoints = $pointsData[$userId] ?? null;
+    // 포인트 정보 가져오기 (DB)
+    $userPoints = getUserPoint($userId);
 
-    // 찜한 요금제 정보 가져오기
-    $wishlistData = [];
-    $wishlistFile = __DIR__ . '/../../includes/data/user-wishlist.json';
-    if (file_exists($wishlistFile)) {
-        $wishlistContent = file_get_contents($wishlistFile);
-        $wishlistData = json_decode($wishlistContent, true) ?: [];
+    // 찜(즐겨찾기) 정보 가져오기 (DB: product_favorites)
+    $userWishlist = null;
+    $pdo = getDBConnection();
+    if ($pdo) {
+        try {
+            $stmt = $pdo->prepare("
+                SELECT product_type, product_id, created_at
+                FROM product_favorites
+                WHERE user_id = :user
+                ORDER BY created_at DESC
+                LIMIT 200
+            ");
+            $stmt->execute([':user' => (string)$userId]);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+            $userWishlist = ['mvno' => [], 'mno' => []];
+            foreach ($rows as $r) {
+                $type = $r['product_type'] ?? '';
+                $item = [
+                    'product_id' => $r['product_id'] ?? null,
+                    'id' => $r['product_id'] ?? null,
+                    'added_at' => $r['created_at'] ?? null,
+                ];
+                if ($type === 'mvno') {
+                    $userWishlist['mvno'][] = $item;
+                } elseif ($type === 'mno') {
+                    $userWishlist['mno'][] = $item;
+                }
+            }
+        } catch (PDOException $e) {
+            error_log('member-detail wishlist DB error: ' . $e->getMessage());
+        }
     }
-    $userWishlist = $wishlistData[$userId] ?? null;
 
     // 판매 종료된 상품 필터링 함수
     require_once __DIR__ . '/../../includes/data/plan-data.php';
@@ -152,32 +173,56 @@ if (!$isSeller && !$isAdmin) {
         }
     }
 
-    // 주문 내역 정보 가져오기
-    $orderData = [];
-    $orderFile = __DIR__ . '/../../includes/data/user-orders.json';
-    if (file_exists($orderFile)) {
-        $orderContent = file_get_contents($orderFile);
-        $orderData = json_decode($orderContent, true) ?: [];
-    }
-    $userOrders = $orderData[$userId] ?? null;
+    // 주문 내역 정보 가져오기 (DB: product_applications)
+    $userOrders = null;
+    if ($pdo) {
+        try {
+            $stmt = $pdo->prepare("
+                SELECT type, order_number, status, created_at,
+                       plan_id, phone_id, product_id,
+                       plan_name, phone_name, product_name
+                FROM product_applications
+                WHERE user_id = :user
+                ORDER BY created_at DESC
+                LIMIT 200
+            ");
+            $stmt->execute([':user' => (string)$userId]);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
-    // 알림 설정 정보 가져오기
-    $notificationData = [];
-    $notificationFile = __DIR__ . '/../../includes/data/user-notifications.json';
-    if (file_exists($notificationFile)) {
-        $notificationContent = file_get_contents($notificationFile);
-        $notificationData = json_decode($notificationContent, true) ?: [];
+            $userOrders = ['mvno' => [], 'mno' => [], 'internet' => []];
+            foreach ($rows as $r) {
+                $t = $r['type'] ?? '';
+                if ($t === 'mvno') {
+                    $userOrders['mvno'][] = [
+                        'plan_name' => $r['plan_name'] ?? null,
+                        'order_date' => $r['created_at'] ?? null,
+                        'status' => $r['status'] ?? null,
+                        'order_id' => $r['order_number'] ?? null,
+                    ];
+                } elseif ($t === 'mno') {
+                    $userOrders['mno'][] = [
+                        'phone_name' => $r['phone_name'] ?? null,
+                        'order_date' => $r['created_at'] ?? null,
+                        'status' => $r['status'] ?? null,
+                        'order_id' => $r['order_number'] ?? null,
+                    ];
+                } elseif ($t === 'internet') {
+                    $userOrders['internet'][] = [
+                        'product_name' => $r['product_name'] ?? null,
+                        'order_date' => $r['created_at'] ?? null,
+                        'status' => $r['status'] ?? null,
+                        'order_id' => $r['order_number'] ?? null,
+                    ];
+                }
+            }
+        } catch (PDOException $e) {
+            error_log('member-detail orders DB error: ' . $e->getMessage());
+        }
     }
-    $userNotifications = $notificationData[$userId] ?? null;
 
-    // 계정 설정 정보 가져오기
-    $accountData = [];
-    $accountFile = __DIR__ . '/../../includes/data/user-accounts.json';
-    if (file_exists($accountFile)) {
-        $accountContent = file_get_contents($accountFile);
-        $accountData = json_decode($accountContent, true) ?: [];
-    }
-    $userAccount = $accountData[$userId] ?? null;
+    // 알림/계정 설정: DB-only 전환 (현재 별도 테이블/컬럼 연동 없음)
+    $userNotifications = null;
+    $userAccount = null;
 } else {
     // 판매자인 경우 변수 초기화
     $userPoints = null;

@@ -106,30 +106,30 @@ VALUES (LAST_INSERT_ID(), 'KT', '5G 슈퍼플랜', 75000, 55000);
 ### 리뷰 작성 (MVNO, MNO만)
 ```php
 INSERT INTO product_reviews (product_id, user_id, product_type, rating, content)
-VALUES (1, 10, 'mvno', 5, '정말 좋은 요금제입니다!');
+VALUES (1, 'test_user', 'mvno', 5, '정말 좋은 요금제입니다!');
 ```
 
 ### 찜 추가
 ```php
 INSERT INTO product_favorites (product_id, user_id, product_type)
-VALUES (1, 10, 'mvno');
+VALUES (1, 'test_user', 'mvno');
 ```
 
 ### 공유 기록
 ```php
 INSERT INTO product_shares (product_id, user_id, product_type, share_method, ip_address)
-VALUES (1, 10, 'mvno', 'kakao', '192.168.1.1');
+VALUES (1, 'test_user', 'mvno', 'kakao', '192.168.1.1');
 ```
 
 ### 신청 및 고객 정보
 ```php
 // 1. 신청 등록
-INSERT INTO product_applications (product_id, seller_id, product_type, application_status)
-VALUES (1, 1, 'mvno', 'pending');
+INSERT INTO product_applications (product_id, seller_id, user_id, product_type, application_status)
+VALUES (1, 1, 'test_user', 'mvno', 'pending');
 
 // 2. 고객 정보 등록
 INSERT INTO application_customers (application_id, user_id, name, phone, email)
-VALUES (LAST_INSERT_ID(), 10, '홍길동', '010-1234-5678', 'hong@example.com');
+VALUES (LAST_INSERT_ID(), 'test_user', '홍길동', '010-1234-5678', 'hong@example.com');
 ```
 
 ## 주의사항

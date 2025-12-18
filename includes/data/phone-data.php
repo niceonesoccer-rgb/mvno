@@ -100,18 +100,29 @@ function getPhonesData($limit = 10) {
             }
         }
         
-        // 판매자 정보 로드
+        // 판매자 정보 로드 (DB-only)
         $sellersData = [];
-        $sellersJsonPath = __DIR__ . '/sellers.json';
-        if (file_exists($sellersJsonPath)) {
-            $sellersContent = file_get_contents($sellersJsonPath);
-            $sellersJson = json_decode($sellersContent, true);
-            if ($sellersJson && isset($sellersJson['sellers'])) {
-                foreach ($sellersJson['sellers'] as $seller) {
-                    if (isset($seller['user_id'])) {
-                        $sellersData[(string)$seller['user_id']] = $seller;
-                    }
-                }
+        $sellerIds = [];
+        foreach ($products as $p) {
+            $sid = (string)($p['seller_id'] ?? '');
+            if ($sid !== '') $sellerIds[$sid] = true;
+        }
+        if (!empty($sellerIds)) {
+            $idList = array_keys($sellerIds);
+            $placeholders = implode(',', array_fill(0, count($idList), '?'));
+            $sellerStmt = $pdo->prepare("
+                SELECT
+                    user_id,
+                    COALESCE(NULLIF(company_name,''), NULLIF(seller_name,''), NULLIF(name,''), '알뜰폰') AS company_name,
+                    seller_name,
+                    name
+                FROM users
+                WHERE role = 'seller'
+                  AND user_id IN ($placeholders)
+            ");
+            $sellerStmt->execute($idList);
+            foreach ($sellerStmt->fetchAll(PDO::FETCH_ASSOC) as $s) {
+                $sellersData[(string)$s['user_id']] = $s;
             }
         }
         
@@ -459,20 +470,26 @@ function getPhoneDetailData($phone_id) {
             }
         }
         
-        // 판매자 정보 로드
+        // 판매자 정보 로드 (DB-only)
         $seller = null;
-        $sellersJsonPath = __DIR__ . '/sellers.json';
-        if (file_exists($sellersJsonPath)) {
-            $sellersContent = file_get_contents($sellersJsonPath);
-            $sellersJson = json_decode($sellersContent, true);
-            if ($sellersJson && isset($sellersJson['sellers'])) {
-                $sellerId = (string)($product['seller_id'] ?? '');
-                foreach ($sellersJson['sellers'] as $s) {
-                    if ((string)($s['user_id'] ?? '') === $sellerId) {
-                        $seller = $s;
-                        break;
-                    }
-                }
+        $sellerId = (string)($product['seller_id'] ?? '');
+        if (!empty($sellerId)) {
+            try {
+                $sellerStmt = $pdo->prepare("
+                    SELECT
+                        user_id,
+                        COALESCE(NULLIF(company_name,''), NULLIF(seller_name,''), NULLIF(name,''), '알뜰폰') AS company_name,
+                        seller_name,
+                        name
+                    FROM users
+                    WHERE role = 'seller'
+                      AND user_id = :user_id
+                    LIMIT 1
+                ");
+                $sellerStmt->execute([':user_id' => $sellerId]);
+                $seller = $sellerStmt->fetch(PDO::FETCH_ASSOC) ?: null;
+            } catch (Exception $e) {
+                // ignore
             }
         }
         

@@ -25,7 +25,7 @@ if (isset($_GET['redirect'])) {
         . '://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
     // 로그인 페이지 자체는 제외하고, 이전 페이지가 있으면 그걸 사용
     $referer = $_SERVER['HTTP_REFERER'] ?? '';
-    if (!empty($referer) && strpos($referer, '/auth/login.php') === false && strpos($referer, '/auth/register.php') === false) {
+    if (!empty($referer) && strpos($referer, '/auth/login.php') === false) {
         $_SESSION['redirect_url'] = $referer;
     }
 }
@@ -293,11 +293,16 @@ $isRegisterMode = isset($_GET['register']) && $_GET['register'] === 'true';
             </form>
             
             <div class="register-link">
-                계정이 없으신가요? <a href="/MVNO/auth/register.php">회원가입</a>
+                계정이 없으신가요? <a href="#" onclick="openLoginModal(true); return false;">회원가입</a>
             </div>
         </div>
         <?php endif; ?>
     </div>
+
+    <?php
+    // 모달 기반 회원가입/로그인을 사용 (register.php 페이지 제거용)
+    require_once __DIR__ . '/../includes/components/login-modal.php';
+    ?>
     
     <script>
         function snsLogin(provider) {
@@ -339,6 +344,15 @@ $isRegisterMode = isset($_GET['register']) && $_GET['register'] === 'true';
                 console.error('Error:', error);
                 alert('로그인 중 오류가 발생했습니다.');
             });
+        });
+        <?php endif; ?>
+
+        // /auth/login.php?register=true 로 접근 시 회원가입 모달 자동 오픈
+        <?php if ($isRegisterMode): ?>
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof openLoginModal === 'function') {
+                openLoginModal(true);
+            }
         });
         <?php endif; ?>
     </script>

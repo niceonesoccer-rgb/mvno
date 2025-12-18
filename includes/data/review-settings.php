@@ -35,3 +35,5 @@ function canWriteReview($application_status) {
     return in_array($normalizedStatus, $allowedStatuses);
 }
 
+
+

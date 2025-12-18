@@ -43,36 +43,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
                 $error = '올바른 이메일 형식이 아닙니다.';
             } else {
-                $usersFile = getUsersFilePath();
-                if (file_exists($usersFile)) {
-                    $data = json_decode(file_get_contents($usersFile), true) ?: ['users' => []];
-                    $users = $data['users'] ?? [];
-                    
-                    $updated = false;
-                    foreach ($users as &$user) {
-                        if (isset($user['user_id']) && $user['user_id'] === $editUserId) {
-                            $user['phone'] = $formattedPhone;
-                            $user['name'] = $name;
-                            $user['email'] = $email;
-                            $updated = true;
-                            break;
-                        }
-                    }
-                    
-                    if ($updated && empty($error)) {
-                        $data = ['users' => $users];
-                        if (file_put_contents($usersFile, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE))) {
-                            // 수정 후 회원 상세 페이지로 리다이렉트
+                // DB-only: users 테이블 업데이트
+                $pdo = getDBConnection();
+                if (!$pdo) {
+                    $error = 'DB 연결에 실패했습니다.';
+                } else {
+                    try {
+                        $stmt = $pdo->prepare("
+                            UPDATE users
+                            SET phone = :phone,
+                                name = :name,
+                                email = :email,
+                                updated_at = NOW()
+                            WHERE user_id = :user_id
+                              AND role = 'user'
+                            LIMIT 1
+                        ");
+                        $stmt->execute([
+                            ':phone' => $formattedPhone,
+                            ':name' => $name,
+                            ':email' => $email,
+                            ':user_id' => $editUserId
+                        ]);
+
+                        if ($stmt->rowCount() < 1) {
+                            $error = '회원을 찾을 수 없습니다.';
+                        } else {
                             header('Location: /MVNO/admin/users/member-detail.php?user_id=' . urlencode($editUserId) . '&success=update');
                             exit;
-                        } else {
-                            $error = '회원정보 저장에 실패했습니다.';
                         }
-                    } elseif (!$updated) {
-                        $error = '회원을 찾을 수 없습니다.';
+                    } catch (PDOException $e) {
+                        error_log('admin user-edit DB error: ' . $e->getMessage());
+                        $error = '회원정보 저장에 실패했습니다.';
                     }
-                } else {
-                    $error = '사용자 데이터 파일을 찾을 수 없습니다.';
                 }
             }
         }

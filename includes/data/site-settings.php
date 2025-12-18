@@ -6,14 +6,6 @@
  */
 
 /**
- * 사이트 설정 JSON 파일 경로
- * @return string
- */
-function getSiteSettingsFilePath() {
-    return __DIR__ . '/site-settings.json';
-}
-
-/**
  * 기본 사이트 설정
  * @return array
  */
@@ -47,21 +39,10 @@ function getDefaultSiteSettings() {
  * @return array
  */
 function getSiteSettings() {
-    $path = getSiteSettingsFilePath();
     $defaults = getDefaultSiteSettings();
-
-    if (!file_exists($path)) {
-        return $defaults;
-    }
-
-    $raw = file_get_contents($path);
-    $data = json_decode($raw, true);
-    if (!is_array($data)) {
-        return $defaults;
-    }
-
-    // 얕은 merge (필수 키 누락 대비)
-    return array_replace_recursive($defaults, $data);
+    // 실서비스: DB(app_settings) 사용
+    require_once __DIR__ . '/app-settings.php';
+    return getAppSettings('site', $defaults);
 }
 
 /**
@@ -70,11 +51,10 @@ function getSiteSettings() {
  * @return bool
  */
 function saveSiteSettings($settings) {
-    $path = getSiteSettingsFilePath();
-    $json = json_encode($settings, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-    if ($json === false) {
-        return false;
-    }
-    return file_put_contents($path, $json) !== false;
+    require_once __DIR__ . '/app-settings.php';
+    $updatedBy = function_exists('getCurrentUserId') ? getCurrentUserId() : null;
+    return saveAppSettings('site', $settings, $updatedBy);
 }
+
+
 

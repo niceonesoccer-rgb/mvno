@@ -92,10 +92,7 @@ try {
         throw new Exception('상품 정보를 가져올 수 없습니다. 상품이 삭제되었거나 정보가 없습니다.');
     }
     
-    // 디버깅: product_snapshot 확인
-    error_log("MVNO Application - Product Snapshot keys: " . implode(', ', array_keys($productSnapshot)));
-    error_log("MVNO Application - Product Snapshot plan_name: " . ($productSnapshot['plan_name'] ?? 'NULL'));
-    error_log("MVNO Application - Product Snapshot provider: " . ($productSnapshot['provider'] ?? 'NULL'));
+    // 운영 안전: 신청 시점 상품 스냅샷 상세 로그 제거
     
     // 고객 정보 준비
     $customerData = [

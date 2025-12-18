@@ -213,9 +213,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_seller'])) {
         $email = trim($email);
         
         // 수정할 정보 수집
+        // DB-only 스키마 기준: users/seller_profiles에 seller_name 컬럼이 없을 수 있어 company_name으로 통합 저장
+        $postedSellerName = trim($_POST['seller_name'] ?? '');
         $updateData = [
             'name' => $_POST['name'] ?? $seller['name'],
-            'seller_name' => $_POST['seller_name'] ?? ($seller['seller_name'] ?? ''),
             'email' => $email,
             'phone' => $_POST['phone'] ?? ($seller['phone'] ?? ''),
             'mobile' => $_POST['mobile'] ?? ($seller['mobile'] ?? ''),
@@ -227,6 +228,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_seller'])) {
             'business_type' => $_POST['business_type'] ?? ($seller['business_type'] ?? ''),
             'business_item' => $_POST['business_item'] ?? ($seller['business_item'] ?? ''),
         ];
+
+        // UI의 "판매자명" 입력값은 company_name이 비어있을 때 대체 저장
+        if (empty(trim((string)($updateData['company_name'] ?? ''))) && $postedSellerName !== '') {
+            $updateData['company_name'] = $postedSellerName;
+        }
         
         // 비밀번호 변경이 있는 경우
         if (!empty($_POST['password'])) {
@@ -242,64 +248,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_seller'])) {
             $error_message = '이메일 아이디는 20자 이내로 입력해주세요.';
         }
         
-        // 휴대폰 번호 검증 (필수)
-        if (empty($error_message) && !empty($updateData['mobile'])) {
-            $mobileNumbers = preg_replace('/[^\d]/', '', $updateData['mobile']);
-            if (!preg_match('/^010\d{8}$/', $mobileNumbers)) {
-                $error_message = '휴대폰 번호는 010으로 시작하는 11자리 숫자여야 합니다.';
-            } else {
-                // 휴대폰 번호 포맷팅
-                $updateData['mobile'] = '010-' . substr($mobileNumbers, 3, 4) . '-' . substr($mobileNumbers, 7, 4);
+        // 휴대폰/전화번호 검증: seller/register.php(4단계) 규칙과 동일하게 공용 함수 사용
+        if (empty($error_message)) {
+            $formattedMobile = validateAndFormatSellerMobile($updateData['mobile'] ?? '', $error_message);
+            if (empty($error_message) && $formattedMobile !== null) {
+                $updateData['mobile'] = $formattedMobile;
             }
         }
-        
-        // 전화번호 형식 검증 (입력된 경우에만, 쉼표로 구분된 여러 번호 지원)
-        if (empty($error_message) && !empty($updateData['phone'])) {
-            // 쉼표로 구분된 전화번호들을 배열로 분리
-            $phoneList = array_map('trim', explode(',', $updateData['phone']));
-            $phoneList = array_filter($phoneList); // 빈 값 제거
-            
-            foreach ($phoneList as $phoneItem) {
-                $phoneNumbers = preg_replace('/[^\d]/', '', $phoneItem);
-                $phoneLength = strlen($phoneNumbers);
-                
-                // 숫자 길이 검증
-                if ($phoneLength < 8 || $phoneLength > 11) {
-                    $error_message = '전화번호 형식이 올바르지 않습니다. (각 번호는 8-11자리여야 합니다)';
-                    break;
-                }
-                
-                // 한국 전화번호 형식 검증
-                $isValidFormat = false;
-                
-                // 휴대폰 (010, 011, 016, 017, 018, 019) - 11자리
-                if ($phoneLength === 11 && preg_match('/^01[0-9]\d{8}$/', $phoneNumbers)) {
-                    $isValidFormat = true;
-                }
-                // 02-XXXX-XXXX (서울, 10자리)
-                elseif ($phoneLength === 10 && preg_match('/^02\d{8}$/', $phoneNumbers)) {
-                    $isValidFormat = true;
-                }
-                // 0XX-XXX-XXXX (지역번호 3자리, 10자리)
-                elseif ($phoneLength === 10 && preg_match('/^0[3-6]\d{8}$/', $phoneNumbers)) {
-                    $isValidFormat = true;
-                }
-                // 0XX-XXXX-XXXX (일부 지역번호, 11자리)
-                elseif ($phoneLength === 11 && preg_match('/^0[3-6]\d{9}$/', $phoneNumbers)) {
-                    $isValidFormat = true;
-                }
-                // 070/080-XXXX-XXXX (인터넷전화, 11자리)
-                elseif ($phoneLength === 11 && preg_match('/^0[78]0\d{8}$/', $phoneNumbers)) {
-                    $isValidFormat = true;
-                }
-                // 전국대표번호 (1XXX로 시작하는 4자리 번호 + 4자리, 총 8자리)
-                elseif ($phoneLength === 8 && preg_match('/^1\d{3}\d{4}$/', $phoneNumbers)) {
-                    $isValidFormat = true;
-                }
-                
-                if (!$isValidFormat) {
-                    $error_message = '전화번호 형식이 올바르지 않습니다. (예: 02-1234-5678, 031-123-4567, 010-1234-5678, 1588-1234, 070-1234-5678)';
-                    break;
+
+        if (empty($error_message)) {
+            $formattedPhone = null;
+            if (validateSellerPhoneList($updateData['phone'] ?? '', $error_message, $formattedPhone)) {
+                if (!empty($formattedPhone)) {
+                    $updateData['phone'] = $formattedPhone;
                 }
             }
         }
@@ -388,46 +349,98 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_seller'])) {
             
             // 변경 사항이 있을 때만 업데이트 진행
             if ($hasChanges) {
-                // 판매자 정보 업데이트
-                $file = getSellersFilePath();
-                if (file_exists($file)) {
-                    $data = json_decode(file_get_contents($file), true) ?: ['sellers' => []];
-                    $updated = false;
-                    
-                    foreach ($data['sellers'] as &$u) {
-                        if ($u['user_id'] === $userId) {
-                            // 기존 데이터에 업데이트 데이터 병합
-                            foreach ($updateData as $key => $value) {
-                                $u[$key] = $value;
-                            }
-                            // 우편번호 필드 제거 (더 이상 사용하지 않음)
-                            if (isset($u['postal_code'])) {
-                                unset($u['postal_code']);
-                            }
-                            $u['updated_at'] = date('Y-m-d H:i:s');
-                            // 정보 업데이트 플래그 설정 (관리자 확인 전까지 유지) - 판매자가 수정한 경우에만
-                            // 관리자가 수정하는 경우는 플래그를 설정하지 않음
-                            if (!$isAdmin) {
-                                $u['info_updated'] = true;
-                                $u['info_updated_at'] = date('Y-m-d H:i:s');
-                                $u['info_checked_by_admin'] = false; // 관리자 확인 전
-                            }
-                            $updated = true;
-                            break;
+                // DB-only: users + seller_profiles 업데이트
+                $pdo = getDBConnection();
+                if (!$pdo) {
+                    $error_message = 'DB 연결에 실패했습니다.';
+                } else {
+                    try {
+                        $pdo->beginTransaction();
+
+                        // users(표시/로그인 호환용) 업데이트
+                        $u = $pdo->prepare("
+                            UPDATE users
+                            SET name = :name,
+                                email = :email,
+                                phone = :phone,
+                                mobile = :mobile,
+                                address = :address,
+                                address_detail = :address_detail,
+                                business_number = :business_number,
+                                company_name = :company_name,
+                                company_representative = :company_representative,
+                                business_type = :business_type,
+                                business_item = :business_item,
+                                business_license_image = :business_license_image,
+                                password = COALESCE(:password, password),
+                                updated_at = NOW()
+                            WHERE user_id = :user_id
+                              AND role = 'seller'
+                            LIMIT 1
+                        ");
+
+                        $passwordHashed = null;
+                        if (!empty($_POST['password'])) {
+                            $passwordHashed = $updateData['password'] ?? password_hash($_POST['password'], PASSWORD_DEFAULT);
                         }
-                    }
-                    
-                    if ($updated) {
-                        file_put_contents($file, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+
+                        $u->execute([
+                            ':name' => $updateData['name'] ?? ($seller['name'] ?? ''),
+                            ':email' => $updateData['email'] ?? ($seller['email'] ?? null),
+                            ':phone' => $updateData['phone'] ?? ($seller['phone'] ?? null),
+                            ':mobile' => $updateData['mobile'] ?? ($seller['mobile'] ?? null),
+                            ':address' => $updateData['address'] ?? ($seller['address'] ?? null),
+                            ':address_detail' => $updateData['address_detail'] ?? ($seller['address_detail'] ?? null),
+                            ':business_number' => $updateData['business_number'] ?? ($seller['business_number'] ?? null),
+                            ':company_name' => $updateData['company_name'] ?? ($seller['company_name'] ?? null),
+                            ':company_representative' => $updateData['company_representative'] ?? ($seller['company_representative'] ?? null),
+                            ':business_type' => $updateData['business_type'] ?? ($seller['business_type'] ?? null),
+                            ':business_item' => $updateData['business_item'] ?? ($seller['business_item'] ?? null),
+                            ':business_license_image' => $updateData['business_license_image'] ?? ($seller['business_license_image'] ?? null),
+                            ':password' => $passwordHashed,
+                            ':user_id' => $userId
+                        ]);
+
+                        // seller_profiles 업데이트 (존재하면)
+                        $sp = $pdo->prepare("
+                            UPDATE seller_profiles
+                            SET postal_code = NULL,
+                                address = :address,
+                                address_detail = :address_detail,
+                                business_number = :business_number,
+                                company_name = :company_name,
+                                company_representative = :company_representative,
+                                business_type = :business_type,
+                                business_item = :business_item,
+                                business_license_image = :business_license_image,
+                                info_checked_by_admin = info_checked_by_admin,
+                                updated_at = NOW()
+                            WHERE user_id = :user_id
+                            LIMIT 1
+                        ");
+                        $sp->execute([
+                            ':address' => $updateData['address'] ?? ($seller['address'] ?? null),
+                            ':address_detail' => $updateData['address_detail'] ?? ($seller['address_detail'] ?? null),
+                            ':business_number' => $updateData['business_number'] ?? ($seller['business_number'] ?? null),
+                            ':company_name' => $updateData['company_name'] ?? ($seller['company_name'] ?? null),
+                            ':company_representative' => $updateData['company_representative'] ?? ($seller['company_representative'] ?? null),
+                            ':business_type' => $updateData['business_type'] ?? ($seller['business_type'] ?? null),
+                            ':business_item' => $updateData['business_item'] ?? ($seller['business_item'] ?? null),
+                            ':business_license_image' => $updateData['business_license_image'] ?? ($seller['business_license_image'] ?? null),
+                            ':user_id' => $userId
+                        ]);
+
+                        $pdo->commit();
+
                         // 저장 성공 플래그 설정 (리다이렉트하지 않고 같은 페이지에 머물러서 모달 표시)
                         $success_saved = true;
                         // 판매자 정보 다시 로드 (업데이트된 정보 반영)
                         $seller = getUserById($userId);
-                    } else {
+                    } catch (PDOException $e) {
+                        if ($pdo->inTransaction()) $pdo->rollBack();
+                        error_log('seller-edit DB error: ' . $e->getMessage());
                         $error_message = '판매자 정보 업데이트에 실패했습니다.';
                     }
-                } else {
-                    $error_message = '판매자 데이터 파일을 찾을 수 없습니다.';
                 }
             } else {
                 // 변경 사항이 없으면 메시지 표시
@@ -883,7 +896,7 @@ require_once __DIR__ . '/../includes/admin-header.php';
                 <div class="form-grid">
                     <div class="form-group">
                         <label class="form-label">판매자명</label>
-                        <input type="text" name="seller_name" id="seller_name" class="form-input" value="<?php echo htmlspecialchars($seller['seller_name'] ?? ''); ?>" placeholder="판매자명을 입력하세요">
+                        <input type="text" name="seller_name" id="seller_name" class="form-input" value="<?php echo htmlspecialchars($seller['company_name'] ?? ''); ?>" placeholder="판매자명을 입력하세요">
                         <div id="seller_name_check_result" class="seller-name-check-result" style="margin-top: 4px; font-size: 12px; min-height: 18px;"></div>
                         <div class="password-note">판매자명이 설정되면 상품 목록 등에서 표시됩니다.</div>
                     </div>
@@ -922,7 +935,7 @@ require_once __DIR__ . '/../includes/admin-header.php';
                     <div class="form-group">
                         <label class="form-label">전화번호</label>
                         <input type="tel" id="phone" name="phone" class="form-input" value="<?php echo htmlspecialchars($seller['phone'] ?? ''); ?>" placeholder="1588-1234, 02-1234-5678, 070-1234-5678">
-                        <div class="password-note">쉼표로 구분하여 여러 번호를 입력할 수 있습니다. (예: 1588-1234, 02-1234-5678)</div>
+                        <div class="password-note">(예: 1588-1234, 02-1234-5678)</div>
                         <div class="phone-error-message" style="display: none; font-size: 12px; color: #ef4444; margin-top: 4px;"></div>
                     </div>
                     <div class="form-group">
@@ -1106,43 +1119,43 @@ require_once __DIR__ . '/../includes/admin-header.php';
                     return limited.slice(0, 3) + '-' + limited.slice(3, 7) + '-' + limited.slice(7);
                 }
             }
-            // 전국대표번호 4자리 (1588, 1544, 1577, 1600, 1644 등) - 8자리: 1588-1234
-            else if (numbers.startsWith('1588') || numbers.startsWith('1544') || 
-                numbers.startsWith('1577') || numbers.startsWith('1600') ||
-                numbers.startsWith('1800') || numbers.startsWith('1566') ||
-                numbers.startsWith('1599') || numbers.startsWith('1644')) {
-                // 전국대표번호는 정확히 8자리만 허용
+            // 전국대표번호 (1XXX-XXXX) - 8자리: 1588-1234, 1688-6547, 1111-1111 등
+            // 서버 검증과 동일하게 "1로 시작하는 4자리 + 4자리" 체계를 폭넓게 허용
+            else if (numbers.length >= 1 && numbers.startsWith('1')) {
                 const limited = numbers.slice(0, 8);
                 if (limited.length <= 4) {
                     return limited;
-                } else if (limited.length === 8) {
-                    // 4-4 형식: 1588-1234
-                    return limited.slice(0, 4) + '-' + limited.slice(4, 8);
                 } else {
-                    // 5-7자리: 하이픈 추가
                     return limited.slice(0, 4) + '-' + limited.slice(4);
                 }
             }
-            // 인터넷전화 (070, 080) - 11자리
+            // 인터넷전화/수신자부담 (070, 080) - 10자리(3-3-4) 또는 11자리(3-4-4)
             else if (numbers.startsWith('070') || numbers.startsWith('080')) {
                 const limited = numbers.slice(0, 11);
                 if (limited.length <= 3) {
                     return limited;
-                } else if (limited.length <= 7) {
+                } else if (limited.length <= 6) {
                     return limited.slice(0, 3) + '-' + limited.slice(3);
+                } else if (limited.length <= 10) {
+                    return limited.slice(0, 3) + '-' + limited.slice(3, 6) + '-' + limited.slice(6);
                 } else {
                     return limited.slice(0, 3) + '-' + limited.slice(3, 7) + '-' + limited.slice(7);
                 }
             }
-            // 서울 지역번호 (02) - 10자리: 02-XXXX-XXXX (엄격한 길이 제한)
+            // 서울 지역번호 (02) - 9자리(02-XXX-XXXX) 또는 10자리(02-XXXX-XXXX)
             else if (numbers.startsWith('02')) {
                 // 02로 시작하는 경우 최대 10자리만 허용
                 const limited = numbers.slice(0, 10);
                 if (limited.length <= 2) {
                     return limited;
-                } else if (limited.length <= 6) {
+                } else if (limited.length <= 5) {
+                    // 02-XXX (9자리 케이스의 중간 3자리)
                     return limited.slice(0, 2) + '-' + limited.slice(2);
+                } else if (limited.length <= 9) {
+                    // 02-XXX-XXXX (9자리)
+                    return limited.slice(0, 2) + '-' + limited.slice(2, 5) + '-' + limited.slice(5);
                 } else {
+                    // 02-XXXX-XXXX (10자리)
                     return limited.slice(0, 2) + '-' + limited.slice(2, 6) + '-' + limited.slice(6);
                 }
             }
@@ -1183,7 +1196,10 @@ require_once __DIR__ . '/../includes/admin-header.php';
         if (length === 11 && /^01[0-9]\d{8}$/.test(numbers)) {
             return { valid: true };
         }
-        // 02-XXXX-XXXX (서울, 10자리)
+        // 02-XXX-XXXX (서울, 9자리) 또는 02-XXXX-XXXX (서울, 10자리)
+        if (length === 9 && /^02\d{7}$/.test(numbers)) {
+            return { valid: true };
+        }
         if (length === 10 && /^02\d{8}$/.test(numbers)) {
             return { valid: true };
         }
@@ -1195,7 +1211,10 @@ require_once __DIR__ . '/../includes/admin-header.php';
         if (length === 11 && /^0[3-6]\d{9}$/.test(numbers)) {
             return { valid: true };
         }
-        // 070/080-XXXX-XXXX (인터넷전화, 11자리)
+        // 070/080-XXX-XXXX (10자리) 또는 070/080-XXXX-XXXX (11자리)
+        if (length === 10 && /^0[78]0\d{7}$/.test(numbers)) {
+            return { valid: true };
+        }
         if (length === 11 && /^0[78]0\d{8}$/.test(numbers)) {
             return { valid: true };
         }
@@ -1204,7 +1223,7 @@ require_once __DIR__ . '/../includes/admin-header.php';
             return { valid: true };
         }
         
-        return { valid: false, message: '전화번호 형식이 올바르지 않습니다. (예: 02-1234-5678, 031-123-4567, 010-1234-5678, 1588-1234, 070-1234-5678)' };
+        return { valid: false, message: '전화번호 형식이 올바르지 않습니다. (예: 02-1234-5678, 031-123-4567, 010-1234-5678, 1588-1234, 070-1234-5678, 080-1234-5678)' };
     }
     
     // 사업자등록번호 하이픈 자동 입력 (123-45-67890)
@@ -1297,6 +1316,38 @@ require_once __DIR__ . '/../includes/admin-header.php';
         const phoneInput = document.querySelector('input[name="phone"]');
         if (phoneInput) {
             let isFormatting = false; // 포맷팅 중 중복 실행 방지
+            // "형식이 맞지 않으면 더 이상 입력 안되게" 처리:
+            // 접두(prefix) 규칙이 깨지는 순간 마지막 정상값으로 롤백한다.
+            let lastValidPhoneValue = phoneInput.value || '';
+
+            function isValidPhonePrefixProgress(digits) {
+                if (!digits) return true;
+                // 첫자리는 0(일반) 또는 1(대표번호)만 허용
+                if (!(digits.startsWith('0') || digits.startsWith('1'))) return false;
+
+                // 1로 시작: 대표번호(1XXX-XXXX)로 진행 가능
+                if (digits.startsWith('1')) return true;
+
+                // 0으로 시작: 두 자리 접두 제한
+                if (digits.length === 1) return true;
+                const p2 = digits.slice(0, 2);
+                const ok2 =
+                    (p2 === '01') || // 휴대폰(01X)
+                    (p2 === '02') || // 서울
+                    (p2 === '07') || // 070(3자리에서 확정)
+                    (p2 === '08') || // 080(3자리에서 확정)
+                    (p2 >= '03' && p2 <= '06'); // 지역번호 대역
+                if (!ok2) return false;
+
+                // 07/08은 3자리에서 070/080으로 확정되어야 함
+                if (digits.length >= 3) {
+                    const p3 = digits.slice(0, 3);
+                    if (p2 === '07' && p3 !== '070') return false;
+                    if (p2 === '08' && p3 !== '080') return false;
+                }
+
+                return true;
+            }
             
             phoneInput.addEventListener('input', function(e) {
                 if (isFormatting) return;
@@ -1317,15 +1368,19 @@ require_once __DIR__ . '/../includes/admin-header.php';
                             if (phone) {
                                 // 숫자만 추출하여 길이 확인
                                 let numbers = phone.replace(/[^\d]/g, '');
+
+                                // prefix 규칙 위반이면 전체 입력을 마지막 정상값으로 롤백
+                                if (!isValidPhonePrefixProgress(numbers)) {
+                                    e.target.value = lastValidPhoneValue;
+                                    isFormatting = false;
+                                    return;
+                                }
                                 
                                 // 각 전화번호 유형별 최대 길이 결정 및 제한 (우선순위: 전국대표번호 > 02 > 기타)
                                 let maxLength = 11;
                                 
-                                // 전국대표번호는 8자리로 엄격하게 제한 (우선 검사)
-                                if (numbers.startsWith('1588') || numbers.startsWith('1544') || 
-                                    numbers.startsWith('1577') || numbers.startsWith('1600') ||
-                                    numbers.startsWith('1800') || numbers.startsWith('1566') ||
-                                    numbers.startsWith('1599') || numbers.startsWith('1644')) {
+                                // 전국대표번호(1XXX-XXXX)는 8자리로 제한 (서버 규칙과 동일)
+                                if (numbers.startsWith('1')) {
                                     maxLength = 8; // 전국대표번호는 8자리
                                 }
                                 // 서울 지역번호는 10자리
@@ -1369,15 +1424,19 @@ require_once __DIR__ . '/../includes/admin-header.php';
                     } else {
                         // 단일 전화번호 포맷팅 - 길이 제한 적용
                         let numbers = value.replace(/[^\d]/g, '');
+
+                        // prefix 규칙 위반이면 마지막 정상값으로 롤백
+                        if (!isValidPhonePrefixProgress(numbers)) {
+                            e.target.value = lastValidPhoneValue;
+                            isFormatting = false;
+                            return;
+                        }
                         
                         // 각 전화번호 유형별 최대 길이 결정 (우선순위: 전국대표번호 > 02 > 기타)
                         let maxLength = 11;
                         
-                        // 전국대표번호는 8자리로 엄격하게 제한 (우선 검사)
-                        if (numbers.startsWith('1588') || numbers.startsWith('1544') || 
-                            numbers.startsWith('1577') || numbers.startsWith('1600') ||
-                            numbers.startsWith('1800') || numbers.startsWith('1566') ||
-                            numbers.startsWith('1599') || numbers.startsWith('1644')) {
+                        // 전국대표번호(1XXX-XXXX)는 8자리로 제한 (서버 규칙과 동일)
+                        if (numbers.startsWith('1')) {
                             maxLength = 8; // 전국대표번호는 8자리
                         }
                         // 서울 지역번호는 10자리
@@ -1410,11 +1469,8 @@ require_once __DIR__ . '/../includes/admin-header.php';
                         // 포맷팅 후에도 검증하여 올바른 형식으로 재포맷팅
                         const formattedNumbers = newValue.replace(/[^\d]/g, '');
                         
-                        // 전국대표번호인 경우 8자리로 엄격하게 제한 (우선 검사)
-                        if (formattedNumbers.startsWith('1588') || formattedNumbers.startsWith('1544') || 
-                            formattedNumbers.startsWith('1577') || formattedNumbers.startsWith('1600') ||
-                            formattedNumbers.startsWith('1800') || formattedNumbers.startsWith('1566') ||
-                            formattedNumbers.startsWith('1599') || formattedNumbers.startsWith('1644')) {
+                        // 전국대표번호(1XXX-XXXX)는 8자리로 제한 (서버 규칙과 동일)
+                        if (formattedNumbers.startsWith('1')) {
                             if (formattedNumbers.length > 8) {
                                 const correctedNumbers = formattedNumbers.slice(0, 8);
                                 e.target.value = formatPhoneNumber(correctedNumbers, false);
@@ -1456,65 +1512,13 @@ require_once __DIR__ . '/../includes/admin-header.php';
                     console.error('전화번호 포맷팅 오류:', error);
                 }
                 
+                // 정상 포맷팅이 끝난 경우 마지막 정상값 갱신
+                lastValidPhoneValue = e.target.value;
                 isFormatting = false;
             });
             
-            // 키 입력 차단 (과도한 숫자 입력 방지)
-            phoneInput.addEventListener('keypress', function(e) {
-                const value = e.target.value;
-                const cursorPosition = e.target.selectionStart;
-                
-                // 숫자만 허용 (0-9)
-                if (!/[0-9]/.test(e.key) && e.key !== ',' && e.key !== 'Backspace' && e.key !== 'Delete' && e.key !== 'ArrowLeft' && e.key !== 'ArrowRight' && e.key !== 'Tab') {
-                    e.preventDefault();
-                    return false;
-                }
-                
-                // 쉼표로 구분된 여러 번호인 경우
-                if (value.includes(',')) {
-                    const phoneList = value.split(',');
-                    const currentIndex = value.substring(0, cursorPosition).split(',').length - 1;
-                    const currentPhone = phoneList[currentIndex] || '';
-                    const numbers = currentPhone.replace(/[^\d]/g, '');
-                    
-                    // 현재 전화번호의 최대 길이 확인 (우선순위: 전국대표번호 > 02 > 기타)
-                    let maxLength = 11;
-                    if (numbers.startsWith('1588') || numbers.startsWith('1544') || 
-                        numbers.startsWith('1577') || numbers.startsWith('1600') ||
-                        numbers.startsWith('1800') || numbers.startsWith('1566') ||
-                        numbers.startsWith('1599') || numbers.startsWith('1644')) {
-                        maxLength = 8; // 전국대표번호는 8자리
-                    } else if (numbers.startsWith('02')) {
-                        maxLength = 10; // 서울 지역번호는 10자리
-                    }
-                    
-                    // 숫자 입력 시 길이 제한
-                    if (/[0-9]/.test(e.key) && numbers.length >= maxLength) {
-                        e.preventDefault();
-                        return false;
-                    }
-                } else {
-                    // 단일 전화번호인 경우
-                    const numbers = value.replace(/[^\d]/g, '');
-                    
-                    // 최대 길이 확인 (우선순위: 전국대표번호 > 02 > 기타)
-                    let maxLength = 11;
-                    if (numbers.startsWith('1588') || numbers.startsWith('1544') || 
-                        numbers.startsWith('1577') || numbers.startsWith('1600') ||
-                        numbers.startsWith('1800') || numbers.startsWith('1566') ||
-                        numbers.startsWith('1599') || numbers.startsWith('1644')) {
-                        maxLength = 8; // 전국대표번호는 8자리
-                    } else if (numbers.startsWith('02')) {
-                        maxLength = 10; // 서울 지역번호는 10자리
-                    }
-                    
-                    // 숫자 입력 시 길이 제한
-                    if (/[0-9]/.test(e.key) && numbers.length >= maxLength) {
-                        e.preventDefault();
-                        return false;
-                    }
-                }
-            });
+            // keypress 기반 차단은 브라우저/키반복에서 일관성이 떨어져서 제거
+            // (input 이벤트에서 길이 제한 + 포맷팅으로 강제 고정)
             
             // 블러 시 검증 및 오류 표시
             phoneInput.addEventListener('blur', function(e) {

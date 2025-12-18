@@ -5,6 +5,7 @@
 
 header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../includes/data/auth-functions.php';
+require_once __DIR__ . '/../includes/data/db-config.php';
 
 $type = $_GET['type'] ?? '';
 $value = trim($_GET['value'] ?? '');
@@ -35,36 +36,18 @@ if ($type === 'user_id') {
     $value = $lowerValue;
 }
 
-// 판매자 데이터만 확인
-$sellersFile = getSellersFilePath();
-$sellers = [];
-
-if (file_exists($sellersFile)) {
-    $data = json_decode(file_get_contents($sellersFile), true) ?: ['sellers' => []];
-    $sellers = $data['sellers'] ?? [];
-}
-
 $isDuplicate = false;
 
 if ($type === 'user_id') {
-    // 금지된 아이디 목록 가져오기 (JSON 파일에서)
-    $forbiddenIdsFile = __DIR__ . '/../includes/data/forbidden-ids.json';
-    $forbiddenIds = [];
-    
-    if (file_exists($forbiddenIdsFile)) {
-        $content = file_get_contents($forbiddenIdsFile);
-        $data = json_decode($content, true) ?: ['forbidden_ids' => []];
-        $forbiddenIds = $data['forbidden_ids'] ?? [];
-    }
-    
     // 소문자로 변환하여 비교
     $lowerValue = strtolower($value);
-    
-    // 금지된 아이디 체크 (정확히 일치하는 경우만)
-    foreach ($forbiddenIds as $forbiddenId) {
-        $forbiddenIdLower = strtolower(trim($forbiddenId));
-        // 정확히 일치하는 경우만 차단
-        if ($lowerValue === $forbiddenIdLower) {
+
+    $pdo = getDBConnection();
+    if ($pdo) {
+        // 금지 아이디 체크(DB)
+        $stmt = $pdo->prepare("SELECT 1 FROM forbidden_ids WHERE id_value = :id LIMIT 1");
+        $stmt->execute([':id' => $lowerValue]);
+        if ($stmt->fetchColumn()) {
             echo json_encode([
                 'success' => false,
                 'duplicate' => true,
@@ -72,72 +55,53 @@ if ($type === 'user_id') {
             ]);
             exit;
         }
-    }
-    
-    // 아이디 중복확인 (판매자만)
-    foreach ($sellers as $seller) {
-        if (isset($seller['user_id']) && $seller['user_id'] === $value) {
-            $isDuplicate = true;
-            break;
-        }
+
+        // 판매자 아이디 중복(DB)
+        $stmt = $pdo->prepare("SELECT 1 FROM users WHERE user_id = :user_id AND role = 'seller' LIMIT 1");
+        $stmt->execute([':user_id' => $value]);
+        $isDuplicate = (bool)$stmt->fetchColumn();
     }
 } elseif ($type === 'email') {
-    // 이메일 중복확인 (판매자만, 일반회원과는 별도)
-    foreach ($sellers as $seller) {
-        // 현재 수정 중인 사용자는 제외
-        if (!empty($currentUserId) && isset($seller['user_id']) && $seller['user_id'] === $currentUserId) {
-            continue;
+    $pdo = getDBConnection();
+    if ($pdo) {
+        $sql = "SELECT 1 FROM users WHERE role = 'seller' AND LOWER(email) = LOWER(:email)";
+        if (!empty($currentUserId)) {
+            $sql .= " AND user_id != :current";
         }
-        if (isset($seller['email']) && strtolower($seller['email']) === strtolower($value)) {
-            $isDuplicate = true;
-            break;
-        }
+        $sql .= " LIMIT 1";
+        $stmt = $pdo->prepare($sql);
+        $params = [':email' => $value];
+        if (!empty($currentUserId)) $params[':current'] = $currentUserId;
+        $stmt->execute($params);
+        $isDuplicate = (bool)$stmt->fetchColumn();
     }
 } elseif ($type === 'seller_name') {
     // 판매자명 중복확인 (대소문자 구분 없이)
-    // DB에서 먼저 확인
     $pdo = getDBConnection();
     if ($pdo) {
         try {
-            $stmt = $pdo->prepare("
-                SELECT user_id, seller_name 
-                FROM users 
-                WHERE role = 'seller' 
-                AND seller_name IS NOT NULL 
-                AND LOWER(seller_name) = LOWER(:seller_name)
-            ");
-            $stmt->execute([':seller_name' => $value]);
-            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            
-            foreach ($results as $row) {
-                // 현재 수정 중인 사용자는 제외
-                if (!empty($currentUserId) && isset($row['user_id']) && $row['user_id'] === $currentUserId) {
-                    continue;
-                }
-                $isDuplicate = true;
-                break;
+            // DB-only 스키마 기준: users에 seller_name 컬럼이 없을 수 있어 company_name 기준으로 검사
+            // (환경에 따라 seller_profiles.company_name을 쓰는 경우도 있어 JOIN으로 보조)
+            $sql = "
+                SELECT 1
+                FROM users u
+                LEFT JOIN seller_profiles sp ON sp.user_id = u.user_id
+                WHERE u.role = 'seller'
+                  AND LOWER(COALESCE(NULLIF(u.company_name, ''), NULLIF(sp.company_name, ''))) = LOWER(:seller_name)
+            ";
+            if (!empty($currentUserId)) {
+                $sql .= " AND u.user_id != :current";
             }
+            $sql .= " LIMIT 1";
+
+            $stmt = $pdo->prepare($sql);
+            $params = [':seller_name' => $value];
+            if (!empty($currentUserId)) $params[':current'] = $currentUserId;
+            $stmt->execute($params);
+            $isDuplicate = (bool)$stmt->fetchColumn();
         } catch (PDOException $e) {
             error_log("판매자명 중복 검사 API DB 오류: " . $e->getMessage());
-            // DB 오류 시 JSON 파일로 fallback
-        }
-    }
-    
-    // DB에서 확인되지 않았거나 DB 연결 실패 시 JSON 파일 확인 (fallback)
-    if (!$isDuplicate) {
-        $valueLower = mb_strtolower($value, 'UTF-8');
-        foreach ($sellers as $seller) {
-            // 현재 수정 중인 사용자는 제외
-            if (!empty($currentUserId) && isset($seller['user_id']) && $seller['user_id'] === $currentUserId) {
-                continue;
-            }
-            if (isset($seller['seller_name']) && !empty($seller['seller_name'])) {
-                $sellerNameLower = mb_strtolower($seller['seller_name'], 'UTF-8');
-                if ($sellerNameLower === $valueLower) {
-                    $isDuplicate = true;
-                    break;
-                }
-            }
+            // DB-only: fallback 없음
         }
     }
 }

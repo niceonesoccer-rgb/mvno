@@ -2,7 +2,28 @@
 /**
  * 필터 데이터 관리
  * 알뜰폰(MVNO)과 통신사폰(MNO)의 필터를 별도로 관리
+ * DB-only: app_settings(namespace='filters')
  */
+
+require_once __DIR__ . '/app-settings.php';
+
+function getDefaultFilters(): array {
+    return [
+        'mno' => [
+            '#갤럭시',
+            '#아이폰',
+            '#공짜',
+            '#256GB',
+            '#512GB'
+        ],
+        'mvno' => [
+            '#베스트 요금제',
+            '#만원 미만',
+            '#장기 할인',
+            '#100원'
+        ],
+    ];
+}
 
 /**
  * 통신사폰(MNO) 필터 목록 가져오기
@@ -10,26 +31,10 @@
  * @return array 필터 목록 배열
  */
 function getMnoFilters() {
-    // TODO: 나중에 DB에서 관리자 설정값을 가져오도록 변경
-    // 현재는 기본값 반환
-    $default_filters = [
-        '#갤럭시',
-        '#아이폰',
-        '#공짜',
-        '#256GB',
-        '#512GB'
-    ];
-    
-    // 관리자 설정 파일에서 읽기 시도 (없으면 기본값 사용)
-    $filter_file = __DIR__ . '/../../data/mno-filters.json';
-    if (file_exists($filter_file)) {
-        $saved_filters = json_decode(file_get_contents($filter_file), true);
-        if (is_array($saved_filters) && !empty($saved_filters)) {
-            return $saved_filters;
-        }
-    }
-    
-    return $default_filters;
+    $defaults = getDefaultFilters();
+    $settings = getAppSettings('filters', $defaults);
+    $mno = $settings['mno'] ?? $defaults['mno'];
+    return is_array($mno) ? array_values($mno) : $defaults['mno'];
 }
 
 /**
@@ -38,25 +43,10 @@ function getMnoFilters() {
  * @return array 필터 목록 배열
  */
 function getMvnoFilters() {
-    // TODO: 나중에 DB에서 관리자 설정값을 가져오도록 변경
-    // 현재는 기본값 반환
-    $default_filters = [
-        '#베스트 요금제',
-        '#만원 미만',
-        '#장기 할인',
-        '#100원'
-    ];
-    
-    // 관리자 설정 파일에서 읽기 시도 (없으면 기본값 사용)
-    $filter_file = __DIR__ . '/../../data/mvno-filters.json';
-    if (file_exists($filter_file)) {
-        $saved_filters = json_decode(file_get_contents($filter_file), true);
-        if (is_array($saved_filters) && !empty($saved_filters)) {
-            return $saved_filters;
-        }
-    }
-    
-    return $default_filters;
+    $defaults = getDefaultFilters();
+    $settings = getAppSettings('filters', $defaults);
+    $mvno = $settings['mvno'] ?? $defaults['mvno'];
+    return is_array($mvno) ? array_values($mvno) : $defaults['mvno'];
 }
 
 /**
@@ -83,16 +73,12 @@ function saveMnoFilters($filters) {
     $filters = array_filter($filters, function($filter) {
         return !empty(trim($filter));
     });
-    
-    $data_dir = __DIR__ . '/../../data';
-    if (!is_dir($data_dir)) {
-        mkdir($data_dir, 0755, true);
-    }
-    
-    $filter_file = $data_dir . '/mno-filters.json';
-    $result = file_put_contents($filter_file, json_encode(array_values($filters), JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
-    
-    return $result !== false;
+
+    $defaults = getDefaultFilters();
+    $settings = getAppSettings('filters', $defaults);
+    $settings['mno'] = array_values($filters);
+    $updatedBy = function_exists('getCurrentUserId') ? getCurrentUserId() : null;
+    return saveAppSettings('filters', $settings, $updatedBy);
 }
 
 /**
@@ -119,15 +105,11 @@ function saveMvnoFilters($filters) {
     $filters = array_filter($filters, function($filter) {
         return !empty(trim($filter));
     });
-    
-    $data_dir = __DIR__ . '/../../data';
-    if (!is_dir($data_dir)) {
-        mkdir($data_dir, 0755, true);
-    }
-    
-    $filter_file = $data_dir . '/mvno-filters.json';
-    $result = file_put_contents($filter_file, json_encode(array_values($filters), JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
-    
-    return $result !== false;
+
+    $defaults = getDefaultFilters();
+    $settings = getAppSettings('filters', $defaults);
+    $settings['mvno'] = array_values($filters);
+    $updatedBy = function_exists('getCurrentUserId') ? getCurrentUserId() : null;
+    return saveAppSettings('filters', $settings, $updatedBy);
 }
 

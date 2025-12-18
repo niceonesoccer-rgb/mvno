@@ -61,11 +61,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['hold_seller'])) {
 require_once __DIR__ . '/../includes/admin-header.php';
 
 // 판매자 정보 가져오기 (POST 요청 후 최신 정보를 가져오기 위해 여기서 로드)
-// 파일 캐시 클리어하여 최신 데이터 가져오기
-$sellersFile = __DIR__ . '/../../includes/data/sellers.json';
-if (file_exists($sellersFile)) {
-    clearstatcache(true, $sellersFile);
-}
 $seller = getUserById($sellerId);
 
 if (!$seller || $seller['role'] !== 'seller') {

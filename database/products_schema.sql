@@ -178,7 +178,7 @@ CREATE TABLE IF NOT EXISTS `product_internet_details` (
 CREATE TABLE IF NOT EXISTS `product_reviews` (
     `id` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
     `product_id` INT(11) UNSIGNED NOT NULL COMMENT '상품 ID',
-    `user_id` INT(11) UNSIGNED NOT NULL COMMENT '작성자 ID',
+    `user_id` VARCHAR(50) NOT NULL COMMENT '작성자 user_id (users.user_id)',
     `product_type` ENUM('mvno', 'mno') NOT NULL COMMENT '상품 타입',
     `rating` TINYINT(1) UNSIGNED NOT NULL COMMENT '평점 (1-5)',
     `title` VARCHAR(200) DEFAULT NULL COMMENT '리뷰 제목',
@@ -203,7 +203,7 @@ CREATE TABLE IF NOT EXISTS `product_reviews` (
 CREATE TABLE IF NOT EXISTS `product_favorites` (
     `id` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
     `product_id` INT(11) UNSIGNED NOT NULL COMMENT '상품 ID',
-    `user_id` INT(11) UNSIGNED NOT NULL COMMENT '사용자 ID',
+    `user_id` VARCHAR(50) NOT NULL COMMENT '사용자 user_id (users.user_id)',
     `product_type` ENUM('mvno', 'mno', 'internet') NOT NULL COMMENT '상품 타입',
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '찜한 일시',
     PRIMARY KEY (`id`),
@@ -220,7 +220,7 @@ CREATE TABLE IF NOT EXISTS `product_favorites` (
 CREATE TABLE IF NOT EXISTS `product_shares` (
     `id` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
     `product_id` INT(11) UNSIGNED NOT NULL COMMENT '상품 ID',
-    `user_id` INT(11) UNSIGNED DEFAULT NULL COMMENT '공유한 사용자 ID (비회원 가능)',
+    `user_id` VARCHAR(50) DEFAULT NULL COMMENT '공유한 사용자 user_id (비회원 가능)',
     `product_type` ENUM('mvno', 'mno', 'internet') NOT NULL COMMENT '상품 타입',
     `share_method` VARCHAR(20) NOT NULL COMMENT '공유 방법 (kakao, facebook, twitter, link, etc.)',
     `ip_address` VARCHAR(45) DEFAULT NULL COMMENT 'IP 주소',
@@ -243,6 +243,7 @@ CREATE TABLE IF NOT EXISTS `product_applications` (
     `product_id` INT(11) UNSIGNED NOT NULL COMMENT '상품 ID',
     `seller_id` INT(11) UNSIGNED NOT NULL COMMENT '판매자 ID',
     `product_type` ENUM('mvno', 'mno', 'internet') NOT NULL COMMENT '상품 타입',
+    `user_id` VARCHAR(50) DEFAULT NULL COMMENT '신청자 user_id (users.user_id)',
     `application_status` ENUM('pending', 'processing', 'completed', 'cancelled', 'rejected', 'closed') NOT NULL DEFAULT 'pending' COMMENT '신청 상태',
     `status_changed_at` DATETIME DEFAULT NULL COMMENT '상태 변경일시',
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '신청일시',
@@ -262,7 +263,7 @@ CREATE TABLE IF NOT EXISTS `product_applications` (
 CREATE TABLE IF NOT EXISTS `application_customers` (
     `id` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
     `application_id` INT(11) UNSIGNED NOT NULL COMMENT '신청 ID',
-    `user_id` INT(11) UNSIGNED DEFAULT NULL COMMENT '회원 ID (비회원 신청 가능)',
+    `user_id` VARCHAR(50) DEFAULT NULL COMMENT '회원 user_id (비회원 신청 가능)',
     `name` VARCHAR(50) NOT NULL COMMENT '고객명',
     `phone` VARCHAR(20) NOT NULL COMMENT '전화번호',
     `email` VARCHAR(100) DEFAULT NULL COMMENT '이메일',

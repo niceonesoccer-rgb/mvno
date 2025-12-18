@@ -294,22 +294,26 @@ function getSellerById($sellerId) {
     if (empty($sellerId)) {
         return null;
     }
-    
-    $sellersFile = __DIR__ . '/sellers.json';
-    if (!file_exists($sellersFile)) {
+
+    // DB-only: users 테이블에서 판매자 조회
+    $pdo = getDBConnection();
+    if (!$pdo) return null;
+
+    try {
+        $stmt = $pdo->prepare("
+            SELECT *
+            FROM users
+            WHERE user_id = :user_id
+              AND role = 'seller'
+            LIMIT 1
+        ");
+        $stmt->execute([':user_id' => $sellerId]);
+        $seller = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $seller ?: null;
+    } catch (PDOException $e) {
+        error_log('getSellerById DB error: ' . $e->getMessage());
         return null;
     }
-    
-    $data = json_decode(file_get_contents($sellersFile), true) ?: ['sellers' => []];
-    $sellers = $data['sellers'] ?? [];
-    
-    foreach ($sellers as $seller) {
-        if (isset($seller['user_id']) && (string)$seller['user_id'] === (string)$sellerId) {
-            return $seller;
-        }
-    }
-    
-    return null;
 }
 
 /**

@@ -22,6 +22,10 @@ if (!$currentUser) {
     exit;
 }
 
+require_once '../includes/data/point-settings.php';
+$userPoint = getUserPoint($currentUser['user_id'] ?? '');
+$pointBalance = (int)($userPoint['balance'] ?? 0);
+
 // 헤더 포함
 include '../includes/header.php';
 ?>
@@ -45,38 +49,22 @@ include '../includes/header.php';
             <div style="margin-bottom: 20px;">
                 <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; border-bottom: 1px solid #e5e7eb;">
                     <span style="font-size: 16px; color: #6b7280; font-weight: 500;">이름</span>
-                    <span style="font-size: 16px; color: #212529; font-weight: 500;">YMB</span>
+                    <span style="font-size: 16px; color: #212529; font-weight: 500;"><?php echo htmlspecialchars($currentUser['name'] ?? '-'); ?></span>
                 </div>
                 <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; border-bottom: 1px solid #e5e7eb;">
                     <span style="font-size: 16px; color: #6b7280; font-weight: 500;">아이디</span>
                     <span id="displayUserId" style="font-size: 16px; color: #212529; font-weight: 500;">
-                        <?php
-                        // 실제로는 세션 또는 DB에서 가져옴
-                        // 가입 경로에 따라 자동 생성된 아이디 표시
-                        $login_type = 'nvr'; // 'nvr', 'ggl', 'kko', 'direct'
-                        $user_id_number = '12345678'; // 가입 시 자동 생성된 숫자
-                        
-                        $prefix_map = [
-                            'nvr' => 'nvr',
-                            'ggl' => 'ggl',
-                            'kko' => 'kko',
-                            'direct' => ''
-                        ];
-                        
-                        $prefix = $prefix_map[$login_type] ?? '';
-                        $display_id = $prefix ? $prefix . '_' . $user_id_number : $user_id_number;
-                        echo htmlspecialchars($display_id);
-                        ?>
+                        <?php echo htmlspecialchars($currentUser['user_id'] ?? '-'); ?>
                     </span>
                 </div>
                 <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; border-bottom: 1px solid #e5e7eb;">
                     <span style="font-size: 16px; color: #6b7280; font-weight: 500;">연락처</span>
-                    <span style="font-size: 16px; color: #212529; font-weight: 500;">+82 10-2423-2324</span>
+                    <span style="font-size: 16px; color: #212529; font-weight: 500;"><?php echo htmlspecialchars($currentUser['phone'] ?? '-'); ?></span>
                 </div>
                 <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; border-bottom: 1px solid #e5e7eb;">
                     <span style="font-size: 16px; color: #6b7280; font-weight: 500;">이메일</span>
                     <div style="display: flex; align-items: center; gap: 8px; flex: 1; justify-content: flex-end;">
-                        <span id="displayUserEmail" style="font-size: 16px; color: #212529; font-weight: 500;">kang@naver.com</span>
+                        <span id="displayUserEmail" style="font-size: 16px; color: #212529; font-weight: 500;"><?php echo htmlspecialchars($currentUser['email'] ?? '-'); ?></span>
                         <button type="button" id="editEmailBtn" style="background: none; border: none; color: #6366f1; font-size: 14px; cursor: pointer; padding: 4px 8px; font-weight: 500;">
                             수정
                         </button>
@@ -90,7 +78,7 @@ include '../includes/header.php';
                 </div>
                 <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0;">
                     <span style="font-size: 16px; color: #6b7280; font-weight: 500;">포인트</span>
-                    <span style="font-size: 16px; color: #212529; font-weight: 500;">-</span>
+                    <span style="font-size: 16px; color: #212529; font-weight: 500;"><?php echo number_format($pointBalance); ?>원</span>
                 </div>
             </div>
         </div>

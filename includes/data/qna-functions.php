@@ -1,16 +1,13 @@
 <?php
 /**
  * 1:1 Q&A 관련 함수
- * JSON 파일 기반 데이터 저장
+ * DB 기반 데이터 저장
  */
 
 // 한국 시간대 설정 (KST, UTC+9)
 date_default_timezone_set('Asia/Seoul');
 
-// Q&A 데이터 파일 경로
-function getQnaDataFile() {
-    return __DIR__ . '/qna.json';
-}
+require_once __DIR__ . '/db-config.php';
 
 // 사용자 ID 가져오기 (세션에서, 임시로 'default' 사용)
 if (!function_exists('getCurrentUserId')) {
@@ -25,70 +22,32 @@ if (!function_exists('getCurrentUserId')) {
 
 // Q&A 목록 가져오기 (사용자별)
 function getQnaList($user_id = null) {
-    $file = getQnaDataFile();
-    
-    if (!file_exists($file)) {
-        return [];
-    }
-    
-    $qnas = json_decode(file_get_contents($file), true);
-    if (!is_array($qnas)) {
-        return [];
-    }
-    
-    // 사용자별 필터링
+    $pdo = getDBConnection();
+    if (!$pdo) return [];
+
     if ($user_id !== null) {
-        $qnas = array_filter($qnas, function($qna) use ($user_id) {
-            return isset($qna['user_id']) && $qna['user_id'] == $user_id;
-        });
+        $stmt = $pdo->prepare("SELECT * FROM qna WHERE user_id = :user ORDER BY created_at DESC");
+        $stmt->execute([':user' => (string)$user_id]);
+    } else {
+        $stmt = $pdo->query("SELECT * FROM qna ORDER BY created_at DESC");
     }
-    
-    // 날짜순 정렬 (최신순)
-    usort($qnas, function($a, $b) {
-        return strtotime($b['created_at']) - strtotime($a['created_at']);
-    });
-    
-    return array_values($qnas);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
 }
 
 // Q&A 상세 가져오기
 function getQnaById($id, $user_id = null) {
-    $file = getQnaDataFile();
-    
-    if (!file_exists($file)) {
-        return null;
-    }
-    
-    $qnas = json_decode(file_get_contents($file), true);
-    if (!is_array($qnas)) {
-        return null;
-    }
-    
-    foreach ($qnas as $qna) {
-        if (isset($qna['id']) && $qna['id'] == $id) {
-            // 사용자 확인 (관리자가 아니면 본인 것만)
-            if ($user_id !== null && isset($qna['user_id']) && $qna['user_id'] != $user_id) {
-                return null;
-            }
-            return $qna;
-        }
-    }
-    
-    return null;
+    $pdo = getDBConnection();
+    if (!$pdo) return null;
+    $stmt = $pdo->prepare("SELECT * FROM qna WHERE id = :id LIMIT 1");
+    $stmt->execute([':id' => (string)$id]);
+    $qna = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$qna) return null;
+    if ($user_id !== null && isset($qna['user_id']) && $qna['user_id'] != $user_id) return null;
+    return $qna;
 }
 
 // Q&A 질문 생성
 function createQna($user_id, $title, $content) {
-    $file = getQnaDataFile();
-    $qnas = [];
-    
-    if (file_exists($file)) {
-        $qnas = json_decode(file_get_contents($file), true);
-        if (!is_array($qnas)) {
-            $qnas = [];
-        }
-    }
-    
     $qna = [
         'id' => uniqid('qna_'),
         'user_id' => $user_id,
@@ -101,107 +60,72 @@ function createQna($user_id, $title, $content) {
         'created_at' => date('Y-m-d H:i:s'),
         'updated_at' => date('Y-m-d H:i:s')
     ];
-    
-    $qnas[] = $qna;
-    file_put_contents($file, json_encode($qnas, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-    
+
+    $pdo = getDBConnection();
+    if (!$pdo) return false;
+    $stmt = $pdo->prepare("
+        INSERT INTO qna (id, user_id, title, content, status, created_at, updated_at)
+        VALUES (:id,:user,:title,:content,'pending',:ca,:ua)
+    ");
+    $stmt->execute([
+        ':id' => $qna['id'],
+        ':user' => (string)$user_id,
+        ':title' => (string)$title,
+        ':content' => (string)$content,
+        ':ca' => $qna['created_at'],
+        ':ua' => $qna['updated_at'],
+    ]);
     return $qna;
 }
 
 // Q&A 답변 작성 (관리자용)
 function answerQna($id, $answer, $answered_by = 'admin') {
-    $file = getQnaDataFile();
-    
-    if (!file_exists($file)) {
-        return false;
-    }
-    
-    $qnas = json_decode(file_get_contents($file), true);
-    if (!is_array($qnas)) {
-        return false;
-    }
-    
-    $found = false;
-    foreach ($qnas as &$qna) {
-        if (isset($qna['id']) && $qna['id'] == $id) {
-            $qna['answer'] = $answer;
-            $qna['answered_at'] = date('Y-m-d H:i:s');
-            $qna['answered_by'] = $answered_by;
-            $qna['status'] = 'answered';
-            $qna['updated_at'] = date('Y-m-d H:i:s');
-            $found = true;
-            break;
-        }
-    }
-    
-    if ($found) {
-        file_put_contents($file, json_encode($qnas, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-        return true;
-    }
-    
-    return false;
+    $pdo = getDBConnection();
+    if (!$pdo) return false;
+    $stmt = $pdo->prepare("
+        UPDATE qna
+        SET answer = :answer,
+            answered_at = NOW(),
+            answered_by = :by,
+            status = 'answered',
+            updated_at = NOW()
+        WHERE id = :id
+    ");
+    $stmt->execute([
+        ':id' => (string)$id,
+        ':answer' => (string)$answer,
+        ':by' => (string)$answered_by
+    ]);
+    return $stmt->rowCount() > 0;
 }
 
 // Q&A 삭제
 function deleteQna($id, $user_id = null) {
-    $file = getQnaDataFile();
-    
-    if (!file_exists($file)) {
-        return false;
+    $pdo = getDBConnection();
+    if (!$pdo) return false;
+    if ($user_id !== null) {
+        $stmt = $pdo->prepare("DELETE FROM qna WHERE id = :id AND user_id = :user");
+        $stmt->execute([':id' => (string)$id, ':user' => (string)$user_id]);
+    } else {
+        $stmt = $pdo->prepare("DELETE FROM qna WHERE id = :id");
+        $stmt->execute([':id' => (string)$id]);
     }
-    
-    $qnas = json_decode(file_get_contents($file), true);
-    if (!is_array($qnas)) {
-        return false;
-    }
-    
-    $qnas = array_filter($qnas, function($qna) use ($id, $user_id) {
-        if (isset($qna['id']) && $qna['id'] == $id) {
-            // 사용자 확인 (관리자가 아니면 본인 것만 삭제 가능)
-            if ($user_id !== null && isset($qna['user_id']) && $qna['user_id'] != $user_id) {
-                return true; // 삭제하지 않음
-            }
-            return false; // 삭제
-        }
-        return true; // 유지
-    });
-    
-    file_put_contents($file, json_encode(array_values($qnas), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-    return true;
+    return $stmt->rowCount() > 0;
 }
 
 // 모든 Q&A 가져오기 (관리자용)
 function getAllQnaForAdmin() {
-    $file = getQnaDataFile();
-    
-    if (!file_exists($file)) {
-        return [];
-    }
-    
-    $qnas = json_decode(file_get_contents($file), true);
-    if (!is_array($qnas)) {
-        return [];
-    }
-    
-    // 날짜순 정렬 (최신순)
-    usort($qnas, function($a, $b) {
-        return strtotime($b['created_at']) - strtotime($a['created_at']);
-    });
-    
-    return $qnas;
+    $pdo = getDBConnection();
+    if (!$pdo) return [];
+    $stmt = $pdo->query("SELECT * FROM qna ORDER BY created_at DESC");
+    return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
 }
 
 // 답변 대기 중인 Q&A 개수 (관리자용)
 function getPendingQnaCount() {
-    $qnas = getAllQnaForAdmin();
-    $count = 0;
-    
-    foreach ($qnas as $qna) {
-        if (isset($qna['status']) && $qna['status'] == 'pending') {
-            $count++;
-        }
-    }
-    
-    return $count;
+    $pdo = getDBConnection();
+    if (!$pdo) return 0;
+    $stmt = $pdo->query("SELECT COUNT(*) FROM qna WHERE status = 'pending'");
+    return (int)($stmt->fetchColumn() ?? 0);
 }
 

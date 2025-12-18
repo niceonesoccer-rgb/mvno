@@ -51,49 +51,21 @@ if (empty($userId) || empty($password) || empty($phone) || empty($name)) {
     header('Location: /MVNO/admin/users/member-list.php?tab=admins&error=password_length');
     exit;
 } else {
-    // 기존 관리자 확인 (admins.json에서만)
-    $adminsFile = getAdminsFilePath();
-    $admins = [];
-    
-    if (file_exists($adminsFile)) {
-        $data = json_decode(file_get_contents($adminsFile), true) ?: ['admins' => []];
-        $admins = $data['admins'] ?? [];
+    // A안: admin/sub_admin도 users(DB) + admin_profiles로 저장
+    $additional = [
+        'phone' => $phone,
+        'created_by' => $currentUser['user_id'] ?? 'system'
+    ];
+
+    $result = registerDirectUser($userId, $password, null, $name, $role, $additional);
+    if (!$result['success']) {
+        $err = $result['message'] ?? 'save_failed';
+        header('Location: /MVNO/admin/users/member-list.php?tab=admins&error=' . urlencode($err));
+        exit;
     }
-    
-    // 아이디 중복 확인
-    $isDuplicate = false;
-    foreach ($admins as $admin) {
-        if (isset($admin['user_id']) && $admin['user_id'] === $userId) {
-            $isDuplicate = true;
-            header('Location: /MVNO/admin/users/member-list.php?tab=admins&error=duplicate_id');
-            exit;
-        }
-    }
-    
-    if (!$isDuplicate) {
-        // 관리자 추가
-        $newAdmin = [
-            'user_id' => $userId,
-            'phone' => $phone,
-            'name' => $name,
-            'password' => password_hash($password, PASSWORD_DEFAULT),
-            'role' => $role,
-            'created_at' => date('Y-m-d H:i:s'),
-            'created_by' => $currentUser['user_id'] ?? 'system'
-        ];
-        
-        $admins[] = $newAdmin;
-        $data = ['admins' => $admins];
-        
-        if (file_put_contents($adminsFile, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE))) {
-            // 추가 후 목록으로 리다이렉트
-            header('Location: /MVNO/admin/users/member-list.php?tab=admins&success=add');
-            exit;
-        } else {
-            header('Location: /MVNO/admin/users/member-list.php?tab=admins&error=save_failed');
-            exit;
-        }
-    }
+
+    header('Location: /MVNO/admin/users/member-list.php?tab=admins&success=add');
+    exit;
 }
 
 

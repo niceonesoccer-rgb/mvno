@@ -724,8 +724,9 @@ $isRegisterMode = false; // 기본값은 로그인 모드
                     
                     <!-- 일반 회원가입 폼 -->
                     <div class="login-form-section">
-                        <form id="registerForm" method="POST" action="/MVNO/auth/register.php">
+                        <form id="registerForm" method="POST" action="/MVNO/api/direct-register.php">
                             <input type="hidden" name="role" value="user">
+                            <input type="hidden" id="register_user_id_checked" name="user_id_checked" value="0">
                             <div class="login-form-group">
                                 <label for="register_user_id">아이디 <span style="color: #ef4444;">*</span></label>
                                 <input type="text" id="register_user_id" name="user_id" required placeholder="아이디 입력 (영문, 숫자만 가능, 5-20자)" pattern="[A-Za-z0-9]{5,20}" title="영문과 숫자만 입력 가능하며 5-20자입니다" minlength="5" maxlength="20">
@@ -974,6 +975,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('register_user_id').focus();
                 return;
             }
+
+            // 서버 검증용 hidden 플래그 (checked-valid이면 1로 설정)
+            const userIdCheckedHidden = document.getElementById('register_user_id_checked');
+            if (userIdCheckedHidden) {
+                userIdCheckedHidden.value = userIdInput.classList.contains('checked-valid') ? '1' : '0';
+            }
             
             // 이름 길이 검증 (15자 이내)
             if (name.length > 15) {
@@ -1078,8 +1085,49 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
-            // 폼 제출 (페이지 리로드)
-            this.submit();
+            // AJAX로 회원가입 (모달에서 끝내기)
+            const formData = new FormData(this);
+            const submitBtn = this.querySelector('button[type="submit"]');
+            const prevText = submitBtn ? submitBtn.textContent : null;
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.textContent = '처리중...';
+            }
+
+            fetch('/MVNO/api/direct-register.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data && data.success) {
+                    alert(data.message || '회원가입이 완료되었습니다. 로그인해주세요.');
+                    // 가입 완료 후 로그인 모드로 전환 + 입력 초기화
+                    this.reset();
+                    const userIdCheckedHidden2 = document.getElementById('register_user_id_checked');
+                    if (userIdCheckedHidden2) userIdCheckedHidden2.value = '0';
+                    const userIdInput2 = document.getElementById('register_user_id');
+                    if (userIdInput2) userIdInput2.classList.remove('checked-valid', 'checked-invalid', 'checking');
+                    const userIdCheckResult2 = document.getElementById('userIdCheckResult');
+                    if (userIdCheckResult2) {
+                        userIdCheckResult2.textContent = '';
+                        userIdCheckResult2.className = 'user-id-check-result';
+                    }
+                    switchToLoginMode();
+                } else {
+                    alert((data && data.message) ? data.message : '회원가입에 실패했습니다.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('회원가입 중 오류가 발생했습니다.');
+            })
+            .finally(() => {
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = prevText || '회원가입';
+                }
+            });
         });
         
         // 전화번호 자동 포맷팅 (010-XXXX-XXXX, 010으로만 시작)
@@ -1285,6 +1333,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // 아이디 실시간 중복 확인
         const userIdInput = document.getElementById('register_user_id');
         const userIdCheckResult = document.getElementById('userIdCheckResult');
+        const userIdCheckedHidden = document.getElementById('register_user_id_checked');
         let userIdCheckTimeout = null;
         
         if (userIdInput && userIdCheckResult) {
@@ -1293,6 +1342,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // 입력 필드 클래스 초기화
                 userIdInput.classList.remove('checked-valid', 'checked-invalid', 'checking');
+                if (userIdCheckedHidden) userIdCheckedHidden.value = '0';
                 userIdCheckResult.className = 'user-id-check-result';
                 userIdCheckResult.textContent = '';
                 
@@ -1336,12 +1386,14 @@ document.addEventListener('DOMContentLoaded', function() {
                                 userIdCheckResult.className = 'user-id-check-result success';
                                 userIdInput.classList.remove('checked-invalid');
                                 userIdInput.classList.add('checked-valid');
+                                if (userIdCheckedHidden) userIdCheckedHidden.value = '1';
                             } else {
                                 // 사용 불가
                                 userIdCheckResult.textContent = '✗ ' + data.message;
                                 userIdCheckResult.className = 'user-id-check-result error';
                                 userIdInput.classList.remove('checked-valid');
                                 userIdInput.classList.add('checked-invalid');
+                                if (userIdCheckedHidden) userIdCheckedHidden.value = '0';
                             }
                         })
                         .catch(error => {
@@ -1350,6 +1402,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             userIdCheckResult.textContent = '확인 중 오류가 발생했습니다.';
                             userIdCheckResult.className = 'user-id-check-result error';
                             userIdInput.classList.add('checked-invalid');
+                            if (userIdCheckedHidden) userIdCheckedHidden.value = '0';
                         });
                 }, 500);
             });
@@ -1466,6 +1519,8 @@ window.switchToRegisterMode = switchToRegisterMode;
 window.switchToLoginMode = switchToLoginMode;
 window.togglePasswordVisibility = togglePasswordVisibility;
 </script>
+
+
 
 
 

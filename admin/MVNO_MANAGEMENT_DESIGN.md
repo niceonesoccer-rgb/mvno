@@ -126,30 +126,15 @@ admin/
 ]
 ```
 
-### 3.2 데이터 저장 방식
+### 3.2 데이터 저장 방식 (DB-only 기준)
 
-**현재**: `includes/data/plan-data.php`에 하드코딩된 배열
-**향후**: JSON 파일 또는 데이터베이스로 전환 예정
+**현재(운영 권장)**: DB 테이블 기반 저장/조회
+- 상품 메타/카운트: `products`
+- 알뜰폰 상세: `product_mvno_details`
 
-**JSON 파일 구조 (권장)**:
-```
-data/
-└── mvno-plans.json
-```
+**임시/개발 단계**: `includes/data/plan-data.php`의 하드코딩 배열(데모/테스트용)
 
-```json
-{
-    "plans": [
-        {
-            "id": 32627,
-            "provider": "쉐이크모바일",
-            ...
-        }
-    ],
-    "last_id": 32635,
-    "updated_at": "2024-01-01 00:00:00"
-}
-```
+> JSON 파일 저장 방식은 DB-only 정책에서 사용하지 않습니다.
 
 ## 4. 기능 목록
 

@@ -12,12 +12,8 @@ $action = $_GET['action'] ?? '';
 
 // API 설정 읽기
 function getApiSettings() {
-    $file = __DIR__ . '/../includes/data/api-settings.json';
-    if (!file_exists($file)) {
-        return [];
-    }
-    $content = file_get_contents($file);
-    return json_decode($content, true) ?: [];
+    require_once __DIR__ . '/../includes/data/app-settings.php';
+    return getAppSettings('api', []);
 }
 
 // 네이버 로그인
@@ -26,47 +22,9 @@ if ($action === 'naver') {
     $clientId = $settings['naver']['client_id'] ?? '';
     $redirectUri = $settings['naver']['redirect_uri'] ?? '';
     
-    // API 설정이 없으면 테스트용으로 바로 로그인
+    // DB-only: API 설정이 없으면 로그인 불가
     if (empty($clientId) || empty($redirectUri)) {
-        $testUserId = 'nvr_3456789';
-        
-        // 사용자가 없으면 생성
-        $user = getUserById($testUserId);
-        if (!$user) {
-            $usersFile = getUsersFilePath();
-            $data = file_exists($usersFile) ? json_decode(file_get_contents($usersFile), true) : ['users' => []];
-            
-            if (!is_array($data) || !isset($data['users'])) {
-                $data = ['users' => []];
-            }
-            
-            $newUser = [
-                'user_id' => $testUserId,
-                'email' => 'test_naver@example.com',
-                'name' => '네이버 테스트',
-                'role' => 'user',
-                'sns_provider' => 'naver',
-                'sns_id' => '3456789',
-                'phone' => '010-1234-5678',
-                'created_at' => date('Y-m-d H:i:s'),
-                'seller_approved' => false
-            ];
-            
-            $data['users'][] = $newUser;
-            file_put_contents($usersFile, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-            $user = $newUser;
-        }
-        
-        // 로그인 처리
-        loginUser($testUserId);
-        
-        // 세션에 저장된 리다이렉트 URL 확인
-        $redirectUrl = $_SESSION['redirect_url'] ?? '/MVNO/';
-        if (isset($_SESSION['redirect_url'])) {
-            unset($_SESSION['redirect_url']);
-        }
-        
-        echo json_encode(['success' => true, 'redirect' => $redirectUrl]);
+        echo json_encode(['success' => false, 'message' => 'SNS 로그인 설정이 필요합니다. (관리자: API 설정 관리에서 등록)']);
         exit;
     }
     
@@ -90,47 +48,9 @@ if ($action === 'kakao') {
     $restApiKey = $settings['kakao']['rest_api_key'] ?? '';
     $redirectUri = $settings['kakao']['redirect_uri'] ?? '';
     
-    // API 설정이 없으면 테스트용으로 바로 로그인
+    // DB-only: API 설정이 없으면 로그인 불가
     if (empty($restApiKey) || empty($redirectUri)) {
-        $testUserId = 'kko_4567890';
-        
-        // 사용자가 없으면 생성
-        $user = getUserById($testUserId);
-        if (!$user) {
-            $usersFile = getUsersFilePath();
-            $data = file_exists($usersFile) ? json_decode(file_get_contents($usersFile), true) : ['users' => []];
-            
-            if (!is_array($data) || !isset($data['users'])) {
-                $data = ['users' => []];
-            }
-            
-            $newUser = [
-                'user_id' => $testUserId,
-                'email' => 'test_kakao@example.com',
-                'name' => '카카오 테스트',
-                'role' => 'user',
-                'sns_provider' => 'kakao',
-                'sns_id' => '4567890',
-                'phone' => '010-1234-5678',
-                'created_at' => date('Y-m-d H:i:s'),
-                'seller_approved' => false
-            ];
-            
-            $data['users'][] = $newUser;
-            file_put_contents($usersFile, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-            $user = $newUser;
-        }
-        
-        // 로그인 처리
-        loginUser($testUserId);
-        
-        // 세션에 저장된 리다이렉트 URL 확인
-        $redirectUrl = $_SESSION['redirect_url'] ?? '/MVNO/';
-        if (isset($_SESSION['redirect_url'])) {
-            unset($_SESSION['redirect_url']);
-        }
-        
-        echo json_encode(['success' => true, 'redirect' => $redirectUrl]);
+        echo json_encode(['success' => false, 'message' => 'SNS 로그인 설정이 필요합니다. (관리자: API 설정 관리에서 등록)']);
         exit;
     }
     
@@ -150,47 +70,9 @@ if ($action === 'google') {
     $clientId = $settings['google']['client_id'] ?? '';
     $redirectUri = $settings['google']['redirect_uri'] ?? '';
     
-    // API 설정이 없으면 테스트용으로 바로 로그인
+    // DB-only: API 설정이 없으면 로그인 불가
     if (empty($clientId) || empty($redirectUri)) {
-        $testUserId = 'gol_5678901';
-        
-        // 사용자가 없으면 생성
-        $user = getUserById($testUserId);
-        if (!$user) {
-            $usersFile = getUsersFilePath();
-            $data = file_exists($usersFile) ? json_decode(file_get_contents($usersFile), true) : ['users' => []];
-            
-            if (!is_array($data) || !isset($data['users'])) {
-                $data = ['users' => []];
-            }
-            
-            $newUser = [
-                'user_id' => $testUserId,
-                'email' => 'test_google@example.com',
-                'name' => '구글 테스트',
-                'role' => 'user',
-                'sns_provider' => 'google',
-                'sns_id' => '5678901',
-                'phone' => '010-1234-5678',
-                'created_at' => date('Y-m-d H:i:s'),
-                'seller_approved' => false
-            ];
-            
-            $data['users'][] = $newUser;
-            file_put_contents($usersFile, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-            $user = $newUser;
-        }
-        
-        // 로그인 처리
-        loginUser($testUserId);
-        
-        // 세션에 저장된 리다이렉트 URL 확인
-        $redirectUrl = $_SESSION['redirect_url'] ?? '/MVNO/';
-        if (isset($_SESSION['redirect_url'])) {
-            unset($_SESSION['redirect_url']);
-        }
-        
-        echo json_encode(['success' => true, 'redirect' => $redirectUrl]);
+        echo json_encode(['success' => false, 'message' => 'SNS 로그인 설정이 필요합니다. (관리자: API 설정 관리에서 등록)']);
         exit;
     }
     

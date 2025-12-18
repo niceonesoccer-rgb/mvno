@@ -5,6 +5,7 @@
  */
 
 require_once __DIR__ . '/../../includes/data/auth-functions.php';
+require_once __DIR__ . '/../../includes/data/db-config.php';
 
 // 세션 시작
 if (session_status() === PHP_SESSION_NONE) {
@@ -17,9 +18,16 @@ if (!isAdmin()) {
     exit;
 }
 
-$forbiddenIdsFile = __DIR__ . '/../../includes/data/forbidden-ids.json';
 $error = '';
 $success = '';
+
+// 금지어 목록 가져오기 (DB)
+function loadForbiddenIdsFromDb(): array {
+    $pdo = getDBConnection();
+    if (!$pdo) return [];
+    $stmt = $pdo->query("SELECT id_value FROM forbidden_ids ORDER BY id_value ASC");
+    return array_map(fn($r) => $r['id_value'], $stmt->fetchAll(PDO::FETCH_ASSOC) ?: []);
+}
 
 // 금지어 추가 처리
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'add') {
@@ -31,30 +39,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $error = '영문자와 숫자만 입력 가능합니다.';
     } else {
         $newId = strtolower($newId);
-        $data = [];
-        if (file_exists($forbiddenIdsFile)) {
-            $content = file_get_contents($forbiddenIdsFile);
-            $data = json_decode($content, true) ?: ['forbidden_ids' => []];
+        $pdo = getDBConnection();
+        if (!$pdo) {
+            $error = 'DB 연결에 실패했습니다.';
         } else {
-            $data = ['forbidden_ids' => []];
-        }
-        
-        $forbiddenIds = $data['forbidden_ids'] ?? [];
-        
-        if (in_array($newId, $forbiddenIds)) {
-            $error = '이미 등록된 금지어입니다.';
-        } else {
-            $forbiddenIds[] = $newId;
-            // 오름차순 정렬
-            sort($forbiddenIds);
-            $data['forbidden_ids'] = array_values($forbiddenIds);
-            
-            if (file_put_contents($forbiddenIdsFile, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE))) {
+            // 중복은 PRIMARY KEY로 방지
+            $stmt = $pdo->prepare("INSERT IGNORE INTO forbidden_ids (id_value) VALUES (:id)");
+            $stmt->execute([':id' => $newId]);
+            if ($stmt->rowCount() > 0) {
                 $success = '금지어가 추가되었습니다.';
-                // 추가 후 금지어 목록 즉시 갱신
-                $forbiddenIds = $data['forbidden_ids'];
             } else {
-                $error = '금지어 추가 중 오류가 발생했습니다.';
+                $error = '이미 등록된 금지어입니다.';
             }
         }
     }
@@ -65,26 +60,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $deleteId = trim($_POST['forbidden_id'] ?? '');
     
     if (!empty($deleteId)) {
-        if (file_exists($forbiddenIdsFile)) {
-            $content = file_get_contents($forbiddenIdsFile);
-            $data = json_decode($content, true) ?: ['forbidden_ids' => []];
-            $forbiddenIds = $data['forbidden_ids'] ?? [];
-            
-            // 대소문자 구분 없이 삭제
-            $forbiddenIds = array_filter($forbiddenIds, function($id) use ($deleteId) {
-                return strtolower(trim($id)) !== strtolower(trim($deleteId));
-            });
-            
-            // 오름차순 정렬
-            sort($forbiddenIds);
-            $data['forbidden_ids'] = array_values($forbiddenIds);
-            
-            if (file_put_contents($forbiddenIdsFile, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE))) {
+        $pdo = getDBConnection();
+        if (!$pdo) {
+            $error = 'DB 연결에 실패했습니다.';
+        } else {
+            $stmt = $pdo->prepare("DELETE FROM forbidden_ids WHERE LOWER(id_value) = LOWER(:id)");
+            $stmt->execute([':id' => $deleteId]);
+            if ($stmt->rowCount() > 0) {
                 $success = '금지어가 삭제되었습니다.';
-                // 삭제 후 금지어 목록 즉시 갱신
-                $forbiddenIds = $data['forbidden_ids'];
             } else {
-                $error = '금지어 삭제 중 오류가 발생했습니다.';
+                $error = '삭제할 금지어를 찾을 수 없습니다.';
             }
         }
     }
@@ -94,15 +79,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 if (isset($_GET['action']) && $_GET['action'] === 'download') {
     $format = $_GET['format'] ?? 'csv'; // csv만 지원
     
-    if (file_exists($forbiddenIdsFile)) {
-        $content = file_get_contents($forbiddenIdsFile);
-        $data = json_decode($content, true) ?: ['forbidden_ids' => []];
-        $forbiddenIds = $data['forbidden_ids'] ?? [];
-        // 오름차순 정렬
-        sort($forbiddenIds);
-        $forbiddenIds = array_values($forbiddenIds);
-    } else {
-        $forbiddenIds = [];
+    $pdo = getDBConnection();
+    $forbiddenIds = [];
+    if ($pdo) {
+        $stmt = $pdo->query("SELECT id_value FROM forbidden_ids ORDER BY id_value ASC");
+        $forbiddenIds = array_map(fn($r) => $r['id_value'], $stmt->fetchAll(PDO::FETCH_ASSOC) ?: []);
     }
     
     // CSV 형식으로 다운로드
@@ -203,86 +184,62 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 $error = 'CSV 파일을 열 수 없습니다.';
             }
             
-            // 업로드된 금지어 처리
+            // 업로드된 금지어 처리(DB)
             if (empty($error) && !empty($uploadedIds)) {
-                // 업로드된 금지어 정리 (빈 값 제거, 원본 형식 유지)
                 $uploadedIds = array_filter(array_map('trim', $uploadedIds), function($id) {
                     $idLower = strtolower(trim($id));
                     return !empty($id) && $idLower !== '금지어' && $idLower !== '순번' && $idLower !== 'forbidden';
                 });
-                $uploadedIds = array_unique($uploadedIds);
-                
-                // 기존 금지어 가져오기 (원본 형식 유지)
-                $existingIdsOriginal = [];
-                $existingIdsLower = [];
-                if (file_exists($forbiddenIdsFile)) {
-                    $content = file_get_contents($forbiddenIdsFile);
-                    $data = json_decode($content, true) ?: ['forbidden_ids' => []];
-                    $existingIdsOriginal = $data['forbidden_ids'] ?? [];
-                    $existingIdsLower = array_map('strtolower', array_map('trim', $existingIdsOriginal));
-                }
-                
-                // 중복 체크 (대소문자 구분 없이, 원본 형식 유지)
-                $newIds = [];
-                $duplicateIds = [];
-                foreach ($uploadedIds as $id) {
-                    $idLower = strtolower(trim($id));
-                    if (in_array($idLower, $existingIdsLower)) {
-                        $duplicateIds[] = $id; // 원본 형식 유지
-                    } else {
-                        $newIds[] = $id; // 원본 형식 유지
-                    }
-                }
-                
-                // 기존 금지어는 원본 형식 유지, 새로운 금지어는 소문자로 추가
-                $finalIds = $existingIdsOriginal;
-                foreach ($newIds as $newId) {
-                    if (!in_array($newId, $existingIdsLower)) {
-                        $finalIds[] = $newId;
-                    }
-                }
-                
-                // 정렬 (오름차순)
-                sort($finalIds);
-                $data = ['forbidden_ids' => array_values($finalIds)];
-                
-                if (file_put_contents($forbiddenIdsFile, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE))) {
-                    $addedCount = count($newIds);
-                    $duplicateCount = count($duplicateIds);
-                    $totalCount = count($finalIds);
-                    
-                    // 업로드 후 금지어 목록 즉시 갱신
-                    $forbiddenIds = $finalIds;
-                    
-                    if ($addedCount > 0) {
-                        $success = $addedCount . '개의 금지어가 추가되었습니다. (총 ' . $totalCount . '개)';
-                        if ($duplicateCount > 0) {
-                            $success .= '<br><span style="color: #f59e0b;">' . $duplicateCount . '개의 중복된 금지어는 제외되었습니다.</span>';
-                        }
-                    } else {
-                        if ($duplicateCount > 0) {
-                            $error = '업로드된 ' . count($uploadedIds) . '개의 금지어가 모두 이미 등록되어 있습니다. (중복: ' . $duplicateCount . '개, 총 ' . $totalCount . '개)<br>
-                            <details style="margin-top: 12px; padding: 12px; background: #f3f4f6; border-radius: 6px;">
-                                <summary style="cursor: pointer; font-weight: 600; color: #374151;">업로드된 금지어 목록 보기</summary>
-                                <div style="margin-top: 8px; padding: 8px; background: white; border-radius: 4px; max-height: 200px; overflow-y: auto;">
-                                    <div style="display: flex; flex-wrap: wrap; gap: 4px;">
-                                        ' . implode(', ', array_map(function($id) use ($existingIdsLower) {
-                                            $idLower = strtolower(trim($id));
-                                            $isExisting = in_array($idLower, $existingIdsLower);
-                                            $color = $isExisting ? '#ef4444' : '#10b981';
-                                            $badge = $isExisting ? ' (기존)' : ' (신규)';
-                                            return '<span style="padding: 2px 8px; background: ' . $color . '; color: white; border-radius: 4px; font-size: 12px;">' . htmlspecialchars($id) . $badge . '</span>';
-                                        }, array_slice($uploadedIds, 0, 50))) . '
-                                        ' . (count($uploadedIds) > 50 ? '<span style="color: #6b7280;">... 외 ' . (count($uploadedIds) - 50) . '개</span>' : '') . '
-                                    </div>
-                                </div>
-                            </details>';
-                        } else {
-                            $error = '금지어를 추가할 수 없습니다.';
-                        }
-                    }
+                $uploadedIds = array_values(array_unique($uploadedIds));
+
+                $pdo = getDBConnection();
+                if (!$pdo) {
+                    $error = 'DB 연결에 실패했습니다.';
                 } else {
-                    $error = '금지어 업로드 중 오류가 발생했습니다.';
+                    // 기존 금지어(소문자 기준)
+                    $existing = loadForbiddenIdsFromDb();
+                    $existingLower = array_map(fn($v) => strtolower(trim($v)), $existing);
+
+                    $newIds = [];
+                    $duplicateIds = [];
+                    foreach ($uploadedIds as $id) {
+                        $lower = strtolower(trim($id));
+                        if (in_array($lower, $existingLower, true)) {
+                            $duplicateIds[] = $id;
+                        } else {
+                            $newIds[] = $lower; // 저장은 소문자
+                        }
+                    }
+
+                    if (!empty($newIds)) {
+                        $pdo->beginTransaction();
+                        try {
+                            $stmt = $pdo->prepare("INSERT IGNORE INTO forbidden_ids (id_value) VALUES (:id)");
+                            foreach ($newIds as $nid) {
+                                $stmt->execute([':id' => $nid]);
+                            }
+                            $pdo->commit();
+                        } catch (PDOException $e) {
+                            if ($pdo->inTransaction()) $pdo->rollBack();
+                            error_log('forbidden ids upload DB error: ' . $e->getMessage());
+                            $error = '금지어 업로드 중 오류가 발생했습니다.';
+                        }
+                    }
+
+                    if (empty($error)) {
+                        $forbiddenIds = loadForbiddenIdsFromDb();
+                        $addedCount = count($newIds);
+                        $duplicateCount = count($duplicateIds);
+                        $totalCount = count($forbiddenIds);
+                        if ($addedCount > 0) {
+                            $success = $addedCount . '개의 금지어가 추가되었습니다. (총 ' . $totalCount . '개)';
+                            if ($duplicateCount > 0) {
+                                $success .= '<br><span style="color: #f59e0b;">' . $duplicateCount . '개의 중복된 금지어는 제외되었습니다.</span>';
+                            }
+                        } else {
+                            $error = '업로드된 금지어가 모두 이미 등록되어 있습니다. (총 ' . $totalCount . '개)';
+                        }
+                    }
                 }
             } elseif (empty($error)) {
                 $error = '업로드된 파일에서 금지어를 찾을 수 없습니다.';
@@ -293,30 +250,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
 }
 
-
 // 금지어 목록 가져오기 (업로드 후 최신 데이터 반영)
-// 업로드 처리에서 이미 $forbiddenIds가 설정되지 않은 경우에만 파일에서 읽기
 if (!isset($forbiddenIds) || !is_array($forbiddenIds)) {
-    $forbiddenIds = [];
-    if (file_exists($forbiddenIdsFile)) {
-        $content = file_get_contents($forbiddenIdsFile);
-        if ($content !== false) {
-            $data = json_decode($content, true);
-            if ($data && isset($data['forbidden_ids']) && is_array($data['forbidden_ids'])) {
-                $forbiddenIds = $data['forbidden_ids'];
-                // 빈 값 제거 및 정렬 (오름차순)
-                $forbiddenIds = array_filter($forbiddenIds, function($id) {
-                    return !empty(trim($id));
-                });
-                sort($forbiddenIds);
-                $forbiddenIds = array_values($forbiddenIds);
-            }
-        }
-    }
-} else {
-    // 이미 설정된 경우 정렬만 수행 (오름차순)
-    sort($forbiddenIds);
-    $forbiddenIds = array_values($forbiddenIds);
+    $forbiddenIds = loadForbiddenIdsFromDb();
 }
 
 // 현재 페이지 설정

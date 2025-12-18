@@ -169,27 +169,37 @@ try {
         
         $products = $stmt->fetchAll();
         
-        // 판매자 정보 매핑
-        $sellersFile = __DIR__ . '/../../includes/data/sellers.json';
-        $sellersData = [];
-        if (file_exists($sellersFile)) {
-            $sellersContent = file_get_contents($sellersFile);
-            $sellersJson = json_decode($sellersContent, true);
-            if ($sellersJson && isset($sellersJson['sellers'])) {
-                foreach ($sellersJson['sellers'] as $seller) {
-                    if (isset($seller['user_id'])) {
-                        $sellersData[(string)$seller['user_id']] = $seller;
-                    }
-                }
+        // 판매자 정보 매핑 (DB-only)
+        $sellerIds = [];
+        foreach ($products as $p) {
+            $sid = (string)($p['seller_user_id'] ?? $p['seller_id'] ?? '');
+            if ($sid !== '') $sellerIds[$sid] = true;
+        }
+
+        $sellerMap = [];
+        if (!empty($sellerIds)) {
+            $idList = array_keys($sellerIds);
+            $placeholders = implode(',', array_fill(0, count($idList), '?'));
+            $sellerStmt = $pdo->prepare("
+                SELECT
+                    u.user_id,
+                    COALESCE(NULLIF(u.company_name,''), NULLIF(u.name,''), u.user_id) AS display_name,
+                    COALESCE(u.company_name,'') AS company_name
+                FROM users u
+                WHERE u.role = 'seller'
+                  AND u.user_id IN ($placeholders)
+            ");
+            $sellerStmt->execute($idList);
+            foreach ($sellerStmt->fetchAll(PDO::FETCH_ASSOC) as $s) {
+                $sellerMap[(string)$s['user_id']] = $s;
             }
         }
-        
+
         foreach ($products as &$product) {
             $sellerId = (string)($product['seller_user_id'] ?? $product['seller_id'] ?? '');
-            if ($sellerId && isset($sellersData[$sellerId])) {
-                $seller = $sellersData[$sellerId];
-                $product['seller_name'] = $seller['seller_name'] ?? $seller['name'] ?? '-';
-                $product['company_name'] = $seller['company_name'] ?? '-';
+            if ($sellerId && isset($sellerMap[$sellerId])) {
+                $product['seller_name'] = $sellerMap[$sellerId]['display_name'] ?? '-';
+                $product['company_name'] = $sellerMap[$sellerId]['company_name'] ?? '-';
             } else {
                 $product['seller_name'] = '-';
                 $product['company_name'] = '-';

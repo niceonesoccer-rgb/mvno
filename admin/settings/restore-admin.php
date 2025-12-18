@@ -20,53 +20,29 @@ if (!$isDirectAccess && !isAdmin()) {
     exit;
 }
 
-$adminsFile = getAdminsFilePath();
 $success = false;
 $error = '';
 
 // admin 계정 생성
 if ($_SERVER['REQUEST_METHOD'] === 'POST' || $isDirectAccess) {
     try {
-        $admins = [];
-        
-        if (file_exists($adminsFile)) {
-            $data = json_decode(file_get_contents($adminsFile), true) ?: ['admins' => []];
-            $admins = $data['admins'] ?? [];
-        }
-        
-        // 기존 admin 계정 확인
-        $adminExists = false;
-        foreach ($admins as $admin) {
-            if (isset($admin['user_id']) && $admin['user_id'] === 'admin') {
-                $adminExists = true;
-                break;
-            }
-        }
-        
-        if (!$adminExists) {
-            // admin 계정 생성
-            $adminAccount = [
-                'user_id' => 'admin',
+        // DB-only: users 테이블에서 admin 계정 확인 후 생성
+        $existing = getUserById('admin');
+        if ($existing && (($existing['role'] ?? '') === 'admin' || ($existing['role'] ?? '') === 'sub_admin')) {
+            $error = 'admin 계정이 이미 존재합니다.';
+        } else {
+            $additional = [
                 'phone' => '010-0000-0000',
-                'name' => '관리자',
-                'password' => password_hash('admin', PASSWORD_DEFAULT),
-                'role' => 'admin',
-                'created_at' => date('Y-m-d H:i:s'),
-                'created_by' => 'system'
+                'created_by' => 'system',
+                'memo' => 'restored_by_script'
             ];
-            
-            // admin 계정을 맨 앞에 추가
-            array_unshift($admins, $adminAccount);
-            
-            $data = ['admins' => $admins];
-            
-            if (file_put_contents($adminsFile, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE))) {
+
+            $result = registerDirectUser('admin', 'admin', null, '관리자', 'admin', $additional);
+            if ($result['success'] ?? false) {
                 $success = true;
             } else {
-                $error = '파일 저장에 실패했습니다.';
+                $error = $result['message'] ?? '계정 생성에 실패했습니다.';
             }
-        } else {
-            $error = 'admin 계정이 이미 존재합니다.';
         }
     } catch (Exception $e) {
         $error = '오류 발생: ' . $e->getMessage();
@@ -200,6 +176,8 @@ if ($isDirectAccess && !$success && empty($error)) {
     </div>
 </body>
 </html>
+
+
 
 
 
