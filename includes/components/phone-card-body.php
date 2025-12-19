@@ -14,7 +14,14 @@ $device_storage = $phone['device_storage'] ?? '';
 if (!empty($phone['release_price'])) {
     $release_price = $phone['release_price'];
 } elseif (!empty($phone['device_price'])) {
-    $release_price = number_format($phone['device_price']);
+    // device_price가 숫자인지 확인
+    $devicePriceValue = $phone['device_price'];
+    if (is_numeric($devicePriceValue)) {
+        $release_price = number_format((float)$devicePriceValue);
+    } else {
+        // 이미 포맷된 문자열이면 그대로 사용
+        $release_price = $devicePriceValue;
+    }
 } else {
     $release_price = '0';
 }

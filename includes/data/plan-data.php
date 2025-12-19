@@ -190,6 +190,7 @@ function convertMvnoProductToPlanCard($product) {
     
     return [
         'id' => $productId,
+        'status' => $product['status'] ?? 'active', // 상품 상태 추가
         'provider' => $displayProvider, // 판매자명으로 표시
         'rating' => $displayRating, // DB에서 가져온 평균 별점
         'title' => $product['plan_name'] ?? '',
@@ -1034,13 +1035,15 @@ function getPlanDetailData($plan_id) {
     return null;
 }
 
-    // 현재 로그인한 사용자 ID 가져오기 (에러 발생 시 무시)
+    // 현재 로그인한 사용자 ID 및 관리자 여부 확인 (에러 발생 시 무시)
     $currentUserId = null;
+    $isAdmin = false;
     try {
-        if (function_exists('isLoggedIn') && function_exists('getCurrentUser')) {
+        if (function_exists('isLoggedIn') && function_exists('getCurrentUser') && function_exists('isAdmin')) {
             if (isLoggedIn()) {
                 $currentUser = getCurrentUser();
                 $currentUserId = $currentUser['user_id'] ?? null;
+                $isAdmin = isAdmin($currentUserId);
             }
         }
     } catch (Exception $e) {
@@ -1052,6 +1055,9 @@ function getPlanDetailData($plan_id) {
     }
 
     try {
+        // 관리자는 inactive 상태도 볼 수 있음
+        $statusCondition = $isAdmin ? "AND p.status != 'deleted'" : "AND p.status = 'active'";
+        
         $stmt = $pdo->prepare("
             SELECT 
                 p.id,
@@ -1106,7 +1112,7 @@ function getPlanDetailData($plan_id) {
             INNER JOIN product_mvno_details mvno ON p.id = mvno.product_id
             WHERE p.id = :plan_id 
             AND p.product_type = 'mvno'
-            AND p.status != 'deleted'
+            {$statusCondition}
         ");
         
         $stmt->bindValue(':plan_id', $plan_id, PDO::PARAM_INT);
@@ -1165,6 +1171,173 @@ function getPlanDetailData($plan_id) {
                 return $plan;
             }
         }
+        return null;
+    }
+}
+
+/**
+ * 인터넷 상품 상세 데이터 가져오기
+ * @param int $internet_id 인터넷 상품 ID
+ * @return array|null 인터넷 상품 데이터 또는 null
+ */
+function getInternetDetailData($internet_id) {
+    $pdo = getDBConnection();
+    if (!$pdo) {
+        return null;
+    }
+    
+    // 현재 로그인한 사용자 ID 및 관리자 여부 확인 (에러 발생 시 무시)
+    $currentUserId = null;
+    $isAdmin = false;
+    try {
+        if (function_exists('isLoggedIn') && function_exists('getCurrentUser') && function_exists('isAdmin')) {
+            if (isLoggedIn()) {
+                $currentUser = getCurrentUser();
+                $currentUserId = $currentUser['user_id'] ?? null;
+                $isAdmin = isAdmin($currentUserId);
+            }
+        }
+    } catch (Exception $e) {
+        error_log("Warning: Failed to get current user in getInternetDetailData: " . $e->getMessage());
+    } catch (Error $e) {
+        error_log("Warning: Fatal error getting current user in getInternetDetailData: " . $e->getMessage());
+    }
+    
+    try {
+        // 관리자는 inactive 상태도 볼 수 있음
+        $statusCondition = $isAdmin ? "AND p.status != 'deleted'" : "AND p.status = 'active'";
+        
+        $stmt = $pdo->prepare("
+            SELECT 
+                p.id,
+                p.seller_id,
+                p.status,
+                p.view_count,
+                p.favorite_count,
+                p.application_count,
+                inet.registration_place,
+                inet.service_type,
+                inet.speed_option,
+                inet.monthly_fee,
+                inet.cash_payment_names,
+                inet.cash_payment_prices,
+                inet.gift_card_names,
+                inet.gift_card_prices,
+                inet.equipment_names,
+                inet.equipment_prices,
+                inet.installation_names,
+                inet.installation_prices
+            FROM products p
+            INNER JOIN product_internet_details inet ON p.id = inet.product_id
+            WHERE p.id = :internet_id 
+            AND p.product_type = 'internet'
+            {$statusCondition}
+            LIMIT 1
+        ");
+        
+        $stmt->bindValue(':internet_id', $internet_id, PDO::PARAM_INT);
+        $stmt->execute();
+        $product = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$product) {
+            return null;
+        }
+        
+        // 판매자 정보 가져오기
+        $seller = getSellerById($product['seller_id']);
+        $companyName = getSellerDisplayName($seller);
+        
+        // JSON 필드 디코딩
+        $jsonFields = [
+            'cash_payment_names', 'cash_payment_prices',
+            'gift_card_names', 'gift_card_prices',
+            'equipment_names', 'equipment_prices',
+            'installation_names', 'installation_prices'
+        ];
+        
+        foreach ($jsonFields as $field) {
+            if (!empty($product[$field])) {
+                $decoded = json_decode($product[$field], true);
+                $product[$field] = is_array($decoded) ? $decoded : [];
+            } else {
+                $product[$field] = [];
+            }
+        }
+        
+        // 월 요금 처리
+        $monthlyFeeRaw = $product['monthly_fee'] ?? '';
+        $monthlyFee = '';
+        if (!empty($monthlyFeeRaw)) {
+            if (is_numeric($monthlyFeeRaw)) {
+                $numericValue = (int)floatval($monthlyFeeRaw);
+                $monthlyFee = number_format($numericValue, 0, '', ',') . '원';
+            } elseif (preg_match('/^(\d+)(.+)$/', $monthlyFeeRaw, $matches)) {
+                $numericValue = (int)$matches[1];
+                $monthlyFee = number_format($numericValue, 0, '', ',') . $matches[2];
+            } else {
+                $numericValue = (int)floatval($monthlyFeeRaw);
+                $monthlyFee = number_format($numericValue, 0, '', ',') . '원';
+            }
+        } else {
+            $monthlyFee = '0원';
+        }
+        
+        // 신청 수
+        $applicationCount = (int)($product['application_count'] ?? 0);
+        $selectionCount = number_format($applicationCount) . '명이 선택';
+        
+        // 찜 상태 확인
+        $isFavorited = false;
+        if ($currentUserId) {
+            try {
+                $favStmt = $pdo->prepare("
+                    SELECT COUNT(*) 
+                    FROM product_favorites 
+                    WHERE user_id = :user_id 
+                    AND product_id = :product_id
+                    AND product_type = 'internet'
+                ");
+                $favStmt->execute([
+                    ':user_id' => $currentUserId,
+                    ':product_id' => $internet_id
+                ]);
+                $favCount = $favStmt->fetchColumn();
+                $isFavorited = ($favCount > 0);
+            } catch (Exception $e) {
+                error_log("Warning: Failed to get favorite status in getInternetDetailData: " . $e->getMessage());
+            }
+        }
+        
+        return [
+            'id' => (int)$product['id'],
+            'status' => $product['status'] ?? 'active',
+            'company_name' => $companyName,
+            'seller_name' => $seller['seller_name'] ?? null,
+            'registration_place' => $product['registration_place'] ?? '',
+            'service_type' => $product['service_type'] ?? '인터넷',
+            'speed_option' => $product['speed_option'] ?? '',
+            'monthly_fee' => $monthlyFee,
+            'monthly_fee_raw' => $monthlyFeeRaw,
+            'selection_count' => $selectionCount,
+            'application_count' => $applicationCount,
+            'cash_payment_names' => $product['cash_payment_names'] ?? [],
+            'cash_payment_prices' => $product['cash_payment_prices'] ?? [],
+            'gift_card_names' => $product['gift_card_names'] ?? [],
+            'gift_card_prices' => $product['gift_card_prices'] ?? [],
+            'equipment_names' => $product['equipment_names'] ?? [],
+            'equipment_prices' => $product['equipment_prices'] ?? [],
+            'installation_names' => $product['installation_names'] ?? [],
+            'installation_prices' => $product['installation_prices'] ?? [],
+            'is_favorited' => $isFavorited,
+            '_raw_data' => $product
+        ];
+        
+    } catch (PDOException $e) {
+        error_log("Error fetching internet detail data: " . $e->getMessage());
+        error_log("Product ID: " . $internet_id);
+        return null;
+    } catch (Exception $e) {
+        error_log("Unexpected error in getInternetDetailData: " . $e->getMessage());
         return null;
     }
 }

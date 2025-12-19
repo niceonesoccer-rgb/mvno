@@ -22,39 +22,35 @@ require_once '../includes/data/plan-data.php';
 $plan = getPlanDetailData($plan_id);
 $rawData = $plan['_raw_data'] ?? []; // 원본 DB 데이터 (null 대신 빈 배열로 초기화)
 
+// 관리자 여부 확인
+$isAdmin = false;
+try {
+    if (function_exists('isAdmin') && function_exists('getCurrentUser')) {
+        $currentUser = getCurrentUser();
+        if ($currentUser) {
+            $isAdmin = isAdmin($currentUser['user_id']);
+        }
+    }
+} catch (Exception $e) {
+    // 관리자 체크 실패 시 일반 사용자로 처리
+}
+
+// 상품이 없거나, 일반 사용자가 판매종료 상품에 접근하는 경우
+if (!$plan) {
+    http_response_code(404);
+    die('상품을 찾을 수 없습니다.');
+}
+
+// 일반 사용자가 판매종료 상품에 접근하는 경우 차단
+if (!$isAdmin && isset($plan['status']) && $plan['status'] === 'inactive') {
+    http_response_code(404);
+    die('판매종료된 상품입니다.');
+}
+
 // 리뷰 목록 가져오기 (같은 판매자의 같은 타입의 모든 상품 리뷰 통합)
 $reviews = getProductReviews($plan_id, 'mvno', 20);
 $averageRating = getProductAverageRating($plan_id, 'mvno');
 $reviewCount = getProductReviewCount($plan_id, 'mvno');
-if (!$plan) {
-    // 데이터가 없으면 기본값 사용
-    $plan = [
-        'id' => $plan_id,
-        'provider' => '쉐이크모바일',
-        'rating' => '4.3',
-        'title' => '11월한정 LTE 100GB+밀리+Data쿠폰60GB',
-        'data_main' => '월 100GB + 5Mbps',
-        'features' => ['통화 무제한', '문자 무제한', 'KT망', 'LTE'],
-        'price_main' => '월 17,000원',
-        'price_after' => '7개월 이후 42,900원',
-        'selection_count' => '29,448명이 신청',
-        'gifts' => [
-            'SOLO결합(+20GB)',
-            '밀리의서재 평생 무료 구독권',
-            '데이터쿠폰 20GB',
-            '[11월 한정]네이버페이 10,000원',
-            '3대 마트 상품권 2만원'
-        ],
-        'gift_icons' => [
-            ['src' => '/MVNO/assets/images/icons/gift-card.svg', 'alt' => '혜택'],
-            ['src' => '/MVNO/assets/images/icons/gift-card.svg', 'alt' => '혜택'],
-            ['src' => '/MVNO/assets/images/icons/gift-card.svg', 'alt' => '혜택'],
-            ['src' => '/MVNO/assets/images/icons/gift-card.svg', 'alt' => '혜택'],
-            ['src' => '/MVNO/assets/images/icons/gift-card.svg', 'alt' => '혜택']
-        ]
-    ];
-    $rawData = []; // 기본값 사용 시에도 빈 배열로 초기화
-}
 ?>
 
 <main class="main-content plan-detail-page">

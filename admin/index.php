@@ -127,6 +127,80 @@ require_once __DIR__ . '/includes/admin-header.php';
         fill: none;
         stroke-width: 2.5;
     }
+    
+    .navigation-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+        margin-bottom: 24px;
+    }
+    
+    .navigation-card {
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        border-radius: 12px;
+        padding: 24px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        border: 1px solid #e2e8f0;
+        transition: all 0.3s;
+        text-decoration: none;
+        display: block;
+        color: inherit;
+    }
+    
+    .navigation-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
+        text-decoration: none;
+        color: inherit;
+    }
+    
+    .navigation-card-header {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 16px;
+    }
+    
+    .navigation-card-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+    
+    .navigation-card-icon svg {
+        width: 24px;
+        height: 24px;
+        stroke: white;
+        fill: none;
+        stroke-width: 2.5;
+    }
+    
+    .navigation-card-title {
+        font-size: 18px;
+        font-weight: 700;
+        color: #1e293b;
+        margin: 0;
+    }
+    
+    .navigation-card-description {
+        font-size: 14px;
+        color: #64748b;
+        line-height: 1.6;
+    }
+    
+    .navigation-card-arrow {
+        margin-top: 12px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 13px;
+        color: #3b82f6;
+        font-weight: 600;
+    }
 </style>
 
 <div class="dashboard-section">
@@ -209,6 +283,59 @@ require_once __DIR__ . '/includes/admin-header.php';
             ?></div>
             <div class="dashboard-card-description">전체 회원 수</div>
         </div>
+    </div>
+</div>
+
+<div class="dashboard-section">
+    <h2 class="dashboard-section-title">상품 관리</h2>
+    <div class="navigation-cards">
+        <a href="/MVNO/admin/products/mvno-list.php" class="navigation-card">
+            <div class="navigation-card-header">
+                <div class="navigation-card-icon" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
+                        <line x1="12" y1="18" x2="12.01" y2="18"/>
+                    </svg>
+                </div>
+                <h3 class="navigation-card-title">알뜰폰 관리</h3>
+            </div>
+            <p class="navigation-card-description">알뜰폰 상품을 등록, 수정, 삭제하고 관리할 수 있습니다.</p>
+            <div class="navigation-card-arrow">
+                관리하기 →
+            </div>
+        </a>
+        
+        <a href="/MVNO/admin/products/mno-list.php" class="navigation-card">
+            <div class="navigation-card-header">
+                <div class="navigation-card-icon" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                    </svg>
+                </div>
+                <h3 class="navigation-card-title">통신사폰 관리</h3>
+            </div>
+            <p class="navigation-card-description">통신사폰 상품을 등록, 수정, 삭제하고 관리할 수 있습니다.</p>
+            <div class="navigation-card-arrow">
+                관리하기 →
+            </div>
+        </a>
+        
+        <a href="/MVNO/admin/products/internet-list.php" class="navigation-card">
+            <div class="navigation-card-header">
+                <div class="navigation-card-icon" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="2" y1="12" x2="22" y2="12"/>
+                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                    </svg>
+                </div>
+                <h3 class="navigation-card-title">인터넷 관리</h3>
+            </div>
+            <p class="navigation-card-description">인터넷 상품을 등록, 수정, 삭제하고 관리할 수 있습니다.</p>
+            <div class="navigation-card-arrow">
+                관리하기 →
+            </div>
+        </a>
     </div>
 </div>
 

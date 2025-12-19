@@ -15,7 +15,6 @@ if ($status === '') $status = null;
 
 $provider = $_GET['provider'] ?? '';
 $search_query = $_GET['search_query'] ?? ''; // 통합 검색 필드
-$plan_name = $_GET['plan_name'] ?? '';
 $contract_period = $_GET['contract_period'] ?? '';
 $contract_period_days_min = $_GET['contract_period_days_min'] ?? '';
 $contract_period_days_max = $_GET['contract_period_days_max'] ?? '';
@@ -25,9 +24,6 @@ $price_after_max = $_GET['price_after_max'] ?? '';
 $service_type = $_GET['service_type'] ?? '';
 $date_from = $_GET['date_from'] ?? '';
 $date_to = $_GET['date_to'] ?? '';
-$seller_id = $_GET['seller_id'] ?? '';
-$seller_name = $_GET['seller_name'] ?? '';
-$company_name = $_GET['company_name'] ?? '';
 $page = max(1, intval($_GET['page'] ?? 1));
 $perPage = intval($_GET['per_page'] ?? 20);
 if (!in_array($perPage, [10, 20, 50, 100])) {
@@ -56,7 +52,8 @@ try {
         }
         
         // 판매자 필터
-        if ($seller_id && $seller_id !== '') {
+        if (isset($_GET['seller_id']) && $_GET['seller_id'] !== '') {
+            $seller_id = $_GET['seller_id'];
             $whereConditions[] = 'p.seller_id = :seller_id';
             $params[':seller_id'] = $seller_id;
         }
@@ -67,8 +64,9 @@ try {
             $params[':provider'] = $provider;
         }
         
-        // 요금제명 필터
-        if ($plan_name && $plan_name !== '') {
+        // 요금제명 필터 (통합 검색으로 대체 가능하지만 유지)
+        if (isset($_GET['plan_name']) && $_GET['plan_name'] !== '') {
+            $plan_name = $_GET['plan_name'];
             $whereConditions[] = 'mvno.plan_name LIKE :plan_name';
             $params[':plan_name'] = '%' . $plan_name . '%';
         }
@@ -238,32 +236,15 @@ try {
                 return false;
             });
             $products = array_values($products);
-        } else {
-            // 개별 필터링 (하위 호환성)
-            if ($seller_name && $seller_name !== '') {
-                $products = array_filter($products, function($product) use ($seller_name) {
-                    $name = mb_strtolower($product['seller_name'] ?? '', 'UTF-8');
-                    $search = mb_strtolower($seller_name, 'UTF-8');
-                    return mb_strpos($name, $search) !== false;
-                });
-                $products = array_values($products);
-            }
-            
-            if ($company_name && $company_name !== '') {
-                $products = array_filter($products, function($product) use ($company_name) {
-                    $name = mb_strtolower($product['company_name'] ?? '', 'UTF-8');
-                    $search = mb_strtolower($company_name, 'UTF-8');
-                    return mb_strpos($name, $search) !== false;
-                });
-                $products = array_values($products);
-            }
         }
         
-        // 필터링 후 페이지네이션 재계산
-        $totalProducts = count($products);
-        $totalPages = ceil($totalProducts / $perPage);
-        $offset = ($page - 1) * $perPage;
-        $products = array_slice($products, $offset, $perPage);
+        // 필터링 후 페이지네이션 재계산 (통합 검색이 있을 때만)
+        if ($search_query) {
+            $totalProducts = count($products);
+            $totalPages = ceil($totalProducts / $perPage);
+            $offset = ($page - 1) * $perPage;
+            $products = array_slice($products, $offset, $perPage);
+        }
     }
 } catch (PDOException $e) {
     error_log("Error fetching MVNO products: " . $e->getMessage());
@@ -272,23 +253,6 @@ try {
     error_log("Params: " . json_encode($params ?? []));
 }
 
-// 판매자 목록 가져오기 (필터용)
-$sellers = [];
-try {
-    if ($pdo) {
-        $sellerStmt = $pdo->prepare("
-            SELECT DISTINCT p.seller_id as user_id
-            FROM products p
-            INNER JOIN product_mvno_details mvno ON p.id = mvno.product_id
-            WHERE p.product_type = 'mvno' AND p.status != 'deleted'
-            ORDER BY p.seller_id
-        ");
-        $sellerStmt->execute();
-        $sellers = $sellerStmt->fetchAll();
-    }
-} catch (PDOException $e) {
-    error_log("Error fetching sellers: " . $e->getMessage());
-}
 ?>
 
 <style>
@@ -571,29 +535,34 @@ try {
     .pagination-btn {
         padding: 8px 16px;
         font-size: 14px;
+        font-weight: 500;
         border: 1px solid #d1d5db;
         border-radius: 6px;
-        background: white;
+        background: #f9fafb;
         color: #374151;
         cursor: pointer;
         text-decoration: none;
         transition: all 0.2s;
+        min-width: 40px;
+        text-align: center;
     }
     
-    .pagination-btn:hover {
-        background: #f9fafb;
-        border-color: #10b981;
+    .pagination-btn:hover:not(.disabled):not(.active) {
+        background: #e5e7eb;
+        border-color: #9ca3af;
     }
     
     .pagination-btn.active {
         background: #10b981;
         color: white;
         border-color: #10b981;
+        font-weight: 600;
     }
     
     .pagination-btn.disabled {
         opacity: 0.5;
         cursor: not-allowed;
+        background: #f3f4f6;
     }
     
     .modal-overlay {
@@ -684,6 +653,40 @@ try {
         background: #059669;
     }
     
+    .product-nav-tabs {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 24px;
+        border-bottom: 2px solid #e5e7eb;
+        padding-bottom: 0;
+    }
+    
+    .product-nav-tab {
+        padding: 12px 24px;
+        font-size: 15px;
+        font-weight: 600;
+        color: #6b7280;
+        text-decoration: none;
+        border-bottom: 3px solid transparent;
+        margin-bottom: -2px;
+        transition: all 0.2s;
+        background: transparent;
+        border-top: none;
+        border-left: none;
+        border-right: none;
+        cursor: pointer;
+    }
+    
+    .product-nav-tab:hover {
+        color: #3b82f6;
+        background: #f9fafb;
+    }
+    
+    .product-nav-tab.active {
+        color: #3b82f6;
+        border-bottom-color: #3b82f6;
+    }
+    
     @media (max-width: 768px) {
         .product-table {
             font-size: 12px;
@@ -693,11 +696,27 @@ try {
         .product-table td {
             padding: 12px 8px;
         }
+        
+        .product-nav-tabs {
+            flex-wrap: wrap;
+        }
+        
+        .product-nav-tab {
+            padding: 10px 16px;
+            font-size: 14px;
+        }
     }
 </style>
 
 <div class="admin-content">
     <div class="product-list-container">
+        <!-- 상품 관리 네비게이션 탭 -->
+        <div class="product-nav-tabs">
+            <a href="/MVNO/admin/products/mvno-list.php" class="product-nav-tab active">알뜰폰 관리</a>
+            <a href="/MVNO/admin/products/mno-list.php" class="product-nav-tab">통신사폰 관리</a>
+            <a href="/MVNO/admin/products/internet-list.php" class="product-nav-tab">인터넷 관리</a>
+        </div>
+        
         <div class="page-header">
             <h1>알뜰폰 상품 관리</h1>
             <div style="display: flex; align-items: center; gap: 8px;">
@@ -892,40 +911,44 @@ try {
                         <?php endforeach; ?>
                     </tbody>
                 </table>
-                
-                <!-- 페이지네이션 -->
-                <?php if ($totalPages > 1): ?>
-                    <div class="pagination">
-                        <?php
-                        $queryParams = [];
-                        if ($status) $queryParams['status'] = $status;
-                        if ($seller_id) $queryParams['seller_id'] = $seller_id;
-                        if ($provider) $queryParams['provider'] = $provider;
-                        if ($search_query) $queryParams['search_query'] = $search_query;
-                        if ($contract_period) $queryParams['contract_period'] = $contract_period;
-                        if ($contract_period_days_min) $queryParams['contract_period_days_min'] = $contract_period_days_min;
-                        if ($contract_period_days_max) $queryParams['contract_period_days_max'] = $contract_period_days_max;
-                        if ($price_after_type) $queryParams['price_after_type'] = $price_after_type;
-                        if ($price_after_min) $queryParams['price_after_min'] = $price_after_min;
-                        if ($price_after_max) $queryParams['price_after_max'] = $price_after_max;
-                        if ($service_type) $queryParams['service_type'] = $service_type;
-                        if ($date_from) $queryParams['date_from'] = $date_from;
-                        if ($date_to) $queryParams['date_to'] = $date_to;
-                        $queryParams['per_page'] = $perPage;
-                        $queryString = http_build_query($queryParams);
-                        ?>
-                        <a href="?<?php echo $queryString; ?>&page=<?php echo max(1, $page - 1); ?>" 
-                           class="pagination-btn <?php echo $page <= 1 ? 'disabled' : ''; ?>">이전</a>
-                        
-                        <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-                            <a href="?<?php echo $queryString; ?>&page=<?php echo $i; ?>" 
-                               class="pagination-btn <?php echo $i === $page ? 'active' : ''; ?>"><?php echo $i; ?></a>
-                        <?php endfor; ?>
-                        
-                        <a href="?<?php echo $queryString; ?>&page=<?php echo min($totalPages, $page + 1); ?>" 
-                           class="pagination-btn <?php echo $page >= $totalPages ? 'disabled' : ''; ?>">다음</a>
-                    </div>
-                <?php endif; ?>
+            <?php endif; ?>
+            
+            <!-- 페이지네이션 (상품이 없을 때도 표시) -->
+            <?php if ($totalPages > 1): ?>
+                <div class="pagination" style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 20px; flex-wrap: wrap;">
+                    <?php
+                    $queryParams = [];
+                    if ($status) $queryParams['status'] = $status;
+                    if (isset($seller_id) && $seller_id) $queryParams['seller_id'] = $seller_id;
+                    if ($provider) $queryParams['provider'] = $provider;
+                    if ($search_query) $queryParams['search_query'] = $search_query;
+                    if ($contract_period) $queryParams['contract_period'] = $contract_period;
+                    if ($contract_period_days_min) $queryParams['contract_period_days_min'] = $contract_period_days_min;
+                    if ($contract_period_days_max) $queryParams['contract_period_days_max'] = $contract_period_days_max;
+                    if ($price_after_type) $queryParams['price_after_type'] = $price_after_type;
+                    if ($price_after_min) $queryParams['price_after_min'] = $price_after_min;
+                    if ($price_after_max) $queryParams['price_after_max'] = $price_after_max;
+                    if ($service_type) $queryParams['service_type'] = $service_type;
+                    if ($date_from) $queryParams['date_from'] = $date_from;
+                    if ($date_to) $queryParams['date_to'] = $date_to;
+                    $queryParams['per_page'] = $perPage;
+                    $queryString = http_build_query($queryParams);
+                    ?>
+                    
+                    <!-- 이전 버튼 -->
+                    <a href="?<?php echo $queryString; ?>&page=<?php echo max(1, $page - 1); ?>" 
+                       class="pagination-btn <?php echo $page <= 1 ? 'disabled' : ''; ?>">이전</a>
+                    
+                    <!-- 모든 페이지 번호 표시 -->
+                    <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+                        <a href="?<?php echo $queryString; ?>&page=<?php echo $i; ?>" 
+                           class="pagination-btn <?php echo $i === $page ? 'active' : ''; ?>"><?php echo $i; ?></a>
+                    <?php endfor; ?>
+                    
+                    <!-- 다음 버튼 -->
+                    <a href="?<?php echo $queryString; ?>&page=<?php echo min($totalPages, $page + 1); ?>" 
+                       class="pagination-btn <?php echo $page >= $totalPages ? 'disabled' : ''; ?>">다음</a>
+                </div>
             <?php endif; ?>
         </div>
     </div>

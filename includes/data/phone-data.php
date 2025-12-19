@@ -392,13 +392,15 @@ function getPhoneDetailData($phone_id) {
         return null;
     }
     
-    // 현재 로그인한 사용자 ID 가져오기 (에러 발생 시 무시)
+    // 현재 로그인한 사용자 ID 및 관리자 여부 확인 (에러 발생 시 무시)
     $currentUserId = null;
+    $isAdmin = false;
     try {
-        if (function_exists('isLoggedIn') && function_exists('getCurrentUser')) {
+        if (function_exists('isLoggedIn') && function_exists('getCurrentUser') && function_exists('isAdmin')) {
             if (isLoggedIn()) {
                 $currentUser = getCurrentUser();
                 $currentUserId = $currentUser['user_id'] ?? null;
+                $isAdmin = isAdmin($currentUserId);
             }
         }
     } catch (Exception $e) {
@@ -410,10 +412,14 @@ function getPhoneDetailData($phone_id) {
     }
     
     try {
+        // 관리자는 inactive 상태도 볼 수 있음
+        $statusCondition = $isAdmin ? "AND p.status != 'deleted'" : "AND p.status = 'active'";
+        
         $stmt = $pdo->prepare("
             SELECT 
                 p.id,
                 p.seller_id,
+                p.status,
                 p.application_count,
                 p.favorite_count,
                 p.view_count,
@@ -439,7 +445,7 @@ function getPhoneDetailData($phone_id) {
             INNER JOIN product_mno_details mno ON p.id = mno.product_id
             WHERE p.id = :product_id 
             AND p.product_type = 'mno'
-            AND p.status = 'active'
+            {$statusCondition}
             LIMIT 1
         ");
         
@@ -707,6 +713,7 @@ function getPhoneDetailData($phone_id) {
         
         return [
             'id' => (int)$product['id'],
+            'status' => $product['status'] ?? 'active', // 상품 상태 추가
             'provider' => $provider,
             'company_name' => $companyName,
             'seller_name' => $seller['seller_name'] ?? null,

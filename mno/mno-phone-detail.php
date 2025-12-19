@@ -21,28 +21,30 @@ incrementProductView($phone_id);
 require_once '../includes/data/phone-data.php';
 require_once '../includes/data/plan-data.php';
 $phone = getPhoneDetailData($phone_id);
+
+// 관리자 여부 확인
+$isAdmin = false;
+try {
+    if (function_exists('isAdmin') && function_exists('getCurrentUser')) {
+        $currentUser = getCurrentUser();
+        if ($currentUser) {
+            $isAdmin = isAdmin($currentUser['user_id']);
+        }
+    }
+} catch (Exception $e) {
+    // 관리자 체크 실패 시 일반 사용자로 처리
+}
+
+// 상품이 없거나, 일반 사용자가 판매종료 상품에 접근하는 경우
 if (!$phone) {
-    // 데이터가 없으면 기본값 사용
-    $phone = [
-        'id' => $phone_id,
-        'provider' => 'SKT',
-        'device_name' => 'Galaxy Z Fold7',
-        'device_image' => '/MVNO/assets/images/icons/equipment.svg',
-        'device_storage' => '256GB',
-        'device_price' => '출고가 2,387,000원',
-        'plan_name' => 'SKT 프리미어 슈퍼',
-        'common_number_port' => '191.6',
-        'common_device_change' => '191.6',
-        'contract_number_port' => '191.6',
-        'contract_device_change' => '191.6',
-        'monthly_price' => '109,000원',
-        'maintenance_period' => '185일',
-        'gifts' => [
-            '추가 지원금',
-            '부가 서비스 1',
-            '부가 서비스 2'
-        ]
-    ];
+    http_response_code(404);
+    die('상품을 찾을 수 없습니다.');
+}
+
+// 일반 사용자가 판매종료 상품에 접근하는 경우 차단
+if (!$isAdmin && isset($phone['status']) && $phone['status'] === 'inactive') {
+    http_response_code(404);
+    die('판매종료된 상품입니다.');
 }
 ?>
 

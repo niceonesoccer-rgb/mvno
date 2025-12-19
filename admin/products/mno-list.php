@@ -18,8 +18,7 @@ $date_from = $_GET['date_from'] ?? '';
 $date_to = $_GET['date_to'] ?? '';
 $page = max(1, intval($_GET['page'] ?? 1));
 $perPage = intval($_GET['per_page'] ?? 20);
-// 허용된 per_page 값만 사용 (10, 50, 100)
-if (!in_array($perPage, [10, 50, 100])) {
+if (!in_array($perPage, [10, 20, 50, 100])) {
     $perPage = 20;
 }
 
@@ -74,6 +73,7 @@ try {
             ");
             $countStmt->execute($params);
             $totalProducts = $countStmt->fetch()['total'];
+            $totalPages = ceil($totalProducts / $perPage);
         } catch (PDOException $e) {
             $errorMessage = "카운트 쿼리 오류: " . htmlspecialchars($e->getMessage());
             if (!empty($e->errorInfo)) {
@@ -280,29 +280,6 @@ try {
     error_log("SQL Error Info: " . json_encode($e->errorInfo ?? []));
 }
 
-// 판매자 목록 가져오기 (필터용)
-$sellers = [];
-try {
-    if ($pdo && empty($errorMessage)) {
-        $sellerListStmt = $pdo->query("
-            SELECT DISTINCT
-                u.user_id,
-                COALESCE(NULLIF(u.seller_name,''), NULLIF(u.name,''), u.user_id) AS name,
-                COALESCE(u.company_name,'') AS company_name
-            FROM products p
-            INNER JOIN users u ON u.user_id = p.seller_id AND u.role = 'seller'
-            WHERE p.product_type = 'mno'
-              AND p.status != 'deleted'
-            ORDER BY name ASC
-        ");
-        $sellers = $sellerListStmt->fetchAll(PDO::FETCH_ASSOC);
-    }
-} catch (PDOException $e) {
-    if (empty($errorMessage)) {
-        $errorMessage = "판매자 목록 조회 오류: " . htmlspecialchars($e->getMessage());
-    }
-    error_log("Error fetching sellers: " . $e->getMessage());
-}
 ?>
 
 <style>
@@ -616,29 +593,34 @@ try {
     .pagination-btn {
         padding: 8px 16px;
         font-size: 14px;
+        font-weight: 500;
         border: 1px solid #d1d5db;
         border-radius: 6px;
-        background: white;
+        background: #f9fafb;
         color: #374151;
         cursor: pointer;
         text-decoration: none;
         transition: all 0.2s;
+        min-width: 40px;
+        text-align: center;
     }
     
-    .pagination-btn:hover {
-        background: #f9fafb;
-        border-color: #10b981;
+    .pagination-btn:hover:not(.disabled):not(.active) {
+        background: #e5e7eb;
+        border-color: #9ca3af;
     }
     
     .pagination-btn.active {
         background: #10b981;
         color: white;
         border-color: #10b981;
+        font-weight: 600;
     }
     
-    .pagination-btn:disabled {
+    .pagination-btn.disabled {
         opacity: 0.5;
         cursor: not-allowed;
+        background: #f3f4f6;
     }
     
     .error-message {
@@ -751,6 +733,40 @@ try {
         background: #059669;
     }
     
+    .product-nav-tabs {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 24px;
+        border-bottom: 2px solid #e5e7eb;
+        padding-bottom: 0;
+    }
+    
+    .product-nav-tab {
+        padding: 12px 24px;
+        font-size: 15px;
+        font-weight: 600;
+        color: #6b7280;
+        text-decoration: none;
+        border-bottom: 3px solid transparent;
+        margin-bottom: -2px;
+        transition: all 0.2s;
+        background: transparent;
+        border-top: none;
+        border-left: none;
+        border-right: none;
+        cursor: pointer;
+    }
+    
+    .product-nav-tab:hover {
+        color: #3b82f6;
+        background: #f9fafb;
+    }
+    
+    .product-nav-tab.active {
+        color: #3b82f6;
+        border-bottom-color: #3b82f6;
+    }
+    
     @media (max-width: 768px) {
         .product-table {
             font-size: 12px;
@@ -760,10 +776,26 @@ try {
         .product-table td {
             padding: 12px 8px;
         }
+        
+        .product-nav-tabs {
+            flex-wrap: wrap;
+        }
+        
+        .product-nav-tab {
+            padding: 10px 16px;
+            font-size: 14px;
+        }
     }
 </style>
 
 <div class="product-list-container">
+    <!-- 상품 관리 네비게이션 탭 -->
+    <div class="product-nav-tabs">
+        <a href="/MVNO/admin/products/mvno-list.php" class="product-nav-tab">알뜰폰 관리</a>
+        <a href="/MVNO/admin/products/mno-list.php" class="product-nav-tab active">통신사폰 관리</a>
+        <a href="/MVNO/admin/products/internet-list.php" class="product-nav-tab">인터넷 관리</a>
+    </div>
+    
     <div class="page-header">
         <div>
             <h1 style="margin: 0;">통신사폰 상품 관리</h1>
@@ -915,31 +947,35 @@ try {
                     <?php endforeach; ?>
                 </tbody>
             </table>
-            
-            <!-- 페이지네이션 -->
-            <?php if ($totalPages > 1): ?>
-                <div class="pagination" style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 20px;">
-                    <?php
-                    $queryParams = [];
-                    if ($status) $queryParams['status'] = $status;
-                    if ($search_query) $queryParams['search_query'] = $search_query;
-                    if ($date_from) $queryParams['date_from'] = $date_from;
-                    if ($date_to) $queryParams['date_to'] = $date_to;
-                    $queryParams['per_page'] = $perPage;
-                    $queryString = http_build_query($queryParams);
-                    ?>
-                    <a href="?<?php echo $queryString; ?>&page=<?php echo max(1, $page - 1); ?>" 
-                       class="pagination-btn <?php echo $page <= 1 ? 'disabled' : ''; ?>">이전</a>
-                    
-                    <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-                        <a href="?<?php echo $queryString; ?>&page=<?php echo $i; ?>" 
-                           class="pagination-btn <?php echo $i === $page ? 'active' : ''; ?>"><?php echo $i; ?></a>
-                    <?php endfor; ?>
-                    
-                    <a href="?<?php echo $queryString; ?>&page=<?php echo min($totalPages, $page + 1); ?>" 
-                       class="pagination-btn <?php echo $page >= $totalPages ? 'disabled' : ''; ?>">다음</a>
-                </div>
-            <?php endif; ?>
+        <?php endif; ?>
+        
+        <!-- 페이지네이션 (상품이 없을 때도 표시) -->
+        <?php if ($totalPages > 1): ?>
+            <div class="pagination" style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 20px; flex-wrap: wrap;">
+                <?php
+                $queryParams = [];
+                if ($status) $queryParams['status'] = $status;
+                if ($search_query) $queryParams['search_query'] = $search_query;
+                if ($date_from) $queryParams['date_from'] = $date_from;
+                if ($date_to) $queryParams['date_to'] = $date_to;
+                $queryParams['per_page'] = $perPage;
+                $queryString = http_build_query($queryParams);
+                ?>
+                
+                <!-- 이전 버튼 -->
+                <a href="?<?php echo $queryString; ?>&page=<?php echo max(1, $page - 1); ?>" 
+                   class="pagination-btn <?php echo $page <= 1 ? 'disabled' : ''; ?>">이전</a>
+                
+                <!-- 모든 페이지 번호 표시 -->
+                <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+                    <a href="?<?php echo $queryString; ?>&page=<?php echo $i; ?>" 
+                       class="pagination-btn <?php echo $i === $page ? 'active' : ''; ?>"><?php echo $i; ?></a>
+                <?php endfor; ?>
+                
+                <!-- 다음 버튼 -->
+                <a href="?<?php echo $queryString; ?>&page=<?php echo min($totalPages, $page + 1); ?>" 
+                   class="pagination-btn <?php echo $page >= $totalPages ? 'disabled' : ''; ?>">다음</a>
+            </div>
         <?php endif; ?>
     </div>
 </div>

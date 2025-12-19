@@ -58,3 +58,4 @@ CREATE TABLE IF NOT EXISTS `admin_profiles` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='관리자 프로필';
 
 
+

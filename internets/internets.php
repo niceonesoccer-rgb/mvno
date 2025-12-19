@@ -12,11 +12,36 @@ require_once '../includes/data/product-functions.php';
 // 헤더 포함
 include '../includes/header.php';
 
+// 관리자 여부 확인
+$isAdmin = false;
+try {
+    if (function_exists('isAdmin') && function_exists('getCurrentUser')) {
+        $currentUser = getCurrentUser();
+        if ($currentUser) {
+            $isAdmin = isAdmin($currentUser['user_id']);
+        }
+    }
+} catch (Exception $e) {
+    // 관리자 체크 실패 시 일반 사용자로 처리
+}
+
+// 특정 상품 ID 파라미터 확인 (관리자가 특정 상품을 볼 때)
+$productId = isset($_GET['id']) ? intval($_GET['id']) : null;
+
 // 데이터베이스에서 인터넷 상품 목록 가져오기
 $internetProducts = [];
 try {
     $pdo = getDBConnection();
     if ($pdo) {
+        // 관리자는 inactive 상태도 볼 수 있음
+        $statusCondition = $isAdmin ? "AND p.status != 'deleted'" : "AND p.status = 'active'";
+        
+        // 특정 상품 ID가 있으면 해당 상품만 조회
+        $whereClause = "WHERE p.product_type = 'internet' {$statusCondition}";
+        if ($productId) {
+            $whereClause .= " AND p.id = :product_id";
+        }
+        
         $stmt = $pdo->prepare("
             SELECT 
                 p.id,
@@ -39,10 +64,14 @@ try {
                 inet.installation_prices
             FROM products p
             INNER JOIN product_internet_details inet ON p.id = inet.product_id
-            WHERE p.product_type = 'internet' 
-            AND p.status = 'active'
+            {$whereClause}
             ORDER BY p.created_at DESC
         ");
+        
+        if ($productId) {
+            $stmt->bindValue(':product_id', $productId, PDO::PARAM_INT);
+        }
+        
         $stmt->execute();
         $internetProducts = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
@@ -2016,177 +2045,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
-            // 로그인 체크 - 로그인하지 않은 경우 로그인 모달 표시
-            if (!isLoggedIn) {
-                e.preventDefault();
-                e.stopPropagation();
-                
-                // 카드에서 회사 정보 추출 (로그인 후 사용하기 위해 저장)
-                const logoImg = card.querySelector('img[data-testid="internet-company-logo"]');
-                if (logoImg) {
-                    const logoSrc = logoImg.src;
-                    const logoAlt = logoImg.alt || '';
-                    
-                    // URL에서 회사명 추출
-                    const companyMap = {
-                        'ktskylife': { name: 'KT SkyLife', icon: 'ktskylife' },
-                        'hellovision': { name: 'HelloVision', icon: 'hellovision' },
-                        'btv': { name: 'BTV', icon: 'btv' },
-                        'dlive': { name: 'DLive', icon: 'dlive' },
-                        'lgu': { name: 'LG U+', icon: 'lgu' },
-                        'kt': { name: 'KT', icon: 'kt' },
-                        'broadband': { name: 'Broadband', icon: 'broadband' }
-                    };
-                    
-                    let companyInfo = null;
-                    for (const [key, value] of Object.entries(companyMap)) {
-                        if (logoSrc.includes(key)) {
-                            companyInfo = value;
-                            break;
-                        }
-                    }
-                    
-                    // alt 텍스트에서도 확인
-                    if (!companyInfo && logoAlt) {
-                        for (const [key, value] of Object.entries(companyMap)) {
-                            if (logoAlt.toLowerCase().includes(key.toLowerCase())) {
-                                companyInfo = value;
-                                break;
-                            }
-                        }
-                    }
-                    
-                    if (companyInfo) {
-                        selectedData.newCompany = companyInfo.name;
-                        selectedData.newCompanyIcon = companyInfo.icon;
-                        selectedData.newCompanyLogo = logoSrc;
-                    }
-                }
-                
-                // 인터넷 모달을 열어야 한다는 플래그 설정
-                window.shouldOpenInternetModal = true;
-                
-                // 현재 URL을 세션에 저장 (로그인 후 돌아올 주소)
-                const currentUrl = window.location.href;
-                fetch('/MVNO/api/save-redirect-url.php', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ redirect_url: currentUrl })
-                }).catch(error => {
-                    // 에러 무시하고 계속 진행
-                });
-                
-                // 로그인 모달 열기 (여러 방법 시도)
-                function tryOpenLoginModal() {
-                    // 방법 1: 전역 함수 사용
-                    if (typeof openLoginModal === 'function') {
-                        openLoginModal(false);
-                        return true;
-                    }
-                    
-                    // 방법 2: 직접 모달 요소 찾기
-                    const loginModal = document.getElementById('loginModal');
-                    if (loginModal) {
-                        loginModal.classList.add('active');
-                        document.body.style.overflow = 'hidden';
-                        return true;
-                    }
-                    
-                    // 방법 3: 로그인 모달 오버레이 찾기
-                    const loginModalOverlay = document.querySelector('.login-modal-overlay');
-                    const loginModalContent = document.querySelector('.login-modal-content');
-                    if (loginModalOverlay && loginModalContent) {
-                        const loginModalWrapper = loginModalOverlay.closest('.login-modal');
-                        if (loginModalWrapper) {
-                            loginModalWrapper.classList.add('active');
-                            document.body.style.overflow = 'hidden';
-                            return true;
-                        }
-                    }
-                    
-                    return false;
-                }
-                
-                // 즉시 시도
-                if (!tryOpenLoginModal()) {
-                    // 실패 시 재시도
-                    let retryCount = 0;
-                    const maxRetries = 10;
-                    const retryInterval = setInterval(() => {
-                        retryCount++;
-                        if (tryOpenLoginModal() || retryCount >= maxRetries) {
-                            clearInterval(retryInterval);
-                        }
-                    }, 100);
-                }
-                
-                return;
-            }
-            
             // 카드에서 product_id 추출
             const productId = card.getAttribute('data-product-id');
             if (productId) {
-                selectedData.product_id = productId;
-                
-                // 조회수 증가 API 호출
-                fetch('/MVNO/api/increment-product-view.php', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ product_id: productId })
-                }).catch(error => {
-                    // 에러는 무시 (조회수 증가 실패해도 계속 진행)
-                    console.error('조회수 증가 실패:', error);
-                });
+                // 상세페이지로 이동
+                window.location.href = '/MVNO/internets/internet-detail.php?id=' + productId;
             }
-            
-            // 카드에서 회사 정보 추출
-            const logoImg = card.querySelector('img[data-testid="internet-company-logo"]');
-            if (logoImg) {
-                const logoSrc = logoImg.src;
-                const logoAlt = logoImg.alt || '';
-                
-                // URL에서 회사명 추출
-                const companyMap = {
-                    'ktskylife': { name: 'KT SkyLife', icon: 'ktskylife' },
-                    'hellovision': { name: 'HelloVision', icon: 'hellovision' },
-                    'btv': { name: 'BTV', icon: 'btv' },
-                    'dlive': { name: 'DLive', icon: 'dlive' },
-                    'lgu': { name: 'LG U+', icon: 'lgu' },
-                    'kt': { name: 'KT', icon: 'kt' },
-                    'broadband': { name: 'Broadband', icon: 'broadband' }
-                };
-                
-                let companyInfo = null;
-                for (const [key, value] of Object.entries(companyMap)) {
-                    if (logoSrc.includes(key)) {
-                        companyInfo = value;
-                        break;
-                    }
-                }
-                
-                // alt 텍스트에서도 확인
-                if (!companyInfo && logoAlt) {
-                    for (const [key, value] of Object.entries(companyMap)) {
-                        if (logoAlt.toLowerCase().includes(key.toLowerCase())) {
-                            companyInfo = value;
-                            break;
-                        }
-                    }
-                }
-                
-                if (companyInfo) {
-                    selectedData.newCompany = companyInfo.name;
-                    selectedData.newCompanyIcon = companyInfo.icon;
-                    selectedData.newCompanyLogo = logoSrc;
-                }
-            }
-            
-            // 모달 열기
-            openInternetModal();
         });
     });
     
