@@ -485,6 +485,23 @@ $reviewCount = getProductReviewCount($plan_id, 'mvno');
     </section>
 
     <!-- 통신사 리뷰 섹션 -->
+    <?php
+    // 정렬 방식 가져오기 (기본값: 최신순)
+    $sort = $_GET['review_sort'] ?? 'created_desc';
+    if (!in_array($sort, ['rating_desc', 'rating_asc', 'created_desc'])) {
+        $sort = 'created_desc';
+    }
+    
+    // 리뷰 목록 가져오기 (같은 판매자의 같은 타입의 모든 상품 리뷰 통합)
+    // 모달에서 모든 리뷰를 표시하기 위해 충분히 많은 수를 가져옴
+    $allReviews = getProductReviews($plan_id, 'mvno', 1000, $sort);
+    $reviews = array_slice($allReviews, 0, 5); // 페이지에는 처음 5개만 표시
+    $averageRating = getProductAverageRating($plan_id, 'mvno');
+    $reviewCount = getProductReviewCount($plan_id, 'mvno');
+    $hasReviews = $reviewCount > 0;
+    $remainingCount = max(0, $reviewCount - 5); // 남은 리뷰 개수
+    ?>
+    <?php if ($hasReviews): ?>
     <section class="plan-review-section" id="planReviewSection">
         <div class="content-layout">
             <div class="plan-review-header">
@@ -493,23 +510,6 @@ $reviewCount = getProductReviewCount($plan_id, 'mvno');
                 </a>
                 <h2 class="section-title">리뷰</h2>
             </div>
-            
-            <?php
-            // 정렬 방식 가져오기 (기본값: 최신순)
-            $sort = $_GET['review_sort'] ?? 'created_desc';
-            if (!in_array($sort, ['rating_desc', 'rating_asc', 'created_desc'])) {
-                $sort = 'created_desc';
-            }
-            
-            // 리뷰 목록 가져오기 (같은 판매자의 같은 타입의 모든 상품 리뷰 통합)
-            // 모달에서 모든 리뷰를 표시하기 위해 충분히 많은 수를 가져옴
-            $allReviews = getProductReviews($plan_id, 'mvno', 1000, $sort);
-            $reviews = array_slice($allReviews, 0, 5); // 페이지에는 처음 5개만 표시
-            $averageRating = getProductAverageRating($plan_id, 'mvno');
-            $reviewCount = getProductReviewCount($plan_id, 'mvno');
-            $hasReviews = $reviewCount > 0;
-            $remainingCount = max(0, $reviewCount - 5); // 남은 리뷰 개수
-            ?>
             <?php if ($hasReviews): ?>
             <div class="plan-review-summary">
                 <div class="plan-review-rating">
@@ -591,6 +591,7 @@ $reviewCount = getProductReviewCount($plan_id, 'mvno');
             <?php endif; ?>
         </div>
     </section>
+    <?php endif; ?>
 </main>
 
 <!-- 리뷰 모달 -->

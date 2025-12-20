@@ -266,30 +266,30 @@ if ($serviceType === '인터넷+TV') {
     </div>
     
     <!-- 인터넷 리뷰 섹션 -->
+    <?php
+    // 정렬 방식 가져오기 (기본값: 최신순)
+    $sort = $_GET['review_sort'] ?? 'created_desc';
+    if (!in_array($sort, ['rating_desc', 'rating_asc', 'created_desc'])) {
+        $sort = 'created_desc';
+    }
+    
+    // 리뷰 목록 가져오기 (같은 판매자의 같은 타입의 모든 상품 리뷰 통합)
+    // 모달에서 모든 리뷰를 표시하기 위해 충분히 많은 수를 가져옴
+    $allReviews = getProductReviews($internet_id, 'internet', 1000, $sort);
+    $reviews = array_slice($allReviews, 0, 5); // 페이지에는 처음 5개만 표시
+    $averageRating = getProductAverageRating($internet_id, 'internet');
+    $reviewCount = getProductReviewCount($internet_id, 'internet');
+    $categoryAverages = getInternetReviewCategoryAverages($internet_id, 'internet');
+    $hasReviews = $reviewCount > 0;
+    $remainingCount = max(0, $reviewCount - 5); // 남은 리뷰 개수
+    ?>
+    <?php if ($hasReviews): ?>
     <section class="plan-review-section" id="internetReviewSection" style="margin-top: 2rem; padding: 2rem 0; background: #f9fafb;">
         <div class="PlanDetail_content_wrapper__0YNeJ">
             <div class="plan-review-header">
                 <span class="plan-review-logo-text"><?php echo htmlspecialchars($internet['company_name'] ?? $internet['registration_place'] ?? '인터넷'); ?></span>
                 <h2 class="section-title">리뷰</h2>
             </div>
-            
-            <?php
-            // 정렬 방식 가져오기 (기본값: 최신순)
-            $sort = $_GET['review_sort'] ?? 'created_desc';
-            if (!in_array($sort, ['rating_desc', 'rating_asc', 'created_desc'])) {
-                $sort = 'created_desc';
-            }
-            
-            // 리뷰 목록 가져오기 (같은 판매자의 같은 타입의 모든 상품 리뷰 통합)
-            // 모달에서 모든 리뷰를 표시하기 위해 충분히 많은 수를 가져옴
-            $allReviews = getProductReviews($internet_id, 'internet', 1000, $sort);
-            $reviews = array_slice($allReviews, 0, 5); // 페이지에는 처음 5개만 표시
-            $averageRating = getProductAverageRating($internet_id, 'internet');
-            $reviewCount = getProductReviewCount($internet_id, 'internet');
-            $categoryAverages = getInternetReviewCategoryAverages($internet_id, 'internet');
-            $hasReviews = $reviewCount > 0;
-            $remainingCount = max(0, $reviewCount - 5); // 남은 리뷰 개수
-            ?>
             
             <?php if ($hasReviews): ?>
             <div class="plan-review-summary">
@@ -370,6 +370,7 @@ if ($serviceType === '인터넷+TV') {
             <?php endif; ?>
         </div>
     </section>
+    <?php endif; ?>
 </main>
 
 <!-- 인터넷 리뷰 모달 포함 -->
