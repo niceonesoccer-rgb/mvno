@@ -343,10 +343,10 @@ function getSellerDisplayName($seller) {
 }
 
 /**
- * 상품의 평균 별점 가져오기
- * 같은 판매자의 같은 상품 타입의 모든 상품 리뷰를 통합하여 계산
+ * 상품의 평균 별점 가져오기 (상품별)
+ * 통계 테이블에서 캐시된 값 사용
  * @param int $productId 상품 ID
- * @param string $productType 상품 타입 ('mvno' 또는 'mno')
+ * @param string $productType 상품 타입 ('mvno', 'mno', 'internet')
  * @return float 평균 별점 (0.0 ~ 5.0), 리뷰가 없으면 0.0
  */
 function getProductAverageRating($productId, $productType = 'mvno') {
@@ -356,60 +356,21 @@ function getProductAverageRating($productId, $productType = 'mvno') {
     }
     
     try {
-        // 먼저 상품의 seller_id 가져오기
-        $productStmt = $pdo->prepare("
-            SELECT seller_id 
-            FROM products 
-            WHERE id = :product_id 
-            AND product_type = :product_type
-            AND status = 'active'
-            LIMIT 1
-        ");
-        $productStmt->bindValue(':product_id', $productId, PDO::PARAM_INT);
-        $productStmt->bindValue(':product_type', $productType, PDO::PARAM_STR);
-        $productStmt->execute();
-        $product = $productStmt->fetch(PDO::FETCH_ASSOC);
-        
-        if (!$product || !isset($product['seller_id'])) {
-            return 0.0;
-        }
-        
-        $sellerId = $product['seller_id'];
-        
-        // 같은 판매자의 같은 타입의 모든 상품 ID 가져오기
-        $productsStmt = $pdo->prepare("
-            SELECT id 
-            FROM products 
-            WHERE seller_id = :seller_id 
-            AND product_type = :product_type
-            AND status = 'active'
-        ");
-        $productsStmt->bindValue(':seller_id', $sellerId, PDO::PARAM_INT);
-        $productsStmt->bindValue(':product_type', $productType, PDO::PARAM_STR);
-        $productsStmt->execute();
-        $productIds = $productsStmt->fetchAll(PDO::FETCH_COLUMN);
-        
-        if (empty($productIds)) {
-            return 0.0;
-        }
-        
-        // 같은 판매자의 같은 타입의 모든 상품 리뷰의 평균 별점 계산
-        $placeholders = implode(',', array_fill(0, count($productIds), '?'));
+        // 통계 테이블에서 합계와 개수를 가져와서 평균 계산
         $stmt = $pdo->prepare("
-            SELECT AVG(rating) as avg_rating, COUNT(*) as review_count
-            FROM product_reviews
-            WHERE product_id IN ($placeholders)
-            AND product_type = ?
-            AND status = 'approved'
+            SELECT 
+                total_rating_sum,
+                total_review_count
+            FROM product_review_statistics
+            WHERE product_id = :product_id
         ");
+        $stmt->execute([':product_id' => $productId]);
+        $stats = $stmt->fetch(PDO::FETCH_ASSOC);
         
-        $params = array_merge($productIds, [$productType]);
-        $stmt->execute($params);
-        
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        if ($result && $result['review_count'] > 0 && $result['avg_rating'] !== null) {
-            return round((float)$result['avg_rating'], 1);
+        if ($stats && $stats['total_review_count'] > 0) {
+            $average = $stats['total_rating_sum'] / $stats['total_review_count'];
+            // 소수 둘째자리에서 올림하여 소수 첫째자리까지 표시
+            return ceil($average * 10) / 10;
         }
         
         return 0.0;
@@ -420,60 +381,73 @@ function getProductAverageRating($productId, $productType = 'mvno') {
 }
 
 /**
- * 상품 리뷰 목록 가져오기
- * 같은 판매자의 같은 상품 타입의 모든 상품 리뷰를 통합하여 가져옴
+ * 인터넷 상품의 항목별 평균 별점 가져오기 (상품별)
+ * 통계 테이블에서 캐시된 값 사용
+ * @param int $productId 상품 ID
+ * @param string $productType 상품 타입 ('internet')
+ * @return array ['kindness' => float, 'speed' => float] 각 항목별 평균 별점
+ */
+function getInternetReviewCategoryAverages($productId, $productType = 'internet') {
+    $pdo = getDBConnection();
+    if (!$pdo) {
+        return ['kindness' => 0.0, 'speed' => 0.0];
+    }
+    
+    try {
+        // 통계 테이블에서 항목별 합계와 개수를 가져와서 평균 계산
+        $stmt = $pdo->prepare("
+            SELECT 
+                kindness_rating_sum,
+                kindness_review_count,
+                speed_rating_sum,
+                speed_review_count
+            FROM product_review_statistics
+            WHERE product_id = :product_id
+        ");
+        $stmt->execute([':product_id' => $productId]);
+        $stats = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        $result = ['kindness' => 0.0, 'speed' => 0.0];
+        
+        if ($stats) {
+            if ($stats['kindness_review_count'] > 0) {
+                $average = $stats['kindness_rating_sum'] / $stats['kindness_review_count'];
+                // 소수 둘째자리에서 올림하여 소수 첫째자리까지 표시
+                $result['kindness'] = ceil($average * 10) / 10;
+            }
+            
+            if ($stats['speed_review_count'] > 0) {
+                $average = $stats['speed_rating_sum'] / $stats['speed_review_count'];
+                // 소수 둘째자리에서 올림하여 소수 첫째자리까지 표시
+                $result['speed'] = ceil($average * 10) / 10;
+            }
+        }
+        
+        return $result;
+    } catch (PDOException $e) {
+        error_log("Error fetching internet review category averages: " . $e->getMessage());
+        return ['kindness' => 0.0, 'speed' => 0.0];
+    }
+}
+
+/**
+ * 상품 리뷰 목록 가져오기 (상품별)
+ * 해당 상품의 리뷰만 가져옴
  * @param int $productId 상품 ID
  * @param string $productType 상품 타입 ('mvno', 'mno', 'internet')
  * @param int $limit 가져올 개수 (기본: 10)
  * @param string $sort 정렬 방식 ('rating_desc', 'rating_asc', 'created_desc') 기본: 'created_desc'
  * @return array 리뷰 배열
  */
-function getProductReviews($productId, $productType = 'mvno', $limit = 10, $sort = 'rating_desc') {
+function getProductReviews($productId, $productType = 'mvno', $limit = 10, $sort = 'created_desc') {
     $pdo = getDBConnection();
     if (!$pdo) {
         return [];
     }
     
     try {
-        // 먼저 상품의 seller_id 가져오기
-        $productStmt = $pdo->prepare("
-            SELECT seller_id 
-            FROM products 
-            WHERE id = :product_id 
-            AND product_type = :product_type
-            AND status = 'active'
-            LIMIT 1
-        ");
-        $productStmt->bindValue(':product_id', $productId, PDO::PARAM_INT);
-        $productStmt->bindValue(':product_type', $productType, PDO::PARAM_STR);
-        $productStmt->execute();
-        $product = $productStmt->fetch(PDO::FETCH_ASSOC);
-        
-        if (!$product || !isset($product['seller_id'])) {
-            return [];
-        }
-        
-        $sellerId = $product['seller_id'];
-        
-        // 같은 판매자의 같은 타입의 모든 상품 ID 가져오기
-        $productsStmt = $pdo->prepare("
-            SELECT id 
-            FROM products 
-            WHERE seller_id = :seller_id 
-            AND product_type = :product_type
-            AND status = 'active'
-        ");
-        $productsStmt->bindValue(':seller_id', $sellerId, PDO::PARAM_INT);
-        $productsStmt->bindValue(':product_type', $productType, PDO::PARAM_STR);
-        $productsStmt->execute();
-        $productIds = $productsStmt->fetchAll(PDO::FETCH_COLUMN);
-        
-        if (empty($productIds)) {
-            return [];
-        }
-        
-        // 정렬 방식 설정 (기본값: 높은 평점순)
-        $orderBy = 'r.rating DESC, r.created_at DESC'; // 기본값: 높은 평점순
+        // 정렬 방식 설정
+        $orderBy = 'r.created_at DESC'; // 기본값: 최신순
         switch ($sort) {
             case 'rating_desc':
                 $orderBy = 'r.rating DESC, r.created_at DESC';
@@ -485,32 +459,60 @@ function getProductReviews($productId, $productType = 'mvno', $limit = 10, $sort
                 $orderBy = 'r.created_at DESC';
                 break;
             default:
-                $orderBy = 'r.rating DESC, r.created_at DESC';
+                $orderBy = 'r.created_at DESC';
                 break;
         }
         
-        // 같은 판매자의 같은 타입의 모든 상품 리뷰 가져오기
-        $placeholders = implode(',', array_fill(0, count($productIds), '?'));
-        $stmt = $pdo->prepare("
-            SELECT 
-                r.id,
-                r.user_id,
-                r.rating,
-                r.title,
-                r.content,
-                r.is_verified,
-                r.helpful_count,
-                r.created_at
-            FROM product_reviews r
-            WHERE r.product_id IN ($placeholders)
-            AND r.product_type = ?
-            AND r.status = 'approved'
-            ORDER BY $orderBy
-            LIMIT ?
-        ");
+        // application_id 컬럼 존재 여부 확인
+        $hasApplicationId = false;
+        try {
+            $checkStmt = $pdo->query("SHOW COLUMNS FROM product_reviews LIKE 'application_id'");
+            $hasApplicationId = $checkStmt->rowCount() > 0;
+        } catch (PDOException $e) {}
         
-        $params = array_merge($productIds, [$productType, $limit]);
-        $stmt->execute($params);
+        $selectFields = "r.id, r.user_id, r.rating, r.title, r.content, r.is_verified, r.helpful_count, r.created_at";
+        if ($hasApplicationId) {
+            $selectFields = "r.id, r.user_id, r.rating, r.title, r.content, r.is_verified, r.helpful_count, r.created_at, r.application_id";
+        }
+        
+        // order_number 컬럼 존재 여부 확인
+        $hasOrderNumber = false;
+        try {
+            $checkStmt = $pdo->query("SHOW COLUMNS FROM product_applications LIKE 'order_number'");
+            $hasOrderNumber = $checkStmt->rowCount() > 0;
+        } catch (PDOException $e) {}
+        
+        // 해당 상품의 리뷰만 가져오기 (상품별)
+        if ($hasApplicationId && $hasOrderNumber) {
+            $stmt = $pdo->prepare("
+                SELECT 
+                    $selectFields,
+                    a.order_number
+                FROM product_reviews r
+                LEFT JOIN product_applications a ON r.application_id = a.id
+                WHERE r.product_id = :product_id
+                AND r.product_type = :product_type
+                AND r.status = 'approved'
+                ORDER BY $orderBy
+                LIMIT :limit
+            ");
+        } else {
+            $stmt = $pdo->prepare("
+                SELECT 
+                    $selectFields
+                FROM product_reviews r
+                WHERE r.product_id = :product_id
+                AND r.product_type = :product_type
+                AND r.status = 'approved'
+                ORDER BY $orderBy
+                LIMIT :limit
+            ");
+        }
+        
+        $stmt->bindValue(':product_id', $productId, PDO::PARAM_INT);
+        $stmt->bindValue(':product_type', $productType, PDO::PARAM_STR);
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->execute();
         
         $reviews = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
@@ -518,13 +520,21 @@ function getProductReviews($productId, $productType = 'mvno', $limit = 10, $sort
         foreach ($reviews as &$review) {
             $user = getUserById($review['user_id']);
             if ($user) {
-                // 이름 마스킹 (예: "홍길동" -> "홍*동")
+                // 이름 마스킹: 가운데 글자를 *로 표시
+                // 예: "홍길동" -> "홍*동", "홍길" -> "홍*", "홍" -> "홍"
                 $name = $user['name'] ?? '익명';
-                if (mb_strlen($name) > 1) {
+                $nameLength = mb_strlen($name);
+                if ($nameLength > 2) {
+                    // 3글자 이상: 첫 글자 + 가운데 * + 마지막 글자
                     $firstChar = mb_substr($name, 0, 1);
                     $lastChar = mb_substr($name, -1);
                     $review['author_name'] = $firstChar . '*' . $lastChar;
+                } elseif ($nameLength == 2) {
+                    // 2글자: 첫 글자 + *
+                    $firstChar = mb_substr($name, 0, 1);
+                    $review['author_name'] = $firstChar . '*';
                 } else {
+                    // 1글자: 그대로
                     $review['author_name'] = $name;
                 }
             } else {
@@ -546,10 +556,10 @@ function getProductReviews($productId, $productType = 'mvno', $limit = 10, $sort
 }
 
 /**
- * 상품의 리뷰 개수 가져오기
- * 같은 판매자의 같은 상품 타입의 모든 상품 리뷰를 통합하여 계산
+ * 상품의 리뷰 개수 가져오기 (상품별)
+ * 통계 테이블에서 캐시된 값 사용
  * @param int $productId 상품 ID
- * @param string $productType 상품 타입 ('mvno' 또는 'mno')
+ * @param string $productType 상품 타입 ('mvno', 'mno', 'internet')
  * @return int 리뷰 개수
  */
 function getProductReviewCount($productId, $productType = 'mvno') {
@@ -559,59 +569,20 @@ function getProductReviewCount($productId, $productType = 'mvno') {
     }
     
     try {
-        // 먼저 상품의 seller_id 가져오기
-        $productStmt = $pdo->prepare("
-            SELECT seller_id 
-            FROM products 
-            WHERE id = :product_id 
-            AND product_type = :product_type
-            AND status = 'active'
-            LIMIT 1
-        ");
-        $productStmt->bindValue(':product_id', $productId, PDO::PARAM_INT);
-        $productStmt->bindValue(':product_type', $productType, PDO::PARAM_STR);
-        $productStmt->execute();
-        $product = $productStmt->fetch(PDO::FETCH_ASSOC);
-        
-        if (!$product || !isset($product['seller_id'])) {
-            return 0;
-        }
-        
-        $sellerId = $product['seller_id'];
-        
-        // 같은 판매자의 같은 타입의 모든 상품 ID 가져오기
-        $productsStmt = $pdo->prepare("
-            SELECT id 
-            FROM products 
-            WHERE seller_id = :seller_id 
-            AND product_type = :product_type
-            AND status = 'active'
-        ");
-        $productsStmt->bindValue(':seller_id', $sellerId, PDO::PARAM_INT);
-        $productsStmt->bindValue(':product_type', $productType, PDO::PARAM_STR);
-        $productsStmt->execute();
-        $productIds = $productsStmt->fetchAll(PDO::FETCH_COLUMN);
-        
-        if (empty($productIds)) {
-            return 0;
-        }
-        
-        // 같은 판매자의 같은 타입의 모든 상품 리뷰 개수 계산
-        $placeholders = implode(',', array_fill(0, count($productIds), '?'));
+        // 통계 테이블에서 리뷰 개수 조회
         $stmt = $pdo->prepare("
-            SELECT COUNT(*) as review_count
-            FROM product_reviews
-            WHERE product_id IN ($placeholders)
-            AND product_type = ?
-            AND status = 'approved'
+            SELECT total_review_count
+            FROM product_review_statistics
+            WHERE product_id = :product_id
         ");
+        $stmt->execute([':product_id' => $productId]);
+        $stats = $stmt->fetch(PDO::FETCH_ASSOC);
         
-        $params = array_merge($productIds, [$productType]);
-        $stmt->execute($params);
+        if ($stats && isset($stats['total_review_count'])) {
+            return (int)$stats['total_review_count'];
+        }
         
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        return (int)($result['review_count'] ?? 0);
+        return 0;
     } catch (PDOException $e) {
         error_log("Error fetching product review count: " . $e->getMessage());
         return 0;
@@ -733,7 +704,9 @@ function getSingleProductAverageRating($productId, $productType = 'mvno') {
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
         
         if ($result && $result['review_count'] > 0 && $result['avg_rating'] !== null) {
-            return round((float)$result['avg_rating'], 1);
+            $average = (float)$result['avg_rating'];
+            // 소수 둘째자리에서 올림하여 소수 첫째자리까지 표시
+            return ceil($average * 10) / 10;
         }
         
         return 0.0;
@@ -815,6 +788,43 @@ function getStarsFromRating($rating) {
     $emptyStars = 5 - $rating;
     
     return str_repeat('★', $fullStars) . str_repeat('☆', $emptyStars);
+}
+
+/**
+ * 부분 별점을 HTML로 표시 (소수점 지원)
+ * @param float $rating 평점 (0.0 ~ 5.0)
+ * @return string HTML 별점 표시
+ */
+function getPartialStarsFromRating($rating) {
+    $rating = (float)$rating;
+    if ($rating < 0) $rating = 0;
+    if ($rating > 5) $rating = 5;
+    
+    $fullStars = (int)floor($rating);
+    $partialStarPercent = ($rating - $fullStars) * 100;
+    $emptyStars = 5 - $fullStars - ($partialStarPercent > 0 ? 1 : 0);
+    
+    $html = '';
+    
+    // 완전히 채워진 별
+    for ($i = 0; $i < $fullStars; $i++) {
+        $html .= '<span class="star-full">★</span>';
+    }
+    
+    // 부분 채워진 별
+    if ($partialStarPercent > 0) {
+        $html .= '<span class="star-partial" style="--fill-percent: ' . number_format($partialStarPercent, 1) . '%;">';
+        $html .= '<span class="star-partial-empty">☆</span>';
+        $html .= '<span class="star-partial-filled">★</span>';
+        $html .= '</span>';
+    }
+    
+    // 빈 별
+    for ($i = 0; $i < $emptyStars; $i++) {
+        $html .= '<span class="star-empty">☆</span>';
+    }
+    
+    return $html;
 }
 
 function getPlansDataFromDB($limit = 10, $status = 'active') {

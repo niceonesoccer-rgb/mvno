@@ -12,7 +12,7 @@
             <div class="internet-review-modal-header-content">
                 <div class="internet-review-modal-icon">
                     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" fill="#6366f1"/>
+                        <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" fill="#EF4444"/>
                     </svg>
                 </div>
                 <h3 class="internet-review-modal-title">리뷰 작성</h3>
@@ -28,13 +28,20 @@
                 <div class="internet-review-form-group internet-rating-group-row">
                     <div class="internet-rating-item">
                         <label class="internet-review-form-label">
-                            <span class="label-icon">😊</span>
+                            <span class="label-icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <circle cx="12" cy="12" r="10" fill="#FEF3C7" stroke="#4b5563" stroke-width="1.5"/>
+                                    <circle cx="9" cy="10" r="1.5" fill="#4b5563"/>
+                                    <circle cx="15" cy="10" r="1.5" fill="#4b5563"/>
+                                    <path d="M8 15c1.5 1 3.5 1.5 4 1.5s2.5-.5 4-1.5" stroke="#4b5563" stroke-width="2" stroke-linecap="round" fill="none"/>
+                                </svg>
+                            </span>
                             <span class="label-text">친절해요</span>
                         </label>
                         <div class="internet-star-rating" data-rating-type="kindness">
                             <?php 
                             $uniqueId1 = uniqid('internet-kindness-');
-                            for ($i = 5; $i >= 1; $i--): 
+                            for ($i = 1; $i <= 5; $i++): 
                             ?>
                                 <input type="radio" id="kindness-star<?php echo $i; ?>-<?php echo $uniqueId1; ?>" name="kindness_rating" value="<?php echo $i; ?>" required>
                                 <label for="kindness-star<?php echo $i; ?>-<?php echo $uniqueId1; ?>" class="star-label" data-rating="<?php echo $i; ?>">
@@ -47,13 +54,17 @@
                     </div>
                     <div class="internet-rating-item">
                         <label class="internet-review-form-label">
-                            <span class="label-icon">⚡</span>
+                            <span class="label-icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" fill="#FEF3C7" stroke="#4b5563" stroke-width="1.5" stroke-linejoin="round"/>
+                                </svg>
+                            </span>
                             <span class="label-text">설치 빨라요</span>
                         </label>
                         <div class="internet-star-rating" data-rating-type="speed">
                             <?php 
                             $uniqueId2 = uniqid('internet-speed-');
-                            for ($i = 5; $i >= 1; $i--): 
+                            for ($i = 1; $i <= 5; $i++): 
                             ?>
                                 <input type="radio" id="speed-star<?php echo $i; ?>-<?php echo $uniqueId2; ?>" name="speed_rating" value="<?php echo $i; ?>" required>
                                 <label for="speed-star<?php echo $i; ?>-<?php echo $uniqueId2; ?>" class="star-label" data-rating="<?php echo $i; ?>">
@@ -67,7 +78,11 @@
                 </div>
                 <div class="internet-review-form-group">
                     <label for="internetReviewText" class="internet-review-form-label">
-                        <span class="label-icon">✍️</span>
+                        <span class="label-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" fill="#4b5563"/>
+                            </svg>
+                        </span>
                         <span class="label-text">리뷰 내용</span>
                     </label>
                     <textarea 
@@ -84,13 +99,24 @@
                     </div>
                 </div>
                 <div class="internet-review-modal-footer">
-                    <button type="button" class="internet-review-btn-cancel">취소</button>
-                    <button type="submit" class="internet-review-btn-submit">
-                        <span>작성하기</span>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                    </button>
+                    <div style="display: flex; gap: 12px; width: 100%;">
+                        <!-- 삭제 버튼 (수정 모드일 때만 표시) -->
+                        <button type="button" class="internet-review-btn-delete" id="internetReviewDeleteBtn" style="display: none;">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M3 6H5H21M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M10 11V17M14 11V17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            <span>삭제</span>
+                        </button>
+                        <div style="flex: 1;"></div>
+                        <button type="button" class="internet-review-btn-cancel">취소</button>
+                        <button type="submit" class="internet-review-btn-submit">
+                            <span>작성하기</span>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
             </form>
         </div>
@@ -189,9 +215,8 @@
     justify-content: center;
     width: 44px;
     height: 44px;
-    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    background: transparent;
     border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
 }
 
 .internet-review-modal-title {
@@ -260,12 +285,23 @@
     margin-bottom: 0 !important;
     white-space: nowrap;
     flex-shrink: 0;
-    min-width: fit-content;
+    width: 100px; /* 고정 너비로 별 위치 정렬 */
+    min-width: 100px;
 }
 
 .label-icon {
-    font-size: 20px;
-    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+}
+
+.label-icon svg {
+    width: 100%;
+    height: 100%;
+    display: block;
 }
 
 .label-text {
@@ -278,6 +314,7 @@
     justify-content: flex-start;
     align-items: center;
     flex: 1;
+    min-width: 0; /* flex 아이템이 축소될 수 있도록 */
 }
 
 .internet-star-rating input[type="radio"] {
@@ -293,6 +330,14 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    line-height: 0; /* 별 정렬을 위해 */
+}
+
+.internet-star-rating .star-label svg {
+    display: block;
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
 }
 
 /* 기본 별 색상 */
@@ -303,17 +348,17 @@
 /* 호버 효과 (확대) */
 .internet-star-rating .star-label:hover {
     transform: scale(1.15);
-    background: rgba(251, 191, 36, 0.1);
+    background: rgba(239, 68, 68, 0.1);
 }
 
-/* 호버된 별과 그 이전 별들 모두 노란색으로 (JavaScript로 처리) */
+/* 호버된 별과 그 이전 별들 모두 빨간색으로 (JavaScript로 처리) */
 .internet-star-rating .star-label.hover-active {
-    color: #fbbf24 !important;
+    color: #EF4444 !important;
 }
 
-/* 선택된 별과 그 이전 별들 모두 노란색 (인덱스 기반) */
+/* 선택된 별과 그 이전 별들 모두 빨간색 (인덱스 기반) */
 .internet-star-rating .star-label.active {
-    color: #fbbf24 !important;
+    color: #EF4444 !important;
 }
 
 /* active 클래스가 없는 별은 회색 */
@@ -369,8 +414,8 @@
 }
 
 .internet-review-btn-cancel,
-.internet-review-btn-submit {
-    flex: 1;
+.internet-review-btn-submit,
+.internet-review-btn-delete {
     padding: 16px 24px;
     border-radius: 12px;
     font-size: 16px;
@@ -382,6 +427,11 @@
     justify-content: center;
     gap: 8px;
     border: none;
+}
+
+.internet-review-btn-cancel,
+.internet-review-btn-submit {
+    flex: 1;
 }
 
 .internet-review-btn-cancel {
@@ -396,14 +446,15 @@
 }
 
 .internet-review-btn-submit {
-    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    background: #EF4444;
     color: #ffffff;
-    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
 }
 
 .internet-review-btn-submit:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(99, 102, 241, 0.5);
+    background: #dc2626;
+    box-shadow: 0 8px 20px rgba(239, 68, 68, 0.4);
 }
 
 .internet-review-btn-submit:active {
@@ -422,6 +473,22 @@
 
 .internet-review-btn-submit:hover svg {
     transform: translateX(2px);
+}
+
+.internet-review-btn-delete {
+    background: #fee2e2;
+    color: #dc2626;
+    padding: 16px 20px;
+}
+
+.internet-review-btn-delete:hover {
+    background: #fecaca;
+    color: #b91c1c;
+    transform: translateY(-1px);
+}
+
+.internet-review-btn-delete:active {
+    transform: translateY(0);
 }
 
 /* 반응형 디자인 */
@@ -456,6 +523,11 @@
         gap: 12px;
     }
     
+    .internet-review-form-label {
+        width: 90px; /* 모바일에서도 고정 너비 */
+        min-width: 90px;
+    }
+    
     .internet-review-modal-title {
         font-size: 20px;
     }
@@ -465,8 +537,8 @@
     }
     
     .internet-star-rating .star-label svg {
-        width: 32px;
-        height: 32px;
+        width: 36px;
+        height: 36px;
     }
 }
 
@@ -522,11 +594,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }, 10);
         }
     };
-    
-    // 내부에서도 사용할 수 있도록 로컬 함수도 유지
-    function openReviewModal() {
-        window.openInternetReviewModal();
-    }
     
     // 모달 닫기 함수
     function closeReviewModal() {
@@ -591,7 +658,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (length > 1000) {
                 reviewTextCounter.style.color = '#ef4444';
             } else {
-                reviewTextCounter.style.color = '#6366f1';
+                reviewTextCounter.style.color = '#6b7280';
             }
         });
     }
@@ -605,14 +672,13 @@ document.addEventListener('DOMContentLoaded', function() {
         
         starLabels.forEach((label, index) => {
             // 호버 이벤트: 왼쪽부터 해당 별까지 모든 별 하이라이트
-            // index는 0부터 시작 (0=왼쪽 첫번째, 4=왼쪽 다섯번째)
             label.addEventListener('mouseenter', function() {
                 const position = index + 1; // 왼쪽에서 몇 번째 별인지 (1~5)
                 const sameTypeLabels = Array.from(ratingGroup.querySelectorAll('.star-label'));
                 
                 sameTypeLabels.forEach((l, idx) => {
-                    if (idx <= index) {
-                        // 왼쪽부터 현재 별까지 활성화 (idx <= index)
+                    if (idx < position) {
+                        // 왼쪽부터 position번째까지 활성화
                         l.classList.add('hover-active');
                     } else {
                         l.classList.remove('hover-active');
@@ -620,7 +686,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             });
             
-            // 마우스가 벗어날 때 호버 효과 제거 (선택된 별은 유지)
+            // 마우스가 벗어날 때 호버 효과 제거
             ratingGroup.addEventListener('mouseleave', function() {
                 const sameTypeLabels = ratingGroup.querySelectorAll('.star-label');
                 sameTypeLabels.forEach(l => {
@@ -630,24 +696,18 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // 클릭 이벤트: 왼쪽부터 해당 별까지 모든 별 활성화
             label.addEventListener('click', function() {
-                const position = index + 1; // 왼쪽에서 몇 번째 별인지 (1~5)
-                const rating = parseInt(this.getAttribute('data-rating')); // 실제 별점 값 (5~1)
-                const radioInput = this.previousElementSibling;
+                const position = index + 1;
                 
-                if (radioInput) {
-                    radioInput.checked = true;
-                }
-                
-                // 같은 타입의 별점 업데이트 (왼쪽부터 현재 별까지 활성화)
-                const sameTypeLabels = Array.from(ratingGroup.querySelectorAll('.star-label'));
-                sameTypeLabels.forEach((l, idx) => {
-                    if (idx <= index) {
-                        // 왼쪽부터 현재 별까지 활성화 (idx <= index)
-                        l.classList.add('active');
-                    } else {
-                        l.classList.remove('active');
-                    }
-                });
+                setTimeout(() => {
+                    const sameTypeLabels = Array.from(ratingGroup.querySelectorAll('.star-label'));
+                    sameTypeLabels.forEach((l, idx) => {
+                        if (idx < position) {
+                            l.classList.add('active');
+                        } else {
+                            l.classList.remove('active');
+                        }
+                    });
+                }, 0);
             });
         });
     });

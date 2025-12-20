@@ -90,3 +90,4 @@ tail -n 100 error.log
 # "Internet Application"이 포함된 로그만 보기
 grep "Internet Application" error.log | tail -n 50
 ```
+

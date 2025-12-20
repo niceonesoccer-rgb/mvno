@@ -31,17 +31,10 @@ require_once '../includes/data/point-settings.php';
 require_once '../includes/data/product-functions.php';
 require_once '../includes/data/db-config.php';
 require_once '../includes/data/review-settings.php';
+require_once '../includes/data/plan-data.php';
 
 // DB에서 실제 신청 내역 가져오기
 $internets = getUserInternetApplications($user_id);
-error_log("internet-order.php: Received " . count($internets) . " internets from getUserInternetApplications");
-error_log("internet-order.php: user_id: " . $user_id);
-if (count($internets) > 0) {
-    error_log("internet-order.php: First internet keys: " . implode(', ', array_keys($internets[0])));
-    error_log("internet-order.php: First internet data: " . json_encode($internets[0], JSON_UNESCAPED_UNICODE));
-} else {
-    error_log("internet-order.php: WARNING - getUserInternetApplications returned empty array!");
-}
 
 // 디버깅: 데이터 확인
 $debug_mode = isset($_GET['debug']) && $_GET['debug'] == '1';
@@ -170,7 +163,27 @@ include '../includes/components/internet-review-modal.php';
                                      onmouseout="this.style.borderColor='#e5e7eb'; this.style.boxShadow='0 1px 3px rgba(0,0,0,0.05)'">
                                     
                                     <!-- 상단: 통신사 로고 및 정보 -->
-                                    <div style="margin-bottom: 16px;">
+                                    <div style="margin-bottom: 16px; position: relative;">
+                                        <!-- 주문일자 (상단 오른쪽) -->
+                                        <?php
+                                        $orderDate = $internet['order_date'] ?? '';
+                                        if ($orderDate) {
+                                            try {
+                                                $dateObj = new DateTime($orderDate);
+                                                $formattedDate = $dateObj->format('Y.m.d');
+                                            } catch (Exception $e) {
+                                                $formattedDate = $orderDate;
+                                            }
+                                        } else {
+                                            $formattedDate = '';
+                                        }
+                                        ?>
+                                        <?php if ($formattedDate): ?>
+                                            <div style="position: absolute; top: 0; right: 0; font-size: 13px; color: #6b7280;">
+                                                <?php echo htmlspecialchars($formattedDate); ?>
+                                            </div>
+                                        <?php endif; ?>
+                                        
                                         <?php
                                         // 통신사 로고 경로 설정
                                         $provider = $internet['provider'] ?? '';
@@ -274,29 +287,113 @@ include '../includes/components/internet-review-modal.php';
                                         </div>
                                     </div>
                                     
-                                    <!-- 리뷰 작성/수정 버튼 (조건부 표시) -->
+                                    <!-- 판매자 정보 및 리뷰 작성 영역 -->
                                     <?php
                                     $appStatus = $internet['application_status'] ?? '';
-                                    $canWrite = canWriteReview($appStatus);
-                                    if ($canWrite):
-                                        // getUserInternetApplications에서 반환하는 배열의 'id' 키에 product_id 값이 들어있음
-                                        $productId = $internet['id'] ?? ($internet['product_id'] ?? 0);
-                                        $applicationId = $internet['application_id'] ?? '';
+                                    // getUserInternetApplications에서 반환하는 배열의 'id' 키에 product_id 값이 들어있음
+                                    $productId = $internet['id'] ?? ($internet['product_id'] ?? 0);
+                                    $applicationId = $internet['application_id'] ?? '';
+                                    
+                                    // 판매자 정보 가져오기 (모든 상태에서)
+                                    $sellerId = null;
+                                    $seller = null;
+                                    try {
+                                        $pdo = getDBConnection();
+                                        if ($pdo && $productId > 0) {
+                                            // product_id로 seller_id 가져오기
+                                            $sellerStmt = $pdo->prepare("SELECT seller_id FROM products WHERE id = :product_id LIMIT 1");
+                                            $sellerStmt->execute([':product_id' => $productId]);
+                                            $product = $sellerStmt->fetch(PDO::FETCH_ASSOC);
+                                            if ($product && !empty($product['seller_id'])) {
+                                                $sellerId = $product['seller_id'];
+                                                // 판매자 정보 가져오기 (plan-data.php는 이미 상단에서 포함됨)
+                                                $seller = getSellerById($sellerId);
+                                            }
+                                        }
+                                    } catch (Exception $e) {
+                                        error_log("Error fetching seller info: " . $e->getMessage());
+                                    }
+                                    
+                                    $sellerPhone = $seller ? ($seller['phone'] ?? ($seller['mobile'] ?? '')) : '';
+                                    
+                                    // 판매자명 가져오기 (seller_name > company_name > name 우선순위)
+                                    $sellerName = '';
+                                    if ($seller) {
+                                        if (!empty($seller['seller_name'])) {
+                                            $sellerName = $seller['seller_name'];
+                                        } elseif (!empty($seller['company_name'])) {
+                                            $sellerName = $seller['company_name'];
+                                        } elseif (!empty($seller['name'])) {
+                                            $sellerName = $seller['name'];
+                                        }
+                                    }
+                                    
+                                    // 판매자명과 전화번호 결합 (두 칸 띄고)
+                                    $sellerPhoneDisplay = $sellerPhone;
+                                    if ($sellerName && $sellerPhone) {
+                                        $sellerPhoneDisplay = $sellerName . '  ' . $sellerPhone;
+                                    }
+                                    
+                                    // 설치완료 또는 종료 상태일 때만 리뷰 버튼 표시
+                                    $canWrite = in_array($appStatus, ['installation_completed', 'activation_completed', 'completed', 'closed', 'terminated']);
+                                    $hasReview = false;
+                                    $buttonText = '리뷰 작성';
+                                    $buttonClass = 'internet-review-write-btn';
+                                    $buttonBgColor = '#EF4444';
+                                    $buttonHoverColor = '#dc2626';
+                                    
+                                    if ($canWrite) {
                                         $hasReview = $internet['has_review'] ?? false;
                                         $buttonText = $hasReview ? '리뷰 수정' : '리뷰 작성';
                                         $buttonClass = $hasReview ? 'internet-review-edit-btn' : 'internet-review-write-btn';
+                                        $buttonBgColor = $hasReview ? '#6b7280' : '#EF4444';
+                                        $buttonHoverColor = $hasReview ? '#4b5563' : '#dc2626';
+                                    }
+                                    
+                                    // 판매자 전화번호가 있거나 리뷰 버튼이 필요한 경우에만 섹션 표시
+                                    if ($sellerPhone || $canWrite):
                                     ?>
-                                        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #e5e7eb;">
-                                            <button 
-                                                class="<?php echo $buttonClass; ?>" 
-                                                data-application-id="<?php echo htmlspecialchars($applicationId); ?>"
-                                                data-product-id="<?php echo htmlspecialchars($productId); ?>"
-                                                data-has-review="<?php echo $hasReview ? '1' : '0'; ?>"
-                                                style="width: 100%; padding: 10px 16px; background: #6366f1; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: background 0.2s;"
-                                                onmouseover="this.style.background='#4f46e5'"
-                                                onmouseout="this.style.background='#6366f1'">
-                                                <?php echo htmlspecialchars($buttonText); ?>
-                                            </button>
+                                        <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #e5e7eb;">
+                                            <div class="review-section-layout" style="display: grid; grid-template-columns: <?php echo ($sellerPhone && $canWrite) ? '1fr 1fr' : '1fr'; ?>; gap: 16px;">
+                                                <!-- 왼쪽: 전화번호 (모든 상태에서 표시) -->
+                                                <?php if ($sellerPhone): 
+                                                    $phoneNumberOnly = preg_replace('/[^0-9]/', '', $sellerPhone);
+                                                ?>
+                                                    <div style="display: flex; align-items: center; justify-content: center;" onclick="event.stopPropagation();">
+                                                        <!-- PC 버전: 전화번호 버튼 (클릭 불가) -->
+                                                        <button class="phone-inquiry-pc" 
+                                                                disabled
+                                                                style="width: 100%; padding: 12px 16px; background: #f3f4f6; color: #374151; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: not-allowed;">
+                                                            <?php echo htmlspecialchars($sellerPhoneDisplay); ?>
+                                                        </button>
+                                                        <!-- 모바일 버전: 전화번호 버튼 (클릭 시 전화 연결) -->
+                                                        <a href="tel:<?php echo htmlspecialchars($phoneNumberOnly); ?>" 
+                                                           class="phone-inquiry-mobile"
+                                                           onclick="event.stopPropagation();"
+                                                           style="display: none; width: 100%; align-items: center; justify-content: center; padding: 12px 16px; background: #EF4444; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; text-decoration: none; cursor: pointer; transition: background 0.2s;"
+                                                           onmouseover="this.style.background='#dc2626'"
+                                                           onmouseout="this.style.background='#EF4444'">
+                                                            <?php echo htmlspecialchars($sellerPhoneDisplay); ?>
+                                                        </a>
+                                                    </div>
+                                                <?php endif; ?>
+                                                
+                                                <!-- 오른쪽: 리뷰 작성 버튼 (설치완료/종료 상태일 때만 표시) -->
+                                                <?php if ($canWrite): ?>
+                                                <div style="display: flex; align-items: center; justify-content: center;" onclick="event.stopPropagation();">
+                                                    <button 
+                                                        class="<?php echo $buttonClass; ?>" 
+                                                        data-application-id="<?php echo htmlspecialchars($applicationId); ?>"
+                                                        data-product-id="<?php echo htmlspecialchars($productId); ?>"
+                                                        data-has-review="<?php echo $hasReview ? '1' : '0'; ?>"
+                                                        style="width: 100%; padding: 12px 16px; background: <?php echo $buttonBgColor; ?>; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: background 0.2s;"
+                                                        onmouseover="this.style.background='<?php echo $buttonHoverColor; ?>'"
+                                                        onmouseout="this.style.background='<?php echo $buttonBgColor; ?>'">
+                                                        <?php echo htmlspecialchars($buttonText); ?>
+                                                    </button>
+                                                </div>
+                                                <?php endif; ?>
+                                            </div>
                                         </div>
                                     <?php endif; ?>
                                 </div>
@@ -379,6 +476,36 @@ include '../includes/components/internet-review-modal.php';
 .product-info-table tr:nth-child(even) {
     background: #f9fafb;
 }
+
+/* 리뷰 작성 영역 반응형 스타일 */
+.review-section-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+/* 전화번호 반응형 스타일 */
+.phone-inquiry-pc {
+    display: block;
+}
+
+.phone-inquiry-mobile {
+    display: none !important;
+}
+
+@media (max-width: 768px) {
+    .review-section-layout {
+        grid-template-columns: 1fr;
+    }
+    
+    .phone-inquiry-pc {
+        display: none;
+    }
+    
+    .phone-inquiry-mobile {
+        display: flex !important;
+    }
+}
 </style>
 
 
@@ -450,7 +577,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             })
             .catch(error => {
-                console.error('Error:', error);
                 modalContent.innerHTML = `
                     <div style="text-align: center; padding: 40px; color: #dc2626;">
                         <p>정보를 불러오는 중 오류가 발생했습니다.</p>
@@ -791,13 +917,6 @@ document.addEventListener('DOMContentLoaded', function() {
             isEditMode = hasReview;
             currentReviewId = null;
             
-            console.log('Review button clicked:', {
-                applicationId: currentReviewApplicationId,
-                productId: currentReviewProductId,
-                hasReview: hasReview,
-                isEditMode: isEditMode
-            });
-            
             if (reviewModal) {
                 // 먼저 모달 제목과 버튼 텍스트를 설정 (모달이 보이기 전에)
                 const modalTitle = reviewModal.querySelector('.internet-review-modal-title');
@@ -809,6 +928,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 const submitBtn = reviewForm ? reviewForm.querySelector('.internet-review-btn-submit span') : null;
                 if (submitBtn) {
                     submitBtn.textContent = isEditMode ? '저장하기' : '작성하기';
+                }
+                
+                // 삭제 버튼 표시/숨김
+                const deleteBtn = document.getElementById('internetReviewDeleteBtn');
+                if (deleteBtn) {
+                    deleteBtn.style.display = isEditMode ? 'flex' : 'none';
+                }
+                
+                // 삭제 버튼에 리뷰 ID 저장
+                if (deleteBtn && isEditMode && currentReviewId) {
+                    deleteBtn.setAttribute('data-review-id', currentReviewId);
                 }
                 
                 // 현재 스크롤 위치 저장
@@ -850,30 +980,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 기존 리뷰 데이터 로드
     function loadExistingReview(productId) {
-        console.log('loadExistingReview: Loading review for product_id:', productId, 'application_id:', currentReviewApplicationId);
-        
-        // 디버깅: 리뷰 존재 여부 확인
-        fetch(`/MVNO/api/check-review-exists.php?product_id=${productId}&application_id=${currentReviewApplicationId}`)
-            .then(response => response.json())
-            .then(debugData => {
-                console.log('Review existence check:', debugData);
-            })
-            .catch(err => console.error('Debug check error:', err));
-        
-        // 디버깅: 중복 리뷰 확인
-        fetch(`/MVNO/api/check-duplicate-reviews.php?product_id=${productId}`)
-            .then(response => response.json())
-            .then(duplicateData => {
-                console.log('Duplicate reviews check:', duplicateData);
-                if (duplicateData.count > 1) {
-                    console.warn('⚠️ Multiple reviews found for the same product:', duplicateData.count);
-                    if (duplicateData.has_duplicates) {
-                        console.warn('Review comparison:', duplicateData.comparison);
-                    }
-                }
-            })
-            .catch(err => console.error('Duplicate check error:', err));
-        
         // application_id가 있으면 application_id 기반으로 조회, 없으면 product_id로 조회
         let url = '/MVNO/api/get-review.php?product_id=' + productId + '&product_type=internet';
         if (currentReviewApplicationId) {
@@ -883,31 +989,28 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         fetch(url)
-            .then(response => {
-                console.log('loadExistingReview: Response status:', response.status);
-                return response.json();
-            })
+            .then(response => response.json())
             .then(data => {
-                console.log('loadExistingReview: Response data:', data);
                 if (data.success && data.review) {
                     const review = data.review;
                     currentReviewId = review.id;
                     
-                    // 별점 설정 (저장된 kindness_rating과 speed_rating 사용)
-                    const kindnessRating = review.kindness_rating || review.rating || 0;
-                    const speedRating = review.speed_rating || review.rating || 0;
+                    // 삭제 버튼에 리뷰 ID 저장 및 표시
+                    const deleteBtn = document.getElementById('internetReviewDeleteBtn');
+                    if (deleteBtn) {
+                        deleteBtn.setAttribute('data-review-id', review.id);
+                        deleteBtn.style.display = 'flex';
+                    }
+                    
+                    const kindnessRating = parseInt(review.kindness_rating || review.rating || 0);
+                    const speedRating = parseInt(review.speed_rating || review.rating || 0);
                     
                     // 친절해요 별점 설정
-                    // HTML에서 별점이 5점부터 1점까지 역순으로 생성됨 (for $i = 5; $i >= 1)
-                    // index 0 = 5점 (왼쪽 첫번째), index 1 = 4점, index 2 = 3점, index 3 = 2점, index 4 = 1점
-                    // rating이 2이면 왼쪽부터 2개를 채워야 하므로 index 0, 1이 active
                     const kindnessInput = reviewForm.querySelector(`input[name="kindness_rating"][value="${kindnessRating}"]`);
                     if (kindnessInput) {
                         kindnessInput.checked = true;
                         const kindnessLabels = Array.from(reviewForm.querySelectorAll('.internet-star-rating[data-rating-type="kindness"] .star-label'));
                         kindnessLabels.forEach((label, index) => {
-                            // 왼쪽부터 채우기: rating이 2이면 index 0, 1이 active
-                            // index < rating이면 왼쪽부터 채워짐
                             if (index < kindnessRating) {
                                 label.classList.add('active');
                             } else {
@@ -922,7 +1025,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         speedInput.checked = true;
                         const speedLabels = Array.from(reviewForm.querySelectorAll('.internet-star-rating[data-rating-type="speed"] .star-label'));
                         speedLabels.forEach((label, index) => {
-                            // 왼쪽부터 채우기
                             if (index < speedRating) {
                                 label.classList.add('active');
                             } else {
@@ -948,21 +1050,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     }
                 } else {
-                    // 리뷰를 찾을 수 없으면 에러 메시지 표시
-                    console.warn('Review not found for product_id:', productId);
-                    console.warn('Response data:', data);
-                    
-                    // 디버그 정보가 있으면 표시
-                    let errorMessage = '리뷰를 불러올 수 없습니다.';
-                    if (data.debug) {
-                        console.warn('Debug info:', data.debug);
-                        errorMessage += '\n\n디버그 정보:\n';
-                        errorMessage += '- 상품 ID: ' + data.debug.product_id + '\n';
-                        errorMessage += '- 사용자 ID: ' + data.debug.user_id + '\n';
-                        errorMessage += '- 상품 타입: ' + data.debug.product_type;
-                    }
-                    
-                    showMessageModal(errorMessage, 'warning');
+                    showMessageModal('리뷰를 불러올 수 없습니다.', 'warning');
                     // 작성 모드로 전환
                     isEditMode = false;
                     const modalTitle = reviewModal.querySelector('.internet-review-modal-title');
@@ -976,15 +1064,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             })
             .catch(error => {
-                console.error('Error loading review:', error);
-                console.error('Error details:', {
-                    message: error.message,
-                    stack: error.stack,
-                    productId: productId
-                });
-                // 오류 발생 시 에러 메시지 표시
-                showMessageModal('리뷰를 불러오는 중 오류가 발생했습니다: ' + error.message, 'error');
-                // 작성 모드로 전환
+                showMessageModal('리뷰를 불러오는 중 오류가 발생했습니다.', 'error');
                 isEditMode = false;
             });
     }
@@ -1060,65 +1140,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // 별점 호버 및 클릭 이벤트
-    if (reviewForm) {
-        const starRatings = reviewForm.querySelectorAll('.internet-star-rating');
-        
-        starRatings.forEach(ratingGroup => {
-            const starLabels = Array.from(ratingGroup.querySelectorAll('.star-label'));
-            const ratingType = ratingGroup.getAttribute('data-rating-type');
-            
-            starLabels.forEach((label, index) => {
-                // 호버 이벤트: 왼쪽부터 해당 별까지 모든 별 하이라이트
-                // index는 0부터 시작 (0=왼쪽 첫번째, 4=왼쪽 다섯번째)
-                label.addEventListener('mouseenter', function() {
-                    const position = index + 1; // 왼쪽에서 몇 번째 별인지 (1~5)
-                    const sameTypeLabels = Array.from(reviewForm.querySelectorAll('.internet-star-rating[data-rating-type="' + ratingType + '"] .star-label'));
-                    
-                    sameTypeLabels.forEach((l, idx) => {
-                        if (idx < position) {
-                            // 왼쪽부터 position번째까지 활성화
-                            l.classList.add('hover-active');
-                        } else {
-                            l.classList.remove('hover-active');
-                        }
-                    });
-                });
-            });
-            
-            // 마우스가 벗어날 때 호버 효과 제거
-            ratingGroup.addEventListener('mouseleave', function() {
-                const sameTypeLabels = reviewForm.querySelectorAll('.internet-star-rating[data-rating-type="' + ratingType + '"] .star-label');
-                sameTypeLabels.forEach(l => {
-                    l.classList.remove('hover-active');
-                });
-            });
-            
-            // 클릭 이벤트: 왼쪽부터 해당 별까지 모든 별 활성화
-            starLabels.forEach((label, index) => {
-                label.addEventListener('click', function() {
-                    const position = index + 1; // 왼쪽에서 몇 번째 별인지 (1~5)
-                    const rating = parseInt(this.getAttribute('data-rating')); // 실제 별점 값 (5~1)
-                    const radioInput = this.previousElementSibling;
-                    
-                    if (radioInput) {
-                        radioInput.checked = true;
-                    }
-                    
-                    // 같은 타입의 별점 업데이트 (왼쪽부터 position개까지 활성화)
-                    const sameTypeLabels = Array.from(reviewForm.querySelectorAll('.internet-star-rating[data-rating-type="' + ratingType + '"] .star-label'));
-                    sameTypeLabels.forEach((l, idx) => {
-                        if (idx < position) {
-                            // 왼쪽부터 position번째까지 활성화
-                            l.classList.add('active');
-                        } else {
-                            l.classList.remove('active');
-                        }
-                    });
-                });
-            });
-        });
-    }
+    // 별점 이벤트는 internet-review-modal.php 컴포넌트에서 처리됨
     
     // 리뷰 폼 제출
     if (reviewForm) {
@@ -1149,18 +1171,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
-            // 평균 별점 계산 (친절해요와 설치 빨라요의 평균)
             const kindnessRating = parseInt(kindnessRatingInput.value);
             const speedRating = parseInt(speedRatingInput.value);
             const averageRating = Math.round((kindnessRating + speedRating) / 2);
             
-            console.log('Submitting review:', {
-                kindnessRating: kindnessRating,
-                speedRating: speedRating,
-                averageRating: averageRating,
-                isEditMode: isEditMode,
-                reviewId: currentReviewId
-            });
+            if (kindnessRating < 1 || kindnessRating > 5 || speedRating < 1 || speedRating > 5) {
+                showMessageModal('별점은 1~5 사이의 값이어야 합니다.', 'error');
+                return;
+            }
+            
             
             // 제출 버튼 비활성화 및 로딩 상태
             const submitBtn = reviewForm.querySelector('.internet-review-btn-submit');
@@ -1192,8 +1211,29 @@ document.addEventListener('DOMContentLoaded', function() {
                 method: 'POST',
                 body: formData
             })
-            .then(response => response.json())
+            .then(response => {
+                console.log('Response status:', response.status, response.statusText);
+                console.log('Response headers:', response.headers);
+                if (!response.ok) {
+                    return response.text().then(text => {
+                        console.error('HTTP Error Response:', text);
+                        throw new Error(`HTTP ${response.status}: ${text.substring(0, 200)}`);
+                    });
+                }
+                return response.text().then(text => {
+                    console.log('Raw response text:', text);
+                    try {
+                        const data = JSON.parse(text);
+                        return data;
+                    } catch (e) {
+                        console.error('JSON 파싱 실패:', e);
+                        console.error('Response text:', text);
+                        throw new Error('서버 응답을 파싱할 수 없습니다: ' + text.substring(0, 200));
+                    }
+                });
+            })
             .then(data => {
+                console.log('Response data:', JSON.stringify(data, null, 2));
                 if (data.success) {
                     // 성공 모달 표시
                     const successMessage = isEditMode ? '리뷰가 수정되었습니다.' : '리뷰가 작성되었습니다.';
@@ -1204,14 +1244,18 @@ document.addEventListener('DOMContentLoaded', function() {
                     });
                 } else {
                     // 에러 모달 표시
-                    const errorMessage = isEditMode ? '리뷰 수정에 실패했습니다.' : '리뷰 작성에 실패했습니다.';
-                    showMessageModal(data.message || errorMessage, 'error');
+                    const errorMessage = data.message || (isEditMode ? '리뷰 수정에 실패했습니다.' : '리뷰 작성에 실패했습니다.');
+                    console.error('리뷰 제출 실패:', JSON.stringify(data, null, 2));
+                    console.error('Error message:', data.message);
+                    console.error('Error details:', data.error);
+                    showMessageModal(errorMessage, 'error');
                     submitBtn.disabled = false;
                     submitBtn.innerHTML = originalBtnContent;
                 }
             })
             .catch(error => {
-                console.error('Error:', error);
+                console.error('리뷰 제출 중 오류:', error);
+                console.error('Error stack:', error.stack);
                 const errorMessage = isEditMode ? '리뷰 수정 중 오류가 발생했습니다.' : '리뷰 작성 중 오류가 발생했습니다.';
                 showMessageModal(errorMessage, 'error');
                 submitBtn.disabled = false;

@@ -9,3 +9,4 @@ AFTER `application_id`;
 -- 2. 인덱스 추가 (선택사항, 성능 향상)
 ALTER TABLE `application_customers` 
 ADD INDEX `idx_user_id` (`user_id`);
+

@@ -12,3 +12,4 @@ ADD COLUMN `application_id` INT(11) UNSIGNED DEFAULT NULL COMMENT '신청 ID (ap
 -- 인덱스 추가
 ALTER TABLE `product_reviews` 
 ADD INDEX `idx_application_id` (`application_id`);
+

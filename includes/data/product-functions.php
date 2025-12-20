@@ -1018,16 +1018,62 @@ function addProductReview($productId, $userId, $productType, $rating, $content, 
     }
     
     try {
-        // 인터넷 리뷰는 자동으로 승인, MVNO/MNO는 pending 상태로 저장
-        $status = ($productType === 'internet') ? 'approved' : 'pending';
-        
-        // application_id 컬럼 존재 여부 확인
+        // application_id 컬럼 존재 여부 확인 (중복 체크 전에 확인 필요)
         $hasApplicationId = false;
         try {
             $checkStmt = $pdo->query("SHOW COLUMNS FROM product_reviews LIKE 'application_id'");
             $hasApplicationId = $checkStmt->rowCount() > 0;
         } catch (PDOException $e) {
             // 컬럼이 없으면 false
+        }
+        
+        // 중복 리뷰 체크: 같은 사용자가 같은 주문(application)에 이미 리뷰를 작성했는지 확인
+        // 인터넷 리뷰의 경우 application_id로 구분 (주문별로 리뷰 작성 가능)
+        if ($hasApplicationId && $applicationId !== null && $productType === 'internet') {
+            // 인터넷 리뷰: 같은 application_id에 대한 리뷰가 있는지 확인
+            $duplicateCheck = $pdo->prepare("
+                SELECT id 
+                FROM product_reviews 
+                WHERE application_id = :application_id 
+                AND user_id = :user_id 
+                AND product_type = :product_type
+                AND status != 'deleted'
+                LIMIT 1
+            ");
+            $duplicateCheck->execute([
+                ':application_id' => $applicationId,
+                ':user_id' => $userId,
+                ':product_type' => $productType
+            ]);
+        } else {
+            // MVNO/MNO 리뷰 또는 application_id가 없는 경우: 같은 상품에 대한 리뷰 확인
+            $duplicateCheck = $pdo->prepare("
+                SELECT id 
+                FROM product_reviews 
+                WHERE product_id = :product_id 
+                AND user_id = :user_id 
+                AND product_type = :product_type
+                AND status != 'deleted'
+                LIMIT 1
+            ");
+            $duplicateCheck->execute([
+                ':product_id' => $productId,
+                ':user_id' => $userId,
+                ':product_type' => $productType
+            ]);
+        }
+        
+        if ($duplicateCheck->fetch()) {
+            error_log("addProductReview: Duplicate review detected - product_id=$productId, user_id=$userId, application_id=" . ($applicationId ?? 'null'));
+            return false; // 중복 리뷰
+        }
+        
+        // 인터넷 리뷰는 자동으로 승인, MVNO/MNO는 pending 상태로 저장
+        $status = ($productType === 'internet') ? 'approved' : 'pending';
+        
+        // 인터넷 리뷰의 경우 kindness_rating과 speed_rating으로 rating 계산
+        if ($productType === 'internet' && $kindnessRating !== null && $speedRating !== null) {
+            $rating = round(($kindnessRating + $speedRating) / 2);
         }
         
         // kindness_rating, speed_rating 컬럼 존재 여부 확인
@@ -1077,11 +1123,19 @@ function addProductReview($productId, $userId, $productType, $rating, $content, 
             INSERT INTO product_reviews ($columnsStr)
             VALUES ($valuesStr)
         ");
+        
+        error_log("addProductReview: INSERT 실행 - columns: $columnsStr, params: " . json_encode(array_keys($executeParams)));
         $stmt->execute($executeParams);
         
-        return $pdo->lastInsertId();
+        $newId = $pdo->lastInsertId();
+        error_log("addProductReview: 리뷰 작성 성공 - ID: $newId");
+        return $newId;
     } catch (PDOException $e) {
-        error_log("Error adding review: " . $e->getMessage());
+        error_log("addProductReview: PDO 예외 발생 - " . $e->getMessage());
+        error_log("addProductReview: SQL State - " . $e->getCode());
+        error_log("addProductReview: Columns - " . $columnsStr);
+        error_log("addProductReview: Values - " . $valuesStr);
+        error_log("addProductReview: Execute params - " . json_encode($executeParams));
         // 데이터베이스 스키마 오류인 경우 (product_type에 'internet'이 없는 경우)
         if (strpos($e->getMessage(), 'product_type') !== false || strpos($e->getMessage(), 'ENUM') !== false) {
             error_log("Database schema error: product_reviews.product_type ENUM may not include 'internet'. Please run: ALTER TABLE product_reviews MODIFY COLUMN product_type ENUM('mvno', 'mno', 'internet') NOT NULL;");
@@ -1329,6 +1383,11 @@ function updateProductReview($reviewId, $userId, $rating, $content, $title = nul
             return false;
         }
         
+        // 인터넷 리뷰인 경우 kindness_rating과 speed_rating으로 rating 계산
+        if ($review['product_type'] === 'internet' && $kindnessRating !== null && $speedRating !== null) {
+            $rating = round(($kindnessRating + $speedRating) / 2);
+        }
+        
         // 인터넷 리뷰인 경우 kindness_rating과 speed_rating도 업데이트
         // 컬럼 존재 여부 확인
         $hasKindnessRating = false;
@@ -1368,8 +1427,6 @@ function updateProductReview($reviewId, $userId, $rating, $content, $title = nul
                 ':content' => $content,
                 ':title' => $title
             ]);
-            
-            error_log("updateProductReview: Updated review $reviewId with kindness_rating=$kindnessRating, speed_rating=$speedRating");
         } else {
             $stmt = $pdo->prepare("
                 UPDATE product_reviews

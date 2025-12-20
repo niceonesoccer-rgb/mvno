@@ -120,3 +120,4 @@ function getContractTypeForAdmin($app) {
     
     return $adminLabels[$normalized] ?? ($contractType ?: '-');
 }
+

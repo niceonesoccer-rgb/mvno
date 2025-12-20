@@ -72,22 +72,25 @@ if (!$isAdmin && isset($phone['status']) && $phone['status'] === 'inactive') {
             </div>
             
             <?php
-            // 정렬 방식 가져오기 (기본값: 높은 평점순)
-            $sort = $_GET['review_sort'] ?? 'rating_desc';
+            // 정렬 방식 가져오기 (기본값: 최신순)
+            $sort = $_GET['review_sort'] ?? 'created_desc';
             if (!in_array($sort, ['rating_desc', 'rating_asc', 'created_desc'])) {
-                $sort = 'rating_desc';
+                $sort = 'created_desc';
             }
             
             // 실제 리뷰 데이터 가져오기 (같은 판매자의 같은 타입의 모든 상품 리뷰 통합)
-            $reviews = getProductReviews($phone_id, 'mno', 20, $sort);
+            // 모달에서 모든 리뷰를 표시하기 위해 충분히 많은 수를 가져옴
+            $allReviews = getProductReviews($phone_id, 'mno', 1000, $sort);
+            $reviews = array_slice($allReviews, 0, 5); // 페이지에는 처음 5개만 표시
             $averageRating = getProductAverageRating($phone_id, 'mno');
             $reviewCount = getProductReviewCount($phone_id, 'mno');
             $hasReviews = $reviewCount > 0;
+            $remainingCount = max(0, $reviewCount - 5); // 남은 리뷰 개수
             ?>
             <?php if ($hasReviews): ?>
             <div class="plan-review-summary">
                 <div class="plan-review-rating">
-                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: 24px; height: 24px;">
                         <path d="M13.1479 3.1366C12.7138 2.12977 11.2862 2.12977 10.8521 3.1366L8.75804 7.99389L3.48632 8.48228C2.3937 8.58351 1.9524 9.94276 2.77717 10.6665L6.75371 14.156L5.58995 19.3138C5.34855 20.3837 6.50365 21.2235 7.44697 20.664L12 17.9635L16.553 20.664C17.4963 21.2235 18.6514 20.3837 18.4101 19.3138L17.2463 14.156L21.2228 10.6665C22.0476 9.94276 21.6063 8.58351 20.5137 8.48228L15.242 7.99389L13.1479 3.1366Z" fill="#EF4444"/>
                     </svg>
                     <span class="plan-review-rating-score"><?php echo htmlspecialchars($averageRating > 0 ? number_format($averageRating, 1) : '0.0'); ?></span>
@@ -130,18 +133,11 @@ if (!$isAdmin && isset($phone['status']) && $phone['status'] === 'inactive') {
                         </select>
                     </div>
                 </div>
-                <?php
-                // 로그인한 사용자에게만 리뷰 작성 버튼 표시
-                require_once '../includes/data/auth-functions.php';
-                $currentUserId = getCurrentUserId();
-                if ($currentUserId): ?>
-                    <button class="plan-review-write-btn" id="phoneReviewWriteBtn">리뷰 작성</button>
-                <?php endif; ?>
             </div>
 
             <div class="plan-review-list" id="phoneReviewList">
                 <?php if (!empty($reviews)): ?>
-                    <?php foreach (array_slice($reviews, 0, 5) as $review): ?>
+                    <?php foreach ($reviews as $review): ?>
                         <div class="plan-review-item">
                             <div class="plan-review-item-header">
                                 <span class="plan-review-author"><?php echo htmlspecialchars($review['author_name'] ?? '익명'); ?></span>
@@ -158,20 +154,6 @@ if (!$isAdmin && isset($phone['status']) && $phone['status'] === 'inactive') {
                             <?php endif; ?>
                         </div>
                     <?php endforeach; ?>
-                    <?php if (count($reviews) > 5): ?>
-                        <?php foreach (array_slice($reviews, 5) as $review): ?>
-                            <div class="plan-review-item" style="display: none;">
-                                <div class="plan-review-item-header">
-                                    <span class="plan-review-author"><?php echo htmlspecialchars($review['author_name'] ?? '익명'); ?></span>
-                                    <div class="plan-review-stars">
-                                        <span><?php echo htmlspecialchars($review['stars'] ?? '★★★★☆'); ?></span>
-                                    </div>
-                                    <span class="plan-review-date"><?php echo htmlspecialchars($review['date_ago'] ?? '오늘'); ?></span>
-                                </div>
-                                <p class="plan-review-content"><?php echo htmlspecialchars($review['content'] ?? ''); ?></p>
-                            </div>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
                 <?php else: ?>
                     <div class="plan-review-item">
                         <p class="plan-review-content" style="text-align: center; color: #9ca3af; padding: 20px;">아직 리뷰가 없습니다.</p>
@@ -368,7 +350,12 @@ if (!$isAdmin && isset($phone['status']) && $phone['status'] === 'inactive') {
                     <p class="plan-review-content">통신사폰 처음 사용해봤는데 생각보다 괜찮아요. 통신 품질도 좋고 가격도 합리적입니다. 주변 사람들한테도 추천했어요.</p>
                 </div>
             </div>
-            <button class="plan-review-more-btn" id="phoneReviewMoreBtn">리뷰 더보기</button>
+            
+            <?php if ($remainingCount > 0): ?>
+                <button class="plan-review-more-btn" id="phoneReviewMoreBtn" data-total-reviews="<?php echo $reviewCount; ?>" data-sort="<?php echo htmlspecialchars($sort); ?>">
+                    리뷰 더보기 (<?php echo number_format($remainingCount); ?>개)
+                </button>
+            <?php endif; ?>
         </div>
     </section>
 
@@ -382,139 +369,7 @@ include '../includes/footer.php';
 <script src="/MVNO/assets/js/plan-accordion.js" defer></script>
 <script src="/MVNO/assets/js/favorite-heart.js" defer></script>
 
-<?php
-// 리뷰 작성 모달 포함
-$prefix = 'phone';
-$speedLabel = '개통 빨라요';
-$formId = 'phoneReviewForm';
-$modalId = 'phoneReviewModal';
-$textareaId = 'phoneReviewText';
-include '../includes/components/order-review-modal.php';
-?>
-
 <script>
-// 리뷰 작성 기능
-document.addEventListener('DOMContentLoaded', function() {
-    const reviewWriteBtn = document.getElementById('phoneReviewWriteBtn');
-    const reviewModal = document.getElementById('phoneReviewModal');
-    const reviewForm = document.getElementById('phoneReviewForm');
-    const reviewModalOverlay = reviewModal ? reviewModal.querySelector('.phone-review-modal-overlay') : null;
-    const reviewModalClose = reviewModal ? reviewModal.querySelector('.phone-review-modal-close') : null;
-    
-    if (!reviewWriteBtn || !reviewModal || !reviewForm) {
-        return;
-    }
-    
-    // 리뷰 작성 버튼 클릭
-    reviewWriteBtn.addEventListener('click', function() {
-        reviewModal.style.display = 'flex';
-        document.body.style.overflow = 'hidden';
-    });
-    
-    // 모달 닫기
-    function closeReviewModal() {
-        reviewModal.style.display = 'none';
-        document.body.style.overflow = '';
-        reviewForm.reset();
-        // 별점 초기화
-        const starInputs = reviewForm.querySelectorAll('input[type="radio"]');
-        starInputs.forEach(input => {
-            input.checked = false;
-        });
-        const starLabels = reviewForm.querySelectorAll('.phone-star-label');
-        starLabels.forEach(label => {
-            label.classList.remove('active');
-        });
-    }
-    
-    if (reviewModalOverlay) {
-        reviewModalOverlay.addEventListener('click', closeReviewModal);
-    }
-    
-    if (reviewModalClose) {
-        reviewModalClose.addEventListener('click', closeReviewModal);
-    }
-    
-    // 별점 클릭 이벤트
-    const starLabels = reviewForm.querySelectorAll('.phone-star-label');
-    starLabels.forEach(label => {
-        label.addEventListener('click', function() {
-            const rating = parseInt(this.getAttribute('data-rating'));
-            const ratingType = this.closest('.phone-star-rating').getAttribute('data-rating-type');
-            const radioInput = this.previousElementSibling;
-            
-            if (radioInput) {
-                radioInput.checked = true;
-            }
-            
-            // 같은 타입의 별점 업데이트
-            const sameTypeLabels = reviewForm.querySelectorAll('.phone-star-rating[data-rating-type="' + ratingType + '"] .phone-star-label');
-            sameTypeLabels.forEach((l, index) => {
-                if (index < rating) {
-                    l.classList.add('active');
-                } else {
-                    l.classList.remove('active');
-                }
-            });
-        });
-    });
-    
-    // 폼 제출
-    reviewForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        const kindnessRatingInput = reviewForm.querySelector('input[name="kindness_rating"]:checked');
-        const speedRatingInput = reviewForm.querySelector('input[name="speed_rating"]:checked');
-        const reviewText = document.getElementById('phoneReviewText').value.trim();
-        
-        if (!kindnessRatingInput) {
-            alert('친절해요 별점을 선택해주세요.');
-            return;
-        }
-        
-        if (!speedRatingInput) {
-            alert('개통 빨라요 별점을 선택해주세요.');
-            return;
-        }
-        
-        if (!reviewText) {
-            alert('리뷰 내용을 입력해주세요.');
-            return;
-        }
-        
-        // 평균 별점 계산
-        const kindnessRating = parseInt(kindnessRatingInput.value);
-        const speedRating = parseInt(speedRatingInput.value);
-        const averageRating = Math.round((kindnessRating + speedRating) / 2);
-        
-        // API 호출
-        const formData = new FormData();
-        formData.append('product_id', <?php echo $phone_id; ?>);
-        formData.append('product_type', 'mno');
-        formData.append('rating', averageRating);
-        formData.append('content', reviewText);
-        
-        fetch('/MVNO/api/submit-review.php', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('리뷰가 작성되었습니다.');
-                closeReviewModal();
-                // 페이지 새로고침하여 리뷰 반영
-                location.reload();
-            } else {
-                alert(data.message || '리뷰 작성에 실패했습니다.');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('리뷰 작성 중 오류가 발생했습니다.');
-        });
-    });
-});
 </script>
 
 <?php
@@ -786,8 +641,8 @@ $discountData = [
                 </div>
             </div>
             <div class="review-modal-list" id="phoneReviewModalList">
-                <?php if (!empty($reviews)): ?>
-                    <?php foreach ($reviews as $review): ?>
+                <?php if (!empty($allReviews)): ?>
+                    <?php foreach ($allReviews as $review): ?>
                         <div class="review-modal-item">
                             <div class="review-modal-item-header">
                                 <span class="review-modal-author"><?php echo htmlspecialchars($review['author_name'] ?? '익명'); ?></span>
@@ -796,7 +651,7 @@ $discountData = [
                                 </div>
                                 <span class="review-modal-date"><?php echo htmlspecialchars($review['date_ago'] ?? '오늘'); ?></span>
                             </div>
-                            <p class="review-modal-item-content"><?php echo nl2br(htmlspecialchars($review['content'] ?? '')); ?></p>
+                            <p class="review-modal-item-content"><?php echo htmlspecialchars(str_replace(["\r\n", "\r", "\n"], ' ', $review['content'] ?? '')); ?></p>
                             <?php if (!empty($phone['device_name'])): ?>
                                 <div class="review-modal-tags">
                                     <span class="review-modal-tag"><?php echo htmlspecialchars($phone['device_name']); ?></span>
@@ -810,7 +665,7 @@ $discountData = [
                     </div>
                 <?php endif; ?>
             </div>
-            <button class="review-modal-more-btn" id="phoneReviewModalMoreBtn">리뷰 더보기</button>
+            <button class="review-modal-more-btn" id="phoneReviewModalMoreBtn" style="display: none;">리뷰 더보기</button>
         </div>
     </div>
 </div>
@@ -1896,26 +1751,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const reviewModalList = document.getElementById('phoneReviewModalList');
     const reviewModalMoreBtn = document.getElementById('phoneReviewModalMoreBtn');
     
-    // 페이지 리뷰: 처음 5개만 표시
-    if (reviewList) {
-        const reviewItems = reviewList.querySelectorAll('.plan-review-item');
-        const totalReviews = reviewItems.length;
-        const visibleCount = 5;
-        
-        reviewItems.forEach((item, index) => {
-            if (index >= visibleCount) {
-                item.style.display = 'none';
-            }
-        });
-        
-        // 리뷰 더보기 버튼에 남은 리뷰 개수 표시
-        if (reviewMoreBtn && totalReviews > visibleCount) {
-            const remainingCount = totalReviews - visibleCount;
-            reviewMoreBtn.textContent = `리뷰 더보기 (${remainingCount}개)`;
-        } else if (reviewMoreBtn) {
-            reviewMoreBtn.style.display = 'none';
-        }
-    }
+    // 페이지 리뷰는 이미 PHP에서 5개만 표시됨
     
     // 모달 열기 함수
     function openReviewModal() {
@@ -1988,15 +1824,15 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // 모달 내부 더보기 기능: 처음 5개, 이후 10개씩 표시
+    // 모달 내부 더보기 기능: 처음 10개, 이후 10개씩 표시
     if (reviewModalList && reviewModalMoreBtn) {
         const modalReviewItems = reviewModalList.querySelectorAll('.review-modal-item');
         const totalModalReviews = modalReviewItems.length;
-        let visibleModalCount = 5; // 처음 5개만 표시
+        let visibleModalCount = 10; // 처음 10개만 표시
         
-        // 초기 설정: 5개 이후 리뷰 숨기기
+        // 초기 설정: 10개 이후 리뷰 숨기기
         function initializeModalReviews() {
-            visibleModalCount = 5; // 모달 열 때마다 5개로 초기화
+            visibleModalCount = 10; // 모달 열 때마다 10개로 초기화
             modalReviewItems.forEach((item, index) => {
                 if (index >= visibleModalCount) {
                     item.style.display = 'none';
@@ -2009,6 +1845,8 @@ document.addEventListener('DOMContentLoaded', function() {
             if (totalModalReviews <= visibleModalCount) {
                 reviewModalMoreBtn.style.display = 'none';
             } else {
+                const remaining = totalModalReviews - visibleModalCount;
+                reviewModalMoreBtn.textContent = `리뷰 더보기 (${remaining}개)`;
                 reviewModalMoreBtn.style.display = 'block';
             }
         }
@@ -2022,7 +1860,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 mutations.forEach(function(mutation) {
                     if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
                         if (reviewModal.classList.contains('review-modal-active')) {
-                            initializeModalReviews(); // 모달 열 때마다 5개로 초기화
+                            initializeModalReviews(); // 모달 열 때마다 10개로 초기화
                         }
                     }
                 });
@@ -2043,9 +1881,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
             
-            // 모든 리뷰가 표시되면 버튼 숨기기
-            if (visibleModalCount >= totalModalReviews) {
+            // 남은 리뷰 개수 계산 및 버튼 텍스트 업데이트
+            const remaining = totalModalReviews - visibleModalCount;
+            if (remaining <= 0) {
                 reviewModalMoreBtn.style.display = 'none';
+            } else {
+                reviewModalMoreBtn.textContent = `리뷰 더보기 (${remaining}개)`;
             }
         });
     }
@@ -2310,246 +2151,6 @@ span.internet-checkbox-text {
     }
 }
 </style>
-
-
-
-            const isAgreementsChecked = agreementPurpose.checked && agreementItems.checked && agreementPeriod.checked;
-            
-            if (isNameValid && isPhoneValid && isAgreementsChecked) {
-                submitBtn.disabled = false;
-            } else {
-                submitBtn.disabled = true;
-            }
-        }
-    }
-    
-    
-    // 개인정보 내용보기 버튼 클릭 이벤트는 아코디언으로 대체됨 (인라인 아코디언 사용)
-    
-    // 개인정보 내용보기 모달 닫기 이벤트
-    if (privacyModalOverlay) {
-        privacyModalOverlay.addEventListener('click', closePrivacyModal);
-    }
-    
-    if (privacyModalClose) {
-        privacyModalClose.addEventListener('click', closePrivacyModal);
-    }
-    
-    // ESC 키로 모달 닫기
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            if (privacyModal && privacyModal.classList.contains('privacy-content-modal-active')) {
-                closePrivacyModal();
-            } else if (discountSelectionModal && discountSelectionModal.classList.contains('discount-selection-modal-active')) {
-                closeDiscountSelectionModal();
-            } else if (consultationModal && consultationModal.classList.contains('consultation-modal-active')) {
-                closeConsultationModal();
-            }
-        }
-    });
-    
-    // 중복 이벤트 리스너 제거됨 - 위에서 이미 등록됨
-});
-
-// 리뷰 정렬 기능
-document.addEventListener('DOMContentLoaded', function() {
-    const reviewSortSelect = document.getElementById('phoneReviewSortSelect');
-    if (reviewSortSelect) {
-        reviewSortSelect.addEventListener('change', function() {
-            const sort = this.value;
-            const url = new URL(window.location.href);
-            url.searchParams.set('review_sort', sort);
-            window.location.href = url.toString();
-        });
-    }
-});
-
-// 통신사폰 리뷰 모달 기능
-document.addEventListener('DOMContentLoaded', function() {
-    const reviewList = document.getElementById('phoneReviewList');
-    const reviewMoreBtn = document.getElementById('phoneReviewMoreBtn');
-    const reviewModal = document.getElementById('phoneReviewModal');
-    const reviewModalOverlay = document.getElementById('phoneReviewModalOverlay');
-    const reviewModalClose = document.getElementById('phoneReviewModalClose');
-    const reviewModalList = document.getElementById('phoneReviewModalList');
-    const reviewModalMoreBtn = document.getElementById('phoneReviewModalMoreBtn');
-    
-    // 페이지 리뷰: 처음 5개만 표시
-    if (reviewList) {
-        const reviewItems = reviewList.querySelectorAll('.plan-review-item');
-        const totalReviews = reviewItems.length;
-        const visibleCount = 5;
-        
-        reviewItems.forEach((item, index) => {
-            if (index >= visibleCount) {
-                item.style.display = 'none';
-            }
-        });
-        
-        // 리뷰 더보기 버튼에 남은 리뷰 개수 표시
-        if (reviewMoreBtn && totalReviews > visibleCount) {
-            const remainingCount = totalReviews - visibleCount;
-            reviewMoreBtn.textContent = `리뷰 더보기 (${remainingCount}개)`;
-        } else if (reviewMoreBtn) {
-            reviewMoreBtn.style.display = 'none';
-        }
-    }
-    
-    // 모달 열기 함수
-    function openReviewModal() {
-        if (reviewModal) {
-            // 리뷰 섹션으로 스크롤 이동
-            const reviewSection = document.getElementById('phoneReviewSection');
-            if (reviewSection) {
-                const sectionTop = reviewSection.getBoundingClientRect().top + window.pageYOffset;
-                window.scrollTo({
-                    top: sectionTop,
-                    behavior: 'smooth'
-                });
-            }
-            
-            // 모달 열기 (약간의 딜레이를 주어 스크롤 후 모달이 열리도록)
-            setTimeout(() => {
-                reviewModal.classList.add('review-modal-active');
-                document.body.classList.add('review-modal-open');
-                document.body.style.overflow = 'hidden';
-                document.documentElement.style.overflow = 'hidden';
-            }, 300);
-        }
-    }
-    
-    // 모달 닫기 함수
-    function closeReviewModal() {
-        if (reviewModal) {
-            reviewModal.classList.remove('review-modal-active');
-            document.body.classList.remove('review-modal-open');
-            document.body.style.overflow = '';
-            document.documentElement.style.overflow = '';
-        }
-    }
-    
-    // 리뷰 아이템 클릭 시 모달 열기
-    if (reviewList) {
-        const reviewItems = reviewList.querySelectorAll('.plan-review-item');
-        reviewItems.forEach(item => {
-            item.style.cursor = 'pointer';
-            item.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                openReviewModal();
-            });
-        });
-    }
-    
-    // 더보기 버튼 클릭 시 모달 열기
-    if (reviewMoreBtn) {
-        reviewMoreBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            openReviewModal();
-        });
-    }
-    
-    // 모달 닫기 이벤트
-    if (reviewModalOverlay) {
-        reviewModalOverlay.addEventListener('click', closeReviewModal);
-    }
-    
-    if (reviewModalClose) {
-        reviewModalClose.addEventListener('click', closeReviewModal);
-    }
-    
-    // ESC 키로 모달 닫기
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' && reviewModal && reviewModal.classList.contains('review-modal-active')) {
-            closeReviewModal();
-        }
-    });
-    
-    // 모달 내부 더보기 기능: 처음 5개, 이후 10개씩 표시
-    if (reviewModalList && reviewModalMoreBtn) {
-        const modalReviewItems = reviewModalList.querySelectorAll('.review-modal-item');
-        const totalModalReviews = modalReviewItems.length;
-        let visibleModalCount = 5; // 처음 5개만 표시
-        
-        // 초기 설정: 5개 이후 리뷰 숨기기
-        function initializeModalReviews() {
-            visibleModalCount = 5; // 모달 열 때마다 5개로 초기화
-            modalReviewItems.forEach((item, index) => {
-                if (index >= visibleModalCount) {
-                    item.style.display = 'none';
-                } else {
-                    item.style.display = 'block';
-                }
-            });
-            
-            // 모든 리뷰가 이미 표시되어 있으면 버튼 숨기기
-            if (totalModalReviews <= visibleModalCount) {
-                reviewModalMoreBtn.style.display = 'none';
-            } else {
-                reviewModalMoreBtn.style.display = 'block';
-            }
-        }
-        
-        // 초기 설정 실행
-        initializeModalReviews();
-        
-        // 모달이 열릴 때마다 초기화
-        if (reviewModal) {
-            const observer = new MutationObserver(function(mutations) {
-                mutations.forEach(function(mutation) {
-                    if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
-                        if (reviewModal.classList.contains('review-modal-active')) {
-                            initializeModalReviews(); // 모달 열 때마다 5개로 초기화
-                        }
-                    }
-                });
-            });
-            observer.observe(reviewModal, { attributes: true });
-        }
-        
-        // 모달 내부 더보기 버튼 클릭 이벤트
-        reviewModalMoreBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            visibleModalCount += 10; // 10개씩 추가
-            
-            // 리뷰 표시
-            modalReviewItems.forEach((item, index) => {
-                if (index < visibleModalCount) {
-                    item.style.display = 'block';
-                }
-            });
-            
-            // 모든 리뷰가 표시되면 버튼 숨기기
-            if (visibleModalCount >= totalModalReviews) {
-                reviewModalMoreBtn.style.display = 'none';
-            }
-        });
-    }
-    
-    // 리뷰 정렬 선택 기능 (페이지)
-    const reviewSortSelect = document.getElementById('phoneReviewSortSelect');
-    if (reviewSortSelect) {
-        reviewSortSelect.addEventListener('change', function() {
-            const sort = this.value;
-            const url = new URL(window.location.href);
-            url.searchParams.set('review_sort', sort);
-            window.location.href = url.toString();
-        });
-    }
-    
-    // 리뷰 정렬 선택 기능 (모달)
-    const reviewModalSortSelect = document.getElementById('phoneReviewModalSortSelect');
-    if (reviewModalSortSelect) {
-        reviewModalSortSelect.addEventListener('change', function() {
-            const sort = this.value;
-            const url = new URL(window.location.href);
-            url.searchParams.set('review_sort', sort);
-            window.location.href = url.toString();
-        });
-    }
-});
 </script>
 
 <style>
