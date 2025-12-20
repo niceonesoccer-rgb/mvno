@@ -31,6 +31,12 @@ $productType = isset($_POST['product_type']) ? trim($_POST['product_type']) : ''
 $rating = isset($_POST['rating']) ? intval($_POST['rating']) : 0;
 $content = isset($_POST['content']) ? trim($_POST['content']) : '';
 $title = isset($_POST['title']) ? trim($_POST['title']) : '';
+$reviewId = isset($_POST['review_id']) ? intval($_POST['review_id']) : 0; // 수정 모드일 때 리뷰 ID
+$kindnessRating = isset($_POST['kindness_rating']) ? intval($_POST['kindness_rating']) : null; // 인터넷 리뷰용
+$speedRating = isset($_POST['speed_rating']) ? intval($_POST['speed_rating']) : null; // 인터넷 리뷰용
+$applicationId = isset($_POST['application_id']) ? intval($_POST['application_id']) : null; // 신청 ID
+
+error_log("submit-review.php: Received - kindness_rating=" . ($kindnessRating ?? 'null') . ", speed_rating=" . ($speedRating ?? 'null') . ", review_id=$reviewId, application_id=" . ($applicationId ?? 'null'));
 
 // 유효성 검사
 if ($productId <= 0) {
@@ -58,19 +64,43 @@ if (mb_strlen($content) > 1000) {
     exit;
 }
 
-// 리뷰 추가
-$reviewId = addProductReview($productId, $userId, $productType, $rating, $content, $title);
-
-if ($reviewId === false) {
-    echo json_encode(['success' => false, 'message' => '리뷰 작성에 실패했습니다.']);
-    exit;
+// 리뷰 수정 모드인지 확인
+if ($reviewId > 0) {
+    // 기존 리뷰 수정
+    error_log("submit-review.php: Updating review $reviewId with kindness_rating=$kindnessRating, speed_rating=$speedRating");
+    $success = updateProductReview($reviewId, $userId, $rating, $content, $title, $kindnessRating, $speedRating);
+    
+    if ($success) {
+        error_log("submit-review.php: Review updated successfully");
+        echo json_encode([
+            'success' => true,
+            'message' => '리뷰가 수정되었습니다.',
+            'review_id' => $reviewId,
+            'is_update' => true
+        ]);
+    } else {
+        error_log("submit-review.php: Review update failed");
+        echo json_encode(['success' => false, 'message' => '리뷰 수정에 실패했습니다.']);
+    }
+} else {
+    // 새 리뷰 작성
+    error_log("submit-review.php: Creating new review with kindness_rating=$kindnessRating, speed_rating=$speedRating, application_id=" . ($applicationId ?? 'null'));
+    $newReviewId = addProductReview($productId, $userId, $productType, $rating, $content, $title, $kindnessRating, $speedRating, $applicationId);
+    
+    if ($newReviewId === false) {
+        error_log("submit-review.php: Review creation failed");
+        echo json_encode(['success' => false, 'message' => '리뷰 작성에 실패했습니다.']);
+        exit;
+    }
+    
+    error_log("submit-review.php: Review created successfully with ID $newReviewId");
+    echo json_encode([
+        'success' => true,
+        'message' => '리뷰가 작성되었습니다.',
+        'review_id' => $newReviewId,
+        'is_update' => false
+    ]);
 }
-
-echo json_encode([
-    'success' => true,
-    'message' => '리뷰가 작성되었습니다.',
-    'review_id' => $reviewId
-]);
 
 
 

@@ -994,16 +994,19 @@ function saveInternetProduct($productData) {
 }
 
 /**
- * 리뷰 추가 (MVNO, MNO만)
+ * 리뷰 추가 (MVNO, MNO, Internet)
  * @param int $productId 상품 ID
- * @param int $userId 사용자 ID
- * @param string $productType 상품 타입 (mvno, mno)
- * @param int $rating 평점 (1-5)
+ * @param string $userId 사용자 ID
+ * @param string $productType 상품 타입 ('mvno', 'mno', 'internet')
+ * @param int $rating 별점 (1-5)
  * @param string $content 리뷰 내용
  * @param string $title 리뷰 제목 (선택)
+ * @param int|null $kindnessRating 친절해요 별점 (인터넷 리뷰용, 선택)
+ * @param int|null $speedRating 설치 빨라요 별점 (인터넷 리뷰용, 선택)
+ * @param int|null $applicationId 신청 ID (application별 리뷰 구분용, 선택)
  * @return int|false 리뷰 ID 또는 false
  */
-function addProductReview($productId, $userId, $productType, $rating, $content, $title = null) {
+function addProductReview($productId, $userId, $productType, $rating, $content, $title = null, $kindnessRating = null, $speedRating = null, $applicationId = null) {
     // 인터넷 리뷰도 허용
     if (!in_array($productType, ['mvno', 'mno', 'internet'])) {
         return false; // 지원하지 않는 상품 타입
@@ -1015,22 +1018,384 @@ function addProductReview($productId, $userId, $productType, $rating, $content, 
     }
     
     try {
-        $stmt = $pdo->prepare("
-            INSERT INTO product_reviews (product_id, user_id, product_type, rating, title, content, status)
-            VALUES (:product_id, :user_id, :product_type, :rating, :title, :content, 'pending')
-        ");
-        $stmt->execute([
+        // 인터넷 리뷰는 자동으로 승인, MVNO/MNO는 pending 상태로 저장
+        $status = ($productType === 'internet') ? 'approved' : 'pending';
+        
+        // application_id 컬럼 존재 여부 확인
+        $hasApplicationId = false;
+        try {
+            $checkStmt = $pdo->query("SHOW COLUMNS FROM product_reviews LIKE 'application_id'");
+            $hasApplicationId = $checkStmt->rowCount() > 0;
+        } catch (PDOException $e) {
+            // 컬럼이 없으면 false
+        }
+        
+        // kindness_rating, speed_rating 컬럼 존재 여부 확인
+        $hasKindnessRating = false;
+        $hasSpeedRating = false;
+        try {
+            $checkStmt = $pdo->query("SHOW COLUMNS FROM product_reviews LIKE 'kindness_rating'");
+            $hasKindnessRating = $checkStmt->rowCount() > 0;
+        } catch (PDOException $e) {}
+        try {
+            $checkStmt = $pdo->query("SHOW COLUMNS FROM product_reviews LIKE 'speed_rating'");
+            $hasSpeedRating = $checkStmt->rowCount() > 0;
+        } catch (PDOException $e) {}
+        
+        // 동적으로 INSERT 쿼리 생성
+        $columns = ['product_id', 'user_id', 'product_type', 'rating', 'title', 'content', 'status'];
+        $values = [':product_id', ':user_id', ':product_type', ':rating', ':title', ':content', ':status'];
+        $executeParams = [
             ':product_id' => $productId,
             ':user_id' => $userId,
             ':product_type' => $productType,
             ':rating' => $rating,
             ':title' => $title,
-            ':content' => $content
-        ]);
+            ':content' => $content,
+            ':status' => $status
+        ];
+        
+        if ($hasApplicationId && $applicationId !== null) {
+            $columns[] = 'application_id';
+            $values[] = ':application_id';
+            $executeParams[':application_id'] = $applicationId;
+        }
+        
+        if ($hasKindnessRating && $hasSpeedRating && $kindnessRating !== null && $speedRating !== null) {
+            $columns[] = 'kindness_rating';
+            $columns[] = 'speed_rating';
+            $values[] = ':kindness_rating';
+            $values[] = ':speed_rating';
+            $executeParams[':kindness_rating'] = $kindnessRating;
+            $executeParams[':speed_rating'] = $speedRating;
+        }
+        
+        $columnsStr = implode(', ', $columns);
+        $valuesStr = implode(', ', $values);
+        
+        $stmt = $pdo->prepare("
+            INSERT INTO product_reviews ($columnsStr)
+            VALUES ($valuesStr)
+        ");
+        $stmt->execute($executeParams);
         
         return $pdo->lastInsertId();
     } catch (PDOException $e) {
         error_log("Error adding review: " . $e->getMessage());
+        // 데이터베이스 스키마 오류인 경우 (product_type에 'internet'이 없는 경우)
+        if (strpos($e->getMessage(), 'product_type') !== false || strpos($e->getMessage(), 'ENUM') !== false) {
+            error_log("Database schema error: product_reviews.product_type ENUM may not include 'internet'. Please run: ALTER TABLE product_reviews MODIFY COLUMN product_type ENUM('mvno', 'mno', 'internet') NOT NULL;");
+        }
+        return false;
+    }
+}
+
+/**
+ * 사용자의 기존 리뷰 가져오기
+ * @param int $productId 상품 ID
+ * @param string $userId 사용자 ID
+ * @param string $productType 상품 타입 ('mvno', 'mno', 'internet')
+ * @param int|null $applicationId 신청 ID (application별 리뷰 구분용, 선택)
+ * @return array|false 리뷰 데이터 또는 false
+ */
+function getUserReview($productId, $userId, $productType, $applicationId = null) {
+    $pdo = getDBConnection();
+    if (!$pdo) {
+        error_log("getUserReview: Database connection failed");
+        return false;
+    }
+    
+    try {
+        // application_id 컬럼 존재 여부 확인
+        $hasApplicationId = false;
+        try {
+            $checkStmt = $pdo->query("SHOW COLUMNS FROM product_reviews LIKE 'application_id'");
+            $hasApplicationId = $checkStmt->rowCount() > 0;
+        } catch (PDOException $e) {
+            // 컬럼이 없으면 false
+        }
+        
+        // kindness_rating, speed_rating 컬럼 존재 여부 확인
+        $hasKindnessRating = false;
+        $hasSpeedRating = false;
+        try {
+            $checkStmt = $pdo->query("SHOW COLUMNS FROM product_reviews LIKE 'kindness_rating'");
+            $hasKindnessRating = $checkStmt->rowCount() > 0;
+        } catch (PDOException $e) {}
+        try {
+            $checkStmt = $pdo->query("SHOW COLUMNS FROM product_reviews LIKE 'speed_rating'");
+            $hasSpeedRating = $checkStmt->rowCount() > 0;
+        } catch (PDOException $e) {}
+        
+        // SELECT 필드 동적 생성
+        $selectFields = "id, product_id, user_id, product_type, rating, title, content, status, created_at, updated_at";
+        if ($hasApplicationId) {
+            $selectFields = str_replace("product_id,", "product_id, application_id,", $selectFields);
+        }
+        if ($hasKindnessRating && $hasSpeedRating) {
+            $selectFields = "id, product_id, " . ($hasApplicationId ? "application_id, " : "") . "user_id, product_type, rating, kindness_rating, speed_rating, title, content, status, created_at, updated_at";
+        } elseif ($hasKindnessRating) {
+            $selectFields = "id, product_id, " . ($hasApplicationId ? "application_id, " : "") . "user_id, product_type, rating, kindness_rating, title, content, status, created_at, updated_at";
+        } elseif ($hasSpeedRating) {
+            $selectFields = "id, product_id, " . ($hasApplicationId ? "application_id, " : "") . "user_id, product_type, rating, speed_rating, title, content, status, created_at, updated_at";
+        }
+        
+        error_log("getUserReview: Searching for review - product_id=$productId, user_id=$userId, product_type=$productType, application_id=" . ($applicationId ?? 'null'));
+        
+        // application_id가 있으면 application_id로 우선 조회, 없으면 product_id로 조회
+        if ($hasApplicationId && $applicationId !== null && $applicationId > 0) {
+            $stmt = $pdo->prepare("
+                SELECT $selectFields
+                FROM product_reviews
+                WHERE product_id = :product_id 
+                AND user_id = :user_id 
+                AND product_type = :product_type
+                AND application_id = :application_id
+                ORDER BY 
+                    CASE WHEN status = 'approved' THEN 0 ELSE 1 END,
+                    created_at DESC
+                LIMIT 1
+            ");
+            $stmt->execute([
+                ':product_id' => $productId,
+                ':user_id' => $userId,
+                ':product_type' => $productType,
+                ':application_id' => $applicationId
+            ]);
+        } else {
+            $stmt = $pdo->prepare("
+                SELECT $selectFields
+                FROM product_reviews
+                WHERE product_id = :product_id 
+                AND user_id = :user_id 
+                AND product_type = :product_type
+                " . ($hasApplicationId && $applicationId === null ? "AND (application_id IS NULL OR application_id = 0)" : "") . "
+                ORDER BY 
+                    CASE WHEN status = 'approved' THEN 0 ELSE 1 END,
+                    created_at DESC
+                LIMIT 1
+            ");
+            $params = [
+                ':product_id' => $productId,
+                ':user_id' => $userId,
+                ':product_type' => $productType
+            ];
+            $stmt->execute($params);
+        }
+        
+        $review = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if ($review) {
+            error_log("getUserReview: Review found - id=" . $review['id'] . ", rating=" . ($review['rating'] ?? 'N/A'));
+            return $review;
+        }
+        
+        // 정확한 product_id로 찾지 못한 경우, 같은 판매자의 같은 타입 상품 리뷰 중에서 찾기
+        error_log("getUserReview: No review found for exact product_id=$productId, trying to find in same seller's products");
+        
+        // 상품의 seller_id 가져오기
+        $productStmt = $pdo->prepare("
+            SELECT seller_id 
+            FROM products 
+            WHERE id = :product_id 
+            AND product_type = :product_type
+            LIMIT 1
+        ");
+        $productStmt->execute([
+            ':product_id' => $productId,
+            ':product_type' => $productType
+        ]);
+        $product = $productStmt->fetch(PDO::FETCH_ASSOC);
+        
+        if ($product && !empty($product['seller_id'])) {
+            $sellerId = $product['seller_id'];
+            
+            // 같은 판매자의 같은 타입의 모든 상품 ID 가져오기
+            $productsStmt = $pdo->prepare("
+                SELECT id 
+                FROM products 
+                WHERE seller_id = :seller_id 
+                AND product_type = :product_type
+                AND status = 'active'
+            ");
+            $productsStmt->execute([
+                ':seller_id' => $sellerId,
+                ':product_type' => $productType
+            ]);
+            $productIds = $productsStmt->fetchAll(PDO::FETCH_COLUMN);
+            
+            if (!empty($productIds)) {
+                $placeholders = implode(',', array_fill(0, count($productIds), '?'));
+                $stmt = $pdo->prepare("
+                    SELECT 
+                        id,
+                        product_id,
+                        user_id,
+                        product_type,
+                        rating,
+                        kindness_rating,
+                        speed_rating,
+                        title,
+                        content,
+                        status,
+                        created_at,
+                        updated_at
+                    FROM product_reviews
+                    WHERE product_id IN ($placeholders)
+                    AND user_id = ?
+                    AND product_type = ?
+                    ORDER BY 
+                        CASE WHEN status = 'approved' THEN 0 ELSE 1 END,
+                        created_at DESC
+                    LIMIT 1
+                ");
+                $params = array_merge($productIds, [$userId, $productType]);
+                $stmt->execute($params);
+                $review = $stmt->fetch(PDO::FETCH_ASSOC);
+                
+                if ($review) {
+                    error_log("getUserReview: Review found in same seller's products - id=" . $review['id'] . ", product_id=" . $review['product_id']);
+                    return $review;
+                }
+            }
+        }
+        
+        error_log("getUserReview: No review found for product_id=$productId, user_id=$userId, product_type=$productType");
+        
+        // 디버깅: 해당 조건으로 리뷰가 있는지 확인
+        $debugStmt = $pdo->prepare("
+            SELECT COUNT(*) as count 
+            FROM product_reviews 
+            WHERE product_id = :product_id AND product_type = :product_type
+        ");
+        $debugStmt->execute([
+            ':product_id' => $productId,
+            ':product_type' => $productType
+        ]);
+        $totalCount = $debugStmt->fetch(PDO::FETCH_ASSOC)['count'] ?? 0;
+        
+        $debugStmt2 = $pdo->prepare("
+            SELECT COUNT(*) as count 
+            FROM product_reviews 
+            WHERE user_id = :user_id AND product_type = :product_type
+        ");
+        $debugStmt2->execute([
+            ':user_id' => $userId,
+            ':product_type' => $productType
+        ]);
+        $userCount = $debugStmt2->fetch(PDO::FETCH_ASSOC)['count'] ?? 0;
+        
+        error_log("getUserReview: Debug - Total reviews for product_id=$productId: $totalCount, Total reviews for user_id=$userId: $userCount");
+        
+        return false;
+    } catch (PDOException $e) {
+        error_log("Error fetching user review: " . $e->getMessage());
+        return false;
+    }
+}
+
+/**
+ * 리뷰 수정
+ * @param int $reviewId 리뷰 ID
+ * @param string $userId 사용자 ID
+ * @param int $rating 별점
+ * @param string $content 리뷰 내용
+ * @param string $title 리뷰 제목 (선택)
+ * @param int|null $kindnessRating 친절해요 별점 (인터넷 리뷰용, 선택)
+ * @param int|null $speedRating 설치 빨라요 별점 (인터넷 리뷰용, 선택)
+ * @return bool 성공 여부
+ */
+function updateProductReview($reviewId, $userId, $rating, $content, $title = null, $kindnessRating = null, $speedRating = null) {
+    $pdo = getDBConnection();
+    if (!$pdo) {
+        return false;
+    }
+    
+    try {
+        // 리뷰 소유권 확인 및 product_type 확인
+        $checkStmt = $pdo->prepare("
+            SELECT id, user_id, product_type 
+            FROM product_reviews 
+            WHERE id = :review_id AND user_id = :user_id
+        ");
+        $checkStmt->execute([
+            ':review_id' => $reviewId,
+            ':user_id' => $userId
+        ]);
+        $review = $checkStmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$review) {
+            error_log("Review not found or user mismatch: review_id=$reviewId, user_id=$userId");
+            return false;
+        }
+        
+        // 인터넷 리뷰인 경우 kindness_rating과 speed_rating도 업데이트
+        // 컬럼 존재 여부 확인
+        $hasKindnessRating = false;
+        $hasSpeedRating = false;
+        try {
+            $checkStmt = $pdo->query("SHOW COLUMNS FROM product_reviews LIKE 'kindness_rating'");
+            $hasKindnessRating = $checkStmt->rowCount() > 0;
+        } catch (PDOException $e) {
+            // 컬럼이 없으면 false
+        }
+        
+        try {
+            $checkStmt = $pdo->query("SHOW COLUMNS FROM product_reviews LIKE 'speed_rating'");
+            $hasSpeedRating = $checkStmt->rowCount() > 0;
+        } catch (PDOException $e) {
+            // 컬럼이 없으면 false
+        }
+        
+        if ($review['product_type'] === 'internet' && $hasKindnessRating && $hasSpeedRating && $kindnessRating !== null && $speedRating !== null) {
+            $stmt = $pdo->prepare("
+                UPDATE product_reviews
+                SET rating = :rating,
+                    kindness_rating = :kindness_rating,
+                    speed_rating = :speed_rating,
+                    content = :content,
+                    title = :title,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = :review_id
+                AND user_id = :user_id
+            ");
+            $stmt->execute([
+                ':review_id' => $reviewId,
+                ':user_id' => $userId,
+                ':rating' => $rating,
+                ':kindness_rating' => $kindnessRating,
+                ':speed_rating' => $speedRating,
+                ':content' => $content,
+                ':title' => $title
+            ]);
+            
+            error_log("updateProductReview: Updated review $reviewId with kindness_rating=$kindnessRating, speed_rating=$speedRating");
+        } else {
+            $stmt = $pdo->prepare("
+                UPDATE product_reviews
+                SET rating = :rating,
+                    content = :content,
+                    title = :title,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = :review_id
+                AND user_id = :user_id
+            ");
+            $stmt->execute([
+                ':review_id' => $reviewId,
+                ':user_id' => $userId,
+                ':rating' => $rating,
+                ':content' => $content,
+                ':title' => $title
+            ]);
+            
+            if ($review['product_type'] === 'internet' && (!$hasKindnessRating || !$hasSpeedRating)) {
+                error_log("updateProductReview: Warning - kindness_rating or speed_rating columns not found, only rating updated");
+            }
+        }
+        
+        return true;
+    } catch (PDOException $e) {
+        error_log("Error updating review: " . $e->getMessage());
         return false;
     }
 }
@@ -2830,12 +3195,41 @@ function getUserInternetApplications($userId) {
             $productSnapshot = $additionalInfo['product_snapshot'] ?? null;
             error_log("getUserInternetApplications: application_id " . ($app['application_id'] ?? 'unknown') . " - productSnapshot exists: " . ($productSnapshot ? 'yes' : 'no'));
             
+            // monthly_fee 추출 헬퍼 함수 (숫자 또는 문자열에서 숫자 추출)
+            $extractMonthlyFee = function($value) {
+                if (empty($value) && $value !== '0' && $value !== 0) {
+                    return 0;
+                }
+                // 숫자인 경우
+                if (is_numeric($value)) {
+                    $num = (float)$value;
+                    return $num > 0 ? $num : 0;
+                }
+                // 문자열인 경우 (예: "26400원", "26,400원")
+                if (is_string($value)) {
+                    // 숫자와 쉼표만 추출
+                    $numericPart = preg_replace('/[^0-9,]/', '', $value);
+                    $numericPart = str_replace(',', '', $numericPart);
+                    if (!empty($numericPart) && is_numeric($numericPart)) {
+                        $num = (float)$numericPart;
+                        return $num > 0 ? $num : 0;
+                    }
+                }
+                return 0;
+            };
+            
             // 테이블 값이 있으면 우선 사용 (판매자 페이지와 동일)
             if (!empty($app['registration_place']) || !empty($app['service_type']) || !empty($app['speed_option']) || isset($app['monthly_fee'])) {
                 $registrationPlace = $app['registration_place'] ?? '';
                 $speedOption = $app['speed_option'] ?? '';
                 $serviceType = $app['service_type'] ?? '';
-                $monthlyFee = isset($app['monthly_fee']) && is_numeric($app['monthly_fee']) ? (float)$app['monthly_fee'] : 0;
+                
+                // monthly_fee 처리: 테이블에 값이 있고 유효하면 사용, 없거나 0이면 product_snapshot에서 가져오기
+                $monthlyFee = $extractMonthlyFee($app['monthly_fee'] ?? 0);
+                if ($monthlyFee <= 0 && $productSnapshot && isset($productSnapshot['monthly_fee'])) {
+                    // 테이블 값이 없거나 0이면 product_snapshot에서 가져오기
+                    $monthlyFee = $extractMonthlyFee($productSnapshot['monthly_fee']);
+                }
             } elseif ($productSnapshot) {
                 // 테이블 값이 없으면 product_snapshot 사용 (fallback)
                 $registrationPlace = $productSnapshot['registration_place'] ?? '';
@@ -2843,10 +3237,7 @@ function getUserInternetApplications($userId) {
                 $serviceType = $productSnapshot['service_type'] ?? '';
                 
                 // monthly_fee는 문자열일 수 있으므로 숫자로 변환
-                $monthlyFee = 0;
-                if (isset($productSnapshot['monthly_fee'])) {
-                    $monthlyFee = is_numeric($productSnapshot['monthly_fee']) ? (float)$productSnapshot['monthly_fee'] : 0;
-                }
+                $monthlyFee = $extractMonthlyFee($productSnapshot['monthly_fee'] ?? 0);
             } else {
                 $registrationPlace = '';
                 $speedOption = '';
@@ -2922,17 +3313,41 @@ function getUserInternetApplications($userId) {
             $reviewCount = 0;
             if (!empty($app['product_id'])) {
                 try {
-                    $reviewStmt = $pdo->prepare("
-                        SELECT COUNT(*) as count
-                        FROM product_reviews
-                        WHERE product_id = :product_id 
-                        AND user_id = :user_id 
-                        AND status = 'approved'
-                    ");
-                    $reviewStmt->execute([
-                        ':product_id' => $app['product_id'],
-                        ':user_id' => $userId
-                    ]);
+                    // application_id 컬럼 존재 여부 확인
+                    $hasApplicationId = false;
+                    try {
+                        $checkStmt = $pdo->query("SHOW COLUMNS FROM product_reviews LIKE 'application_id'");
+                        $hasApplicationId = $checkStmt->rowCount() > 0;
+                    } catch (PDOException $e) {}
+                    
+                    // application_id가 있으면 application_id로 조회, 없으면 product_id로 조회
+                    if ($hasApplicationId && !empty($app['application_id'])) {
+                        $reviewStmt = $pdo->prepare("
+                            SELECT COUNT(*) as count
+                            FROM product_reviews
+                            WHERE product_id = :product_id
+                            AND user_id = :user_id
+                            AND application_id = :application_id
+                            AND status = 'approved'
+                        ");
+                        $reviewStmt->execute([
+                            ':product_id' => $app['product_id'],
+                            ':user_id' => $userId,
+                            ':application_id' => $app['application_id']
+                        ]);
+                    } else {
+                        $reviewStmt = $pdo->prepare("
+                            SELECT COUNT(*) as count
+                            FROM product_reviews
+                            WHERE product_id = :product_id
+                            AND user_id = :user_id
+                            AND status = 'approved'
+                        ");
+                        $reviewStmt->execute([
+                            ':product_id' => $app['product_id'],
+                            ':user_id' => $userId
+                        ]);
+                    }
                     $reviewResult = $reviewStmt->fetch(PDO::FETCH_ASSOC);
                     $hasReview = ($reviewResult['count'] ?? 0) > 0;
                     

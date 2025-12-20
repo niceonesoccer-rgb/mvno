@@ -236,24 +236,31 @@
 .internet-rating-group-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 24px;
+    gap: 32px;
     margin-bottom: 0;
 }
 
 .internet-rating-item {
-    display: flex;
-    flex-direction: column;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
     gap: 16px;
+    width: 100%;
+    min-height: 50px;
+    padding: 8px 0;
 }
 
 .internet-review-form-label {
-    display: flex;
+    display: flex !important;
     align-items: center;
     gap: 8px;
     font-size: 16px;
     font-weight: 600;
     color: #334155;
-    margin-bottom: 0;
+    margin-bottom: 0 !important;
+    white-space: nowrap;
+    flex-shrink: 0;
+    min-width: fit-content;
 }
 
 .label-icon {
@@ -268,8 +275,9 @@
 .internet-star-rating {
     display: flex;
     gap: 8px;
-    justify-content: center;
+    justify-content: flex-start;
     align-items: center;
+    flex: 1;
 }
 
 .internet-star-rating input[type="radio"] {
@@ -443,6 +451,11 @@
         gap: 28px;
     }
     
+    .internet-rating-item {
+        flex-direction: row;
+        gap: 12px;
+    }
+    
     .internet-review-modal-title {
         font-size: 20px;
     }
@@ -493,8 +506,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const reviewTextarea = document.getElementById('internetReviewText');
     const reviewTextCounter = document.getElementById('reviewTextCounter');
     
-    // 모달 열기 함수
-    function openReviewModal() {
+    // 모달 열기 함수 (전역으로 노출)
+    window.openInternetReviewModal = function() {
         if (modal) {
             // 현재 스크롤 위치 저장
             const scrollY = window.scrollY;
@@ -508,6 +521,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 modal.classList.add('show');
             }, 10);
         }
+    };
+    
+    // 내부에서도 사용할 수 있도록 로컬 함수도 유지
+    function openReviewModal() {
+        window.openInternetReviewModal();
     }
     
     // 모달 닫기 함수
