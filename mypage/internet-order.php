@@ -30,6 +30,7 @@ $user_id = $currentUser['user_id'];
 require_once '../includes/data/point-settings.php';
 require_once '../includes/data/product-functions.php';
 require_once '../includes/data/db-config.php';
+require_once '../includes/data/review-settings.php';
 
 // DB에서 실제 신청 내역 가져오기
 $internets = getUserInternetApplications($user_id);
@@ -118,6 +119,8 @@ if ($debug_mode) {
 
 // 헤더 포함
 include '../includes/header.php';
+// 인터넷 리뷰 모달 포함
+include '../includes/components/internet-review-modal.php';
 ?>
 
 <main class="main-content">
@@ -264,6 +267,28 @@ include '../includes/header.php';
                                         <?php endif; ?>
                                         </div>
                                     </div>
+                                    
+                                    <!-- 리뷰 작성 버튼 (조건부 표시) -->
+                                    <?php
+                                    $appStatus = $internet['application_status'] ?? '';
+                                    $canWrite = canWriteReview($appStatus);
+                                    if ($canWrite):
+                                        // getUserInternetApplications에서 반환하는 배열의 'id' 키에 product_id 값이 들어있음
+                                        $productId = $internet['id'] ?? ($internet['product_id'] ?? 0);
+                                        $applicationId = $internet['application_id'] ?? '';
+                                    ?>
+                                        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #e5e7eb;">
+                                            <button 
+                                                class="internet-review-write-btn" 
+                                                data-application-id="<?php echo htmlspecialchars($applicationId); ?>"
+                                                data-product-id="<?php echo htmlspecialchars($productId); ?>"
+                                                style="width: 100%; padding: 10px 16px; background: #6366f1; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: background 0.2s;"
+                                                onmouseover="this.style.background='#4f46e5'"
+                                                onmouseout="this.style.background='#6366f1'">
+                                                리뷰 작성
+                                            </button>
+                                        </div>
+                                    <?php endif; ?>
                                 </div>
                             <?php endforeach; ?>
                         </div>
@@ -732,8 +757,463 @@ document.addEventListener('DOMContentLoaded', function() {
             moreButtonContainer.style.display = 'none';
         }
     }
+    
+    // 인터넷 리뷰 작성 기능
+    const reviewWriteButtons = document.querySelectorAll('.internet-review-write-btn');
+    const reviewModal = document.getElementById('internetReviewModal');
+    const reviewForm = document.getElementById('internetReviewForm');
+    const reviewModalClose = reviewModal ? reviewModal.querySelector('.internet-review-modal-close') : null;
+    const reviewModalOverlay = reviewModal ? reviewModal.querySelector('.internet-review-modal-overlay') : null;
+    const reviewCancelBtn = reviewForm ? reviewForm.querySelector('.internet-review-btn-cancel') : null;
+    
+    let currentReviewApplicationId = null;
+    let currentReviewProductId = null;
+    
+    // 리뷰 작성 버튼 클릭 이벤트
+    reviewWriteButtons.forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation(); // 카드 클릭 이벤트 방지
+            currentReviewApplicationId = this.getAttribute('data-application-id');
+            currentReviewProductId = this.getAttribute('data-product-id');
+            
+            if (reviewModal) {
+                // 현재 스크롤 위치 저장
+                const scrollY = window.scrollY;
+                document.body.style.position = 'fixed';
+                document.body.style.top = `-${scrollY}px`;
+                document.body.style.width = '100%';
+                document.body.style.overflow = 'hidden';
+                
+                reviewModal.style.display = 'flex';
+                setTimeout(() => {
+                    reviewModal.classList.add('show');
+                }, 10);
+            }
+        });
+    });
+    
+    // 리뷰 모달 닫기
+    function closeReviewModal() {
+        if (reviewModal) {
+            reviewModal.classList.remove('show');
+            setTimeout(() => {
+                reviewModal.style.display = 'none';
+                
+                // 스크롤 위치 복원
+                const scrollY = document.body.style.top;
+                document.body.style.position = '';
+                document.body.style.top = '';
+                document.body.style.width = '';
+                document.body.style.overflow = '';
+                if (scrollY) {
+                    window.scrollTo(0, parseInt(scrollY || '0') * -1);
+                }
+                
+                // 폼 초기화
+                if (reviewForm) {
+                    reviewForm.reset();
+                    // 별점 초기화
+                    const starLabels = reviewForm.querySelectorAll('.star-label');
+                    starLabels.forEach(label => {
+                        label.classList.remove('active');
+                        label.classList.remove('hover-active');
+                    });
+                }
+                // 텍스트 카운터 초기화
+                const reviewTextCounter = document.getElementById('reviewTextCounter');
+                if (reviewTextCounter) {
+                    reviewTextCounter.textContent = '0';
+                }
+                currentReviewApplicationId = null;
+                currentReviewProductId = null;
+            }, 300);
+        }
+    }
+    
+    // 모달 닫기 이벤트
+    if (reviewModalClose) {
+        reviewModalClose.addEventListener('click', closeReviewModal);
+    }
+    
+    if (reviewModalOverlay) {
+        reviewModalOverlay.addEventListener('click', closeReviewModal);
+    }
+    
+    if (reviewCancelBtn) {
+        reviewCancelBtn.addEventListener('click', closeReviewModal);
+    }
+    
+    // ESC 키로 모달 닫기
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && reviewModal && reviewModal.classList.contains('show')) {
+            closeReviewModal();
+        }
+    });
+    
+    // 별점 호버 및 클릭 이벤트
+    if (reviewForm) {
+        const starRatings = reviewForm.querySelectorAll('.internet-star-rating');
+        
+        starRatings.forEach(ratingGroup => {
+            const starLabels = Array.from(ratingGroup.querySelectorAll('.star-label'));
+            const ratingType = ratingGroup.getAttribute('data-rating-type');
+            
+            starLabels.forEach((label, index) => {
+                // 호버 이벤트: 왼쪽부터 해당 별까지 모든 별 하이라이트
+                // index는 0부터 시작 (0=왼쪽 첫번째, 4=왼쪽 다섯번째)
+                label.addEventListener('mouseenter', function() {
+                    const position = index + 1; // 왼쪽에서 몇 번째 별인지 (1~5)
+                    const sameTypeLabels = Array.from(reviewForm.querySelectorAll('.internet-star-rating[data-rating-type="' + ratingType + '"] .star-label'));
+                    
+                    sameTypeLabels.forEach((l, idx) => {
+                        if (idx < position) {
+                            // 왼쪽부터 position번째까지 활성화
+                            l.classList.add('hover-active');
+                        } else {
+                            l.classList.remove('hover-active');
+                        }
+                    });
+                });
+            });
+            
+            // 마우스가 벗어날 때 호버 효과 제거
+            ratingGroup.addEventListener('mouseleave', function() {
+                const sameTypeLabels = reviewForm.querySelectorAll('.internet-star-rating[data-rating-type="' + ratingType + '"] .star-label');
+                sameTypeLabels.forEach(l => {
+                    l.classList.remove('hover-active');
+                });
+            });
+            
+            // 클릭 이벤트: 왼쪽부터 해당 별까지 모든 별 활성화
+            starLabels.forEach((label, index) => {
+                label.addEventListener('click', function() {
+                    const position = index + 1; // 왼쪽에서 몇 번째 별인지 (1~5)
+                    const rating = parseInt(this.getAttribute('data-rating')); // 실제 별점 값 (5~1)
+                    const radioInput = this.previousElementSibling;
+                    
+                    if (radioInput) {
+                        radioInput.checked = true;
+                    }
+                    
+                    // 같은 타입의 별점 업데이트 (왼쪽부터 position개까지 활성화)
+                    const sameTypeLabels = Array.from(reviewForm.querySelectorAll('.internet-star-rating[data-rating-type="' + ratingType + '"] .star-label'));
+                    sameTypeLabels.forEach((l, idx) => {
+                        if (idx < position) {
+                            // 왼쪽부터 position번째까지 활성화
+                            l.classList.add('active');
+                        } else {
+                            l.classList.remove('active');
+                        }
+                    });
+                });
+            });
+        });
+    }
+    
+    // 리뷰 폼 제출
+    if (reviewForm) {
+        reviewForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const kindnessRatingInput = reviewForm.querySelector('input[name="kindness_rating"]:checked');
+            const speedRatingInput = reviewForm.querySelector('input[name="speed_rating"]:checked');
+            const reviewText = document.getElementById('internetReviewText') ? document.getElementById('internetReviewText').value.trim() : '';
+            
+            if (!kindnessRatingInput) {
+                showMessageModal('친절해요 별점을 선택해주세요.', 'warning');
+                return;
+            }
+            
+            if (!speedRatingInput) {
+                showMessageModal('설치 빨라요 별점을 선택해주세요.', 'warning');
+                return;
+            }
+            
+            if (!reviewText) {
+                showMessageModal('리뷰 내용을 입력해주세요.', 'warning');
+                return;
+            }
+            
+            if (!currentReviewProductId || currentReviewProductId <= 0) {
+                showMessageModal('상품 정보를 찾을 수 없습니다.', 'error');
+                return;
+            }
+            
+            // 평균 별점 계산 (친절해요와 설치 빨라요의 평균)
+            const kindnessRating = parseInt(kindnessRatingInput.value);
+            const speedRating = parseInt(speedRatingInput.value);
+            const averageRating = Math.round((kindnessRating + speedRating) / 2);
+            
+            // 제출 버튼 비활성화 및 로딩 상태
+            const submitBtn = reviewForm.querySelector('.internet-review-btn-submit');
+            const originalBtnContent = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span>작성 중...</span>';
+            
+            // 리뷰 제출
+            const formData = new FormData();
+            formData.append('product_id', currentReviewProductId);
+            formData.append('product_type', 'internet');
+            formData.append('rating', averageRating);
+            formData.append('content', reviewText);
+            formData.append('title', ''); // 인터넷 리뷰는 제목 없음
+            
+            fetch('/MVNO/api/submit-review.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // 성공 모달 표시
+                    showMessageModal('리뷰가 작성되었습니다.', 'success', function() {
+                        closeReviewModal();
+                        // 페이지 새로고침 (리뷰 작성 버튼 제거를 위해)
+                        location.reload();
+                    });
+                } else {
+                    // 에러 모달 표시
+                    showMessageModal(data.message || '리뷰 작성에 실패했습니다.', 'error');
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalBtnContent;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showMessageModal('리뷰 작성 중 오류가 발생했습니다.', 'error');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnContent;
+            });
+        });
+    }
+    
+    // 메시지 모달 표시 함수
+    function showMessageModal(message, type, callback) {
+        type = type || 'info'; // success, error, warning, info
+        
+        // 기존 모달이 있으면 제거
+        const existingModal = document.getElementById('reviewMessageModal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+        
+        // 모달 생성
+        const modal = document.createElement('div');
+        modal.id = 'reviewMessageModal';
+        modal.className = 'review-message-modal';
+        
+        // 아이콘 및 색상 설정
+        let icon = '';
+        let bgColor = '';
+        let iconBg = '';
+        
+        switch(type) {
+            case 'success':
+                icon = '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+                bgColor = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+                iconBg = '#10b981';
+                break;
+            case 'error':
+                icon = '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 8V12M12 16H12.01M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+                bgColor = 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)';
+                iconBg = '#ef4444';
+                break;
+            case 'warning':
+                icon = '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 9V13M12 17H12.01M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+                bgColor = 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)';
+                iconBg = '#f59e0b';
+                break;
+            default:
+                icon = '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M13 16H12V12H11M12 8H12.01M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+                bgColor = 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)';
+                iconBg = '#6366f1';
+        }
+        
+        modal.innerHTML = `
+            <div class="review-message-modal-overlay"></div>
+            <div class="review-message-modal-content">
+                <div class="review-message-modal-icon" style="background: ${iconBg};">
+                    ${icon}
+                </div>
+                <div class="review-message-modal-body">
+                    <h3 class="review-message-modal-title">${type === 'success' ? '작성 완료' : type === 'error' ? '오류 발생' : type === 'warning' ? '알림' : '알림'}</h3>
+                    <p class="review-message-modal-text">${message}</p>
+                </div>
+                <div class="review-message-modal-footer">
+                    <button class="review-message-modal-btn" style="background: ${bgColor};">
+                        확인
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // 애니메이션
+        setTimeout(() => {
+            modal.classList.add('show');
+        }, 10);
+        
+        // 닫기 이벤트
+        const closeBtn = modal.querySelector('.review-message-modal-btn');
+        const overlay = modal.querySelector('.review-message-modal-overlay');
+        
+        function closeMessageModal() {
+            modal.classList.remove('show');
+            setTimeout(() => {
+                modal.remove();
+                if (callback && typeof callback === 'function') {
+                    callback();
+                }
+            }, 300);
+        }
+        
+        if (closeBtn) {
+            closeBtn.addEventListener('click', closeMessageModal);
+        }
+        
+        if (overlay) {
+            overlay.addEventListener('click', closeMessageModal);
+        }
+        
+        // ESC 키로 닫기
+        const escHandler = function(e) {
+            if (e.key === 'Escape' && modal.classList.contains('show')) {
+                closeMessageModal();
+                document.removeEventListener('keydown', escHandler);
+            }
+        };
+        document.addEventListener('keydown', escHandler);
+    }
 });
 </script>
+
+<style>
+/* 메시지 모달 스타일 */
+.review-message-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10002;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.3s;
+    padding: 20px;
+}
+
+.review-message-modal.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+.review-message-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 10002;
+}
+
+.review-message-modal-content {
+    position: relative;
+    background: #ffffff;
+    border-radius: 20px;
+    width: 100%;
+    max-width: 400px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+    transform: scale(0.9) translateY(20px);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+    z-index: 10003;
+}
+
+.review-message-modal.show .review-message-modal-content {
+    transform: scale(1) translateY(0);
+}
+
+.review-message-modal-icon {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 32px auto 24px;
+    color: white;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+}
+
+.review-message-modal-body {
+    padding: 0 32px 24px;
+    text-align: center;
+}
+
+.review-message-modal-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0 0 12px 0;
+    letter-spacing: -0.02em;
+}
+
+.review-message-modal-text {
+    font-size: 16px;
+    color: #64748b;
+    line-height: 1.6;
+    margin: 0;
+}
+
+.review-message-modal-footer {
+    width: 100%;
+    padding: 0 32px 32px;
+}
+
+.review-message-modal-btn {
+    width: 100%;
+    padding: 16px 24px;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    color: #ffffff;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.review-message-modal-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+}
+
+.review-message-modal-btn:active {
+    transform: translateY(0);
+}
+
+@media (max-width: 640px) {
+    .review-message-modal {
+        padding: 0;
+    }
+    
+    .review-message-modal-content {
+        max-width: 100%;
+        border-radius: 20px 20px 0 0;
+        margin-top: auto;
+    }
+}
+</style>
 
 <?php
 // 푸터 포함

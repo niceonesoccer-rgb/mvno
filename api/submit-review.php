@@ -1,7 +1,7 @@
 <?php
 /**
  * 리뷰 작성 API
- * 통신사폰(MNO) 및 알뜰폰(MVNO) 상품 리뷰 작성
+ * 통신사폰(MNO), 알뜰폰(MVNO), 인터넷(Internet) 상품 리뷰 작성
  */
 
 header('Content-Type: application/json');
@@ -38,8 +38,8 @@ if ($productId <= 0) {
     exit;
 }
 
-if (!in_array($productType, ['mvno', 'mno'])) {
-    echo json_encode(['success' => false, 'message' => '상품 타입이 올바르지 않습니다. (mvno 또는 mno만 가능)']);
+if (!in_array($productType, ['mvno', 'mno', 'internet'])) {
+    echo json_encode(['success' => false, 'message' => '상품 타입이 올바르지 않습니다. (mvno, mno, internet만 가능)']);
     exit;
 }
 
@@ -71,6 +71,9 @@ echo json_encode([
     'message' => '리뷰가 작성되었습니다.',
     'review_id' => $reviewId
 ]);
+
+
+
 
 
 

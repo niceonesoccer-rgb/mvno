@@ -391,7 +391,18 @@ function displayOrderDetails(data) {
     
     if (additionalInfo.subscription_type) {
         html += `<div style="color: #6b7280; font-weight: 500;">가입형태:</div>`;
-        html += `<div style="color: #1f2937;">${escapeHtml(additionalInfo.subscription_type)}</div>`;
+        // 고객용 표시: 신규가입, 번호이동, 기기변경
+        let subscriptionTypeText = additionalInfo.subscription_type;
+        const subscriptionTypeMap = {
+            'new': '신규가입',
+            'port': '번호이동',
+            'mnp': '번호이동',
+            'change': '기기변경'
+        };
+        if (subscriptionTypeMap[subscriptionTypeText]) {
+            subscriptionTypeText = subscriptionTypeMap[subscriptionTypeText];
+        }
+        html += `<div style="color: #1f2937;">${escapeHtml(subscriptionTypeText)}</div>`;
     }
     
     if (additionalInfo.discount_type) {

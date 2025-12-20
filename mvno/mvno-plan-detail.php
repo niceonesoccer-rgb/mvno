@@ -754,7 +754,7 @@ $reviewCount = getProductReviewCount($plan_id, 'mvno');
                     <!-- 체크박스 -->
                     <div class="internet-checkbox-group">
                         <label class="internet-checkbox-all">
-                            <input type="checkbox" id="mvnoAgreementAll" class="internet-checkbox-input" onchange="toggleAllMvnoAgreements(this.checked)">
+                            <input type="checkbox" id="mvnoAgreementAll" class="internet-checkbox-input">
                             <span class="internet-checkbox-label">전체 동의</span>
                         </label>
                         <div class="internet-checkbox-list">
@@ -859,6 +859,38 @@ function toggleMvnoAccordionByArrow(accordionId, arrowLinkId) {
     } else {
         accordion.classList.remove('active');
         arrowLink.classList.remove('arrow-up');
+    }
+}
+
+// 전체 동의 상태 확인 함수 (전역 스코프 - 인라인 핸들러에서 호출됨)
+function checkAllMvnoAgreements() {
+    const mvnoAgreementAll = document.getElementById('mvnoAgreementAll');
+    const mvnoAgreementPurpose = document.getElementById('mvnoAgreementPurpose');
+    const mvnoAgreementItems = document.getElementById('mvnoAgreementItems');
+    const mvnoAgreementPeriod = document.getElementById('mvnoAgreementPeriod');
+    const mvnoAgreementThirdParty = document.getElementById('mvnoAgreementThirdParty');
+    const submitBtn = document.getElementById('mvnoApplicationSubmitBtn');
+    const nameInput = document.getElementById('mvnoApplicationName');
+    const phoneInput = document.getElementById('mvnoApplicationPhone');
+    
+    if (mvnoAgreementAll && mvnoAgreementPurpose && mvnoAgreementItems && mvnoAgreementPeriod && mvnoAgreementThirdParty && submitBtn) {
+        // 전체 동의 체크박스 상태 업데이트
+        mvnoAgreementAll.checked = mvnoAgreementPurpose.checked && mvnoAgreementItems.checked && mvnoAgreementPeriod.checked && mvnoAgreementThirdParty.checked;
+        
+        // 이름과 휴대폰 번호 확인
+        const name = nameInput ? nameInput.value.trim() : '';
+        const phone = phoneInput ? phoneInput.value.replace(/[^\d]/g, '') : '';
+        
+        // 제출 버튼 활성화/비활성화 (모든 필드가 입력되어야 활성화)
+        const isNameValid = name.length > 0;
+        const isPhoneValid = phone.length === 11 && phone.startsWith('010');
+        const isAgreementsChecked = mvnoAgreementPurpose.checked && mvnoAgreementItems.checked && mvnoAgreementPeriod.checked && mvnoAgreementThirdParty.checked;
+        
+        if (isNameValid && isPhoneValid && isAgreementsChecked) {
+            submitBtn.disabled = false;
+        } else {
+            submitBtn.disabled = true;
+        }
     }
 }
 
@@ -1507,10 +1539,49 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 } else {
                     // 실패 시 모달로 표시
+                    let errorMessage = data.message || '신청정보 저장에 실패했습니다.';
+                    
+                    // 디버그 정보가 있으면 콘솔에 출력
+                    if (data.debug) {
+                        console.error('신청 실패 - 디버그 정보:', data.debug);
+                        console.error('신청 실패 - 디버그 정보 (JSON):', JSON.stringify(data.debug, null, 2));
+                        
+                        // 로컬 환경에서는 에러 메시지에 추가 정보 포함
+                        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                            if (data.debug.last_db_error) {
+                                errorMessage += '\n\n데이터베이스 오류: ' + data.debug.last_db_error;
+                            }
+                            if (data.debug.last_db_connection_error) {
+                                errorMessage += '\n\n연결 오류: ' + data.debug.last_db_connection_error;
+                            }
+                            if (data.debug.error_message && data.debug.error_message !== errorMessage) {
+                                errorMessage += '\n\n상세: ' + data.debug.error_message;
+                            }
+                            if (data.debug.product_id) {
+                                console.error('상품 ID:', data.debug.product_id);
+                            }
+                            if (data.debug.user_id) {
+                                console.error('사용자 ID:', data.debug.user_id);
+                            }
+                            if (data.debug.seller_id) {
+                                console.error('판매자 ID:', data.debug.seller_id);
+                            }
+                        }
+                    }
+                    
+                    // 전체 응답 데이터도 로깅
+                    console.error('신청 실패 - 전체 응답:', data);
+                    console.error('신청 실패 - 전체 응답 (JSON):', JSON.stringify(data, null, 2));
+                    
+                    // missing_fields가 있으면 표시
+                    if (data.missing_fields && data.missing_fields.length > 0) {
+                        errorMessage += '\n누락된 필드: ' + data.missing_fields.join(', ');
+                    }
+                    
                     if (typeof showAlert === 'function') {
-                        showAlert(data.message || '신청정보 저장에 실패했습니다.', '신청 실패');
+                        showAlert(errorMessage, '신청 실패');
                     } else {
-                        alert(data.message || '신청정보 저장에 실패했습니다.');
+                        alert(errorMessage);
                     }
                     if (submitBtn) {
                         submitBtn.disabled = false;
@@ -1571,37 +1642,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // 전체 동의 상태 확인 함수
-    function checkAllMvnoAgreements() {
-        const mvnoAgreementAll = document.getElementById('mvnoAgreementAll');
-        const mvnoAgreementPurpose = document.getElementById('mvnoAgreementPurpose');
-        const mvnoAgreementItems = document.getElementById('mvnoAgreementItems');
-        const mvnoAgreementPeriod = document.getElementById('mvnoAgreementPeriod');
-        const mvnoAgreementThirdParty = document.getElementById('mvnoAgreementThirdParty');
-        const submitBtn = document.getElementById('mvnoApplicationSubmitBtn');
-        const nameInput = document.getElementById('mvnoApplicationName');
-        const phoneInput = document.getElementById('mvnoApplicationPhone');
-        
-        if (mvnoAgreementAll && mvnoAgreementPurpose && mvnoAgreementItems && mvnoAgreementPeriod && mvnoAgreementThirdParty && submitBtn) {
-            // 전체 동의 체크박스 상태 업데이트
-            mvnoAgreementAll.checked = mvnoAgreementPurpose.checked && mvnoAgreementItems.checked && mvnoAgreementPeriod.checked && mvnoAgreementThirdParty.checked;
-            
-            // 이름과 휴대폰 번호 확인
-            const name = nameInput ? nameInput.value.trim() : '';
-            const phone = phoneInput ? phoneInput.value.replace(/[^\d]/g, '') : '';
-            
-            // 제출 버튼 활성화/비활성화 (모든 필드가 입력되어야 활성화)
-            const isNameValid = name.length > 0;
-            const isPhoneValid = phone.length === 11 && phone.startsWith('010');
-            const isAgreementsChecked = mvnoAgreementPurpose.checked && mvnoAgreementItems.checked && mvnoAgreementPeriod.checked && mvnoAgreementThirdParty.checked;
-            
-            if (isNameValid && isPhoneValid && isAgreementsChecked) {
-                submitBtn.disabled = false;
-            } else {
-                submitBtn.disabled = true;
-            }
-        }
-    }
+    // checkAllMvnoAgreements 함수는 전역 스코프에 정의되어 있음 (인라인 핸들러에서 호출됨)
     
     
     // MVNO 개인정보 내용보기 모달

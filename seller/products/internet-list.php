@@ -598,7 +598,15 @@ include __DIR__ . '/../includes/seller-header.php';
                                 echo htmlspecialchars($serviceTypeDisplay);
                             ?></td>
                             <td><?php echo htmlspecialchars($product['speed_option'] ?? '-'); ?></td>
-                            <td><?php echo number_format($product['monthly_fee'] ?? 0); ?>원</td>
+                            <td><?php 
+                                $monthlyFee = $product['monthly_fee'] ?? '';
+                                // Extract numeric value from string (remove "원", commas, and non-numeric characters)
+                                $monthlyFeeNumeric = 0;
+                                if (!empty($monthlyFee)) {
+                                    $cleaned = preg_replace('/[^0-9]/', '', $monthlyFee);
+                                    $monthlyFeeNumeric = $cleaned !== '' ? (float)$cleaned : 0;
+                                }
+                                echo number_format($monthlyFeeNumeric); ?>원</td>
                             <td><?php echo number_format($product['view_count'] ?? 0); ?></td>
                             <td><?php echo number_format($product['favorite_count'] ?? 0); ?></td>
                             <td><?php echo number_format($product['application_count'] ?? 0); ?></td>

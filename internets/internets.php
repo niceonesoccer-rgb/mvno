@@ -590,8 +590,9 @@ function getInternetIconPath($registrationPlace) {
 <div id="internetToastModal" class="internet-toast-modal">
     <div class="internet-toast-overlay"></div>
     <div class="internet-toast-content">
-        <div class="internet-toast-title">인터넷 상담을 신청했어요</div>
-        <div class="internet-toast-message">입력한 번호로 상담 전화를 드릴예정이에요</div>
+        <div class="internet-toast-icon" id="internetToastIcon"></div>
+        <div class="internet-toast-title" id="internetToastTitle">인터넷 상담을 신청했어요</div>
+        <div class="internet-toast-message" id="internetToastMessage">입력한 번호로 상담 전화를 드릴예정이에요</div>
         <button class="internet-toast-button" onclick="closeInternetToast()">확인</button>
     </div>
 </div>
@@ -1809,6 +1810,32 @@ span.internet-checkbox-text {
     }
 }
 
+.internet-toast-icon {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 1rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+}
+
+.internet-toast-icon.success {
+    background-color: #d1fae5;
+    color: #10b981;
+}
+
+.internet-toast-icon.error {
+    background-color: #fee2e2;
+    color: #ef4444;
+}
+
+.internet-toast-icon svg {
+    width: 32px;
+    height: 32px;
+}
+
 .internet-toast-title {
     font-size: 1.125rem;
     font-weight: 700;
@@ -2175,6 +2202,13 @@ function openInternetModal() {
             if (emailInput && currentUser.email) {
                 emailInput.value = currentUser.email;
             }
+            
+            // 정보 입력 후 버튼 상태 확인
+            setTimeout(() => {
+                if (typeof checkAllAgreements === 'function') {
+                    checkAllAgreements();
+                }
+            }, 100);
         }
     }
 }
@@ -2237,6 +2271,13 @@ function showStep(step) {
             if (emailInput && currentUser.email && !emailInput.value) {
                 emailInput.value = currentUser.email;
             }
+            
+            // 정보 입력 후 버튼 상태 확인
+            setTimeout(() => {
+                if (typeof checkAllAgreements === 'function') {
+                    checkAllAgreements();
+                }
+            }, 100);
         }
     }
 }
@@ -2266,7 +2307,14 @@ function resetSteps() {
     if (agreeAll) agreeAll.checked = false;
     if (agreePrivacy) agreePrivacy.checked = false;
     if (agreeThirdParty) agreeThirdParty.checked = false;
-    if (submitBtn) submitBtn.disabled = true;
+    if (submitBtn) submitBtn.disabled = true; // 기본적으로 비활성화
+    
+    // 초기화 후 버튼 상태 확인
+    setTimeout(() => {
+        if (typeof checkAllAgreements === 'function') {
+            checkAllAgreements();
+        }
+    }, 100);
     // 입력 필드 초기화
     const nameInput = document.getElementById('internetName');
     const phoneInput = document.getElementById('internetPhone');
@@ -2551,21 +2599,24 @@ function checkAllAgreements() {
     const submitBtn = document.getElementById('submitBtn');
     const nameInput = document.getElementById('internetName');
     const phoneInput = document.getElementById('internetPhone');
+    const emailInput = document.getElementById('internetEmail');
 
     if (agreeAll && agreePurpose && agreeItems && agreePeriod && agreeThirdParty && submitBtn) {
         // 전체 동의 체크박스 상태 업데이트
         agreeAll.checked = agreePurpose.checked && agreeItems.checked && agreePeriod.checked && agreeThirdParty.checked;
         
-        // 이름과 휴대폰 번호 확인
+        // 입력 필드 검증
         const name = nameInput ? nameInput.value.trim() : '';
         const phone = phoneInput ? phoneInput.value.replace(/[^\d]/g, '') : '';
+        const email = emailInput ? emailInput.value.trim() : '';
         
-        // 제출 버튼 활성화/비활성화 (모든 필드가 입력되어야 활성화)
         const isNameValid = name.length > 0;
         const isPhoneValid = phone.length === 11 && phone.startsWith('010');
+        const isEmailValid = email.length > 0 && email.includes('@') && email.includes('.');
         const isAgreementsChecked = agreePurpose.checked && agreeItems.checked && agreePeriod.checked && agreeThirdParty.checked;
         
-        if (isNameValid && isPhoneValid && isAgreementsChecked) {
+        // 모든 정보가 입력되고 동의가 체크되면 버튼 활성화
+        if (isNameValid && isPhoneValid && isEmailValid && isAgreementsChecked) {
             submitBtn.disabled = false;
         } else {
             submitBtn.disabled = true;
@@ -2580,7 +2631,7 @@ function submitInternetForm() {
         // 인터넷 모달 닫기
         closeInternetModal();
         
-        // 현재 URL을 세션에 저장 (회원가입 후 돌아올 주소)
+        // 현재 URL을 세션에 저장 (로그인 후 돌아올 주소)
         const currentUrl = window.location.href;
         fetch('/MVNO/api/save-redirect-url.php', {
             method: 'POST',
@@ -2589,13 +2640,13 @@ function submitInternetForm() {
             },
             body: JSON.stringify({ redirect_url: currentUrl })
         }).then(() => {
-            // 회원가입 모달 열기
+            // 로그인 모달 열기 (false = 로그인 모드)
             if (typeof openLoginModal === 'function') {
-                openLoginModal(true);
+                openLoginModal(false);
             } else {
                 setTimeout(() => {
                     if (typeof openLoginModal === 'function') {
-                        openLoginModal(true);
+                        openLoginModal(false);
                     }
                 }, 100);
             }
@@ -2609,7 +2660,7 @@ function submitInternetForm() {
     
     // product_id 확인
     if (!selectedData.product_id) {
-        alert('상품 정보를 찾을 수 없습니다. 다시 시도해주세요.');
+        showInternetToast('error', '상품 정보 오류', '상품 정보를 찾을 수 없습니다. 다시 시도해주세요.');
         return;
     }
     
@@ -2625,34 +2676,85 @@ function submitInternetForm() {
         formData.append('currentCompany', selectedData.currentCompany);
     }
     
+    // 디버깅: 전송할 데이터 로깅
+    console.log('Internet Application Debug - Submitting form data:');
+    console.log('  product_id:', selectedData.product_id);
+    console.log('  name:', name);
+    console.log('  phone:', phone);
+    console.log('  email:', email);
+    console.log('  currentCompany:', selectedData.currentCompany || 'none');
+    
     // 실제 제출 로직
     fetch('/MVNO/api/submit-internet-application.php', {
         method: 'POST',
         body: formData
     })
-    .then(response => response.json())
+    .then(response => {
+        console.log('Internet Application Debug - Response status:', response.status, response.statusText);
+        if (!response.ok) {
+            console.error('Internet Application Debug - Response not OK:', response.status, response.statusText);
+            throw new Error('Network response was not ok: ' + response.status);
+        }
+        return response.json();
+    })
     .then(data => {
+        console.log('Internet Application Debug - Response data:', data);
         if (data.success) {
+            console.log('Internet Application Debug - Success! Application ID:', data.application_id);
             // 인터넷 모달 닫기
             closeInternetModal();
             
             // 토스트 메시지 표시
-            showInternetToast();
+            showInternetToast('success', '인터넷 상담을 신청했어요', '입력한 번호로 상담 전화를 드릴예정이에요');
         } else {
-            alert(data.message || '신청 중 오류가 발생했습니다.');
+            console.error('Internet Application Debug - Failed:', data.message);
+            showInternetToast('error', '신청 실패', data.message || '신청정보 저장에 실패했습니다.');
         }
     })
     .catch(error => {
-        console.error('Error:', error);
-        alert('신청 중 오류가 발생했습니다.');
+        console.error('Internet Application Debug - Error caught:', error);
+        console.error('Internet Application Debug - Error stack:', error.stack);
+        showInternetToast('error', '신청 실패', '신청 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
     });
 }
 
-function showInternetToast() {
+function showInternetToast(type = 'success', title = '인터넷 상담을 신청했어요', message = '입력한 번호로 상담 전화를 드릴예정이에요') {
     const toastModal = document.getElementById('internetToastModal');
-    if (toastModal) {
-        toastModal.classList.add('active');
+    const toastIcon = document.getElementById('internetToastIcon');
+    const toastTitle = document.getElementById('internetToastTitle');
+    const toastMessage = document.getElementById('internetToastMessage');
+    
+    if (!toastModal) return;
+    
+    // 아이콘 설정
+    if (toastIcon) {
+        toastIcon.className = 'internet-toast-icon ' + type;
+        if (type === 'success') {
+            toastIcon.innerHTML = `
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            `;
+        } else {
+            toastIcon.innerHTML = `
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                    <path d="M12 8V12M12 16H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+            `;
+        }
     }
+    
+    // 제목과 메시지 설정
+    if (toastTitle) {
+        toastTitle.textContent = title;
+    }
+    if (toastMessage) {
+        toastMessage.textContent = message;
+    }
+    
+    // 모달 표시
+    toastModal.classList.add('active');
 }
 
 function closeInternetToast() {
@@ -2661,6 +2763,21 @@ function closeInternetToast() {
         toastModal.classList.remove('active');
     }
 }
+
+// 토스트 모달 외부 클릭 시 닫기
+(function() {
+    const toastModal = document.getElementById('internetToastModal');
+    if (toastModal) {
+        const overlay = toastModal.querySelector('.internet-toast-overlay');
+        if (overlay) {
+            overlay.addEventListener('click', function(e) {
+                if (e.target === overlay) {
+                    closeInternetToast();
+                }
+            });
+        }
+    }
+})();
 
 // 모달 외부 클릭 시 닫기
 (function() {
@@ -2937,6 +3054,13 @@ document.addEventListener('keydown', function(e) {
         if (nameInput) {
             nameInput.addEventListener('input', checkAllAgreements);
             nameInput.addEventListener('blur', checkAllAgreements);
+            
+            // 이메일 입력 필드에 이벤트 리스너 추가
+            const emailInput = document.getElementById('internetEmail');
+            if (emailInput) {
+                emailInput.addEventListener('input', checkAllAgreements);
+                emailInput.addEventListener('blur', checkAllAgreements);
+            }
         }
         
         if (phoneInput) {

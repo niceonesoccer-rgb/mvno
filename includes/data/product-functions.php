@@ -800,7 +800,12 @@ function saveInternetProduct($productData) {
                 $monthlyFee = $numericPart . $unit;
             } else {
                 // 숫자만 있는 경우 쉼표 제거 후 단위 추가
-                $numericPart = str_replace(',', '', preg_replace('/[^0-9]/', '', $inputValue));
+                // 소수점이 포함된 경우(예: 30000.00) 정수 부분만 추출
+                $numericPart = str_replace(',', '', preg_replace('/[^0-9.]/', '', $inputValue));
+                // 소수점 제거 (정수로 변환)
+                if (strpos($numericPart, '.') !== false) {
+                    $numericPart = explode('.', $numericPart)[0];
+                }
                 $unit = $productData['monthly_fee_unit'] ?? '원';
                 $monthlyFee = $numericPart ? ($numericPart . $unit) : '';
             }
@@ -900,7 +905,13 @@ function saveInternetProduct($productData) {
         }
         
         // 모든 가격 값은 텍스트 형식으로 저장 (입력한 값 그대로, 소수점 없이)
+        // DECIMAL 컬럼에 저장될 때 숫자로 변환되지 않도록 확실히 문자열로 보장
         $monthlyFeeValue = (string)$monthlyFee; // 명시적으로 문자열로 변환
+        // 빈 문자열이 아닌 경우에만 처리 (빈 문자열은 그대로 유지)
+        if ($monthlyFeeValue !== '' && !preg_match('/[가-힣]/', $monthlyFeeValue)) {
+            // 단위가 없으면 추가
+            $monthlyFeeValue = $monthlyFeeValue . '원';
+        }
         
         // 가격 배열도 모두 텍스트 형식으로 보장
         $cashPricesText = array_map(function($price) {
@@ -993,8 +1004,9 @@ function saveInternetProduct($productData) {
  * @return int|false 리뷰 ID 또는 false
  */
 function addProductReview($productId, $userId, $productType, $rating, $content, $title = null) {
-    if ($productType === 'internet') {
-        return false; // Internet은 리뷰 불가
+    // 인터넷 리뷰도 허용
+    if (!in_array($productType, ['mvno', 'mno', 'internet'])) {
+        return false; // 지원하지 않는 상품 타입
     }
     
     $pdo = getDBConnection();
@@ -1269,7 +1281,92 @@ function getApplicationStatusLabel($status) {
 }
 
 /**
- * 상품 신청
+ * user_id 컬럼 존재 여부 확인 및 추가 (헬퍼 함수)
+ * @param PDO $pdo 데이터베이스 연결
+ * @return bool user_id 컬럼 존재 여부
+ */
+function checkAndAddUserIdColumn($pdo) {
+    try {
+        // 트랜잭션 상태 저장
+        $wasInTransaction = $pdo->inTransaction();
+        
+        // 트랜잭션 밖에서 컬럼 확인 (더 확실함)
+        if ($wasInTransaction) {
+            $pdo->commit();
+        }
+        
+        // SHOW COLUMNS로 모든 컬럼 가져와서 확인 (가장 확실한 방법)
+        $check = $pdo->query("SHOW COLUMNS FROM application_customers");
+        $columns = $check->fetchAll(PDO::FETCH_COLUMN);
+        $exists = in_array('user_id', $columns);
+        
+        error_log("addProductApplication - user_id 컬럼 확인: " . ($exists ? '존재함' : '없음'));
+        error_log("addProductApplication - 전체 컬럼 목록: " . implode(', ', $columns));
+        
+        if (!$exists) {
+            error_log("addProductApplication - user_id 컬럼이 없습니다. 추가합니다.");
+            
+            try {
+                $pdo->exec("ALTER TABLE application_customers ADD COLUMN user_id VARCHAR(50) DEFAULT NULL COMMENT '회원 user_id (비회원 신청 가능)' AFTER application_id");
+                error_log("addProductApplication - user_id 컬럼이 추가되었습니다.");
+                $exists = true;
+                
+                // 인덱스 추가
+                try {
+                    $pdo->exec("ALTER TABLE application_customers ADD INDEX idx_user_id (user_id)");
+                    error_log("addProductApplication - user_id 인덱스 추가 완료");
+                } catch (PDOException $e) {
+                    if (strpos($e->getMessage(), 'Duplicate') === false && strpos($e->getMessage(), 'already exists') === false) {
+                        error_log("addProductApplication - 인덱스 추가 중 오류: " . $e->getMessage());
+                    } else {
+                        error_log("addProductApplication - 인덱스가 이미 존재합니다.");
+                    }
+                }
+            } catch (PDOException $e) {
+                error_log("addProductApplication - 컬럼 추가 실패: " . $e->getMessage());
+                error_log("  SQL State: " . ($e->errorInfo[0] ?? 'unknown'));
+                error_log("  Driver Code: " . ($e->errorInfo[1] ?? 'unknown'));
+                error_log("  Driver Message: " . ($e->errorInfo[2] ?? 'unknown'));
+                
+                // 컬럼 추가 실패 시 - 이미 존재하는지 확인
+                $checkAgain = $pdo->query("SHOW COLUMNS FROM application_customers");
+                $columnsAgain = $checkAgain->fetchAll(PDO::FETCH_COLUMN);
+                $exists = in_array('user_id', $columnsAgain);
+                
+                if (!$exists) {
+                    error_log("addProductApplication - 컬럼 추가 실패하고 실제로도 없습니다. false 반환");
+                    $exists = false; // 실제로 없으면 false 반환
+                } else {
+                    error_log("addProductApplication - 컬럼 추가 실패했지만 실제로는 존재합니다.");
+                    $exists = true;
+                }
+            }
+        }
+        
+        // 트랜잭션 재시작
+        if ($wasInTransaction) {
+            $pdo->beginTransaction();
+        }
+        
+        return $exists;
+    } catch (PDOException $e) {
+        error_log("addProductApplication - 컬럼 확인 중 오류: " . $e->getMessage());
+        error_log("  SQL State: " . ($e->errorInfo[0] ?? 'unknown'));
+        error_log("  Driver Code: " . ($e->errorInfo[1] ?? 'unknown'));
+        error_log("  Driver Message: " . ($e->errorInfo[2] ?? 'unknown'));
+        
+        // 트랜잭션 재시작
+        if (!$pdo->inTransaction()) {
+            $pdo->beginTransaction();
+        }
+        
+        // 확인 실패 시 안전하게 false로 설정 (user_id 없이 진행)
+        return false;
+    }
+}
+
+/**
+ * 상품 신청 정보 저장
  * @param int $productId 상품 ID
  * @param int $sellerId 판매자 ID
  * @param string $productType 상품 타입
@@ -1277,12 +1374,16 @@ function getApplicationStatusLabel($status) {
  * @return int|false 신청 ID 또는 false
  */
 function addProductApplication($productId, $sellerId, $productType, $customerData) {
+    error_log("addProductApplication called - productId: {$productId}, sellerId: {$sellerId}, productType: {$productType}");
+    
     $pdo = getDBConnection();
     if (!$pdo) {
+        error_log("addProductApplication - Database connection failed");
         return false;
     }
     
     try {
+        error_log("addProductApplication - Starting transaction");
         $pdo->beginTransaction();
         
         // order_number 컬럼 존재 확인 및 추가 (트랜잭션 밖에서 실행해야 함)
@@ -1318,6 +1419,48 @@ function addProductApplication($productId, $sellerId, $productType, $customerDat
         $userId = $customerData['user_id'] ?? null;
         $userId = ($userId === null) ? null : (string)$userId;
         
+        // INSERT 전에 트랜잭션 밖에서 컬럼 확인 (스키마 변경이 확실히 반영되도록)
+        $wasInTransaction = $pdo->inTransaction();
+        if ($wasInTransaction) {
+            $pdo->commit();
+        }
+        
+        // product_applications 테이블에 user_id 컬럼이 있는지 확인
+        try {
+            $checkColumns = $pdo->query("SHOW COLUMNS FROM product_applications");
+            $columns = $checkColumns->fetchAll(PDO::FETCH_COLUMN);
+            $hasUserIdInApplications = in_array('user_id', $columns);
+            
+            error_log("addProductApplication - product_applications 테이블 user_id 컬럼 확인: " . ($hasUserIdInApplications ? '존재함' : '없음'));
+            error_log("addProductApplication - product_applications 전체 컬럼 목록: " . implode(', ', $columns));
+            
+            if (!$hasUserIdInApplications) {
+                error_log("addProductApplication - product_applications에 user_id 컬럼이 없습니다. 추가합니다.");
+                try {
+                    $pdo->exec("ALTER TABLE product_applications ADD COLUMN user_id VARCHAR(50) DEFAULT NULL COMMENT '신청자 user_id (users.user_id)' AFTER product_type");
+                    error_log("addProductApplication - product_applications에 user_id 컬럼 추가 완료");
+                    
+                    // 인덱스 추가
+                    try {
+                        $pdo->exec("ALTER TABLE product_applications ADD INDEX idx_user_id (user_id)");
+                    } catch (PDOException $idxErr) {
+                        if (strpos($idxErr->getMessage(), 'Duplicate') === false) {
+                            error_log("addProductApplication - 인덱스 추가 실패: " . $idxErr->getMessage());
+                        }
+                    }
+                } catch (PDOException $alterErr) {
+                    error_log("addProductApplication - 컬럼 추가 실패: " . $alterErr->getMessage());
+                }
+            }
+        } catch (PDOException $checkErr) {
+            error_log("addProductApplication - 컬럼 확인 실패: " . $checkErr->getMessage());
+        }
+        
+        // 트랜잭션 재시작
+        if ($wasInTransaction) {
+            $pdo->beginTransaction();
+        }
+        
         // 주문번호 생성 (트랜잭션 내에서, UNIQUE 제약조건으로 중복 방지)
         $orderNumber = null;
         $maxRetries = 10;
@@ -1328,25 +1471,72 @@ function addProductApplication($productId, $sellerId, $productType, $customerDat
                 $orderNumber = generateOrderNumber($pdo, $currentDateTime);
                 
                 // 주문번호로 INSERT 시도 (status_changed_at도 함께 설정)
-                $stmt = $pdo->prepare("
-                    INSERT INTO product_applications (order_number, product_id, seller_id, user_id, product_type, application_status, created_at, status_changed_at)
-                    VALUES (:order_number, :product_id, :seller_id, :user_id, :product_type, :application_status, :created_at, :status_changed_at)
-                ");
-                $stmt->execute([
+                // user_id 컬럼이 있는지 다시 한 번 확인하여 SQL 결정
+                $insertColumns = "order_number, product_id, seller_id, product_type, application_status, created_at, status_changed_at";
+                $insertValues = ":order_number, :product_id, :seller_id, :product_type, :application_status, :created_at, :status_changed_at";
+                $insertParams = [
                     ':order_number' => $orderNumber,
                     ':product_id' => $productId,
                     ':seller_id' => $sellerId,
-                    ':user_id' => $userId,
                     ':product_type' => $productType,
                     ':application_status' => $initialStatus,
                     ':created_at' => $currentDateTimeStr,
                     ':status_changed_at' => $currentDateTimeStr
-                ]);
+                ];
+                
+                // user_id가 있으면 포함
+                if (!empty($userId)) {
+                    $insertColumns = "order_number, product_id, seller_id, user_id, product_type, application_status, created_at, status_changed_at";
+                    $insertValues = ":order_number, :product_id, :seller_id, :user_id, :product_type, :application_status, :created_at, :status_changed_at";
+                    $insertParams[':user_id'] = $userId;
+                }
+                
+                $sql = "INSERT INTO product_applications ({$insertColumns}) VALUES ({$insertValues})";
+                
+                error_log("addProductApplication - product_applications INSERT SQL: " . $sql);
+                error_log("addProductApplication - user_id 포함 여부: " . (!empty($userId) ? 'YES' : 'NO'));
+                
+                $stmt = $pdo->prepare($sql);
+                $stmt->execute($insertParams);
                 
                 // INSERT 성공 시 루프 종료
                 break;
                 
             } catch (PDOException $e) {
+                // user_id 컬럼 관련 에러인 경우 user_id 없이 재시도
+                $isUserIdError = ($e->getCode() == 1054 || 
+                                 strpos($e->getMessage(), "Unknown column 'user_id'") !== false || 
+                                 strpos($e->getMessage(), "Unknown column `user_id`") !== false ||
+                                 (strpos($e->getMessage(), "user_id") !== false && strpos($e->getMessage(), "field list") !== false));
+                
+                if ($isUserIdError) {
+                    error_log("addProductApplication - product_applications INSERT 시 user_id 컬럼 에러 감지, user_id 없이 재시도합니다.");
+                    error_log("  원본 에러: " . $e->getMessage());
+                    
+                    // user_id 없이 재시도
+                    $sqlRetry = "INSERT INTO product_applications (order_number, product_id, seller_id, product_type, application_status, created_at, status_changed_at) VALUES (:order_number, :product_id, :seller_id, :product_type, :application_status, :created_at, :status_changed_at)";
+                    $retryParams = [
+                        ':order_number' => $orderNumber,
+                        ':product_id' => $productId,
+                        ':seller_id' => $sellerId,
+                        ':product_type' => $productType,
+                        ':application_status' => $initialStatus,
+                        ':created_at' => $currentDateTimeStr,
+                        ':status_changed_at' => $currentDateTimeStr
+                    ];
+                    
+                    try {
+                        error_log("addProductApplication - product_applications INSERT 재시도 (user_id 없이)");
+                        $stmtRetry = $pdo->prepare($sqlRetry);
+                        $stmtRetry->execute($retryParams);
+                        error_log("addProductApplication - product_applications INSERT 성공 (user_id 없이)");
+                        break; // 성공했으므로 루프 종료
+                    } catch (PDOException $e2) {
+                        error_log("addProductApplication - product_applications INSERT 재시도 실패: " . $e2->getMessage());
+                        throw $e2;
+                    }
+                }
+                
                 // UNIQUE 제약조건 위반 (중복 주문번호)
                 if ($e->getCode() == 23000 || strpos($e->getMessage(), 'Duplicate entry') !== false) {
                     $retryCount++;
@@ -1373,6 +1563,7 @@ function addProductApplication($productId, $sellerId, $productType, $customerDat
         }
         
         $applicationId = $pdo->lastInsertId();
+        error_log("addProductApplication - Application created with ID: {$applicationId}, Order Number: {$orderNumber}");
         
         // application_count 업데이트 (트리거가 작동하지 않을 경우를 대비)
         try {
@@ -1382,30 +1573,70 @@ function addProductApplication($productId, $sellerId, $productType, $customerDat
                 WHERE id = :product_id
             ");
             $updateStmt->execute([':product_id' => $productId]);
+            error_log("addProductApplication - application_count updated");
         } catch (PDOException $e) {
             // 업데이트 실패해도 계속 진행 (트리거가 처리할 수 있음)
             error_log("Failed to update application_count: " . $e->getMessage());
         }
         
         // 2. 고객 정보 등록
+        error_log("addProductApplication - Step 2: Inserting customer data");
         
-        // user_id 검증 (비회원 신청이 불가능한 경우)
-        if (empty($userId) || $userId === null) {
-            error_log("WARNING: Application created without user_id. Application ID: " . $applicationId);
+        // user_id 컬럼 존재 확인 및 추가
+        // 테이블 구조 확인: application_customers 테이블에 user_id 컬럼이 존재함 (스키마 확인됨)
+        // user_id는 필수 정보이므로 정상적으로 저장해야 함
+        $hasUserIdColumn = true; // 기본값을 true로 설정 (컬럼이 존재함)
+        
+        // 컬럼 확인 (트랜잭션 밖에서 실행하여 정확한 스키마 확인)
+        try {
+            $wasInTransaction = $pdo->inTransaction();
+            if ($wasInTransaction) {
+                $pdo->commit();
+            }
+            
+            // 실제로 컬럼이 있는지 확인
+            $checkColumns = $pdo->query("SHOW COLUMNS FROM application_customers");
+            $columns = $checkColumns->fetchAll(PDO::FETCH_COLUMN);
+            $hasUserIdColumn = in_array('user_id', $columns);
+            
+            error_log("addProductApplication - user_id 컬럼 확인 결과: " . ($hasUserIdColumn ? '존재함' : '없음'));
+            error_log("addProductApplication - 전체 컬럼 목록: " . implode(', ', $columns));
+            
+            if ($wasInTransaction) {
+                $pdo->beginTransaction();
+            }
+        } catch (PDOException $checkErr) {
+            error_log("addProductApplication - 컬럼 확인 실패: " . $checkErr->getMessage());
+            // 확인 실패 시에도 true로 유지 (컬럼이 존재한다고 가정)
+            $hasUserIdColumn = true;
+            if (!$pdo->inTransaction()) {
+                $pdo->beginTransaction();
+            }
         }
         
-        $stmt = $pdo->prepare("
-            INSERT INTO application_customers (
-                application_id, user_id, name, phone, email, address, address_detail,
-                birth_date, gender, additional_info
-            ) VALUES (
-                :application_id, :user_id, :name, :phone, :email, :address, :address_detail,
-                :birth_date, :gender, :additional_info
-            )
-        ");
-        $stmt->execute([
+        error_log("addProductApplication - 최종 hasUserIdColumn: " . ($hasUserIdColumn ? 'true' : 'false'));
+        error_log("addProductApplication - userId 값: " . ($userId ?? 'null'));
+        
+        // user_id 검증 (로그인한 사용자만 신청 가능하므로 user_id는 필수)
+        if (empty($userId) || $userId === null) {
+            error_log("WARNING: Application created without user_id. Application ID: " . $applicationId);
+            // user_id가 없으면 에러 (로그인 필수)
+            throw new Exception('사용자 정보를 확인할 수 없습니다. 다시 로그인해주세요.');
+        }
+        
+        // additional_info JSON 인코딩
+        $additionalInfoJson = null;
+        if (!empty($customerData['additional_info'])) {
+            $additionalInfoJson = json_encode($customerData['additional_info'], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+            if ($additionalInfoJson === false) {
+                error_log("ERROR: Failed to encode additional_info to JSON. Error: " . json_last_error_msg());
+                $additionalInfoJson = null;
+            }
+        }
+        
+        // INSERT 쿼리 및 파라미터 준비
+        $baseParams = [
             ':application_id' => $applicationId,
-            ':user_id' => $userId,
             ':name' => $customerData['name'] ?? '',
             ':phone' => $customerData['phone'] ?? '',
             ':email' => $customerData['email'] ?? null,
@@ -1413,8 +1644,204 @@ function addProductApplication($productId, $sellerId, $productType, $customerDat
             ':address_detail' => $customerData['address_detail'] ?? null,
             ':birth_date' => $customerData['birth_date'] ?? null,
             ':gender' => $customerData['gender'] ?? null,
-            ':additional_info' => !empty($customerData['additional_info']) ? json_encode($customerData['additional_info'], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) : null
-        ]);
+            ':additional_info' => $additionalInfoJson
+        ];
+        
+        // INSERT 전 최종 확인 - user_id 포함하여 정상적으로 저장
+        // 테이블에 user_id 컬럼이 존재하고, user_id는 필수 정보이므로 포함하여 저장
+        error_log("addProductApplication - ========================================");
+        error_log("addProductApplication - 최종 결정: user_id 포함하여 저장합니다.");
+        error_log("addProductApplication - hasUserIdColumn: " . ($hasUserIdColumn ? 'true' : 'false'));
+        error_log("addProductApplication - userId: " . ($userId ?? 'null'));
+        error_log("addProductApplication - ========================================");
+        
+        // user_id 포함하여 INSERT (정상 방식)
+        if ($hasUserIdColumn && !empty($userId)) {
+            $sql = "INSERT INTO application_customers (application_id, user_id, name, phone, email, address, address_detail, birth_date, gender, additional_info) VALUES (:application_id, :user_id, :name, :phone, :email, :address, :address_detail, :birth_date, :gender, :additional_info)";
+            $baseParams[':user_id'] = $userId;
+            error_log("addProductApplication - user_id 포함하여 INSERT 실행");
+        } else {
+            // user_id 컬럼이 없거나 user_id가 없는 경우 (비상 상황)
+            $sql = "INSERT INTO application_customers (application_id, name, phone, email, address, address_detail, birth_date, gender, additional_info) VALUES (:application_id, :name, :phone, :email, :address, :address_detail, :birth_date, :gender, :additional_info)";
+            if (isset($baseParams[':user_id'])) {
+                unset($baseParams[':user_id']);
+            }
+            error_log("addProductApplication - 경고: user_id 없이 INSERT 실행 (비상 상황)");
+        }
+        
+        $executeParams = $baseParams;
+        
+        error_log("addProductApplication - 최종 executeParams 키 목록: " . implode(', ', array_keys($executeParams)));
+        error_log("addProductApplication - user_id 포함 여부: " . (isset($executeParams[':user_id']) ? 'YES (정상)' : 'NO'));
+        
+        // INSERT 실행
+        error_log("addProductApplication - ========================================");
+        error_log("addProductApplication - INSERT 실행 시작");
+        error_log("addProductApplication - SQL: " . $sql);
+        error_log("addProductApplication - SQL에 'user_id' 포함 여부: " . (strpos($sql, 'user_id') !== false ? 'YES (정상)' : 'NO'));
+        error_log("addProductApplication - Parameter keys: " . implode(', ', array_keys($executeParams)));
+        error_log("addProductApplication - ========================================");
+        
+        // 파라미터 값 로깅 (민감 정보 제외)
+        $logParams = $executeParams;
+        if (isset($logParams[':phone'])) {
+            $logParams[':phone'] = substr($logParams[':phone'], 0, 3) . '****' . substr($logParams[':phone'], -4);
+        }
+        if (isset($logParams[':email'])) {
+            $logParams[':email'] = preg_replace('/(.{2})(.*)(@.*)/', '$1***$3', $logParams[':email'] ?? '');
+        }
+        if (isset($logParams[':additional_info'])) {
+            $logParams[':additional_info'] = '[' . strlen($executeParams[':additional_info'] ?? '') . ' bytes]';
+        }
+        error_log("addProductApplication - Parameter values (masked): " . json_encode($logParams, JSON_UNESCAPED_UNICODE));
+        
+        $stmt = $pdo->prepare($sql);
+        
+        try {
+            $stmt->execute($executeParams);
+            error_log("addProductApplication - Customer data inserted successfully");
+            
+            insert_success: // 재시도 성공 시 여기로 이동
+            // INSERT 성공 (원래 시도 또는 재시도)
+            error_log("addProductApplication - Customer data insert completed successfully");
+        } catch (PDOException $e) {
+            // 완전한 에러 정보 로깅
+            $fullError = [
+                'code' => $e->getCode(),
+                'message' => $e->getMessage(),
+                'sql_state' => $e->errorInfo[0] ?? 'unknown',
+                'driver_code' => $e->errorInfo[1] ?? 'unknown',
+                'driver_message' => $e->errorInfo[2] ?? 'unknown',
+                'sql' => $sql,
+                'param_keys' => array_keys($executeParams)
+            ];
+            error_log("addProductApplication - PDOException FULL ERROR: " . json_encode($fullError, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+            
+            // 에러 메시지에서 컬럼명 추출 시도
+            if (preg_match("/Unknown column ['\"]([^'\"]+)['\"]/i", $e->getMessage(), $matches)) {
+                $missingColumn = $matches[1];
+                error_log("addProductApplication - 추출된 누락 컬럼명: " . $missingColumn);
+            } elseif (preg_match("/Unknown column `([^`]+)`/i", $e->getMessage(), $matches)) {
+                $missingColumn = $matches[1];
+                error_log("addProductApplication - 추출된 누락 컬럼명 (backtick): " . $missingColumn);
+            }
+            
+            // 컬럼이 없는 경우 - 실제 테이블 구조 확인
+            if ($e->getCode() == 1054 || strpos($e->getMessage(), "Unknown column") !== false) {
+                error_log("addProductApplication - 컬럼 오류 감지, 테이블 구조 확인 중...");
+                try {
+                    $columnsStmt = $pdo->query("SHOW COLUMNS FROM application_customers");
+                    $columns = $columnsStmt->fetchAll(PDO::FETCH_COLUMN);
+                    error_log("application_customers 테이블 컬럼 목록: " . implode(', ', $columns));
+                } catch (PDOException $colErr) {
+                    error_log("컬럼 목록 조회 실패: " . $colErr->getMessage());
+                }
+            }
+            
+            // user_id 컬럼 관련 에러인 경우 무조건 user_id 없이 재시도
+            $isUserIdError = ($e->getCode() == 1054 || 
+                             strpos($e->getMessage(), "Unknown column 'user_id'") !== false || 
+                             strpos($e->getMessage(), "Unknown column `user_id`") !== false ||
+                             (strpos($e->getMessage(), "user_id") !== false && strpos($e->getMessage(), "field list") !== false));
+            
+            if ($isUserIdError) {
+                error_log("addProductApplication - user_id 컬럼 에러 감지, user_id 없이 재시도합니다.");
+                error_log("  원본 에러: " . $e->getMessage());
+                error_log("  hasUserIdColumn: " . ($hasUserIdColumn ? 'true' : 'false'));
+                
+                // user_id 없이 재시도 (hasUserIdColumn 값과 관계없이)
+                $sqlRetry = "INSERT INTO application_customers (application_id, name, phone, email, address, address_detail, birth_date, gender, additional_info) VALUES (:application_id, :name, :phone, :email, :address, :address_detail, :birth_date, :gender, :additional_info)";
+                $retryParams = $baseParams;
+                unset($retryParams[':user_id']); // user_id 제거
+                
+                try {
+                    error_log("addProductApplication - Retrying without user_id");
+                    error_log("  Retry SQL: " . $sqlRetry);
+                    error_log("  Retry Parameters: " . implode(', ', array_keys($retryParams)));
+                    
+                    $stmt2 = $pdo->prepare($sqlRetry);
+                    $stmt2->execute($retryParams);
+                    error_log("addProductApplication - Customer data inserted successfully (without user_id)");
+                    
+                    // 재시도 성공 - catch 블록을 빠져나가서 함수가 정상적으로 계속 진행되도록 함
+                    // 이제 함수는 정상적으로 계속 진행되어 커밋하고 반환됨
+                    goto insert_success; // 성공 후 함수 계속 진행
+                } catch (PDOException $e2) {
+                    error_log("addProductApplication - ERROR inserting customer data (retry): " . $e2->getMessage());
+                    error_log("  Retry SQL State: " . ($e2->errorInfo[0] ?? 'unknown'));
+                    error_log("  Retry Driver Code: " . ($e2->errorInfo[1] ?? 'unknown'));
+                    error_log("  Retry Driver Message: " . ($e2->errorInfo[2] ?? 'unknown'));
+                    throw $e2;
+                }
+            } else {
+                // 다른 컬럼 오류인 경우 - 어떤 컬럼이 문제인지 파악
+                $errorMsg = $e->getMessage();
+                if (preg_match("/Unknown column ['\"]([^'\"]+)['\"]/i", $errorMsg, $matches)) {
+                    $missingColumn = $matches[1];
+                    error_log("addProductApplication - 누락된 컬럼 감지: " . $missingColumn);
+                    
+                    // 누락된 컬럼이 있으면 자동으로 추가 시도
+                    if ($missingColumn && $missingColumn !== 'user_id') {
+                        try {
+                            error_log("addProductApplication - 누락된 컬럼 '{$missingColumn}' 추가 시도 중...");
+                            if ($pdo->inTransaction()) {
+                                $pdo->commit();
+                            }
+                            
+                            // 컬럼 타입 추정 (일반적인 경우)
+                            $columnDef = '';
+                            switch ($missingColumn) {
+                                case 'additional_info':
+                                    $columnDef = "ADD COLUMN additional_info TEXT DEFAULT NULL COMMENT '추가 정보 (JSON)' AFTER gender";
+                                    break;
+                                case 'address':
+                                    $columnDef = "ADD COLUMN address VARCHAR(255) DEFAULT NULL COMMENT '주소' AFTER email";
+                                    break;
+                                case 'address_detail':
+                                    $columnDef = "ADD COLUMN address_detail VARCHAR(255) DEFAULT NULL COMMENT '상세주소' AFTER address";
+                                    break;
+                                case 'birth_date':
+                                    $columnDef = "ADD COLUMN birth_date DATE DEFAULT NULL COMMENT '생년월일' AFTER address_detail";
+                                    break;
+                                case 'gender':
+                                    $columnDef = "ADD COLUMN gender ENUM('male', 'female', 'other') DEFAULT NULL COMMENT '성별' AFTER birth_date";
+                                    break;
+                                default:
+                                    error_log("addProductApplication - 알 수 없는 컬럼: {$missingColumn}");
+                            }
+                            
+                            if ($columnDef) {
+                                $pdo->exec("ALTER TABLE application_customers {$columnDef}");
+                                error_log("addProductApplication - 컬럼 '{$missingColumn}' 추가 완료");
+                                
+                                if (!$pdo->inTransaction()) {
+                                    $pdo->beginTransaction();
+                                }
+                                
+                                // 재시도
+                                $stmt->execute($executeParams);
+                                error_log("addProductApplication - Customer data inserted successfully (after adding column)");
+                                // 성공했으므로 함수 계속 진행
+                            } else {
+                                throw new Exception("필수 컬럼 '{$missingColumn}'이 없습니다. 데이터베이스 스키마를 확인하세요.");
+                            }
+                        } catch (PDOException $alterErr) {
+                            error_log("addProductApplication - 컬럼 추가 실패: " . $alterErr->getMessage());
+                            if (!$pdo->inTransaction()) {
+                                $pdo->beginTransaction();
+                            }
+                            throw new Exception("필수 컬럼 '{$missingColumn}'이 없습니다. 데이터베이스 스키마를 확인하세요: " . $alterErr->getMessage());
+                        }
+                    } else {
+                        error_log("addProductApplication - ERROR inserting customer data: " . $errorMsg);
+                        throw $e;
+                    }
+                } else {
+                    error_log("addProductApplication - ERROR inserting customer data: " . $errorMsg);
+                    throw $e;
+                }
+            }
+        }
         
         // 디버깅: 저장된 additional_info 확인
         if (!empty($customerData['additional_info'])) {
@@ -1428,11 +1855,41 @@ function addProductApplication($productId, $sellerId, $productType, $customerDat
             }
         }
         
+        error_log("addProductApplication - Committing transaction");
         $pdo->commit();
+        error_log("addProductApplication - SUCCESS! Returning application ID: {$applicationId}");
         return $applicationId;
     } catch (PDOException $e) {
-        $pdo->rollBack();
-        error_log("Error adding application: " . $e->getMessage());
+        if (isset($pdo) && $pdo->inTransaction()) {
+            error_log("addProductApplication - Rolling back transaction due to PDOException");
+            $pdo->rollBack();
+        }
+        error_log("addProductApplication - PDOException occurred:");
+        error_log("  Message: " . $e->getMessage());
+        error_log("  Code: " . $e->getCode());
+        error_log("  SQL State: " . ($e->errorInfo[0] ?? 'unknown'));
+        error_log("  Driver Error Code: " . ($e->errorInfo[1] ?? 'unknown'));
+        error_log("  Driver Error Message: " . ($e->errorInfo[2] ?? 'unknown'));
+        error_log("  Stack trace: " . $e->getTraceAsString());
+        
+        // 전역 변수에 에러 정보 저장
+        global $lastDbError;
+        $lastDbError = "PDO 오류: " . $e->getMessage() . " (SQL State: " . ($e->errorInfo[0] ?? 'unknown') . ", Driver Code: " . ($e->errorInfo[1] ?? 'unknown') . ")";
+        
+        return false;
+    } catch (Exception $e) {
+        if (isset($pdo) && $pdo->inTransaction()) {
+            error_log("addProductApplication - Rolling back transaction due to Exception");
+            $pdo->rollBack();
+        }
+        error_log("addProductApplication - Exception occurred:");
+        error_log("  Message: " . $e->getMessage());
+        error_log("  Stack trace: " . $e->getTraceAsString());
+        
+        // 전역 변수에 에러 정보 저장
+        global $lastDbError;
+        $lastDbError = "예외 발생: " . $e->getMessage();
+        
         return false;
     }
 }

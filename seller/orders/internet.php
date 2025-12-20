@@ -766,10 +766,8 @@ include __DIR__ . '/../includes/seller-header.php';
                     <select name="status" class="filter-select">
                         <option value="" <?php echo (empty($status) || $status === null) ? 'selected' : ''; ?>>전체</option>
                         <option value="received" <?php echo ($status === 'received') ? 'selected' : ''; ?>>접수</option>
-                        <option value="activating" <?php echo ($status === 'activating') ? 'selected' : ''; ?>>개통중</option>
                         <option value="on_hold" <?php echo ($status === 'on_hold') ? 'selected' : ''; ?>>보류</option>
                         <option value="cancelled" <?php echo ($status === 'cancelled') ? 'selected' : ''; ?>>취소</option>
-                        <option value="activation_completed" <?php echo ($status === 'activation_completed') ? 'selected' : ''; ?>>개통완료</option>
                         <option value="installation_completed" <?php echo ($status === 'installation_completed') ? 'selected' : ''; ?>>설치완료</option>
                         <option value="closed" <?php echo ($status === 'closed') ? 'selected' : ''; ?>>종료</option>
                     </select>
@@ -1256,7 +1254,7 @@ function openStatusEditModal(applicationId, currentStatus) {
     }
     
     // 셀렉트박스에 값 설정 (값이 유효한 옵션인지 확인)
-    const validStatuses = ['received', 'activating', 'on_hold', 'cancelled', 'activation_completed', 'installation_completed', 'closed'];
+    const validStatuses = ['received', 'on_hold', 'cancelled', 'installation_completed', 'closed'];
     if (validStatuses.includes(status)) {
         select.value = status;
     } else {
@@ -1369,10 +1367,8 @@ document.addEventListener('DOMContentLoaded', function() {
             <label for="statusEditSelect">진행상황 선택</label>
             <select id="statusEditSelect" class="status-modal-select">
                 <option value="received" selected>접수</option>
-                <option value="activating">개통중</option>
                 <option value="on_hold">보류</option>
                 <option value="cancelled">취소</option>
-                <option value="activation_completed">개통완료</option>
                 <option value="installation_completed">설치완료</option>
                 <option value="closed">종료</option>
             </select>

@@ -4,14 +4,21 @@
  * 경로: /admin/orders/mvno-list.php
  */
 
-require_once __DIR__ . '/../includes/admin-header.php';
+// 필요한 함수 파일 먼저 로드 (API 처리에 필요)
 require_once __DIR__ . '/../../includes/data/db-config.php';
 require_once __DIR__ . '/../../includes/data/product-functions.php';
 require_once __DIR__ . '/../../includes/data/auth-functions.php';
 require_once __DIR__ . '/../../includes/data/plan-data.php';
+require_once __DIR__ . '/../../includes/data/contract-type-functions.php';
 
-// 상품 정보 조회 API 처리
+// 상품 정보 조회 API 처리 (HTML 출력 전에 처리)
 if (isset($_GET['action']) && $_GET['action'] === 'get_product_info' && isset($_GET['product_id'])) {
+    // 출력 버퍼 비우기 (이전 출력 제거)
+    if (ob_get_level()) {
+        ob_end_clean();
+    }
+    
+    // JSON 헤더 설정
     header('Content-Type: application/json; charset=utf-8');
     
     $pdo = getDBConnection();
@@ -20,13 +27,53 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_product_info' && isset($_
     
     if ($pdo && $productId > 0) {
         try {
-            // 기본 상품 정보
+            // 기본 상품 정보 (판매종료된 상품도 조회 가능하도록 status 필터 제거)
             $stmt = $pdo->prepare("SELECT * FROM products WHERE id = :product_id");
             $stmt->execute([':product_id' => $productId]);
             $product = $stmt->fetch(PDO::FETCH_ASSOC);
             
             if ($product) {
                 $productInfo = $product;
+                
+                // 판매자 정보 추가
+                if (!empty($product['seller_id'])) {
+                    // getSellerById 함수가 있는지 확인
+                    if (function_exists('getSellerById')) {
+                        $seller = getSellerById($product['seller_id']);
+                        if ($seller) {
+                            $productInfo['seller'] = [
+                                'user_id' => $seller['user_id'] ?? '',
+                                'name' => $seller['name'] ?? '',
+                                'company_name' => $seller['company_name'] ?? '',
+                                'email' => $seller['email'] ?? '',
+                                'phone' => $seller['phone'] ?? $seller['mobile'] ?? ''
+                            ];
+                        }
+                    } else {
+                        // getSellerById가 없으면 직접 조회
+                        try {
+                            $sellerStmt = $pdo->prepare("
+                                SELECT user_id, name, company_name, email, phone, mobile
+                                FROM users
+                                WHERE user_id = :user_id AND role = 'seller'
+                                LIMIT 1
+                            ");
+                            $sellerStmt->execute([':user_id' => $product['seller_id']]);
+                            $seller = $sellerStmt->fetch(PDO::FETCH_ASSOC);
+                            if ($seller) {
+                                $productInfo['seller'] = [
+                                    'user_id' => $seller['user_id'] ?? '',
+                                    'name' => $seller['name'] ?? '',
+                                    'company_name' => $seller['company_name'] ?? '',
+                                    'email' => $seller['email'] ?? '',
+                                    'phone' => $seller['phone'] ?? $seller['mobile'] ?? ''
+                                ];
+                            }
+                        } catch (Exception $e) {
+                            error_log("판매자 정보 조회 오류: " . $e->getMessage());
+                        }
+                    }
+                }
                 
                 // MVNO 상세 정보
                 if ($product['product_type'] === 'mvno') {
@@ -44,6 +91,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_product_info' && isset($_
                 'product' => $productInfo
             ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
         } catch (Exception $e) {
+            error_log("상품 정보 조회 오류: " . $e->getMessage());
             echo json_encode([
                 'success' => false,
                 'message' => '상품 정보 조회 중 오류가 발생했습니다: ' . $e->getMessage()
@@ -57,6 +105,9 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_product_info' && isset($_
     }
     exit;
 }
+
+// 관리자 헤더 로드 (API 요청이 아닐 때만)
+require_once __DIR__ . '/../includes/admin-header.php';
 
 // 페이지네이션 파라미터만 처리 (필터 없이 전체 데이터 조회)
 $page = max(1, intval($_GET['page'] ?? 1));
@@ -284,25 +335,9 @@ $statusMap = [
     'completed' => '설치완료'
 ];
 
-// 가입형태 파싱 함수
+// 가입형태 파싱 함수 (관리자용 - 신규, 번이, 기변)
 function getContractType($app) {
-    // additional_info JSON 필드에서 contract_type 가져오기
-    $additionalInfo = $app['additional_info'] ?? '';
-    if ($additionalInfo) {
-        $info = json_decode($additionalInfo, true);
-        if (isset($info['contract_type'])) {
-            $contractType = $info['contract_type'];
-        } else {
-            $contractType = '';
-        }
-    } else {
-        $contractType = '';
-    }
-    
-    if ($contractType === 'new') return '신규';
-    if ($contractType === 'mnp') return '번호이동';
-    if ($contractType === 'change') return '기기변경';
-    return $contractType ?: '-';
+    return getContractTypeForAdmin($app);
 }
 ?>
 
@@ -721,6 +756,77 @@ function getContractType($app) {
         max-height: 500px;
         overflow-y: auto;
     }
+    
+    .product-info-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 16px;
+    }
+    
+    .product-info-table:first-child {
+        margin-top: 0;
+    }
+    
+    .product-info-table th {
+        background: #f3f4f6;
+        padding: 12px 16px;
+        text-align: left;
+        font-weight: 600;
+        font-size: 13px;
+        color: #374151;
+        border: 1px solid #e5e7eb;
+        width: 200px;
+        vertical-align: top;
+    }
+    
+    .product-info-table td {
+        padding: 12px 16px;
+        font-size: 13px;
+        color: #1f2937;
+        border: 1px solid #e5e7eb;
+        word-break: break-word;
+    }
+    
+    .product-info-table tr:nth-child(even) {
+        background: #f9fafb;
+    }
+    
+    .product-info-section {
+        margin-bottom: 24px;
+    }
+    
+    .product-info-section:last-child {
+        margin-bottom: 0;
+    }
+    
+    .product-info-section-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: #1f2937;
+        margin-bottom: 12px;
+        padding-bottom: 8px;
+        border-bottom: 2px solid #3b82f6;
+    }
+    
+    .status-badge-inactive {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+        background: #f3f4f6;
+        color: #6b7280;
+    }
+    
+    .status-badge-deleted {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+        background: #fee2e2;
+        color: #991b1b;
+    }
 </style>
 
 <div class="order-list-container">
@@ -1032,20 +1138,227 @@ function showProductModal(productId) {
     
     // AJAX로 상품 정보 가져오기
     fetch('?action=get_product_info&product_id=' + encodeURIComponent(productId))
-        .then(response => response.json())
+        .then(response => {
+            // Content-Type 확인
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                return response.text().then(text => {
+                    throw new Error('서버가 JSON이 아닌 응답을 반환했습니다. 응답: ' + text.substring(0, 200));
+                });
+            }
+            return response.json();
+        })
         .then(data => {
-            if (data.success) {
-                let html = '<div class="product-info-text">';
-                html += JSON.stringify(data.product, null, 2);
+            if (data.success && data.product) {
+                const product = data.product;
+                let html = '';
+                
+                // 기본 정보 섹션
+                html += '<div class="product-info-section">';
+                html += '<div class="product-info-section-title">기본 정보</div>';
+                html += '<table class="product-info-table">';
+                html += '<tr><th>상품 ID</th><td>' + escapeHtml(product.id || '-') + '</td></tr>';
+                html += '<tr><th>상품 타입</th><td>' + escapeHtml(product.product_type || '-') + '</td></tr>';
+                
+                // 상태 표시 (판매종료 여부 포함)
+                let statusText = product.status || 'active';
+                let statusClass = '';
+                if (statusText === 'inactive') {
+                    statusText = '판매종료';
+                    statusClass = 'status-badge-inactive';
+                } else if (statusText === 'deleted') {
+                    statusText = '삭제됨';
+                    statusClass = 'status-badge-deleted';
+                } else {
+                    statusText = '판매중';
+                    statusClass = 'status-badge status-activation_completed';
+                }
+                html += '<tr><th>상태</th><td><span class="' + statusClass + '">' + escapeHtml(statusText) + '</span></td></tr>';
+                
+                html += '<tr><th>조회수</th><td>' + escapeHtml((product.view_count || 0).toLocaleString()) + '</td></tr>';
+                html += '<tr><th>찜 수</th><td>' + escapeHtml((product.favorite_count || 0).toLocaleString()) + '</td></tr>';
+                html += '<tr><th>신청 수</th><td>' + escapeHtml((product.application_count || 0).toLocaleString()) + '</td></tr>';
+                html += '<tr><th>등록일</th><td>' + escapeHtml(product.created_at || '-') + '</td></tr>';
+                html += '<tr><th>수정일</th><td>' + escapeHtml(product.updated_at || '-') + '</td></tr>';
+                html += '</table>';
                 html += '</div>';
+                
+                // 판매자 정보 섹션
+                if (product.seller) {
+                    html += '<div class="product-info-section">';
+                    html += '<div class="product-info-section-title">판매자 정보</div>';
+                    html += '<table class="product-info-table">';
+                    html += '<tr><th>판매자 ID</th><td>' + escapeHtml(product.seller.user_id || '-') + '</td></tr>';
+                    html += '<tr><th>판매자명</th><td>' + escapeHtml(product.seller.name || '-') + '</td></tr>';
+                    if (product.seller.company_name) {
+                        html += '<tr><th>회사명</th><td>' + escapeHtml(product.seller.company_name) + '</td></tr>';
+                    }
+                    if (product.seller.email) {
+                        html += '<tr><th>이메일</th><td>' + escapeHtml(product.seller.email) + '</td></tr>';
+                    }
+                    if (product.seller.phone) {
+                        html += '<tr><th>전화번호</th><td>' + escapeHtml(product.seller.phone) + '</td></tr>';
+                    }
+                    html += '</table>';
+                    html += '</div>';
+                }
+                
+                // MVNO 상세 정보 섹션
+                if (product.mvno_details) {
+                    const details = product.mvno_details;
+                    html += '<div class="product-info-section">';
+                    html += '<div class="product-info-section-title">요금제 상세 정보</div>';
+                    html += '<table class="product-info-table">';
+                    
+                    // 기본 요금제 정보
+                    html += '<tr><th>통신사</th><td>' + escapeHtml(details.provider || '-') + '</td></tr>';
+                    html += '<tr><th>요금제명</th><td>' + escapeHtml(details.plan_name || '-') + '</td></tr>';
+                    html += '<tr><th>서비스 타입</th><td>' + escapeHtml(details.service_type || '-') + '</td></tr>';
+                    html += '<tr><th>약정기간</th><td>' + escapeHtml(details.contract_period || '-') + '</td></tr>';
+                    if (details.contract_period_days) {
+                        html += '<tr><th>약정기간(일)</th><td>' + escapeHtml(details.contract_period_days) + '일</td></tr>';
+                    }
+                    html += '<tr><th>할인기간</th><td>' + escapeHtml(details.discount_period || '-') + '</td></tr>';
+                    
+                    // 가격 정보
+                    html += '<tr><th>기본 요금</th><td>' + (details.price_main ? escapeHtml(Number(details.price_main).toLocaleString() + '원') : '-') + '</td></tr>';
+                    html += '<tr><th>할인 후 요금</th><td>' + (details.price_after ? escapeHtml(Number(details.price_after).toLocaleString() + '원') : '-') + '</td></tr>';
+                    
+                    // 데이터 정보
+                    html += '<tr><th>데이터량</th><td>';
+                    if (details.data_amount_value && details.data_unit) {
+                        html += escapeHtml(details.data_amount_value + details.data_unit);
+                    } else if (details.data_amount) {
+                        html += escapeHtml(details.data_amount);
+                    } else {
+                        html += '-';
+                    }
+                    html += '</td></tr>';
+                    
+                    if (details.data_additional_value) {
+                        html += '<tr><th>데이터 추가제공</th><td>' + escapeHtml(details.data_additional_value) + '</td></tr>';
+                    }
+                    
+                    if (details.data_exhausted_value) {
+                        html += '<tr><th>데이터 소진 시</th><td>' + escapeHtml(details.data_exhausted_value) + '</td></tr>';
+                    }
+                    
+                    // 통화 정보
+                    html += '<tr><th>통화 타입</th><td>' + escapeHtml(details.call_type || '-') + '</td></tr>';
+                    if (details.call_amount) {
+                        html += '<tr><th>통화량</th><td>' + escapeHtml(details.call_amount) + '</td></tr>';
+                    }
+                    if (details.additional_call) {
+                        html += '<tr><th>추가 통화</th><td>' + escapeHtml(details.additional_call) + '</td></tr>';
+                    }
+                    
+                    // SMS 정보
+                    html += '<tr><th>SMS 타입</th><td>' + escapeHtml(details.sms_type || '-') + '</td></tr>';
+                    if (details.sms_amount) {
+                        html += '<tr><th>SMS량</th><td>' + escapeHtml(details.sms_amount) + '</td></tr>';
+                    }
+                    
+                    // 모바일 핫스팟
+                    if (details.mobile_hotspot_value) {
+                        html += '<tr><th>모바일 핫스팟</th><td>' + escapeHtml(details.mobile_hotspot_value) + '</td></tr>';
+                    }
+                    
+                    // SIM 정보
+                    html += '<tr><th>일반 SIM</th><td>';
+                    if (details.regular_sim_available === 'Y' || details.regular_sim_available === 'yes') {
+                        html += '가능';
+                        if (details.regular_sim_price) {
+                            html += ' (' + escapeHtml(details.regular_sim_price) + '원)';
+                        }
+                    } else {
+                        html += '불가능';
+                    }
+                    html += '</td></tr>';
+                    
+                    html += '<tr><th>NFC SIM</th><td>';
+                    if (details.nfc_sim_available === 'Y' || details.nfc_sim_available === 'yes') {
+                        html += '가능';
+                        if (details.nfc_sim_price) {
+                            html += ' (' + escapeHtml(details.nfc_sim_price) + '원)';
+                        }
+                    } else {
+                        html += '불가능';
+                    }
+                    html += '</td></tr>';
+                    
+                    html += '<tr><th>eSIM</th><td>';
+                    if (details.esim_available === 'Y' || details.esim_available === 'yes') {
+                        html += '가능';
+                        if (details.esim_price) {
+                            html += ' (' + escapeHtml(details.esim_price) + '원)';
+                        }
+                    } else {
+                        html += '불가능';
+                    }
+                    html += '</td></tr>';
+                    
+                    // 초과 요금
+                    if (details.over_data_price) {
+                        html += '<tr><th>데이터 초과 시</th><td>' + escapeHtml(details.over_data_price) + '원</td></tr>';
+                    }
+                    if (details.over_voice_price) {
+                        html += '<tr><th>음성 초과 시</th><td>' + escapeHtml(details.over_voice_price) + '원</td></tr>';
+                    }
+                    if (details.over_sms_price) {
+                        html += '<tr><th>SMS 초과 시</th><td>' + escapeHtml(details.over_sms_price) + '원</td></tr>';
+                    }
+                    
+                    // 프로모션
+                    if (details.promotion_title) {
+                        html += '<tr><th>프로모션 제목</th><td>' + escapeHtml(details.promotion_title) + '</td></tr>';
+                    }
+                    
+                    if (details.promotions) {
+                        try {
+                            const promotions = JSON.parse(details.promotions);
+                            if (Array.isArray(promotions) && promotions.length > 0) {
+                                html += '<tr><th>프로모션 목록</th><td><ul style="margin: 0; padding-left: 20px;">';
+                                promotions.forEach(promo => {
+                                    html += '<li>' + escapeHtml(promo) + '</li>';
+                                });
+                                html += '</ul></td></tr>';
+                            }
+                        } catch (e) {
+                            html += '<tr><th>프로모션 목록</th><td>' + escapeHtml(details.promotions) + '</td></tr>';
+                        }
+                    }
+                    
+                    if (details.benefits) {
+                        try {
+                            const benefits = JSON.parse(details.benefits);
+                            if (Array.isArray(benefits) && benefits.length > 0) {
+                                html += '<tr><th>혜택 목록</th><td><ul style="margin: 0; padding-left: 20px;">';
+                                benefits.forEach(benefit => {
+                                    html += '<li>' + escapeHtml(benefit) + '</li>';
+                                });
+                                html += '</ul></td></tr>';
+                            }
+                        } catch (e) {
+                            html += '<tr><th>혜택 목록</th><td>' + escapeHtml(details.benefits) + '</td></tr>';
+                        }
+                    }
+                    
+                    html += '</table>';
+                    html += '</div>';
+                }
+                
                 content.innerHTML = html;
             } else {
                 content.innerHTML = '<div style="text-align: center; padding: 40px; color: #ef4444;">' + escapeHtml(data.message || '상품 정보를 불러올 수 없습니다.') + '</div>';
             }
         })
         .catch(error => {
-            content.innerHTML = '<div style="text-align: center; padding: 40px; color: #ef4444;">상품 정보를 불러오는 중 오류가 발생했습니다.</div>';
-            console.error('Error:', error);
+            console.error('상품 정보 조회 오류:', error);
+            let errorMessage = '상품 정보를 불러오는 중 오류가 발생했습니다.';
+            if (error.message) {
+                errorMessage += '<br><small style="color: #6b7280;">' + escapeHtml(error.message) + '</small>';
+            }
+            content.innerHTML = '<div style="text-align: center; padding: 40px; color: #ef4444;">' + errorMessage + '</div>';
         });
 }
 

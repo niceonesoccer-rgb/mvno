@@ -29,6 +29,7 @@ $user_id = $currentUser['user_id'];
 // 필요한 함수 포함
 require_once '../includes/data/product-functions.php';
 require_once '../includes/data/db-config.php';
+require_once '../includes/data/contract-type-functions.php';
 
 // DB에서 실제 신청 내역 가져오기
 $applications = getUserMvnoApplications($user_id);
@@ -465,6 +466,50 @@ document.addEventListener('DOMContentLoaded', function() {
         
         html += '</div></div>';
         
+        // 혜택 및 유의사항 섹션
+        if (productSnapshot.benefits) {
+            html += '<div>';
+            html += '<h3 style="font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #6366f1;">혜택 및 유의사항</h3>';
+            html += '<div style="font-size: 14px; color: #374151; line-height: 1.8;">';
+            
+            let benefits = null;
+            try {
+                // benefits가 문자열인 경우 JSON 파싱 시도
+                if (typeof productSnapshot.benefits === 'string') {
+                    const parsed = JSON.parse(productSnapshot.benefits);
+                    if (Array.isArray(parsed)) {
+                        benefits = parsed;
+                    } else {
+                        benefits = [productSnapshot.benefits];
+                    }
+                } else if (Array.isArray(productSnapshot.benefits)) {
+                    benefits = productSnapshot.benefits;
+                } else {
+                    benefits = [String(productSnapshot.benefits)];
+                }
+            } catch(e) {
+                // JSON 파싱 실패 시 문자열로 처리
+                benefits = [String(productSnapshot.benefits)];
+            }
+            
+            if (benefits && benefits.length > 0) {
+                html += '<ul style="margin: 0; padding-left: 20px; list-style-type: disc;">';
+                benefits.forEach(function(benefit) {
+                    const benefitText = String(benefit).trim();
+                    if (benefitText) {
+                        // 줄바꿈 문자(\n)를 <br> 태그로 변환
+                        const formattedText = escapeHtml(benefitText).replace(/\n/g, '<br>');
+                        html += `<li style="margin-bottom: 8px;">${formattedText}</li>`;
+                    }
+                });
+                html += '</ul>';
+            } else {
+                html += '<div style="color: #9ca3af;">추가 정보 없음</div>';
+            }
+            
+            html += '</div></div>';
+        }
+        
         html += '</div>';
         
         modalContent.innerHTML = html;
@@ -488,6 +533,9 @@ document.addEventListener('DOMContentLoaded', function() {
 // 푸터 포함
 include '../includes/footer.php';
 ?>
+
+
+
 
 
 

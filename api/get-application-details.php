@@ -54,6 +54,7 @@ try {
     
     // 신청 정보와 고객 정보 조회 (본인 것만 조회 가능)
     // 판매자 페이지와 동일하게 product_internet_details 테이블의 현재 값을 함께 조회
+    // MVNO 상품의 경우 product_mvno_details 테이블에서 benefits도 가져오기
     $stmt = $pdo->prepare("
         SELECT 
             a.id as application_id,
@@ -83,11 +84,13 @@ try {
             internet.equipment_names,
             internet.equipment_prices,
             internet.installation_names,
-            internet.installation_prices
+            internet.installation_prices,
+            mvno.benefits as mvno_benefits
         FROM product_applications a
         INNER JOIN application_customers c ON a.id = c.application_id
         INNER JOIN products p ON a.product_id = p.id
         LEFT JOIN product_internet_details internet ON p.id = internet.product_id
+        LEFT JOIN product_mvno_details mvno ON p.id = mvno.product_id
         WHERE a.id = :application_id 
         AND c.user_id = :user_id
         LIMIT 1
@@ -139,6 +142,17 @@ try {
         $additionalInfo['product_snapshot']['installation_prices'] = $application['installation_prices'] ?? '';
     }
     
+    // MVNO 상품인 경우 benefits 정보 추가
+    if ($application['product_type'] === 'mvno' && !empty($application['mvno_benefits'])) {
+        if (!isset($additionalInfo['product_snapshot'])) {
+            $additionalInfo['product_snapshot'] = [];
+        }
+        // product_snapshot에 이미 benefits가 있으면 유지, 없으면 테이블에서 가져온 값 사용
+        if (!isset($additionalInfo['product_snapshot']['benefits'])) {
+            $additionalInfo['product_snapshot']['benefits'] = $application['mvno_benefits'];
+        }
+    }
+    
     // 상태 한글 변환
     $statusKor = getApplicationStatusLabel($application['application_status']);
     
@@ -173,6 +187,9 @@ try {
         'message' => '정보를 불러오는 중 오류가 발생했습니다.'
     ]);
 }
+
+
+
 
 
 

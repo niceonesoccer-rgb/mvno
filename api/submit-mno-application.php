@@ -11,6 +11,7 @@
 require_once __DIR__ . '/../includes/data/db-config.php';
 require_once __DIR__ . '/../includes/data/product-functions.php';
 require_once __DIR__ . '/../includes/data/auth-functions.php';
+require_once __DIR__ . '/../includes/data/contract-type-functions.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -100,7 +101,7 @@ try {
         $additionalInfo['discount_type'] = trim($_POST['selected_discount_type']);
     }
     if (isset($_POST['selected_subscription_type'])) {
-        $additionalInfo['subscription_type'] = trim($_POST['selected_subscription_type']);
+        $additionalInfo['subscription_type'] = normalizeContractType(trim($_POST['selected_subscription_type'])); // 영문 코드로 정규화
     }
     if (isset($_POST['selected_amount'])) {
         $amount = trim($_POST['selected_amount']);

@@ -257,15 +257,8 @@ $statusLabels = [
     'terminated' => '종료'
 ];
 
-// 가입형태 한글명
-$subscriptionTypeLabels = [
-    'new' => '신규가입',
-    'port' => '번호이동',
-    'change' => '기기변경',
-    '신규가입' => '신규가입',
-    '번호이동' => '번호이동',
-    '기기변경' => '기기변경'
-];
+// 가입형태 표시 함수 사용 (판매자용)
+require_once __DIR__ . '/../../includes/data/contract-type-functions.php';
 
 // 할인방법 한글명
 $discountTypeLabels = [
@@ -1005,7 +998,6 @@ include __DIR__ . '/../includes/seller-header.php';
                         <option value="on_hold" <?php echo ($status === 'on_hold') ? 'selected' : ''; ?>>보류</option>
                         <option value="cancelled" <?php echo ($status === 'cancelled') ? 'selected' : ''; ?>>취소</option>
                         <option value="activation_completed" <?php echo ($status === 'activation_completed') ? 'selected' : ''; ?>>개통완료</option>
-                        <option value="installation_completed" <?php echo ($status === 'installation_completed') ? 'selected' : ''; ?>>설치완료</option>
                         <option value="closed" <?php echo ($status === 'closed') ? 'selected' : ''; ?>>종료</option>
                     </select>
                 </div>
@@ -1110,8 +1102,7 @@ include __DIR__ . '/../includes/seller-header.php';
                             <td><?php echo htmlspecialchars($orderDetails['discount_type']); ?></td>
                             <td>
                                 <?php 
-                                $subType = $orderDetails['subscription_type'];
-                                echo $subType !== '-' ? ($subscriptionTypeLabels[$subType] ?? $subType) : '-';
+                                echo getContractTypeForAdmin($order);
                                 ?>
                             </td>
                             <td><?php echo htmlspecialchars($orderDetails['price']); ?></td>
@@ -1259,10 +1250,12 @@ function showProductInfo(order, productType) {
             html += `<tr><th>통신사</th><td>${selectedCarrier}</td></tr>`;
         }
         if (subscriptionType) {
+            // 판매자용 표시: 신규, 번이, 기변
             const subTypeLabels = {
-                'new': '신규가입',
-                'port': '번호이동',
-                'change': '기기변경'
+                'new': '신규',
+                'port': '번이',
+                'mnp': '번이',
+                'change': '기변'
             };
             html += `<tr><th>가입형태</th><td>${subTypeLabels[subscriptionType] || subscriptionType}</td></tr>`;
         }
@@ -1464,7 +1457,7 @@ function openStatusEditModal(applicationId, currentStatus) {
     }
     
     // 셀렉트박스에 값 설정 (값이 유효한 옵션인지 확인)
-    const validStatuses = ['received', 'activating', 'on_hold', 'cancelled', 'activation_completed', 'installation_completed', 'closed'];
+    const validStatuses = ['received', 'activating', 'on_hold', 'cancelled', 'activation_completed', 'closed'];
     if (validStatuses.includes(status)) {
         select.value = status;
     } else {
@@ -1648,7 +1641,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 <option value="on_hold">보류</option>
                 <option value="cancelled">취소</option>
                 <option value="activation_completed">개통완료</option>
-                <option value="installation_completed">설치완료</option>
                 <option value="closed">종료</option>
             </select>
         </div>

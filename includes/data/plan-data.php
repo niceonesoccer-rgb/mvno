@@ -423,7 +423,7 @@ function getProductAverageRating($productId, $productType = 'mvno') {
  * 상품 리뷰 목록 가져오기
  * 같은 판매자의 같은 상품 타입의 모든 상품 리뷰를 통합하여 가져옴
  * @param int $productId 상품 ID
- * @param string $productType 상품 타입 ('mvno' 또는 'mno')
+ * @param string $productType 상품 타입 ('mvno', 'mno', 'internet')
  * @param int $limit 가져올 개수 (기본: 10)
  * @param string $sort 정렬 방식 ('rating_desc', 'rating_asc', 'created_desc') 기본: 'created_desc'
  * @return array 리뷰 배열
@@ -614,6 +614,164 @@ function getProductReviewCount($productId, $productType = 'mvno') {
         return (int)($result['review_count'] ?? 0);
     } catch (PDOException $e) {
         error_log("Error fetching product review count: " . $e->getMessage());
+        return 0;
+    }
+}
+
+/**
+ * 특정 상품의 리뷰만 가져오기 (판매자 페이지용)
+ * 통합하지 않고 해당 상품의 리뷰만 반환
+ * @param int $productId 상품 ID
+ * @param string $productType 상품 타입 ('mvno', 'mno', 'internet')
+ * @param int $limit 가져올 개수 (기본: 10)
+ * @param string $sort 정렬 방식 ('rating_desc', 'rating_asc', 'created_desc') 기본: 'created_desc'
+ * @return array 리뷰 배열
+ */
+function getSingleProductReviews($productId, $productType = 'mvno', $limit = 10, $sort = 'rating_desc') {
+    $pdo = getDBConnection();
+    if (!$pdo) {
+        return [];
+    }
+    
+    try {
+        // 정렬 방식 설정
+        $orderBy = 'r.created_at DESC'; // 기본값: 최신순
+        switch ($sort) {
+            case 'rating_desc':
+                $orderBy = 'r.rating DESC, r.created_at DESC';
+                break;
+            case 'rating_asc':
+                $orderBy = 'r.rating ASC, r.created_at DESC';
+                break;
+            case 'created_desc':
+                $orderBy = 'r.created_at DESC';
+                break;
+            default:
+                $orderBy = 'r.created_at DESC';
+                break;
+        }
+        
+        // 해당 상품의 리뷰만 가져오기
+        $stmt = $pdo->prepare("
+            SELECT 
+                r.id,
+                r.user_id,
+                r.rating,
+                r.title,
+                r.content,
+                r.is_verified,
+                r.helpful_count,
+                r.created_at
+            FROM product_reviews r
+            WHERE r.product_id = :product_id
+            AND r.product_type = :product_type
+            AND r.status = 'approved'
+            ORDER BY $orderBy
+            LIMIT :limit
+        ");
+        $stmt->bindValue(':product_id', $productId, PDO::PARAM_INT);
+        $stmt->bindValue(':product_type', $productType, PDO::PARAM_STR);
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->execute();
+        
+        $reviews = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // 사용자 이름 가져오기
+        foreach ($reviews as &$review) {
+            $user = getUserById($review['user_id']);
+            if ($user) {
+                // 이름 마스킹 (예: "홍길동" -> "홍*동")
+                $name = $user['name'] ?? '익명';
+                if (mb_strlen($name) > 2) {
+                    $name = mb_substr($name, 0, 1) . str_repeat('*', mb_strlen($name) - 2) . mb_substr($name, -1);
+                } elseif (mb_strlen($name) == 2) {
+                    $name = mb_substr($name, 0, 1) . '*';
+                }
+                $review['author_name'] = $name;
+            } else {
+                $review['author_name'] = '익명';
+            }
+            
+            // 별점을 별 아이콘으로 변환
+            $review['stars'] = getStarsFromRating($review['rating']);
+            
+            // 날짜 포맷
+            $review['date_ago'] = formatDateAgo($review['created_at']);
+        }
+        
+        return $reviews;
+    } catch (PDOException $e) {
+        error_log("Error fetching single product reviews: " . $e->getMessage());
+        return [];
+    }
+}
+
+/**
+ * 특정 상품의 평균 별점 계산 (판매자 페이지용)
+ * @param int $productId 상품 ID
+ * @param string $productType 상품 타입 ('mvno', 'mno', 'internet')
+ * @return float 평균 별점
+ */
+function getSingleProductAverageRating($productId, $productType = 'mvno') {
+    $pdo = getDBConnection();
+    if (!$pdo) {
+        return 0.0;
+    }
+    
+    try {
+        $stmt = $pdo->prepare("
+            SELECT AVG(rating) as avg_rating, COUNT(*) as review_count
+            FROM product_reviews
+            WHERE product_id = :product_id
+            AND product_type = :product_type
+            AND status = 'approved'
+        ");
+        $stmt->bindValue(':product_id', $productId, PDO::PARAM_INT);
+        $stmt->bindValue(':product_type', $productType, PDO::PARAM_STR);
+        $stmt->execute();
+        
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if ($result && $result['review_count'] > 0 && $result['avg_rating'] !== null) {
+            return round((float)$result['avg_rating'], 1);
+        }
+        
+        return 0.0;
+    } catch (PDOException $e) {
+        error_log("Error fetching single product average rating: " . $e->getMessage());
+        return 0.0;
+    }
+}
+
+/**
+ * 특정 상품의 리뷰 개수 계산 (판매자 페이지용)
+ * @param int $productId 상품 ID
+ * @param string $productType 상품 타입 ('mvno', 'mno', 'internet')
+ * @return int 리뷰 개수
+ */
+function getSingleProductReviewCount($productId, $productType = 'mvno') {
+    $pdo = getDBConnection();
+    if (!$pdo) {
+        return 0;
+    }
+    
+    try {
+        $stmt = $pdo->prepare("
+            SELECT COUNT(*) as review_count
+            FROM product_reviews
+            WHERE product_id = :product_id
+            AND product_type = :product_type
+            AND status = 'approved'
+        ");
+        $stmt->bindValue(':product_id', $productId, PDO::PARAM_INT);
+        $stmt->bindValue(':product_type', $productType, PDO::PARAM_STR);
+        $stmt->execute();
+        
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        return (int)($result['review_count'] ?? 0);
+    } catch (PDOException $e) {
+        error_log("Error fetching single product review count: " . $e->getMessage());
         return 0;
     }
 }

@@ -257,12 +257,8 @@ try {
 // 기존 코드와의 호환성을 위해 $statusLabels를 공통 함수를 호출하는 방식으로 변경
 // 배열 대신 함수를 사용하도록 변경
 
-// 가입형태 한글명
-$subscriptionTypeLabels = [
-    'new' => '신규가입',
-    'port' => '번호이동',
-    'change' => '기기변경'
-];
+// 가입형태 표시 함수 사용 (판매자용)
+require_once __DIR__ . '/../../includes/data/contract-type-functions.php';
 
 $pageStyles = '
     .orders-container {
@@ -929,7 +925,6 @@ include __DIR__ . '/../includes/seller-header.php';
                         <option value="on_hold" <?php echo ($status === 'on_hold') ? 'selected' : ''; ?>>보류</option>
                         <option value="cancelled" <?php echo ($status === 'cancelled') ? 'selected' : ''; ?>>취소</option>
                         <option value="activation_completed" <?php echo ($status === 'activation_completed') ? 'selected' : ''; ?>>개통완료</option>
-                        <option value="installation_completed" <?php echo ($status === 'installation_completed') ? 'selected' : ''; ?>>설치완료</option>
                         <option value="closed" <?php echo ($status === 'closed') ? 'selected' : ''; ?>>종료</option>
                     </select>
                 </div>
@@ -1001,8 +996,7 @@ include __DIR__ . '/../includes/seller-header.php';
                             </td>
                             <td>
                                 <?php 
-                                $subType = $order['additional_info']['subscription_type'] ?? '';
-                                echo $subType ? ($subscriptionTypeLabels[$subType] ?? $subType) : '-';
+                                echo getContractTypeForAdmin($order);
                                 ?>
                             </td>
                             <td><?php echo htmlspecialchars($order['name']); ?></td>
@@ -1165,11 +1159,11 @@ function showProductInfo(order, productType) {
                 return defaultValue !== null ? defaultValue : '';
             };
             
-            // 가입 형태
+            // 가입 형태 (판매자용: 신규, 번이, 기변)
             const subscriptionType = additionalInfo.subscription_type || '';
-            const subscriptionTypeLabel = subscriptionType === 'new' ? '신규가입' : 
-                                         subscriptionType === 'port' ? '번호이동' : 
-                                         subscriptionType === 'change' ? '기기변경' : 
+            const subscriptionTypeLabel = subscriptionType === 'new' ? '신규' : 
+                                         subscriptionType === 'port' ? '번이' : 
+                                         subscriptionType === 'change' ? '기변' : 
                                          subscriptionType || '-';
             
             // 통신 기술 (service_type)
@@ -1206,8 +1200,8 @@ function showProductInfo(order, productType) {
             // 가입 형태 (신규, 번이, 기변)
             const subscriptionTypes = [];
             if (subscriptionType === 'new' || (order.contract_period && order.contract_period.includes('신규'))) subscriptionTypes.push('신규');
-            if (subscriptionType === 'port' || (order.contract_period && order.contract_period.includes('번호이동'))) subscriptionTypes.push('번호이동');
-            if (subscriptionType === 'change' || (order.contract_period && order.contract_period.includes('기기변경'))) subscriptionTypes.push('기기변경');
+            if (subscriptionType === 'port' || (order.contract_period && order.contract_period.includes('번호이동'))) subscriptionTypes.push('번이');
+            if (subscriptionType === 'change' || (order.contract_period && order.contract_period.includes('기기변경'))) subscriptionTypes.push('기변');
             const subscriptionTypesLabel = subscriptionTypes.length > 0 ? subscriptionTypes.join(', ') : subscriptionTypeLabel;
             
             // 데이터 제공량 (저장된 값 그대로 표시 - 단위 포함 가능)
@@ -1408,6 +1402,31 @@ function showProductInfo(order, productType) {
                 }
             };
             
+            // 가격 정보 처리
+            const priceMain = getValue('price_main', 'price_main');
+            const priceAfter = getValue('price_after', 'price_after');
+            const discountPeriod = getValue('discount_period', 'discount_period');
+            
+            let priceMainLabel = '-';
+            if (priceMain && priceMain !== '-' && priceMain !== null && priceMain !== '') {
+                const priceNum = parseFloat(String(priceMain).replace(/[^0-9.]/g, ''));
+                if (!isNaN(priceNum)) {
+                    priceMainLabel = '월 ' + number_format(priceNum) + '원';
+                } else {
+                    priceMainLabel = priceMain;
+                }
+            }
+            
+            let priceAfterLabel = '-';
+            if (priceAfter && priceAfter !== '-' && priceAfter !== null && priceAfter !== '') {
+                const priceNum = parseFloat(String(priceAfter).replace(/[^0-9.]/g, ''));
+                if (!isNaN(priceNum)) {
+                    priceAfterLabel = '월 ' + number_format(priceNum) + '원';
+                } else {
+                    priceAfterLabel = priceAfter;
+                }
+            }
+            
             // 기본 정보 섹션
             let basicInfoRows = [];
             if (order.plan_name && order.plan_name !== '-') {
@@ -1417,6 +1436,9 @@ function showProductInfo(order, productType) {
             addRowIfNotDash(basicInfoRows, '통신망', providerLabel);
             addRowIfNotDash(basicInfoRows, '통신 기술', serviceTypeLabel);
             addRowIfNotDash(basicInfoRows, '가입 형태', subscriptionTypesLabel);
+            addRowIfNotDash(basicInfoRows, '기본 요금', priceMainLabel);
+            addRowIfNotDash(basicInfoRows, '할인 후 요금', priceAfterLabel);
+            addRowIfNotDash(basicInfoRows, '할인 기간', discountPeriod);
             
             if (basicInfoRows.length > 0) {
                 html += `
@@ -1579,7 +1601,7 @@ function openStatusEditModal(applicationId, currentStatus) {
     }
     
     // 셀렉트박스에 값 설정 (값이 유효한 옵션인지 확인)
-    const validStatuses = ['received', 'activating', 'on_hold', 'cancelled', 'activation_completed', 'installation_completed', 'closed'];
+    const validStatuses = ['received', 'activating', 'on_hold', 'cancelled', 'activation_completed', 'closed'];
     if (validStatuses.includes(status)) {
         select.value = status;
     } else {
@@ -1731,7 +1753,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 <option value="on_hold">보류</option>
                 <option value="cancelled">취소</option>
                 <option value="activation_completed">개통완료</option>
-                <option value="installation_completed">설치완료</option>
                 <option value="closed">종료</option>
             </select>
         </div>

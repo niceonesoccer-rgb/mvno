@@ -12,7 +12,8 @@ date_default_timezone_set('Asia/Seoul');
 $review_settings = [
     // 리뷰 작성 가능한 진행상황 목록
     // 가능한 값: 'received', 'activating', 'on_hold', 'cancelled', 'activation_completed', 'installation_completed', 'closed'
-    'allowed_statuses' => ['activation_completed', 'closed'], // 기본값: 개통완료만 리뷰 작성 가능
+    // 인터넷의 경우: 'activating'(개통중), 'installation_completed'/'completed'(설치완료), 'closed'/'terminated'(종료)
+    'allowed_statuses' => ['activating', 'processing', 'installation_completed', 'completed', 'closed', 'terminated'], // 개통중, 설치완료, 종료 상태에서 리뷰 작성 가능
 ];
 
 /**
@@ -30,10 +31,14 @@ function canWriteReview($application_status) {
     }
     
     // 허용된 상태 목록 확인
-    $allowedStatuses = $review_settings['allowed_statuses'] ?? ['activation_completed'];
+    // 기본값: 개통중, 설치완료, 종료 상태
+    $allowedStatuses = $review_settings['allowed_statuses'] ?? ['activating', 'processing', 'installation_completed', 'completed', 'closed', 'terminated'];
     
     return in_array($normalizedStatus, $allowedStatuses);
 }
+
+
+
 
 
 
