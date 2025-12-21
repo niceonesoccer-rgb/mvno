@@ -357,10 +357,11 @@ function getProductAverageRating($productId, $productType = 'mvno') {
     
     try {
         // 통계 테이블에서 평균값을 SQL에서 직접 계산 (성능 최적화)
+        // ROUND 사용: 소수 첫째자리까지 정확하게 표시 (CEIL 대신)
         $stmt = $pdo->prepare("
             SELECT 
                 CASE 
-                    WHEN total_review_count > 0 THEN CEIL((total_rating_sum / total_review_count) * 10) / 10
+                    WHEN total_review_count > 0 THEN ROUND((total_rating_sum / total_review_count), 1)
                     ELSE 0
                 END AS average_rating
             FROM product_review_statistics
@@ -380,7 +381,7 @@ function getProductAverageRating($productId, $productType = 'mvno') {
         // 이 경우 통계 테이블도 업데이트해야 함
         $reviewStmt = $pdo->prepare("
             SELECT 
-                CEIL(AVG(rating) * 10) / 10 as avg_rating, 
+                ROUND(AVG(rating), 1) as avg_rating, 
                 COUNT(*) as count, 
                 SUM(rating) as total_sum
             FROM product_reviews
@@ -436,8 +437,8 @@ function getProductAverageRating($productId, $productType = 'mvno') {
                         }
                     }
                     
-                    // SQL에서 계산한 평균값 반환 (소수 둘째자리 올림)
-                    $averageRating = ceil((float)$reviewData['avg_rating'] * 10) / 10;
+                    // SQL에서 계산한 평균값 반환 (소수 첫째자리까지 반올림)
+                    $averageRating = round((float)$reviewData['avg_rating'], 1);
                     
                     // 통계 테이블 업데이트
                     $updateStmt = $pdo->prepare("
@@ -532,16 +533,17 @@ function getInternetReviewCategoryAverages($productId, $productType = 'internet'
         $useFallback = false;
         
         // 통계 테이블에 데이터가 있고 합계가 0이 아니면 사용
+        // ROUND 사용: 소수 첫째자리까지 정확하게 표시
         if ($stats && $stats['kindness_review_count'] > 0 && $stats['kindness_rating_sum'] > 0) {
             $average = $stats['kindness_rating_sum'] / $stats['kindness_review_count'];
-            $result['kindness'] = ceil($average * 10) / 10;
+            $result['kindness'] = round($average, 1);
         } else {
             $useFallback = true;
         }
         
         if ($stats && $stats['speed_review_count'] > 0 && $stats['speed_rating_sum'] > 0) {
             $average = $stats['speed_rating_sum'] / $stats['speed_review_count'];
-            $result['speed'] = ceil($average * 10) / 10;
+            $result['speed'] = round($average, 1);
         } else {
             $useFallback = true;
         }
@@ -571,11 +573,11 @@ function getInternetReviewCategoryAverages($productId, $productType = 'internet'
             $speedData = $speedStmt->fetch(PDO::FETCH_ASSOC);
             
             if ($kindnessData && $kindnessData['count'] > 0 && $kindnessData['avg_kindness'] !== null) {
-                $result['kindness'] = ceil((float)$kindnessData['avg_kindness'] * 10) / 10;
+                $result['kindness'] = round((float)$kindnessData['avg_kindness'], 1);
             }
             
             if ($speedData && $speedData['count'] > 0 && $speedData['avg_speed'] !== null) {
-                $result['speed'] = ceil((float)$speedData['avg_speed'] * 10) / 10;
+                $result['speed'] = round((float)$speedData['avg_speed'], 1);
             }
             
             // 통계 테이블이 비어있거나 잘못된 경우 로그 기록

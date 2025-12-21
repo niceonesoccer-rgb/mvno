@@ -95,16 +95,8 @@ try {
     ");
     $deleteStmt->execute([':review_id' => $reviewId]);
     
-    // 리뷰 통계 테이블 업데이트 (전체 리뷰 재계산)
-    // 항상 모든 approved 리뷰를 다시 계산하여 통계 업데이트
-    // 평균 = 전체 리뷰 수에 대한 총합계의 평균
-    try {
-        require_once __DIR__ . '/../includes/data/product-functions.php';
-        updateReviewStatistics($productId, null, null, null, $productType);
-    } catch (Exception $e) {
-        error_log("delete-review.php: 통계 업데이트 실패 - " . $e->getMessage());
-        // 통계 업데이트 실패는 치명적이지 않으므로 계속 진행
-    }
+    // 통계 업데이트는 트리거(trg_update_review_statistics_on_delete)가 자동으로 처리
+    // 트리거가 삭제된 리뷰의 통계를 자동으로 제거하여 통계 업데이트
     
     echo json_encode([
         'success' => true,

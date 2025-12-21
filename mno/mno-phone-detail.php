@@ -691,28 +691,20 @@ $discountData = [
                         <path d="M13.1479 3.1366C12.7138 2.12977 11.2862 2.12977 10.8521 3.1366L8.75804 7.99389L3.48632 8.48228C2.3937 8.58351 1.9524 9.94276 2.77717 10.6665L6.75371 14.156L5.58995 19.3138C5.34855 20.3837 6.50365 21.2235 7.44697 20.664L12 17.9635L16.553 20.664C17.4963 21.2235 18.6514 20.3837 18.4101 19.3138L17.2463 14.156L21.2228 10.6665C22.0476 9.94276 21.6063 8.58351 20.5137 8.48228L15.242 7.99389L13.1479 3.1366Z" fill="#EF4444"/>
                     </svg>
                     <span class="review-modal-rating-score"><?php echo htmlspecialchars($averageRating > 0 ? number_format($averageRating, 1) : '0.0'); ?></span>
-                    <span class="review-modal-rating-count"><?php echo number_format($reviewCount); ?>개</span>
                 </div>
                 <div class="review-modal-categories">
                     <div class="review-modal-category">
-                        <span class="review-modal-category-label">고객센터</span>
-                        <span class="review-modal-category-score"><?php echo htmlspecialchars($averageRating > 0 ? number_format($averageRating - 0.1, 1) : '0.0'); ?></span>
+                        <span class="review-modal-category-label">친절해요</span>
+                        <span class="review-modal-category-score"><?php echo htmlspecialchars($categoryAverages['kindness'] > 0 ? number_format($categoryAverages['kindness'], 1) : '0.0'); ?></span>
                         <div class="review-modal-stars">
-                            <span><?php echo getStarsFromRating(round($averageRating)); ?></span>
+                            <span><?php echo getPartialStarsFromRating($categoryAverages['kindness']); ?></span>
                         </div>
                     </div>
                     <div class="review-modal-category">
-                        <span class="review-modal-category-label">개통 과정</span>
-                        <span class="review-modal-category-score"><?php echo htmlspecialchars($averageRating > 0 ? number_format($averageRating + 0.2, 1) : '0.0'); ?></span>
+                        <span class="review-modal-category-label">개통 빨라요</span>
+                        <span class="review-modal-category-score"><?php echo htmlspecialchars($categoryAverages['speed'] > 0 ? number_format($categoryAverages['speed'], 1) : '0.0'); ?></span>
                         <div class="review-modal-stars">
-                            <span><?php echo getStarsFromRating(round($averageRating)); ?></span>
-                        </div>
-                    </div>
-                    <div class="review-modal-category">
-                        <span class="review-modal-category-label">개통 후 만족도</span>
-                        <span class="review-modal-category-score"><?php echo htmlspecialchars($averageRating > 0 ? number_format($averageRating - 0.1, 1) : '0.0'); ?></span>
-                        <div class="review-modal-stars">
-                            <span><?php echo getStarsFromRating(round($averageRating)); ?></span>
+                            <span><?php echo getPartialStarsFromRating($categoryAverages['speed']); ?></span>
                         </div>
                     </div>
                 </div>

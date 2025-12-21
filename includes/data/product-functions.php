@@ -1261,13 +1261,8 @@ function addProductReview($productId, $userId, $productType, $rating, $content, 
         $stmt->execute($executeParams);
         $newId = $pdo->lastInsertId();
         
-        // 리뷰 통계 테이블 업데이트 (전체 리뷰 재계산)
-        // 조건: approved 상태여야 함
-        // 항상 모든 approved 리뷰를 다시 계산하여 통계 업데이트
-        // 평균 = 전체 리뷰 수에 대한 총합계의 평균
-        if ($status === 'approved') {
-            updateReviewStatistics($productId, null, null, null, $productType);
-        }
+        // 통계 업데이트는 트리거(trg_update_review_statistics_on_insert)가 자동으로 처리
+        // 트리거가 approved 상태의 리뷰만 통계에 자동 추가하여 통계 업데이트
         
         return $newId;
     } catch (PDOException $e) {
@@ -1600,14 +1595,8 @@ function updateProductReview($reviewId, $userId, $rating, $content, $title = nul
             ]);
         }
         
-        // 리뷰 통계 테이블 업데이트 (전체 리뷰 재계산)
-        // 항상 모든 approved 리뷰를 다시 계산하여 통계 업데이트
-        // 평균 = 전체 리뷰 수에 대한 총합계의 평균
-        try {
-            updateReviewStatistics($productId, null, null, null, $review['product_type']);
-        } catch (Exception $e) {
-            error_log("updateProductReview: 통계 업데이트 실패 - " . $e->getMessage());
-        }
+        // 통계 업데이트는 트리거(trg_update_review_statistics_on_update)가 자동으로 처리
+        // 트리거가 기존 리뷰 통계를 제거하고 새 리뷰 통계를 추가하여 자동 업데이트
         
         return true;
     } catch (PDOException $e) {
