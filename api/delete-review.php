@@ -87,52 +87,22 @@ try {
     }
     
     $productId = $review['product_id'];
-    $rating = (int)$review['rating'];
-    $kindnessRating = $review['kindness_rating'] !== null ? (int)$review['kindness_rating'] : null;
-    $speedRating = $review['speed_rating'] !== null ? (int)$review['speed_rating'] : null;
     
-    // 리뷰 삭제 (status를 'deleted'로 변경)
-    $updateStmt = $pdo->prepare("
-        UPDATE product_reviews
-        SET status = 'deleted',
-            updated_at = NOW()
+    // 리뷰 완전 삭제 (물리적 삭제 - 데이터베이스에서 완전히 제거)
+    $deleteStmt = $pdo->prepare("
+        DELETE FROM product_reviews
         WHERE id = :review_id
     ");
-    $updateStmt->execute([':review_id' => $reviewId]);
+    $deleteStmt->execute([':review_id' => $reviewId]);
     
-    // 하이브리드 방식: 실시간 통계에서 삭제된 리뷰의 평점 제거 (처음 작성 시점 값은 변경하지 않음)
+    // 리뷰 통계 테이블 업데이트 (전체 리뷰 재계산)
+    // 항상 모든 approved 리뷰를 다시 계산하여 통계 업데이트
+    // 평균 = 전체 리뷰 수에 대한 총합계의 평균
     try {
-        $updateStatsSql = "
-            UPDATE product_review_statistics 
-            SET 
-                total_rating_sum = total_rating_sum - :rating,
-                total_review_count = GREATEST(total_review_count - 1, 0)";
-        
-        $updateStatsParams = [
-            ':product_id' => $productId,
-            ':rating' => $rating
-        ];
-        
-        if ($kindnessRating !== null) {
-            $updateStatsSql .= ",
-                kindness_rating_sum = kindness_rating_sum - :kindness_rating,
-                kindness_review_count = GREATEST(kindness_review_count - 1, 0)";
-            $updateStatsParams[':kindness_rating'] = $kindnessRating;
-        }
-        
-        if ($speedRating !== null) {
-            $updateStatsSql .= ",
-                speed_rating_sum = speed_rating_sum - :speed_rating,
-                speed_review_count = GREATEST(speed_review_count - 1, 0)";
-            $updateStatsParams[':speed_rating'] = $speedRating;
-        }
-        
-        $updateStatsSql .= " WHERE product_id = :product_id";
-        
-        $updateStatsStmt = $pdo->prepare($updateStatsSql);
-        $updateStatsStmt->execute($updateStatsParams);
-    } catch (PDOException $e) {
-        error_log("delete-review.php: 실시간 통계 업데이트 실패 - " . $e->getMessage());
+        require_once __DIR__ . '/../includes/data/product-functions.php';
+        updateReviewStatistics($productId, null, null, null, $productType);
+    } catch (Exception $e) {
+        error_log("delete-review.php: 통계 업데이트 실패 - " . $e->getMessage());
         // 통계 업데이트 실패는 치명적이지 않으므로 계속 진행
     }
     

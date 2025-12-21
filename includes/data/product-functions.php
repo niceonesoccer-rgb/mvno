@@ -1025,7 +1025,15 @@ function saveInternetProduct($productData) {
  * @param int|null $kindnessRating 친절해요 평점
  * @param int|null $speedRating 개통/설치 빨라요 평점
  */
-function updateReviewStatistics($productId, $rating, $kindnessRating = null, $speedRating = null) {
+/**
+ * 리뷰 통계 업데이트 (전체 리뷰 재계산 방식)
+ * 항상 모든 approved 리뷰를 다시 계산하여 통계를 업데이트합니다.
+ * 평균 = 전체 리뷰 수에 대한 총합계의 평균
+ * 
+ * @param int $productId 상품 ID
+ * @param string|null $productType 상품 타입 (선택, 없으면 product_reviews에서 조회)
+ */
+function updateReviewStatistics($productId, $rating = null, $kindnessRating = null, $speedRating = null, $productType = null) {
     $pdo = getDBConnection();
     if (!$pdo) {
         return;
@@ -1035,57 +1043,109 @@ function updateReviewStatistics($productId, $rating, $kindnessRating = null, $sp
         // 트랜잭션 시작 (동시성 문제 방지)
         $pdo->beginTransaction();
         
-        // INSERT ... ON DUPLICATE KEY UPDATE 사용 (성능 최적화 및 동시성 처리)
-        // 이 방식은 SELECT 없이 한 번의 쿼리로 처리되므로 더 빠르고 안전함
-        $insertSql = "
-            INSERT INTO product_review_statistics 
-            (product_id, total_rating_sum, total_review_count,
-             initial_total_rating_sum, initial_total_review_count";
+        // productType이 없으면 product_reviews에서 조회
+        if ($productType === null) {
+            $typeStmt = $pdo->prepare("
+                SELECT DISTINCT product_type 
+                FROM product_reviews 
+                WHERE product_id = :product_id 
+                AND status = 'approved'
+                LIMIT 1
+            ");
+            $typeStmt->execute([':product_id' => $productId]);
+            $typeResult = $typeStmt->fetch(PDO::FETCH_ASSOC);
+            $productType = $typeResult['product_type'] ?? 'mvno';
+        }
         
-        $insertValues = "VALUES (:product_id, :rating, 1, :rating, 1";
-        $insertParams = [
+        // 모든 approved 리뷰를 다시 계산하여 통계 업데이트
+        // 평균 = 전체 리뷰 수에 대한 총합계의 평균
+        $allReviewsStmt = $pdo->prepare("
+            SELECT 
+                rating,
+                kindness_rating,
+                speed_rating
+            FROM product_reviews
+            WHERE product_id = :product_id
+            AND product_type = :product_type
+            AND status = 'approved'
+        ");
+        $allReviewsStmt->execute([
             ':product_id' => $productId,
-            ':rating' => $rating
-        ];
+            ':product_type' => $productType
+        ]);
+        $allReviews = $allReviewsStmt->fetchAll(PDO::FETCH_ASSOC);
         
-        $updateSql = "
+        // 통계 재계산
+        $totalRatingSum = 0;
+        $reviewCount = count($allReviews);
+        $kindnessSum = 0;
+        $kindnessCount = 0;
+        $speedSum = 0;
+        $speedCount = 0;
+        
+        foreach ($allReviews as $review) {
+            $totalRatingSum += (int)$review['rating'];
+            if ($review['kindness_rating'] !== null) {
+                $kindnessSum += (int)$review['kindness_rating'];
+                $kindnessCount++;
+            }
+            if ($review['speed_rating'] !== null) {
+                $speedSum += (int)$review['speed_rating'];
+                $speedCount++;
+            }
+        }
+        
+        // 통계 테이블 업데이트 (전체 재계산)
+        $updateStmt = $pdo->prepare("
+            INSERT INTO product_review_statistics (
+                product_id,
+                total_rating_sum,
+                total_review_count,
+                kindness_rating_sum,
+                kindness_review_count,
+                speed_rating_sum,
+                speed_review_count,
+                updated_at
+            ) VALUES (
+                :product_id,
+                :total_rating_sum,
+                :total_review_count,
+                :kindness_rating_sum,
+                :kindness_review_count,
+                :speed_rating_sum,
+                :speed_review_count,
+                NOW()
+            )
             ON DUPLICATE KEY UPDATE
-                total_rating_sum = total_rating_sum + :rating,
-                total_review_count = total_review_count + 1,
-                initial_total_rating_sum = initial_total_rating_sum + :rating,
-                initial_total_review_count = initial_total_review_count + 1";
+                total_rating_sum = :total_rating_sum2,
+                total_review_count = :total_review_count2,
+                kindness_rating_sum = :kindness_rating_sum2,
+                kindness_review_count = :kindness_review_count2,
+                speed_rating_sum = :speed_rating_sum2,
+                speed_review_count = :speed_review_count2,
+                updated_at = NOW()
+        ");
         
-        if ($kindnessRating !== null) {
-            $insertSql .= ", kindness_rating_sum, kindness_review_count,
-                           initial_kindness_rating_sum, initial_kindness_review_count";
-            $insertValues .= ", :kindness_rating, 1, :kindness_rating, 1";
-            $insertParams[':kindness_rating'] = $kindnessRating;
-            $updateSql .= ",
-                kindness_rating_sum = kindness_rating_sum + :kindness_rating,
-                kindness_review_count = kindness_review_count + 1,
-                initial_kindness_rating_sum = initial_kindness_rating_sum + :kindness_rating,
-                initial_kindness_review_count = initial_kindness_review_count + 1";
-        }
-        
-        if ($speedRating !== null) {
-            $insertSql .= ", speed_rating_sum, speed_review_count,
-                           initial_speed_rating_sum, initial_speed_review_count";
-            $insertValues .= ", :speed_rating, 1, :speed_rating, 1";
-            $insertParams[':speed_rating'] = $speedRating;
-            $updateSql .= ",
-                speed_rating_sum = speed_rating_sum + :speed_rating,
-                speed_review_count = speed_review_count + 1,
-                initial_speed_rating_sum = initial_speed_rating_sum + :speed_rating,
-                initial_speed_review_count = initial_speed_review_count + 1";
-        }
-        
-        $insertSql .= ") " . $insertValues . ") " . $updateSql;
-        
-        $stmt = $pdo->prepare($insertSql);
-        $stmt->execute($insertParams);
+        $updateStmt->execute([
+            ':product_id' => $productId,
+            ':total_rating_sum' => $totalRatingSum,
+            ':total_review_count' => $reviewCount,
+            ':kindness_rating_sum' => $kindnessSum,
+            ':kindness_review_count' => $kindnessCount,
+            ':speed_rating_sum' => $speedSum,
+            ':speed_review_count' => $speedCount,
+            ':total_rating_sum2' => $totalRatingSum,
+            ':total_review_count2' => $reviewCount,
+            ':kindness_rating_sum2' => $kindnessSum,
+            ':kindness_review_count2' => $kindnessCount,
+            ':speed_rating_sum2' => $speedSum,
+            ':speed_review_count2' => $speedCount
+        ]);
         
         // 트랜잭션 커밋
         $pdo->commit();
+        
+        error_log("updateReviewStatistics: 통계 재계산 완료 - product_id={$productId}, count={$reviewCount}, sum={$totalRatingSum}");
     } catch (PDOException $e) {
         // 트랜잭션 롤백
         if ($pdo->inTransaction()) {
@@ -1201,47 +1261,12 @@ function addProductReview($productId, $userId, $productType, $rating, $content, 
         $stmt->execute($executeParams);
         $newId = $pdo->lastInsertId();
         
-        // 이전에 삭제된 리뷰가 있었는지 확인
-        // 삭제 후 다시 작성한 경우 통계 테이블에 추가하지 않음 (처음 작성한 점수 유지)
-        // 중요: application_id별로 체크해야 함 (다른 주문건의 리뷰는 통계에 반영되어야 함)
-        $hasDeletedReview = false;
-        if ($hasApplicationId && $applicationId !== null && ($productType === 'internet' || $productType === 'mvno' || $productType === 'mno')) {
-            // application_id가 있는 경우: 같은 주문건(application_id)에서만 삭제된 리뷰가 있는지 확인
-            // 다른 주문건(다른 application_id)의 삭제된 리뷰는 무시 (각 주문건별로 리뷰 작성 가능)
-            // 같은 주문건에서 삭제 후 다시 작성한 경우만 통계에 반영하지 않음
-            $deletedCheck = $pdo->prepare("
-                SELECT id 
-                FROM product_reviews 
-                WHERE application_id = :application_id 
-                AND user_id = :user_id 
-                AND product_type = :product_type
-                AND status = 'deleted'
-                AND id != :new_id
-                LIMIT 1
-            ");
-            $deletedCheck->execute([
-                ':application_id' => $applicationId,
-                ':user_id' => $userId,
-                ':product_type' => $productType,
-                ':new_id' => $newId
-            ]);
-            $hasDeletedReview = $deletedCheck->fetch() !== false;
-        } else {
-            // application_id가 없는 경우: 같은 상품+사용자+주문건에서 삭제된 리뷰가 있는지 확인
-            // 중요: application_id가 없는 경우에도, 같은 주문건(같은 리뷰 ID 이전에 삭제된 리뷰)에서만 체크
-            // 다른 리뷰의 삭제는 영향 없음 - 각 리뷰는 독립적으로 통계에 반영되어야 함
-            // 따라서 application_id가 없는 경우는 삭제 체크를 하지 않음 (모든 리뷰가 통계에 반영됨)
-            $hasDeletedReview = false;
-        }
-        
-        // 리뷰 통계 테이블 업데이트
-        // 조건:
-        // 1. approved 상태여야 함
-        // 2. 같은 주문건(application_id)에서 삭제된 리뷰가 없어야 함
-        //    (application_id가 없는 경우는 모든 리뷰가 통계에 반영됨)
-        //    (다른 주문건의 삭제된 리뷰는 영향 없음 - 각 주문건별로 독립적으로 통계 반영)
-        if ($status === 'approved' && !$hasDeletedReview) {
-            updateReviewStatistics($productId, $rating, $kindnessRating, $speedRating);
+        // 리뷰 통계 테이블 업데이트 (전체 리뷰 재계산)
+        // 조건: approved 상태여야 함
+        // 항상 모든 approved 리뷰를 다시 계산하여 통계 업데이트
+        // 평균 = 전체 리뷰 수에 대한 총합계의 평균
+        if ($status === 'approved') {
+            updateReviewStatistics($productId, null, null, null, $productType);
         }
         
         return $newId;
@@ -1575,44 +1600,13 @@ function updateProductReview($reviewId, $userId, $rating, $content, $title = nul
             ]);
         }
         
-        // 하이브리드 방식: 실시간 통계만 업데이트 (처음 작성 시점 값은 변경하지 않음)
-        // 기존 값 제거 후 새 값 추가
-        $oldRating = (int)$review['old_rating'];
-        $oldKindnessRating = $review['old_kindness_rating'] !== null ? (int)$review['old_kindness_rating'] : null;
-        $oldSpeedRating = $review['old_speed_rating'] !== null ? (int)$review['old_speed_rating'] : null;
-        
-        $updateStatsSql = "
-            UPDATE product_review_statistics 
-            SET 
-                total_rating_sum = total_rating_sum - :old_rating + :new_rating";
-        
-        $updateStatsParams = [
-            ':product_id' => $productId,
-            ':old_rating' => $oldRating,
-            ':new_rating' => $rating
-        ];
-        
-        if ($oldKindnessRating !== null && $kindnessRating !== null) {
-            $updateStatsSql .= ",
-                kindness_rating_sum = kindness_rating_sum - :old_kindness + :new_kindness";
-            $updateStatsParams[':old_kindness'] = $oldKindnessRating;
-            $updateStatsParams[':new_kindness'] = $kindnessRating;
-        }
-        
-        if ($oldSpeedRating !== null && $speedRating !== null) {
-            $updateStatsSql .= ",
-                speed_rating_sum = speed_rating_sum - :old_speed + :new_speed";
-            $updateStatsParams[':old_speed'] = $oldSpeedRating;
-            $updateStatsParams[':new_speed'] = $speedRating;
-        }
-        
-        $updateStatsSql .= " WHERE product_id = :product_id";
-        
+        // 리뷰 통계 테이블 업데이트 (전체 리뷰 재계산)
+        // 항상 모든 approved 리뷰를 다시 계산하여 통계 업데이트
+        // 평균 = 전체 리뷰 수에 대한 총합계의 평균
         try {
-            $updateStatsStmt = $pdo->prepare($updateStatsSql);
-            $updateStatsStmt->execute($updateStatsParams);
-        } catch (PDOException $e) {
-            error_log("updateProductReview: 실시간 통계 업데이트 실패 - " . $e->getMessage());
+            updateReviewStatistics($productId, null, null, null, $review['product_type']);
+        } catch (Exception $e) {
+            error_log("updateProductReview: 통계 업데이트 실패 - " . $e->getMessage());
         }
         
         return true;
