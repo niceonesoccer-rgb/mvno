@@ -446,15 +446,15 @@
 }
 
 .internet-review-btn-submit {
-    background: #EF4444;
+    background: #3b82f6;
     color: #ffffff;
-    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
 .internet-review-btn-submit:hover {
     transform: translateY(-2px);
-    background: #dc2626;
-    box-shadow: 0 8px 20px rgba(239, 68, 68, 0.4);
+    background: #2563eb;
+    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4);
 }
 
 .internet-review-btn-submit:active {

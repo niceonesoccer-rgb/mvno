@@ -54,17 +54,25 @@ if (!in_array($productType, ['mvno', 'mno', 'internet'])) {
     exit;
 }
 
-// 인터넷 리뷰의 경우 kindness_rating과 speed_rating으로 rating 계산
-if ($productType === 'internet') {
+// 인터넷, MVNO, MNO 리뷰의 경우 kindness_rating과 speed_rating으로 rating 계산 (MVNO와 동일하게)
+if ($productType === 'internet' || $productType === 'mvno' || $productType === 'mno') {
     if ($kindnessRating !== null && $speedRating !== null) {
         // 평균 별점 계산 (반올림)
         $rating = round(($kindnessRating + $speedRating) / 2);
-    } elseif ($rating < 1 || $rating > 5) {
-        echo json_encode(['success' => false, 'message' => '인터넷 리뷰는 친절해요와 설치 빨라요 별점을 모두 선택해주세요.']);
+        
+        // 각 별점이 1~5 사이인지 확인
+        if ($kindnessRating < 1 || $kindnessRating > 5 || $speedRating < 1 || $speedRating > 5) {
+            $label = $productType === 'internet' ? '설치 빨라요' : '개통 빨라요';
+            echo json_encode(['success' => false, 'message' => '별점은 1~5 사이의 값이어야 합니다.']);
+            exit;
+        }
+    } elseif ($kindnessRating === null || $speedRating === null) {
+        $label = $productType === 'internet' ? '설치 빨라요' : '개통 빨라요';
+        echo json_encode(['success' => false, 'message' => '친절해요와 ' . $label . ' 별점을 모두 선택해주세요.']);
         exit;
     }
 } else {
-    // MVNO/MNO 리뷰의 경우 rating 필수
+    // 기타 상품 타입의 경우 rating 필수
     if ($rating < 1 || $rating > 5) {
         echo json_encode(['success' => false, 'message' => '별점은 1~5 사이의 값이어야 합니다.']);
         exit;
@@ -85,7 +93,9 @@ if (mb_strlen($content) > 1000) {
 try {
     if ($reviewId > 0) {
         // 기존 리뷰 수정
+        error_log("DEBUG submit-review.php: 리뷰 수정 시작 - review_id=$reviewId, product_id=$productId, rating=$rating, kindness=" . ($kindnessRating ?? 'NULL') . ", speed=" . ($speedRating ?? 'NULL'));
         $success = updateProductReview($reviewId, $userId, $rating, $content, $title, $kindnessRating, $speedRating);
+        error_log("DEBUG submit-review.php: 리뷰 수정 완료 - success=" . ($success ? 'true' : 'false'));
         
         if ($success) {
             echo json_encode([
@@ -99,71 +109,10 @@ try {
         }
     } else {
         // 새 리뷰 작성
-        error_log("submit-review.php: 리뷰 작성 시도 - product_id=$productId, user_id=$userId, application_id=" . ($applicationId ?? 'null') . ", kindness=$kindnessRating, speed=$speedRating");
         $newReviewId = addProductReview($productId, $userId, $productType, $rating, $content, $title, $kindnessRating, $speedRating, $applicationId);
-        error_log("submit-review.php: addProductReview 결과 - " . ($newReviewId === false ? 'false' : "ID: $newReviewId"));
         
         if ($newReviewId === false) {
-            // 중복 리뷰 체크
-            $pdo = getDBConnection();
-            if ($pdo) {
-                $hasApplicationId = false;
-                try {
-                    $checkStmt = $pdo->query("SHOW COLUMNS FROM product_reviews LIKE 'application_id'");
-                    $hasApplicationId = $checkStmt->rowCount() > 0;
-                } catch (PDOException $e) {}
-                
-                $duplicateCheck = null;
-                if ($hasApplicationId && $applicationId !== null && $productType === 'internet') {
-                    // 인터넷 리뷰: 같은 application_id에 대한 리뷰가 있는지 확인 (주문별 리뷰)
-                    $duplicateCheck = $pdo->prepare("
-                        SELECT id FROM product_reviews 
-                        WHERE application_id = :application_id 
-                        AND user_id = :user_id 
-                        AND product_type = :product_type
-                        AND status != 'deleted'
-                        LIMIT 1
-                    ");
-                    $duplicateCheck->execute([
-                        ':application_id' => $applicationId,
-                        ':user_id' => $userId,
-                        ':product_type' => $productType
-                    ]);
-                } else {
-                    $duplicateCheck = $pdo->prepare("
-                        SELECT id FROM product_reviews 
-                        WHERE product_id = :product_id 
-                        AND user_id = :user_id 
-                        AND product_type = :product_type
-                        AND status != 'deleted'
-                        LIMIT 1
-                    ");
-                    $duplicateCheck->execute([
-                        ':product_id' => $productId,
-                        ':user_id' => $userId,
-                        ':product_type' => $productType
-                    ]);
-                }
-                
-                if ($duplicateCheck->fetch()) {
-                    echo json_encode(['success' => false, 'message' => '이미 리뷰를 작성하셨습니다.']);
-                } else {
-                    // 서버 로그 확인 필요 - PDO 예외 또는 기타 오류
-                    error_log("submit-review.php: addProductReview 실패 - 중복 아님, PDO 예외 가능성");
-                    echo json_encode([
-                        'success' => false, 
-                        'message' => '리뷰 작성에 실패했습니다. 서버 로그를 확인해주세요.',
-                        'error' => 'Database error - check server logs'
-                    ]);
-                }
-            } else {
-                error_log("submit-review.php: 데이터베이스 연결 실패");
-                echo json_encode([
-                    'success' => false, 
-                    'message' => '데이터베이스 연결에 실패했습니다.',
-                    'error' => 'Database connection failed'
-                ]);
-            }
+            echo json_encode(['success' => false, 'message' => '리뷰 작성에 실패했습니다. 이미 작성한 리뷰가 있을 수 있습니다.']);
             exit;
         }
         
@@ -176,21 +125,18 @@ try {
     }
 } catch (Exception $e) {
     error_log("submit-review.php: 예외 발생 - " . $e->getMessage());
-    error_log("submit-review.php: Stack trace - " . $e->getTraceAsString());
     echo json_encode([
         'success' => false, 
-        'message' => '리뷰 처리 중 오류가 발생했습니다.',
-        'error' => $e->getMessage()
+        'message' => '리뷰 처리 중 오류가 발생했습니다.'
     ]);
 } catch (Error $e) {
     error_log("submit-review.php: 치명적 오류 - " . $e->getMessage());
-    error_log("submit-review.php: Stack trace - " . $e->getTraceAsString());
     echo json_encode([
         'success' => false, 
-        'message' => '리뷰 처리 중 오류가 발생했습니다.',
-        'error' => $e->getMessage()
+        'message' => '리뷰 처리 중 오류가 발생했습니다.'
     ]);
 }
+
 
 
 

@@ -1253,8 +1253,8 @@ function showProductInfo(order, productType) {
             // 판매자용 표시: 신규, 번이, 기변
             const subTypeLabels = {
                 'new': '신규',
-                'port': '번이',
                 'mnp': '번이',
+                'port': '번이', // 하위 호환성
                 'change': '기변'
             };
             html += `<tr><th>가입형태</th><td>${subTypeLabels[subscriptionType] || subscriptionType}</td></tr>`;

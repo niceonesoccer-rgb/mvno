@@ -1162,7 +1162,7 @@ function showProductInfo(order, productType) {
             // 가입 형태 (판매자용: 신규, 번이, 기변)
             const subscriptionType = additionalInfo.subscription_type || '';
             const subscriptionTypeLabel = subscriptionType === 'new' ? '신규' : 
-                                         subscriptionType === 'port' ? '번이' : 
+                                         (subscriptionType === 'mnp' || subscriptionType === 'port') ? '번이' : 
                                          subscriptionType === 'change' ? '기변' : 
                                          subscriptionType || '-';
             
@@ -1200,7 +1200,7 @@ function showProductInfo(order, productType) {
             // 가입 형태 (신규, 번이, 기변)
             const subscriptionTypes = [];
             if (subscriptionType === 'new' || (order.contract_period && order.contract_period.includes('신규'))) subscriptionTypes.push('신규');
-            if (subscriptionType === 'port' || (order.contract_period && order.contract_period.includes('번호이동'))) subscriptionTypes.push('번이');
+            if (subscriptionType === 'mnp' || subscriptionType === 'port' || (order.contract_period && order.contract_period.includes('번호이동'))) subscriptionTypes.push('번이');
             if (subscriptionType === 'change' || (order.contract_period && order.contract_period.includes('기기변경'))) subscriptionTypes.push('기변');
             const subscriptionTypesLabel = subscriptionTypes.length > 0 ? subscriptionTypes.join(', ') : subscriptionTypeLabel;
             

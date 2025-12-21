@@ -416,7 +416,7 @@ header('Content-Type: text/html; charset=utf-8');
                 
                 echo '<p><strong>주요 필드:</strong></p>';
                 echo '<ul>';
-                echo '<li><strong>subscription_type:</strong> 가입 형태 (new=신규가입, port=번호이동, change=기기변경)</li>';
+                echo '<li><strong>subscription_type:</strong> 가입 형태 (new=신규가입, mnp=번호이동, change=기기변경)</li>';
                 echo '<li><strong>product_snapshot:</strong> 신청 당시의 상품 정보 전체 (클레임 처리용)</li>';
                 echo '</ul>';
                 
@@ -482,6 +482,7 @@ header('Content-Type: text/html; charset=utf-8');
     </div>
 </body>
 </html>
+
 
 
 

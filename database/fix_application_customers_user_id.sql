@@ -39,3 +39,4 @@ DEALLOCATE PREPARE alterIfNotExists;
 
 SELECT 'application_customers 테이블에 user_id 컬럼이 추가되었습니다.' AS result;
 
+

@@ -61,17 +61,31 @@ try {
     
     // 통계 데이터 개수 확인
     $statsCount = 0;
+    $statsSum = 0;
     try {
-        $statsStmt = $pdo->query("SELECT COUNT(*) as total FROM product_review_statistics");
-        $statsCount = $statsStmt->fetch()['total'];
+        $statsStmt = $pdo->query("SELECT COUNT(*) as total, COALESCE(SUM(total_review_count), 0) as sum FROM product_review_statistics");
+        $statsData = $statsStmt->fetch();
+        $statsCount = $statsData['total'];
+        $statsSum = $statsData['sum'];
     } catch (PDOException $e) {
         // 테이블이 없을 수 있음
     }
     
+    // 상품별 review_count 합계 확인
+    $productReviewCount = 0;
+    try {
+        $productCountStmt = $pdo->query("SELECT COALESCE(SUM(review_count), 0) as total FROM products");
+        $productReviewCount = $productCountStmt->fetch()['total'];
+    } catch (PDOException $e) {
+        // 오류 무시
+    }
+    
     echo "<div class='info'>";
     echo "<h2>현재 상태</h2>";
-    echo "<p>총 리뷰 개수: <strong>{$totalCount}개</strong></p>";
-    echo "<p>통계 데이터 개수: <strong>{$statsCount}개</strong></p>";
+    echo "<p>총 리뷰 개수 (product_reviews): <strong>{$totalCount}개</strong></p>";
+    echo "<p>통계 데이터 개수 (product_review_statistics): <strong>{$statsCount}개</strong></p>";
+    echo "<p>통계에 등록된 총 리뷰 수: <strong>{$statsSum}개</strong></p>";
+    echo "<p>상품 테이블의 review_count 합계: <strong>{$productReviewCount}개</strong></p>";
     echo "</div>";
     
     // 삭제 확인
@@ -89,15 +103,29 @@ try {
                 $deleteStatsStmt = $pdo->prepare("DELETE FROM product_review_statistics");
                 $deleteStatsStmt->execute();
                 $deletedStats = $deleteStatsStmt->rowCount();
+                echo "<p>✓ 통계 테이블 초기화 완료: {$deletedStats}개 삭제</p>";
             } catch (PDOException $e) {
                 // 테이블이 없을 수 있음
                 error_log("product_review_statistics table not found or error: " . $e->getMessage());
+                echo "<p>⚠ 통계 테이블이 없거나 오류 발생: " . htmlspecialchars($e->getMessage()) . "</p>";
             }
             
             // 2. product_reviews 테이블의 모든 리뷰 삭제
             $deleteStmt = $pdo->prepare("DELETE FROM product_reviews");
             $deleteStmt->execute();
             $deletedReviews = $deleteStmt->rowCount();
+            echo "<p>✓ 리뷰 테이블 삭제 완료: {$deletedReviews}개 삭제</p>";
+            
+            // 3. products 테이블의 review_count 초기화 (트리거로 자동 업데이트되지만 확실하게)
+            try {
+                $resetCountStmt = $pdo->prepare("UPDATE products SET review_count = 0");
+                $resetCountStmt->execute();
+                $resetCount = $resetCountStmt->rowCount();
+                echo "<p>✓ 상품 테이블의 review_count 초기화 완료: {$resetCount}개 상품</p>";
+            } catch (PDOException $e) {
+                error_log("Failed to reset review_count: " . $e->getMessage());
+                echo "<p>⚠ review_count 초기화 중 오류: " . htmlspecialchars($e->getMessage()) . "</p>";
+            }
             
             $pdo->commit();
             
@@ -113,17 +141,36 @@ try {
             $remainingCount = $countStmt->fetch()['total'];
             
             $remainingStats = 0;
+            $remainingStatsSum = 0;
             try {
-                $statsStmt = $pdo->query("SELECT COUNT(*) as total FROM product_review_statistics");
-                $remainingStats = $statsStmt->fetch()['total'];
+                $statsStmt = $pdo->query("SELECT COUNT(*) as total, COALESCE(SUM(total_review_count), 0) as sum FROM product_review_statistics");
+                $statsData = $statsStmt->fetch();
+                $remainingStats = $statsData['total'];
+                $remainingStatsSum = $statsData['sum'];
             } catch (PDOException $e) {
                 // 테이블이 없을 수 있음
             }
             
+            $remainingProductCount = 0;
+            try {
+                $productCountStmt = $pdo->query("SELECT COALESCE(SUM(review_count), 0) as total FROM products");
+                $remainingProductCount = $productCountStmt->fetch()['total'];
+            } catch (PDOException $e) {
+                // 오류 무시
+            }
+            
             echo "<div class='info'>";
             echo "<h2>삭제 후 상태</h2>";
-            echo "<p>남은 리뷰 개수: <strong>{$remainingCount}개</strong></p>";
-            echo "<p>남은 통계 데이터 개수: <strong>{$remainingStats}개</strong></p>";
+            echo "<p>남은 리뷰 개수 (product_reviews): <strong>{$remainingCount}개</strong></p>";
+            echo "<p>남은 통계 데이터 개수 (product_review_statistics): <strong>{$remainingStats}개</strong></p>";
+            echo "<p>남은 통계 리뷰 수 합계: <strong>{$remainingStatsSum}개</strong></p>";
+            echo "<p>상품 테이블의 review_count 합계: <strong>{$remainingProductCount}개</strong></p>";
+            
+            if ($remainingCount == 0 && $remainingStats == 0 && $remainingProductCount == 0) {
+                echo "<p style='color: green; font-weight: bold; margin-top: 10px;'>✅ 모든 리뷰와 평점이 완전히 삭제되었습니다!</p>";
+            } else {
+                echo "<p style='color: orange; font-weight: bold; margin-top: 10px;'>⚠️ 일부 데이터가 남아있습니다. 확인이 필요합니다.</p>";
+            }
             echo "</div>";
             
         } catch (PDOException $e) {
@@ -215,4 +262,5 @@ try {
 
 echo "</div></body></html>";
 ?>
+
 

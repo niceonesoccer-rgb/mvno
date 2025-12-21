@@ -87,7 +87,7 @@ try {
         if ($subscriptionType === 'new' || $subscriptionType === '신규가입') {
             $hasNewSubscription = true;
         }
-        if ($subscriptionType === 'port' || $subscriptionType === '번호이동' || $subscriptionType === 'number_port') {
+        if ($subscriptionType === 'mnp' || $subscriptionType === 'port' || $subscriptionType === '번호이동' || $subscriptionType === 'number_port') {
             $hasNumberPort = true;
         }
         if ($subscriptionType === 'change' || $subscriptionType === '기기변경' || $subscriptionType === 'device_change') {
@@ -136,7 +136,7 @@ try {
                 'description' => '새로운 번호로 가입할래요'
             ],
             [
-                'type' => 'port',
+                'type' => 'mnp',
                 'label' => '번호이동',
                 'description' => '지금 쓰는 번호 그대로 사용할래요'
             ],
@@ -161,6 +161,7 @@ try {
         'subscription_types' => []
     ]);
 }
+
 
 
 

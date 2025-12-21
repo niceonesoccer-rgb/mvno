@@ -10,17 +10,35 @@ require_once '../includes/data/auth-functions.php';
 // 인터넷 상품 ID 가져오기
 $internet_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 
-if ($internet_id <= 0) {
-    http_response_code(404);
-    die('상품을 찾을 수 없습니다.');
-}
-
 // 헤더 포함
 include '../includes/header.php';
 
-// 조회수 업데이트
-require_once '../includes/data/product-functions.php';
-incrementProductView($internet_id);
+if ($internet_id <= 0) {
+    http_response_code(404);
+    ?>
+    <main class="main-content">
+        <div class="content-layout" style="max-width: 600px; margin: 80px auto; padding: 40px 20px;">
+            <div style="text-align: center;">
+                <div style="width: 120px; height: 120px; margin: 0 auto 24px; background: #f3f4f6; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="#9ca3af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <h1 style="font-size: 28px; font-weight: 700; color: #1f2937; margin: 0 0 12px 0;">상품을 찾을 수 없습니다</h1>
+                <p style="font-size: 16px; color: #6b7280; margin: 0 0 32px 0; line-height: 1.6;">요청하신 상품이 존재하지 않거나 삭제되었습니다.</p>
+                <a href="/MVNO/internets/internets.php" style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; background: #3b82f6; color: white; border-radius: 8px; text-decoration: none; font-weight: 600; transition: background 0.2s;" onmouseover="this.style.background='#2563eb'" onmouseout="this.style.background='#3b82f6'">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    인터넷 상품 목록으로
+                </a>
+            </div>
+        </div>
+    </main>
+    <?php include '../includes/footer.php'; ?>
+    <?php exit; ?>
+    <?php
+}
 
 // 인터넷 상품 데이터 가져오기
 require_once '../includes/data/plan-data.php';
@@ -43,14 +61,71 @@ try {
 // 상품이 없거나, 일반 사용자가 판매종료 상품에 접근하는 경우
 if (!$internet) {
     http_response_code(404);
-    die('상품을 찾을 수 없습니다.');
+    ?>
+    <main class="main-content">
+        <div class="content-layout" style="max-width: 600px; margin: 80px auto; padding: 40px 20px;">
+            <div style="text-align: center;">
+                <div style="width: 120px; height: 120px; margin: 0 auto 24px; background: #f3f4f6; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="#9ca3af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <h1 style="font-size: 28px; font-weight: 700; color: #1f2937; margin: 0 0 12px 0;">상품을 찾을 수 없습니다</h1>
+                <p style="font-size: 16px; color: #6b7280; margin: 0 0 32px 0; line-height: 1.6;">요청하신 상품이 존재하지 않거나 삭제되었습니다.</p>
+                <a href="/MVNO/internets/internets.php" style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; background: #3b82f6; color: white; border-radius: 8px; text-decoration: none; font-weight: 600; transition: background 0.2s;" onmouseover="this.style.background='#2563eb'" onmouseout="this.style.background='#3b82f6'">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    인터넷 상품 목록으로
+                </a>
+            </div>
+        </div>
+    </main>
+    <?php include '../includes/footer.php'; ?>
+    <?php exit; ?>
+    <?php
 }
 
 // 일반 사용자가 판매종료 상품에 접근하는 경우 차단
 if (!$isAdmin && isset($internet['status']) && $internet['status'] === 'inactive') {
     http_response_code(404);
-    die('판매종료된 상품입니다.');
+    ?>
+    <main class="main-content">
+        <div class="content-layout" style="max-width: 600px; margin: 80px auto; padding: 40px 20px;">
+            <div style="text-align: center;">
+                <div style="width: 120px; height: 120px; margin: 0 auto 24px; background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(251, 191, 36, 0.2);">
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <h1 style="font-size: 28px; font-weight: 700; color: #1f2937; margin: 0 0 12px 0;">판매가 종료된 상품입니다</h1>
+                <p style="font-size: 16px; color: #6b7280; margin: 0 0 32px 0; line-height: 1.6;">죄송합니다. 요청하신 상품은 현재 판매가 종료되어 더 이상 제공되지 않습니다.<br>다른 상품을 찾아보시겠어요?</p>
+                <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+                    <a href="/MVNO/internets/internets.php" style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; background: #3b82f6; color: white; border-radius: 8px; text-decoration: none; font-weight: 600; transition: all 0.2s; box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);" onmouseover="this.style.background='#2563eb'; this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(59, 130, 246, 0.4)'" onmouseout="this.style.background='#3b82f6'; this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(59, 130, 246, 0.3)'">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M3 7l9 6 9-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        인터넷 상품 둘러보기
+                    </a>
+                    <a href="/MVNO/" style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; background: #f3f4f6; color: #374151; border-radius: 8px; text-decoration: none; font-weight: 600; transition: all 0.2s;" onmouseover="this.style.background='#e5e7eb'" onmouseout="this.style.background='#f3f4f6'">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        홈으로 가기
+                    </a>
+                </div>
+            </div>
+        </div>
+    </main>
+    <?php include '../includes/footer.php'; ?>
+    <?php exit; ?>
+    <?php
 }
+
+// 조회수 업데이트 (판매종료가 아닌 경우에만)
+require_once '../includes/data/product-functions.php';
+incrementProductView($internet_id);
 
 // 리뷰 목록 가져오기 (같은 판매자의 같은 타입의 모든 상품 리뷰 통합)
 $reviews = getProductReviews($internet_id, 'internet', 20);
@@ -58,6 +133,58 @@ $averageRating = getProductAverageRating($internet_id, 'internet');
 $reviewCount = getProductReviewCount($internet_id, 'internet');
 
 // 가입처별 아이콘 경로 매핑
+// 상대 시간 표시 함수
+function getRelativeTime($datetime) {
+    if (empty($datetime)) {
+        return '';
+    }
+    
+    try {
+        $reviewTime = new DateTime($datetime);
+        $now = new DateTime();
+        $diff = $now->diff($reviewTime);
+        
+        // 오늘인지 확인
+        if ($diff->days === 0) {
+            if ($diff->h === 0 && $diff->i === 0) {
+                return '방금 전';
+            } elseif ($diff->h === 0) {
+                return $diff->i . '분 전';
+            } else {
+                return $diff->h . '시간 전';
+            }
+        }
+        
+        // 어제인지 확인
+        if ($diff->days === 1) {
+            return '어제';
+        }
+        
+        // 일주일 전까지
+        if ($diff->days < 7) {
+            return $diff->days . '일 전';
+        }
+        
+        // 한달 전까지 (30일)
+        if ($diff->days < 30) {
+            $weeks = floor($diff->days / 7);
+            return $weeks . '주 전';
+        }
+        
+        // 일년 전까지 (365일)
+        if ($diff->days < 365) {
+            $months = floor($diff->days / 30);
+            return $months . '개월 전';
+        }
+        
+        // 일년 이상
+        $years = floor($diff->days / 365);
+        return $years . '년 전';
+    } catch (Exception $e) {
+        return '';
+    }
+}
+
 function getInternetIconPath($registrationPlace) {
     $iconMap = [
         'KT' => '/MVNO/assets/images/internets/kt.svg',
@@ -344,16 +471,31 @@ if ($serviceType === '인터넷+TV') {
                         <div class="plan-review-item">
                             <div class="plan-review-item-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
                                 <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                                    <span class="plan-review-author"><?php echo htmlspecialchars($review['author_name'] ?? '익명'); ?></span>
+                                    <?php 
+                                    $authorName = htmlspecialchars($review['author_name'] ?? '익명');
+                                    $provider = isset($review['provider']) && $review['provider'] ? htmlspecialchars($review['provider']) : '';
+                                    $providerText = $provider ? ' | ' . $provider : '';
+                                    ?>
+                                    <span class="plan-review-author"><?php echo $authorName . $providerText; ?></span>
                                 </div>
                                 <div style="display: flex; align-items: center; gap: 12px;">
                                     <div class="plan-review-stars">
                                         <span><?php echo htmlspecialchars($review['stars'] ?? '★★★★★'); ?></span>
                                     </div>
-                                    <span class="plan-review-date"><?php echo htmlspecialchars($review['date_ago'] ?? ''); ?></span>
+                                    <?php if (!empty($review['created_at'])): ?>
+                                        <span class="plan-review-time" style="font-size: 0.875rem; color: #6b7280;">
+                                            <?php echo htmlspecialchars(getRelativeTime($review['created_at'])); ?>
+                                        </span>
+                                    <?php endif; ?>
                                 </div>
                             </div>
-                            <p class="plan-review-content"><?php echo htmlspecialchars(str_replace(["\r\n", "\r", "\n"], ' ', $review['content'] ?? '')); ?></p>
+                            <p class="plan-review-content"><?php 
+                                $content = $review['content'] ?? '';
+                                // 줄바꿈 문자들을 공백 하나로 변환 (기존 공백은 유지)
+                                // \r\n을 먼저 공백으로 변환, 그 다음 \r, \n을 각각 공백으로 변환
+                                $content = str_replace(["\r\n", "\r", "\n"], ' ', $content);
+                                echo htmlspecialchars($content);
+                            ?></p>
                         </div>
                     <?php endforeach; ?>
                 <?php else: ?>
@@ -408,13 +550,30 @@ if ($serviceType === '인터넷+TV') {
                     <?php foreach ($allReviews as $review): ?>
                         <div class="review-modal-item">
                             <div class="review-modal-item-header">
-                                <span class="review-modal-author"><?php echo htmlspecialchars($review['author_name'] ?? '익명'); ?></span>
-                                <div class="review-modal-stars">
-                                    <span><?php echo htmlspecialchars($review['stars'] ?? '★★★★★'); ?></span>
+                                <?php 
+                                $authorName = htmlspecialchars($review['author_name'] ?? '익명');
+                                $provider = isset($review['provider']) && $review['provider'] ? htmlspecialchars($review['provider']) : '';
+                                $providerText = $provider ? ' | ' . $provider : '';
+                                ?>
+                                <span class="review-modal-author"><?php echo $authorName . $providerText; ?></span>
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    <div class="review-modal-stars">
+                                        <span><?php echo htmlspecialchars($review['stars'] ?? '★★★★★'); ?></span>
+                                    </div>
+                                    <?php if (!empty($review['created_at'])): ?>
+                                        <span class="review-modal-time" style="font-size: 0.875rem; color: #6b7280;">
+                                            <?php echo htmlspecialchars(getRelativeTime($review['created_at'])); ?>
+                                        </span>
+                                    <?php endif; ?>
                                 </div>
-                                <span class="review-modal-date"><?php echo htmlspecialchars($review['date_ago'] ?? ''); ?></span>
                             </div>
-                            <p class="review-modal-item-content"><?php echo htmlspecialchars(str_replace(["\r\n", "\r", "\n"], ' ', $review['content'] ?? '')); ?></p>
+                            <p class="review-modal-item-content"><?php 
+                                $content = $review['content'] ?? '';
+                                // 줄바꿈 문자들을 공백 하나로 변환 (기존 공백은 유지)
+                                // \r\n을 먼저 공백으로 변환, 그 다음 \r, \n을 각각 공백으로 변환
+                                $content = str_replace(["\r\n", "\r", "\n"], ' ', $content);
+                                echo htmlspecialchars($content);
+                            ?></p>
                         </div>
                     <?php endforeach; ?>
                 <?php else: ?>
@@ -1871,6 +2030,17 @@ span.internet-checkbox-text {
     line-height: 1.6;
     color: #374151;
     margin: 0;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.review-modal-item-content {
+    font-size: 14px;
+    line-height: 1.6;
+    color: #374151;
+    margin: 0;
+    white-space: pre-wrap;
+    word-wrap: break-word;
 }
 
 @media (max-width: 767px) {
@@ -3262,6 +3432,7 @@ function handleInternetApplyClick(e) {
 </script>
 
 <?php include '../includes/footer.php'; ?>
+
 
 
 

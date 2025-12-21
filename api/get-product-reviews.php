@@ -67,6 +67,11 @@ $reviews = getSingleProductReviews($productId, $productType, 100, 'created_desc'
 $averageRating = getSingleProductAverageRating($productId, $productType);
 $reviewCount = getSingleProductReviewCount($productId, $productType);
 
+// 디버깅: 리뷰 데이터 확인 (첫 번째 리뷰만)
+if (!empty($reviews)) {
+    error_log("Review data sample: " . json_encode($reviews[0], JSON_UNESCAPED_UNICODE));
+}
+
 echo json_encode([
     'success' => true,
     'data' => [
@@ -74,5 +79,6 @@ echo json_encode([
         'average_rating' => $averageRating,
         'review_count' => $reviewCount
     ]
-]);
+], JSON_UNESCAPED_UNICODE);
+
 

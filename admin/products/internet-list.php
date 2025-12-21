@@ -930,6 +930,11 @@ document.addEventListener('DOMContentLoaded', function() {
         const averageRating = data.average_rating || 0;
         const reviewCount = data.review_count || 0;
         
+        // 디버깅: 리뷰 데이터 확인
+        if (reviews.length > 0) {
+            console.log('First review data:', reviews[0]);
+        }
+        
         let html = '<div style="padding: 20px;">';
         html += '<div style="background: #f9fafb; padding: 16px; border-radius: 8px; margin-bottom: 20px;">';
         html += `<div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">`;
@@ -943,7 +948,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 const stars = '⭐'.repeat(review.rating) + '☆'.repeat(5 - review.rating);
                 html += '<div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin-bottom: 12px; background: white;">';
                 html += `<div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">`;
-                html += `<div><strong>${review.author_name || '익명'}</strong> <span style="color: #6b7280; font-size: 12px;">${review.date_ago || ''}</span></div>`;
+                // 통신사 이름 처리 (provider 필드 확인)
+                const provider = (review.provider && review.provider.trim()) ? review.provider.trim() : '';
+                const providerText = provider ? ` | ${provider}` : '';
+                html += `<div><strong>${review.author_name || '익명'}</strong>${providerText}</div>`;
                 html += `<div style="color: #f59e0b;">${stars}</div>`;
                 html += `</div>`;
                 if (review.title) {

@@ -21,6 +21,7 @@ incrementProductView($phone_id);
 require_once '../includes/data/phone-data.php';
 require_once '../includes/data/plan-data.php';
 $phone = getPhoneDetailData($phone_id);
+$rawData = $phone['_raw_data'] ?? []; // 원본 DB 데이터 (null 대신 빈 배열로 초기화)
 
 // 관리자 여부 확인
 $isAdmin = false;
@@ -60,62 +61,151 @@ if (!$isAdmin && isset($phone['status']) && $phone['status'] === 'inactive') {
         $sort = 'created_desc';
     }
     
+    // 상대 시간 표시 함수
+    function getRelativeTime($datetime) {
+        if (empty($datetime)) {
+            return '';
+        }
+        
+        try {
+            $reviewTime = new DateTime($datetime);
+            $now = new DateTime();
+            $diff = $now->diff($reviewTime);
+            
+            // 오늘인지 확인
+            if ($diff->days === 0) {
+                if ($diff->h === 0 && $diff->i === 0) {
+                    return '방금 전';
+                } elseif ($diff->h === 0) {
+                    return $diff->i . '분 전';
+                } else {
+                    return $diff->h . '시간 전';
+                }
+            }
+            
+            // 어제인지 확인
+            if ($diff->days === 1) {
+                return '어제';
+            }
+            
+            // 일주일 전까지
+            if ($diff->days < 7) {
+                return $diff->days . '일 전';
+            }
+            
+            // 한달 전까지 (30일)
+            if ($diff->days < 30) {
+                $weeks = floor($diff->days / 7);
+                return $weeks . '주 전';
+            }
+            
+            // 일년 전까지 (365일)
+            if ($diff->days < 365) {
+                $months = floor($diff->days / 30);
+                return $months . '개월 전';
+            }
+            
+            // 일년 이상
+            $years = floor($diff->days / 365);
+            return $years . '년 전';
+        } catch (Exception $e) {
+            return '';
+        }
+    }
+    
     // 실제 리뷰 데이터 가져오기 (같은 판매자의 같은 타입의 모든 상품 리뷰 통합)
     // 모달에서 모든 리뷰를 표시하기 위해 충분히 많은 수를 가져옴
     $allReviews = getProductReviews($phone_id, 'mno', 1000, $sort);
     $reviews = array_slice($allReviews, 0, 5); // 페이지에는 처음 5개만 표시
     $averageRating = getProductAverageRating($phone_id, 'mno');
-    $reviewCount = getProductReviewCount($phone_id, 'mno');
-    $hasReviews = $reviewCount > 0;
+    // 실제 리뷰 배열의 개수를 사용 (통계 테이블 대신 실제 데이터 확인)
+    $reviewCount = count($allReviews);
+    $hasReviews = !empty($allReviews) && $reviewCount > 0;
     $remainingCount = max(0, $reviewCount - 5); // 남은 리뷰 개수
+    
+    // 카테고리별 평균 별점 가져오기 (MVNO와 동일한 함수 사용)
+    $categoryAverages = getInternetReviewCategoryAverages($phone_id, 'mno');
+    
+    // 판매자명 가져오기
+    $sellerName = '';
+    try {
+        require_once '../includes/data/product-functions.php';
+        // DB에서 직접 seller_id 가져오기
+        $pdo = getDBConnection();
+        if ($pdo) {
+            $sellerStmt = $pdo->prepare("SELECT seller_id FROM products WHERE id = :product_id AND product_type = 'mno' LIMIT 1");
+            $sellerStmt->execute([':product_id' => $phone_id]);
+            $sellerData = $sellerStmt->fetch(PDO::FETCH_ASSOC);
+            $sellerId = $sellerData['seller_id'] ?? null;
+            
+            if ($sellerId) {
+                $seller = getSellerById($sellerId);
+                if ($seller) {
+                    $sellerName = getSellerDisplayName($seller);
+                }
+            }
+        }
+    } catch (Exception $e) {
+        error_log("MNO Phone Detail - Error getting seller name: " . $e->getMessage());
+    }
+    
+    // pending 상태의 리뷰를 자동으로 approved로 변경 (기존 pending 리뷰 처리용)
+    try {
+        $pdo = getDBConnection();
+        if ($pdo) {
+            // 해당 상품의 pending 상태 리뷰를 approved로 변경
+            $updateStmt = $pdo->prepare("UPDATE product_reviews SET status = 'approved' WHERE product_id = :product_id AND product_type = 'mno' AND status = 'pending'");
+            $updateStmt->execute([':product_id' => $phone_id]);
+            $updatedCount = $updateStmt->rowCount();
+            if ($updatedCount > 0) {
+                error_log("MNO Phone Detail - Auto-approved {$updatedCount} pending review(s) for product_id: {$phone_id}");
+                // 리뷰 목록 다시 가져오기 (새로고침 효과)
+                $allReviews = getProductReviews($phone_id, 'mno', 1000, $sort);
+                $reviews = array_slice($allReviews, 0, 5);
+                $reviewCount = count($allReviews);
+                $hasReviews = !empty($allReviews) && $reviewCount > 0;
+                $remainingCount = max(0, $reviewCount - 5);
+            }
+        }
+    } catch (Exception $e) {
+        error_log("MNO Phone Detail - Exception while auto-approving reviews: " . $e->getMessage());
+    }
     ?>
     <?php if ($hasReviews): ?>
     <section class="phone-review-section" id="phoneReviewSection">
         <div class="content-layout">
             <div class="plan-review-header">
-                <?php 
-                $company_name_raw = $phone['company_name'] ?? '쉐이크모바일';
-                // "스마트모바일" → "스마트"로 변환
-                $company_name = $company_name_raw;
-                if (strpos($company_name_raw, '스마트모바일') !== false) {
-                    $company_name = '스마트';
-                } elseif (strpos($company_name_raw, '모바일') !== false) {
-                    // "XX모바일" 형식에서 "XX"만 추출
-                    $company_name = str_replace('모바일', '', $company_name_raw);
-                }
-                ?>
-                <span class="plan-review-logo-text"><?php echo htmlspecialchars($company_name); ?></span>
+                <span class="plan-review-logo-text"><?php echo htmlspecialchars($sellerName ?: ($phone['company_name'] ?? '통신사폰')); ?></span>
                 <h2 class="section-title">리뷰</h2>
             </div>
+            
             <?php if ($hasReviews): ?>
             <div class="plan-review-summary">
-                <div class="plan-review-rating">
-                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: 24px; height: 24px;">
-                        <path d="M13.1479 3.1366C12.7138 2.12977 11.2862 2.12977 10.8521 3.1366L8.75804 7.99389L3.48632 8.48228C2.3937 8.58351 1.9524 9.94276 2.77717 10.6665L6.75371 14.156L5.58995 19.3138C5.34855 20.3837 6.50365 21.2235 7.44697 20.664L12 17.9635L16.553 20.664C17.4963 21.2235 18.6514 20.3837 18.4101 19.3138L17.2463 14.156L21.2228 10.6665C22.0476 9.94276 21.6063 8.58351 20.5137 8.48228L15.242 7.99389L13.1479 3.1366Z" fill="#EF4444"/>
-                    </svg>
-                    <span class="plan-review-rating-score"><?php echo htmlspecialchars($averageRating > 0 ? number_format($averageRating, 1) : '0.0'); ?></span>
-                    <span class="plan-review-rating-count"><?php echo number_format($reviewCount); ?>개</span>
+                <div class="plan-review-left">
+                    <div class="plan-review-total-rating">
+                        <div class="plan-review-total-rating-content">
+                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: 24px; height: 24px;">
+                                <path d="M13.1479 3.1366C12.7138 2.12977 11.2862 2.12977 10.8521 3.1366L8.75804 7.99389L3.48632 8.48228C2.3937 8.58351 1.9524 9.94276 2.77717 10.6665L6.75371 14.156L5.58995 19.3138C5.34855 20.3837 6.50365 21.2235 7.44697 20.664L12 17.9635L16.553 20.664C17.4963 21.2235 18.6514 20.3837 18.4101 19.3138L17.2463 14.156L21.2228 10.6665C22.0476 9.94276 21.6063 8.58351 20.5137 8.48228L15.242 7.99389L13.1479 3.1366Z" fill="#EF4444"></path>
+                            </svg>
+                            <span class="plan-review-rating-score"><?php echo htmlspecialchars($averageRating > 0 ? number_format($averageRating, 1) : '0.0'); ?></span>
+                        </div>
+                    </div>
                 </div>
-                <div class="plan-review-categories">
-                    <div class="plan-review-category">
-                        <span class="plan-review-category-label">고객센터</span>
-                        <span class="plan-review-category-score"><?php echo htmlspecialchars($averageRating > 0 ? number_format($averageRating - 0.1, 1) : '0.0'); ?></span>
-                        <div class="plan-review-stars">
-                            <span><?php echo getStarsFromRating(round($averageRating)); ?></span>
+                <div class="plan-review-right">
+                    <div class="plan-review-categories">
+                        <div class="plan-review-category">
+                            <span class="plan-review-category-label">친절해요</span>
+                            <span class="plan-review-category-score"><?php echo htmlspecialchars($categoryAverages['kindness'] > 0 ? number_format($categoryAverages['kindness'], 1) : '0.0'); ?></span>
+                            <div class="plan-review-stars">
+                                <?php echo getPartialStarsFromRating($categoryAverages['kindness']); ?>
+                            </div>
                         </div>
-                    </div>
-                    <div class="plan-review-category">
-                        <span class="plan-review-category-label">개통 과정</span>
-                        <span class="plan-review-category-score"><?php echo htmlspecialchars($averageRating > 0 ? number_format($averageRating + 0.2, 1) : '0.0'); ?></span>
-                        <div class="plan-review-stars">
-                            <span><?php echo getStarsFromRating(round($averageRating)); ?></span>
-                        </div>
-                    </div>
-                    <div class="plan-review-category">
-                        <span class="plan-review-category-label">개통 후 만족도</span>
-                        <span class="plan-review-category-score"><?php echo htmlspecialchars($averageRating > 0 ? number_format($averageRating - 0.1, 1) : '0.0'); ?></span>
-                        <div class="plan-review-stars">
-                            <span><?php echo getStarsFromRating(round($averageRating)); ?></span>
+                        <div class="plan-review-category">
+                            <span class="plan-review-category-label">개통 빨라요</span>
+                            <span class="plan-review-category-score"><?php echo htmlspecialchars($categoryAverages['speed'] > 0 ? number_format($categoryAverages['speed'], 1) : '0.0'); ?></span>
+                            <div class="plan-review-stars">
+                                <?php echo getPartialStarsFromRating($categoryAverages['speed']); ?>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -139,24 +229,38 @@ if (!$isAdmin && isset($phone['status']) && $phone['status'] === 'inactive') {
                 <?php if (!empty($reviews)): ?>
                     <?php foreach ($reviews as $review): ?>
                         <div class="plan-review-item">
-                            <div class="plan-review-item-header">
-                                <span class="plan-review-author"><?php echo htmlspecialchars($review['author_name'] ?? '익명'); ?></span>
-                                <div class="plan-review-stars">
-                                    <span><?php echo htmlspecialchars($review['stars'] ?? '★★★★☆'); ?></span>
+                            <div class="plan-review-item-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                    <?php 
+                                    $authorName = htmlspecialchars($review['author_name'] ?? '익명');
+                                    $provider = isset($review['provider']) && $review['provider'] ? htmlspecialchars($review['provider']) : '';
+                                    $providerText = $provider ? ' | ' . $provider : '';
+                                    ?>
+                                    <span class="plan-review-author"><?php echo $authorName . $providerText; ?></span>
                                 </div>
-                                <span class="plan-review-date"><?php echo htmlspecialchars($review['date_ago'] ?? '오늘'); ?></span>
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    <div class="plan-review-stars">
+                                        <span><?php echo htmlspecialchars($review['stars'] ?? '★★★★★'); ?></span>
+                                    </div>
+                                    <?php if (!empty($review['created_at'])): ?>
+                                        <span class="plan-review-time" style="font-size: 0.875rem; color: #6b7280;">
+                                            <?php echo htmlspecialchars(getRelativeTime($review['created_at'])); ?>
+                                        </span>
+                                    <?php endif; ?>
+                                </div>
                             </div>
-                            <p class="plan-review-content"><?php echo htmlspecialchars($review['content'] ?? ''); ?></p>
-                            <?php if (!empty($phone['device_name'])): ?>
-                                <div class="plan-review-tags">
-                                    <span class="plan-review-tag"><?php echo htmlspecialchars($phone['device_name']); ?></span>
-                                </div>
-                            <?php endif; ?>
+                            <p class="plan-review-content"><?php 
+                                $content = $review['content'] ?? '';
+                                // 줄바꿈 문자들을 공백 하나로 변환 (기존 공백은 유지)
+                                // \r\n을 먼저 공백으로 변환, 그 다음 \r, \n을 각각 공백으로 변환
+                                $content = str_replace(["\r\n", "\r", "\n"], ' ', $content);
+                                echo htmlspecialchars($content);
+                            ?></p>
                         </div>
                     <?php endforeach; ?>
                 <?php else: ?>
                     <div class="plan-review-item">
-                        <p class="plan-review-content" style="text-align: center; color: #9ca3af; padding: 20px;">아직 리뷰가 없습니다.</p>
+                        <p class="plan-review-content" style="text-align: center; color: #9ca3af; padding: 40px 0;">등록된 리뷰가 없습니다.</p>
                     </div>
                 <?php endif; ?>
                 <div class="plan-review-item" style="display: none;">
@@ -573,23 +677,7 @@ $discountData = [
     <div class="review-modal-overlay" id="phoneReviewModalOverlay"></div>
     <div class="review-modal-content">
         <div class="review-modal-header">
-            <?php 
-            if (!isset($company_name)) {
-                $company_name_raw = $phone['company_name'] ?? '쉐이크모바일';
-                // "스마트모바일" → "스마트"로 변환
-                $company_name = $company_name_raw;
-                if (strpos($company_name_raw, '스마트모바일') !== false) {
-                    $company_name = '스마트';
-                } elseif (strpos($company_name_raw, '모바일') !== false) {
-                    // "XX모바일" 형식에서 "XX"만 추출
-                    $company_name = str_replace('모바일', '', $company_name_raw);
-                }
-            }
-            if (!isset($provider)) {
-                $provider = $phone['provider'] ?? 'SKT';
-            }
-            ?>
-            <h3 class="review-modal-title"><?php echo htmlspecialchars($company_name); ?> (<?php echo htmlspecialchars($provider); ?>)</h3>
+            <h3 class="review-modal-title"><?php echo htmlspecialchars($sellerName ?: ($phone['company_name'] ?? '통신사폰')); ?></h3>
             <button class="review-modal-close" aria-label="닫기" id="phoneReviewModalClose">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M18 6L6 18M6 6L18 18" stroke="#868E96" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -646,13 +734,30 @@ $discountData = [
                     <?php foreach ($allReviews as $review): ?>
                         <div class="review-modal-item">
                             <div class="review-modal-item-header">
-                                <span class="review-modal-author"><?php echo htmlspecialchars($review['author_name'] ?? '익명'); ?></span>
-                                <div class="review-modal-stars">
-                                    <span><?php echo htmlspecialchars($review['stars'] ?? '★★★★☆'); ?></span>
+                                <?php 
+                                $authorName = htmlspecialchars($review['author_name'] ?? '익명');
+                                $provider = isset($review['provider']) && $review['provider'] ? htmlspecialchars($review['provider']) : '';
+                                $providerText = $provider ? ' | ' . $provider : '';
+                                ?>
+                                <span class="review-modal-author"><?php echo $authorName . $providerText; ?></span>
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    <div class="review-modal-stars">
+                                        <span><?php echo htmlspecialchars($review['stars'] ?? '★★★★☆'); ?></span>
+                                    </div>
+                                    <?php if (!empty($review['created_at'])): ?>
+                                        <span class="review-modal-time" style="font-size: 0.875rem; color: #6b7280;">
+                                            <?php echo htmlspecialchars(getRelativeTime($review['created_at'])); ?>
+                                        </span>
+                                    <?php endif; ?>
                                 </div>
-                                <span class="review-modal-date"><?php echo htmlspecialchars($review['date_ago'] ?? '오늘'); ?></span>
                             </div>
-                            <p class="review-modal-item-content"><?php echo htmlspecialchars(str_replace(["\r\n", "\r", "\n"], ' ', $review['content'] ?? '')); ?></p>
+                            <p class="review-modal-item-content"><?php 
+                                $content = $review['content'] ?? '';
+                                // 줄바꿈 문자들을 공백 하나로 변환 (기존 공백은 유지)
+                                // \r\n을 먼저 공백으로 변환, 그 다음 \r, \n을 각각 공백으로 변환
+                                $content = str_replace(["\r\n", "\r", "\n"], ' ', $content);
+                                echo htmlspecialchars($content);
+                            ?></p>
                             <?php if (!empty($phone['device_name'])): ?>
                                 <div class="review-modal-tags">
                                     <span class="review-modal-tag"><?php echo htmlspecialchars($phone['device_name']); ?></span>
@@ -2388,6 +2493,144 @@ span.internet-checkbox-text {
     .internet-checkbox-list {
         margin-left: 1.5rem;
     }
+}
+
+.plan-review-content {
+    font-size: 14px;
+    line-height: 1.6;
+    color: #374151;
+    margin: 0;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.review-modal-item-content {
+    font-size: 14px;
+    line-height: 1.6;
+    color: #374151;
+    margin: 0;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+/* 리뷰 섹션 스타일 (MVNO와 동일) */
+.plan-review-left {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 0 0 auto;
+}
+
+.plan-review-total-rating {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.plan-review-total-rating-content {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+}
+
+.plan-review-total-rating svg {
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+}
+
+.plan-review-total-rating .plan-review-rating-score {
+    font-size: 32px;
+    font-weight: 700;
+    color: #000000;
+}
+
+.plan-review-right {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 24px;
+    flex: 0 0 auto;
+}
+
+.plan-review-categories {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.plan-review-category {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+}
+
+.plan-review-category-label {
+    width: 80px;
+    white-space: nowrap;
+    font-size: 14px;
+    font-weight: 700;
+    color: #6b7280;
+}
+
+.plan-review-category-score {
+    font-size: 14px;
+    font-weight: 700;
+    color: #4b5563;
+    min-width: 35px;
+    text-align: right;
+}
+
+.plan-review-stars {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    font-size: 18px;
+    color: #EF4444;
+    line-height: 1;
+}
+
+/* 부분 별점 스타일 */
+.plan-review-stars .star-full {
+    color: #EF4444;
+}
+
+.plan-review-stars .star-empty {
+    color: #d1d5db;
+}
+
+.plan-review-stars .star-partial {
+    position: relative;
+    display: inline-block;
+    width: 1em;
+    height: 1em;
+    line-height: 1;
+    vertical-align: middle;
+}
+
+.plan-review-stars .star-partial-empty {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    color: #d1d5db;
+    z-index: 0;
+}
+
+.plan-review-stars .star-partial-filled {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: var(--fill-percent);
+    height: 100%;
+    overflow: hidden;
+    color: #EF4444;
+    white-space: nowrap;
+    z-index: 1;
 }
 </style>
 

@@ -51,6 +51,58 @@ if (!$isAdmin && isset($plan['status']) && $plan['status'] === 'inactive') {
 $reviews = getProductReviews($plan_id, 'mvno', 20);
 $averageRating = getProductAverageRating($plan_id, 'mvno');
 $reviewCount = getProductReviewCount($plan_id, 'mvno');
+
+// 상대 시간 표시 함수
+function getRelativeTime($datetime) {
+    if (empty($datetime)) {
+        return '';
+    }
+    
+    try {
+        $reviewTime = new DateTime($datetime);
+        $now = new DateTime();
+        $diff = $now->diff($reviewTime);
+        
+        // 오늘인지 확인
+        if ($diff->days === 0) {
+            if ($diff->h === 0 && $diff->i === 0) {
+                return '방금 전';
+            } elseif ($diff->h === 0) {
+                return $diff->i . '분 전';
+            } else {
+                return $diff->h . '시간 전';
+            }
+        }
+        
+        // 어제인지 확인
+        if ($diff->days === 1) {
+            return '어제';
+        }
+        
+        // 일주일 전까지
+        if ($diff->days < 7) {
+            return $diff->days . '일 전';
+        }
+        
+        // 한달 전까지 (30일)
+        if ($diff->days < 30) {
+            $weeks = floor($diff->days / 7);
+            return $weeks . '주 전';
+        }
+        
+        // 일년 전까지 (365일)
+        if ($diff->days < 365) {
+            $months = floor($diff->days / 30);
+            return $months . '개월 전';
+        }
+        
+        // 일년 이상
+        $years = floor($diff->days / 365);
+        return $years . '년 전';
+    } catch (Exception $e) {
+        return '';
+    }
+}
 ?>
 
 <main class="main-content plan-detail-page">
@@ -497,48 +549,87 @@ $reviewCount = getProductReviewCount($plan_id, 'mvno');
     $allReviews = getProductReviews($plan_id, 'mvno', 1000, $sort);
     $reviews = array_slice($allReviews, 0, 5); // 페이지에는 처음 5개만 표시
     $averageRating = getProductAverageRating($plan_id, 'mvno');
-    $reviewCount = getProductReviewCount($plan_id, 'mvno');
-    $hasReviews = $reviewCount > 0;
+    // 실제 리뷰 배열의 개수를 사용 (통계 테이블 대신 실제 데이터 확인)
+    $reviewCount = count($allReviews);
+    $hasReviews = !empty($allReviews) && $reviewCount > 0;
     $remainingCount = max(0, $reviewCount - 5); // 남은 리뷰 개수
+    
+    // 카테고리별 평균 별점 가져오기 (인터넷과 동일한 함수 사용)
+    $categoryAverages = getInternetReviewCategoryAverages($plan_id, 'mvno');
+    
+    // 판매자명 가져오기
+    $sellerName = '';
+    try {
+        require_once '../includes/data/product-functions.php';
+        $sellerId = $rawData['seller_id'] ?? null;
+        if ($sellerId) {
+            $seller = getSellerById($sellerId);
+            if ($seller) {
+                $sellerName = getSellerDisplayName($seller);
+            }
+        }
+    } catch (Exception $e) {
+        error_log("MVNO Plan Detail - Error getting seller name: " . $e->getMessage());
+    }
+    
+    // pending 상태의 리뷰를 자동으로 approved로 변경 (기존 pending 리뷰 처리용)
+    try {
+        $pdo = getDBConnection();
+        if ($pdo) {
+            // 해당 상품의 pending 상태 리뷰를 approved로 변경
+            $updateStmt = $pdo->prepare("UPDATE product_reviews SET status = 'approved' WHERE product_id = :product_id AND product_type = 'mvno' AND status = 'pending'");
+            $updateStmt->execute([':product_id' => $plan_id]);
+            $updatedCount = $updateStmt->rowCount();
+            if ($updatedCount > 0) {
+                error_log("MVNO Plan Detail - Auto-approved {$updatedCount} pending review(s) for product_id: {$plan_id}");
+                // 리뷰 목록 다시 가져오기 (새로고침 효과)
+                $allReviews = getProductReviews($plan_id, 'mvno', 1000, $sort);
+                $reviews = array_slice($allReviews, 0, 5);
+                $reviewCount = count($allReviews);
+                $hasReviews = !empty($allReviews) && $reviewCount > 0;
+                $remainingCount = max(0, $reviewCount - 5);
+            }
+        }
+    } catch (Exception $e) {
+        error_log("MVNO Plan Detail - Exception while auto-approving reviews: " . $e->getMessage());
+    }
     ?>
+    
     <?php if ($hasReviews): ?>
-    <section class="plan-review-section" id="planReviewSection">
+    <section class="plan-review-section" id="planReviewSection" style="margin-top: 2rem; padding: 2rem 0; background: #f9fafb;">
         <div class="content-layout">
             <div class="plan-review-header">
-                <a href="/mvnos/<?php echo urlencode($plan['provider'] ?? '쉐이크모바일'); ?>?from=요금제상세" class="plan-review-mvno-link">
-                    <span class="plan-review-logo-text"><?php echo htmlspecialchars($plan['provider'] ?? '쉐이크모바일'); ?></span>
-                </a>
+                <span class="plan-review-logo-text"><?php echo htmlspecialchars($sellerName ?: ($plan['provider'] ?? '알뜰폰')); ?></span>
                 <h2 class="section-title">리뷰</h2>
             </div>
+            
             <?php if ($hasReviews): ?>
             <div class="plan-review-summary">
-                <div class="plan-review-rating">
-                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: 24px; height: 24px;">
-                        <path d="M13.1479 3.1366C12.7138 2.12977 11.2862 2.12977 10.8521 3.1366L8.75804 7.99389L3.48632 8.48228C2.3937 8.58351 1.9524 9.94276 2.77717 10.6665L6.75371 14.156L5.58995 19.3138C5.34855 20.3837 6.50365 21.2235 7.44697 20.664L12 17.9635L16.553 20.664C17.4963 21.2235 18.6514 20.3837 18.4101 19.3138L17.2463 14.156L21.2228 10.6665C22.0476 9.94276 21.6063 8.58351 20.5137 8.48228L15.242 7.99389L13.1479 3.1366Z" fill="#EF4444"/>
-                    </svg>
-                    <span class="plan-review-rating-score"><?php echo htmlspecialchars($averageRating > 0 ? number_format($averageRating, 1) : ($plan['rating'] ?? '0.0')); ?></span>
-                    <span class="plan-review-rating-count"><?php echo number_format($reviewCount); ?>개</span>
+                <div class="plan-review-left">
+                    <div class="plan-review-total-rating">
+                        <div class="plan-review-total-rating-content">
+                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: 24px; height: 24px;">
+                                <path d="M13.1479 3.1366C12.7138 2.12977 11.2862 2.12977 10.8521 3.1366L8.75804 7.99389L3.48632 8.48228C2.3937 8.58351 1.9524 9.94276 2.77717 10.6665L6.75371 14.156L5.58995 19.3138C5.34855 20.3837 6.50365 21.2235 7.44697 20.664L12 17.9635L16.553 20.664C17.4963 21.2235 18.6514 20.3837 18.4101 19.3138L17.2463 14.156L21.2228 10.6665C22.0476 9.94276 21.6063 8.58351 20.5137 8.48228L15.242 7.99389L13.1479 3.1366Z" fill="#EF4444"></path>
+                            </svg>
+                            <span class="plan-review-rating-score"><?php echo htmlspecialchars($averageRating > 0 ? number_format($averageRating, 1) : '0.0'); ?></span>
+                        </div>
+                    </div>
                 </div>
-                <div class="plan-review-categories">
-                    <div class="plan-review-category">
-                        <span class="plan-review-category-label">고객센터</span>
-                        <span class="plan-review-category-score"><?php echo htmlspecialchars($averageRating > 0 ? number_format($averageRating - 0.1, 1) : '0.0'); ?></span>
-                        <div class="plan-review-stars">
-                            <span><?php echo getStarsFromRating(round($averageRating)); ?></span>
+                <div class="plan-review-right">
+                    <div class="plan-review-categories">
+                        <div class="plan-review-category">
+                            <span class="plan-review-category-label">친절해요</span>
+                            <span class="plan-review-category-score"><?php echo htmlspecialchars($categoryAverages['kindness'] > 0 ? number_format($categoryAverages['kindness'], 1) : '0.0'); ?></span>
+                            <div class="plan-review-stars">
+                                <?php echo getPartialStarsFromRating($categoryAverages['kindness']); ?>
+                            </div>
                         </div>
-                    </div>
-                    <div class="plan-review-category">
-                        <span class="plan-review-category-label">개통 과정</span>
-                        <span class="plan-review-category-score"><?php echo htmlspecialchars($averageRating > 0 ? number_format($averageRating + 0.2, 1) : '0.0'); ?></span>
-                        <div class="plan-review-stars">
-                            <span><?php echo getStarsFromRating(round($averageRating)); ?></span>
-                        </div>
-                    </div>
-                    <div class="plan-review-category">
-                        <span class="plan-review-category-label">개통 후 만족도</span>
-                        <span class="plan-review-category-score"><?php echo htmlspecialchars($averageRating > 0 ? number_format($averageRating - 0.1, 1) : '0.0'); ?></span>
-                        <div class="plan-review-stars">
-                            <span><?php echo getStarsFromRating(round($averageRating)); ?></span>
+                        <div class="plan-review-category">
+                            <span class="plan-review-category-label">개통 빨라요</span>
+                            <span class="plan-review-category-score"><?php echo htmlspecialchars($categoryAverages['speed'] > 0 ? number_format($categoryAverages['speed'], 1) : '0.0'); ?></span>
+                            <div class="plan-review-stars">
+                                <?php echo getPartialStarsFromRating($categoryAverages['speed']); ?>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -549,7 +640,7 @@ $reviewCount = getProductReviewCount($plan_id, 'mvno');
                 <div class="plan-review-count-sort-wrapper">
                     <span class="plan-review-count">총 <?php echo number_format($reviewCount); ?>개</span>
                     <div class="plan-review-sort-select-wrapper">
-                        <select class="plan-review-sort-select" id="planReviewSortSelect" aria-label="리뷰 정렬 방식 선택">
+                        <select class="plan-review-sort-select" id="planReviewSortSelect" aria-label="리뷰 정렬 방식 선택" onchange="window.location.href='?id=<?php echo $plan_id; ?>&review_sort=' + this.value">
                             <option value="rating_desc" <?php echo $sort === 'rating_desc' ? 'selected' : ''; ?>>높은 평점순</option>
                             <option value="rating_asc" <?php echo $sort === 'rating_asc' ? 'selected' : ''; ?>>낮은 평점순</option>
                             <option value="created_desc" <?php echo $sort === 'created_desc' ? 'selected' : ''; ?>>최신순</option>
@@ -562,24 +653,38 @@ $reviewCount = getProductReviewCount($plan_id, 'mvno');
                 <?php if (!empty($reviews)): ?>
                     <?php foreach ($reviews as $review): ?>
                         <div class="plan-review-item">
-                            <div class="plan-review-item-header">
-                                <span class="plan-review-author"><?php echo htmlspecialchars($review['author_name'] ?? '익명'); ?></span>
-                                <div class="plan-review-stars">
-                                    <span><?php echo htmlspecialchars($review['stars'] ?? '★★★★★'); ?></span>
+                            <div class="plan-review-item-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                    <?php 
+                                    $authorName = htmlspecialchars($review['author_name'] ?? '익명');
+                                    $provider = isset($review['provider']) && $review['provider'] ? htmlspecialchars($review['provider']) : '';
+                                    $providerText = $provider ? ' | ' . $provider : '';
+                                    ?>
+                                    <span class="plan-review-author"><?php echo $authorName . $providerText; ?></span>
                                 </div>
-                                <span class="plan-review-date"><?php echo htmlspecialchars($review['date_ago'] ?? ''); ?></span>
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    <div class="plan-review-stars">
+                                        <span><?php echo htmlspecialchars($review['stars'] ?? '★★★★★'); ?></span>
+                                    </div>
+                                    <?php if (!empty($review['created_at'])): ?>
+                                        <span class="plan-review-time" style="font-size: 0.875rem; color: #6b7280;">
+                                            <?php echo htmlspecialchars(getRelativeTime($review['created_at'])); ?>
+                                        </span>
+                                    <?php endif; ?>
+                                </div>
                             </div>
-                            <p class="plan-review-content"><?php echo htmlspecialchars(str_replace(["\r\n", "\r", "\n"], ' ', $review['content'] ?? '')); ?></p>
-                            <?php if (!empty($plan['title'])): ?>
-                                <div class="plan-review-tags">
-                                    <span class="plan-review-tag"><?php echo htmlspecialchars($plan['title']); ?></span>
-                                </div>
-                            <?php endif; ?>
+                            <p class="plan-review-content"><?php 
+                                $content = $review['content'] ?? '';
+                                // 줄바꿈 문자들을 공백 하나로 변환 (기존 공백은 유지)
+                                // \r\n을 먼저 공백으로 변환, 그 다음 \r, \n을 각각 공백으로 변환
+                                $content = str_replace(["\r\n", "\r", "\n"], ' ', $content);
+                                echo htmlspecialchars($content);
+                            ?></p>
                         </div>
                     <?php endforeach; ?>
                 <?php else: ?>
                     <div class="plan-review-item">
-                        <p class="plan-review-content" style="text-align: center; color: #868e96; padding: 40px 0;">등록된 리뷰가 없습니다.</p>
+                        <p class="plan-review-content" style="text-align: center; color: #9ca3af; padding: 40px 0;">등록된 리뷰가 없습니다.</p>
                     </div>
                 <?php endif; ?>
             </div>
@@ -658,13 +763,30 @@ $reviewCount = getProductReviewCount($plan_id, 'mvno');
                     <?php foreach ($allReviews as $review): ?>
                         <div class="review-modal-item">
                             <div class="review-modal-item-header">
-                                <span class="review-modal-author"><?php echo htmlspecialchars($review['author_name'] ?? '익명'); ?></span>
-                                <div class="review-modal-stars">
-                                    <span><?php echo htmlspecialchars($review['stars'] ?? '★★★★☆'); ?></span>
+                                <?php 
+                                $authorName = htmlspecialchars($review['author_name'] ?? '익명');
+                                $provider = isset($review['provider']) && $review['provider'] ? htmlspecialchars($review['provider']) : '';
+                                $providerText = $provider ? ' | ' . $provider : '';
+                                ?>
+                                <span class="review-modal-author"><?php echo $authorName . $providerText; ?></span>
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    <div class="review-modal-stars">
+                                        <span><?php echo htmlspecialchars($review['stars'] ?? '★★★★☆'); ?></span>
+                                    </div>
+                                    <?php if (!empty($review['created_at'])): ?>
+                                        <span class="review-modal-time" style="font-size: 0.875rem; color: #6b7280;">
+                                            <?php echo htmlspecialchars(getRelativeTime($review['created_at'])); ?>
+                                        </span>
+                                    <?php endif; ?>
                                 </div>
-                                <span class="review-modal-date"><?php echo htmlspecialchars($review['date_ago'] ?? '오늘'); ?></span>
                             </div>
-                            <p class="review-modal-item-content"><?php echo htmlspecialchars(str_replace(["\r\n", "\r", "\n"], ' ', $review['content'] ?? '')); ?></p>
+                            <p class="review-modal-item-content"><?php 
+                                $content = $review['content'] ?? '';
+                                // 줄바꿈 문자들을 공백 하나로 변환 (기존 공백은 유지)
+                                // \r\n을 먼저 공백으로 변환, 그 다음 \r, \n을 각각 공백으로 변환
+                                $content = str_replace(["\r\n", "\r", "\n"], ' ', $content);
+                                echo htmlspecialchars($content);
+                            ?></p>
                             <?php if (!empty($plan['title'])): ?>
                                 <div class="review-modal-tags">
                                     <span class="review-modal-tag"><?php echo htmlspecialchars($plan['title']); ?></span>
@@ -747,11 +869,13 @@ $reviewCount = getProductReviewCount($plan_id, 'mvno');
                     <div class="consultation-form-group">
                         <label for="mvnoApplicationPhone" class="consultation-form-label">휴대폰번호</label>
                         <input type="tel" id="mvnoApplicationPhone" name="phone" class="consultation-form-input" placeholder="010-1234-5678" required>
+                        <span id="mvnoApplicationPhoneError" class="form-error-message" style="display: none; color: #ef4444; font-size: 0.875rem; margin-top: 0.25rem;"></span>
                     </div>
                     
                     <div class="consultation-form-group">
                         <label for="mvnoApplicationEmail" class="consultation-form-label">이메일</label>
                         <input type="email" id="mvnoApplicationEmail" name="email" class="consultation-form-input" placeholder="example@email.com" required>
+                        <span id="mvnoApplicationEmailError" class="form-error-message" style="display: none; color: #ef4444; font-size: 0.875rem; margin-top: 0.25rem;"></span>
                     </div>
                     
                     <!-- 체크박스 -->
@@ -875,21 +999,25 @@ function checkAllMvnoAgreements() {
     const submitBtn = document.getElementById('mvnoApplicationSubmitBtn');
     const nameInput = document.getElementById('mvnoApplicationName');
     const phoneInput = document.getElementById('mvnoApplicationPhone');
+    const emailInput = document.getElementById('mvnoApplicationEmail');
     
     if (mvnoAgreementAll && mvnoAgreementPurpose && mvnoAgreementItems && mvnoAgreementPeriod && mvnoAgreementThirdParty && submitBtn) {
         // 전체 동의 체크박스 상태 업데이트
         mvnoAgreementAll.checked = mvnoAgreementPurpose.checked && mvnoAgreementItems.checked && mvnoAgreementPeriod.checked && mvnoAgreementThirdParty.checked;
         
-        // 이름과 휴대폰 번호 확인
+        // 이름, 휴대폰 번호, 이메일 확인
         const name = nameInput ? nameInput.value.trim() : '';
         const phone = phoneInput ? phoneInput.value.replace(/[^\d]/g, '') : '';
+        const email = emailInput ? emailInput.value.trim() : '';
         
         // 제출 버튼 활성화/비활성화 (모든 필드가 입력되어야 활성화)
         const isNameValid = name.length > 0;
         const isPhoneValid = phone.length === 11 && phone.startsWith('010');
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const isEmailValid = email.length > 0 && emailRegex.test(email);
         const isAgreementsChecked = mvnoAgreementPurpose.checked && mvnoAgreementItems.checked && mvnoAgreementPeriod.checked && mvnoAgreementThirdParty.checked;
         
-        if (isNameValid && isPhoneValid && isAgreementsChecked) {
+        if (isNameValid && isPhoneValid && isEmailValid && isAgreementsChecked) {
             submitBtn.disabled = false;
         } else {
             submitBtn.disabled = true;
@@ -1117,13 +1245,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 $registrationTypes = $rawData['registration_types'];
             }
         }
-        // 가입형태 매핑: "신규" -> "new", "번이" -> "port", "기변" -> "change"
+        // 가입형태 매핑: "신규" -> "new", "번이" -> "mnp", "기변" -> "change"
         $mappedTypes = [];
         foreach ($registrationTypes as $type) {
             if ($type === '신규') {
                 $mappedTypes[] = 'new';
             } elseif ($type === '번이') {
-                $mappedTypes[] = 'port';
+                $mappedTypes[] = 'mnp';
             } elseif ($type === '기변') {
                 $mappedTypes[] = 'change';
             }
@@ -1249,7 +1377,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // 모든 가입형태 정의
         const allSubscriptionTypes = [
             { type: 'new', label: '신규가입', description: '새로운 번호로 가입할래요' },
-            { type: 'port', label: '번호이동', description: '지금 쓰는 번호 그대로 사용할래요' },
+            { type: 'mnp', label: '번호이동', description: '지금 쓰는 번호 그대로 사용할래요' },
             { type: 'change', label: '기기변경', description: '기기만 변경하고 번호는 유지할래요' }
         ];
         
@@ -1319,25 +1447,80 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                     if (phoneInput && data.phone) {
                         phoneInput.value = formatPhoneNumber(data.phone);
+                    }
+                    
+                    // 전화번호 실시간 검증 (데이터 로드 여부와 관계없이 항상 설정)
+                    if (phoneInput) {
+                        const phoneErrorElement = document.getElementById('mvnoApplicationPhoneError');
                         
-                        // 실시간 포맷팅
+                        // 실시간 포맷팅 및 검증
                         phoneInput.addEventListener('input', function() {
                             const value = this.value;
                             const formatted = formatPhoneNumber(value);
                             if (formatted !== value) {
                                 this.value = formatted;
                             }
+                            
+                            // 실시간 검증
+                            const phoneNumbers = this.value.replace(/[^\d]/g, '');
+                            if (phoneNumbers.length > 0) {
+                                if (phoneNumbers.length === 11 && phoneNumbers.startsWith('010')) {
+                                    this.classList.remove('input-error');
+                                    if (phoneErrorElement) {
+                                        phoneErrorElement.style.display = 'none';
+                                        phoneErrorElement.textContent = '';
+                                    }
+                                } else {
+                                    this.classList.add('input-error');
+                                    if (phoneErrorElement) {
+                                        phoneErrorElement.style.display = 'block';
+                                        phoneErrorElement.textContent = '전화번호 형식에 맞게 입력해주세요. (010-1234-5678 형식)';
+                                    }
+                                }
+                            } else {
+                                this.classList.remove('input-error');
+                                if (phoneErrorElement) {
+                                    phoneErrorElement.style.display = 'none';
+                                    phoneErrorElement.textContent = '';
+                                }
+                            }
+                            
                             checkAllMvnoAgreements();
                         });
                         
                         // 포커스 아웃 시 검증
                         phoneInput.addEventListener('blur', function() {
                             const value = this.value.trim();
-                            if (value && !validatePhoneNumber(value)) {
+                            const phoneNumbers = value.replace(/[^\d]/g, '');
+                            
+                            if (value && phoneNumbers.length > 0) {
+                                if (phoneNumbers.length === 11 && phoneNumbers.startsWith('010')) {
+                                    this.classList.remove('input-error');
+                                    if (phoneErrorElement) {
+                                        phoneErrorElement.style.display = 'none';
+                                        phoneErrorElement.textContent = '';
+                                    }
+                                } else {
+                                    this.classList.add('input-error');
+                                    if (phoneErrorElement) {
+                                        phoneErrorElement.style.display = 'block';
+                                        phoneErrorElement.textContent = '전화번호 형식에 맞게 입력해주세요. (010-1234-5678 형식)';
+                                    }
+                                }
+                            } else if (value) {
                                 this.classList.add('input-error');
+                                if (phoneErrorElement) {
+                                    phoneErrorElement.style.display = 'block';
+                                    phoneErrorElement.textContent = '전화번호 형식에 맞게 입력해주세요. (010-1234-5678 형식)';
+                                }
                             } else {
                                 this.classList.remove('input-error');
+                                if (phoneErrorElement) {
+                                    phoneErrorElement.style.display = 'none';
+                                    phoneErrorElement.textContent = '';
+                                }
                             }
+                            
                             checkAllMvnoAgreements();
                         });
                     }
@@ -1350,30 +1533,174 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (emailInput && data.email) {
                         emailInput.value = data.email;
                     }
+                    
+                    // 사용자 정보 로드 후 검증 수행
+                    setTimeout(function() {
+                        validatePhoneOnModal();
+                        validateEmailOnModal();
+                        checkAllMvnoAgreements();
+                    }, 50);
                 }
             })
             .catch(error => {
                 // 오류가 나도 계속 진행
+                // 에러 발생 시에도 검증 수행
+                setTimeout(function() {
+                    validatePhoneOnModal();
+                    validateEmailOnModal();
+                    checkAllMvnoAgreements();
+                }, 50);
             });
         
         // 실시간 이메일 검증
         if (emailInput) {
-            emailInput.addEventListener('blur', function() {
+            const emailErrorElement = document.getElementById('mvnoApplicationEmailError');
+            
+            emailInput.addEventListener('input', function(e) {
+                // 대문자를 소문자로 자동 변환
+                const cursorPosition = this.selectionStart;
+                const originalValue = this.value;
+                const lowerValue = originalValue.toLowerCase();
+                
+                // 소문자로 변환된 값이 다르면 업데이트
+                if (originalValue !== lowerValue) {
+                    this.value = lowerValue;
+                    // 커서 위치 복원
+                    const newCursorPosition = Math.min(cursorPosition, lowerValue.length);
+                    this.setSelectionRange(newCursorPosition, newCursorPosition);
+                }
+                
                 const value = this.value.trim();
-                if (value) {
-                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                    if (!emailRegex.test(value)) {
-                        this.classList.add('input-error');
-                    } else {
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                
+                if (value.length > 0) {
+                    if (emailRegex.test(value)) {
                         this.classList.remove('input-error');
+                        if (emailErrorElement) {
+                            emailErrorElement.style.display = 'none';
+                            emailErrorElement.textContent = '';
+                        }
+                    } else {
+                        this.classList.add('input-error');
+                        if (emailErrorElement) {
+                            emailErrorElement.style.display = 'block';
+                            emailErrorElement.textContent = '이메일 형식에 맞게 입력해주세요. (example@email.com 형식)';
+                        }
+                    }
+                } else {
+                    this.classList.remove('input-error');
+                    if (emailErrorElement) {
+                        emailErrorElement.style.display = 'none';
+                        emailErrorElement.textContent = '';
                     }
                 }
+                
+                checkAllMvnoAgreements();
+            });
+            
+            emailInput.addEventListener('blur', function() {
+                // 포커스 아웃 시에도 소문자로 변환
+                this.value = this.value.toLowerCase();
+                
+                const value = this.value.trim();
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                
+                if (value.length > 0) {
+                    if (emailRegex.test(value)) {
+                        this.classList.remove('input-error');
+                        if (emailErrorElement) {
+                            emailErrorElement.style.display = 'none';
+                            emailErrorElement.textContent = '';
+                        }
+                    } else {
+                        this.classList.add('input-error');
+                        if (emailErrorElement) {
+                            emailErrorElement.style.display = 'block';
+                            emailErrorElement.textContent = '이메일 형식에 맞게 입력해주세요. (example@email.com 형식)';
+                        }
+                    }
+                } else {
+                    this.classList.remove('input-error');
+                    if (emailErrorElement) {
+                        emailErrorElement.style.display = 'none';
+                        emailErrorElement.textContent = '';
+                    }
+                }
+                
+                checkAllMvnoAgreements();
             });
         }
     }
     
     // 단계 표시 함수
     const applyModalBack = document.getElementById('applyModalBack');
+    
+    // 전화번호 검증 함수
+    function validatePhoneOnModal() {
+        const phoneInput = document.getElementById('mvnoApplicationPhone');
+        const phoneErrorElement = document.getElementById('mvnoApplicationPhoneError');
+        
+        if (phoneInput && phoneErrorElement) {
+            const value = phoneInput.value.trim();
+            const phoneNumbers = value.replace(/[^\d]/g, '');
+            
+            if (value && phoneNumbers.length > 0) {
+                if (phoneNumbers.length === 11 && phoneNumbers.startsWith('010')) {
+                    phoneInput.classList.remove('input-error');
+                    phoneErrorElement.style.display = 'none';
+                    phoneErrorElement.textContent = '';
+                    return true;
+                } else {
+                    phoneInput.classList.add('input-error');
+                    phoneErrorElement.style.display = 'block';
+                    phoneErrorElement.textContent = '전화번호 형식에 맞게 입력해주세요. (010-1234-5678 형식)';
+                    return false;
+                }
+            } else if (value) {
+                phoneInput.classList.add('input-error');
+                phoneErrorElement.style.display = 'block';
+                phoneErrorElement.textContent = '전화번호 형식에 맞게 입력해주세요. (010-1234-5678 형식)';
+                return false;
+            } else {
+                phoneInput.classList.remove('input-error');
+                phoneErrorElement.style.display = 'none';
+                phoneErrorElement.textContent = '';
+                return true; // 빈 값은 유효 (필수 필드 검증은 별도)
+            }
+        }
+        return true;
+    }
+    
+    // 이메일 검증 함수
+    function validateEmailOnModal() {
+        const emailInput = document.getElementById('mvnoApplicationEmail');
+        const emailErrorElement = document.getElementById('mvnoApplicationEmailError');
+        
+        if (emailInput && emailErrorElement) {
+            const value = emailInput.value.trim();
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            
+            if (value.length > 0) {
+                if (emailRegex.test(value)) {
+                    emailInput.classList.remove('input-error');
+                    emailErrorElement.style.display = 'none';
+                    emailErrorElement.textContent = '';
+                    return true;
+                } else {
+                    emailInput.classList.add('input-error');
+                    emailErrorElement.style.display = 'block';
+                    emailErrorElement.textContent = '이메일 형식에 맞게 입력해주세요. (example@email.com 형식)';
+                    return false;
+                }
+            } else {
+                emailInput.classList.remove('input-error');
+                emailErrorElement.style.display = 'none';
+                emailErrorElement.textContent = '';
+                return true; // 빈 값은 유효 (필수 필드 검증은 별도)
+            }
+        }
+        return true;
+    }
     
     function showStep(stepNumber) {
         const step2 = document.getElementById('step2');
@@ -1396,6 +1723,13 @@ document.addEventListener('DOMContentLoaded', function() {
             // 뒤로 가기 버튼 표시
             if (applyModalBack) applyModalBack.style.display = 'flex';
             currentStep = 3;
+            
+            // step3로 이동할 때 전화번호와 이메일 검증
+            setTimeout(function() {
+                validatePhoneOnModal();
+                validateEmailOnModal();
+                checkAllMvnoAgreements();
+            }, 100); // DOM 업데이트 후 검증
         }
     }
     
@@ -2133,6 +2467,343 @@ span.internet-checkbox-text {
 @media (max-width: 767px) {
     .internet-checkbox-list {
         margin-left: 1.5rem;
+    }
+}
+</style>
+
+<style>
+/* MVNO 리뷰 섹션 스타일 (인터넷과 동일) */
+.plan-review-section .content-layout {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 0 1rem;
+}
+
+.plan-review-header {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+    width: 100%;
+}
+
+.plan-review-header .section-title {
+    margin: 0;
+    display: flex;
+    align-items: center;
+}
+
+.plan-review-logo-text {
+    font-size: 16px;
+    font-weight: 700;
+    color: #374151;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+}
+
+@media (min-width: 992px) {
+    .plan-review-logo-text {
+        font-size: 20px;
+    }
+}
+
+.plan-review-summary {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: 48px;
+    padding: 16px 0;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.plan-review-left {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 0 0 auto;
+}
+
+.plan-review-total-rating {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.plan-review-total-rating-content {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+}
+
+.plan-review-total-rating svg {
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+}
+
+.plan-review-total-rating .plan-review-rating-score {
+    font-size: 32px;
+    font-weight: 700;
+    color: #000000;
+}
+
+.plan-review-right {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 24px;
+    flex: 0 0 auto;
+}
+
+.plan-review-categories {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.plan-review-category {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+}
+
+.plan-review-category-label {
+    width: 80px;
+    white-space: nowrap;
+    font-size: 14px;
+    font-weight: 700;
+    color: #6b7280;
+}
+
+.plan-review-category-score {
+    font-size: 14px;
+    font-weight: 700;
+    color: #4b5563;
+    min-width: 35px;
+    text-align: right;
+}
+
+.plan-review-stars {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    font-size: 18px;
+    color: #EF4444;
+    line-height: 1;
+}
+
+/* 부분 별점 스타일 */
+.plan-review-stars .star-full {
+    color: #EF4444;
+}
+
+.plan-review-stars .star-empty {
+    color: #d1d5db;
+}
+
+.plan-review-stars .star-partial {
+    position: relative;
+    display: inline-block;
+    width: 1em;
+    height: 1em;
+    line-height: 1;
+    vertical-align: middle;
+}
+
+.plan-review-stars .star-partial-empty {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    color: #d1d5db;
+    z-index: 0;
+}
+
+.plan-review-stars .star-partial-filled {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: var(--fill-percent);
+    height: 100%;
+    overflow: hidden;
+    color: #EF4444;
+    white-space: nowrap;
+    z-index: 1;
+}
+
+.plan-review-count-section {
+    width: 100%;
+    margin-top: 16px;
+    margin-bottom: 16px;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.plan-review-count-sort-wrapper {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+.plan-review-count {
+    font-size: 14px;
+    font-weight: 500;
+    color: #6b7280;
+}
+
+.plan-review-sort-select-wrapper {
+    position: relative;
+    box-shadow: rgba(36, 41, 46, 0.04) 0px 2px 8px 0px;
+}
+
+.plan-review-sort-select {
+    padding: 6.5px 10px 6.5px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    background-color: #ffffff;
+    font-size: 14px;
+    color: #374151;
+    cursor: pointer;
+    transition: border-color 0.2s;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L6 6L11 1' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding-right: 32px;
+}
+
+.plan-review-sort-select:hover {
+    border-color: #9ca3af;
+}
+
+.plan-review-sort-select:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+.plan-review-list {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 0;
+}
+
+.plan-review-item {
+    width: 100%;
+    max-width: 100%;
+    padding: 16px;
+    background-color: #f3f4f6;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+}
+
+@media (min-width: 992px) {
+    .plan-review-item {
+        padding: 24px;
+    }
+}
+
+.plan-review-item-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.plan-review-author {
+    font-size: 14px;
+    font-weight: 500;
+    color: #6b7280;
+}
+
+.plan-review-content {
+    font-size: 14px;
+    line-height: 1.6;
+    color: #374151;
+    margin: 0;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.review-modal-item-content {
+    font-size: 14px;
+    line-height: 1.6;
+    color: #374151;
+    margin: 0;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.plan-review-more-btn {
+    width: 100%;
+    padding: 14px;
+    margin-top: 16px;
+    background-color: #ffffff;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #374151;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.plan-review-more-btn:hover {
+    background-color: #f9fafb;
+    border-color: #9ca3af;
+}
+
+@media (max-width: 767px) {
+    .plan-review-section .content-layout {
+        padding: 0 0.75rem;
+    }
+    
+    .plan-review-summary {
+        flex-direction: column;
+        align-items: center;
+        gap: 24px;
+        padding: 16px 1rem;
+    }
+    
+    .plan-review-right {
+        flex-direction: column;
+        align-items: center;
+        gap: 16px;
+        width: 100%;
+    }
+    
+    .plan-review-total-rating {
+        align-items: center;
+    }
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+    .plan-review-summary {
+        gap: 32px;
+        padding: 16px 2rem;
+    }
+    
+    .plan-review-right {
+        gap: 16px;
+    }
+}
+
+@media (min-width: 992px) {
+    .plan-review-summary {
+        padding: 16px 4rem;
     }
 }
 </style>

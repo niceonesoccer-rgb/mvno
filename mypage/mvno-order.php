@@ -194,30 +194,51 @@ include '../includes/components/mvno-review-modal.php';
                                     
                                     <!-- 판매자 정보 및 리뷰 작성 영역 -->
                                     <?php
-                                    $productId = $app['product_id'] ?? 0;
+                                    // getUserMvnoApplications는 'id' 키에 product_id를 저장하고 'product_id' 키도 추가함
+                                    $productId = $app['product_id'] ?? ($app['id'] ?? 0);
                                     $applicationId = $app['application_id'] ?? '';
                                     
                                     // 판매자 정보 가져오기 (모든 상태에서)
-                                    $sellerId = null;
+                                    // getUserMvnoApplications에서 seller_id를 반환 배열에 포함시킴
+                                    $sellerId = isset($app['seller_id']) && $app['seller_id'] > 0 ? (int)$app['seller_id'] : null;
                                     $seller = null;
-                                    try {
-                                        $pdo = getDBConnection();
-                                        if ($pdo && $productId > 0) {
-                                            // product_id로 seller_id 가져오기
-                                            $sellerStmt = $pdo->prepare("SELECT seller_id FROM products WHERE id = :product_id LIMIT 1");
-                                            $sellerStmt->execute([':product_id' => $productId]);
-                                            $product = $sellerStmt->fetch(PDO::FETCH_ASSOC);
-                                            if ($product && !empty($product['seller_id'])) {
-                                                $sellerId = $product['seller_id'];
-                                                // 판매자 정보 가져오기
-                                                $seller = getSellerById($sellerId);
-                                            }
+                                    $sellerPhone = '';
+                                    
+                                    // 디버깅: 초기값 확인
+                                    error_log("MVNO Order Debug - application_id: {$applicationId}, product_id: {$productId}, seller_id from app: " . ($sellerId ?: 'NULL'));
+                                    
+                                    if ($sellerId) {
+                                        // 판매자 정보 가져오기
+                                        $seller = getSellerById($sellerId);
+                                        
+                                        // 디버깅: 판매자 정보 조회 결과
+                                        if ($seller) {
+                                            error_log("MVNO Order Debug - seller found for seller_id {$sellerId}: name=" . ($seller['seller_name'] ?? '') . ", phone=" . ($seller['phone'] ?? '') . ", mobile=" . ($seller['mobile'] ?? ''));
+                                        } else {
+                                            error_log("MVNO Order Debug - seller NOT found for seller_id: {$sellerId}");
                                         }
-                                    } catch (Exception $e) {
-                                        error_log("Error fetching seller info: " . $e->getMessage());
+                                    } else {
+                                        error_log("MVNO Order Debug - No seller_id in application data for product_id: {$productId}");
+                                        // seller_id가 없으면 product_id로 다시 시도
+                                        try {
+                                            $pdo = getDBConnection();
+                                            if ($pdo && $productId > 0) {
+                                                $sellerStmt = $pdo->prepare("SELECT seller_id FROM products WHERE id = :product_id LIMIT 1");
+                                                $sellerStmt->execute([':product_id' => $productId]);
+                                                $product = $sellerStmt->fetch(PDO::FETCH_ASSOC);
+                                                if ($product && !empty($product['seller_id'])) {
+                                                    $sellerId = $product['seller_id'];
+                                                    $seller = getSellerById($sellerId);
+                                                    error_log("MVNO Order Debug - seller_id found via products table: {$sellerId}");
+                                                }
+                                            }
+                                        } catch (Exception $e) {
+                                            error_log("MVNO Order Debug - Exception: " . $e->getMessage());
+                                        }
                                     }
                                     
                                     $sellerPhone = $seller ? ($seller['phone'] ?? ($seller['mobile'] ?? '')) : '';
+                                    error_log("MVNO Order Debug - Final sellerPhone for application {$applicationId}: " . ($sellerPhone ?: 'EMPTY'));
                                     
                                     // 판매자명 가져오기 (seller_name > company_name > name 우선순위)
                                     $sellerName = '';
@@ -237,45 +258,97 @@ include '../includes/components/mvno-review-modal.php';
                                         $sellerPhoneDisplay = $sellerName . '  ' . $sellerPhone;
                                     }
                                     
-                                    // 개통완료 또는 종료 상태일 때만 리뷰 버튼 표시
-                                    $canWrite = in_array($appStatus, ['completed', 'closed']);
+                                    // 개통완료 또는 종료 상태일 때만 리뷰 버튼 표시 (인터넷과 동일하게)
+                                    $canWrite = in_array($appStatus, ['activation_completed', 'completed', 'closed', 'terminated']);
                                     
-                                    // 리뷰 존재 여부 확인
+                                    // 디버깅: 화면에 임시로 정보 표시 (나중에 제거) - URL에 ?debug=1 추가하면 표시됨
+                                    $debugInfo = [
+                                        'product_id' => $productId,
+                                        'application_id' => $applicationId,
+                                        'seller_id_from_app' => $app['seller_id'] ?? 'NULL',
+                                        'seller_id_used' => $sellerId ?: 'NULL',
+                                        'seller_found' => $seller ? 'YES' : 'NO',
+                                        'seller_phone' => $sellerPhone ?: 'EMPTY',
+                                        'seller_name' => $sellerName ?: 'EMPTY',
+                                        'canWrite' => $canWrite ? 'YES' : 'NO',
+                                        'appStatus' => $appStatus ?: 'EMPTY'
+                                    ];
                                     $hasReview = false;
-                                    if ($canWrite && $applicationId && $productId) {
-                                        try {
-                                            $pdo = getDBConnection();
-                                            if ($pdo) {
-                                                $reviewStmt = $pdo->prepare("
-                                                    SELECT COUNT(*) as cnt 
-                                                    FROM product_reviews 
-                                                    WHERE application_id = :application_id 
-                                                    AND product_id = :product_id 
-                                                    AND user_id = :user_id 
-                                                    AND product_type = 'mvno'
-                                                    AND status != 'deleted'
-                                                ");
-                                                $reviewStmt->execute([
-                                                    ':application_id' => $applicationId,
-                                                    ':product_id' => $productId,
-                                                    ':user_id' => $user_id
-                                                ]);
-                                                $reviewResult = $reviewStmt->fetch(PDO::FETCH_ASSOC);
-                                                $hasReview = ($reviewResult['cnt'] ?? 0) > 0;
+                                    $buttonText = '리뷰 작성';
+                                    $buttonClass = 'mvno-review-write-btn';
+                                    $buttonBgColor = '#EF4444';
+                                    $buttonHoverColor = '#dc2626';
+                                    
+                                    if ($canWrite) {
+                                        // 주문건별로 여러 리뷰 작성 가능하므로 항상 "리뷰 작성" 버튼 표시
+                                        // 최근 작성한 리뷰가 있으면 수정 가능하도록 확인
+                                        $latestReviewId = null;
+                                        if ($applicationId && $productId) {
+                                            try {
+                                                $pdo = getDBConnection();
+                                                if ($pdo) {
+                                                    // 같은 주문건의 최근 리뷰 확인 (수정용)
+                                                    $reviewStmt = $pdo->prepare("
+                                                        SELECT id 
+                                                        FROM product_reviews 
+                                                        WHERE application_id = :application_id 
+                                                        AND product_id = :product_id 
+                                                        AND user_id = :user_id 
+                                                        AND product_type = 'mvno'
+                                                        AND status != 'deleted'
+                                                        ORDER BY created_at DESC
+                                                        LIMIT 1
+                                                    ");
+                                                    $reviewStmt->execute([
+                                                        ':application_id' => $applicationId,
+                                                        ':product_id' => $productId,
+                                                        ':user_id' => $user_id
+                                                    ]);
+                                                    $reviewResult = $reviewStmt->fetch(PDO::FETCH_ASSOC);
+                                                    if ($reviewResult) {
+                                                        $latestReviewId = $reviewResult['id'];
+                                                        $hasReview = true;
+                                                    }
+                                                }
+                                            } catch (Exception $e) {
+                                                error_log("Error checking review: " . $e->getMessage());
                                             }
-                                        } catch (Exception $e) {
-                                            error_log("Error checking review: " . $e->getMessage());
+                                        }
+                                        
+                                        // 최근 리뷰가 있으면 "리뷰 수정", 없으면 "리뷰 작성"
+                                        $buttonText = $hasReview ? '리뷰 수정' : '리뷰 작성';
+                                        $buttonClass = $hasReview ? 'mvno-review-edit-btn' : 'mvno-review-write-btn';
+                                        $buttonBgColor = $hasReview ? '#6b7280' : '#EF4444';
+                                        $buttonHoverColor = $hasReview ? '#4b5563' : '#dc2626';
+                                        
+                                        // 최근 리뷰 ID를 data 속성에 저장 (수정 시 사용)
+                                        if ($latestReviewId) {
+                                            $buttonDataReviewId = ' data-review-id="' . htmlspecialchars($latestReviewId) . '"';
+                                        } else {
+                                            $buttonDataReviewId = '';
                                         }
                                     }
                                     
-                                    $buttonText = $hasReview ? '리뷰 수정' : '리뷰 작성';
-                                    $buttonClass = $hasReview ? 'mvno-review-edit-btn' : 'mvno-review-write-btn';
-                                    $buttonBgColor = $hasReview ? '#6b7280' : '#EF4444';
-                                    $buttonHoverColor = $hasReview ? '#4b5563' : '#dc2626';
+                                    // 디버깅: 조건 확인
+                                    error_log("MVNO Order Debug - Condition check: sellerPhone=" . ($sellerPhone ?: 'EMPTY') . ", canWrite=" . ($canWrite ? 'true' : 'false') . ", will show section=" . (($sellerPhone || $canWrite) ? 'YES' : 'NO'));
                                     
                                     // 판매자 전화번호가 있거나 리뷰 버튼이 필요한 경우에만 섹션 표시
                                     if ($sellerPhone || $canWrite):
                                     ?>
+                                        <!-- 디버깅 정보 (임시) -->
+                                        <?php if (isset($_GET['debug']) && $_GET['debug'] === '1'): ?>
+                                        <div style="margin-top: 8px; padding: 8px; background: #fef3c7; border: 1px solid #f59e0b; border-radius: 4px; font-size: 12px; color: #92400e;">
+                                            <strong>디버그 정보:</strong><br>
+                                            product_id: <?php echo htmlspecialchars($debugInfo['product_id']); ?><br>
+                                            seller_id (from app): <?php echo htmlspecialchars($debugInfo['seller_id_from_app']); ?><br>
+                                            seller_id (used): <?php echo htmlspecialchars($debugInfo['seller_id_used']); ?><br>
+                                            seller found: <?php echo htmlspecialchars($debugInfo['seller_found']); ?><br>
+                                            seller_phone: <?php echo htmlspecialchars($debugInfo['seller_phone']); ?><br>
+                                            canWrite: <?php echo htmlspecialchars($debugInfo['canWrite']); ?><br>
+                                            condition: sellerPhone=<?php echo $sellerPhone ? 'YES' : 'NO'; ?> || canWrite=<?php echo $canWrite ? 'YES' : 'NO'; ?> = <?php echo ($sellerPhone || $canWrite) ? 'SHOW' : 'HIDE'; ?>
+                                        </div>
+                                        <?php endif; ?>
+                                        
                                         <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #e5e7eb;">
                                             <div class="review-section-layout" style="display: grid; grid-template-columns: <?php echo ($sellerPhone && $canWrite) ? '1fr 1fr' : '1fr'; ?>; gap: 16px;">
                                                 <!-- 왼쪽: 전화번호 (모든 상태에서 표시) -->
@@ -303,17 +376,30 @@ include '../includes/components/mvno-review-modal.php';
                                                 
                                                 <!-- 오른쪽: 리뷰 작성 버튼 (개통완료/종료 상태일 때만 표시) -->
                                                 <?php if ($canWrite): ?>
-                                                <div style="display: flex; align-items: center; justify-content: center;" onclick="event.stopPropagation();">
+                                                <div style="display: flex; align-items: center; justify-content: center; gap: 8px;" onclick="event.stopPropagation();">
                                                     <button 
                                                         class="<?php echo $buttonClass; ?>" 
                                                         data-application-id="<?php echo htmlspecialchars($applicationId); ?>"
                                                         data-product-id="<?php echo htmlspecialchars($productId); ?>"
                                                         data-has-review="<?php echo $hasReview ? '1' : '0'; ?>"
-                                                        style="width: 100%; padding: 12px 16px; background: <?php echo $buttonBgColor; ?>; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: background 0.2s;"
+                                                        <?php if (isset($buttonDataReviewId)) echo $buttonDataReviewId; ?>
+                                                        style="flex: 1; padding: 12px 16px; background: <?php echo $buttonBgColor; ?>; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: background 0.2s;"
                                                         onmouseover="this.style.background='<?php echo $buttonHoverColor; ?>'"
                                                         onmouseout="this.style.background='<?php echo $buttonBgColor; ?>'">
                                                         <?php echo htmlspecialchars($buttonText); ?>
                                                     </button>
+                                                    <?php if ($hasReview): ?>
+                                                    <button 
+                                                        class="mvno-review-write-new-btn" 
+                                                        data-application-id="<?php echo htmlspecialchars($applicationId); ?>"
+                                                        data-product-id="<?php echo htmlspecialchars($productId); ?>"
+                                                        style="flex: 1; padding: 12px 16px; background: #10b981; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: background 0.2s;"
+                                                        onmouseover="this.style.background='#059669'"
+                                                        onmouseout="this.style.background='#10b981'"
+                                                        title="새 리뷰 작성">
+                                                        새 리뷰 작성
+                                                    </button>
+                                                    <?php endif; ?>
                                                 </div>
                                                 <?php endif; ?>
                                             </div>
@@ -421,6 +507,71 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentReviewId = null;
     let isEditMode = false;
     
+    // "새 리뷰 작성" 버튼 클릭 이벤트
+    const reviewWriteNewButtons = document.querySelectorAll('.mvno-review-write-new-btn');
+    reviewWriteNewButtons.forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            currentReviewApplicationId = this.getAttribute('data-application-id');
+            currentReviewProductId = this.getAttribute('data-product-id');
+            isEditMode = false; // 새 리뷰 작성 모드
+            currentReviewId = null;
+            
+            if (reviewModal) {
+                const modalTitle = reviewModal.querySelector('.mvno-review-modal-title');
+                if (modalTitle) {
+                    modalTitle.textContent = '리뷰 작성';
+                }
+                
+                const submitBtn = reviewForm ? reviewForm.querySelector('.mvno-review-btn-submit') : null;
+                if (submitBtn) {
+                    submitBtn.textContent = '작성하기';
+                }
+                
+                const deleteBtn = document.getElementById('mvnoReviewDeleteBtn');
+                if (deleteBtn) {
+                    deleteBtn.style.display = 'none';
+                }
+                
+                // 폼 초기화
+                if (reviewForm) {
+                    reviewForm.reset();
+                    // 별점 초기화
+                    const starInputs = reviewForm.querySelectorAll('input[name="kindness_rating"], input[name="speed_rating"]');
+                    starInputs.forEach(input => {
+                        if (input.type === 'radio') {
+                            input.checked = false;
+                        }
+                    });
+                    // 별점 표시 초기화
+                    const starContainers = reviewForm.querySelectorAll('.mvno-review-star-rating');
+                    starContainers.forEach(container => {
+                        const stars = container.querySelectorAll('.mvno-review-star');
+                        stars.forEach(star => {
+                            star.classList.remove('mvno-review-star-filled');
+                        });
+                    });
+                    // 글자 수 카운터 초기화
+                    const contentTextarea = reviewForm.querySelector('textarea[name="content"]');
+                    if (contentTextarea) {
+                        const counter = reviewForm.querySelector('.mvno-review-char-count');
+                        if (counter) {
+                            counter.textContent = '0 / 1000';
+                        }
+                    }
+                }
+                
+                // 모달 열기
+                const scrollY = window.scrollY;
+                document.body.style.position = 'fixed';
+                document.body.style.top = `-${scrollY}px`;
+                document.body.style.width = '100%';
+                document.body.style.overflow = 'hidden';
+                reviewModal.classList.add('mvno-review-modal-active');
+            }
+        });
+    });
+    
     // 리뷰 작성/수정 버튼 클릭 이벤트
     reviewWriteButtons.forEach(btn => {
         btn.addEventListener('click', function(e) {
@@ -428,8 +579,9 @@ document.addEventListener('DOMContentLoaded', function() {
             currentReviewApplicationId = this.getAttribute('data-application-id');
             currentReviewProductId = this.getAttribute('data-product-id');
             const hasReview = this.getAttribute('data-has-review') === '1';
-            isEditMode = hasReview;
-            currentReviewId = null;
+            const reviewIdAttr = this.getAttribute('data-review-id');
+            isEditMode = hasReview && reviewIdAttr !== null;
+            currentReviewId = reviewIdAttr ? parseInt(reviewIdAttr) : null;
             
             if (reviewModal) {
                 // 먼저 모달 제목과 버튼 텍스트를 설정
@@ -507,9 +659,14 @@ document.addEventListener('DOMContentLoaded', function() {
                                     }
                                 }
                                 // 리뷰 내용 설정
-                                const reviewTextarea = reviewForm.querySelector('#reviewText');
+                                const reviewTextarea = reviewForm.querySelector('#mvnoReviewText');
                                 if (reviewTextarea && data.review.content) {
                                     reviewTextarea.value = data.review.content;
+                                    // 텍스트 카운터 업데이트
+                                    const counter = document.getElementById('mvnoReviewTextCounter');
+                                    if (counter) {
+                                        counter.textContent = data.review.content.length;
+                                    }
                                 }
                             }
                         })
@@ -566,20 +723,20 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const kindnessRatingInput = reviewForm.querySelector('input[name="kindness_rating"]:checked');
             const speedRatingInput = reviewForm.querySelector('input[name="speed_rating"]:checked');
-            const reviewText = reviewForm.querySelector('#reviewText').value.trim();
+            const reviewText = reviewForm.querySelector('#mvnoReviewText').value.trim();
             
             if (!kindnessRatingInput) {
-                alert('친절해요 별점을 선택해주세요.');
+                showAlert('친절해요 별점을 선택해주세요.', '알림');
                 return;
             }
             
             if (!speedRatingInput) {
-                alert('개통 빨라요 별점을 선택해주세요.');
+                showAlert('개통 빨라요 별점을 선택해주세요.', '알림');
                 return;
             }
             
             if (!reviewText) {
-                alert('리뷰 내용을 입력해주세요.');
+                showAlert('리뷰 내용을 입력해주세요.', '알림');
                 return;
             }
             
@@ -597,9 +754,14 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // 제출 버튼 비활성화
             const submitBtn = reviewForm.querySelector('.mvno-review-btn-submit');
+            const submitBtnSpan = submitBtn ? submitBtn.querySelector('span') : null;
             if (submitBtn) {
                 submitBtn.disabled = true;
-                submitBtn.textContent = '처리 중...';
+                if (submitBtnSpan) {
+                    submitBtnSpan.textContent = '처리 중...';
+                } else {
+                    submitBtn.textContent = '처리 중...';
+                }
             }
             
             fetch('/MVNO/api/submit-review.php', {
@@ -609,24 +771,35 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert('리뷰가 ' + (isEditMode ? '수정' : '작성') + '되었습니다.');
-                    closeReviewModal();
-                    location.reload(); // 페이지 새로고침하여 리뷰 버튼 상태 업데이트
+                    showAlert('리뷰가 ' + (isEditMode ? '수정' : '작성') + '되었습니다.', '알림').then(() => {
+                        closeReviewModal();
+                        location.reload(); // 페이지 새로고침하여 리뷰 버튼 상태 업데이트
+                    });
                 } else {
-                    alert(data.message || '리뷰 작성에 실패했습니다.');
-                    if (submitBtn) {
-                        submitBtn.disabled = false;
-                        submitBtn.textContent = isEditMode ? '저장하기' : '작성하기';
-                    }
+                    showAlert(data.message || '리뷰 작성에 실패했습니다.', '오류').then(() => {
+                        if (submitBtn) {
+                            submitBtn.disabled = false;
+                            if (submitBtnSpan) {
+                                submitBtnSpan.textContent = isEditMode ? '저장하기' : '작성하기';
+                            } else {
+                                submitBtn.textContent = isEditMode ? '저장하기' : '작성하기';
+                            }
+                        }
+                    });
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('리뷰 작성 중 오류가 발생했습니다.');
-                if (submitBtn) {
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = isEditMode ? '저장하기' : '작성하기';
-                }
+                showAlert('리뷰 작성 중 오류가 발생했습니다.', '오류').then(() => {
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        if (submitBtnSpan) {
+                            submitBtnSpan.textContent = isEditMode ? '저장하기' : '작성하기';
+                        } else {
+                            submitBtn.textContent = isEditMode ? '저장하기' : '작성하기';
+                        }
+                    }
+                });
             });
         });
     }
@@ -640,44 +813,47 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const reviewId = this.getAttribute('data-review-id') || currentReviewId;
             if (!reviewId) {
-                alert('리뷰 정보를 찾을 수 없습니다.');
+                showAlert('리뷰 정보를 찾을 수 없습니다.', '오류');
                 return;
             }
             
-            if (!confirm('정말로 리뷰를 삭제하시겠습니까?\n삭제된 리뷰는 복구할 수 없습니다.')) {
-                return;
-            }
-            
-            // 삭제 버튼 비활성화
-            this.disabled = true;
-            const originalText = this.querySelector('span').textContent;
-            this.querySelector('span').textContent = '삭제 중...';
-            
-            const formData = new FormData();
-            formData.append('review_id', reviewId);
-            formData.append('product_type', 'mvno');
-            
-            fetch('/MVNO/api/delete-review.php', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('리뷰가 삭제되었습니다.');
-                    closeReviewModal();
-                    location.reload();
-                } else {
-                    alert(data.message || '리뷰 삭제에 실패했습니다.');
-                    this.disabled = false;
-                    this.querySelector('span').textContent = originalText;
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('리뷰 삭제 중 오류가 발생했습니다.');
-                this.disabled = false;
-                this.querySelector('span').textContent = originalText;
+            showConfirm('정말로 리뷰를 삭제하시겠습니까?\n삭제된 리뷰는 복구할 수 없습니다.', '리뷰 삭제').then(confirmed => {
+                if (!confirmed) return;
+                
+                // 삭제 버튼 비활성화
+                this.disabled = true;
+                const originalText = this.querySelector('span').textContent;
+                this.querySelector('span').textContent = '삭제 중...';
+                
+                const formData = new FormData();
+                formData.append('review_id', reviewId);
+                formData.append('product_type', 'mvno');
+                
+                fetch('/MVNO/api/delete-review.php', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showAlert('리뷰가 삭제되었습니다.', '알림').then(() => {
+                            closeReviewModal();
+                            location.reload();
+                        });
+                    } else {
+                        showAlert(data.message || '리뷰 삭제에 실패했습니다.', '오류').then(() => {
+                            this.disabled = false;
+                            this.querySelector('span').textContent = originalText;
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showAlert('리뷰 삭제 중 오류가 발생했습니다.', '오류').then(() => {
+                        this.disabled = false;
+                        this.querySelector('span').textContent = originalText;
+                    });
+                });
             });
         });
     }
@@ -837,7 +1013,8 @@ document.addEventListener('DOMContentLoaded', function() {
             let subscriptionTypeText = additionalInfo.subscription_type;
             const subscriptionTypeMap = {
                 'new': '신규가입',
-                'port': '번호이동',
+                'mnp': '번호이동',
+                'port': '번호이동', // 하위 호환성
                 'change': '기기변경'
             };
             if (subscriptionTypeMap[subscriptionTypeText]) {
@@ -1037,6 +1214,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // 푸터 포함
 include '../includes/footer.php';
 ?>
+
 
 
 

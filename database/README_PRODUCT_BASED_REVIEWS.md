@@ -151,3 +151,4 @@ $avgRating = $total_rating_sum / $total_review_count;
 
 문제가 발생하면 데이터베이스 로그를 확인하거나 개발팀에 문의하세요.
 
+

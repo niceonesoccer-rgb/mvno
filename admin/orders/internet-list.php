@@ -205,6 +205,47 @@ if ($pdo && empty($errors)) {
             ];
         }
         
+        // 신청 시점의 상품 정보를 우선 사용하도록 처리
+        foreach ($applications as &$app) {
+            // additional_info 파싱
+            $additionalInfo = [];
+            if (!empty($app['additional_info'])) {
+                $decoded = json_decode($app['additional_info'], true);
+                if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                    $additionalInfo = $decoded;
+                }
+            }
+            
+            // 신청 시점의 상품 정보를 우선 사용 (product_snapshot)
+            // 사용자가 신청했던 당시의 값이 나중에 변경되어도 유지되어야 함
+            $productSnapshot = $additionalInfo['product_snapshot'] ?? null;
+            if ($productSnapshot && !empty($productSnapshot)) {
+                // product_snapshot이 있으면 신청 시점 정보로 덮어쓰기
+                if (isset($productSnapshot['registration_place']) && $productSnapshot['registration_place'] !== '') {
+                    $app['registration_place'] = $productSnapshot['registration_place'];
+                }
+                if (isset($productSnapshot['speed_option']) && $productSnapshot['speed_option'] !== '') {
+                    $app['speed_option'] = $productSnapshot['speed_option'];
+                }
+                if (isset($productSnapshot['monthly_fee']) && $productSnapshot['monthly_fee'] !== '') {
+                    $app['monthly_fee'] = $productSnapshot['monthly_fee'];
+                }
+                if (isset($productSnapshot['service_type']) && $productSnapshot['service_type'] !== '') {
+                    $app['service_type'] = $productSnapshot['service_type'];
+                }
+                // JSON 필드들도 처리
+                $jsonFields = ['cash_payment_names', 'cash_payment_prices', 'gift_card_names', 'gift_card_prices',
+                              'equipment_names', 'equipment_prices', 'installation_names', 'installation_prices'];
+                foreach ($jsonFields as $field) {
+                    if (isset($productSnapshot[$field]) && $productSnapshot[$field] !== '') {
+                        $app[$field] = $productSnapshot[$field];
+                    }
+                }
+            }
+            // product_snapshot이 없으면 현재 테이블 값 사용 (fallback)
+        }
+        unset($app);
+        
         // 판매자 정보 추가 및 전체 판매자 정보 저장
         $sellersData = [];
         foreach ($applications as &$app) {
@@ -698,7 +739,7 @@ $statusMap = [
                 <div class="table-cell"><?php echo htmlspecialchars($app['registration_place'] ?? '-'); ?></div>
                 <div class="table-cell">
                     <?php if (!empty($app['speed_option']) && $app['speed_option'] !== '-'): ?>
-                        <span class="clickable-cell" onclick="showProductModal('<?php echo htmlspecialchars($app['product_id'] ?? ''); ?>')">
+                        <span class="clickable-cell" onclick="showProductModal(<?php echo htmlspecialchars(json_encode($app, JSON_UNESCAPED_UNICODE)); ?>)">
                             <?php echo htmlspecialchars($app['speed_option']); ?>
                         </span>
                     <?php else: ?>
@@ -901,29 +942,60 @@ function showSellerModal(sellerId) {
     document.getElementById('sellerModal').style.display = 'flex';
 }
 
-// 상품 정보 모달 표시
-function showProductModal(productId) {
+// 숫자 포맷팅 함수
+function number_format(num) {
+    if (!num && num !== 0) return '0';
+    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+// 상품 정보 모달 표시 (신청 시점 정보 포함)
+function showProductModal(orderData) {
     const content = document.getElementById('productModalContent');
-    content.innerHTML = '<div style="text-align: center; padding: 40px;">상품 정보를 불러오는 중...</div>';
     document.getElementById('productModal').style.display = 'flex';
     
-    // AJAX로 상품 정보 가져오기
-    fetch('?action=get_product_info&product_id=' + encodeURIComponent(productId))
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                let html = '<div class="product-info-text">';
-                html += JSON.stringify(data.product, null, 2);
-                html += '</div>';
-                content.innerHTML = html;
-            } else {
-                content.innerHTML = '<div style="text-align: center; padding: 40px; color: #ef4444;">' + escapeHtml(data.message || '상품 정보를 불러올 수 없습니다.') + '</div>';
+    // orderData에서 신청 시점 정보 사용 (이미 목록에서 처리됨)
+    let html = '<div class="product-info-text">';
+    
+    // additional_info에서 product_snapshot 확인
+    let productSnapshot = {};
+    if (orderData.additional_info) {
+        try {
+            const additionalInfo = typeof orderData.additional_info === 'string' 
+                ? JSON.parse(orderData.additional_info) 
+                : orderData.additional_info;
+            productSnapshot = additionalInfo.product_snapshot || {};
+        } catch (e) {
+            console.error('Error parsing additional_info:', e);
+        }
+    }
+    
+    // 신청 시점 정보가 있으면 사용, 없으면 현재 테이블 값 사용
+    const registrationPlace = productSnapshot.registration_place || orderData.registration_place || '-';
+    const speedOption = productSnapshot.speed_option || orderData.speed_option || '-';
+    let monthlyFee = productSnapshot.monthly_fee || orderData.monthly_fee || '-';
+    const serviceType = productSnapshot.service_type || orderData.service_type || '-';
+    
+    // monthly_fee 포맷팅
+    if (monthlyFee !== '-') {
+        if (typeof monthlyFee === 'number') {
+            monthlyFee = number_format(monthlyFee) + '원';
+        } else if (typeof monthlyFee === 'string') {
+            // 숫자만 추출하여 포맷팅
+            const numericValue = monthlyFee.replace(/[^0-9]/g, '');
+            if (numericValue) {
+                monthlyFee = number_format(parseInt(numericValue)) + '원';
             }
-        })
-        .catch(error => {
-            content.innerHTML = '<div style="text-align: center; padding: 40px; color: #ef4444;">상품 정보를 불러오는 중 오류가 발생했습니다.</div>';
-            console.error('Error:', error);
-        });
+        }
+    }
+    
+    html += '<div class="detail-info">';
+    html += '<div class="detail-row"><div class="detail-label">인터넷 가입처</div><div class="detail-value">' + escapeHtml(registrationPlace) + '</div></div>';
+    html += '<div class="detail-row"><div class="detail-label">가입 속도</div><div class="detail-value">' + escapeHtml(speedOption) + '</div></div>';
+    html += '<div class="detail-row"><div class="detail-label">월 요금제</div><div class="detail-value">' + escapeHtml(monthlyFee) + '</div></div>';
+    html += '<div class="detail-row"><div class="detail-label">결합여부</div><div class="detail-value">' + escapeHtml(serviceType) + '</div></div>';
+    html += '</div>';
+    
+    content.innerHTML = html;
 }
 
 // 고객 정보 모달 표시
@@ -986,4 +1058,5 @@ document.addEventListener('keydown', function(e) {
 </script>
 
 <?php require_once __DIR__ . '/../includes/admin-footer.php'; ?>
+
 

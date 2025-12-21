@@ -2,7 +2,7 @@
 /**
  * 가입형태 표시 관련 공통 함수
  * 
- * 저장값은 영문 코드(new, port, change)로 통일
+ * 저장값은 영문 코드(new, mnp, change)로 통일
  * 표시는 역할에 따라 다르게:
  * - 고객: "신규가입", "번호이동", "기기변경"
  * - 판매자/관리자: "신규", "번이", "기변"
@@ -11,7 +11,7 @@
 /**
  * 가입형태 값을 정규화 (영문 코드로 변환)
  * @param string $value 저장된 가입형태 값
- * @return string 정규화된 영문 코드 (new, port, change)
+ * @return string 정규화된 영문 코드 (new, mnp, change)
  */
 function normalizeContractType($value) {
     if (empty($value)) {
@@ -22,16 +22,16 @@ function normalizeContractType($value) {
     
     // 이미 영문 코드인 경우
     if (in_array($value, ['new', 'port', 'mnp', 'change'])) {
-        // mnp는 port로 통일
-        return $value === 'mnp' ? 'port' : $value;
+        // port는 mnp로 통일 (번호이동은 mnp가 표준)
+        return $value === 'port' ? 'mnp' : $value;
     }
     
     // 한글값을 영문 코드로 변환
     if (in_array($value, ['신규', '신규가입'])) {
         return 'new';
     }
-    if (in_array($value, ['번호이동', '번이', 'MNP'])) {
-        return 'port';
+    if (in_array($value, ['번호이동', '번이', 'MNP', 'PORT'])) {
+        return 'mnp';
     }
     if (in_array($value, ['기기변경', '기변'])) {
         return 'change';
@@ -74,7 +74,8 @@ function getContractTypeForCustomer($app) {
     // 고객용 표시
     $customerLabels = [
         'new' => '신규가입',
-        'port' => '번호이동',
+        'mnp' => '번호이동',
+        'port' => '번호이동', // 하위 호환성
         'change' => '기기변경'
     ];
     
@@ -114,10 +115,12 @@ function getContractTypeForAdmin($app) {
     // 판매자/관리자용 표시
     $adminLabels = [
         'new' => '신규',
-        'port' => '번이',
+        'mnp' => '번이',
+        'port' => '번이', // 하위 호환성
         'change' => '기변'
     ];
     
     return $adminLabels[$normalized] ?? ($contractType ?: '-');
 }
+
 

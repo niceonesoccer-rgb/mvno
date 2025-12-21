@@ -234,12 +234,13 @@ if (!$pdo) {
                             `total_review_count` = `total_review_count` + 1,
                             `updated_at` = NOW();
                         
-                        IF NEW.product_type = 'internet' THEN
+                        -- 인터넷, MVNO, MNO 상품의 경우 항목별 통계도 업데이트
+                        IF NEW.product_type IN ('internet', 'mvno', 'mno') THEN
                             IF NEW.kindness_rating IS NOT NULL THEN
                                 UPDATE `product_review_statistics`
                                 SET 
-                                    `kindness_rating_sum` = `kindness_rating_sum` + NEW.kindness_rating,
-                                    `kindness_review_count` = `kindness_review_count` + 1,
+                                    `kindness_rating_sum` = COALESCE(`kindness_rating_sum`, 0) + NEW.kindness_rating,
+                                    `kindness_review_count` = COALESCE(`kindness_review_count`, 0) + 1,
                                     `updated_at` = NOW()
                                 WHERE product_id = NEW.product_id;
                             END IF;
@@ -247,8 +248,8 @@ if (!$pdo) {
                             IF NEW.speed_rating IS NOT NULL THEN
                                 UPDATE `product_review_statistics`
                                 SET 
-                                    `speed_rating_sum` = `speed_rating_sum` + NEW.speed_rating,
-                                    `speed_review_count` = `speed_review_count` + 1,
+                                    `speed_rating_sum` = COALESCE(`speed_rating_sum`, 0) + NEW.speed_rating,
+                                    `speed_review_count` = COALESCE(`speed_review_count`, 0) + 1,
                                     `updated_at` = NOW()
                                 WHERE product_id = NEW.product_id;
                             END IF;
@@ -273,12 +274,13 @@ if (!$pdo) {
                             `total_review_count` = `total_review_count` + 1,
                             `updated_at` = NOW();
                         
-                        IF NEW.product_type = 'internet' THEN
+                        -- 인터넷, MVNO, MNO 상품의 경우 항목별 통계도 업데이트
+                        IF NEW.product_type IN ('internet', 'mvno', 'mno') THEN
                             IF NEW.kindness_rating IS NOT NULL THEN
                                 UPDATE `product_review_statistics`
                                 SET 
-                                    `kindness_rating_sum` = `kindness_rating_sum` + NEW.kindness_rating,
-                                    `kindness_review_count` = `kindness_review_count` + 1,
+                                    `kindness_rating_sum` = COALESCE(`kindness_rating_sum`, 0) + NEW.kindness_rating,
+                                    `kindness_review_count` = COALESCE(`kindness_review_count`, 0) + 1,
                                     `updated_at` = NOW()
                                 WHERE product_id = NEW.product_id;
                             END IF;
@@ -286,8 +288,8 @@ if (!$pdo) {
                             IF NEW.speed_rating IS NOT NULL THEN
                                 UPDATE `product_review_statistics`
                                 SET 
-                                    `speed_rating_sum` = `speed_rating_sum` + NEW.speed_rating,
-                                    `speed_review_count` = `speed_review_count` + 1,
+                                    `speed_rating_sum` = COALESCE(`speed_rating_sum`, 0) + NEW.speed_rating,
+                                    `speed_review_count` = COALESCE(`speed_review_count`, 0) + 1,
                                     `updated_at` = NOW()
                                 WHERE product_id = NEW.product_id;
                             END IF;
@@ -409,4 +411,5 @@ if (!$pdo) {
     </div>
 </body>
 </html>
+
 

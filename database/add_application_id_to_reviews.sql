@@ -16,3 +16,4 @@ ADD INDEX `idx_application_id` (`application_id`);
 -- 외래키 제약 조건 추가 (선택사항 - 데이터 무결성 보장)
 -- ALTER TABLE `product_reviews` 
 -- ADD CONSTRAINT `fk_review_application` FOREIGN KEY (`application_id`) REFERENCES `product_applications` (`id`) ON DELETE SET NULL;
+

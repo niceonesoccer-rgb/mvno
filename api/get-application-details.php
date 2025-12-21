@@ -118,37 +118,41 @@ try {
         }
     }
     
-    // 판매자 페이지와 동일하게 product_internet_details 테이블의 현재 값을 우선 사용
-    // product_snapshot은 테이블 값이 없을 때만 fallback으로 사용
+    // 신청 시점의 상품 정보를 우선 사용 (product_snapshot)
+    // 사용자가 신청했던 당시의 값이 나중에 변경되어도 유지되어야 함
     $productSnapshot = $additionalInfo['product_snapshot'] ?? null;
     
-    // 테이블 값이 있으면 우선 사용 (판매자 페이지와 동일)
-    if (!empty($application['registration_place']) || !empty($application['service_type']) || !empty($application['speed_option']) || isset($application['monthly_fee'])) {
-        // 테이블 값으로 product_snapshot 업데이트 (마이페이지 모달에서 사용)
+    // product_snapshot이 없거나 비어있으면 현재 테이블 값을 fallback으로 사용
+    if (!$productSnapshot || empty($productSnapshot)) {
         if (!isset($additionalInfo['product_snapshot'])) {
             $additionalInfo['product_snapshot'] = [];
         }
-        $additionalInfo['product_snapshot']['registration_place'] = $application['registration_place'] ?? '';
-        $additionalInfo['product_snapshot']['service_type'] = $application['service_type'] ?? '';
-        $additionalInfo['product_snapshot']['speed_option'] = $application['speed_option'] ?? '';
-        $additionalInfo['product_snapshot']['monthly_fee'] = $application['monthly_fee'] ?? '';
-        $additionalInfo['product_snapshot']['cash_payment_names'] = $application['cash_payment_names'] ?? '';
-        $additionalInfo['product_snapshot']['cash_payment_prices'] = $application['cash_payment_prices'] ?? '';
-        $additionalInfo['product_snapshot']['gift_card_names'] = $application['gift_card_names'] ?? '';
-        $additionalInfo['product_snapshot']['gift_card_prices'] = $application['gift_card_prices'] ?? '';
-        $additionalInfo['product_snapshot']['equipment_names'] = $application['equipment_names'] ?? '';
-        $additionalInfo['product_snapshot']['equipment_prices'] = $application['equipment_prices'] ?? '';
-        $additionalInfo['product_snapshot']['installation_names'] = $application['installation_names'] ?? '';
-        $additionalInfo['product_snapshot']['installation_prices'] = $application['installation_prices'] ?? '';
+        // 테이블 값이 있으면 fallback으로 사용
+        if (!empty($application['registration_place']) || !empty($application['service_type']) || !empty($application['speed_option']) || isset($application['monthly_fee'])) {
+            $additionalInfo['product_snapshot']['registration_place'] = $application['registration_place'] ?? '';
+            $additionalInfo['product_snapshot']['service_type'] = $application['service_type'] ?? '';
+            $additionalInfo['product_snapshot']['speed_option'] = $application['speed_option'] ?? '';
+            $additionalInfo['product_snapshot']['monthly_fee'] = $application['monthly_fee'] ?? '';
+            $additionalInfo['product_snapshot']['cash_payment_names'] = $application['cash_payment_names'] ?? '';
+            $additionalInfo['product_snapshot']['cash_payment_prices'] = $application['cash_payment_prices'] ?? '';
+            $additionalInfo['product_snapshot']['gift_card_names'] = $application['gift_card_names'] ?? '';
+            $additionalInfo['product_snapshot']['gift_card_prices'] = $application['gift_card_prices'] ?? '';
+            $additionalInfo['product_snapshot']['equipment_names'] = $application['equipment_names'] ?? '';
+            $additionalInfo['product_snapshot']['equipment_prices'] = $application['equipment_prices'] ?? '';
+            $additionalInfo['product_snapshot']['installation_names'] = $application['installation_names'] ?? '';
+            $additionalInfo['product_snapshot']['installation_prices'] = $application['installation_prices'] ?? '';
+        }
     }
     
     // MVNO 상품인 경우 benefits 정보 추가
-    if ($application['product_type'] === 'mvno' && !empty($application['mvno_benefits'])) {
+    // 신청 시점의 benefits가 있으면 우선 사용, 없으면 현재 테이블 값 사용 (fallback)
+    if ($application['product_type'] === 'mvno') {
         if (!isset($additionalInfo['product_snapshot'])) {
             $additionalInfo['product_snapshot'] = [];
         }
-        // product_snapshot에 이미 benefits가 있으면 유지, 없으면 테이블에서 가져온 값 사용
-        if (!isset($additionalInfo['product_snapshot']['benefits'])) {
+        // product_snapshot에 이미 benefits가 있으면 유지 (신청 시점 정보)
+        // 없으면 테이블에서 가져온 값 사용 (fallback)
+        if (!isset($additionalInfo['product_snapshot']['benefits']) && !empty($application['mvno_benefits'])) {
             $additionalInfo['product_snapshot']['benefits'] = $application['mvno_benefits'];
         }
     }
@@ -187,6 +191,7 @@ try {
         'message' => '정보를 불러오는 중 오류가 발생했습니다.'
     ]);
 }
+
 
 
 

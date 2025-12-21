@@ -114,6 +114,8 @@ if ($debug_mode) {
 include '../includes/header.php';
 // 인터넷 리뷰 모달 포함
 include '../includes/components/internet-review-modal.php';
+// 인터넷 리뷰 삭제 모달 포함
+include '../includes/components/internet-review-delete-modal.php';
 ?>
 
 <main class="main-content">
@@ -187,24 +189,50 @@ include '../includes/components/internet-review-modal.php';
                                         <?php
                                         // 통신사 로고 경로 설정
                                         $provider = $internet['provider'] ?? '';
+                                        
+                                        // 디버깅: provider 값 확인
+                                        if (isset($_GET['debug']) && $_GET['debug'] == '1') {
+                                            error_log("mypage/internet-order.php - application_id: " . ($internet['application_id'] ?? 'unknown') . ", provider: '" . $provider . "'");
+                                        }
+                                        
                                         $logoUrl = '';
-                                        if (stripos($provider, 'SKT') !== false || stripos($provider, 'SK') !== false) {
+                                        // 정확한 매칭: 더 구체적인 값 우선 확인
+                                        // 순서 중요: "SKT"를 "KT"보다 먼저 확인해야 함 (SKT에 KT가 포함되어 있음)
+                                        if (stripos($provider, 'KT skylife') !== false || stripos($provider, 'KTskylife') !== false) {
+                                            // "KT skylife" -> ktskylife.svg
+                                            $logoUrl = '/MVNO/assets/images/internets/ktskylife.svg';
+                                        } elseif (stripos($provider, 'SKT') !== false || stripos($provider, 'SK broadband') !== false || stripos($provider, 'SK') !== false) {
+                                            // "SKT", "SK broadband", "SK" -> broadband.svg (SKT broadband)
+                                            // "SKT"를 "KT"보다 먼저 확인 (SKT에 KT가 포함되어 있으므로)
                                             $logoUrl = '/MVNO/assets/images/internets/broadband.svg';
                                         } elseif (stripos($provider, 'KT') !== false) {
+                                            // "KT" (skylife, SKT 제외) -> kt.svg
                                             $logoUrl = '/MVNO/assets/images/internets/kt.svg';
                                         } elseif (stripos($provider, 'LG') !== false || stripos($provider, 'LGU') !== false) {
                                             $logoUrl = '/MVNO/assets/images/internets/lgu.svg';
                                         }
+                                        
+                                        // provider 텍스트 변환: "SKT" -> "SKT broadband"
+                                        $displayProvider = $provider;
+                                        if (stripos($provider, 'SKT') !== false && stripos($provider, 'broadband') === false) {
+                                            $displayProvider = 'SKT broadband';
+                                        }
                                         ?>
                                         <?php if ($logoUrl): ?>
-                                            <div style="margin-bottom: 12px;">
-                                                <img src="<?php echo htmlspecialchars($logoUrl); ?>" alt="<?php echo htmlspecialchars($provider); ?>" style="height: 32px; object-fit: contain;">
-                                            </div>
-                                        <?php else: ?>
-                                            <div style="font-size: 20px; font-weight: 700; color: #1f2937; margin-bottom: 12px;">
-                                                <?php echo htmlspecialchars($provider ?: '인터넷'); ?>
+                                            <div style="margin-bottom: 8px;">
+                                                <img src="<?php echo htmlspecialchars($logoUrl); ?>" alt="<?php echo htmlspecialchars($displayProvider); ?>" style="height: 32px; object-fit: contain;">
+                                                <?php if (isset($_GET['debug']) && $_GET['debug'] == '1'): ?>
+                                                    <div style="font-size: 11px; color: #6b7280; margin-top: 4px;">[디버그: provider="<?php echo htmlspecialchars($provider); ?>"]</div>
+                                                <?php endif; ?>
                                             </div>
                                         <?php endif; ?>
+                                        <!-- provider 텍스트는 항상 표시 (신청 시점 정보 명확히 표시) -->
+                                        <div style="font-size: 18px; font-weight: 700; color: #1f2937; margin-bottom: 12px; <?php echo $logoUrl ? 'margin-top: 4px;' : ''; ?>">
+                                            <?php echo htmlspecialchars($displayProvider ?: '인터넷'); ?>
+                                            <?php if (isset($_GET['debug']) && $_GET['debug'] == '1'): ?>
+                                                <div style="font-size: 11px; color: #6b7280; margin-top: 4px; font-weight: normal;">[디버그: provider="<?php echo htmlspecialchars($provider); ?>"]</div>
+                                            <?php endif; ?>
+                                        </div>
                                         
                                         <div style="font-size: 16px; color: #374151; margin-bottom: 8px;">
                                             <?php echo htmlspecialchars($internet['speed'] ?? ''); ?> <?php echo htmlspecialchars($internet['plan_name'] ?? ''); ?>
@@ -601,19 +629,38 @@ document.addEventListener('DOMContentLoaded', function() {
         
         let html = '<div class="product-modal-body">';
         
-        // 통신사 로고 표시
+        // 통신사 로고 표시 (신청 시점 정보 사용)
         const registrationPlace = productSnapshot.registration_place || '';
         let logoUrl = '';
-        if (registrationPlace.indexOf('SKT') !== -1 || registrationPlace.indexOf('SK') !== -1) {
+        let displayProvider = registrationPlace;
+        
+        // 정확한 매칭: 더 구체적인 값 우선 확인
+        // 순서 중요: "SKT"를 "KT"보다 먼저 확인해야 함 (SKT에 KT가 포함되어 있음)
+        if (registrationPlace.toLowerCase().indexOf('kt skylife') !== -1 || registrationPlace.toLowerCase().indexOf('ktskylife') !== -1) {
+            // "KT skylife" -> ktskylife.svg
+            logoUrl = '/MVNO/assets/images/internets/ktskylife.svg';
+        } else if (registrationPlace.indexOf('SKT') !== -1 || registrationPlace.toLowerCase().indexOf('sk broadband') !== -1 || registrationPlace.indexOf('SK') !== -1) {
+            // "SKT", "SK broadband", "SK" -> broadband.svg (SKT broadband)
+            // "SKT"를 "KT"보다 먼저 확인 (SKT에 KT가 포함되어 있으므로)
             logoUrl = '/MVNO/assets/images/internets/broadband.svg';
         } else if (registrationPlace.indexOf('KT') !== -1) {
+            // "KT" (skylife, SKT 제외) -> kt.svg
             logoUrl = '/MVNO/assets/images/internets/kt.svg';
         } else if (registrationPlace.indexOf('LG') !== -1 || registrationPlace.indexOf('LGU') !== -1) {
             logoUrl = '/MVNO/assets/images/internets/lgu.svg';
         }
         
+        // provider 텍스트 변환: "SKT" -> "SKT broadband"
+        if (registrationPlace.indexOf('SKT') !== -1 && registrationPlace.toLowerCase().indexOf('broadband') === -1) {
+            displayProvider = 'SKT broadband';
+        }
+        
         if (logoUrl) {
-            html += `<div style="margin-bottom: 16px;"><img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(registrationPlace)}" style="height: 40px; object-fit: contain;"></div>`;
+            html += `<div style="margin-bottom: 12px;"><img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(displayProvider)}" style="height: 40px; object-fit: contain;"></div>`;
+        }
+        // provider 텍스트도 명확히 표시
+        if (displayProvider) {
+            html += `<div style="font-size: 18px; font-weight: 700; color: #1f2937; margin-bottom: 16px;">${escapeHtml(displayProvider)}</div>`;
         }
         
         // 기본 정보 테이블
@@ -1361,6 +1408,146 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         };
         document.addEventListener('keydown', escHandler);
+    }
+    
+    // 인터넷 리뷰 삭제 버튼 클릭 이벤트
+    const deleteReviewBtn = document.getElementById('internetReviewDeleteBtn');
+    const deleteModal = document.getElementById('internetReviewDeleteModal');
+    
+    // 삭제 모달 열기 함수
+    function openDeleteModal(reviewId) {
+        if (!deleteModal) {
+            showMessageModal('삭제 모달을 찾을 수 없습니다.', 'error');
+            return;
+        }
+        
+        if (!reviewId) {
+            showMessageModal('리뷰 정보를 찾을 수 없습니다.', 'error');
+            return;
+        }
+        
+        // 모달에 리뷰 ID 저장
+        deleteModal.setAttribute('data-review-id', reviewId);
+        
+        // 스크롤 위치 저장
+        const scrollY = window.scrollY;
+        document.body.style.position = 'fixed';
+        document.body.style.top = `-${scrollY}px`;
+        document.body.style.width = '100%';
+        document.body.style.overflow = 'hidden';
+        
+        // 모달 표시
+        deleteModal.style.display = 'flex';
+        setTimeout(() => {
+            deleteModal.classList.add('show');
+        }, 10);
+    }
+    
+    // 삭제 모달 닫기 함수
+    function closeDeleteModal() {
+        if (!deleteModal) return;
+        
+        deleteModal.classList.remove('show');
+        setTimeout(() => {
+            deleteModal.style.display = 'none';
+            
+            // 스크롤 위치 복원
+            const scrollY = document.body.style.top;
+            document.body.style.position = '';
+            document.body.style.top = '';
+            document.body.style.width = '';
+            document.body.style.overflow = '';
+            if (scrollY) {
+                window.scrollTo(0, parseInt(scrollY || '0') * -1);
+            }
+        }, 300);
+    }
+    
+    // 삭제 버튼 클릭 이벤트
+    if (deleteReviewBtn) {
+        deleteReviewBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const reviewId = this.getAttribute('data-review-id') || currentReviewId;
+            openDeleteModal(reviewId);
+        });
+    }
+    
+    // 삭제 모달 이벤트 리스너
+    if (deleteModal) {
+        const deleteModalClose = deleteModal.querySelector('.internet-review-delete-modal-close');
+        const deleteModalCancel = deleteModal.querySelector('.internet-review-delete-btn-cancel');
+        const deleteModalConfirm = deleteModal.querySelector('.internet-review-delete-btn-confirm');
+        const deleteModalOverlay = deleteModal.querySelector('.internet-review-delete-modal-overlay');
+        
+        // 닫기 버튼
+        if (deleteModalClose) {
+            deleteModalClose.addEventListener('click', closeDeleteModal);
+        }
+        
+        // 취소 버튼
+        if (deleteModalCancel) {
+            deleteModalCancel.addEventListener('click', closeDeleteModal);
+        }
+        
+        // 오버레이 클릭
+        if (deleteModalOverlay) {
+            deleteModalOverlay.addEventListener('click', closeDeleteModal);
+        }
+        
+        // 확인 버튼 (삭제 실행)
+        if (deleteModalConfirm) {
+            deleteModalConfirm.addEventListener('click', function() {
+                const reviewId = deleteModal.getAttribute('data-review-id');
+                
+                if (!reviewId) {
+                    showMessageModal('리뷰 정보를 찾을 수 없습니다.', 'error');
+                    return;
+                }
+                
+                // 삭제 버튼 비활성화
+                this.disabled = true;
+                const originalText = this.textContent;
+                this.textContent = '삭제 중...';
+                
+                const formData = new FormData();
+                formData.append('review_id', reviewId);
+                formData.append('product_type', 'internet');
+                
+                fetch('/MVNO/api/delete-review.php', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        closeDeleteModal();
+                        showMessageModal('리뷰가 삭제되었습니다.', 'success', function() {
+                            closeReviewModal();
+                            location.reload();
+                        });
+                    } else {
+                        showMessageModal(data.message || '리뷰 삭제에 실패했습니다.', 'error');
+                        this.disabled = false;
+                        this.textContent = originalText;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showMessageModal('리뷰 삭제 중 오류가 발생했습니다.', 'error');
+                    this.disabled = false;
+                    this.textContent = originalText;
+                });
+            });
+        }
+        
+        // ESC 키로 모달 닫기
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && deleteModal.style.display === 'flex') {
+                closeDeleteModal();
+            }
+        });
     }
 });
 </script>

@@ -10,3 +10,4 @@ AFTER `application_id`;
 ALTER TABLE `application_customers` 
 ADD INDEX `idx_user_id` (`user_id`);
 
+

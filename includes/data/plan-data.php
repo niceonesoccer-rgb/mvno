@@ -343,8 +343,8 @@ function getSellerDisplayName($seller) {
 }
 
 /**
- * 상품의 평균 별점 가져오기 (상품별)
- * 통계 테이블에서 캐시된 값 사용
+ * 상품의 평균 별점 가져오기 (상품별) - 하이브리드 방식
+ * 통계 테이블에서 실시간 통계를 조회 (성능 최적화)
  * @param int $productId 상품 ID
  * @param string $productType 상품 타입 ('mvno', 'mno', 'internet')
  * @return float 평균 별점 (0.0 ~ 5.0), 리뷰가 없으면 0.0
@@ -356,21 +356,142 @@ function getProductAverageRating($productId, $productType = 'mvno') {
     }
     
     try {
-        // 통계 테이블에서 합계와 개수를 가져와서 평균 계산
+        // 통계 테이블에서 평균값을 SQL에서 직접 계산 (성능 최적화)
         $stmt = $pdo->prepare("
             SELECT 
-                total_rating_sum,
-                total_review_count
+                CASE 
+                    WHEN total_review_count > 0 THEN CEIL((total_rating_sum / total_review_count) * 10) / 10
+                    ELSE 0
+                END AS average_rating
             FROM product_review_statistics
             WHERE product_id = :product_id
+            AND total_review_count > 0
+            AND total_rating_sum > 0
         ");
         $stmt->execute([':product_id' => $productId]);
-        $stats = $stmt->fetch(PDO::FETCH_ASSOC);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
         
-        if ($stats && $stats['total_review_count'] > 0) {
-            $average = $stats['total_rating_sum'] / $stats['total_review_count'];
-            // 소수 둘째자리에서 올림하여 소수 첫째자리까지 표시
-            return ceil($average * 10) / 10;
+        // 통계 테이블에 데이터가 있으면 그대로 사용
+        if ($result && isset($result['average_rating'])) {
+            return (float)$result['average_rating'];
+        }
+        
+        // 통계 테이블에 데이터가 없거나 합계가 0이면 실제 리뷰 데이터에서 SQL로 직접 계산 (폴백)
+        // 이 경우 통계 테이블도 업데이트해야 함
+        $reviewStmt = $pdo->prepare("
+            SELECT 
+                CEIL(AVG(rating) * 10) / 10 as avg_rating, 
+                COUNT(*) as count, 
+                SUM(rating) as total_sum
+            FROM product_reviews
+            WHERE product_id = :product_id
+            AND product_type = :product_type
+            AND status = 'approved'
+        ");
+        $reviewStmt->execute([':product_id' => $productId, ':product_type' => $productType]);
+        $reviewData = $reviewStmt->fetch(PDO::FETCH_ASSOC);
+        
+        if ($reviewData && $reviewData['count'] > 0 && $reviewData['avg_rating'] !== null) {
+            // 통계 테이블이 비어있거나 잘못된 경우, 실제 리뷰 데이터로 통계 테이블 업데이트
+            // 통계 테이블 존재 여부 확인
+            $checkStatsStmt = $pdo->prepare("
+                SELECT total_review_count, total_rating_sum 
+                FROM product_review_statistics 
+                WHERE product_id = :product_id
+            ");
+            $checkStatsStmt->execute([':product_id' => $productId]);
+            $existingStats = $checkStatsStmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$existingStats || $existingStats['total_review_count'] == 0 || $existingStats['total_rating_sum'] == 0) {
+                try {
+                    // 모든 리뷰 데이터를 가져와서 통계 재계산
+                    $allReviewsStmt = $pdo->prepare("
+                        SELECT 
+                            rating,
+                            kindness_rating,
+                            speed_rating
+                        FROM product_reviews
+                        WHERE product_id = :product_id
+                        AND product_type = :product_type
+                        AND status = 'approved'
+                    ");
+                    $allReviewsStmt->execute([':product_id' => $productId, ':product_type' => $productType]);
+                    $allReviews = $allReviewsStmt->fetchAll(PDO::FETCH_ASSOC);
+                    
+                    $totalRatingSum = 0;
+                    $kindnessSum = 0;
+                    $kindnessCount = 0;
+                    $speedSum = 0;
+                    $speedCount = 0;
+                    
+                    foreach ($allReviews as $review) {
+                        $totalRatingSum += $review['rating'];
+                        if ($review['kindness_rating'] !== null) {
+                            $kindnessSum += $review['kindness_rating'];
+                            $kindnessCount++;
+                        }
+                        if ($review['speed_rating'] !== null) {
+                            $speedSum += $review['speed_rating'];
+                            $speedCount++;
+                        }
+                    }
+                    
+                    // SQL에서 계산한 평균값 반환 (소수 둘째자리 올림)
+                    $averageRating = ceil((float)$reviewData['avg_rating'] * 10) / 10;
+                    
+                    // 통계 테이블 업데이트
+                    $updateStmt = $pdo->prepare("
+                        INSERT INTO product_review_statistics (
+                            product_id,
+                            total_rating_sum,
+                            total_review_count,
+                            kindness_rating_sum,
+                            kindness_review_count,
+                            speed_rating_sum,
+                            speed_review_count,
+                            updated_at
+                        ) VALUES (
+                            :product_id,
+                            :total_rating_sum,
+                            :total_review_count,
+                            :kindness_rating_sum,
+                            :kindness_review_count,
+                            :speed_rating_sum,
+                            :speed_review_count,
+                            NOW()
+                        )
+                        ON DUPLICATE KEY UPDATE
+                            total_rating_sum = :total_rating_sum2,
+                            total_review_count = :total_review_count2,
+                            kindness_rating_sum = :kindness_rating_sum2,
+                            kindness_review_count = :kindness_review_count2,
+                            speed_rating_sum = :speed_rating_sum2,
+                            speed_review_count = :speed_review_count2,
+                            updated_at = NOW()
+                    ");
+                    
+                    $updateStmt->execute([
+                        ':product_id' => $productId,
+                        ':total_rating_sum' => $totalRatingSum,
+                        ':total_review_count' => count($allReviews),
+                        ':kindness_rating_sum' => $kindnessSum,
+                        ':kindness_review_count' => $kindnessCount,
+                        ':speed_rating_sum' => $speedSum,
+                        ':speed_review_count' => $speedCount,
+                        ':total_rating_sum2' => $totalRatingSum,
+                        ':total_review_count2' => count($allReviews),
+                        ':kindness_rating_sum2' => $kindnessSum,
+                        ':kindness_review_count2' => $kindnessCount,
+                        ':speed_rating_sum2' => $speedSum,
+                        ':speed_review_count2' => $speedCount
+                    ]);
+                    
+                    error_log("getProductAverageRating: 통계 테이블 자동 업데이트 완료. product_id={$productId}, product_type={$productType}, count=" . count($allReviews));
+                } catch (Exception $e) {
+                    error_log("getProductAverageRating: 통계 테이블 업데이트 실패 - " . $e->getMessage());
+                }
+            }
+            return $averageRating;
         }
         
         return 0.0;
@@ -381,10 +502,10 @@ function getProductAverageRating($productId, $productType = 'mvno') {
 }
 
 /**
- * 인터넷 상품의 항목별 평균 별점 가져오기 (상품별)
- * 통계 테이블에서 캐시된 값 사용
+ * 인터넷 상품의 항목별 평균 별점 가져오기 (상품별) - 하이브리드 방식
+ * 통계 테이블에서 실시간 통계를 조회 (성능 최적화)
  * @param int $productId 상품 ID
- * @param string $productType 상품 타입 ('internet')
+ * @param string $productType 상품 타입 ('internet', 'mvno', 'mno')
  * @return array ['kindness' => float, 'speed' => float] 각 항목별 평균 별점
  */
 function getInternetReviewCategoryAverages($productId, $productType = 'internet') {
@@ -394,7 +515,7 @@ function getInternetReviewCategoryAverages($productId, $productType = 'internet'
     }
     
     try {
-        // 통계 테이블에서 항목별 합계와 개수를 가져와서 평균 계산
+        // 통계 테이블에서 실시간 통계 조회 (성능 최적화)
         $stmt = $pdo->prepare("
             SELECT 
                 kindness_rating_sum,
@@ -408,18 +529,59 @@ function getInternetReviewCategoryAverages($productId, $productType = 'internet'
         $stats = $stmt->fetch(PDO::FETCH_ASSOC);
         
         $result = ['kindness' => 0.0, 'speed' => 0.0];
+        $useFallback = false;
         
-        if ($stats) {
-            if ($stats['kindness_review_count'] > 0) {
-                $average = $stats['kindness_rating_sum'] / $stats['kindness_review_count'];
-                // 소수 둘째자리에서 올림하여 소수 첫째자리까지 표시
-                $result['kindness'] = ceil($average * 10) / 10;
+        // 통계 테이블에 데이터가 있고 합계가 0이 아니면 사용
+        if ($stats && $stats['kindness_review_count'] > 0 && $stats['kindness_rating_sum'] > 0) {
+            $average = $stats['kindness_rating_sum'] / $stats['kindness_review_count'];
+            $result['kindness'] = ceil($average * 10) / 10;
+        } else {
+            $useFallback = true;
+        }
+        
+        if ($stats && $stats['speed_review_count'] > 0 && $stats['speed_rating_sum'] > 0) {
+            $average = $stats['speed_rating_sum'] / $stats['speed_review_count'];
+            $result['speed'] = ceil($average * 10) / 10;
+        } else {
+            $useFallback = true;
+        }
+        
+        // 통계 테이블에 데이터가 없거나 합계가 0이면 실제 리뷰 데이터에서 계산 (폴백)
+        if ($useFallback) {
+            $kindnessStmt = $pdo->prepare("
+                SELECT AVG(kindness_rating) as avg_kindness, COUNT(*) as count, SUM(kindness_rating) as total_sum
+                FROM product_reviews
+                WHERE product_id = :product_id
+                AND product_type = :product_type
+                AND status = 'approved'
+                AND kindness_rating IS NOT NULL
+            ");
+            $kindnessStmt->execute([':product_id' => $productId, ':product_type' => $productType]);
+            $kindnessData = $kindnessStmt->fetch(PDO::FETCH_ASSOC);
+            
+            $speedStmt = $pdo->prepare("
+                SELECT AVG(speed_rating) as avg_speed, COUNT(*) as count, SUM(speed_rating) as total_sum
+                FROM product_reviews
+                WHERE product_id = :product_id
+                AND product_type = :product_type
+                AND status = 'approved'
+                AND speed_rating IS NOT NULL
+            ");
+            $speedStmt->execute([':product_id' => $productId, ':product_type' => $productType]);
+            $speedData = $speedStmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($kindnessData && $kindnessData['count'] > 0 && $kindnessData['avg_kindness'] !== null) {
+                $result['kindness'] = ceil((float)$kindnessData['avg_kindness'] * 10) / 10;
             }
             
-            if ($stats['speed_review_count'] > 0) {
-                $average = $stats['speed_rating_sum'] / $stats['speed_review_count'];
-                // 소수 둘째자리에서 올림하여 소수 첫째자리까지 표시
-                $result['speed'] = ceil($average * 10) / 10;
+            if ($speedData && $speedData['count'] > 0 && $speedData['avg_speed'] !== null) {
+                $result['speed'] = ceil((float)$speedData['avg_speed'] * 10) / 10;
+            }
+            
+            // 통계 테이블이 비어있거나 잘못된 경우 로그 기록
+            if (!$stats || ($stats['kindness_review_count'] == 0 && $kindnessData && $kindnessData['count'] > 0) || 
+                ($stats['speed_review_count'] == 0 && $speedData && $speedData['count'] > 0)) {
+                error_log("getInternetReviewCategoryAverages: 통계 테이블이 비어있어 fallback 사용. product_id={$productId}, product_type={$productType}");
             }
         }
         
@@ -483,30 +645,143 @@ function getProductReviews($productId, $productType = 'mvno', $limit = 10, $sort
         } catch (PDOException $e) {}
         
         // 해당 상품의 리뷰만 가져오기 (상품별)
-        if ($hasApplicationId && $hasOrderNumber) {
-            $stmt = $pdo->prepare("
-                SELECT 
-                    $selectFields,
-                    a.order_number
-                FROM product_reviews r
-                LEFT JOIN product_applications a ON r.application_id = a.id
-                WHERE r.product_id = :product_id
-                AND r.product_type = :product_type
-                AND r.status = 'approved'
-                ORDER BY $orderBy
-                LIMIT :limit
-            ");
+        // 인터넷, MNO, MVNO 상품의 경우 통신사 정보도 함께 가져오기
+        // 신청 시점 정보(product_snapshot)를 우선 사용
+        if ($productType === 'internet') {
+            if ($hasApplicationId && $hasOrderNumber) {
+                $stmt = $pdo->prepare("
+                    SELECT 
+                        $selectFields,
+                        a.order_number,
+                        c.additional_info,
+                        inet.registration_place as current_provider
+                    FROM product_reviews r
+                    INNER JOIN products p ON r.product_id = p.id
+                    INNER JOIN product_internet_details inet ON p.id = inet.product_id
+                    LEFT JOIN product_applications a ON r.application_id = a.id
+                    LEFT JOIN application_customers c ON a.id = c.application_id
+                    WHERE r.product_id = :product_id
+                    AND r.product_type = :product_type
+                    AND r.status = 'approved'
+                    ORDER BY $orderBy
+                    LIMIT :limit
+                ");
+            } else {
+                $stmt = $pdo->prepare("
+                    SELECT 
+                        $selectFields,
+                        inet.registration_place as current_provider,
+                        NULL as additional_info
+                    FROM product_reviews r
+                    INNER JOIN products p ON r.product_id = p.id
+                    INNER JOIN product_internet_details inet ON p.id = inet.product_id
+                    WHERE r.product_id = :product_id
+                    AND r.product_type = :product_type
+                    AND r.status = 'approved'
+                    ORDER BY $orderBy
+                    LIMIT :limit
+                ");
+            }
+        } elseif ($productType === 'mvno') {
+            if ($hasApplicationId && $hasOrderNumber) {
+                $stmt = $pdo->prepare("
+                    SELECT 
+                        $selectFields,
+                        a.order_number,
+                        c.additional_info,
+                        mvno.provider as current_provider
+                    FROM product_reviews r
+                    INNER JOIN products p ON r.product_id = p.id
+                    INNER JOIN product_mvno_details mvno ON p.id = mvno.product_id
+                    LEFT JOIN product_applications a ON r.application_id = a.id
+                    LEFT JOIN application_customers c ON a.id = c.application_id
+                    WHERE r.product_id = :product_id
+                    AND r.product_type = :product_type
+                    AND r.status = 'approved'
+                    ORDER BY $orderBy
+                    LIMIT :limit
+                ");
+            } else {
+                $stmt = $pdo->prepare("
+                    SELECT 
+                        $selectFields,
+                        mvno.provider as current_provider,
+                        NULL as additional_info
+                    FROM product_reviews r
+                    INNER JOIN products p ON r.product_id = p.id
+                    INNER JOIN product_mvno_details mvno ON p.id = mvno.product_id
+                    WHERE r.product_id = :product_id
+                    AND r.product_type = :product_type
+                    AND r.status = 'approved'
+                    ORDER BY $orderBy
+                    LIMIT :limit
+                ");
+            }
+        } elseif ($productType === 'mno') {
+            // MNO의 경우 common_provider JSON에서 첫 번째 통신사 추출
+            // 신청 시점 정보(product_snapshot)를 우선 사용
+            if ($hasApplicationId && $hasOrderNumber) {
+                $stmt = $pdo->prepare("
+                    SELECT 
+                        $selectFields,
+                        a.order_number,
+                        c.additional_info,
+                        JSON_UNQUOTE(JSON_EXTRACT(mno.common_provider, '$[0]')) as current_provider
+                    FROM product_reviews r
+                    INNER JOIN products p ON r.product_id = p.id
+                    INNER JOIN product_mno_details mno ON p.id = mno.product_id
+                    LEFT JOIN product_applications a ON r.application_id = a.id
+                    LEFT JOIN application_customers c ON a.id = c.application_id
+                    WHERE r.product_id = :product_id
+                    AND r.product_type = :product_type
+                    AND r.status = 'approved'
+                    ORDER BY $orderBy
+                    LIMIT :limit
+                ");
+            } else {
+                $stmt = $pdo->prepare("
+                    SELECT 
+                        $selectFields,
+                        JSON_UNQUOTE(JSON_EXTRACT(mno.common_provider, '$[0]')) as current_provider,
+                        NULL as additional_info
+                    FROM product_reviews r
+                    INNER JOIN products p ON r.product_id = p.id
+                    INNER JOIN product_mno_details mno ON p.id = mno.product_id
+                    WHERE r.product_id = :product_id
+                    AND r.product_type = :product_type
+                    AND r.status = 'approved'
+                    ORDER BY $orderBy
+                    LIMIT :limit
+                ");
+            }
         } else {
-            $stmt = $pdo->prepare("
-                SELECT 
-                    $selectFields
-                FROM product_reviews r
-                WHERE r.product_id = :product_id
-                AND r.product_type = :product_type
-                AND r.status = 'approved'
-                ORDER BY $orderBy
-                LIMIT :limit
-            ");
+            if ($hasApplicationId && $hasOrderNumber) {
+                $stmt = $pdo->prepare("
+                    SELECT 
+                        $selectFields,
+                        a.order_number,
+                        NULL as provider
+                    FROM product_reviews r
+                    LEFT JOIN product_applications a ON r.application_id = a.id
+                    WHERE r.product_id = :product_id
+                    AND r.product_type = :product_type
+                    AND r.status = 'approved'
+                    ORDER BY $orderBy
+                    LIMIT :limit
+                ");
+            } else {
+                $stmt = $pdo->prepare("
+                    SELECT 
+                        $selectFields,
+                        NULL as provider
+                    FROM product_reviews r
+                    WHERE r.product_id = :product_id
+                    AND r.product_type = :product_type
+                    AND r.status = 'approved'
+                    ORDER BY $orderBy
+                    LIMIT :limit
+                ");
+            }
         }
         
         $stmt->bindValue(':product_id', $productId, PDO::PARAM_INT);
@@ -516,7 +791,7 @@ function getProductReviews($productId, $productType = 'mvno', $limit = 10, $sort
         
         $reviews = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
-        // 사용자 이름 가져오기
+        // 사용자 이름 가져오기 및 신청 시점 정보 처리
         foreach ($reviews as &$review) {
             $user = getUserById($review['user_id']);
             if ($user) {
@@ -539,6 +814,61 @@ function getProductReviews($productId, $productType = 'mvno', $limit = 10, $sort
                 }
             } else {
                 $review['author_name'] = '익명';
+            }
+            
+            // 신청 시점 정보 처리 (provider)
+            // additional_info에서 product_snapshot을 확인하여 신청 시점 정보 사용
+            if (in_array($productType, ['internet', 'mvno', 'mno']) && !empty($review['additional_info'])) {
+                $additionalInfoStr = $review['additional_info'];
+                $additionalInfoStr = str_replace(["\n", "\r", "\t"], ['', '', ''], $additionalInfoStr);
+                $additionalInfo = json_decode($additionalInfoStr, true);
+                
+                if (json_last_error() === JSON_ERROR_NONE && is_array($additionalInfo)) {
+                    $productSnapshot = $additionalInfo['product_snapshot'] ?? null;
+                    if ($productSnapshot && !empty($productSnapshot)) {
+                        if ($productType === 'internet' && isset($productSnapshot['registration_place'])) {
+                            // 인터넷: 신청 시점의 registration_place 사용
+                            $review['provider'] = trim($productSnapshot['registration_place']);
+                        } elseif ($productType === 'mvno' && isset($productSnapshot['provider'])) {
+                            // MVNO: 신청 시점의 provider 사용
+                            $review['provider'] = trim($productSnapshot['provider']);
+                        } elseif ($productType === 'mno' && isset($productSnapshot['common_provider'])) {
+                            // MNO: 신청 시점의 common_provider에서 첫 번째 통신사 추출
+                            $commonProvider = $productSnapshot['common_provider'];
+                            if (is_string($commonProvider)) {
+                                $decoded = json_decode($commonProvider, true);
+                                $commonProvider = is_array($decoded) ? $decoded : [];
+                            }
+                            if (is_array($commonProvider) && !empty($commonProvider)) {
+                                $review['provider'] = trim($commonProvider[0]);
+                            } elseif (!empty($review['current_provider'])) {
+                                $review['provider'] = trim($review['current_provider']);
+                            } else {
+                                $review['provider'] = '';
+                            }
+                        } elseif (!empty($review['current_provider'])) {
+                            // product_snapshot에 해당 필드가 없으면 현재 테이블 값 사용 (fallback)
+                            $review['provider'] = trim($review['current_provider']);
+                        } else {
+                            $review['provider'] = '';
+                        }
+                    } elseif (!empty($review['current_provider'])) {
+                        // product_snapshot이 없으면 현재 테이블 값 사용 (fallback)
+                        $review['provider'] = trim($review['current_provider']);
+                    } else {
+                        $review['provider'] = '';
+                    }
+                } elseif (!empty($review['current_provider'])) {
+                    // JSON 파싱 실패 시 현재 테이블 값 사용
+                    $review['provider'] = trim($review['current_provider']);
+                } else {
+                    $review['provider'] = '';
+                }
+            } elseif (!empty($review['current_provider'])) {
+                // additional_info가 없으면 현재 테이블 값 사용
+                $review['provider'] = trim($review['current_provider']);
+            } else {
+                $review['provider'] = '';
             }
             
             // 날짜 포맷팅 (예: "24일 전")
@@ -623,23 +953,105 @@ function getSingleProductReviews($productId, $productType = 'mvno', $limit = 10,
         }
         
         // 해당 상품의 리뷰만 가져오기
-        $stmt = $pdo->prepare("
-            SELECT 
-                r.id,
-                r.user_id,
-                r.rating,
-                r.title,
-                r.content,
-                r.is_verified,
-                r.helpful_count,
-                r.created_at
-            FROM product_reviews r
-            WHERE r.product_id = :product_id
-            AND r.product_type = :product_type
-            AND r.status = 'approved'
-            ORDER BY $orderBy
-            LIMIT :limit
-        ");
+        // 인터넷, MNO, MVNO 상품의 경우 통신사 정보도 함께 가져오기
+        // 신청 시점 정보(product_snapshot)를 우선 사용
+        if ($productType === 'internet') {
+            $stmt = $pdo->prepare("
+                SELECT 
+                    r.id,
+                    r.user_id,
+                    r.rating,
+                    r.title,
+                    r.content,
+                    r.is_verified,
+                    r.helpful_count,
+                    r.created_at,
+                    r.application_id,
+                    c.additional_info,
+                    inet.registration_place as current_provider
+                FROM product_reviews r
+                INNER JOIN products p ON r.product_id = p.id
+                INNER JOIN product_internet_details inet ON p.id = inet.product_id
+                LEFT JOIN product_applications a ON r.application_id = a.id
+                LEFT JOIN application_customers c ON a.id = c.application_id
+                WHERE r.product_id = :product_id
+                AND r.product_type = :product_type
+                AND r.status = 'approved'
+                ORDER BY $orderBy
+                LIMIT :limit
+            ");
+        } elseif ($productType === 'mvno') {
+            $stmt = $pdo->prepare("
+                SELECT 
+                    r.id,
+                    r.user_id,
+                    r.rating,
+                    r.title,
+                    r.content,
+                    r.is_verified,
+                    r.helpful_count,
+                    r.created_at,
+                    r.application_id,
+                    c.additional_info,
+                    mvno.provider as current_provider
+                FROM product_reviews r
+                INNER JOIN products p ON r.product_id = p.id
+                INNER JOIN product_mvno_details mvno ON p.id = mvno.product_id
+                LEFT JOIN product_applications a ON r.application_id = a.id
+                LEFT JOIN application_customers c ON a.id = c.application_id
+                WHERE r.product_id = :product_id
+                AND r.product_type = :product_type
+                AND r.status = 'approved'
+                ORDER BY $orderBy
+                LIMIT :limit
+            ");
+        } elseif ($productType === 'mno') {
+            $stmt = $pdo->prepare("
+                SELECT 
+                    r.id,
+                    r.user_id,
+                    r.rating,
+                    r.title,
+                    r.content,
+                    r.is_verified,
+                    r.helpful_count,
+                    r.created_at,
+                    r.application_id,
+                    c.additional_info,
+                    JSON_UNQUOTE(JSON_EXTRACT(mno.common_provider, '$[0]')) as current_provider
+                FROM product_reviews r
+                INNER JOIN products p ON r.product_id = p.id
+                INNER JOIN product_mno_details mno ON p.id = mno.product_id
+                LEFT JOIN product_applications a ON r.application_id = a.id
+                LEFT JOIN application_customers c ON a.id = c.application_id
+                WHERE r.product_id = :product_id
+                AND r.product_type = :product_type
+                AND r.status = 'approved'
+                ORDER BY $orderBy
+                LIMIT :limit
+            ");
+        } else {
+            $stmt = $pdo->prepare("
+                SELECT 
+                    r.id,
+                    r.user_id,
+                    r.rating,
+                    r.title,
+                    r.content,
+                    r.is_verified,
+                    r.helpful_count,
+                    r.created_at,
+                    NULL as provider,
+                    NULL as additional_info,
+                    NULL as current_provider
+                FROM product_reviews r
+                WHERE r.product_id = :product_id
+                AND r.product_type = :product_type
+                AND r.status = 'approved'
+                ORDER BY $orderBy
+                LIMIT :limit
+            ");
+        }
         $stmt->bindValue(':product_id', $productId, PDO::PARAM_INT);
         $stmt->bindValue(':product_type', $productType, PDO::PARAM_STR);
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
@@ -647,7 +1059,7 @@ function getSingleProductReviews($productId, $productType = 'mvno', $limit = 10,
         
         $reviews = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
-        // 사용자 이름 가져오기
+        // 사용자 이름 가져오기 및 신청 시점 정보 처리
         foreach ($reviews as &$review) {
             $user = getUserById($review['user_id']);
             if ($user) {
@@ -661,6 +1073,61 @@ function getSingleProductReviews($productId, $productType = 'mvno', $limit = 10,
                 $review['author_name'] = $name;
             } else {
                 $review['author_name'] = '익명';
+            }
+            
+            // 신청 시점 정보 처리 (provider)
+            // additional_info에서 product_snapshot을 확인하여 신청 시점 정보 사용
+            if (in_array($productType, ['internet', 'mvno', 'mno']) && !empty($review['additional_info'])) {
+                $additionalInfoStr = $review['additional_info'];
+                $additionalInfoStr = str_replace(["\n", "\r", "\t"], ['', '', ''], $additionalInfoStr);
+                $additionalInfo = json_decode($additionalInfoStr, true);
+                
+                if (json_last_error() === JSON_ERROR_NONE && is_array($additionalInfo)) {
+                    $productSnapshot = $additionalInfo['product_snapshot'] ?? null;
+                    if ($productSnapshot && !empty($productSnapshot)) {
+                        if ($productType === 'internet' && isset($productSnapshot['registration_place'])) {
+                            // 인터넷: 신청 시점의 registration_place 사용
+                            $review['provider'] = trim($productSnapshot['registration_place']);
+                        } elseif ($productType === 'mvno' && isset($productSnapshot['provider'])) {
+                            // MVNO: 신청 시점의 provider 사용
+                            $review['provider'] = trim($productSnapshot['provider']);
+                        } elseif ($productType === 'mno' && isset($productSnapshot['common_provider'])) {
+                            // MNO: 신청 시점의 common_provider에서 첫 번째 통신사 추출
+                            $commonProvider = $productSnapshot['common_provider'];
+                            if (is_string($commonProvider)) {
+                                $decoded = json_decode($commonProvider, true);
+                                $commonProvider = is_array($decoded) ? $decoded : [];
+                            }
+                            if (is_array($commonProvider) && !empty($commonProvider)) {
+                                $review['provider'] = trim($commonProvider[0]);
+                            } elseif (!empty($review['current_provider'])) {
+                                $review['provider'] = trim($review['current_provider']);
+                            } else {
+                                $review['provider'] = '';
+                            }
+                        } elseif (!empty($review['current_provider'])) {
+                            // product_snapshot에 해당 필드가 없으면 현재 테이블 값 사용 (fallback)
+                            $review['provider'] = trim($review['current_provider']);
+                        } else {
+                            $review['provider'] = '';
+                        }
+                    } elseif (!empty($review['current_provider'])) {
+                        // product_snapshot이 없으면 현재 테이블 값 사용 (fallback)
+                        $review['provider'] = trim($review['current_provider']);
+                    } else {
+                        $review['provider'] = '';
+                    }
+                } elseif (!empty($review['current_provider'])) {
+                    // JSON 파싱 실패 시 현재 테이블 값 사용
+                    $review['provider'] = trim($review['current_provider']);
+                } else {
+                    $review['provider'] = '';
+                }
+            } elseif (!empty($review['current_provider'])) {
+                // additional_info가 없으면 현재 테이블 값 사용
+                $review['provider'] = trim($review['current_provider']);
+            } else {
+                $review['provider'] = '';
             }
             
             // 별점을 별 아이콘으로 변환

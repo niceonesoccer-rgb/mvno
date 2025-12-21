@@ -1006,10 +1006,120 @@ function saveInternetProduct($productData) {
  * @param int|null $applicationId 신청 ID (application별 리뷰 구분용, 선택)
  * @return int|false 리뷰 ID 또는 false
  */
+/**
+ * 리뷰 통계 테이블 업데이트
+ * 
+ * 처음 작성한 리뷰의 점수만 통계 테이블에 추가됨
+ * 리뷰 수정/삭제 시에는 통계 테이블이 변경되지 않음
+ * 
+ * @param int $productId 상품 ID
+ * @param float $rating 평점
+ * @param float|null $kindnessRating 친절해요 평점 (선택)
+ * @param float|null $speedRating 설치/개통 빨라요 평점 (선택)
+ */
+/**
+ * 리뷰 통계 업데이트 (하이브리드 방식)
+ * 처음 작성 시점 값(initial_*)과 실시간 통계 모두 업데이트
+ * @param int $productId 상품 ID
+ * @param int $rating 평점
+ * @param int|null $kindnessRating 친절해요 평점
+ * @param int|null $speedRating 개통/설치 빨라요 평점
+ */
+function updateReviewStatistics($productId, $rating, $kindnessRating = null, $speedRating = null) {
+    $pdo = getDBConnection();
+    if (!$pdo) {
+        return;
+    }
+    
+    try {
+        // 트랜잭션 시작 (동시성 문제 방지)
+        $pdo->beginTransaction();
+        
+        // INSERT ... ON DUPLICATE KEY UPDATE 사용 (성능 최적화 및 동시성 처리)
+        // 이 방식은 SELECT 없이 한 번의 쿼리로 처리되므로 더 빠르고 안전함
+        $insertSql = "
+            INSERT INTO product_review_statistics 
+            (product_id, total_rating_sum, total_review_count,
+             initial_total_rating_sum, initial_total_review_count";
+        
+        $insertValues = "VALUES (:product_id, :rating, 1, :rating, 1";
+        $insertParams = [
+            ':product_id' => $productId,
+            ':rating' => $rating
+        ];
+        
+        $updateSql = "
+            ON DUPLICATE KEY UPDATE
+                total_rating_sum = total_rating_sum + :rating,
+                total_review_count = total_review_count + 1,
+                initial_total_rating_sum = initial_total_rating_sum + :rating,
+                initial_total_review_count = initial_total_review_count + 1";
+        
+        if ($kindnessRating !== null) {
+            $insertSql .= ", kindness_rating_sum, kindness_review_count,
+                           initial_kindness_rating_sum, initial_kindness_review_count";
+            $insertValues .= ", :kindness_rating, 1, :kindness_rating, 1";
+            $insertParams[':kindness_rating'] = $kindnessRating;
+            $updateSql .= ",
+                kindness_rating_sum = kindness_rating_sum + :kindness_rating,
+                kindness_review_count = kindness_review_count + 1,
+                initial_kindness_rating_sum = initial_kindness_rating_sum + :kindness_rating,
+                initial_kindness_review_count = initial_kindness_review_count + 1";
+        }
+        
+        if ($speedRating !== null) {
+            $insertSql .= ", speed_rating_sum, speed_review_count,
+                           initial_speed_rating_sum, initial_speed_review_count";
+            $insertValues .= ", :speed_rating, 1, :speed_rating, 1";
+            $insertParams[':speed_rating'] = $speedRating;
+            $updateSql .= ",
+                speed_rating_sum = speed_rating_sum + :speed_rating,
+                speed_review_count = speed_review_count + 1,
+                initial_speed_rating_sum = initial_speed_rating_sum + :speed_rating,
+                initial_speed_review_count = initial_speed_review_count + 1";
+        }
+        
+        $insertSql .= ") " . $insertValues . ") " . $updateSql;
+        
+        $stmt = $pdo->prepare($insertSql);
+        $stmt->execute($insertParams);
+        
+        // 트랜잭션 커밋
+        $pdo->commit();
+    } catch (PDOException $e) {
+        // 트랜잭션 롤백
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        // 통계 테이블 업데이트 실패는 치명적이지 않으므로 로그만 남김
+        error_log("updateReviewStatistics: 통계 업데이트 실패 - " . $e->getMessage());
+    }
+}
+
+/**
+ * 상품 리뷰 추가 (하이브리드 방식)
+ * 
+ * 처음 작성한 리뷰의 점수는 통계 테이블(product_review_statistics)에 추가됨
+ * - 실시간 통계: 화면 표시용 (수정/삭제 시 업데이트)
+ * - 처음 작성 시점 통계: 고정값 (수정/삭제 시 변경 안 됨)
+ * 
+ * 삭제 후 다시 작성한 경우 통계 테이블에 추가하지 않음 (처음 작성한 점수 유지)
+ * 다른 주문건(application_id)의 리뷰는 통계에 반영됨
+ * 
+ * @param int $productId 상품 ID
+ * @param string $userId 사용자 ID
+ * @param string $productType 상품 타입 ('mvno', 'mno', 'internet')
+ * @param int $rating 평점
+ * @param string $content 리뷰 내용
+ * @param string|null $title 리뷰 제목 (선택)
+ * @param int|null $kindnessRating 친절해요 평점 (선택)
+ * @param int|null $speedRating 설치/개통 빨라요 평점 (선택)
+ * @param int|null $applicationId 신청 ID (주문별 리뷰 구분용, 선택)
+ * @return int|false 리뷰 ID (성공 시) 또는 false (실패 시)
+ */
 function addProductReview($productId, $userId, $productType, $rating, $content, $title = null, $kindnessRating = null, $speedRating = null, $applicationId = null) {
-    // 인터넷 리뷰도 허용
     if (!in_array($productType, ['mvno', 'mno', 'internet'])) {
-        return false; // 지원하지 않는 상품 타입
+        return false;
     }
     
     $pdo = getDBConnection();
@@ -1027,52 +1137,16 @@ function addProductReview($productId, $userId, $productType, $rating, $content, 
             // 컬럼이 없으면 false
         }
         
-        // 중복 리뷰 체크: 같은 사용자가 같은 주문(application)에 이미 리뷰를 작성했는지 확인
-        // 인터넷 리뷰의 경우 application_id로 구분 (주문별로 리뷰 작성 가능)
-        if ($hasApplicationId && $applicationId !== null && $productType === 'internet') {
-            // 인터넷 리뷰: 같은 application_id에 대한 리뷰가 있는지 확인
-            $duplicateCheck = $pdo->prepare("
-                SELECT id 
-                FROM product_reviews 
-                WHERE application_id = :application_id 
-                AND user_id = :user_id 
-                AND product_type = :product_type
-                AND status != 'deleted'
-                LIMIT 1
-            ");
-            $duplicateCheck->execute([
-                ':application_id' => $applicationId,
-                ':user_id' => $userId,
-                ':product_type' => $productType
-            ]);
-        } else {
-            // MVNO/MNO 리뷰 또는 application_id가 없는 경우: 같은 상품에 대한 리뷰 확인
-            $duplicateCheck = $pdo->prepare("
-                SELECT id 
-                FROM product_reviews 
-                WHERE product_id = :product_id 
-                AND user_id = :user_id 
-                AND product_type = :product_type
-                AND status != 'deleted'
-                LIMIT 1
-            ");
-            $duplicateCheck->execute([
-                ':product_id' => $productId,
-                ':user_id' => $userId,
-                ':product_type' => $productType
-            ]);
-        }
+        // 중복 리뷰 체크 제거: 주문건별로 여러 리뷰 작성 가능
+        // 같은 상품에 대해 여러 주문건(application_id)으로 리뷰를 작성할 수 있음
+        // 같은 주문건(application_id)에 대해서도 여러 리뷰 작성 가능 (요구사항에 따라)
+        // 중복 체크 없이 항상 리뷰 작성 허용
         
-        if ($duplicateCheck->fetch()) {
-            error_log("addProductReview: Duplicate review detected - product_id=$productId, user_id=$userId, application_id=" . ($applicationId ?? 'null'));
-            return false; // 중복 리뷰
-        }
+        // 인터넷과 MVNO 리뷰는 자동으로 승인, MNO는 pending 상태로 저장
+        $status = ($productType === 'mno') ? 'pending' : 'approved';
         
-        // 인터넷 리뷰는 자동으로 승인, MVNO/MNO는 pending 상태로 저장
-        $status = ($productType === 'internet') ? 'approved' : 'pending';
-        
-        // 인터넷 리뷰의 경우 kindness_rating과 speed_rating으로 rating 계산
-        if ($productType === 'internet' && $kindnessRating !== null && $speedRating !== null) {
+        // 인터넷/MVNO/MNO 리뷰의 경우 kindness_rating과 speed_rating으로 rating 계산
+        if (in_array($productType, ['internet', 'mvno', 'mno']) && $kindnessRating !== null && $speedRating !== null) {
             $rating = round(($kindnessRating + $speedRating) / 2);
         }
         
@@ -1124,21 +1198,58 @@ function addProductReview($productId, $userId, $productType, $rating, $content, 
             VALUES ($valuesStr)
         ");
         
-        error_log("addProductReview: INSERT 실행 - columns: $columnsStr, params: " . json_encode(array_keys($executeParams)));
         $stmt->execute($executeParams);
-        
         $newId = $pdo->lastInsertId();
-        error_log("addProductReview: 리뷰 작성 성공 - ID: $newId");
+        
+        // 이전에 삭제된 리뷰가 있었는지 확인
+        // 삭제 후 다시 작성한 경우 통계 테이블에 추가하지 않음 (처음 작성한 점수 유지)
+        // 중요: application_id별로 체크해야 함 (다른 주문건의 리뷰는 통계에 반영되어야 함)
+        $hasDeletedReview = false;
+        if ($hasApplicationId && $applicationId !== null && ($productType === 'internet' || $productType === 'mvno' || $productType === 'mno')) {
+            // application_id가 있는 경우: 같은 주문건(application_id)에서만 삭제된 리뷰가 있는지 확인
+            // 다른 주문건(다른 application_id)의 삭제된 리뷰는 무시 (각 주문건별로 리뷰 작성 가능)
+            // 같은 주문건에서 삭제 후 다시 작성한 경우만 통계에 반영하지 않음
+            $deletedCheck = $pdo->prepare("
+                SELECT id 
+                FROM product_reviews 
+                WHERE application_id = :application_id 
+                AND user_id = :user_id 
+                AND product_type = :product_type
+                AND status = 'deleted'
+                AND id != :new_id
+                LIMIT 1
+            ");
+            $deletedCheck->execute([
+                ':application_id' => $applicationId,
+                ':user_id' => $userId,
+                ':product_type' => $productType,
+                ':new_id' => $newId
+            ]);
+            $hasDeletedReview = $deletedCheck->fetch() !== false;
+        } else {
+            // application_id가 없는 경우: 같은 상품+사용자+주문건에서 삭제된 리뷰가 있는지 확인
+            // 중요: application_id가 없는 경우에도, 같은 주문건(같은 리뷰 ID 이전에 삭제된 리뷰)에서만 체크
+            // 다른 리뷰의 삭제는 영향 없음 - 각 리뷰는 독립적으로 통계에 반영되어야 함
+            // 따라서 application_id가 없는 경우는 삭제 체크를 하지 않음 (모든 리뷰가 통계에 반영됨)
+            $hasDeletedReview = false;
+        }
+        
+        // 리뷰 통계 테이블 업데이트
+        // 조건:
+        // 1. approved 상태여야 함
+        // 2. 같은 주문건(application_id)에서 삭제된 리뷰가 없어야 함
+        //    (application_id가 없는 경우는 모든 리뷰가 통계에 반영됨)
+        //    (다른 주문건의 삭제된 리뷰는 영향 없음 - 각 주문건별로 독립적으로 통계 반영)
+        if ($status === 'approved' && !$hasDeletedReview) {
+            updateReviewStatistics($productId, $rating, $kindnessRating, $speedRating);
+        }
+        
         return $newId;
     } catch (PDOException $e) {
         error_log("addProductReview: PDO 예외 발생 - " . $e->getMessage());
-        error_log("addProductReview: SQL State - " . $e->getCode());
-        error_log("addProductReview: Columns - " . $columnsStr);
-        error_log("addProductReview: Values - " . $valuesStr);
-        error_log("addProductReview: Execute params - " . json_encode($executeParams));
-        // 데이터베이스 스키마 오류인 경우 (product_type에 'internet'이 없는 경우)
+        // 데이터베이스 스키마 오류인 경우
         if (strpos($e->getMessage(), 'product_type') !== false || strpos($e->getMessage(), 'ENUM') !== false) {
-            error_log("Database schema error: product_reviews.product_type ENUM may not include 'internet'. Please run: ALTER TABLE product_reviews MODIFY COLUMN product_type ENUM('mvno', 'mno', 'internet') NOT NULL;");
+            error_log("Database schema error: product_reviews.product_type ENUM may not include 'internet'");
         }
         return false;
     }
@@ -1350,13 +1461,33 @@ function getUserReview($productId, $userId, $productType, $applicationId = null)
 
 /**
  * 리뷰 수정
+ * 
+ * 해당 리뷰의 별점과 내용은 수정한 값으로 업데이트되지만,
+ * 통계 테이블(product_review_statistics)은 업데이트하지 않음
+ * 리뷰 수정 시 총별점과 항목별 총별점은 변경되지 않음 (처음 작성한 점수 유지)
+ * 
  * @param int $reviewId 리뷰 ID
  * @param string $userId 사용자 ID
- * @param int $rating 별점
+ * @param int $rating 별점 (해당 리뷰에만 반영)
  * @param string $content 리뷰 내용
- * @param string $title 리뷰 제목 (선택)
- * @param int|null $kindnessRating 친절해요 별점 (인터넷 리뷰용, 선택)
- * @param int|null $speedRating 설치 빨라요 별점 (인터넷 리뷰용, 선택)
+ * @param string|null $title 리뷰 제목 (선택)
+ * @param int|null $kindnessRating 친절해요 별점 (해당 리뷰에만 반영)
+ * @param int|null $speedRating 설치/개통 빨라요 별점 (해당 리뷰에만 반영)
+ * @return bool 성공 여부
+ */
+/**
+ * 리뷰 수정 (하이브리드 방식)
+ * 
+ * 개별 리뷰의 별점과 내용을 업데이트하고, 실시간 통계만 업데이트
+ * 처음 작성 시점 통계(initial_*)는 변경하지 않음
+ * 
+ * @param int $reviewId 리뷰 ID
+ * @param string $userId 사용자 ID
+ * @param int $rating 평점
+ * @param string $content 리뷰 내용
+ * @param string|null $title 리뷰 제목
+ * @param int|null $kindnessRating 친절해요 평점
+ * @param int|null $speedRating 개통/설치 빨라요 평점
  * @return bool 성공 여부
  */
 function updateProductReview($reviewId, $userId, $rating, $content, $title = null, $kindnessRating = null, $speedRating = null) {
@@ -1368,7 +1499,7 @@ function updateProductReview($reviewId, $userId, $rating, $content, $title = nul
     try {
         // 리뷰 소유권 확인 및 product_type 확인
         $checkStmt = $pdo->prepare("
-            SELECT id, user_id, product_type 
+            SELECT id, user_id, product_type, product_id, rating as old_rating, kindness_rating as old_kindness_rating, speed_rating as old_speed_rating
             FROM product_reviews 
             WHERE id = :review_id AND user_id = :user_id
         ");
@@ -1379,34 +1510,32 @@ function updateProductReview($reviewId, $userId, $rating, $content, $title = nul
         $review = $checkStmt->fetch(PDO::FETCH_ASSOC);
         
         if (!$review) {
-            error_log("Review not found or user mismatch: review_id=$reviewId, user_id=$userId");
+            error_log("DEBUG updateProductReview: 리뷰를 찾을 수 없음 - review_id=$reviewId, user_id=$userId");
             return false;
         }
         
-        // 인터넷 리뷰인 경우 kindness_rating과 speed_rating으로 rating 계산
-        if ($review['product_type'] === 'internet' && $kindnessRating !== null && $speedRating !== null) {
-            $rating = round(($kindnessRating + $speedRating) / 2);
-        }
+        $productId = $review['product_id'];
         
-        // 인터넷 리뷰인 경우 kindness_rating과 speed_rating도 업데이트
         // 컬럼 존재 여부 확인
         $hasKindnessRating = false;
         $hasSpeedRating = false;
         try {
             $checkStmt = $pdo->query("SHOW COLUMNS FROM product_reviews LIKE 'kindness_rating'");
             $hasKindnessRating = $checkStmt->rowCount() > 0;
-        } catch (PDOException $e) {
-            // 컬럼이 없으면 false
-        }
+        } catch (PDOException $e) {}
         
         try {
             $checkStmt = $pdo->query("SHOW COLUMNS FROM product_reviews LIKE 'speed_rating'");
             $hasSpeedRating = $checkStmt->rowCount() > 0;
-        } catch (PDOException $e) {
-            // 컬럼이 없으면 false
+        } catch (PDOException $e) {}
+        
+        // 인터넷/MVNO/MNO 리뷰인 경우 kindness_rating과 speed_rating으로 rating 계산
+        if (in_array($review['product_type'], ['internet', 'mvno', 'mno']) && $kindnessRating !== null && $speedRating !== null) {
+            $rating = round(($kindnessRating + $speedRating) / 2);
         }
         
-        if ($review['product_type'] === 'internet' && $hasKindnessRating && $hasSpeedRating && $kindnessRating !== null && $speedRating !== null) {
+        // 리뷰 정보 업데이트 (별점과 내용만 수정)
+        if ($hasKindnessRating && $hasSpeedRating && $kindnessRating !== null && $speedRating !== null) {
             $stmt = $pdo->prepare("
                 UPDATE product_reviews
                 SET rating = :rating,
@@ -1444,10 +1573,46 @@ function updateProductReview($reviewId, $userId, $rating, $content, $title = nul
                 ':content' => $content,
                 ':title' => $title
             ]);
-            
-            if ($review['product_type'] === 'internet' && (!$hasKindnessRating || !$hasSpeedRating)) {
-                error_log("updateProductReview: Warning - kindness_rating or speed_rating columns not found, only rating updated");
-            }
+        }
+        
+        // 하이브리드 방식: 실시간 통계만 업데이트 (처음 작성 시점 값은 변경하지 않음)
+        // 기존 값 제거 후 새 값 추가
+        $oldRating = (int)$review['old_rating'];
+        $oldKindnessRating = $review['old_kindness_rating'] !== null ? (int)$review['old_kindness_rating'] : null;
+        $oldSpeedRating = $review['old_speed_rating'] !== null ? (int)$review['old_speed_rating'] : null;
+        
+        $updateStatsSql = "
+            UPDATE product_review_statistics 
+            SET 
+                total_rating_sum = total_rating_sum - :old_rating + :new_rating";
+        
+        $updateStatsParams = [
+            ':product_id' => $productId,
+            ':old_rating' => $oldRating,
+            ':new_rating' => $rating
+        ];
+        
+        if ($oldKindnessRating !== null && $kindnessRating !== null) {
+            $updateStatsSql .= ",
+                kindness_rating_sum = kindness_rating_sum - :old_kindness + :new_kindness";
+            $updateStatsParams[':old_kindness'] = $oldKindnessRating;
+            $updateStatsParams[':new_kindness'] = $kindnessRating;
+        }
+        
+        if ($oldSpeedRating !== null && $speedRating !== null) {
+            $updateStatsSql .= ",
+                speed_rating_sum = speed_rating_sum - :old_speed + :new_speed";
+            $updateStatsParams[':old_speed'] = $oldSpeedRating;
+            $updateStatsParams[':new_speed'] = $speedRating;
+        }
+        
+        $updateStatsSql .= " WHERE product_id = :product_id";
+        
+        try {
+            $updateStatsStmt = $pdo->prepare($updateStatsSql);
+            $updateStatsStmt->execute($updateStatsParams);
+        } catch (PDOException $e) {
+            error_log("updateProductReview: 실시간 통계 업데이트 실패 - " . $e->getMessage());
         }
         
         return true;
@@ -1682,7 +1847,7 @@ function getApplicationStatusLabel($status) {
         $normalizedStatus = 'received';
     }
     
-    // 상태별 한글명 매핑 (판매자 페이지 internet.php의 옵션과 동일)
+    // 상태별 한글명 매핑 (통일된 용어 사용)
     // received(접수), activating(개통중), activation_completed(개통완료), installation_completed(설치완료)
     $statusLabels = [
         'received' => '접수',
@@ -1693,7 +1858,7 @@ function getApplicationStatusLabel($status) {
         'installation_completed' => '설치완료',
         'pending' => '접수',  // pending도 received와 동일하게 처리
         'processing' => '개통중',  // processing도 activating과 동일하게 처리
-        'completed' => '설치완료',
+        'completed' => '개통완료',  // 통신사폰/알뜰폰: 개통완료, 인터넷: installation_completed 사용
         'rejected' => '보류',
         'closed' => '종료',
         'terminated' => '종료'
@@ -2733,24 +2898,49 @@ function getUserMvnoApplications($userId) {
                 }
             }
             
-            // 리뷰 작성 여부 확인
+            // 리뷰 작성 여부 확인 (MVNO는 주문별로 리뷰 작성 가능)
             error_log("Step 3: Starting review check for application_id: {$appId}");
             $hasReview = false;
             $rating = '';
             if (!empty($app['product_id'])) {
                 error_log("Step 3.1: product_id exists: " . $app['product_id']);
                 try {
-                    $reviewStmt = $pdo->prepare("
-                        SELECT COUNT(*) as count
-                        FROM product_reviews
-                        WHERE product_id = :product_id 
-                        AND user_id = :user_id 
-                        AND status = 'approved'
-                    ");
-                    $reviewStmt->execute([
-                        ':product_id' => $app['product_id'],
-                        ':user_id' => $userId
-                    ]);
+                    // application_id 컬럼 존재 여부 확인
+                    $hasApplicationId = false;
+                    try {
+                        $checkStmt = $pdo->query("SHOW COLUMNS FROM product_reviews LIKE 'application_id'");
+                        $hasApplicationId = $checkStmt->rowCount() > 0;
+                    } catch (PDOException $e) {}
+                    
+                    // MVNO는 application_id로 리뷰 체크 (주문별 리뷰)
+                    if ($hasApplicationId && !empty($app['application_id'])) {
+                        $reviewStmt = $pdo->prepare("
+                            SELECT COUNT(*) as count
+                            FROM product_reviews
+                            WHERE application_id = :application_id 
+                            AND user_id = :user_id 
+                            AND product_type = 'mvno'
+                            AND status = 'approved'
+                        ");
+                        $reviewStmt->execute([
+                            ':application_id' => $app['application_id'],
+                            ':user_id' => $userId
+                        ]);
+                    } else {
+                        // application_id가 없는 경우 기존 방식 (하위 호환성)
+                        $reviewStmt = $pdo->prepare("
+                            SELECT COUNT(*) as count
+                            FROM product_reviews
+                            WHERE product_id = :product_id 
+                            AND user_id = :user_id 
+                            AND product_type = 'mvno'
+                            AND status = 'approved'
+                        ");
+                        $reviewStmt->execute([
+                            ':product_id' => $app['product_id'],
+                            ':user_id' => $userId
+                        ]);
+                    }
                     $reviewResult = $reviewStmt->fetch(PDO::FETCH_ASSOC);
                     $hasReview = ($reviewResult['count'] ?? 0) > 0;
                     error_log("Step 3.2: Review check completed, hasReview: " . ($hasReview ? 'YES' : 'NO'));
@@ -2797,8 +2987,10 @@ function getUserMvnoApplications($userId) {
             error_log("Step 5: Before formatting - planName=[{$planName}], provider=[{$provider}]");
             
             $formattedApplications[] = [
-                'id' => (int)$app['product_id'],
+                'id' => (int)$app['product_id'], // 하위 호환성을 위해 유지
+                'product_id' => (int)$app['product_id'], // product_id 키 추가
                 'application_id' => (int)$app['application_id'],
+                'seller_id' => (int)($app['seller_id'] ?? 0), // seller_id 추가
                 'order_number' => $app['order_number'] ?? '',
                 'provider' => !empty($provider) ? $provider : '알 수 없음',
                 'rating' => $rating,
@@ -3034,10 +3226,20 @@ function getUserMnoApplications($userId) {
             $discountType = $additionalInfo['discount_type'] ?? '';
             $subscriptionType = $additionalInfo['subscription_type'] ?? '';
             $discountPrice = $additionalInfo['price'] ?? '';
+            
+            // 가입형태 한글 변환
+            $subscriptionTypeMap = [
+                'new' => '신규가입',
+                'mnp' => '번호이동',
+                'port' => '번호이동', // 하위 호환성
+                'change' => '기기변경'
+            ];
+            $subscriptionTypeKor = $subscriptionTypeMap[strtolower($subscriptionType)] ?? $subscriptionType;
+            
             $discountInfo = '';
             if ($discountType && $subscriptionType && $discountPrice !== '') {
                 // 가격이 0이어도 표시
-                $discountInfo = $provider . ' ' . $discountType . ' ' . $subscriptionType . ' ' . $discountPrice;
+                $discountInfo = $provider . ' ' . $discountType . ' ' . $subscriptionTypeKor . ' ' . $discountPrice;
             }
             
             // 프로모션 파싱
@@ -3051,22 +3253,47 @@ function getUserMnoApplications($userId) {
                 }
             }
             
-            // 리뷰 작성 여부 확인
+            // 리뷰 작성 여부 확인 (MNO는 주문별로 리뷰 작성 가능)
             $hasReview = false;
             $rating = '';
             if (!empty($app['product_id'])) {
                 try {
-                    $reviewStmt = $pdo->prepare("
-                        SELECT COUNT(*) as count
-                        FROM product_reviews
-                        WHERE product_id = :product_id 
-                        AND user_id = :user_id 
-                        AND status = 'approved'
-                    ");
-                    $reviewStmt->execute([
-                        ':product_id' => $app['product_id'],
-                        ':user_id' => $userId
-                    ]);
+                    // application_id 컬럼 존재 여부 확인
+                    $hasApplicationId = false;
+                    try {
+                        $checkStmt = $pdo->query("SHOW COLUMNS FROM product_reviews LIKE 'application_id'");
+                        $hasApplicationId = $checkStmt->rowCount() > 0;
+                    } catch (PDOException $e) {}
+                    
+                    // MNO는 application_id로 리뷰 체크 (주문별 리뷰)
+                    if ($hasApplicationId && !empty($app['application_id'])) {
+                        $reviewStmt = $pdo->prepare("
+                            SELECT COUNT(*) as count
+                            FROM product_reviews
+                            WHERE application_id = :application_id 
+                            AND user_id = :user_id 
+                            AND product_type = 'mno'
+                            AND status = 'approved'
+                        ");
+                        $reviewStmt->execute([
+                            ':application_id' => $app['application_id'],
+                            ':user_id' => $userId
+                        ]);
+                    } else {
+                        // application_id가 없는 경우 기존 방식 (하위 호환성)
+                        $reviewStmt = $pdo->prepare("
+                            SELECT COUNT(*) as count
+                            FROM product_reviews
+                            WHERE product_id = :product_id 
+                            AND user_id = :user_id 
+                            AND product_type = 'mno'
+                            AND status = 'approved'
+                        ");
+                        $reviewStmt->execute([
+                            ':product_id' => $app['product_id'],
+                            ':user_id' => $userId
+                        ]);
+                    }
                     $reviewResult = $reviewStmt->fetch(PDO::FETCH_ASSOC);
                     $hasReview = ($reviewResult['count'] ?? 0) > 0;
                     
@@ -3092,25 +3319,14 @@ function getUserMnoApplications($userId) {
                 }
             }
             
-            // 상태 한글 변환
-            $statusMap = [
-                'pending' => '접수완료',
-                'processing' => '처리중',
-                'completed' => '완료',
-                'cancelled' => '취소',
-                'rejected' => '거부',
-                'closed' => '종료',
-                'activating' => '개통중',
-                'activation_completed' => '개통완료',
-                'on_hold' => '보류',
-                '' => '접수완료' // 빈 문자열도 접수완료로 처리
-            ];
-            $applicationStatus = $app['application_status'] ?? '';
-            $statusKor = $statusMap[$applicationStatus] ?? ($applicationStatus ?: '접수완료');
+            // 상태 한글 변환 (공통 함수 사용 - 통일된 용어)
+            $statusKor = getApplicationStatusLabel($app['application_status'] ?? 'pending');
             
             $formattedApplications[] = [
                 'id' => (int)$app['product_id'],
+                'product_id' => (int)$app['product_id'], // product_id 키 추가
                 'application_id' => (int)$app['application_id'],
+                'seller_id' => (int)($app['seller_id'] ?? 0), // seller_id 추가 (MVNO와 동일하게)
                 'order_number' => $app['order_number'] ?? null,
                 'provider' => $provider,
                 'device_name' => $deviceName,
@@ -3244,13 +3460,34 @@ function getUserInternetApplications($userId) {
                     $additionalInfo = [];
                 } else {
                     error_log("JSON decode success for application_id " . ($app['application_id'] ?? 'unknown'));
+                    // product_snapshot 확인
+                    if (isset($additionalInfo['product_snapshot'])) {
+                        error_log("getUserInternetApplications: application_id " . ($app['application_id'] ?? 'unknown') . " - product_snapshot found in additional_info");
+                        if (isset($additionalInfo['product_snapshot']['registration_place'])) {
+                            error_log("getUserInternetApplications: application_id " . ($app['application_id'] ?? 'unknown') . " - product_snapshot.registration_place = '" . $additionalInfo['product_snapshot']['registration_place'] . "'");
+                        } else {
+                            error_log("getUserInternetApplications: application_id " . ($app['application_id'] ?? 'unknown') . " - product_snapshot.registration_place NOT FOUND");
+                        }
+                    } else {
+                        error_log("getUserInternetApplications: application_id " . ($app['application_id'] ?? 'unknown') . " - product_snapshot NOT FOUND in additional_info");
+                    }
                 }
+            } else {
+                error_log("getUserInternetApplications: application_id " . ($app['application_id'] ?? 'unknown') . " - additional_info is empty");
             }
             
-            // 판매자 페이지와 동일하게 product_internet_details 테이블의 현재 값을 우선 사용
-            // product_snapshot은 테이블 값이 없을 때만 fallback으로 사용
+            // 신청 시점의 상품 정보를 우선 사용 (product_snapshot)
+            // 사용자가 신청했던 당시의 값이 나중에 변경되어도 유지되어야 함
             $productSnapshot = $additionalInfo['product_snapshot'] ?? null;
-            error_log("getUserInternetApplications: application_id " . ($app['application_id'] ?? 'unknown') . " - productSnapshot exists: " . ($productSnapshot ? 'yes' : 'no'));
+            $hasSnapshot = $productSnapshot && !empty($productSnapshot);
+            error_log("getUserInternetApplications: application_id " . ($app['application_id'] ?? 'unknown') . " - productSnapshot exists: " . ($hasSnapshot ? 'yes' : 'no'));
+            if ($hasSnapshot) {
+                $snapshotRegPlace = $productSnapshot['registration_place'] ?? null;
+                $tableRegPlace = $app['registration_place'] ?? null;
+                error_log("getUserInternetApplications: application_id " . ($app['application_id'] ?? 'unknown') . " - snapshot registration_place: " . ($snapshotRegPlace !== null ? "'" . $snapshotRegPlace . "'" : 'NULL'));
+                error_log("getUserInternetApplications: application_id " . ($app['application_id'] ?? 'unknown') . " - table registration_place: " . ($tableRegPlace !== null ? "'" . $tableRegPlace . "'" : 'NULL'));
+                error_log("getUserInternetApplications: application_id " . ($app['application_id'] ?? 'unknown') . " - snapshot has registration_place key: " . (isset($productSnapshot['registration_place']) ? 'yes' : 'no'));
+            }
             
             // monthly_fee 추출 헬퍼 함수 (숫자 또는 문자열에서 숫자 추출)
             $extractMonthlyFee = function($value) {
@@ -3275,42 +3512,19 @@ function getUserInternetApplications($userId) {
                 return 0;
             };
             
-            // 테이블 값이 있으면 우선 사용 (판매자 페이지와 동일)
-            if (!empty($app['registration_place']) || !empty($app['service_type']) || !empty($app['speed_option']) || isset($app['monthly_fee'])) {
-                $registrationPlace = $app['registration_place'] ?? '';
-                $speedOption = $app['speed_option'] ?? '';
-                $serviceType = $app['service_type'] ?? '';
+            // 저장된 신청 시점 정보(product_snapshot)를 우선 사용, 없으면 현재 테이블 값 사용
+            // 간단한 로직: product_snapshot이 있으면 무조건 그것을 사용
+            if ($hasSnapshot) {
+                // product_snapshot에 저장된 정보를 그대로 사용 (신청 시점의 정보)
+                $registrationPlace = isset($productSnapshot['registration_place']) ? trim($productSnapshot['registration_place']) : '';
+                $speedOption = isset($productSnapshot['speed_option']) ? trim($productSnapshot['speed_option']) : '';
+                $serviceType = isset($productSnapshot['service_type']) ? trim($productSnapshot['service_type']) : '';
+                $monthlyFee = isset($productSnapshot['monthly_fee']) ? $extractMonthlyFee($productSnapshot['monthly_fee']) : 0;
                 
-                // monthly_fee 처리: 테이블에 값이 있고 유효하면 사용, 없거나 0이면 product_snapshot에서 가져오기
-                $monthlyFee = $extractMonthlyFee($app['monthly_fee'] ?? 0);
-                if ($monthlyFee <= 0 && $productSnapshot && isset($productSnapshot['monthly_fee'])) {
-                    // 테이블 값이 없거나 0이면 product_snapshot에서 가져오기
-                    $monthlyFee = $extractMonthlyFee($productSnapshot['monthly_fee']);
-                }
-            } elseif ($productSnapshot) {
-                // 테이블 값이 없으면 product_snapshot 사용 (fallback)
-                $registrationPlace = $productSnapshot['registration_place'] ?? '';
-                $speedOption = $productSnapshot['speed_option'] ?? '';
-                $serviceType = $productSnapshot['service_type'] ?? '';
+                error_log("getUserInternetApplications: application_id " . ($app['application_id'] ?? 'unknown') . " - snapshot registration_place: " . (isset($productSnapshot['registration_place']) ? "'" . $productSnapshot['registration_place'] . "'" : 'NOT SET'));
+                error_log("getUserInternetApplications: application_id " . ($app['application_id'] ?? 'unknown') . " - final registration_place: " . $registrationPlace);
                 
-                // monthly_fee는 문자열일 수 있으므로 숫자로 변환
-                $monthlyFee = $extractMonthlyFee($productSnapshot['monthly_fee'] ?? 0);
-            } else {
-                $registrationPlace = '';
-                $speedOption = '';
-                $serviceType = '';
-                $monthlyFee = 0;
-            }
-            
-            // 현금지급, 상품권, 장비, 설치 정보도 테이블 값을 우선 사용 (판매자 페이지와 동일)
-            $cashPaymentNames = $app['cash_payment_names'] ?? '';
-            $giftCardNames = $app['gift_card_names'] ?? '';
-            $equipmentNames = $app['equipment_names'] ?? '';
-            $installationNames = $app['installation_names'] ?? '';
-            
-            // 테이블 값이 없으면 product_snapshot에서 가져오기 (fallback)
-            if (empty($cashPaymentNames) && empty($giftCardNames) && empty($equipmentNames) && empty($installationNames) && $productSnapshot) {
-                // JSON 문자열로 저장된 필드들 파싱
+                // 현금지급, 상품권, 장비, 설치 정보도 신청 시점 정보 사용
                 if (isset($productSnapshot['cash_payment_names'])) {
                     if (is_string($productSnapshot['cash_payment_names'])) {
                         $decoded = json_decode($productSnapshot['cash_payment_names'], true);
@@ -3318,6 +3532,8 @@ function getUserInternetApplications($userId) {
                     } else {
                         $cashPaymentNames = is_array($productSnapshot['cash_payment_names']) ? implode(', ', $productSnapshot['cash_payment_names']) : '';
                     }
+                } else {
+                    $cashPaymentNames = '';
                 }
                 
                 if (isset($productSnapshot['gift_card_names'])) {
@@ -3327,6 +3543,8 @@ function getUserInternetApplications($userId) {
                     } else {
                         $giftCardNames = is_array($productSnapshot['gift_card_names']) ? implode(', ', $productSnapshot['gift_card_names']) : '';
                     }
+                } else {
+                    $giftCardNames = '';
                 }
                 
                 if (isset($productSnapshot['equipment_names'])) {
@@ -3336,6 +3554,8 @@ function getUserInternetApplications($userId) {
                     } else {
                         $equipmentNames = is_array($productSnapshot['equipment_names']) ? implode(', ', $productSnapshot['equipment_names']) : '';
                     }
+                } else {
+                    $equipmentNames = '';
                 }
                 
                 if (isset($productSnapshot['installation_names'])) {
@@ -3345,7 +3565,31 @@ function getUserInternetApplications($userId) {
                     } else {
                         $installationNames = is_array($productSnapshot['installation_names']) ? implode(', ', $productSnapshot['installation_names']) : '';
                     }
+                } else {
+                    $installationNames = '';
                 }
+            } elseif (!empty($app['registration_place']) || !empty($app['service_type']) || !empty($app['speed_option']) || isset($app['monthly_fee'])) {
+                // product_snapshot이 없으면 현재 테이블 값 사용 (fallback)
+                $registrationPlace = $app['registration_place'] ?? '';
+                $speedOption = $app['speed_option'] ?? '';
+                $serviceType = $app['service_type'] ?? '';
+                $monthlyFee = $extractMonthlyFee($app['monthly_fee'] ?? 0);
+                
+                // 현금지급, 상품권, 장비, 설치 정보도 현재 테이블 값 사용
+                $cashPaymentNames = $app['cash_payment_names'] ?? '';
+                $giftCardNames = $app['gift_card_names'] ?? '';
+                $equipmentNames = $app['equipment_names'] ?? '';
+                $installationNames = $app['installation_names'] ?? '';
+            } else {
+                // 둘 다 없으면 빈 값
+                $registrationPlace = '';
+                $speedOption = '';
+                $serviceType = '';
+                $monthlyFee = 0;
+                $cashPaymentNames = '';
+                $giftCardNames = '';
+                $equipmentNames = '';
+                $installationNames = '';
             }
             
             // 요금제명 생성 (DB에 저장된 service_type 그대로 사용)

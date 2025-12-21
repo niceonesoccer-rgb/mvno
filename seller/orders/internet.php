@@ -190,15 +190,19 @@ try {
             
             $order['additional_info'] = json_decode($order['additional_info'] ?? '{}', true) ?: [];
             
+            // 신청 시점의 상품 정보를 우선 사용 (product_snapshot)
+            // 사용자가 신청했던 당시의 값이 나중에 변경되어도 유지되어야 함
             $snapshot = $order['additional_info']['product_snapshot'] ?? [];
-            if ($snapshot) {
+            if ($snapshot && !empty($snapshot)) {
+                // product_snapshot이 있으면 신청 시점 정보로 덮어쓰기
                 $exclude = ['id', 'product_id', 'seller_id', 'order_number', 'application_id', 'created_at'];
                 foreach ($snapshot as $key => $value) {
-                    if (!in_array($key, $exclude) && $value !== null) {
+                    if (!in_array($key, $exclude) && $value !== null && $value !== '') {
                         $order[$key] = $value;
                     }
                 }
             }
+            // product_snapshot이 없으면 현재 테이블 값 사용 (fallback)
             
             $jsonFields = ['cash_payment_names', 'cash_payment_prices', 'gift_card_names', 'gift_card_prices',
                           'equipment_names', 'equipment_prices', 'installation_names', 'installation_prices'];

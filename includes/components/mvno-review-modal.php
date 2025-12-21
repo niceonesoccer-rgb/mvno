@@ -1,6 +1,6 @@
 <?php
 /**
- * 요금제 리뷰 작성 모달 컴포넌트
+ * 알뜰폰 리뷰 작성 모달 컴포넌트
  */
 ?>
 
@@ -9,9 +9,16 @@
     <div class="mvno-review-modal-overlay"></div>
     <div class="mvno-review-modal-content">
         <div class="mvno-review-modal-header">
-            <h3 class="mvno-review-modal-title">리뷰 작성</h3>
+            <div class="mvno-review-modal-header-content">
+                <div class="mvno-review-modal-icon">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" fill="#EF4444"/>
+                    </svg>
+                </div>
+                <h3 class="mvno-review-modal-title">리뷰 작성</h3>
+            </div>
             <button type="button" class="mvno-review-modal-close" aria-label="닫기">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
             </button>
@@ -20,15 +27,25 @@
             <form id="mvnoReviewForm">
                 <div class="mvno-review-form-group mvno-rating-group-row">
                     <div class="mvno-rating-item">
-                        <label class="mvno-review-form-label">친절해요</label>
+                        <label class="mvno-review-form-label">
+                            <span class="label-icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <circle cx="12" cy="12" r="10" fill="#FEF3C7" stroke="#4b5563" stroke-width="1.5"/>
+                                    <circle cx="9" cy="10" r="1.5" fill="#4b5563"/>
+                                    <circle cx="15" cy="10" r="1.5" fill="#4b5563"/>
+                                    <path d="M8 15c1.5 1 3.5 1.5 4 1.5s2.5-.5 4-1.5" stroke="#4b5563" stroke-width="2" stroke-linecap="round" fill="none"/>
+                                </svg>
+                            </span>
+                            <span class="label-text">친절해요</span>
+                        </label>
                         <div class="mvno-star-rating" data-rating-type="kindness">
                             <?php 
                             $uniqueId1 = uniqid('mvno-kindness-');
-                            for ($i = 5; $i >= 1; $i--): 
+                            for ($i = 1; $i <= 5; $i++): 
                             ?>
                                 <input type="radio" id="kindness-star<?php echo $i; ?>-<?php echo $uniqueId1; ?>" name="kindness_rating" value="<?php echo $i; ?>" required>
                                 <label for="kindness-star<?php echo $i; ?>-<?php echo $uniqueId1; ?>" class="star-label" data-rating="<?php echo $i; ?>">
-                                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                         <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" fill="currentColor"/>
                                     </svg>
                                 </label>
@@ -36,15 +53,22 @@
                         </div>
                     </div>
                     <div class="mvno-rating-item">
-                        <label class="mvno-review-form-label">개통 빨라요</label>
+                        <label class="mvno-review-form-label">
+                            <span class="label-icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" fill="#FEF3C7" stroke="#4b5563" stroke-width="1.5" stroke-linejoin="round"/>
+                                </svg>
+                            </span>
+                            <span class="label-text">개통 빨라요</span>
+                        </label>
                         <div class="mvno-star-rating" data-rating-type="speed">
                             <?php 
                             $uniqueId2 = uniqid('mvno-speed-');
-                            for ($i = 5; $i >= 1; $i--): 
+                            for ($i = 1; $i <= 5; $i++): 
                             ?>
                                 <input type="radio" id="speed-star<?php echo $i; ?>-<?php echo $uniqueId2; ?>" name="speed_rating" value="<?php echo $i; ?>" required>
                                 <label for="speed-star<?php echo $i; ?>-<?php echo $uniqueId2; ?>" class="star-label" data-rating="<?php echo $i; ?>">
-                                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                         <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" fill="currentColor"/>
                                     </svg>
                                 </label>
@@ -53,15 +77,26 @@
                     </div>
                 </div>
                 <div class="mvno-review-form-group">
-                    <label for="reviewText" class="mvno-review-form-label">리뷰 내용</label>
+                    <label for="mvnoReviewText" class="mvno-review-form-label">
+                        <span class="label-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" fill="#4b5563"/>
+                            </svg>
+                        </span>
+                        <span class="label-text">리뷰 내용</span>
+                    </label>
                     <textarea 
-                        id="reviewText" 
+                        id="mvnoReviewText" 
                         name="reviewText" 
                         class="mvno-review-textarea" 
-                        placeholder="리뷰를 작성해주세요."
-                        rows="8"
+                        placeholder="서비스 이용 경험을 자세히 작성해주세요. 다른 고객들에게 도움이 됩니다."
+                        rows="6"
+                        maxlength="1000"
                         required
                     ></textarea>
+                    <div class="textarea-counter">
+                        <span id="mvnoReviewTextCounter">0</span> / 1000자
+                    </div>
                 </div>
                 <div class="mvno-review-modal-footer">
                     <div style="display: flex; gap: 12px; width: 100%;">
@@ -75,7 +110,12 @@
                         </button>
                         <div style="flex: 1;"></div>
                         <button type="button" class="mvno-review-btn-cancel">취소</button>
-                        <button type="submit" class="mvno-review-btn-submit">작성하기</button>
+                        <button type="submit" class="mvno-review-btn-submit">
+                            <span>작성하기</span>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </button>
                     </div>
                 </div>
             </form>
@@ -83,3 +123,592 @@
     </div>
 </div>
 
+<style>
+/* 알뜰폰 리뷰 모달 스타일 (인터넷과 동일) */
+.mvno-review-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.3s;
+    overflow-y: auto;
+    padding: 0;
+}
+
+.mvno-review-modal[style*="display: block"],
+.mvno-review-modal.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+.mvno-review-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 10000;
+}
+
+.mvno-review-modal-content {
+    position: relative;
+    background: #ffffff;
+    border-radius: 0;
+    width: 100%;
+    max-width: 100%;
+    max-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(0, 0, 0, 0.05);
+    transform: scale(0.95) translateY(20px);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+    z-index: 10001;
+    margin: auto;
+}
+
+@media (min-width: 641px) {
+    .mvno-review-modal {
+        padding: 20px;
+    }
+    
+    .mvno-review-modal-content {
+        border-radius: 24px;
+        width: 90%;
+        max-width: 700px;
+        max-height: calc(100vh - 40px);
+    }
+}
+
+.mvno-review-modal.show .mvno-review-modal-content {
+    transform: scale(1) translateY(0);
+}
+
+.mvno-review-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 28px 32px 24px;
+    border-bottom: 1px solid #f1f5f9;
+    background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+}
+
+.mvno-review-modal-header-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.mvno-review-modal-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    background: transparent;
+    border-radius: 12px;
+}
+
+.mvno-review-modal-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0;
+    letter-spacing: -0.02em;
+}
+
+.mvno-review-modal-close {
+    background: #f1f5f9;
+    border: none;
+    cursor: pointer;
+    padding: 10px;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    width: 40px;
+    height: 40px;
+}
+
+.mvno-review-modal-close:hover {
+    background: #e2e8f0;
+    color: #1e293b;
+    transform: rotate(90deg);
+}
+
+.mvno-review-modal-body {
+    padding: 32px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.mvno-review-form-group {
+    margin-bottom: 32px;
+}
+
+.mvno-rating-group-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    margin-bottom: 0;
+}
+
+.mvno-rating-item {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 16px;
+    width: 100%;
+    min-height: 50px;
+    padding: 8px 0;
+}
+
+.mvno-review-form-label {
+    display: flex !important;
+    align-items: center;
+    gap: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    color: #334155;
+    margin-bottom: 0 !important;
+    white-space: nowrap;
+    flex-shrink: 0;
+    width: 100px; /* 고정 너비로 별 위치 정렬 */
+    min-width: 100px;
+}
+
+.label-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+}
+
+.label-icon svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+.label-text {
+    letter-spacing: -0.01em;
+}
+
+.mvno-star-rating {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-start;
+    align-items: center;
+    flex: 1;
+    min-width: 0; /* flex 아이템이 축소될 수 있도록 */
+}
+
+.mvno-star-rating input[type="radio"] {
+    display: none;
+}
+
+.mvno-star-rating .star-label {
+    cursor: pointer;
+    color: #e2e8f0;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    padding: 4px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 0; /* 별 정렬을 위해 */
+}
+
+.mvno-star-rating .star-label svg {
+    display: block;
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+}
+
+/* 기본 별 색상 */
+.mvno-star-rating .star-label {
+    color: #e2e8f0;
+}
+
+/* 호버 효과 (확대) */
+.mvno-star-rating .star-label:hover {
+    transform: scale(1.15);
+    background: rgba(239, 68, 68, 0.1);
+}
+
+/* 호버된 별과 그 이전 별들 모두 빨간색으로 (JavaScript로 처리) */
+.mvno-star-rating .star-label.hover-active {
+    color: #EF4444 !important;
+}
+
+/* 선택된 별과 그 이전 별들 모두 빨간색 (인덱스 기반) */
+.mvno-star-rating .star-label.active {
+    color: #EF4444 !important;
+}
+
+/* active 클래스가 없는 별은 회색 */
+.mvno-star-rating .star-label:not(.active) {
+    color: #e2e8f0;
+}
+
+.mvno-review-textarea {
+    width: 100%;
+    padding: 16px 20px;
+    border: 2px solid #e2e8f0;
+    border-radius: 16px;
+    font-size: 15px;
+    font-family: inherit;
+    color: #1e293b;
+    background: #f8fafc;
+    resize: vertical;
+    min-height: 140px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    line-height: 1.6;
+}
+
+.mvno-review-textarea:focus {
+    outline: none;
+    border-color: #6366f1;
+    background: #ffffff;
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+}
+
+.mvno-review-textarea::placeholder {
+    color: #94a3b8;
+}
+
+.textarea-counter {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 8px;
+    font-size: 13px;
+    color: #64748b;
+}
+
+.textarea-counter span {
+    font-weight: 600;
+    color: #6366f1;
+}
+
+.mvno-review-modal-footer {
+    display: flex;
+    gap: 12px;
+    padding-top: 24px;
+    border-top: 1px solid #f1f5f9;
+    margin-top: 8px;
+}
+
+.mvno-review-btn-cancel,
+.mvno-review-btn-submit,
+.mvno-review-btn-delete {
+    padding: 16px 24px;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border: none;
+}
+
+.mvno-review-btn-cancel,
+.mvno-review-btn-submit {
+    flex: 1;
+}
+
+.mvno-review-btn-cancel {
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+.mvno-review-btn-cancel:hover {
+    background: #e2e8f0;
+    color: #475569;
+    transform: translateY(-1px);
+}
+
+.mvno-review-btn-submit {
+    background: #3b82f6;
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.mvno-review-btn-submit:hover {
+    transform: translateY(-2px);
+    background: #2563eb;
+    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4);
+}
+
+.mvno-review-btn-submit:active {
+    transform: translateY(0);
+}
+
+.mvno-review-btn-submit:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.mvno-review-btn-submit svg {
+    transition: transform 0.2s;
+}
+
+.mvno-review-btn-submit:hover svg {
+    transform: translateX(2px);
+}
+
+.mvno-review-btn-delete {
+    background: #fee2e2;
+    color: #dc2626;
+    padding: 16px 20px;
+}
+
+.mvno-review-btn-delete:hover {
+    background: #fecaca;
+    color: #b91c1c;
+    transform: translateY(-1px);
+}
+
+.mvno-review-btn-delete:active {
+    transform: translateY(0);
+}
+
+/* 반응형 디자인 */
+@media (max-width: 640px) {
+    .mvno-review-modal {
+        padding: 0;
+    }
+    
+    .mvno-review-modal-content {
+        width: 100%;
+        max-width: 100%;
+        border-radius: 0;
+        max-height: 100vh;
+    }
+    
+    .mvno-review-modal-header {
+        padding: 24px 20px 20px;
+    }
+    
+    .mvno-review-modal-body {
+        padding: 24px 20px;
+    }
+    
+    .mvno-rating-group-row {
+        grid-template-columns: 1fr;
+        gap: 28px;
+    }
+    
+    .mvno-rating-item {
+        flex-direction: row;
+        gap: 12px;
+    }
+    
+    .mvno-review-form-label {
+        width: 90px; /* 모바일에서도 고정 너비 */
+        min-width: 90px;
+    }
+    
+    .mvno-review-modal-title {
+        font-size: 20px;
+    }
+    
+    .mvno-star-rating {
+        gap: 6px;
+    }
+    
+    .mvno-star-rating .star-label svg {
+        width: 36px;
+        height: 36px;
+    }
+}
+
+/* 애니메이션 */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(30px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.mvno-review-modal.show .mvno-review-modal-content {
+    animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+</style>
+
+<script>
+// 리뷰 모달 열기/닫기 애니메이션
+document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('mvnoReviewModal');
+    const modalOverlay = modal ? modal.querySelector('.mvno-review-modal-overlay') : null;
+    const modalClose = modal ? modal.querySelector('.mvno-review-modal-close') : null;
+    const cancelBtn = document.querySelector('.mvno-review-btn-cancel');
+    const reviewTextarea = document.getElementById('mvnoReviewText');
+    const reviewTextCounter = document.getElementById('mvnoReviewTextCounter');
+    
+    // 모달 열기 함수 (전역으로 노출)
+    window.openMvnoReviewModal = function() {
+        if (modal) {
+            // 현재 스크롤 위치 저장
+            const scrollY = window.scrollY;
+            document.body.style.position = 'fixed';
+            document.body.style.top = `-${scrollY}px`;
+            document.body.style.width = '100%';
+            document.body.style.overflow = 'hidden';
+            
+            modal.style.display = 'flex';
+            setTimeout(() => {
+                modal.classList.add('show');
+            }, 10);
+        }
+    };
+    
+    // 모달 닫기 함수
+    function closeReviewModal() {
+        if (modal) {
+            modal.classList.remove('show');
+            setTimeout(() => {
+                modal.style.display = 'none';
+                
+                // 스크롤 위치 복원
+                const scrollY = document.body.style.top;
+                document.body.style.position = '';
+                document.body.style.top = '';
+                document.body.style.width = '';
+                document.body.style.overflow = '';
+                if (scrollY) {
+                    window.scrollTo(0, parseInt(scrollY || '0') * -1);
+                }
+                
+                // 폼 초기화
+                const form = document.getElementById('mvnoReviewForm');
+                if (form) {
+                    form.reset();
+                    // 별점 초기화
+                    const starLabels = form.querySelectorAll('.star-label');
+                    starLabels.forEach(label => {
+                        label.classList.remove('active');
+                        label.classList.remove('hover-active');
+                    });
+                }
+                if (reviewTextCounter) {
+                    reviewTextCounter.textContent = '0';
+                }
+            }, 300);
+        }
+    }
+    
+    // 닫기 이벤트
+    if (modalOverlay) {
+        modalOverlay.addEventListener('click', closeReviewModal);
+    }
+    
+    if (modalClose) {
+        modalClose.addEventListener('click', closeReviewModal);
+    }
+    
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', closeReviewModal);
+    }
+    
+    // ESC 키로 닫기
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && modal && modal.classList.contains('show')) {
+            closeReviewModal();
+        }
+    });
+    
+    // 텍스트 카운터
+    if (reviewTextarea && reviewTextCounter) {
+        reviewTextarea.addEventListener('input', function() {
+            const length = this.value.length;
+            reviewTextCounter.textContent = length;
+            if (length > 1000) {
+                reviewTextCounter.style.color = '#ef4444';
+            } else {
+                reviewTextCounter.style.color = '#6b7280';
+            }
+        });
+    }
+    
+    // 별점 호버 및 클릭 이벤트
+    const starRatings = document.querySelectorAll('.mvno-star-rating');
+    
+    starRatings.forEach(ratingGroup => {
+        const starLabels = Array.from(ratingGroup.querySelectorAll('.star-label'));
+        const ratingType = ratingGroup.getAttribute('data-rating-type');
+        
+        starLabels.forEach((label, index) => {
+            // 호버 이벤트: 왼쪽부터 해당 별까지 모든 별 하이라이트
+            label.addEventListener('mouseenter', function() {
+                const position = index + 1; // 왼쪽에서 몇 번째 별인지 (1~5)
+                const sameTypeLabels = Array.from(ratingGroup.querySelectorAll('.star-label'));
+                
+                sameTypeLabels.forEach((l, idx) => {
+                    if (idx < position) {
+                        // 왼쪽부터 position번째까지 활성화
+                        l.classList.add('hover-active');
+                    } else {
+                        l.classList.remove('hover-active');
+                    }
+                });
+            });
+            
+            // 마우스가 벗어날 때 호버 효과 제거
+            ratingGroup.addEventListener('mouseleave', function() {
+                const sameTypeLabels = ratingGroup.querySelectorAll('.star-label');
+                sameTypeLabels.forEach(l => {
+                    l.classList.remove('hover-active');
+                });
+            });
+            
+            // 클릭 이벤트: 왼쪽부터 해당 별까지 모든 별 활성화
+            label.addEventListener('click', function() {
+                const position = index + 1;
+                
+                setTimeout(() => {
+                    const sameTypeLabels = Array.from(ratingGroup.querySelectorAll('.star-label'));
+                    sameTypeLabels.forEach((l, idx) => {
+                        if (idx < position) {
+                            l.classList.add('active');
+                        } else {
+                            l.classList.remove('active');
+                        }
+                    });
+                }, 0);
+            });
+        });
+    });
+});
+</script>

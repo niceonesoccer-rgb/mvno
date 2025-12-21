@@ -14,3 +14,4 @@ SET `status` = 'approved'
 WHERE `product_type` = 'internet' 
 AND `status` = 'pending';
 
+

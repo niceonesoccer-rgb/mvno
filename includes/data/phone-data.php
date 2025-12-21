@@ -336,6 +336,14 @@ function getPhonesData($limit = 10) {
                 $isFavorited = in_array($productIdInt, $favoriteProductIds, true); // strict mode
             }
             
+            // 평균 별점 가져오기 (DB에서)
+            require_once __DIR__ . '/plan-data.php';
+            $productId = (int)$product['id'];
+            $averageRating = getProductAverageRating($productId, 'mno');
+            
+            // 별점이 0이면 빈 문자열 (리뷰가 없는 경우)
+            $displayRating = $averageRating > 0 ? number_format($averageRating, 1) : '';
+            
             $phones[] = [
                 'id' => (int)$product['id'],
                 'provider' => $provider,
@@ -343,7 +351,7 @@ function getPhonesData($limit = 10) {
                 // - seller_name 우선값을 company_name 키에 넣어준다.
                 'company_name' => $companyName,
                 'seller_name' => $seller['seller_name'] ?? null,
-                'rating' => '4.3', // 기본값, 나중에 리뷰 시스템 연동
+                'rating' => $displayRating, // DB에서 가져온 평균 별점
                 'device_name' => $product['device_name'] ?? '',
                 'device_storage' => $product['device_capacity'] ?? '',
                 'release_price' => $releasePrice,
@@ -711,13 +719,21 @@ function getPhoneDetailData($phone_id) {
             }
         }
         
+        // 평균 별점 가져오기 (DB에서)
+        require_once __DIR__ . '/plan-data.php';
+        $productId = (int)$product['id'];
+        $averageRating = getProductAverageRating($productId, 'mno');
+        
+        // 별점이 0이면 빈 문자열 (리뷰가 없는 경우)
+        $displayRating = $averageRating > 0 ? number_format($averageRating, 1) : '';
+        
         return [
             'id' => (int)$product['id'],
             'status' => $product['status'] ?? 'active', // 상품 상태 추가
             'provider' => $provider,
             'company_name' => $companyName,
             'seller_name' => $seller['seller_name'] ?? null,
-            'rating' => '4.3', // 기본값
+            'rating' => $displayRating, // DB에서 가져온 평균 별점
             'device_name' => $product['device_name'] ?? '',
             'device_storage' => $product['device_capacity'] ?? '',
             'device_price' => $devicePrice, // 원본 가격 값 추가

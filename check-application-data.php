@@ -137,7 +137,7 @@ header('Content-Type: text/html; charset=utf-8');
             
             echo '<p><strong>3. additional_info 구조:</strong></p>';
             echo '<ul>';
-            echo '<li>subscription_type: 가입 형태 (new, port, change)</li>';
+            echo '<li>subscription_type: 가입 형태 (new, mnp, change)</li>';
             echo '<li><strong>product_snapshot:</strong> 신청 당시 상품 정보 전체 (단위 포함 가능)</li>';
             echo '</ul>';
             echo '</div>';
@@ -258,6 +258,7 @@ header('Content-Type: text/html; charset=utf-8');
     </div>
 </body>
 </html>
+
 
 
 
