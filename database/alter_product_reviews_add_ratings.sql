@@ -10,3 +10,4 @@ ADD COLUMN `kindness_rating` TINYINT(1) UNSIGNED DEFAULT NULL COMMENT '친절해
 ADD COLUMN `speed_rating` TINYINT(1) UNSIGNED DEFAULT NULL COMMENT '설치 빨라요 별점 (인터넷 리뷰용)' AFTER `kindness_rating`;
 
 
+

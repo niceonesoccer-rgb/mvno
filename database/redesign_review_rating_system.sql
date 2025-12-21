@@ -67,3 +67,4 @@ ADD INDEX IF NOT EXISTS `idx_application_id` (`application_id`);
 -- 4. 복합 인덱스 추가 (성능 최적화)
 -- ============================================
 -- 이미 위에서 추가했지만, 중복 방지를 위해 IF NOT EXISTS 사용 불가 시 별도 처리
+

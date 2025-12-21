@@ -17,3 +17,4 @@ ADD INDEX `idx_application_id` (`application_id`);
 -- ALTER TABLE `product_reviews` 
 -- ADD CONSTRAINT `fk_review_application` FOREIGN KEY (`application_id`) REFERENCES `product_applications` (`id`) ON DELETE SET NULL;
 
+

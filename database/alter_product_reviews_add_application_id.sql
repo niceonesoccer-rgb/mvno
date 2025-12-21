@@ -14,3 +14,4 @@ ALTER TABLE `product_reviews`
 ADD INDEX `idx_application_id` (`application_id`);
 
 
+

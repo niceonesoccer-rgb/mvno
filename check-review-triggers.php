@@ -203,3 +203,4 @@ echo "<li>서버 로그 파일(error_log)에서 'DEBUG updateProductReview'로 �
 echo "<li>통계 테이블 값이 변경되었다면 'ERROR updateProductReview' 로그를 확인하세요.</li>";
 echo "<li>트리거가 UPDATE 시에도 작동하는지 확인하세요.</li>";
 echo "</ol>";
+

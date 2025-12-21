@@ -12,3 +12,4 @@ ADD INDEX `idx_product_id_type_status_kindness` (`product_id`, `product_type`, `
 -- speed_rating 집계 쿼리 최적화
 ALTER TABLE `product_reviews` 
 ADD INDEX `idx_product_id_type_status_speed` (`product_id`, `product_type`, `status`, `speed_rating`);
+

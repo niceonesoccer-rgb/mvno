@@ -388,18 +388,6 @@ include '../includes/components/mvno-review-modal.php';
                                                         onmouseout="this.style.background='<?php echo $buttonBgColor; ?>'">
                                                         <?php echo htmlspecialchars($buttonText); ?>
                                                     </button>
-                                                    <?php if ($hasReview): ?>
-                                                    <button 
-                                                        class="mvno-review-write-new-btn" 
-                                                        data-application-id="<?php echo htmlspecialchars($applicationId); ?>"
-                                                        data-product-id="<?php echo htmlspecialchars($productId); ?>"
-                                                        style="flex: 1; padding: 12px 16px; background: #10b981; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: background 0.2s;"
-                                                        onmouseover="this.style.background='#059669'"
-                                                        onmouseout="this.style.background='#10b981'"
-                                                        title="새 리뷰 작성">
-                                                        새 리뷰 작성
-                                                    </button>
-                                                    <?php endif; ?>
                                                 </div>
                                                 <?php endif; ?>
                                             </div>
@@ -506,71 +494,6 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentReviewProductId = null;
     let currentReviewId = null;
     let isEditMode = false;
-    
-    // "새 리뷰 작성" 버튼 클릭 이벤트
-    const reviewWriteNewButtons = document.querySelectorAll('.mvno-review-write-new-btn');
-    reviewWriteNewButtons.forEach(btn => {
-        btn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            currentReviewApplicationId = this.getAttribute('data-application-id');
-            currentReviewProductId = this.getAttribute('data-product-id');
-            isEditMode = false; // 새 리뷰 작성 모드
-            currentReviewId = null;
-            
-            if (reviewModal) {
-                const modalTitle = reviewModal.querySelector('.mvno-review-modal-title');
-                if (modalTitle) {
-                    modalTitle.textContent = '리뷰 작성';
-                }
-                
-                const submitBtn = reviewForm ? reviewForm.querySelector('.mvno-review-btn-submit') : null;
-                if (submitBtn) {
-                    submitBtn.textContent = '작성하기';
-                }
-                
-                const deleteBtn = document.getElementById('mvnoReviewDeleteBtn');
-                if (deleteBtn) {
-                    deleteBtn.style.display = 'none';
-                }
-                
-                // 폼 초기화
-                if (reviewForm) {
-                    reviewForm.reset();
-                    // 별점 초기화
-                    const starInputs = reviewForm.querySelectorAll('input[name="kindness_rating"], input[name="speed_rating"]');
-                    starInputs.forEach(input => {
-                        if (input.type === 'radio') {
-                            input.checked = false;
-                        }
-                    });
-                    // 별점 표시 초기화
-                    const starContainers = reviewForm.querySelectorAll('.mvno-review-star-rating');
-                    starContainers.forEach(container => {
-                        const stars = container.querySelectorAll('.mvno-review-star');
-                        stars.forEach(star => {
-                            star.classList.remove('mvno-review-star-filled');
-                        });
-                    });
-                    // 글자 수 카운터 초기화
-                    const contentTextarea = reviewForm.querySelector('textarea[name="content"]');
-                    if (contentTextarea) {
-                        const counter = reviewForm.querySelector('.mvno-review-char-count');
-                        if (counter) {
-                            counter.textContent = '0 / 1000';
-                        }
-                    }
-                }
-                
-                // 모달 열기
-                const scrollY = window.scrollY;
-                document.body.style.position = 'fixed';
-                document.body.style.top = `-${scrollY}px`;
-                document.body.style.width = '100%';
-                document.body.style.overflow = 'hidden';
-                reviewModal.classList.add('mvno-review-modal-active');
-            }
-        });
-    });
     
     // 리뷰 작성/수정 버튼 클릭 이벤트
     reviewWriteButtons.forEach(btn => {
@@ -1214,6 +1137,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // 푸터 포함
 include '../includes/footer.php';
 ?>
+
 
 
 

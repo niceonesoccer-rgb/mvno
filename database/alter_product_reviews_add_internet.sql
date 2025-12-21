@@ -9,3 +9,4 @@ ALTER TABLE `product_reviews`
 MODIFY COLUMN `product_type` ENUM('mvno', 'mno', 'internet') NOT NULL COMMENT '상품 타입';
 
 
+

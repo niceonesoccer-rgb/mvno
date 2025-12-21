@@ -554,8 +554,9 @@ function getRelativeTime($datetime) {
     $hasReviews = !empty($allReviews) && $reviewCount > 0;
     $remainingCount = max(0, $reviewCount - 5); // 남은 리뷰 개수
     
-    // 카테고리별 평균 별점 가져오기 (인터넷과 동일한 함수 사용)
-    $categoryAverages = getInternetReviewCategoryAverages($plan_id, 'mvno');
+    // 카테고리별 평균 별점 가져오기
+    // MVNO 리뷰에는 kindness_rating과 speed_rating이 없으므로 기본 평균만 사용
+    $categoryAverages = ['kindness' => $averageRating, 'speed' => $averageRating];
     
     // 판매자명 가져오기
     $sellerName = '';

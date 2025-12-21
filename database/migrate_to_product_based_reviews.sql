@@ -164,3 +164,4 @@ ADD INDEX `idx_product_rating` (`product_id`, `rating`);
 SELECT '상품별 리뷰 시스템 마이그레이션 완료!' as message;
 
 
+

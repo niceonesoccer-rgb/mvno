@@ -309,3 +309,4 @@ try {
 } catch (PDOException $e) {
     echo "<p class='error'>오류 발생: " . htmlspecialchars($e->getMessage()) . "</p>";
 }
+

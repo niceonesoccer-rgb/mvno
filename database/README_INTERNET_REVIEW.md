@@ -87,3 +87,4 @@ MODIFY COLUMN `product_type` ENUM('mvno', 'mno', 'internet') NOT NULL COMMENT '�
 - 리뷰는 작성 후 관리자 승인을 거쳐야 표시됩니다 (status = 'approved').
 
 
+

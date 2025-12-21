@@ -89,3 +89,4 @@ checkAllAgreements - Validation: {
 - 오른쪽 클릭 → "Save as..."로 로그를 파일로 저장할 수 있습니다
 
 
+

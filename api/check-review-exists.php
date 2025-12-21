@@ -90,3 +90,4 @@ $result['checks']['has_review'] = $hasReviewCount > 0;
 echo json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
 
 
+

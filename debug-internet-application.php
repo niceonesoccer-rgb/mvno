@@ -230,3 +230,4 @@ try {
     echo "<p style='color: red;'>" . htmlspecialchars($e->getMessage()) . "</p>";
     echo "<pre>" . htmlspecialchars($e->getTraceAsString()) . "</pre>";
 }
+
