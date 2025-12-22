@@ -17,7 +17,15 @@ if (!isLoggedIn()) {
 // 현재 사용자 정보 가져오기
 $currentUser = getCurrentUser();
 if (!$currentUser) {
-    // 사용자 정보를 가져올 수 없으면 로그아웃 처리
+    // 세션 정리 후 로그인 페이지로 리다이렉트
+    if (isset($_SESSION['logged_in'])) {
+        unset($_SESSION['logged_in']);
+    }
+    if (isset($_SESSION['user_id'])) {
+        unset($_SESSION['user_id']);
+    }
+    // 현재 URL을 세션에 저장 (회원가입 후 돌아올 주소)
+    $_SESSION['redirect_url'] = $_SERVER['REQUEST_URI'];
     header('Location: /MVNO/?show_login=1');
     exit;
 }

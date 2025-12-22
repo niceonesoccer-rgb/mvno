@@ -2984,8 +2984,19 @@ function submitInternetForm() {
     })
     .then(data => {
         if (data.success) {
-            closeInternetModal();
-            showInternetToast('success', '인터넷 상담을 신청했어요', '입력한 번호로 상담 전화를 드릴예정이에요');
+            // redirect_url이 있으면 해당 URL로 이동
+            if (data.redirect_url && data.redirect_url.trim() !== '') {
+                // 모든 공백 제거 (앞뒤 + 내부)
+                let redirectUrl = data.redirect_url.replace(/\s+/g, '').trim();
+                // URL이 프로토콜(http:// 또는 https://)을 포함하지 않으면 https:// 추가
+                if (!/^https?:\/\//i.test(redirectUrl)) {
+                    redirectUrl = 'https://' + redirectUrl;
+                }
+                window.location.href = redirectUrl;
+            } else {
+                // redirect_url이 없으면 마이페이지 인터넷 주문내역으로 이동
+                window.location.href = '/MVNO/mypage/internet-order.php';
+            }
         } else {
             showInternetToast('error', '신청 실패', data.message || '신청정보 저장에 실패했습니다.');
         }
@@ -3550,6 +3561,7 @@ function handleInternetApplyClick(e) {
 <script src="/MVNO/assets/js/plan-accordion.js"></script>
 
 <?php include '../includes/footer.php'; ?>
+
 
 
 

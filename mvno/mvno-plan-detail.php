@@ -1946,13 +1946,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                         window.location.href = redirectUrl;
                     } else {
-                        // redirect_url이 없으면 모달 닫기
-                        if (typeof showAlert === 'function') {
-                            showAlert('신청이 완료되었습니다.', '신청 완료');
-                        } else {
-                            alert('신청이 완료되었습니다.');
-                        }
-                        closeApplyModal();
+                        // redirect_url이 없으면 마이페이지 알뜰폰 주문내역으로 이동
+                        window.location.href = '/MVNO/mypage/mvno-order.php';
                     }
                 } else {
                     // 실패 시 모달로 표시

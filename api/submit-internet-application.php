@@ -99,6 +99,7 @@ try {
     }
     
     $sellerId = $product['seller_id'];
+    $redirectUrl = !empty($product['redirect_url']) ? preg_replace('/\s+/', '', trim($product['redirect_url'])) : null;
     error_log("Internet Application Debug - Step 3: Product found, seller_id: {$sellerId}");
     
     // 로그인한 사용자 정보 가져오기 (이미 로그인 체크 완료)
@@ -230,7 +231,8 @@ try {
     echo json_encode([
         'success' => true,
         'message' => '신청이 완료되었습니다.',
-        'application_id' => $applicationId
+        'application_id' => $applicationId,
+        'redirect_url' => $redirectUrl
     ], JSON_UNESCAPED_UNICODE);
     
 } catch (PDOException $e) {

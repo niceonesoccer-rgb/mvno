@@ -6,7 +6,8 @@ session_start();
 
 // 현재 페이지 설정
 $current_page = 'mypage';
-$is_main_page = false;
+// 메인 페이지 여부 (하단 메뉴 및 푸터 표시용)
+$is_main_page = true;
 
 // 헤더 포함
 include '../includes/header.php';

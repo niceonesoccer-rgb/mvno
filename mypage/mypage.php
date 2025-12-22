@@ -19,7 +19,15 @@ if (!isLoggedIn()) {
 // 현재 사용자 정보 가져오기
 $currentUser = getCurrentUser();
 if (!$currentUser) {
-    // 사용자 정보를 가져올 수 없으면 로그아웃 처리
+    // 세션 정리 후 로그인 페이지로 리다이렉트
+    if (isset($_SESSION['logged_in'])) {
+        unset($_SESSION['logged_in']);
+    }
+    if (isset($_SESSION['user_id'])) {
+        unset($_SESSION['user_id']);
+    }
+    // 현재 URL을 세션에 저장 (회원가입 후 돌아올 주소)
+    $_SESSION['redirect_url'] = $_SERVER['REQUEST_URI'];
     header('Location: /MVNO/?show_login=1');
     exit;
 }
@@ -204,7 +212,7 @@ include '../includes/header.php';
                     </a>
                 </li>
 
-                <!-- 질문과 답변 -->
+                <!-- 1:1 문의 -->
                 <li style="border-bottom: 1px solid #e5e7eb;">
                     <a href="/MVNO/qna/qna.php" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; text-decoration: none; color: inherit;">
                         <div style="display: flex; align-items: center; gap: 12px;">
@@ -212,7 +220,7 @@ include '../includes/header.php';
                                 <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/>
                                 <path d="M21 21L16.65 16.65" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                             </svg>
-                            <span style="font-size: 16px;">질문과 답변</span>
+                            <span style="font-size: 16px;">1:1 문의</span>
                         </div>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width: 16px; height: 16px;">
                             <path d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>

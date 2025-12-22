@@ -20,21 +20,27 @@ if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
         session_name('MVNO_SESSION');
     }
     
-    // 세션 쿠키 설정
+    // 세션 쿠키 설정 (세션 유지 개선)
     if (version_compare(PHP_VERSION, '7.3.0', '>=')) {
         session_set_cookie_params([
-            'lifetime' => 0,
+            'lifetime' => 0, // 브라우저 종료 시까지 유지
             'path' => '/',
-            'domain' => '',
-            'secure' => false,
-            'httponly' => true,
-            'samesite' => 'Lax'
+            'domain' => '', // 현재 도메인
+            'secure' => false, // HTTPS가 아니면 false
+            'httponly' => true, // JavaScript 접근 방지
+            'samesite' => 'Lax' // CSRF 방지
         ]);
     } else {
         session_set_cookie_params(0, '/', '', false, true);
     }
     
     session_start();
+    
+    // 세션 재생성 방지 (세션 ID 고정) - session_start() 이후에 실행
+    if (!isset($_SESSION['initiated'])) {
+        session_regenerate_id(false); // false = 세션 데이터 유지
+        $_SESSION['initiated'] = true;
+    }
 }
 
 require_once __DIR__ . '/db-config.php';
@@ -365,15 +371,37 @@ function logoutUser() {
  * 현재 로그인한 사용자 정보 가져오기
  */
 function getCurrentUser() {
+    // 세션이 시작되지 않았으면 시작
+    if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
+        $currentSessionName = session_name();
+        if (empty($currentSessionName) || $currentSessionName === 'PHPSESSID') {
+            session_name('MVNO_SESSION');
+        }
+        session_start();
+    }
+    
+    // 로그인 상태 확인
     if (!isset($_SESSION['logged_in']) || !$_SESSION['logged_in']) {
         return null;
     }
     
-    if (!isset($_SESSION['user_id'])) {
+    // user_id 확인
+    if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
         return null;
     }
     
-    return getUserById($_SESSION['user_id']);
+    // DB에서 사용자 정보 가져오기
+    $user = getUserById($_SESSION['user_id']);
+    
+    // 사용자 정보를 찾을 수 없으면 세션 정리
+    if (!$user) {
+        // 세션에 user_id가 있지만 DB에서 찾을 수 없는 경우 세션 정리
+        unset($_SESSION['logged_in']);
+        unset($_SESSION['user_id']);
+        return null;
+    }
+    
+    return $user;
 }
 
 /**
@@ -392,6 +420,7 @@ if (!function_exists('getCurrentUserId')) {
  * 로그인 여부 확인
  */
 function isLoggedIn() {
+    // 세션이 시작되지 않았으면 시작
     if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
         $currentSessionName = session_name();
         if (empty($currentSessionName) || $currentSessionName === 'PHPSESSID') {
@@ -400,7 +429,19 @@ function isLoggedIn() {
         session_start();
     }
     
-    return isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true;
+    // 로그인 상태 확인
+    if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
+        return false;
+    }
+    
+    // user_id가 없으면 로그인 상태가 아님
+    if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
+        // 세션 정리
+        unset($_SESSION['logged_in']);
+        return false;
+    }
+    
+    return true;
 }
 
 /**
