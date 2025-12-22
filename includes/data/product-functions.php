@@ -660,6 +660,8 @@ function saveInternetProduct($productData) {
                     `equipment_prices` TEXT DEFAULT NULL COMMENT '장비 제공 가격 (JSON)',
                     `installation_names` TEXT DEFAULT NULL COMMENT '설치 및 기타 서비스 항목명 (JSON)',
                     `installation_prices` TEXT DEFAULT NULL COMMENT '설치 및 기타 서비스 가격 (JSON)',
+                    `promotion_title` VARCHAR(200) DEFAULT NULL COMMENT '프로모션 제목',
+                    `promotions` TEXT DEFAULT NULL COMMENT '프로모션 목록 (JSON)',
                     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                     PRIMARY KEY (`id`),
@@ -671,9 +673,23 @@ function saveInternetProduct($productData) {
             ");
             error_log("product_internet_details 테이블이 생성되었습니다.");
         }
-        
+
         // products 테이블 확인 및 생성
         ensureProductsTable($pdo);
+        
+        // promotion_title 컬럼 확인 및 추가
+        $checkPromotionTitle = $pdo->query("SHOW COLUMNS FROM product_internet_details LIKE 'promotion_title'");
+        if (!$checkPromotionTitle->fetch()) {
+            $pdo->exec("ALTER TABLE product_internet_details ADD COLUMN promotion_title VARCHAR(200) DEFAULT NULL COMMENT '프로모션 제목'");
+            error_log("product_internet_details 테이블에 promotion_title 컬럼이 추가되었습니다.");
+        }
+        
+        // promotions 컬럼 확인 및 추가
+        $checkPromotions = $pdo->query("SHOW COLUMNS FROM product_internet_details LIKE 'promotions'");
+        if (!$checkPromotions->fetch()) {
+            $pdo->exec("ALTER TABLE product_internet_details ADD COLUMN promotions TEXT DEFAULT NULL COMMENT '프로모션 목록 (JSON)'");
+            error_log("product_internet_details 테이블에 promotions 컬럼이 추가되었습니다.");
+        }
     } catch (PDOException $e) {
         error_log("테이블 생성 중 오류: " . $e->getMessage());
     }
@@ -855,6 +871,15 @@ function saveInternetProduct($productData) {
             $filteredInstallation['prices'] ?? []
         );
         
+        // 프로모션 데이터 처리
+        $promotionTitle = isset($productData['promotion_title']) ? trim($productData['promotion_title']) : '';
+        $promotions = isset($productData['promotions']) && is_array($productData['promotions']) ? $productData['promotions'] : [];
+        // 빈 항목 제거
+        $promotions = array_filter(array_map('trim', $promotions), function($item) {
+            return !empty($item);
+        });
+        $promotions = array_values($promotions); // 인덱스 재정렬
+        
         // 상세 정보 저장/업데이트
         $detailExists = false;
         if ($isEditMode) {
@@ -883,7 +908,9 @@ function saveInternetProduct($productData) {
                     equipment_names = :equipment_names,
                     equipment_prices = :equipment_prices,
                     installation_names = :installation_names,
-                    installation_prices = :installation_prices
+                    installation_prices = :installation_prices,
+                    promotion_title = :promotion_title,
+                    promotions = :promotions
                 WHERE product_id = :product_id
             ");
         } else {
@@ -893,13 +920,15 @@ function saveInternetProduct($productData) {
                     cash_payment_names, cash_payment_prices,
                     gift_card_names, gift_card_prices,
                     equipment_names, equipment_prices,
-                    installation_names, installation_prices
+                    installation_names, installation_prices,
+                    promotion_title, promotions
                 ) VALUES (
                     :product_id, :registration_place, :service_type, :speed_option, :monthly_fee,
                     :cash_payment_names, :cash_payment_prices,
                     :gift_card_names, :gift_card_prices,
                     :equipment_names, :equipment_prices,
-                    :installation_names, :installation_prices
+                    :installation_names, :installation_prices,
+                    :promotion_title, :promotions
                 )
             ");
         }
@@ -944,6 +973,8 @@ function saveInternetProduct($productData) {
             ':equipment_prices' => json_encode($equipmentPricesText, JSON_UNESCAPED_UNICODE), // 텍스트 배열 (예: ["10000원", "무료"])
             ':installation_names' => json_encode($installationData['names'] ?? [], JSON_UNESCAPED_UNICODE),
             ':installation_prices' => json_encode($installationPricesText, JSON_UNESCAPED_UNICODE), // 텍스트 배열 (예: ["무료", "설치비"])
+            ':promotion_title' => $promotionTitle,
+            ':promotions' => json_encode($promotions, JSON_UNESCAPED_UNICODE)
         ];
         
         // 디버깅: 실행 파라미터 로그

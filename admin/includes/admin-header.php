@@ -723,6 +723,15 @@ if ($pdo) {
                     </span>
                     API 설정
                 </a>
+                <a href="/MVNO/admin/settings/email-settings.php" class="menu-item <?php echo $currentPage === 'email-settings.php' ? 'active' : ''; ?>">
+                    <span class="menu-item-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                            <polyline points="22,6 12,13 2,6"/>
+                        </svg>
+                    </span>
+                    이메일 설정
+                </a>
                 <a href="/MVNO/admin/settings/point-settings.php" class="menu-item <?php echo $currentPage === 'point-settings.php' ? 'active' : ''; ?>">
                     <span class="menu-item-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -767,6 +776,17 @@ if ($pdo) {
                         </svg>
                     </span>
                     단말기 설정
+                </a>
+                <a href="/MVNO/admin/settings/internet-service-types.php" class="menu-item <?php echo $currentPage === 'internet-service-types.php' ? 'active' : ''; ?>">
+                    <span class="menu-item-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="2" y="3" width="20" height="14" rx="2" stroke-linecap="round"/>
+                            <rect x="4" y="5" width="16" height="10" rx="1" stroke-linecap="round"/>
+                            <rect x="2" y="17" width="20" height="4" rx="1" stroke-linecap="round"/>
+                            <path d="M17 19h-2M9 19H7" stroke-linecap="round"/>
+                        </svg>
+                    </span>
+                    인터넷 결합여부 설정
                 </a>
                 <a href="/MVNO/admin/review-settings.php" class="menu-item <?php echo $currentPage === 'review-settings.php' ? 'active' : ''; ?>">
                     <span class="menu-item-icon">

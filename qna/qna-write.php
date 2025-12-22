@@ -4,23 +4,13 @@
  */
 session_start();
 
-// 현재 페이지 설정
-$current_page = 'mypage';
-$is_main_page = false;
-
-// 헤더 포함
-include '../includes/header.php';
-
-// Q&A 함수 포함
+// Q&A 함수 포함 (헤더 포함 전에 처리)
 require_once '../includes/data/qna-functions.php';
 
 // 사용자 ID 가져오기
 $user_id = getCurrentUserId();
 
-// 폼 제출 처리
-$error = '';
-$success = false;
-
+// 폼 제출 처리 (헤더 포함 전에 처리하여 리다이렉트 가능하도록)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $title = isset($_POST['title']) ? trim($_POST['title']) : '';
     $content = isset($_POST['content']) ? trim($_POST['content']) : '';
@@ -31,14 +21,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = '내용을 입력해주세요.';
     } else {
         $qna = createQna($user_id, $title, $content);
-        if ($qna) {
-            $success = true;
+        if ($qna && isset($qna['id'])) {
             header('Location: /MVNO/qna/qna-detail.php?id=' . $qna['id']);
             exit;
         } else {
             $error = '질문 등록에 실패했습니다. 다시 시도해주세요.';
         }
     }
+}
+
+// 현재 페이지 설정
+$current_page = 'mypage';
+$is_main_page = false;
+
+// 헤더 포함
+include '../includes/header.php';
+
+// 에러 변수 초기화 (POST 처리 후에도 사용)
+if (!isset($error)) {
+    $error = '';
 }
 ?>
 

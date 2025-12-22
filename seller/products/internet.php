@@ -6,6 +6,7 @@
 
 require_once __DIR__ . '/../../includes/data/auth-functions.php';
 require_once __DIR__ . '/../../includes/data/db-config.php';
+require_once __DIR__ . '/../../includes/data/app-settings.php';
 
 // 세션 시작
 if (session_status() === PHP_SESSION_NONE) {
@@ -87,6 +88,13 @@ if ($productId > 0) {
                         'equipment_names', 'equipment_prices',
                         'installation_names', 'installation_prices'
                     ];
+                    
+                    // 프로모션 필드 디코딩
+                    if (!empty($productData['promotions'])) {
+                        $productData['promotions'] = json_decode($productData['promotions'], true) ?: [];
+                    } else {
+                        $productData['promotions'] = [];
+                    }
                     
                     // 필드명 정리 함수 (인코딩 오류 및 오타 수정)
                     $cleanFieldName = function($name) {
@@ -629,6 +637,21 @@ $pageStyles = '
         margin-top: 8px;
     }
     
+    .btn-add-item {
+        padding: 12px 16px;
+        background: #f3f4f6;
+        color: #374151;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        white-space: nowrap;
+    }
+    
+    .btn-add-item:hover {
+        background: #e5e7eb;
+    }
+    
     .price-input-wrapper {
         position: relative;
         display: flex;
@@ -809,11 +832,23 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="form-section-item">
                 <div class="form-section-title">결합여부</div>
                 <div class="form-group">
+                    <?php
+                    // DB에서 결합여부 옵션 불러오기
+                    $defaultServiceTypes = [
+                        ['value' => '인터넷', 'label' => '인터넷'],
+                        ['value' => '인터넷+TV', 'label' => '인터넷 + TV 결합'],
+                        ['value' => '인터넷+TV+핸드폰', 'label' => '인터넷 + TV + 핸드폰 결합']
+                    ];
+                    $serviceTypeSettings = getAppSettings('internet_service_types', ['options' => $defaultServiceTypes]);
+                    $serviceTypeOptions = $serviceTypeSettings['options'] ?? $defaultServiceTypes;
+                    ?>
                     <select name="service_type" id="service_type" class="form-select" required>
                         <option value="">선택하세요</option>
-                        <option value="인터넷" <?php echo (isset($productData['service_type']) && $productData['service_type'] === '인터넷') ? 'selected' : ''; ?>>인터넷</option>
-                        <option value="인터넷+TV" <?php echo (isset($productData['service_type']) && $productData['service_type'] === '인터넷+TV') ? 'selected' : ''; ?>>인터넷 + TV 결합</option>
-                        <option value="인터넷+TV+핸드폰" <?php echo (isset($productData['service_type']) && $productData['service_type'] === '인터넷+TV+핸드폰') ? 'selected' : ''; ?>>인터넷 + TV + 핸드폰 결합</option>
+                        <?php foreach ($serviceTypeOptions as $option): ?>
+                            <option value="<?php echo htmlspecialchars($option['value']); ?>" <?php echo (isset($productData['service_type']) && $productData['service_type'] === $option['value']) ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($option['label']); ?>
+                            </option>
+                        <?php endforeach; ?>
                     </select>
                     <div class="form-help">결합여부를 선택하세요</div>
                 </div>
@@ -1038,6 +1073,41 @@ document.addEventListener('DOMContentLoaded', function() {
                         <?php endif; ?>
                     </div>
                     <?php endfor; ?>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 프로모션 이벤트 -->
+        <div class="form-section">
+            <div class="form-section-title">프로모션 이벤트</div>
+            
+            <div class="form-group">
+                <label class="form-label" for="promotion_title">
+                    제목
+                </label>
+                <input type="text" name="promotion_title" id="promotion_title" class="form-control" placeholder="쿠폰북 최대 5만원 지급" maxlength="100" value="<?php echo isset($productData['promotion_title']) ? htmlspecialchars($productData['promotion_title']) : ''; ?>">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">항목</label>
+                <div id="promotion-container">
+                    <?php if (!empty($productData['promotions']) && is_array($productData['promotions'])): ?>
+                        <?php foreach ($productData['promotions'] as $index => $promotion): ?>
+                            <div class="gift-input-group">
+                                <input type="text" name="promotions[]" class="form-control" placeholder="Npay 2,000" maxlength="30" value="<?php echo htmlspecialchars($promotion); ?>">
+                                <?php if ($index === 0): ?>
+                                    <button type="button" class="btn-add-item" onclick="addPromotionField()">추가</button>
+                                <?php else: ?>
+                                    <button type="button" class="btn-remove" onclick="removePromotionField(this)">삭제</button>
+                                <?php endif; ?>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <div class="gift-input-group">
+                            <input type="text" name="promotions[]" class="form-control" placeholder="Npay 2,000" maxlength="30">
+                            <button type="button" class="btn-add-item" onclick="addPromotionField()">추가</button>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
@@ -1379,6 +1449,26 @@ window.addGiftCardField = function() { addField('giftCard'); };
 window.addEquipmentField = function() { addField('equipment'); };
 window.addInstallationField = function() { addField('installation'); };
 
+// 프로모션 필드 추가 함수
+function addPromotionField() {
+    const container = document.getElementById('promotion-container');
+    const newField = document.createElement('div');
+    newField.className = 'gift-input-group';
+    newField.innerHTML = `
+        <input type="text" name="promotions[]" class="form-control" placeholder="Npay 2,000" maxlength="30">
+        <button type="button" class="btn-remove" onclick="removePromotionField(this)">삭제</button>
+    `;
+    container.appendChild(newField);
+}
+
+// 프로모션 필드 삭제 함수
+function removePromotionField(button) {
+    const container = document.getElementById('promotion-container');
+    if (container.children.length > 1) {
+        button.parentElement.remove();
+    }
+}
+
 // 제출 버튼 클릭 시 즉시 포커스 제거 (mousedown 이벤트로 submit보다 먼저 처리)
 document.addEventListener('DOMContentLoaded', function() {
     const submitButton = document.querySelector('button[type="submit"]');
@@ -1552,6 +1642,7 @@ document.getElementById('productForm').addEventListener('submit', function(e) {
         const equipmentPrices = [];
         const installationNames = [];
         const installationPrices = [];
+        const promotions = [];
         
         // FormData를 순회하며 빈 값 필터링
         for (let [key, value] of formData.entries()) {
@@ -1569,6 +1660,11 @@ document.getElementById('productForm').addEventListener('submit', function(e) {
                 }
             } else if (key === 'installation_prices[]') {
                 installationPrices.push((value || '').trim());
+            } else if (key === 'promotions[]') {
+                const trimmedValue = (value || '').trim();
+                if (trimmedValue) {
+                    promotions.push(trimmedValue);
+                }
             } else {
                 // 다른 필드는 그대로 추가
                 cleanFormData.append(key, value);
@@ -1585,6 +1681,11 @@ document.getElementById('productForm').addEventListener('submit', function(e) {
         installationNames.forEach((name, index) => {
             cleanFormData.append('installation_names[]', name);
             cleanFormData.append('installation_prices[]', installationPrices[index] || '');
+        });
+        
+        // 프로모션 필드: 빈 값이 아닌 것만 추가
+        promotions.forEach((promotion) => {
+            cleanFormData.append('promotions[]', promotion);
         });
         
         // FormData 내용 확인 (디버깅용)

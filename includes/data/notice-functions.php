@@ -9,12 +9,15 @@ date_default_timezone_set('Asia/Seoul');
 
 require_once __DIR__ . '/db-config.php';
 
-// 공지사항 목록 가져오기
+// 공지사항 목록 가져오기 (발행 기간 내)
 function getNotices($limit = null, $offset = 0) {
     $pdo = getDBConnection();
     if (!$pdo) return [];
 
-    $sql = "SELECT * FROM notices WHERE is_published = 1 ORDER BY created_at DESC";
+    $sql = "SELECT * FROM notices 
+            WHERE (start_at IS NULL OR start_at <= CURDATE())
+            AND (end_at IS NULL OR end_at >= CURDATE())
+            ORDER BY created_at DESC";
     if ($limit !== null) {
         $sql .= " LIMIT :limit OFFSET :offset";
     }
@@ -37,14 +40,56 @@ function getNoticeById($id) {
     return $row ?: null;
 }
 
+// 이미지 업로드 함수
+function uploadNoticeImage($file) {
+    if (!isset($file) || $file['error'] !== UPLOAD_ERR_OK) {
+        return null;
+    }
+    
+    // 파일 타입 확인
+    $allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+    $mimeType = finfo_file($finfo, $file['tmp_name']);
+    finfo_close($finfo);
+    
+    if (!in_array($mimeType, $allowedTypes)) {
+        return null;
+    }
+    
+    // 업로드 디렉토리 생성
+    $uploadDir = __DIR__ . '/../../uploads/notices/';
+    $year = date('Y');
+    $month = date('m');
+    $uploadPath = $uploadDir . $year . '/' . $month . '/';
+    
+    if (!is_dir($uploadPath)) {
+        mkdir($uploadPath, 0755, true);
+    }
+    
+    // 파일명 생성
+    $extension = pathinfo($file['name'], PATHINFO_EXTENSION);
+    $fileName = date('YmdHis') . '_' . uniqid() . '.' . $extension;
+    $filePath = $uploadPath . $fileName;
+    
+    // 파일 이동
+    if (move_uploaded_file($file['tmp_name'], $filePath)) {
+        return '/MVNO/uploads/notices/' . $year . '/' . $month . '/' . $fileName;
+    }
+    
+    return null;
+}
+
 // 공지사항 생성 (관리자용)
-function createNotice($title, $content, $is_important = false) {
+function createNotice($title, $content, $show_on_main = false, $image_url = null, $link_url = null, $start_at = null, $end_at = null) {
+    ensureShowOnMainColumn(); // 컬럼 확인 및 추가
+    
     $notice = [
         'id' => uniqid('notice_'),
         'title' => $title,
         'content' => $content,
-        'is_important' => $is_important,
-        'is_published' => true,
+        'image_url' => $image_url,
+        'link_url' => $link_url,
+        'show_on_main' => $show_on_main,
         'created_at' => date('Y-m-d H:i:s'),
         'updated_at' => date('Y-m-d H:i:s'),
         'views' => 0
@@ -52,42 +97,223 @@ function createNotice($title, $content, $is_important = false) {
 
     $pdo = getDBConnection();
     if (!$pdo) return false;
-    $stmt = $pdo->prepare("
-        INSERT INTO notices (id, title, content, is_important, is_published, views, created_at, updated_at)
-        VALUES (:id,:title,:content,:imp,1,0,:ca,:ua)
-    ");
-    $stmt->execute([
-        ':id' => $notice['id'],
-        ':title' => $notice['title'],
-        ':content' => $notice['content'],
-        ':imp' => $notice['is_important'] ? 1 : 0,
-        ':ca' => $notice['created_at'],
-        ':ua' => $notice['updated_at'],
-    ]);
-    return $notice;
+    
+    try {
+        // 메인공지로 설정하는 경우, 기존 메인공지 모두 취소
+        if ($show_on_main) {
+            $pdo->exec("UPDATE notices SET show_on_main = 0 WHERE show_on_main = 1");
+        }
+        
+        $stmt = $pdo->prepare("
+            INSERT INTO notices (id, title, content, image_url, link_url, show_on_main, start_at, end_at, views, created_at, updated_at)
+            VALUES (:id,:title,:content,:img_url,:link_url,:show_main,:start_at,:end_at,0,:ca,:ua)
+        ");
+        $stmt->execute([
+            ':id' => $notice['id'],
+            ':title' => $notice['title'],
+            ':content' => $notice['content'],
+            ':img_url' => $image_url,
+            ':link_url' => $link_url,
+            ':show_main' => $show_on_main ? 1 : 0,
+            ':start_at' => $start_at ? $start_at : null,
+            ':end_at' => $end_at ? $end_at : null,
+            ':ca' => $notice['created_at'],
+            ':ua' => $notice['updated_at'],
+        ]);
+        return $notice;
+    } catch (PDOException $e) {
+        // 컬럼이 없으면 다시 시도
+        if (strpos($e->getMessage(), 'show_on_main') !== false || strpos($e->getMessage(), 'image_url') !== false || strpos($e->getMessage(), 'link_url') !== false) {
+            ensureShowOnMainColumn();
+            // 재시도
+            try {
+                // 메인공지로 설정하는 경우, 기존 메인공지 모두 취소
+                if ($show_on_main) {
+                    $pdo->exec("UPDATE notices SET show_on_main = 0 WHERE show_on_main = 1");
+                }
+                
+                $stmt = $pdo->prepare("
+                    INSERT INTO notices (id, title, content, image_url, link_url, show_on_main, views, created_at, updated_at)
+                    VALUES (:id,:title,:content,:img_url,:link_url,:show_main,0,:ca,:ua)
+                ");
+                $stmt->execute([
+                    ':id' => $notice['id'],
+                    ':title' => $notice['title'],
+                    ':content' => $notice['content'],
+                    ':img_url' => $image_url,
+                    ':link_url' => $link_url,
+                    ':show_main' => $show_on_main ? 1 : 0,
+                    ':ca' => $notice['created_at'],
+                    ':ua' => $notice['updated_at'],
+                ]);
+                return $notice;
+            } catch (PDOException $e2) {
+                error_log('createNotice retry error: ' . $e2->getMessage());
+                return false;
+            }
+        }
+        error_log('createNotice error: ' . $e->getMessage());
+        return false;
+    }
+}
+
+// 필요한 컬럼들 존재 여부 확인 및 추가
+function ensureShowOnMainColumn() {
+    static $checked = false;
+    if ($checked) return true;
+    
+    $pdo = getDBConnection();
+    if (!$pdo) return false;
+    
+    try {
+        // 현재 컬럼 목록 가져오기
+        $stmt = $pdo->query("SHOW COLUMNS FROM notices");
+        $columns = $stmt->fetchAll(PDO::FETCH_COLUMN);
+        $existingColumns = array_flip($columns);
+        
+        // show_on_main 컬럼 확인 및 추가
+        if (!isset($existingColumns['show_on_main'])) {
+            $pdo->exec("ALTER TABLE notices ADD COLUMN show_on_main TINYINT(1) NOT NULL DEFAULT 0 COMMENT '메인페이지 새창 표시 여부' AFTER content");
+        }
+        
+        // image_url 컬럼 확인 및 추가
+        if (!isset($existingColumns['image_url'])) {
+            $pdo->exec("ALTER TABLE notices ADD COLUMN image_url VARCHAR(500) DEFAULT NULL COMMENT '공지사항 이미지 URL' AFTER content");
+        }
+        
+        // link_url 컬럼 확인 및 추가
+        if (!isset($existingColumns['link_url'])) {
+            $pdo->exec("ALTER TABLE notices ADD COLUMN link_url VARCHAR(500) DEFAULT NULL COMMENT '공지사항 링크 URL' AFTER image_url");
+        }
+        
+        // start_at 컬럼 확인 및 추가
+        if (!isset($existingColumns['start_at'])) {
+            $pdo->exec("ALTER TABLE notices ADD COLUMN start_at DATE DEFAULT NULL COMMENT '메인공지 시작일' AFTER show_on_main");
+        }
+        
+        // end_at 컬럼 확인 및 추가
+        if (!isset($existingColumns['end_at'])) {
+            $pdo->exec("ALTER TABLE notices ADD COLUMN end_at DATE DEFAULT NULL COMMENT '메인공지 종료일' AFTER start_at");
+        }
+        
+        
+        $checked = true;
+        return true;
+    } catch (PDOException $e) {
+        error_log('ensureShowOnMainColumn error: ' . $e->getMessage());
+        return false;
+    }
 }
 
 // 공지사항 수정 (관리자용)
-function updateNotice($id, $title, $content, $is_important = false, $is_published = true) {
+function updateNotice($id, $title, $content, $show_on_main = false, $image_url = null, $link_url = null, $start_at = null, $end_at = null) {
+    ensureShowOnMainColumn(); // 컬럼 확인 및 추가
+    
     $pdo = getDBConnection();
     if (!$pdo) return false;
-    $stmt = $pdo->prepare("
-        UPDATE notices
-        SET title = :title,
-            content = :content,
-            is_important = :imp,
-            is_published = :pub,
-            updated_at = NOW()
-        WHERE id = :id
-    ");
-    $stmt->execute([
-        ':id' => (string)$id,
-        ':title' => (string)$title,
-        ':content' => (string)$content,
-        ':imp' => $is_important ? 1 : 0,
-        ':pub' => $is_published ? 1 : 0,
-    ]);
-    return $stmt->rowCount() > 0;
+    
+    try {
+        // 메인공지로 설정하는 경우, 기존 메인공지 모두 취소 (현재 공지사항 제외)
+        if ($show_on_main) {
+            $pdo->exec("UPDATE notices SET show_on_main = 0 WHERE show_on_main = 1 AND id != " . $pdo->quote((string)$id));
+        }
+        
+        // image_url과 link_url이 null이면 기존 값 유지
+        $sql = "
+            UPDATE notices
+            SET title = :title,
+                content = :content,
+                show_on_main = :show_main";
+        
+        $params = [
+            ':id' => (string)$id,
+            ':title' => (string)$title,
+            ':content' => (string)$content,
+            ':show_main' => $show_on_main ? 1 : 0,
+        ];
+        
+        if ($image_url !== null) {
+            $sql .= ", image_url = :img_url";
+            $params[':img_url'] = $image_url;
+        }
+        
+        if ($link_url !== null) {
+            $sql .= ", link_url = :link_url";
+            $params[':link_url'] = $link_url;
+        }
+        
+        if ($start_at !== null) {
+            $sql .= ", start_at = :start_at";
+            $params[':start_at'] = $start_at ? $start_at : null;
+        }
+        
+        if ($end_at !== null) {
+            $sql .= ", end_at = :end_at";
+            $params[':end_at'] = $end_at ? $end_at : null;
+        }
+        
+        $sql .= ", updated_at = NOW() WHERE id = :id";
+        
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->rowCount() > 0;
+    } catch (PDOException $e) {
+        // 컬럼이 없으면 다시 시도
+        if (strpos($e->getMessage(), 'show_on_main') !== false || strpos($e->getMessage(), 'image_url') !== false || strpos($e->getMessage(), 'link_url') !== false) {
+            ensureShowOnMainColumn();
+            // 재시도
+            try {
+                // 메인공지로 설정하는 경우, 기존 메인공지 모두 취소 (현재 공지사항 제외)
+                if ($show_on_main) {
+                    $pdo->exec("UPDATE notices SET show_on_main = 0 WHERE show_on_main = 1 AND id != " . $pdo->quote((string)$id));
+                }
+                
+                $sql = "
+                    UPDATE notices
+                    SET title = :title,
+                        content = :content,
+                        show_on_main = :show_main";
+                
+                $params = [
+                    ':id' => (string)$id,
+                    ':title' => (string)$title,
+                    ':content' => (string)$content,
+                    ':show_main' => $show_on_main ? 1 : 0,
+                ];
+                
+                if ($image_url !== null) {
+                    $sql .= ", image_url = :img_url";
+                    $params[':img_url'] = $image_url;
+                }
+                
+                if ($link_url !== null) {
+                    $sql .= ", link_url = :link_url";
+                    $params[':link_url'] = $link_url;
+                }
+                
+                if ($start_at !== null) {
+                    $sql .= ", start_at = :start_at";
+                    $params[':start_at'] = $start_at ? $start_at : null;
+                }
+                
+                if ($end_at !== null) {
+                    $sql .= ", end_at = :end_at";
+                    $params[':end_at'] = $end_at ? $end_at : null;
+                }
+                
+                $sql .= ", updated_at = NOW() WHERE id = :id";
+                
+                $stmt = $pdo->prepare($sql);
+                $stmt->execute($params);
+                return $stmt->rowCount() > 0;
+            } catch (PDOException $e2) {
+                error_log('updateNotice retry error: ' . $e2->getMessage());
+                return false;
+            }
+        }
+        error_log('updateNotice error: ' . $e->getMessage());
+        return false;
+    }
 }
 
 // 공지사항 삭제 (관리자용)
@@ -114,6 +340,33 @@ function getAllNoticesForAdmin() {
     if (!$pdo) return [];
     $stmt = $pdo->query("SELECT * FROM notices ORDER BY created_at DESC");
     return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+}
+
+// 메인페이지에 표시할 공지사항 가져오기 (show_on_main = 1이고 발행된 것만, 기간 내)
+function getMainPageNotice() {
+    ensureShowOnMainColumn(); // 컬럼 확인 및 추가
+    
+    $pdo = getDBConnection();
+    if (!$pdo) return null;
+    
+    try {
+        $sql = "SELECT * FROM notices 
+                WHERE show_on_main = 1 
+                AND (start_at IS NULL OR start_at <= CURDATE())
+                AND (end_at IS NULL OR end_at >= CURDATE())
+                ORDER BY created_at DESC LIMIT 1";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ?: null;
+    } catch (PDOException $e) {
+        // 컬럼이 없으면 null 반환
+        if (strpos($e->getMessage(), 'show_on_main') !== false || strpos($e->getMessage(), 'start_at') !== false || strpos($e->getMessage(), 'end_at') !== false) {
+            return null;
+        }
+        error_log('getMainPageNotice error: ' . $e->getMessage());
+        return null;
+    }
 }
 
 

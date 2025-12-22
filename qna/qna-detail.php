@@ -4,14 +4,7 @@
  */
 session_start();
 
-// 현재 페이지 설정
-$current_page = 'mypage';
-$is_main_page = false;
-
-// 헤더 포함
-include '../includes/header.php';
-
-// Q&A 함수 포함
+// Q&A 함수 포함 (헤더 포함 전에 처리)
 require_once '../includes/data/qna-functions.php';
 
 // 사용자 ID 가져오기
@@ -27,17 +20,36 @@ if (!$id) {
 // Q&A 가져오기
 $qna = getQnaById($id, $user_id);
 if (!$qna) {
+    // 에러 로깅
+    error_log("QnA 상세 조회 실패 - ID: " . $id . ", User ID: " . $user_id);
+    $_SESSION['qna_error'] = '문의글을 찾을 수 없습니다.';
     header('Location: /MVNO/qna/qna.php');
     exit;
 }
 
-// 삭제 처리
+// 데이터 검증: 필수 필드 확인 (NULL 체크와 빈 문자열 체크를 명확히 구분)
+if (!isset($qna['title']) || $qna['title'] === null || trim($qna['title']) === '' || 
+    !isset($qna['content']) || $qna['content'] === null || trim($qna['content']) === '') {
+    error_log("QnA 데이터 불완전 - ID: " . $id . ", Title: " . ($qna['title'] ?? 'NULL') . ", Content: " . (isset($qna['content']) && $qna['content'] !== null ? (strlen($qna['content']) > 0 ? 'EXISTS(' . strlen($qna['content']) . ' chars)' : 'EMPTY') : 'NULL'));
+    $_SESSION['qna_error'] = '문의글 데이터가 불완전합니다.';
+    header('Location: /MVNO/qna/qna.php');
+    exit;
+}
+
+// 삭제 처리 (헤더 포함 전에 처리하여 리다이렉트 가능하도록)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete') {
     if (deleteQna($id, $user_id)) {
         header('Location: /MVNO/qna/qna.php');
         exit;
     }
 }
+
+// 현재 페이지 설정
+$current_page = 'mypage';
+$is_main_page = false;
+
+// 헤더 포함 (모든 리다이렉트 처리 후)
+include '../includes/header.php';
 ?>
 
 <main class="main-content">
@@ -59,6 +71,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
                     <?php if (isset($qna['status']) && $qna['status'] == 'answered'): ?>
                         <span style="display: inline-flex; align-items: center; padding: 6px 12px; background: #d1fae5; color: #059669; border-radius: 6px; font-size: 13px; font-weight: 600;">답변완료</span>
+                    <?php elseif (isset($qna['admin_viewed_at']) && !empty($qna['admin_viewed_at'])): ?>
+                        <span style="display: inline-flex; align-items: center; padding: 6px 12px; background: #dbeafe; color: #1e40af; border-radius: 6px; font-size: 13px; font-weight: 600;">답변대기중</span>
                     <?php else: ?>
                         <span style="display: inline-flex; align-items: center; padding: 6px 12px; background: #fef3c7; color: #d97706; border-radius: 6px; font-size: 13px; font-weight: 600;">답변대기</span>
                     <?php endif; ?>
@@ -111,7 +125,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                onmouseout="this.style.borderColor='#d1d5db'; this.style.color='#374151'">
                 목록으로
             </a>
-            <?php if (!isset($qna['answer']) || empty($qna['answer'])): ?>
+            <?php 
+            // 관리자가 조회한 경우 삭제 버튼 숨김
+            $canDelete = (!isset($qna['answer']) || empty($qna['answer'])) && 
+                         (!isset($qna['admin_viewed_at']) || empty($qna['admin_viewed_at']));
+            ?>
+            <?php if ($canDelete): ?>
                 <form method="POST" action="" style="display: inline-block;" onsubmit="event.preventDefault(); showConfirm('정말 삭제하시겠습니까?', '삭제 확인').then(result => { if(result) this.submit(); }); return false;">
                     <input type="hidden" name="action" value="delete">
                     <button type="submit" 

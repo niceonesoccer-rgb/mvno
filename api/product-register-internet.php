@@ -53,7 +53,9 @@ $productData = [
     'equipment_names' => isset($_POST['equipment_names']) && is_array($_POST['equipment_names']) ? $_POST['equipment_names'] : [],
     'equipment_prices' => isset($_POST['equipment_prices']) && is_array($_POST['equipment_prices']) ? $_POST['equipment_prices'] : [],
     'installation_names' => isset($_POST['installation_names']) && is_array($_POST['installation_names']) ? $_POST['installation_names'] : [],
-    'installation_prices' => isset($_POST['installation_prices']) && is_array($_POST['installation_prices']) ? $_POST['installation_prices'] : []
+    'installation_prices' => isset($_POST['installation_prices']) && is_array($_POST['installation_prices']) ? $_POST['installation_prices'] : [],
+    'promotion_title' => isset($_POST['promotion_title']) ? trim($_POST['promotion_title']) : '',
+    'promotions' => isset($_POST['promotions']) && is_array($_POST['promotions']) ? $_POST['promotions'] : []
 ];
 
 // 디버깅: installation 데이터 확인

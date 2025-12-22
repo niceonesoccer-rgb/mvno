@@ -27,23 +27,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_settings'])) {
     $privacySettings = [
         'purpose' => [
             'title' => $_POST['purpose_title'] ?? '',
-            'content' => $_POST['purpose_content'] ?? ''
+            'content' => $_POST['purpose_content'] ?? '',
+            'isRequired' => isset($_POST['purpose_isRequired']) && $_POST['purpose_isRequired'] === '1'
         ],
         'items' => [
             'title' => $_POST['items_title'] ?? '',
-            'content' => $_POST['items_content'] ?? ''
+            'content' => $_POST['items_content'] ?? '',
+            'isRequired' => isset($_POST['items_isRequired']) && $_POST['items_isRequired'] === '1'
         ],
         'period' => [
             'title' => $_POST['period_title'] ?? '',
-            'content' => $_POST['period_content'] ?? ''
+            'content' => $_POST['period_content'] ?? '',
+            'isRequired' => isset($_POST['period_isRequired']) && $_POST['period_isRequired'] === '1'
         ],
         'thirdParty' => [
             'title' => $_POST['thirdParty_title'] ?? '',
-            'content' => $_POST['thirdParty_content'] ?? ''
+            'content' => $_POST['thirdParty_content'] ?? '',
+            'isRequired' => isset($_POST['thirdParty_isRequired']) && $_POST['thirdParty_isRequired'] === '1'
+        ],
+        'serviceNotice' => [
+            'title' => $_POST['serviceNotice_title'] ?? '',
+            'content' => $_POST['serviceNotice_content'] ?? '',
+            'isRequired' => isset($_POST['serviceNotice_isRequired']) && $_POST['serviceNotice_isRequired'] === '1'
+        ],
+        'marketing' => [
+            'title' => $_POST['marketing_title'] ?? '',
+            'content' => $_POST['marketing_content'] ?? '',
+            'isRequired' => isset($_POST['marketing_isRequired']) && $_POST['marketing_isRequired'] === '1'
         ]
     ];
     
-    // 모든 필드 검증
+    // 모든 필드 검증 (serviceNotice와 marketing도 포함)
     $isValid = true;
     foreach ($privacySettings as $key => $value) {
         if (empty($value['title']) || empty($value['content'])) {
@@ -67,21 +81,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_settings'])) {
 $privacySettings = getAppSettings('privacy', [
     'purpose' => [
         'title' => '개인정보 수집 및 이용목적',
-        'content' => '<div class="privacy-content-text"><p><strong>1. 개인정보의 수집 및 이용목적</strong></p><p>&lt;유심킹&gt;(\'http://www.dtmall.net\' 이하 \'회사\') 은(는) 다음의 목적을 위하여 개인정보를 처리하고 있으며, 다음의 목적 이외의 용도로는 이용하지 않습니다.</p></div>'
+        'content' => '<div class="privacy-content-text"><p><strong>1. 개인정보의 수집 및 이용목적</strong></p><p>&lt;유심킹&gt;(\'http://www.dtmall.net\' 이하 \'회사\') 은(는) 다음의 목적을 위하여 개인정보를 처리하고 있으며, 다음의 목적 이외의 용도로는 이용하지 않습니다.</p></div>',
+        'isRequired' => true
     ],
     'items' => [
         'title' => '개인정보 수집하는 항목',
-        'content' => '<div class="privacy-content-text"><p><strong>2. 개인정보 수집항목 및 수집방법</strong></p></div>'
+        'content' => '<div class="privacy-content-text"><p><strong>2. 개인정보 수집항목 및 수집방법</strong></p></div>',
+        'isRequired' => true
     ],
     'period' => [
         'title' => '개인정보 보유 및 이용기간',
-        'content' => '<div class="privacy-content-text"><p><strong>3. 개인정보의 보유 및 이용기간</strong></p></div>'
+        'content' => '<div class="privacy-content-text"><p><strong>3. 개인정보의 보유 및 이용기간</strong></p></div>',
+        'isRequired' => true
     ],
     'thirdParty' => [
         'title' => '개인정보 제3자 제공',
-        'content' => '<div class="privacy-content-text"><p><strong>유심킹 개인정보 제3자 제공에 동의</strong></p></div>'
+        'content' => '<div class="privacy-content-text"><p><strong>유심킹 개인정보 제3자 제공에 동의</strong></p></div>',
+        'isRequired' => true
+    ],
+    'serviceNotice' => [
+        'title' => '서비스 이용 및 혜택 안내 알림',
+        'content' => '<div class="privacy-content-text"><p>서비스 이용에 필요한 필수 알림입니다. 알림톡으로 발송됩니다.</p><ul><li>요금제 유지기간 만료 및 변경 안내</li><li>부가서비스 종료 및 이용 조건 변경 안내</li><li>가입 고객 대상 혜택·이벤트 안내</li></ul></div>',
+        'isRequired' => true
+    ],
+    'marketing' => [
+        'title' => '광고성 정보 수신동의',
+        'content' => '<div class="privacy-content-text"><p>광고성 정보를 받으시려면 아래 항목을 선택해주세요</p><ul><li>이메일 수신동의</li><li>SMS, SNS 수신동의</li><li>앱 푸시 수신동의</li></ul></div>',
+        'isRequired' => false
     ]
 ]);
+
+// isRequired 값이 없는 경우 기본값 설정
+foreach ($privacySettings as $key => $value) {
+    if (!isset($value['isRequired'])) {
+        $privacySettings[$key]['isRequired'] = ($key !== 'marketing');
+    }
+}
 
 // 현재 페이지 설정
 $currentPage = 'privacy-settings.php';
@@ -213,6 +248,31 @@ include '../includes/admin-header.php';
     .privacy-section {
         margin-bottom: 32px;
     }
+    
+    .radio-group {
+        display: flex;
+        gap: 24px;
+        margin-top: 8px;
+    }
+    
+    .radio-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .radio-item input[type="radio"] {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+        accent-color: #6366f1;
+    }
+    
+    .radio-item label {
+        font-weight: 500;
+        cursor: pointer;
+        margin: 0;
+    }
 </style>
 
 <div class="admin-content">
@@ -253,11 +313,24 @@ include '../includes/admin-header.php';
         <div class="card privacy-section">
             <div class="card-title">개인정보 수집하는 항목에 동의합니까?</div>
             <div class="form-group">
+                <label>선택 / 필수 <span class="required">*</span></label>
+                <div class="radio-group">
+                    <div class="radio-item">
+                        <input type="radio" id="items_required" name="items_isRequired" value="1" <?php echo (($privacySettings['items']['isRequired'] ?? true) ? 'checked' : ''); ?>>
+                        <label for="items_required">필수</label>
+                    </div>
+                    <div class="radio-item">
+                        <input type="radio" id="items_optional" name="items_isRequired" value="0" <?php echo (!($privacySettings['items']['isRequired'] ?? true) ? 'checked' : ''); ?>>
+                        <label for="items_optional">선택</label>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
                 <label for="items_title">제목 <span class="required">*</span></label>
                 <input type="text" id="items_title" name="items_title" required value="<?php echo htmlspecialchars($privacySettings['items']['title'] ?? ''); ?>">
             </div>
             <div class="form-group">
-                <label for="items_content">내용 <span class="required">*</span></label>
+                <label for="items_content">본문 내용 <span class="required">*</span></label>
                 <textarea id="items_content" name="items_content" required><?php echo htmlspecialchars($privacySettings['items']['content'] ?? ''); ?></textarea>
                 <div class="form-help">HTML 태그를 사용할 수 있습니다.</div>
             </div>
@@ -267,11 +340,24 @@ include '../includes/admin-header.php';
         <div class="card privacy-section">
             <div class="card-title">개인정보 보유 및 이용기간에 동의합니까?</div>
             <div class="form-group">
+                <label>선택 / 필수 <span class="required">*</span></label>
+                <div class="radio-group">
+                    <div class="radio-item">
+                        <input type="radio" id="period_required" name="period_isRequired" value="1" <?php echo (($privacySettings['period']['isRequired'] ?? true) ? 'checked' : ''); ?>>
+                        <label for="period_required">필수</label>
+                    </div>
+                    <div class="radio-item">
+                        <input type="radio" id="period_optional" name="period_isRequired" value="0" <?php echo (!($privacySettings['period']['isRequired'] ?? true) ? 'checked' : ''); ?>>
+                        <label for="period_optional">선택</label>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
                 <label for="period_title">제목 <span class="required">*</span></label>
                 <input type="text" id="period_title" name="period_title" required value="<?php echo htmlspecialchars($privacySettings['period']['title'] ?? ''); ?>">
             </div>
             <div class="form-group">
-                <label for="period_content">내용 <span class="required">*</span></label>
+                <label for="period_content">본문 내용 <span class="required">*</span></label>
                 <textarea id="period_content" name="period_content" required><?php echo htmlspecialchars($privacySettings['period']['content'] ?? ''); ?></textarea>
                 <div class="form-help">HTML 태그를 사용할 수 있습니다.</div>
             </div>
@@ -281,12 +367,79 @@ include '../includes/admin-header.php';
         <div class="card privacy-section">
             <div class="card-title">개인정보 제3자 제공에 동의합니까?</div>
             <div class="form-group">
+                <label>선택 / 필수 <span class="required">*</span></label>
+                <div class="radio-group">
+                    <div class="radio-item">
+                        <input type="radio" id="thirdParty_required" name="thirdParty_isRequired" value="1" <?php echo (($privacySettings['thirdParty']['isRequired'] ?? true) ? 'checked' : ''); ?>>
+                        <label for="thirdParty_required">필수</label>
+                    </div>
+                    <div class="radio-item">
+                        <input type="radio" id="thirdParty_optional" name="thirdParty_isRequired" value="0" <?php echo (!($privacySettings['thirdParty']['isRequired'] ?? true) ? 'checked' : ''); ?>>
+                        <label for="thirdParty_optional">선택</label>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
                 <label for="thirdParty_title">제목 <span class="required">*</span></label>
                 <input type="text" id="thirdParty_title" name="thirdParty_title" required value="<?php echo htmlspecialchars($privacySettings['thirdParty']['title'] ?? ''); ?>">
             </div>
             <div class="form-group">
-                <label for="thirdParty_content">내용 <span class="required">*</span></label>
+                <label for="thirdParty_content">본문 내용 <span class="required">*</span></label>
                 <textarea id="thirdParty_content" name="thirdParty_content" required><?php echo htmlspecialchars($privacySettings['thirdParty']['content'] ?? ''); ?></textarea>
+                <div class="form-help">HTML 태그를 사용할 수 있습니다.</div>
+            </div>
+        </div>
+        
+        <!-- 서비스 이용 및 혜택 안내 알림(필수) -->
+        <div class="card privacy-section">
+            <div class="card-title">서비스 이용 및 혜택 안내 알림 동의</div>
+            <div class="form-group">
+                <label>선택 / 필수 <span class="required">*</span></label>
+                <div class="radio-group">
+                    <div class="radio-item">
+                        <input type="radio" id="serviceNotice_required" name="serviceNotice_isRequired" value="1" <?php echo (($privacySettings['serviceNotice']['isRequired'] ?? true) ? 'checked' : ''); ?>>
+                        <label for="serviceNotice_required">필수</label>
+                    </div>
+                    <div class="radio-item">
+                        <input type="radio" id="serviceNotice_optional" name="serviceNotice_isRequired" value="0" <?php echo (!($privacySettings['serviceNotice']['isRequired'] ?? true) ? 'checked' : ''); ?>>
+                        <label for="serviceNotice_optional">선택</label>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="serviceNotice_title">제목 <span class="required">*</span></label>
+                <input type="text" id="serviceNotice_title" name="serviceNotice_title" required value="<?php echo htmlspecialchars($privacySettings['serviceNotice']['title'] ?? ''); ?>">
+            </div>
+            <div class="form-group">
+                <label for="serviceNotice_content">본문 내용 <span class="required">*</span></label>
+                <textarea id="serviceNotice_content" name="serviceNotice_content" required><?php echo htmlspecialchars($privacySettings['serviceNotice']['content'] ?? ''); ?></textarea>
+                <div class="form-help">HTML 태그를 사용할 수 있습니다.</div>
+            </div>
+        </div>
+        
+        <!-- 광고성 정보 수신동의(선택) -->
+        <div class="card privacy-section">
+            <div class="card-title">광고성 정보 수신동의</div>
+            <div class="form-group">
+                <label>선택 / 필수 <span class="required">*</span></label>
+                <div class="radio-group">
+                    <div class="radio-item">
+                        <input type="radio" id="marketing_required" name="marketing_isRequired" value="1" <?php echo (($privacySettings['marketing']['isRequired'] ?? false) ? 'checked' : ''); ?>>
+                        <label for="marketing_required">필수</label>
+                    </div>
+                    <div class="radio-item">
+                        <input type="radio" id="marketing_optional" name="marketing_isRequired" value="0" <?php echo (!($privacySettings['marketing']['isRequired'] ?? false) ? 'checked' : ''); ?>>
+                        <label for="marketing_optional">선택</label>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="marketing_title">제목 <span class="required">*</span></label>
+                <input type="text" id="marketing_title" name="marketing_title" required value="<?php echo htmlspecialchars($privacySettings['marketing']['title'] ?? ''); ?>">
+            </div>
+            <div class="form-group">
+                <label for="marketing_content">본문 내용 <span class="required">*</span></label>
+                <textarea id="marketing_content" name="marketing_content" required><?php echo htmlspecialchars($privacySettings['marketing']['content'] ?? ''); ?></textarea>
                 <div class="form-help">HTML 태그를 사용할 수 있습니다.</div>
             </div>
         </div>

@@ -11,6 +11,7 @@ include 'includes/header.php';
 require_once 'includes/data/home-functions.php';
 require_once 'includes/data/plan-data.php';
 require_once 'includes/data/phone-data.php';
+require_once 'includes/data/notice-functions.php';
 
 // 메인 페이지 설정 가져오기
 $home_settings = getHomeSettings();
@@ -566,6 +567,122 @@ if (!empty($home_settings['mno_phones']) && is_array($home_settings['mno_phones'
 // 푸터 포함
 include 'includes/footer.php';
 ?>
+
+<?php
+// 메인페이지 공지사항 새창 표시
+$mainNotice = getMainPageNotice();
+if ($mainNotice && !empty($mainNotice['image_url']) && !isset($_COOKIE['notice_viewed_' . $mainNotice['id']])): ?>
+<div id="mainNoticeModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.4); z-index: 10000; align-items: center; justify-content: center;">
+    <div style="position: relative; width: 90%; max-width: 800px; display: flex; flex-direction: column; align-items: center; border-radius: 12px; overflow: hidden;">
+        <!-- 이미지 영역 (클릭 시 링크 이동) -->
+        <?php if (!empty($mainNotice['link_url'])): ?>
+            <a href="<?php echo htmlspecialchars($mainNotice['link_url']); ?>" target="_blank" style="display: block; width: 100%; cursor: pointer;">
+                <img src="<?php echo htmlspecialchars($mainNotice['image_url']); ?>" 
+                     alt="<?php echo htmlspecialchars($mainNotice['title']); ?>" 
+                     style="width: 100%; height: auto; display: block; border-radius: 12px 12px 0 0;">
+            </a>
+        <?php else: ?>
+            <img src="<?php echo htmlspecialchars($mainNotice['image_url']); ?>" 
+                 alt="<?php echo htmlspecialchars($mainNotice['title']); ?>" 
+                 style="width: 100%; height: auto; display: block; border-radius: 12px 12px 0 0;">
+        <?php endif; ?>
+        
+        <!-- 하단 버튼 영역 -->
+        <div style="width: 100%; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; background: rgba(0, 0, 0, 0.5); border-radius: 0 0 12px 12px;">
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: white; cursor: pointer;">
+                <input type="checkbox" id="dontShowAgain" style="width: auto; margin: 0;">
+                <span>오늘 그만보기</span>
+            </label>
+            <button type="button" id="closeMainNoticeBtn" style="padding: 8px 20px; background: rgba(255, 255, 255, 0.2); color: white; border: 1px solid rgba(255, 255, 255, 0.3); border-radius: 6px; font-weight: 500; font-size: 14px; cursor: pointer; transition: background 0.2s;">
+                창닫기
+            </button>
+        </div>
+    </div>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('mainNoticeModal');
+    const closeBtn = document.getElementById('closeMainNoticeBtn');
+    const dontShowAgain = document.getElementById('dontShowAgain');
+    const noticeId = '<?php echo htmlspecialchars($mainNotice['id']); ?>';
+    
+    // 현재 스크롤 위치 저장
+    let scrollPosition = 0;
+    
+    // 모달 표시
+    if (modal) {
+        // 현재 스크롤 위치 저장
+        scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
+        
+        modal.style.display = 'flex';
+        // body 스크롤 고정
+        document.body.style.overflow = 'hidden';
+        document.body.style.position = 'fixed';
+        document.body.style.top = '-' + scrollPosition + 'px';
+        document.body.style.width = '100%';
+    }
+    
+    function closeModal(saveCookie) {
+        if (modal) {
+            modal.style.display = 'none';
+            // body 스크롤 복원
+            document.body.style.overflow = '';
+            document.body.style.position = '';
+            document.body.style.top = '';
+            document.body.style.width = '';
+            // 스크롤 위치 복원
+            window.scrollTo(0, scrollPosition);
+        }
+        
+        // 쿠키 설정 (체크박스가 체크되었거나 saveCookie가 true일 때)
+        if (saveCookie || (dontShowAgain && dontShowAgain.checked)) {
+            const expires = new Date();
+            expires.setHours(23, 59, 59, 999); // 오늘 자정까지
+            document.cookie = 'notice_viewed_' + noticeId + '=1; expires=' + expires.toUTCString() + '; path=/';
+        }
+    }
+    
+    // 오늘 그만보기 체크박스 클릭 시 즉시 모달 닫기
+    if (dontShowAgain) {
+        dontShowAgain.addEventListener('change', function() {
+            if (this.checked) {
+                // 체크박스가 선택되면 즉시 모달 닫기 및 쿠키 설정
+                closeModal(true);
+            }
+        });
+    }
+    
+    if (closeBtn) {
+        closeBtn.addEventListener('click', function() {
+            closeModal(false); // 닫기 버튼은 쿠키 설정 안 함
+        });
+        // 호버 효과
+        closeBtn.addEventListener('mouseenter', function() {
+            this.style.background = 'rgba(255, 255, 255, 0.3)';
+        });
+        closeBtn.addEventListener('mouseleave', function() {
+            this.style.background = 'rgba(255, 255, 255, 0.2)';
+        });
+    }
+    
+    // 배경 클릭 시 닫기
+    if (modal) {
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                closeModal(false); // 배경 클릭은 쿠키 설정 안 함
+            }
+        });
+    }
+    
+    // ESC 키로 닫기
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && modal && modal.style.display === 'flex') {
+            closeModal(false); // ESC 키는 쿠키 설정 안 함
+        }
+    });
+});
+</script>
+<?php endif; ?>
 
 <?php
 // show_login 파라미터가 있으면 로그인 모달 자동 열기

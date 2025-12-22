@@ -180,6 +180,52 @@ try {
     
     error_log("Internet Application Debug - Step 7: Success! Application ID: {$applicationId}");
     
+    // 알림 설정 저장 (서비스 이용 및 혜택 안내 알림, 광고성 정보 수신동의)
+    $serviceNoticeOptIn = isset($_POST['service_notice_opt_in']) ? (bool)$_POST['service_notice_opt_in'] : false;
+    $marketingOptIn = isset($_POST['marketing_opt_in']) ? (bool)$_POST['marketing_opt_in'] : false;
+    $marketingEmailOptIn = isset($_POST['marketing_email_opt_in']) ? (bool)$_POST['marketing_email_opt_in'] : false;
+    $marketingSmsSnsOptIn = isset($_POST['marketing_sms_sns_opt_in']) ? (bool)$_POST['marketing_sms_sns_opt_in'] : false;
+    $marketingPushOptIn = isset($_POST['marketing_push_opt_in']) ? (bool)$_POST['marketing_push_opt_in'] : false;
+    
+    // 마케팅 동의가 있으면 마케팅 전체 동의도 true로 설정
+    if ($marketingEmailOptIn || $marketingSmsSnsOptIn || $marketingPushOptIn) {
+        $marketingOptIn = true;
+    }
+    
+    // 마케팅 동의가 없으면 모든 채널을 false로 설정
+    if (!$marketingOptIn) {
+        $marketingEmailOptIn = false;
+        $marketingSmsSnsOptIn = false;
+        $marketingPushOptIn = false;
+    }
+    
+    try {
+        $alarmStmt = $pdo->prepare("
+            UPDATE users
+            SET service_notice_opt_in = :service_notice_opt_in,
+                marketing_opt_in = :marketing_opt_in,
+                marketing_email_opt_in = :marketing_email_opt_in,
+                marketing_sms_sns_opt_in = :marketing_sms_sns_opt_in,
+                marketing_push_opt_in = :marketing_push_opt_in,
+                alarm_settings_updated_at = NOW()
+            WHERE user_id = :user_id
+        ");
+        
+        $alarmStmt->execute([
+            ':service_notice_opt_in' => $serviceNoticeOptIn ? 1 : 0,
+            ':marketing_opt_in' => $marketingOptIn ? 1 : 0,
+            ':marketing_email_opt_in' => $marketingEmailOptIn ? 1 : 0,
+            ':marketing_sms_sns_opt_in' => $marketingSmsSnsOptIn ? 1 : 0,
+            ':marketing_push_opt_in' => $marketingPushOptIn ? 1 : 0,
+            ':user_id' => $userId
+        ]);
+        
+        error_log("Internet Application Debug - Alarm settings updated successfully");
+    } catch (PDOException $e) {
+        error_log("Internet Application Debug - Alarm settings update failed: " . $e->getMessage());
+        // 알림 설정 저장 실패해도 신청은 성공으로 처리
+    }
+    
     // 응답 반환
     echo json_encode([
         'success' => true,

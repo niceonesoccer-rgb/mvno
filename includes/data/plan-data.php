@@ -1863,7 +1863,9 @@ function getInternetDetailData($internet_id) {
                 inet.equipment_names,
                 inet.equipment_prices,
                 inet.installation_names,
-                inet.installation_prices
+                inet.installation_prices,
+                inet.promotion_title,
+                inet.promotions
             FROM products p
             INNER JOIN product_internet_details inet ON p.id = inet.product_id
             WHERE p.id = :internet_id 
@@ -1889,7 +1891,8 @@ function getInternetDetailData($internet_id) {
             'cash_payment_names', 'cash_payment_prices',
             'gift_card_names', 'gift_card_prices',
             'equipment_names', 'equipment_prices',
-            'installation_names', 'installation_prices'
+            'installation_names', 'installation_prices',
+            'promotions'
         ];
         
         foreach ($jsonFields as $field) {
@@ -1965,6 +1968,8 @@ function getInternetDetailData($internet_id) {
             'equipment_prices' => $product['equipment_prices'] ?? [],
             'installation_names' => $product['installation_names'] ?? [],
             'installation_prices' => $product['installation_prices'] ?? [],
+            'promotion_title' => $product['promotion_title'] ?? '',
+            'promotions' => $product['promotions'] ?? [],
             'is_favorited' => $isFavorited,
             '_raw_data' => $product
         ];

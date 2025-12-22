@@ -10,6 +10,8 @@ require_once '../includes/data/auth-functions.php';
 // 인터넷 상품 ID 가져오기
 $internet_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 
+// 헤더에 CSS 추가를 위한 플래그 설정
+$add_inline_css = true;
 // 헤더 포함
 include '../includes/header.php';
 
@@ -253,7 +255,7 @@ if ($serviceType === '인터넷+TV') {
                                 </div>
                             </div>
                         </div>
-                        <div class="css-174t92n e82z5mt7">
+                        <div class="css-174t92n e82z5mt7" style="display: flex; flex-direction: column; gap: 0.75rem; margin: 0.75rem 0 0.5rem 0; padding: 0.75rem; background-color: #f9fafb; border-radius: 0.5rem; width: 100%; box-sizing: border-box;">
                             <?php
                             // 현금 지급 혜택 표시
                             $cashNames = $internet['cash_payment_names'] ?? [];
@@ -272,8 +274,8 @@ if ($serviceType === '인터넷+TV') {
                                         $hasPrice = false;
                                     }
                             ?>
-                            <div class="css-12zfa6z e82z5mt8">
-                                <img src="/MVNO/assets/images/icons/cash.svg" alt="현금" class="css-xj5cz0 e82z5mt9">
+                            <div class="css-12zfa6z e82z5mt8" style="display: flex; align-items: flex-start; gap: 0.5rem; width: 100%; box-sizing: border-box;">
+                                <img src="/MVNO/assets/images/icons/cash.svg" alt="현금" class="css-xj5cz0 e82z5mt9" style="max-width: 4rem; max-height: 4rem; object-fit: contain; flex-shrink: 0; width: auto;">
                                 <div class="css-0 e82z5mt10">
                                     <p class="css-2ht76o e82z5mt12 item-name-text">
                                         <?php echo htmlspecialchars($cashNames[$i]); ?>
@@ -308,8 +310,8 @@ if ($serviceType === '인터넷+TV') {
                                         $hasPrice = false;
                                     }
                             ?>
-                            <div class="css-12zfa6z e82z5mt8">
-                                <img src="/MVNO/assets/images/icons/gift-card.svg" alt="상품권" class="css-xj5cz0 e82z5mt9">
+                            <div class="css-12zfa6z e82z5mt8" style="display: flex; align-items: flex-start; gap: 0.5rem; width: 100%; box-sizing: border-box;">
+                                <img src="/MVNO/assets/images/icons/gift-card.svg" alt="상품권" class="css-xj5cz0 e82z5mt9" style="max-width: 4rem; max-height: 4rem; object-fit: contain; flex-shrink: 0; width: auto;">
                                 <div class="css-0 e82z5mt10">
                                     <p class="css-2ht76o e82z5mt12 item-name-text">
                                         <?php echo htmlspecialchars($giftNames[$i]); ?>
@@ -334,8 +336,8 @@ if ($serviceType === '인터넷+TV') {
                                 if (!empty($equipNames[$i])):
                                     $priceText = isset($equipPrices[$i]) && !empty($equipPrices[$i]) ? $equipPrices[$i] : '';
                             ?>
-                            <div class="css-12zfa6z e82z5mt8">
-                                <img src="/MVNO/assets/images/icons/equipment.svg" alt="장비" class="css-xj5cz0 e82z5mt9">
+                            <div class="css-12zfa6z e82z5mt8" style="display: flex; align-items: flex-start; gap: 0.5rem; width: 100%; box-sizing: border-box;">
+                                <img src="/MVNO/assets/images/icons/equipment.svg" alt="장비" class="css-xj5cz0 e82z5mt9" style="max-width: 4rem; max-height: 4rem; object-fit: contain; flex-shrink: 0; width: auto;">
                                 <div class="css-0 e82z5mt10">
                                     <p class="css-2ht76o e82z5mt12 item-name-text">
                                         <?php echo htmlspecialchars($equipNames[$i]); ?>
@@ -358,8 +360,8 @@ if ($serviceType === '인터넷+TV') {
                                 if (!empty($installNames[$i])):
                                     $priceText = isset($installPrices[$i]) && !empty($installPrices[$i]) ? $installPrices[$i] : '';
                             ?>
-                            <div class="css-12zfa6z e82z5mt8">
-                                <img src="/MVNO/assets/images/icons/installation.svg" alt="설치" class="css-xj5cz0 e82z5mt9">
+                            <div class="css-12zfa6z e82z5mt8" style="display: flex; align-items: flex-start; gap: 0.5rem; width: 100%; box-sizing: border-box;">
+                                <img src="/MVNO/assets/images/icons/installation.svg" alt="설치" class="css-xj5cz0 e82z5mt9" style="max-width: 4rem; max-height: 4rem; object-fit: contain; flex-shrink: 0; width: auto;">
                                 <div class="css-0 e82z5mt10">
                                     <p class="css-2ht76o e82z5mt12 item-name-text">
                                         <?php echo htmlspecialchars($installNames[$i]); ?>
@@ -376,21 +378,93 @@ if ($serviceType === '인터넷+TV') {
                             endfor;
                             ?>
                         </div>
-                        <div data-testid="full-price-information" class="css-rkh09p e82z5mt2">
-                            <p class="css-16qot29 e82z5mt6">월 <?php echo htmlspecialchars($internet['monthly_fee']); ?></p>
-                        </div>
                         
-                        <!-- 신청하기 버튼 (리스트 페이지와 동일한 레이아웃) -->
-                        <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e5e7eb;">
-                            <button class="internet-card-apply-btn" id="internetCardApplyBtn" data-apply-type="internet" data-internet-id="<?php echo $internet_id; ?>" style="width: 100%; padding: 0.875rem 1rem; font-size: 1rem; font-weight: 600; color: #ffffff; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 0.5rem; cursor: pointer; transition: all 0.3s ease;">
-                                신청하기
-                            </button>
+                        <!-- 프로모션 아코디언 -->
+                        <?php
+                        $promotionTitle = $internet['promotion_title'] ?? '';
+                        $promotions = $internet['promotions'] ?? [];
+                        $promotionCount = count(array_filter($promotions, function($p) { return !empty(trim($p)); }));
+                        
+                        if ($promotionCount > 0 || !empty($promotionTitle)):
+                            // 아코디언 제목: 프로모션 제목이 있으면 사용, 없으면 기본 텍스트
+                            $accordionTitle = '';
+                            if (!empty($promotionTitle)) {
+                                $accordionTitle = $promotionTitle;
+                            } elseif ($promotionCount > 0) {
+                                $accordionTitle = '프로모션 최대 ' . $promotionCount . '개';
+                            }
+                            
+                            // 색상 배열 (무지개 순서: 빨강, 노랑, 초록, 파랑, 보라)
+                            $giftColors = ['#EF4444', '#EAB308', '#10B981', '#3B82F6', '#8B5CF6'];
+                            $giftTextColor = '#FFFFFF';
+                        ?>
+                        <div class="plan-accordion-box" style="margin-top: 0.5rem; padding: 0.75rem 0;">
+                            <div class="plan-accordion">
+                                <button type="button" class="plan-accordion-trigger" aria-expanded="false" style="padding: 12px 16px;">
+                                    <div class="plan-gifts-accordion-content">
+                                        <!-- 각 항목의 첫 글자를 원 안에 표시 -->
+                                        <?php if ($promotionCount > 0): ?>
+                                        <div class="plan-gifts-indicator-dots">
+                                            <?php 
+                                            $filteredPromotions = array_filter($promotions, function($p) { return !empty(trim($p)); });
+                                            $index = 0;
+                                            foreach ($filteredPromotions as $promotion): 
+                                                $firstChar = mb_substr(trim($promotion), 0, 1, 'UTF-8'); // 첫 글자 추출
+                                                // 색상 배열에서 순환하여 사용 (5개 이상일 경우 반복)
+                                                $colorIndex = $index % count($giftColors);
+                                                $bgColor = $giftColors[$colorIndex] ?? '#6366F1';
+                                                $index++;
+                                            ?>
+                                                <span class="plan-gift-indicator-dot" style="background-color: <?php echo htmlspecialchars($bgColor); ?>;">
+                                                    <span class="plan-gift-indicator-text" style="color: <?php echo htmlspecialchars($giftTextColor); ?>;"><?php echo htmlspecialchars($firstChar); ?></span>
+                                                </span>
+                                            <?php endforeach; ?>
+                                        </div>
+                                        <?php endif; ?>
+                                        <span class="plan-gifts-text-accordion"><?php echo htmlspecialchars($accordionTitle); ?></span>
+                                    </div>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="plan-accordion-arrow">
+                                        <path d="M6 9L12 15L18 9" stroke="#868E96" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                </button>
+                                <div class="plan-accordion-content" style="display: none;">
+                                    <div class="plan-gifts-detail-list">
+                                        <?php if ($promotionCount > 0): ?>
+                                            <?php foreach ($filteredPromotions as $promotion): ?>
+                                            <div class="plan-gift-detail-item">
+                                                <span class="plan-gift-detail-text"><?php echo htmlspecialchars(trim($promotion)); ?></span>
+                                            </div>
+                                            <?php endforeach; ?>
+                                        <?php else: ?>
+                                            <div class="plan-gift-detail-item">
+                                                <span class="plan-gift-detail-text">프로모션 정보 없음</span>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
+                        <?php endif; ?>
+                        
                     </div>
                 </div>
             </div>
         </div>
     </div>
+    
+    <!-- 신청하기 섹션 (모바일 하단 고정) -->
+    <section class="plan-detail-apply-section">
+        <div class="content-layout">
+            <div class="plan-apply-content">
+                <div class="plan-price-info">
+                    <div class="plan-price-main">
+                        <span class="plan-price-amount">월 <?php echo htmlspecialchars($internet['monthly_fee']); ?></span>
+                    </div>
+                </div>
+                <button class="plan-apply-btn" id="internetMobileApplyBtn" data-apply-type="internet" data-internet-id="<?php echo $internet_id; ?>">신청하기</button>
+            </div>
+        </div>
+    </section>
     
     <!-- 인터넷 리뷰 섹션 -->
     <?php
@@ -606,7 +680,21 @@ if ($serviceType === '인터넷+TV') {
     justify-content: center;
 }
 
+/* 데스크톱 전용 요소 */
+.desktop-only {
+    display: block;
+}
+
 @media (max-width: 767px) {
+    .desktop-only {
+        display: none !important;
+    }
+    
+    /* 모바일 하단 고정 바를 위한 패딩 추가 */
+    .main-content {
+        padding-bottom: 120px;
+    }
+    
     .internet-modal.active {
         align-items: flex-end;
         justify-content: flex-start;
@@ -1585,8 +1673,40 @@ span.internet-checkbox-text {
     padding: 0 1rem;
 }
 
+/* 데스크톱: 카드와 하단 고정 바 사이 간격 및 전체 너비 사용 */
+@media (min-width: 768px) {
+    .plan-detail-apply-section {
+        margin-top: 0.75rem;
+    }
+    
+    /* PC에서는 전체 너비 사용 */
+    .plan-detail-apply-section .PlanDetail_content_wrapper__0YNeJ {
+        max-width: 100%;
+        padding: 0;
+    }
+    
+    .plan-detail-apply-section .css-2l6pil.e1ebrc9o0 {
+        max-width: 100%;
+        padding: 0;
+    }
+    
+    /* plan-apply-content는 content-layout과 동일한 너비로 제한 */
+    .plan-detail-apply-section .plan-apply-content {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 0 1rem;
+    }
+}
+
+@media (max-width: 767px) {
+    .PlanDetail_content_wrapper__0YNeJ {
+        padding: 0 1rem;
+    }
+}
+
 .css-2l6pil.e1ebrc9o0 {
     max-width: 100%;
+    gap: 0.75rem;
 }
 
 /* Product card wrapper */
@@ -1594,6 +1714,7 @@ span.internet-checkbox-text {
     width: 100%;
     display: flex;
     flex-direction: column;
+    gap: 0.75rem;
 }
 
 /* Product card - 크기 축소 */
@@ -1608,6 +1729,7 @@ span.internet-checkbox-text {
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
+    gap: 0.5rem;
 }
 
 .css-1kjyj6z.e82z5mt1 {
@@ -1670,6 +1792,8 @@ span.internet-checkbox-text {
 .css-xj5cz0.e82z5mt9 {
     width: auto;
     height: calc(1.0584rem * 1.5 + 1.3125rem * 1.5 + 0.08rem);
+    max-width: 4rem;
+    max-height: 4rem;
     flex-shrink: 0;
     object-fit: contain;
 }
@@ -3280,21 +3404,12 @@ function handleInternetApplyClick(e) {
     openInternetModal();
 }
 
-// 신청하기 버튼 클릭 이벤트 (카드 내부 버튼)
-(function() {
-    const cardApplyBtn = document.getElementById('internetCardApplyBtn');
-    
-    if (cardApplyBtn) {
-        cardApplyBtn.addEventListener('click', handleInternetApplyClick);
-    }
-})();
-
 // 신청하기 버튼 클릭 이벤트 (하단 고정 버튼)
 (function() {
-    const applyBtn = document.getElementById('internetApplyBtn');
+    const mobileApplyBtn = document.getElementById('internetMobileApplyBtn');
     
-    if (applyBtn) {
-        applyBtn.addEventListener('click', handleInternetApplyClick);
+    if (mobileApplyBtn) {
+        mobileApplyBtn.addEventListener('click', handleInternetApplyClick);
     }
 })();
 
@@ -3430,6 +3545,9 @@ function handleInternetApplyClick(e) {
     }
 
 </script>
+
+<!-- 아코디언 스크립트 -->
+<script src="/MVNO/assets/js/plan-accordion.js"></script>
 
 <?php include '../includes/footer.php'; ?>
 

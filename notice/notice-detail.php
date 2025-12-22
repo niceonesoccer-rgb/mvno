@@ -13,6 +13,10 @@ include '../includes/header.php';
 
 // 공지사항 함수 포함
 require_once '../includes/data/notice-functions.php';
+require_once '../includes/data/auth-functions.php';
+
+// 관리자 여부 확인
+$isAdmin = isAdmin();
 
 // 공지사항 ID 확인
 $id = isset($_GET['id']) ? $_GET['id'] : null;
@@ -50,26 +54,39 @@ $notice = getNoticeById($id); // 업데이트된 조회수 가져오기
         <article style="background: white; border-radius: 12px; border: 1px solid #e5e7eb; padding: 32px;">
             <!-- 헤더 -->
             <header style="margin-bottom: 24px; padding-bottom: 24px; border-bottom: 1px solid #e5e7eb;">
-                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
-                    <?php if (isset($notice['is_important']) && $notice['is_important']): ?>
-                        <span style="display: inline-flex; align-items: center; padding: 6px 12px; background: #fee2e2; color: #dc2626; border-radius: 6px; font-size: 13px; font-weight: 600;">중요</span>
-                    <?php endif; ?>
-                </div>
                 <h1 style="font-size: 24px; font-weight: bold; margin: 0 0 16px 0; color: #111827; line-height: 1.4;">
                     <?php echo htmlspecialchars($notice['title']); ?>
                 </h1>
                 <div style="display: flex; align-items: center; gap: 16px; font-size: 14px; color: #6b7280;">
-                    <span>작성일: <?php echo date('Y년 m월 d일 H:i', strtotime($notice['created_at'])); ?></span>
-                    <?php if (isset($notice['views'])): ?>
-                        <span>조회수: <?php echo number_format($notice['views']); ?></span>
+                    <span>작성일: <?php echo date('Y년 m월 d일', strtotime($notice['created_at'])); ?></span>
+                    <?php if ($isAdmin && isset($notice['views'])): ?>
+                        <span style="color: #9ca3af;">조회수: <?php echo number_format($notice['views']); ?></span>
                     <?php endif; ?>
                 </div>
             </header>
 
             <!-- 본문 -->
-            <div style="font-size: 16px; line-height: 1.8; color: #374151; white-space: pre-wrap; word-wrap: break-word;">
-                <?php echo nl2br(htmlspecialchars($notice['content'])); ?>
-            </div>
+            <?php if (!empty($notice['image_url'])): ?>
+                <div style="margin-bottom: 24px;">
+                    <?php if (!empty($notice['link_url'])): ?>
+                        <a href="<?php echo htmlspecialchars($notice['link_url']); ?>" target="_blank" style="display: block;">
+                            <img src="<?php echo htmlspecialchars($notice['image_url']); ?>" 
+                                 alt="<?php echo htmlspecialchars($notice['title']); ?>" 
+                                 style="max-width: 100%; height: auto; border-radius: 8px; cursor: pointer;">
+                        </a>
+                    <?php else: ?>
+                        <img src="<?php echo htmlspecialchars($notice['image_url']); ?>" 
+                             alt="<?php echo htmlspecialchars($notice['title']); ?>" 
+                             style="max-width: 100%; height: auto; border-radius: 8px;">
+                    <?php endif; ?>
+                </div>
+            <?php endif; ?>
+            
+            <?php if (!empty($notice['content'])): ?>
+                <div style="font-size: 16px; line-height: 1.8; color: #374151; white-space: pre-wrap; word-wrap: break-word;">
+                    <?php echo nl2br(htmlspecialchars($notice['content'])); ?>
+                </div>
+            <?php endif; ?>
         </article>
 
         <!-- 목록으로 버튼 -->

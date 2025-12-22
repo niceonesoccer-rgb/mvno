@@ -579,11 +579,13 @@ $discountData = [
                 <div class="consultation-form-group">
                     <label for="consultationPhone" class="consultation-form-label">휴대폰번호</label>
                     <input type="tel" id="consultationPhone" name="phone" class="consultation-form-input" value="<?php echo htmlspecialchars($user_phone); ?>" placeholder="010-1234-5678" required>
+                    <span id="consultationPhoneError" class="form-error-message" style="display: none; color: #ef4444; font-size: 0.875rem; margin-top: 0.25rem;"></span>
                 </div>
                 
                 <div class="consultation-form-group">
                     <label for="consultationEmail" class="consultation-form-label">이메일</label>
                     <input type="email" id="consultationEmail" name="email" class="consultation-form-input" value="<?php echo htmlspecialchars($user_email); ?>" placeholder="example@email.com" required>
+                    <span id="consultationEmailError" class="form-error-message" style="display: none; color: #ef4444; font-size: 0.875rem; margin-top: 0.25rem;"></span>
                 </div>
                 
                 <!-- 체크박스 -->
@@ -597,7 +599,7 @@ $discountData = [
                             <div class="internet-checkbox-item">
                                 <label class="internet-checkbox-label-item">
                                     <input type="checkbox" id="agreementPurpose" name="agreementPurpose" class="internet-checkbox-input-item" onchange="checkAllMnoAgreements();" required>
-                                    <span class="internet-checkbox-text" style="font-size: 1.0625rem !important;">개인정보 수집 및 이용목적에 동의합니까?</span>
+                                    <span class="internet-checkbox-text" style="font-size: 1.0625rem !important;">개인정보 수집 및 이용목적에 동의합니까? <span style="color: #4f46e5; font-weight: 600;">(필수)</span></span>
                                 </label>
                                 <a href="#" class="internet-checkbox-link" id="mnoPurposeArrowLink" onclick="event.preventDefault(); openMnoPrivacyModal('purpose'); return false;">
                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="arrow-down">
@@ -610,7 +612,7 @@ $discountData = [
                             <div class="internet-checkbox-item">
                                 <label class="internet-checkbox-label-item">
                                     <input type="checkbox" id="agreementItems" name="agreementItems" class="internet-checkbox-input-item" onchange="checkAllMnoAgreements();" required>
-                                    <span class="internet-checkbox-text" style="font-size: 1.0625rem !important;">개인정보 수집하는 항목에 동의합니까?</span>
+                                    <span class="internet-checkbox-text" style="font-size: 1.0625rem !important;">개인정보 수집하는 항목에 동의합니까? <span style="color: #4f46e5; font-weight: 600;">(필수)</span></span>
                                 </label>
                                 <a href="#" class="internet-checkbox-link" id="mnoItemsArrowLink" onclick="event.preventDefault(); openMnoPrivacyModal('items'); return false;">
                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="arrow-down">
@@ -623,7 +625,7 @@ $discountData = [
                             <div class="internet-checkbox-item">
                                 <label class="internet-checkbox-label-item">
                                     <input type="checkbox" id="agreementPeriod" name="agreementPeriod" class="internet-checkbox-input-item" onchange="checkAllMnoAgreements();" required>
-                                    <span class="internet-checkbox-text" style="font-size: 1.0625rem !important;">개인정보 보유 및 이용기간에 동의합니까?</span>
+                                    <span class="internet-checkbox-text" style="font-size: 1.0625rem !important;">개인정보 보유 및 이용기간에 동의합니까? <span style="color: #4f46e5; font-weight: 600;">(필수)</span></span>
                                 </label>
                                 <a href="#" class="internet-checkbox-link" id="mnoPeriodArrowLink" onclick="event.preventDefault(); openMnoPrivacyModal('period'); return false;">
                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="arrow-down">
@@ -636,13 +638,78 @@ $discountData = [
                             <div class="internet-checkbox-item">
                                 <label class="internet-checkbox-label-item">
                                     <input type="checkbox" id="agreementThirdParty" name="agreementThirdParty" class="internet-checkbox-input-item" onchange="checkAllMnoAgreements();" required>
-                                    <span class="internet-checkbox-text" style="font-size: 1.0625rem !important;">개인정보 제3자 제공에 동의합니까?</span>
+                                    <span class="internet-checkbox-text" style="font-size: 1.0625rem !important;">개인정보 제3자 제공에 동의합니까? <span style="color: #4f46e5; font-weight: 600;">(필수)</span></span>
                                 </label>
                                 <a href="#" class="internet-checkbox-link" id="mnoThirdPartyArrowLink" onclick="event.preventDefault(); openMnoPrivacyModal('thirdParty'); return false;">
                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="arrow-down">
                                         <path d="M3.646 4.646a.5.5 0 0 1 .708 0L8 8.293l3.646-3.647a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 0-.708z"></path>
                                     </svg>
                                 </a>
+                            </div>
+                        </div>
+                        
+                        <!-- 서비스 이용 및 혜택 안내 알림(필수) -->
+                        <div class="internet-checkbox-item-wrapper">
+                            <div class="internet-checkbox-item">
+                                <label class="internet-checkbox-label-item">
+                                    <input type="checkbox" id="agreementServiceNotice" name="service_notice_opt_in" class="internet-checkbox-input-item" onchange="checkAllMnoAgreements();" required>
+                                    <span class="internet-checkbox-text" style="font-size: 1.0625rem !important;">서비스 이용 및 혜택 안내 알림 동의 <span style="color: #4f46e5; font-weight: 600;">(필수)</span></span>
+                                </label>
+                                <a href="#" class="internet-checkbox-link" onclick="event.preventDefault(); toggleMnoAccordion('mnoServiceNoticeContent', this); return false;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="arrow-down">
+                                        <path d="M3.646 4.646a.5.5 0 0 1 .708 0L8 8.293l3.646-3.647a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 0-.708z"></path>
+                                    </svg>
+                                </a>
+                            </div>
+                            <div class="internet-accordion-content" id="mnoServiceNoticeContent">
+                                <div class="internet-accordion-inner">
+                                    <div class="internet-accordion-section">
+                                        <div style="font-size: 0.875rem; color: #6b7280; line-height: 1.65;">
+                                            <p style="margin: 0 0 0.5rem 0;">서비스 이용에 필요한 필수 알림입니다. 알림톡으로 발송됩니다.</p>
+                                            <ul style="margin: 0; padding-left: 1.25rem; color: #6b7280;">
+                                                <li>요금제 유지기간 만료 및 변경 안내</li>
+                                                <li>부가서비스 종료 및 이용 조건 변경 안내</li>
+                                                <li>가입 고객 대상 혜택·이벤트 안내</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 광고성 정보 수신동의(선택) -->
+                        <div class="internet-checkbox-item-wrapper">
+                            <div class="internet-checkbox-item">
+                                <label class="internet-checkbox-label-item">
+                                    <input type="checkbox" id="agreementMarketing" name="marketing_opt_in" class="internet-checkbox-input-item" onchange="checkAllMnoAgreements(); toggleMnoMarketingChannels();">
+                                    <span class="internet-checkbox-text" style="font-size: 1.0625rem !important;">광고성 정보 수신동의 <span style="color: #6b7280; font-weight: 600;">(선택)</span></span>
+                                </label>
+                                <a href="#" class="internet-checkbox-link" onclick="event.preventDefault(); toggleMnoAccordion('mnoMarketingContent', this); return false;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="arrow-down">
+                                        <path d="M3.646 4.646a.5.5 0 0 1 .708 0L8 8.293l3.646-3.647a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 0-.708z"></path>
+                                    </svg>
+                                </a>
+                            </div>
+                            <div class="internet-accordion-content" id="mnoMarketingContent">
+                                <div class="internet-accordion-inner">
+                                    <div class="internet-accordion-section">
+                                        <p style="font-size: 0.875rem; color: #6b7280; margin: 0 0 0.75rem 0;">광고성 정보를 받으시려면 아래 항목을 선택해주세요</p>
+                                        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                                            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                                                <input type="checkbox" id="mnoMarketingEmail" name="marketing_email_opt_in" class="mno-marketing-channel" style="width: 18px; height: 18px; cursor: pointer; accent-color: #6366f1;">
+                                                <span style="font-size: 0.875rem; color: #374151;">이메일 수신동의</span>
+                                            </label>
+                                            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                                                <input type="checkbox" id="mnoMarketingSmsSns" name="marketing_sms_sns_opt_in" class="mno-marketing-channel" style="width: 18px; height: 18px; cursor: pointer; accent-color: #6366f1;">
+                                                <span style="font-size: 0.875rem; color: #374151;">SMS, SNS 수신동의</span>
+                                            </label>
+                                            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                                                <input type="checkbox" id="mnoMarketingPush" name="marketing_push_opt_in" class="mno-marketing-channel" style="width: 18px; height: 18px; cursor: pointer; accent-color: #6366f1;">
+                                                <span style="font-size: 0.875rem; color: #374151;">앱 푸시 수신동의</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1278,6 +1345,57 @@ document.addEventListener('DOMContentLoaded', function() {
         consultationModal.style.display = 'flex';
         consultationModal.classList.add('consultation-modal-active');
         
+        // 모달이 열릴 때 기존 값이 있으면 즉시 검증 (지연 없이)
+        const phoneInput = document.getElementById('consultationPhone');
+        const emailInput = document.getElementById('consultationEmail');
+        const phoneErrorElement = document.getElementById('consultationPhoneError');
+        const emailErrorElement = document.getElementById('consultationEmailError');
+        
+        // 전화번호 즉시 검증
+        if (phoneInput && phoneErrorElement) {
+            const phoneValue = phoneInput.value.trim();
+            const phoneNumbers = phoneValue.replace(/[^\d]/g, '');
+            
+            if (phoneValue && phoneNumbers.length > 0) {
+                if (phoneNumbers.length === 11 && phoneNumbers.startsWith('010')) {
+                    phoneInput.classList.remove('input-error');
+                    phoneErrorElement.style.display = 'none';
+                    phoneErrorElement.textContent = '';
+                } else {
+                    phoneInput.classList.add('input-error');
+                    phoneErrorElement.style.display = 'block';
+                    phoneErrorElement.textContent = '전화번호 형식에 맞게 입력해주세요. (010-1234-5678 형식)';
+                }
+            } else if (phoneValue) {
+                phoneInput.classList.add('input-error');
+                phoneErrorElement.style.display = 'block';
+                phoneErrorElement.textContent = '전화번호 형식에 맞게 입력해주세요. (010-1234-5678 형식)';
+            }
+        }
+        
+        // 이메일 즉시 검증
+        if (emailInput && emailErrorElement) {
+            const emailValue = emailInput.value.trim();
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            
+            if (emailValue.length > 0) {
+                if (emailRegex.test(emailValue)) {
+                    emailInput.classList.remove('input-error');
+                    emailErrorElement.style.display = 'none';
+                    emailErrorElement.textContent = '';
+                } else {
+                    emailInput.classList.add('input-error');
+                    emailErrorElement.style.display = 'block';
+                    emailErrorElement.textContent = '이메일 형식에 맞게 입력해주세요. (example@email.com 형식)';
+                }
+            }
+        }
+        
+        // DOM 업데이트 후 재검증
+        setTimeout(function() {
+            checkAllMnoAgreements();
+        }, 50);
+        
         // 선택한 할인 정보를 폼에 저장 (나중에 제출 시 함께 전송)
         if (selectedProvider) {
             const hiddenInput = consultationForm.querySelector('input[name="selected_provider"]');
@@ -1471,12 +1589,21 @@ document.addEventListener('DOMContentLoaded', function() {
         const agreementItems = document.getElementById('agreementItems');
         const agreementPeriod = document.getElementById('agreementPeriod');
         const agreementThirdParty = document.getElementById('agreementThirdParty');
+        const agreementServiceNotice = document.getElementById('agreementServiceNotice');
+        const agreementMarketing = document.getElementById('agreementMarketing');
         
-        if (agreementPurpose && agreementItems && agreementPeriod && agreementThirdParty) {
+        if (agreementPurpose && agreementItems && agreementPeriod && agreementThirdParty && agreementServiceNotice) {
             agreementPurpose.checked = checked;
             agreementItems.checked = checked;
             agreementPeriod.checked = checked;
             agreementThirdParty.checked = checked;
+            agreementServiceNotice.checked = checked;
+            if (agreementMarketing) {
+                agreementMarketing.checked = checked;
+                if (checked) {
+                    toggleMnoMarketingChannels();
+                }
+            }
             checkAllMnoAgreements();
         }
     }
@@ -1488,13 +1615,15 @@ document.addEventListener('DOMContentLoaded', function() {
         const agreementItems = document.getElementById('agreementItems');
         const agreementPeriod = document.getElementById('agreementPeriod');
         const agreementThirdParty = document.getElementById('agreementThirdParty');
+        const agreementServiceNotice = document.getElementById('agreementServiceNotice');
+        const agreementMarketing = document.getElementById('agreementMarketing');
         const submitBtn = document.getElementById('consultationSubmitBtn');
         const nameInput = document.getElementById('consultationName');
         const phoneInput = document.getElementById('consultationPhone');
         
-        if (agreementAll && agreementPurpose && agreementItems && agreementPeriod && agreementThirdParty && submitBtn) {
-            // 전체 동의 체크박스 상태 업데이트
-            agreementAll.checked = agreementPurpose.checked && agreementItems.checked && agreementPeriod.checked && agreementThirdParty.checked;
+        if (agreementAll && agreementPurpose && agreementItems && agreementPeriod && agreementThirdParty && agreementServiceNotice && submitBtn) {
+            // 전체 동의 체크박스 상태 업데이트 (필수 항목만 포함)
+            agreementAll.checked = agreementPurpose.checked && agreementItems.checked && agreementPeriod.checked && agreementThirdParty.checked && agreementServiceNotice.checked;
             
             // 이름과 휴대폰 번호 확인
             const name = nameInput ? nameInput.value.trim() : '';
@@ -1503,13 +1632,65 @@ document.addEventListener('DOMContentLoaded', function() {
             // 제출 버튼 활성화/비활성화 (모든 필드가 입력되어야 활성화)
             const isNameValid = name.length > 0;
             const isPhoneValid = phone.length === 11 && phone.startsWith('010');
-            const isAgreementsChecked = agreementPurpose.checked && agreementItems.checked && agreementPeriod.checked && agreementThirdParty.checked;
+            const isAgreementsChecked = agreementPurpose.checked && agreementItems.checked && agreementPeriod.checked && agreementThirdParty.checked && agreementServiceNotice.checked;
             
             if (isNameValid && isPhoneValid && isAgreementsChecked) {
                 submitBtn.disabled = false;
             } else {
                 submitBtn.disabled = true;
             }
+        }
+    }
+    
+    // 마케팅 채널 활성화/비활성화 토글 함수
+    function toggleMnoMarketingChannels() {
+        const agreementMarketing = document.getElementById('agreementMarketing');
+        const marketingChannels = document.querySelectorAll('.mno-marketing-channel');
+        
+        if (agreementMarketing && marketingChannels.length > 0) {
+            const isEnabled = agreementMarketing.checked;
+            marketingChannels.forEach(channel => {
+                channel.disabled = !isEnabled;
+                if (!isEnabled) {
+                    channel.checked = false;
+                }
+            });
+        }
+    }
+    
+    // 마케팅 채널 변경 시 상위 체크박스 업데이트
+    document.addEventListener('DOMContentLoaded', function() {
+        const marketingChannels = document.querySelectorAll('.mno-marketing-channel');
+        const agreementMarketing = document.getElementById('agreementMarketing');
+        
+        marketingChannels.forEach(channel => {
+            channel.addEventListener('change', function() {
+                if (agreementMarketing) {
+                    const anyChecked = Array.from(marketingChannels).some(ch => ch.checked);
+                    if (anyChecked && !agreementMarketing.checked) {
+                        agreementMarketing.checked = true;
+                        toggleMnoMarketingChannels();
+                    }
+                }
+            });
+        });
+        
+        // 초기 상태 설정
+        toggleMnoMarketingChannels();
+    });
+    
+    // 아코디언 토글 함수
+    function toggleMnoAccordion(accordionId, arrowLink) {
+        const accordion = document.getElementById(accordionId);
+        if (!accordion || !arrowLink) return;
+        
+        const isOpen = accordion.classList.contains('active');
+        if (isOpen) {
+            accordion.classList.remove('active');
+            arrowLink.classList.remove('arrow-up');
+        } else {
+            accordion.classList.add('active');
+            arrowLink.classList.add('arrow-up');
         }
     }
     
@@ -1566,83 +1747,172 @@ document.addEventListener('DOMContentLoaded', function() {
     const consultationEmail = document.getElementById('consultationEmail');
     
     if (consultationPhone) {
-        // 입력 중 포맷팅
+        const phoneErrorElement = document.getElementById('consultationPhoneError');
+        
+        // 입력 중 포맷팅 및 실시간 검증
         consultationPhone.addEventListener('input', function() {
             const value = this.value;
             const formatted = formatPhoneNumber(value);
             if (formatted !== value) {
                 this.value = formatted;
             }
+            
+            // 실시간 검증
+            const phoneNumbers = this.value.replace(/[^\d]/g, '');
+            if (phoneNumbers.length > 0) {
+                if (phoneNumbers.length === 11 && phoneNumbers.startsWith('010')) {
+                    this.classList.remove('input-error');
+                    if (phoneErrorElement) {
+                        phoneErrorElement.style.display = 'none';
+                        phoneErrorElement.textContent = '';
+                    }
+                } else {
+                    this.classList.add('input-error');
+                    if (phoneErrorElement) {
+                        phoneErrorElement.style.display = 'block';
+                        phoneErrorElement.textContent = '전화번호 형식에 맞게 입력해주세요. (010-1234-5678 형식)';
+                    }
+                }
+            } else {
+                this.classList.remove('input-error');
+                if (phoneErrorElement) {
+                    phoneErrorElement.style.display = 'none';
+                    phoneErrorElement.textContent = '';
+                }
+            }
+            
             checkAllMnoAgreements();
         });
         
         // 포커스 아웃 시 검증
         consultationPhone.addEventListener('blur', function() {
             const value = this.value.trim();
-            if (value && !validatePhoneNumber(value)) {
+            const phoneNumbers = value.replace(/[^\d]/g, '');
+            
+            if (value && phoneNumbers.length > 0) {
+                if (phoneNumbers.length === 11 && phoneNumbers.startsWith('010')) {
+                    this.classList.remove('input-error');
+                    if (phoneErrorElement) {
+                        phoneErrorElement.style.display = 'none';
+                        phoneErrorElement.textContent = '';
+                    }
+                } else {
+                    this.classList.add('input-error');
+                    if (phoneErrorElement) {
+                        phoneErrorElement.style.display = 'block';
+                        phoneErrorElement.textContent = '전화번호 형식에 맞게 입력해주세요. (010-1234-5678 형식)';
+                    }
+                }
+            } else if (value) {
                 this.classList.add('input-error');
-                if (!this.nextElementSibling || !this.nextElementSibling.classList.contains('error-message')) {
-                    const errorMsg = document.createElement('span');
-                    errorMsg.className = 'error-message';
-                    errorMsg.textContent = '010으로 시작하는 11자리 휴대폰 번호를 입력해주세요.';
-                    errorMsg.style.display = 'block';
-                    errorMsg.style.color = '#ef4444';
-                    errorMsg.style.fontSize = '0.75rem';
-                    errorMsg.style.marginTop = '4px';
-                    this.parentElement.appendChild(errorMsg);
+                if (phoneErrorElement) {
+                    phoneErrorElement.style.display = 'block';
+                    phoneErrorElement.textContent = '전화번호 형식에 맞게 입력해주세요. (010-1234-5678 형식)';
                 }
             } else {
                 this.classList.remove('input-error');
-                const errorMsg = this.parentElement.querySelector('.error-message');
-                if (errorMsg) {
-                    errorMsg.remove();
+                if (phoneErrorElement) {
+                    phoneErrorElement.style.display = 'none';
+                    phoneErrorElement.textContent = '';
                 }
             }
+            
             checkAllMnoAgreements();
         });
         
         // 입력 시작 시 에러 제거
         consultationPhone.addEventListener('focus', function() {
             this.classList.remove('input-error');
-            const errorMsg = this.parentElement.querySelector('.error-message');
-            if (errorMsg) {
-                errorMsg.remove();
+            if (phoneErrorElement) {
+                phoneErrorElement.style.display = 'none';
+                phoneErrorElement.textContent = '';
             }
         });
     }
     
     if (consultationEmail) {
-        // 포커스 아웃 시 검증
-        consultationEmail.addEventListener('blur', function() {
+        const emailErrorElement = document.getElementById('consultationEmailError');
+        
+        // 실시간 검증 및 소문자 변환
+        consultationEmail.addEventListener('input', function(e) {
+            // 대문자를 소문자로 자동 변환
+            const cursorPosition = this.selectionStart;
+            const originalValue = this.value;
+            const lowerValue = originalValue.toLowerCase();
+            
+            if (originalValue !== lowerValue) {
+                this.value = lowerValue;
+                const newCursorPosition = Math.min(cursorPosition, lowerValue.length);
+                this.setSelectionRange(newCursorPosition, newCursorPosition);
+            }
+            
             const value = this.value.trim();
-            if (value && !validateEmail(value)) {
-                this.classList.add('input-error');
-                if (!this.nextElementSibling || !this.nextElementSibling.classList.contains('error-message')) {
-                    const errorMsg = document.createElement('span');
-                    errorMsg.className = 'error-message';
-                    errorMsg.textContent = '올바른 이메일 주소를 입력해주세요.';
-                    errorMsg.style.display = 'block';
-                    errorMsg.style.color = '#ef4444';
-                    errorMsg.style.fontSize = '0.75rem';
-                    errorMsg.style.marginTop = '4px';
-                    this.parentElement.appendChild(errorMsg);
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            
+            if (value.length > 0) {
+                if (emailRegex.test(value)) {
+                    this.classList.remove('input-error');
+                    if (emailErrorElement) {
+                        emailErrorElement.style.display = 'none';
+                        emailErrorElement.textContent = '';
+                    }
+                } else {
+                    this.classList.add('input-error');
+                    if (emailErrorElement) {
+                        emailErrorElement.style.display = 'block';
+                        emailErrorElement.textContent = '이메일 형식에 맞게 입력해주세요. (example@email.com 형식)';
+                    }
                 }
             } else {
                 this.classList.remove('input-error');
-                const errorMsg = this.parentElement.querySelector('.error-message');
-                if (errorMsg) {
-                    errorMsg.remove();
+                if (emailErrorElement) {
+                    emailErrorElement.style.display = 'none';
+                    emailErrorElement.textContent = '';
                 }
             }
+            
+            checkAllMnoAgreements();
+        });
+        
+        // 포커스 아웃 시 검증
+        consultationEmail.addEventListener('blur', function() {
+            // 포커스 아웃 시에도 소문자로 변환
+            this.value = this.value.toLowerCase();
+            
+            const value = this.value.trim();
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            
+            if (value.length > 0) {
+                if (emailRegex.test(value)) {
+                    this.classList.remove('input-error');
+                    if (emailErrorElement) {
+                        emailErrorElement.style.display = 'none';
+                        emailErrorElement.textContent = '';
+                    }
+                } else {
+                    this.classList.add('input-error');
+                    if (emailErrorElement) {
+                        emailErrorElement.style.display = 'block';
+                        emailErrorElement.textContent = '이메일 형식에 맞게 입력해주세요. (example@email.com 형식)';
+                    }
+                }
+            } else {
+                this.classList.remove('input-error');
+                if (emailErrorElement) {
+                    emailErrorElement.style.display = 'none';
+                    emailErrorElement.textContent = '';
+                }
+            }
+            
             checkAllMnoAgreements();
         });
         
         // 입력 시작 시 에러 제거
         consultationEmail.addEventListener('focus', function() {
             this.classList.remove('input-error');
-            const errorMsg = this.parentElement.querySelector('.error-message');
-            if (errorMsg) {
-                errorMsg.remove();
+            if (emailErrorElement) {
+                emailErrorElement.style.display = 'none';
+                emailErrorElement.textContent = '';
             }
         });
     }
@@ -1708,33 +1978,53 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             // 휴대폰번호 검증
+            const phoneErrorElement = document.getElementById('consultationPhoneError');
             if (!consultationPhone || !consultationPhone.value.trim()) {
-                alert('휴대폰 번호를 입력해주세요.');
-                if (consultationPhone) consultationPhone.focus();
+                if (consultationPhone) {
+                    consultationPhone.classList.add('input-error');
+                    if (phoneErrorElement) {
+                        phoneErrorElement.style.display = 'block';
+                        phoneErrorElement.textContent = '휴대폰 번호를 입력해주세요.';
+                    }
+                    consultationPhone.focus();
+                }
                 return;
             }
             
             if (!validatePhoneNumber(consultationPhone.value)) {
-                alert('010으로 시작하는 11자리 휴대폰 번호를 입력해주세요.');
                 if (consultationPhone) {
-                    consultationPhone.focus();
                     consultationPhone.classList.add('input-error');
+                    if (phoneErrorElement) {
+                        phoneErrorElement.style.display = 'block';
+                        phoneErrorElement.textContent = '전화번호 형식에 맞게 입력해주세요. (010-1234-5678 형식)';
+                    }
+                    consultationPhone.focus();
                 }
                 return;
             }
             
             // 이메일 검증
+            const emailErrorElement = document.getElementById('consultationEmailError');
             if (!consultationEmail || !consultationEmail.value.trim()) {
-                alert('이메일을 입력해주세요.');
-                if (consultationEmail) consultationEmail.focus();
+                if (consultationEmail) {
+                    consultationEmail.classList.add('input-error');
+                    if (emailErrorElement) {
+                        emailErrorElement.style.display = 'block';
+                        emailErrorElement.textContent = '이메일을 입력해주세요.';
+                    }
+                    consultationEmail.focus();
+                }
                 return;
             }
             
             if (!validateEmail(consultationEmail.value)) {
-                alert('올바른 이메일 주소를 입력해주세요.');
                 if (consultationEmail) {
-                    consultationEmail.focus();
                     consultationEmail.classList.add('input-error');
+                    if (emailErrorElement) {
+                        emailErrorElement.style.display = 'block';
+                        emailErrorElement.textContent = '이메일 형식에 맞게 입력해주세요. (example@email.com 형식)';
+                    }
+                    consultationEmail.focus();
                 }
                 return;
             }

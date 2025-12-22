@@ -30,8 +30,33 @@ $pointBalance = (int)($userPoint['balance'] ?? 0);
 include '../includes/header.php';
 ?>
 
+<style>
+/* 모바일에서는 전체 화면, PC에서는 중앙에 작은 모달 */
+@media (min-width: 768px) {
+    #emailModal > div,
+    #passwordModal > div {
+        width: 100% !important;
+        max-width: 500px !important;
+        height: auto !important;
+        max-height: 90vh !important;
+        border-radius: 12px !important;
+    }
+}
+
+@media (max-width: 767px) {
+    #emailModal > div,
+    #passwordModal > div {
+        width: 100% !important;
+        max-width: 100% !important;
+        height: 100% !important;
+        max-height: 100% !important;
+        border-radius: 0 !important;
+    }
+}
+</style>
+
 <main class="main-content">
-    <div style="width: 460px; margin: 0 auto; padding: 20px;" class="account-settings-container">
+    <div style="width: 100%; max-width: 460px; margin: 0 auto; padding: 20px;" class="account-settings-container">
         <!-- 뒤로가기 버튼 및 제목 -->
         <div style="margin-bottom: 24px; padding: 20px 0;">
             <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
@@ -93,8 +118,8 @@ include '../includes/header.php';
 </main>
 
 <!-- 이메일 수정 모달 -->
-<div id="emailModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: white; z-index: 1000; overflow: hidden; width: 100%; height: 100%;">
-    <div style="position: relative; width: 100%; height: 100%; display: flex; flex-direction: column; background: white; margin: 0; padding: 0;">
+<div id="emailModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.5); z-index: 1000; overflow: hidden; width: 100%; height: 100%; align-items: center; justify-content: center;">
+    <div style="position: relative; width: 100%; max-width: 500px; height: 100%; max-height: 90vh; display: flex; flex-direction: column; background: white; margin: 0; padding: 0; border-radius: 12px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2); overflow: hidden;">
         <!-- 모달 헤더 -->
         <div style="flex-shrink: 0; background: white; padding: 20px; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: space-between;">
             <h3 style="font-size: 20px; font-weight: bold; margin: 0;">이메일 수정</h3>
@@ -108,39 +133,92 @@ include '../includes/header.php';
         <!-- 모달 내용 -->
         <div style="flex: 1; overflow-y: auto; padding: 20px;">
             <form id="emailForm">
-                <div style="margin-bottom: 24px;">
-                    <label style="display: block; font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 8px;">
-                        이메일 주소
-                    </label>
-                    <input 
-                        type="email" 
-                        id="emailInput" 
-                        name="email" 
-                        value="kang@naver.com"
-                        placeholder="example@email.com" 
-                        required
-                        style="width: 100%; padding: 12px 16px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box; outline: none; transition: border-color 0.2s;"
-                        onfocus="this.style.borderColor='#6366f1'"
-                        onblur="this.style.borderColor='#d1d5db'"
-                    >
-                    <div id="emailError" style="display: none; color: #ef4444; font-size: 13px; margin-top: 8px;"></div>
+                <!-- 1단계: 이메일 입력 및 인증번호 발송 -->
+                <div id="emailStep1">
+                    <div style="margin-bottom: 24px;">
+                        <label style="display: block; font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 8px;">
+                            새 이메일 주소
+                        </label>
+                        <div style="display: flex; gap: 8px;">
+                            <input 
+                                type="email" 
+                                id="emailInput" 
+                                name="email" 
+                                placeholder="example@email.com" 
+                                required
+                                style="flex: 1; padding: 12px 16px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box; outline: none; transition: border-color 0.2s;"
+                                onfocus="this.style.borderColor='#6366f1'"
+                                onblur="this.style.borderColor='#d1d5db'"
+                            >
+                            <button 
+                                type="button" 
+                                id="sendVerificationBtn"
+                                style="padding: 12px 20px; background-color: #6366f1; border: none; border-radius: 8px; font-size: 14px; color: white; font-weight: 500; cursor: pointer; white-space: nowrap;"
+                            >
+                                인증번호 발송
+                            </button>
+                        </div>
+                        <div id="emailError" style="display: none; color: #ef4444; font-size: 13px; margin-top: 8px;"></div>
+                        <div id="emailInputError" style="display: none; color: #ef4444; font-size: 13px; margin-top: 8px;"></div>
+                        <div id="emailSuccess" style="display: none; color: #10b981; font-size: 13px; margin-top: 8px;"></div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 12px;">
+                        <button 
+                            type="button" 
+                            id="cancelEmailBtn"
+                            style="flex: 1; padding: 14px; background-color: #f3f4f6; border: none; border-radius: 8px; font-size: 16px; color: #374151; font-weight: 500; cursor: pointer;"
+                        >
+                            취소
+                        </button>
+                    </div>
                 </div>
                 
-                <div style="display: flex; gap: 12px;">
-                    <button 
-                        type="button" 
-                        id="cancelEmailBtn"
-                        style="flex: 1; padding: 14px; background-color: #f3f4f6; border: none; border-radius: 8px; font-size: 16px; color: #374151; font-weight: 500; cursor: pointer;"
-                    >
-                        취소
-                    </button>
-                    <button 
-                        type="submit" 
-                        id="submitEmailBtn"
-                        style="flex: 1; padding: 14px; background-color: #6366f1; border: none; border-radius: 8px; font-size: 16px; color: white; font-weight: 500; cursor: pointer;"
-                    >
-                        확인
-                    </button>
+                <!-- 2단계: 인증번호 입력 -->
+                <div id="emailStep2" style="display: none;">
+                    <div style="margin-bottom: 24px;">
+                        <label style="display: block; font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 8px;">
+                            인증번호 입력
+                        </label>
+                        <input 
+                            type="text" 
+                            id="verificationCodeInput" 
+                            name="verification_code" 
+                            placeholder="6자리 인증번호를 입력하세요" 
+                            maxlength="6"
+                            style="width: 100%; padding: 12px 16px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box; outline: none; transition: border-color 0.2s; text-align: center; letter-spacing: 5px; font-size: 20px; font-weight: 600;"
+                            onfocus="this.style.borderColor='#6366f1'"
+                            onblur="this.style.borderColor='#d1d5db'"
+                        >
+                        <div id="verificationError" style="display: none; color: #ef4444; font-size: 13px; margin-top: 8px;"></div>
+                        <div id="verificationSuccess" style="display: none; color: #10b981; font-size: 13px; margin-top: 8px;"></div>
+                        <div style="margin-top: 8px; font-size: 12px; color: #6b7280; text-align: center;">
+                            <button 
+                                type="button" 
+                                id="resendVerificationBtn"
+                                style="background: none; border: none; color: #6366f1; font-size: 12px; cursor: pointer; text-decoration: underline;"
+                            >
+                                인증번호 다시 받기
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 12px;">
+                        <button 
+                            type="button" 
+                            id="backToEmailBtn"
+                            style="flex: 1; padding: 14px; background-color: #f3f4f6; border: none; border-radius: 8px; font-size: 16px; color: #374151; font-weight: 500; cursor: pointer;"
+                        >
+                            이전
+                        </button>
+                        <button 
+                            type="button" 
+                            id="verifyCodeBtn"
+                            style="flex: 1; padding: 14px; background-color: #6366f1; border: none; border-radius: 8px; font-size: 16px; color: white; font-weight: 500; cursor: pointer;"
+                        >
+                            인증 확인
+                        </button>
+                    </div>
                 </div>
             </form>
         </div>
@@ -163,20 +241,64 @@ include '../includes/header.php';
         <!-- 모달 내용 -->
         <div style="flex: 1; overflow-y: auto; padding: 20px;">
             <form id="passwordForm">
+                <!-- 이메일 인증 섹션 (이메일이 있는 경우) -->
+                <div id="passwordEmailVerification" style="display: none; margin-bottom: 24px; padding: 16px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
+                    <div style="margin-bottom: 12px;">
+                        <label style="display: block; font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 8px;">
+                            이메일 인증
+                        </label>
+                        <div style="font-size: 13px; color: #6b7280; margin-bottom: 12px;">
+                            등록된 이메일로 인증번호를 발송합니다.
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <input 
+                                type="text" 
+                                id="passwordVerificationCode" 
+                                placeholder="인증번호 입력" 
+                                maxlength="6"
+                                style="flex: 1; padding: 12px 16px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box; outline: none; text-align: center; letter-spacing: 5px; font-size: 18px; font-weight: 600;"
+                            >
+                            <button 
+                                type="button" 
+                                id="sendPasswordVerificationBtn"
+                                style="padding: 12px 20px; background-color: #6366f1; border: none; border-radius: 8px; font-size: 14px; color: white; font-weight: 500; cursor: pointer; white-space: nowrap;"
+                            >
+                                인증번호 발송
+                            </button>
+                        </div>
+                        <div id="passwordVerificationError" style="display: none; color: #ef4444; font-size: 13px; margin-top: 8px;"></div>
+                        <div id="passwordVerificationSuccess" style="display: none; color: #10b981; font-size: 13px; margin-top: 8px;"></div>
+                    </div>
+                </div>
+                
                 <div style="margin-bottom: 20px;">
                     <label style="display: block; font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 8px;">
                         현재 비밀번호
                     </label>
-                    <input 
-                        type="password" 
-                        id="currentPassword" 
-                        name="current_password" 
-                        placeholder="현재 비밀번호를 입력하세요" 
-                        required
-                        style="width: 100%; padding: 12px 16px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box; outline: none; transition: border-color 0.2s;"
-                        onfocus="this.style.borderColor='#6366f1'"
-                        onblur="this.style.borderColor='#d1d5db'"
-                    >
+                    <div style="position: relative;">
+                        <input 
+                            type="password" 
+                            id="currentPassword" 
+                            name="current_password" 
+                            placeholder="현재 비밀번호를 입력하세요" 
+                            required
+                            style="width: 100%; padding: 12px 40px 12px 16px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box; outline: none; transition: border-color 0.2s;"
+                            onfocus="this.style.borderColor='#6366f1'"
+                            onblur="this.style.borderColor='#d1d5db'"
+                        >
+                        <button 
+                            type="button" 
+                            id="toggleCurrentPassword"
+                            style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; padding: 4px; display: flex; align-items: center; color: #6b7280; z-index: 10;"
+                            onclick="togglePasswordVisibility('currentPassword', 'toggleCurrentPassword')"
+                            title="비밀번호 표시/숨김"
+                        >
+                            <svg id="iconCurrentPassword" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                        </button>
+                    </div>
                     <div id="currentPasswordError" style="display: none; color: #ef4444; font-size: 13px; margin-top: 8px;"></div>
                 </div>
                 
@@ -184,19 +306,33 @@ include '../includes/header.php';
                     <label style="display: block; font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 8px;">
                         새 비밀번호
                     </label>
-                    <input 
-                        type="password" 
-                        id="newPassword" 
-                        name="new_password" 
-                        placeholder="새 비밀번호를 입력하세요" 
-                        required
-                        minlength="8"
-                        style="width: 100%; padding: 12px 16px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box; outline: none; transition: border-color 0.2s;"
-                        onfocus="this.style.borderColor='#6366f1'"
-                        onblur="this.style.borderColor='#d1d5db'"
-                    >
+                    <div style="position: relative;">
+                        <input 
+                            type="password" 
+                            id="newPassword" 
+                            name="new_password" 
+                            placeholder="새 비밀번호를 입력하세요" 
+                            required
+                            minlength="8"
+                            style="width: 100%; padding: 12px 40px 12px 16px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box; outline: none; transition: border-color 0.2s;"
+                            onfocus="this.style.borderColor='#6366f1'"
+                            onblur="this.style.borderColor='#d1d5db'"
+                        >
+                        <button 
+                            type="button" 
+                            id="toggleNewPassword"
+                            style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; padding: 4px; display: flex; align-items: center; color: #6b7280; z-index: 10;"
+                            onclick="togglePasswordVisibility('newPassword', 'toggleNewPassword')"
+                            title="비밀번호 표시/숨김"
+                        >
+                            <svg id="iconNewPassword" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                        </button>
+                    </div>
                     <div style="font-size: 12px; color: #6b7280; margin-top: 4px;">
-                        8자 이상 입력해주세요
+                        8자 이상, 영문자/숫자/특수문자 중 2가지 이상 조합 (공백 불가)
                     </div>
                     <div id="newPasswordError" style="display: none; color: #ef4444; font-size: 13px; margin-top: 8px;"></div>
                 </div>
@@ -205,16 +341,30 @@ include '../includes/header.php';
                     <label style="display: block; font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 8px;">
                         새 비밀번호 확인
                     </label>
-                    <input 
-                        type="password" 
-                        id="confirmPassword" 
-                        name="confirm_password" 
-                        placeholder="새 비밀번호를 다시 입력하세요" 
-                        required
-                        style="width: 100%; padding: 12px 16px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box; outline: none; transition: border-color 0.2s;"
-                        onfocus="this.style.borderColor='#6366f1'"
-                        onblur="this.style.borderColor='#d1d5db'"
-                    >
+                    <div style="position: relative;">
+                        <input 
+                            type="password" 
+                            id="confirmPassword" 
+                            name="confirm_password" 
+                            placeholder="새 비밀번호를 다시 입력하세요" 
+                            required
+                            style="width: 100%; padding: 12px 40px 12px 16px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box; outline: none; transition: border-color 0.2s;"
+                            onfocus="this.style.borderColor='#6366f1'"
+                            onblur="this.style.borderColor='#d1d5db'"
+                        >
+                        <button 
+                            type="button" 
+                            id="toggleConfirmPassword"
+                            style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; padding: 4px; display: flex; align-items: center; color: #6b7280; z-index: 10;"
+                            onclick="togglePasswordVisibility('confirmPassword', 'toggleConfirmPassword')"
+                            title="비밀번호 표시/숨김"
+                        >
+                            <svg id="iconConfirmPassword" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                        </button>
+                    </div>
                     <div id="confirmPasswordError" style="display: none; color: #ef4444; font-size: 13px; margin-top: 8px;"></div>
                 </div>
                 
@@ -240,6 +390,47 @@ include '../includes/header.php';
 </div>
 
 <script>
+// 비밀번호 표시/숨김 토글 함수
+function togglePasswordVisibility(inputId, buttonId) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+    
+    let iconId = '';
+    
+    if (inputId === 'currentPassword') {
+        iconId = 'iconCurrentPassword';
+    } else if (inputId === 'newPassword') {
+        iconId = 'iconNewPassword';
+    } else if (inputId === 'confirmPassword') {
+        iconId = 'iconConfirmPassword';
+    }
+    
+    const icon = document.getElementById(iconId);
+    const button = document.getElementById(buttonId);
+    
+    if (input.type === 'password') {
+        input.type = 'text';
+        if (icon) {
+            // 눈 아이콘 (표시 상태) - 취소선 있는 눈
+            icon.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>';
+        }
+        if (button) {
+            button.style.color = '#6366f1'; // 활성화된 색상
+            button.title = '비밀번호 숨기기';
+        }
+    } else {
+        input.type = 'password';
+        if (icon) {
+            // 눈 아이콘 (숨김 상태) - 일반 눈
+            icon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>';
+        }
+        if (button) {
+            button.style.color = '#6b7280'; // 기본 색상
+            button.title = '비밀번호 표시';
+        }
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // 아이디는 가입 시 자동 생성되므로 수정 불가 (읽기 전용)
     
@@ -252,9 +443,21 @@ document.addEventListener('DOMContentLoaded', function() {
     const emailForm = document.getElementById('emailForm');
     const emailInput = document.getElementById('emailInput');
     const emailError = document.getElementById('emailError');
+    const emailSuccess = document.getElementById('emailSuccess');
+    const emailStep1 = document.getElementById('emailStep1');
+    const emailStep2 = document.getElementById('emailStep2');
+    const sendVerificationBtn = document.getElementById('sendVerificationBtn');
+    const verificationCodeInput = document.getElementById('verificationCodeInput');
+    const verifyCodeBtn = document.getElementById('verifyCodeBtn');
+    const resendVerificationBtn = document.getElementById('resendVerificationBtn');
+    const backToEmailBtn = document.getElementById('backToEmailBtn');
+    const verificationError = document.getElementById('verificationError');
+    const verificationSuccess = document.getElementById('verificationSuccess');
     
     // 현재 이메일 값 저장 (초기값)
-    let originalEmail = 'kang@naver.com';
+    let originalEmail = '<?php echo htmlspecialchars($currentUser['email'] ?? ''); ?>';
+    let currentVerificationToken = null;
+    let currentVerificationEmail = null;
     
     // 비밀번호 모달 관련
     const changePasswordBtn = document.getElementById('changePasswordBtn');
@@ -268,6 +471,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const currentPasswordError = document.getElementById('currentPasswordError');
     const newPasswordError = document.getElementById('newPasswordError');
     const confirmPasswordError = document.getElementById('confirmPasswordError');
+    const passwordEmailVerification = document.getElementById('passwordEmailVerification');
+    const sendPasswordVerificationBtn = document.getElementById('sendPasswordVerificationBtn');
+    const passwordVerificationCode = document.getElementById('passwordVerificationCode');
+    const passwordVerificationError = document.getElementById('passwordVerificationError');
+    const passwordVerificationSuccess = document.getElementById('passwordVerificationSuccess');
+    
+    let passwordVerificationToken = null;
     
     // 모달 닫기 함수
     function closeModal(modal) {
@@ -281,12 +491,28 @@ document.addEventListener('DOMContentLoaded', function() {
             if (emailModal) {
                 emailModal.style.display = 'flex';
                 document.body.style.overflow = 'hidden';
+                resetEmailModal();
                 if (emailInput) {
-                    emailInput.value = originalEmail;
+                    emailInput.value = '';
                     emailInput.focus();
                 }
             }
         });
+    }
+    
+    // 이메일 모달 초기화
+    function resetEmailModal() {
+        emailStep1.style.display = 'block';
+        emailStep2.style.display = 'none';
+        emailError.style.display = 'none';
+        emailInputError.style.display = 'none';
+        emailSuccess.style.display = 'none';
+        verificationError.style.display = 'none';
+        verificationSuccess.style.display = 'none';
+        emailInput.value = '';
+        verificationCodeInput.value = '';
+        currentVerificationToken = null;
+        currentVerificationEmail = null;
     }
     
     // 이메일 모달 닫기
@@ -294,7 +520,7 @@ document.addEventListener('DOMContentLoaded', function() {
         closeEmailModal.addEventListener('click', function() {
             closeModal(emailModal);
             emailForm.reset();
-            emailError.style.display = 'none';
+            resetEmailModal();
         });
     }
     
@@ -302,57 +528,276 @@ document.addEventListener('DOMContentLoaded', function() {
         cancelEmailBtn.addEventListener('click', function() {
             closeModal(emailModal);
             emailForm.reset();
-            emailError.style.display = 'none';
+            resetEmailModal();
         });
     }
     
-    // 이메일 폼 제출
-    if (emailForm) {
-        emailForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
+    // 인증번호 발송 버튼
+    if (sendVerificationBtn) {
+        sendVerificationBtn.addEventListener('click', function() {
             const email = emailInput.value.trim();
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             
-            // 이메일 유효성 검사
+            emailError.style.display = 'none';
+            emailSuccess.style.display = 'none';
+            
+            if (!email) {
+                emailError.textContent = '이메일 주소를 입력해주세요.';
+                emailError.style.display = 'block';
+                return;
+            }
+            
             if (!emailRegex.test(email)) {
                 emailError.textContent = '올바른 이메일 형식을 입력해주세요.';
                 emailError.style.display = 'block';
                 return;
             }
             
-            // 실제로는 서버에 전송
-            // 여기서는 시뮬레이션
-            fetch('/MVNO/api/update-email.php', {
+            if (email === originalEmail) {
+                emailError.textContent = '현재 사용 중인 이메일과 동일합니다.';
+                emailError.style.display = 'block';
+                return;
+            }
+            
+            // 인증번호 발송
+            sendVerificationBtn.disabled = true;
+            sendVerificationBtn.textContent = '발송 중...';
+            
+            fetch('/MVNO/api/send-email-verification.php', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ email: email })
+                body: JSON.stringify({ 
+                    email: email,
+                    type: 'email_change'
+                })
             })
             .then(response => response.json())
             .then(data => {
+                sendVerificationBtn.disabled = false;
+                sendVerificationBtn.textContent = '인증번호 발송';
+                
                 if (data.success) {
-                    originalEmail = email;
-                    if (displayUserEmail) displayUserEmail.textContent = email;
-                    closeModal(emailModal);
-                    emailForm.reset();
-                    emailError.style.display = 'none';
-                    showAlert('이메일이 저장되었습니다.');
+                    let successMessage = '인증번호가 발송되었습니다. 이메일을 확인해주세요.';
+                    
+                    // 개발 환경에서 인증번호가 반환된 경우 표시
+                    if (data.development_mode && data.verification_code) {
+                        successMessage = '인증번호가 생성되었습니다. (개발 환경)<br>' +
+                                       '<strong style="font-size: 18px; color: #6366f1; letter-spacing: 3px;">인증번호: ' + data.verification_code + '</strong><br>' +
+                                       '<small style="color: #6b7280;">또는 <a href="/MVNO/admin/test-email-verification.php" target="_blank" style="color: #6366f1;">인증번호 확인 페이지</a>에서 확인하세요.</small>';
+                    }
+                    
+                    emailSuccess.innerHTML = successMessage;
+                    emailSuccess.style.display = 'block';
+                    currentVerificationEmail = email;
+                    
+                    // 개발 환경에서 인증번호가 있으면 자동 입력
+                    if (data.development_mode && data.verification_code && verificationCodeInput) {
+                        verificationCodeInput.value = data.verification_code;
+                    }
+                    
+                    // 2단계로 이동
+                    emailStep1.style.display = 'none';
+                    emailStep2.style.display = 'block';
+                    if (verificationCodeInput) {
+                        verificationCodeInput.focus();
+                    }
                 } else {
-                    emailError.textContent = data.message || '이메일 저장에 실패했습니다.';
+                    emailError.textContent = data.message || '인증번호 발송에 실패했습니다.';
                     emailError.style.display = 'block';
                 }
             })
             .catch(error => {
-                // 개발 환경에서는 바로 저장
-                originalEmail = email;
-                if (displayUserEmail) displayUserEmail.textContent = email;
+                sendVerificationBtn.disabled = false;
+                sendVerificationBtn.textContent = '인증번호 발송';
+                emailError.textContent = '인증번호 발송 중 오류가 발생했습니다.';
+                emailError.style.display = 'block';
+            });
+        });
+    }
+    
+    // 인증번호 확인 버튼
+    if (verifyCodeBtn) {
+        verifyCodeBtn.addEventListener('click', function() {
+            const code = verificationCodeInput.value.trim();
+            
+            verificationError.style.display = 'none';
+            verificationSuccess.style.display = 'none';
+            
+            if (!code || code.length !== 6) {
+                verificationError.textContent = '6자리 인증번호를 입력해주세요.';
+                verificationError.style.display = 'block';
+                return;
+            }
+            
+            if (!currentVerificationEmail) {
+                verificationError.textContent = '이메일 정보가 없습니다. 다시 시도해주세요.';
+                verificationError.style.display = 'block';
+                return;
+            }
+            
+            verifyCodeBtn.disabled = true;
+            verifyCodeBtn.textContent = '인증 중...';
+            
+            fetch('/MVNO/api/verify-email-code.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 
+                    email: currentVerificationEmail,
+                    verification_code: code,
+                    type: 'email_change'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                verifyCodeBtn.disabled = false;
+                verifyCodeBtn.textContent = '인증 확인';
+                
+                if (data.success) {
+                    currentVerificationToken = data.verification_token;
+                    verificationSuccess.textContent = '인증이 완료되었습니다.';
+                    verificationSuccess.style.display = 'block';
+                    
+                    // 이메일 변경 완료
+                    updateEmail();
+                } else {
+                    verificationError.textContent = data.message || '인증번호가 일치하지 않습니다.';
+                    verificationError.style.display = 'block';
+                }
+            })
+            .catch(error => {
+                verifyCodeBtn.disabled = false;
+                verifyCodeBtn.textContent = '인증 확인';
+                verificationError.textContent = '인증 처리 중 오류가 발생했습니다.';
+                verificationError.style.display = 'block';
+            });
+        });
+    }
+    
+    // 인증번호 다시 받기
+    if (resendVerificationBtn) {
+        resendVerificationBtn.addEventListener('click', function() {
+            if (currentVerificationEmail) {
+                sendVerificationBtn.click();
+            }
+        });
+    }
+    
+    // 이전 버튼
+    if (backToEmailBtn) {
+        backToEmailBtn.addEventListener('click', function() {
+            emailStep1.style.display = 'block';
+            emailStep2.style.display = 'none';
+            verificationError.style.display = 'none';
+            verificationSuccess.style.display = 'none';
+            verificationCodeInput.value = '';
+        });
+    }
+    
+    // 이메일 변경 완료 함수
+    function updateEmail() {
+        if (!currentVerificationToken || !currentVerificationEmail) {
+            return;
+        }
+        
+        fetch('/MVNO/api/update-email.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ 
+                email: currentVerificationEmail,
+                verification_token: currentVerificationToken
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                originalEmail = currentVerificationEmail;
+                if (displayUserEmail) displayUserEmail.textContent = currentVerificationEmail;
                 closeModal(emailModal);
                 emailForm.reset();
-                emailError.style.display = 'none';
-                showAlert('이메일이 저장되었습니다.');
-            });
+                resetEmailModal();
+                showAlert('이메일 주소가 변경되었습니다.');
+            } else {
+                verificationError.textContent = data.message || '이메일 변경에 실패했습니다.';
+                verificationError.style.display = 'block';
+            }
+        })
+        .catch(error => {
+            verificationError.textContent = '이메일 변경 중 오류가 발생했습니다.';
+            verificationError.style.display = 'block';
+        });
+    }
+    
+    // 이메일 입력 시 자동 포맷팅 (대문자→소문자, 영문자/숫자/_/-/@/. 만 허용)
+    const emailInputError = document.getElementById('emailInputError');
+    if (emailInput) {
+        emailInput.addEventListener('input', function(e) {
+            const originalValue = this.value;
+            // 대문자를 소문자로 변환
+            let value = originalValue.toLowerCase();
+            // 허용되지 않은 문자 찾기
+            const invalidChars = originalValue.match(/[^a-z0-9_\-@.A-Z]/g);
+            
+            // 영문자, 숫자, _, -, @, . 만 허용
+            value = value.replace(/[^a-z0-9_\-@.]/g, '');
+            
+            // 허용되지 않은 문자가 있었으면 경고 표시
+            if (invalidChars && invalidChars.length > 0) {
+                const uniqueInvalidChars = [...new Set(invalidChars)];
+                emailInputError.textContent = `허용되지 않은 문자입니다: ${uniqueInvalidChars.join(', ')}. 영문자, 숫자, _, -, @, . 만 입력 가능합니다.`;
+                emailInputError.style.display = 'block';
+                // 3초 후 자동 숨김
+                setTimeout(() => {
+                    emailInputError.style.display = 'none';
+                }, 3000);
+            } else {
+                emailInputError.style.display = 'none';
+            }
+            
+            this.value = value;
+        });
+        
+        // 붙여넣기 시에도 처리
+        emailInput.addEventListener('paste', function(e) {
+            setTimeout(() => {
+                const originalValue = this.value;
+                let value = originalValue.toLowerCase();
+                const invalidChars = originalValue.match(/[^a-z0-9_\-@.A-Z]/g);
+                
+                value = value.replace(/[^a-z0-9_\-@.]/g, '');
+                
+                if (invalidChars && invalidChars.length > 0) {
+                    const uniqueInvalidChars = [...new Set(invalidChars)];
+                    emailInputError.textContent = `허용되지 않은 문자입니다: ${uniqueInvalidChars.join(', ')}. 영문자, 숫자, _, -, @, . 만 입력 가능합니다.`;
+                    emailInputError.style.display = 'block';
+                    setTimeout(() => {
+                        emailInputError.style.display = 'none';
+                    }, 3000);
+                } else {
+                    emailInputError.style.display = 'none';
+                }
+                
+                this.value = value;
+            }, 0);
+        });
+        
+        // 포커스가 벗어나면 에러 메시지 숨김
+        emailInput.addEventListener('blur', function() {
+            setTimeout(() => {
+                emailInputError.style.display = 'none';
+            }, 200);
+        });
+    }
+    
+    // 인증번호 입력 시 자동 포맷팅
+    if (verificationCodeInput) {
+        verificationCodeInput.addEventListener('input', function(e) {
+            this.value = this.value.replace(/[^0-9]/g, '').slice(0, 6);
         });
     }
     
@@ -361,7 +806,166 @@ document.addEventListener('DOMContentLoaded', function() {
         changePasswordBtn.addEventListener('click', function() {
             passwordModal.style.display = 'flex';
             document.body.style.overflow = 'hidden';
+            
+            // 이메일이 있으면 인증 섹션 표시
+            const userEmail = '<?php echo htmlspecialchars($currentUser['email'] ?? ''); ?>';
+            if (userEmail && passwordEmailVerification) {
+                passwordEmailVerification.style.display = 'block';
+                passwordVerificationToken = null;
+                passwordVerificationCode.value = '';
+                passwordVerificationError.style.display = 'none';
+                passwordVerificationSuccess.style.display = 'none';
+            } else {
+                passwordEmailVerification.style.display = 'none';
+            }
+            
+            // 모든 비밀번호 필드를 숨김 상태로 초기화 (눈 아이콘은 항상 표시)
+            if (currentPassword) {
+                currentPassword.type = 'password';
+                const iconCurrent = document.getElementById('iconCurrentPassword');
+                if (iconCurrent) {
+                    iconCurrent.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>';
+                }
+                const btnCurrent = document.getElementById('toggleCurrentPassword');
+                if (btnCurrent) {
+                    btnCurrent.style.color = '#6b7280';
+                    btnCurrent.title = '비밀번호 표시';
+                }
+            }
+            if (newPassword) {
+                newPassword.type = 'password';
+                const iconNew = document.getElementById('iconNewPassword');
+                if (iconNew) {
+                    iconNew.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>';
+                }
+                const btnNew = document.getElementById('toggleNewPassword');
+                if (btnNew) {
+                    btnNew.style.color = '#6b7280';
+                    btnNew.title = '비밀번호 표시';
+                }
+            }
+            if (confirmPassword) {
+                confirmPassword.type = 'password';
+                const iconConfirm = document.getElementById('iconConfirmPassword');
+                if (iconConfirm) {
+                    iconConfirm.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>';
+                }
+                const btnConfirm = document.getElementById('toggleConfirmPassword');
+                if (btnConfirm) {
+                    btnConfirm.style.color = '#6b7280';
+                    btnConfirm.title = '비밀번호 표시';
+                }
+            }
+            
             currentPassword.focus();
+        });
+    }
+    
+    // 비밀번호 변경용 인증번호 발송
+    if (sendPasswordVerificationBtn) {
+        sendPasswordVerificationBtn.addEventListener('click', function() {
+            const userEmail = '<?php echo htmlspecialchars($currentUser['email'] ?? ''); ?>';
+            if (!userEmail) {
+                return;
+            }
+            
+            passwordVerificationError.style.display = 'none';
+            passwordVerificationSuccess.style.display = 'none';
+            
+            sendPasswordVerificationBtn.disabled = true;
+            sendPasswordVerificationBtn.textContent = '발송 중...';
+            
+            fetch('/MVNO/api/send-email-verification.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 
+                    email: userEmail,
+                    type: 'password_change'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                sendPasswordVerificationBtn.disabled = false;
+                sendPasswordVerificationBtn.textContent = '인증번호 발송';
+                
+                if (data.success) {
+                    let successMessage = '인증번호가 발송되었습니다. 이메일을 확인해주세요.';
+                    
+                    // 개발 환경에서 인증번호가 반환된 경우 표시
+                    if (data.development_mode && data.verification_code) {
+                        successMessage = '인증번호가 생성되었습니다. (개발 환경)<br>' +
+                                       '<strong style="font-size: 18px; color: #6366f1; letter-spacing: 3px;">인증번호: ' + data.verification_code + '</strong><br>' +
+                                       '<small style="color: #6b7280;">또는 <a href="/MVNO/admin/test-email-verification.php" target="_blank" style="color: #6366f1;">인증번호 확인 페이지</a>에서 확인하세요.</small>';
+                        
+                        // 자동 입력
+                        if (passwordVerificationCode) {
+                            passwordVerificationCode.value = data.verification_code;
+                        }
+                    }
+                    
+                    passwordVerificationSuccess.innerHTML = successMessage;
+                    passwordVerificationSuccess.style.display = 'block';
+                    if (passwordVerificationCode) {
+                        passwordVerificationCode.focus();
+                    }
+                } else {
+                    passwordVerificationError.textContent = data.message || '인증번호 발송에 실패했습니다.';
+                    passwordVerificationError.style.display = 'block';
+                }
+            })
+            .catch(error => {
+                sendPasswordVerificationBtn.disabled = false;
+                sendPasswordVerificationBtn.textContent = '인증번호 발송';
+                passwordVerificationError.textContent = '인증번호 발송 중 오류가 발생했습니다.';
+                passwordVerificationError.style.display = 'block';
+            });
+        });
+    }
+    
+    // 비밀번호 변경용 인증번호 확인
+    if (passwordVerificationCode) {
+        passwordVerificationCode.addEventListener('input', function(e) {
+            this.value = this.value.replace(/[^0-9]/g, '').slice(0, 6);
+            
+            // 6자리 입력 시 자동 인증
+            if (this.value.length === 6) {
+                const userEmail = '<?php echo htmlspecialchars($currentUser['email'] ?? ''); ?>';
+                if (!userEmail) {
+                    return;
+                }
+                
+                passwordVerificationError.style.display = 'none';
+                passwordVerificationSuccess.style.display = 'none';
+                
+                fetch('/MVNO/api/verify-email-code.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        email: userEmail,
+                        verification_code: this.value,
+                        type: 'password_change'
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        passwordVerificationToken = data.verification_token;
+                        passwordVerificationSuccess.textContent = '인증이 완료되었습니다.';
+                        passwordVerificationSuccess.style.display = 'block';
+                    } else {
+                        passwordVerificationError.textContent = data.message || '인증번호가 일치하지 않습니다.';
+                        passwordVerificationError.style.display = 'block';
+                    }
+                })
+                .catch(error => {
+                    passwordVerificationError.textContent = '인증 처리 중 오류가 발생했습니다.';
+                    passwordVerificationError.style.display = 'block';
+                });
+            }
         });
     }
     
@@ -383,6 +987,75 @@ document.addEventListener('DOMContentLoaded', function() {
             currentPasswordError.style.display = 'none';
             newPasswordError.style.display = 'none';
             confirmPasswordError.style.display = 'none';
+        });
+    }
+    
+    // 비밀번호 입력 필터링 (영문자, 숫자, 특수문자만 허용, 공백 불가)
+    function filterPasswordInput(input) {
+        // 공백 제거 및 영문자, 숫자, 특수문자만 허용
+        let value = input.value.replace(/\s/g, ''); // 공백 제거
+        value = value.replace(/[^a-zA-Z0-9!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/g, ''); // 허용된 문자만 남김
+        input.value = value;
+    }
+    
+    // 현재 비밀번호 입력 필터링
+    if (currentPassword) {
+        currentPassword.addEventListener('input', function() {
+            filterPasswordInput(this);
+        });
+        currentPassword.addEventListener('paste', function() {
+            setTimeout(() => {
+                filterPasswordInput(this);
+            }, 0);
+        });
+    }
+    
+    // 새 비밀번호 실시간 유효성 검사 및 필터링
+    if (newPassword) {
+        newPassword.addEventListener('input', function() {
+            filterPasswordInput(this);
+            
+            const pwd = this.value;
+            if (pwd.length === 0) {
+                newPasswordError.style.display = 'none';
+                return;
+            }
+            
+            if (pwd.length < 8) {
+                newPasswordError.textContent = '비밀번호는 8자 이상이어야 합니다.';
+                newPasswordError.style.display = 'block';
+                return;
+            }
+            
+            const hasLetter = /[a-zA-Z]/.test(pwd);
+            const hasNumber = /[0-9]/.test(pwd);
+            const hasSpecial = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(pwd);
+            
+            const typeCount = [hasLetter, hasNumber, hasSpecial].filter(Boolean).length;
+            
+            if (typeCount < 2) {
+                newPasswordError.textContent = '영문자, 숫자, 특수문자 중 2가지 이상을 조합해주세요.';
+                newPasswordError.style.display = 'block';
+            } else {
+                newPasswordError.style.display = 'none';
+            }
+        });
+        newPassword.addEventListener('paste', function() {
+            setTimeout(() => {
+                filterPasswordInput(this);
+            }, 0);
+        });
+    }
+    
+    // 새 비밀번호 확인 입력 필터링
+    if (confirmPassword) {
+        confirmPassword.addEventListener('input', function() {
+            filterPasswordInput(this);
+        });
+        confirmPassword.addEventListener('paste', function() {
+            setTimeout(() => {
+                filterPasswordInput(this);
+            }, 0);
         });
     }
     
@@ -420,8 +1093,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 currentPasswordError.style.display = 'none';
             }
             
+            // 비밀번호 유효성 검사: 8자 이상, 영문자/숫자/특수문자 중 2가지 이상 조합
+            let passwordErrorMsg = '';
             if (newPwd.length < 8) {
-                newPasswordError.textContent = '비밀번호는 8자 이상이어야 합니다.';
+                passwordErrorMsg = '비밀번호는 8자 이상이어야 합니다.';
+            } else {
+                const hasLetter = /[a-zA-Z]/.test(newPwd);
+                const hasNumber = /[0-9]/.test(newPwd);
+                const hasSpecial = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(newPwd);
+                
+                const typeCount = [hasLetter, hasNumber, hasSpecial].filter(Boolean).length;
+                
+                if (typeCount < 2) {
+                    passwordErrorMsg = '영문자, 숫자, 특수문자 중 2가지 이상을 조합해주세요.';
+                }
+            }
+            
+            if (passwordErrorMsg) {
+                newPasswordError.textContent = passwordErrorMsg;
                 newPasswordError.style.display = 'block';
                 isValid = false;
             } else {
@@ -440,37 +1129,53 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
+            // 이메일 인증 확인 (이메일이 있는 경우)
+            const userEmail = '<?php echo htmlspecialchars($currentUser['email'] ?? ''); ?>';
+            if (userEmail && !passwordVerificationToken) {
+                passwordVerificationError.textContent = '이메일 인증이 필요합니다.';
+                passwordVerificationError.style.display = 'block';
+                return;
+            }
+            
             // 실제로는 서버에 전송
+            const requestBody = {
+                current_password: currentPwd,
+                new_password: newPwd
+            };
+            
+            if (passwordVerificationToken) {
+                requestBody.verification_token = passwordVerificationToken;
+            }
+            
             fetch('/MVNO/api/change-password.php', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    current_password: currentPwd,
-                    new_password: newPwd
-                })
+                body: JSON.stringify(requestBody)
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
                     closeModal(passwordModal);
                     passwordForm.reset();
+                    passwordVerificationToken = null;
+                    if (passwordVerificationCode) passwordVerificationCode.value = '';
                     showAlert('비밀번호가 변경되었습니다.');
                 } else {
                     if (data.field === 'current_password') {
                         currentPasswordError.textContent = data.message || '현재 비밀번호가 일치하지 않습니다.';
                         currentPasswordError.style.display = 'block';
+                    } else if (data.requires_email_verification) {
+                        passwordVerificationError.textContent = data.message || '이메일 인증이 필요합니다.';
+                        passwordVerificationError.style.display = 'block';
                     } else {
                         showAlert(data.message || '비밀번호 변경에 실패했습니다.');
                     }
                 }
             })
             .catch(error => {
-                // 개발 환경에서는 바로 성공 처리
-                closeModal(passwordModal);
-                passwordForm.reset();
-                showAlert('비밀번호가 변경되었습니다.');
+                showAlert('비밀번호 변경 중 오류가 발생했습니다.');
             });
         });
     }

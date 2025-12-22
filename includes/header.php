@@ -117,6 +117,36 @@ else if (!isset($is_main_page)) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo htmlspecialchars(($site['name_ko'] ?? '유심킹') . ' - 알뜰폰 요금제'); ?></title>
     <link rel="stylesheet" href="/MVNO/assets/css/style.css">
+    <?php if (isset($add_inline_css) && $add_inline_css): ?>
+    <style>
+        /* 이미지 및 컨테이너 스타일 - CSS 로드 전에도 적용되도록 head에 추가 */
+        .css-174t92n.e82z5mt7 {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 0.75rem !important;
+            margin: 1rem 0 !important;
+            padding: 1rem !important;
+            background-color: #f9fafb !important;
+            border-radius: 0.5rem !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+        }
+        .css-12zfa6z.e82z5mt8 {
+            display: flex !important;
+            align-items: flex-start !important;
+            gap: 0.5rem !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+        }
+        .css-xj5cz0.e82z5mt9 {
+            max-width: 4rem !important;
+            max-height: 4rem !important;
+            object-fit: contain !important;
+            flex-shrink: 0 !important;
+            width: auto !important;
+        }
+    </style>
+    <?php endif; ?>
     <script>
         // 메인 페이지 여부 (하단 메뉴 및 푸터 표시 제어용)
         window.IS_MAIN_PAGE = <?php echo (isset($is_main_page) && $is_main_page) ? 'true' : 'false'; ?>;
