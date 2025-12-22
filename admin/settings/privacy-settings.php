@@ -297,7 +297,6 @@ include '../includes/admin-header.php';
         
         <!-- 개인정보 수집 및 이용목적 -->
         <div class="card privacy-section">
-            <div class="card-title">개인정보 수집 및 이용목적에 동의합니까?</div>
             <div class="form-group">
                 <label for="purpose_title">제목 <span class="required">*</span></label>
                 <input type="text" id="purpose_title" name="purpose_title" required value="<?php echo htmlspecialchars($privacySettings['purpose']['title'] ?? ''); ?>">
@@ -338,7 +337,6 @@ include '../includes/admin-header.php';
         
         <!-- 개인정보 보유 및 이용기간 -->
         <div class="card privacy-section">
-            <div class="card-title">개인정보 보유 및 이용기간에 동의합니까?</div>
             <div class="form-group">
                 <label>선택 / 필수 <span class="required">*</span></label>
                 <div class="radio-group">
@@ -392,7 +390,6 @@ include '../includes/admin-header.php';
         
         <!-- 서비스 이용 및 혜택 안내 알림(필수) -->
         <div class="card privacy-section">
-            <div class="card-title">서비스 이용 및 혜택 안내 알림 동의</div>
             <div class="form-group">
                 <label>선택 / 필수 <span class="required">*</span></label>
                 <div class="radio-group">
