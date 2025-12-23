@@ -9,6 +9,10 @@ $phone_id = isset($_GET['id']) ? intval($_GET['id']) : 1;
 
 // 로그인 체크를 위한 auth-functions 포함
 require_once '../includes/data/auth-functions.php';
+require_once '../includes/data/privacy-functions.php';
+
+// 개인정보 설정 로드
+$privacySettings = getPrivacySettings();
 
 // 헤더 포함
 include '../includes/header.php';
@@ -590,106 +594,107 @@ $discountData = [
                 
                 <!-- 체크박스 -->
                 <div class="internet-checkbox-group">
+                    <?php
+                    // 동의 항목 정의 (순서대로)
+                    $agreementItems = [
+                        'purpose' => ['id' => 'mnoAgreementPurpose', 'name' => 'agreementPurpose', 'modal' => 'openMnoPrivacyModal'],
+                        'items' => ['id' => 'mnoAgreementItems', 'name' => 'agreementItems', 'modal' => 'openMnoPrivacyModal'],
+                        'period' => ['id' => 'mnoAgreementPeriod', 'name' => 'agreementPeriod', 'modal' => 'openMnoPrivacyModal'],
+                        'thirdParty' => ['id' => 'mnoAgreementThirdParty', 'name' => 'agreementThirdParty', 'modal' => 'openMnoPrivacyModal'],
+                        'serviceNotice' => ['id' => 'mnoAgreementServiceNotice', 'name' => 'service_notice_opt_in', 'accordion' => 'mnoServiceNoticeContent', 'accordionFunc' => 'toggleMnoAccordion'],
+                        'marketing' => ['id' => 'mnoAgreementMarketing', 'name' => 'marketing_opt_in', 'accordion' => 'mnoMarketingContent', 'accordionFunc' => 'toggleMnoAccordion']
+                    ];
+                    
+                    // 노출되는 항목이 있는지 확인
+                    $hasVisibleItems = false;
+                    foreach ($agreementItems as $key => $item) {
+                        $setting = $privacySettings[$key] ?? [];
+                        if (array_key_exists('isVisible', $setting)) {
+                            $isVisible = (bool)$setting['isVisible'];
+                        } else {
+                            $isVisible = true;
+                        }
+                        if ($isVisible) {
+                            $hasVisibleItems = true;
+                            break;
+                        }
+                    }
+                    
+                    // 노출되는 항목이 있을 때만 "전체 동의" 표시
+                    if ($hasVisibleItems):
+                    ?>
                     <label class="internet-checkbox-all">
-                        <input type="checkbox" id="agreementAll" class="internet-checkbox-input" onchange="toggleAllMnoAgreements(this.checked)">
+                        <input type="checkbox" id="mnoAgreementAll" class="internet-checkbox-input" onchange="toggleAllMnoAgreements(this.checked)">
                         <span class="internet-checkbox-label">전체 동의</span>
                     </label>
+                    <?php endif; ?>
                     <div class="internet-checkbox-list">
+                        <?php
+                        // 관리자 페이지 설정에 따라 동의 항목 동적 렌더링
+                        foreach ($agreementItems as $key => $item):
+                            $setting = $privacySettings[$key] ?? [];
+                            
+                            // 노출 여부 확인 (isVisible = false인 항목은 렌더링하지 않음)
+                            if (array_key_exists('isVisible', $setting)) {
+                                $isVisible = (bool)$setting['isVisible'];
+                            } else {
+                                $isVisible = true;
+                            }
+                            
+                            if (!$isVisible) {
+                                continue;
+                            }
+                            
+                            // 제목 및 필수/선택 설정 (관리자 페이지에서 설정한 제목 사용)
+                            $title = htmlspecialchars($setting['title'] ?? '');
+                            // 제목이 비어있으면 기본값 사용
+                            if (empty($title)) {
+                                $defaultTitles = [
+                                    'purpose' => '개인정보 수집 및 이용목적',
+                                    'items' => '개인정보 수집하는 항목',
+                                    'period' => '개인정보 보유 및 이용기간',
+                                    'thirdParty' => '개인정보 제3자 제공',
+                                    'serviceNotice' => '서비스 이용 및 혜택 안내 알림',
+                                    'marketing' => '광고성 정보수신'
+                                ];
+                                $title = $defaultTitles[$key] ?? '';
+                            }
+                            $isRequired = $setting['isRequired'] ?? ($key !== 'marketing');
+                            $requiredText = $isRequired ? '(필수)' : '(선택)';
+                            $requiredColor = $isRequired ? '#4f46e5' : '#6b7280';
+                            $requiredAttr = $isRequired ? 'required' : '';
+                        ?>
                         <div class="internet-checkbox-item-wrapper">
                             <div class="internet-checkbox-item">
                                 <label class="internet-checkbox-label-item">
-                                    <input type="checkbox" id="agreementPurpose" name="agreementPurpose" class="internet-checkbox-input-item" onchange="checkAllMnoAgreements();" required>
-                                    <span class="internet-checkbox-text" style="font-size: 1.0625rem !important;">개인정보 수집 및 이용목적에 동의합니까? <span style="color: #4f46e5; font-weight: 600;">(필수)</span></span>
+                                    <input type="checkbox" id="<?php echo $item['id']; ?>" name="<?php echo $item['name']; ?>" class="internet-checkbox-input-item" onchange="checkAllMnoAgreements();<?php echo ($key === 'marketing') ? ' toggleMnoMarketingChannels();' : ''; ?>" <?php echo $requiredAttr; ?>>
+                                    <span class="internet-checkbox-text" style="font-size: 1.0625rem !important;"><?php echo $title; ?> <span style="color: <?php echo $requiredColor; ?>; font-weight: 600;"><?php echo $requiredText; ?></span></span>
                                 </label>
-                                <a href="#" class="internet-checkbox-link" id="mnoPurposeArrowLink" onclick="event.preventDefault(); openMnoPrivacyModal('purpose'); return false;">
+                                <?php if (isset($item['modal'])): ?>
+                                <a href="#" class="internet-checkbox-link" id="mno<?php echo ucfirst($key); ?>ArrowLink" onclick="event.preventDefault(); <?php echo $item['modal']; ?>('<?php echo $key; ?>'); return false;">
                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="arrow-down">
                                         <path d="M3.646 4.646a.5.5 0 0 1 .708 0L8 8.293l3.646-3.647a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 0-.708z"></path>
                                     </svg>
                                 </a>
-                            </div>
-                        </div>
-                        <div class="internet-checkbox-item-wrapper">
-                            <div class="internet-checkbox-item">
-                                <label class="internet-checkbox-label-item">
-                                    <input type="checkbox" id="agreementItems" name="agreementItems" class="internet-checkbox-input-item" onchange="checkAllMnoAgreements();" required>
-                                    <span class="internet-checkbox-text" style="font-size: 1.0625rem !important;">개인정보 수집하는 항목에 동의합니까? <span style="color: #4f46e5; font-weight: 600;">(필수)</span></span>
-                                </label>
-                                <a href="#" class="internet-checkbox-link" id="mnoItemsArrowLink" onclick="event.preventDefault(); openMnoPrivacyModal('items'); return false;">
+                                <?php elseif (isset($item['accordion'])): ?>
+                                <a href="#" class="internet-checkbox-link" onclick="event.preventDefault(); openMnoPrivacyModal('<?php echo $key; ?>'); return false;">
                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="arrow-down">
                                         <path d="M3.646 4.646a.5.5 0 0 1 .708 0L8 8.293l3.646-3.647a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 0-.708z"></path>
                                     </svg>
                                 </a>
+                                <?php endif; ?>
                             </div>
-                        </div>
-                        <div class="internet-checkbox-item-wrapper">
-                            <div class="internet-checkbox-item">
-                                <label class="internet-checkbox-label-item">
-                                    <input type="checkbox" id="agreementPeriod" name="agreementPeriod" class="internet-checkbox-input-item" onchange="checkAllMnoAgreements();" required>
-                                    <span class="internet-checkbox-text" style="font-size: 1.0625rem !important;">개인정보 보유 및 이용기간에 동의합니까? <span style="color: #4f46e5; font-weight: 600;">(필수)</span></span>
-                                </label>
-                                <a href="#" class="internet-checkbox-link" id="mnoPeriodArrowLink" onclick="event.preventDefault(); openMnoPrivacyModal('period'); return false;">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="arrow-down">
-                                        <path d="M3.646 4.646a.5.5 0 0 1 .708 0L8 8.293l3.646-3.647a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 0-.708z"></path>
-                                    </svg>
-                                </a>
-                            </div>
-                        </div>
-                        <div class="internet-checkbox-item-wrapper">
-                            <div class="internet-checkbox-item">
-                                <label class="internet-checkbox-label-item">
-                                    <input type="checkbox" id="agreementThirdParty" name="agreementThirdParty" class="internet-checkbox-input-item" onchange="checkAllMnoAgreements();" required>
-                                    <span class="internet-checkbox-text" style="font-size: 1.0625rem !important;">개인정보 제3자 제공에 동의합니까? <span style="color: #4f46e5; font-weight: 600;">(필수)</span></span>
-                                </label>
-                                <a href="#" class="internet-checkbox-link" id="mnoThirdPartyArrowLink" onclick="event.preventDefault(); openMnoPrivacyModal('thirdParty'); return false;">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="arrow-down">
-                                        <path d="M3.646 4.646a.5.5 0 0 1 .708 0L8 8.293l3.646-3.647a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 0-.708z"></path>
-                                    </svg>
-                                </a>
-                            </div>
-                        </div>
-                        
-                        <!-- 서비스 이용 및 혜택 안내 알림(필수) -->
-                        <div class="internet-checkbox-item-wrapper">
-                            <div class="internet-checkbox-item">
-                                <label class="internet-checkbox-label-item">
-                                    <input type="checkbox" id="agreementServiceNotice" name="service_notice_opt_in" class="internet-checkbox-input-item" onchange="checkAllMnoAgreements();" required>
-                                    <span class="internet-checkbox-text" style="font-size: 1.0625rem !important;">서비스 이용 및 혜택 안내 알림 동의 <span style="color: #4f46e5; font-weight: 600;">(필수)</span></span>
-                                </label>
-                                <a href="#" class="internet-checkbox-link" onclick="event.preventDefault(); toggleMnoAccordion('mnoServiceNoticeContent', this); return false;">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="arrow-down">
-                                        <path d="M3.646 4.646a.5.5 0 0 1 .708 0L8 8.293l3.646-3.647a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 0-.708z"></path>
-                                    </svg>
-                                </a>
-                            </div>
+                            <?php if ($key === 'serviceNotice'): ?>
                             <div class="internet-accordion-content" id="mnoServiceNoticeContent">
                                 <div class="internet-accordion-inner">
                                     <div class="internet-accordion-section">
                                         <div style="font-size: 0.875rem; color: #6b7280; line-height: 1.65;">
-                                            <p style="margin: 0 0 0.5rem 0;">서비스 이용에 필요한 필수 알림입니다. 알림톡으로 발송됩니다.</p>
-                                            <ul style="margin: 0; padding-left: 1.25rem; color: #6b7280;">
-                                                <li>요금제 유지기간 만료 및 변경 안내</li>
-                                                <li>부가서비스 종료 및 이용 조건 변경 안내</li>
-                                                <li>가입 고객 대상 혜택·이벤트 안내</li>
-                                            </ul>
+                                            <?php echo $setting['content'] ?? ''; ?>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                        
-                        <!-- 광고성 정보 수신동의(선택) -->
-                        <div class="internet-checkbox-item-wrapper">
-                            <div class="internet-checkbox-item">
-                                <label class="internet-checkbox-label-item">
-                                    <input type="checkbox" id="agreementMarketing" name="marketing_opt_in" class="internet-checkbox-input-item" onchange="checkAllMnoAgreements(); toggleMnoMarketingChannels();">
-                                    <span class="internet-checkbox-text" style="font-size: 1.0625rem !important;">광고성 정보 수신동의 <span style="color: #6b7280; font-weight: 600;">(선택)</span></span>
-                                </label>
-                                <a href="#" class="internet-checkbox-link" onclick="event.preventDefault(); toggleMnoAccordion('mnoMarketingContent', this); return false;">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="arrow-down">
-                                        <path d="M3.646 4.646a.5.5 0 0 1 .708 0L8 8.293l3.646-3.647a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 0-.708z"></path>
-                                    </svg>
-                                </a>
-                            </div>
+                            <?php elseif ($key === 'marketing'): ?>
                             <div class="internet-accordion-content" id="mnoMarketingContent">
                                 <div class="internet-accordion-inner">
                                     <div class="internet-accordion-section">
@@ -711,7 +716,9 @@ $discountData = [
                                     </div>
                                 </div>
                             </div>
+                            <?php endif; ?>
                         </div>
+                        <?php endforeach; ?>
                     </div>
                 </div>
                 
@@ -836,6 +843,13 @@ $discountData = [
 </div>
 
 <script>
+// 관리자 페이지 설정 로드 (DB의 app_settings 테이블)
+<?php
+// 이미 위에서 로드했으므로 재사용 (일관성 유지)
+// $privacySettings는 12줄에서 이미 로드됨
+echo "const mnoPrivacyContents = " . json_encode($privacySettings, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . ";\n";
+?>
+
 // 아코디언 토글 함수 (전역으로 노출)
 function toggleMnoAccordionByArrow(accordionId, arrowLinkId) {
     const accordion = document.getElementById(accordionId);
@@ -1496,13 +1510,22 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 개인정보 내용보기 모달 열기 (전역으로 노출)
     window.openMnoPrivacyModal = function(type) {
-        if (!privacyModal || !privacyContents[type]) return;
+        const modal = document.getElementById('privacyContentModal');
+        const modalTitle = document.getElementById('privacyContentModalTitle');
+        const modalBody = document.getElementById('privacyContentModalBody');
         
-        privacyModalTitle.textContent = privacyContents[type].title;
-        privacyModalBody.innerHTML = privacyContents[type].content;
+        if (!modal || !modalTitle || !modalBody) return;
         
-        privacyModal.style.display = 'flex';
-        privacyModal.classList.add('privacy-content-modal-active');
+        // mnoPrivacyContents 우선 사용, 없으면 privacyContents 사용
+        const contents = (typeof mnoPrivacyContents !== 'undefined' && mnoPrivacyContents) ? mnoPrivacyContents : privacyContents;
+        
+        if (!contents || !contents[type]) return;
+        
+        modalTitle.textContent = contents[type].title || '';
+        modalBody.innerHTML = contents[type].content || '';
+        
+        modal.style.display = 'flex';
+        modal.classList.add('privacy-content-modal-active');
         document.body.style.overflow = 'hidden';
     };
     
@@ -1562,7 +1585,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // 전체 동의 체크박스
-    const agreementAll = document.getElementById('agreementAll');
+    const agreementAll = document.getElementById('mnoAgreementAll');
     const agreementItemCheckboxes = document.querySelectorAll('.internet-checkbox-input-item');
     
     // 전체 동의 체크박스 변경 이벤트
@@ -1585,66 +1608,121 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 전체 동의 토글 함수
     function toggleAllMnoAgreements(checked) {
-        const agreementPurpose = document.getElementById('agreementPurpose');
-        const agreementItems = document.getElementById('agreementItems');
-        const agreementPeriod = document.getElementById('agreementPeriod');
-        const agreementThirdParty = document.getElementById('agreementThirdParty');
-        const agreementServiceNotice = document.getElementById('agreementServiceNotice');
-        const agreementMarketing = document.getElementById('agreementMarketing');
+        const agreementAll = document.getElementById('mnoAgreementAll');
+        if (!agreementAll) return;
         
-        if (agreementPurpose && agreementItems && agreementPeriod && agreementThirdParty && agreementServiceNotice) {
-            agreementPurpose.checked = checked;
-            agreementItems.checked = checked;
-            agreementPeriod.checked = checked;
-            agreementThirdParty.checked = checked;
-            agreementServiceNotice.checked = checked;
-            if (agreementMarketing) {
-                agreementMarketing.checked = checked;
-                if (checked) {
-                    toggleMnoMarketingChannels();
-                }
+        // 모든 체크박스 찾기
+        const checkboxes = document.querySelectorAll('.internet-checkbox-input-item');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = checked;
+        });
+        
+        if (checked) {
+            const agreementServiceNotice = document.getElementById('mnoAgreementServiceNotice');
+            if (agreementServiceNotice && agreementServiceNotice.checked) {
+                toggleMnoServiceNoticeChannels();
             }
-            checkAllMnoAgreements();
+            const agreementMarketing = document.getElementById('mnoAgreementMarketing');
+            if (agreementMarketing && agreementMarketing.checked) {
+                toggleMnoMarketingChannels();
+            }
         }
+        
+        checkAllMnoAgreements();
     }
     
     // 전체 동의 상태 확인 함수
     function checkAllMnoAgreements() {
-        const agreementAll = document.getElementById('agreementAll');
-        const agreementPurpose = document.getElementById('agreementPurpose');
-        const agreementItems = document.getElementById('agreementItems');
-        const agreementPeriod = document.getElementById('agreementPeriod');
-        const agreementThirdParty = document.getElementById('agreementThirdParty');
-        const agreementServiceNotice = document.getElementById('agreementServiceNotice');
-        const agreementMarketing = document.getElementById('agreementMarketing');
+        const agreementAll = document.getElementById('mnoAgreementAll');
         const submitBtn = document.getElementById('consultationSubmitBtn');
         const nameInput = document.getElementById('consultationName');
         const phoneInput = document.getElementById('consultationPhone');
-        
-        if (agreementAll && agreementPurpose && agreementItems && agreementPeriod && agreementThirdParty && agreementServiceNotice && submitBtn) {
-            // 전체 동의 체크박스 상태 업데이트 (필수 항목만 포함)
-            agreementAll.checked = agreementPurpose.checked && agreementItems.checked && agreementPeriod.checked && agreementThirdParty.checked && agreementServiceNotice.checked;
-            
-            // 이름과 휴대폰 번호 확인
-            const name = nameInput ? nameInput.value.trim() : '';
-            const phone = phoneInput ? phoneInput.value.replace(/[^\d]/g, '') : '';
-            
-            // 제출 버튼 활성화/비활성화 (모든 필드가 입력되어야 활성화)
-            const isNameValid = name.length > 0;
-            const isPhoneValid = phone.length === 11 && phone.startsWith('010');
-            const isAgreementsChecked = agreementPurpose.checked && agreementItems.checked && agreementPeriod.checked && agreementThirdParty.checked && agreementServiceNotice.checked;
-            
-            if (isNameValid && isPhoneValid && isAgreementsChecked) {
-                submitBtn.disabled = false;
-            } else {
-                submitBtn.disabled = true;
+        const emailInput = document.getElementById('consultationEmail');
+
+        if (!agreementAll || !submitBtn) return;
+
+        // 필수 항목 목록 생성 (노출된 필수 항목만 포함)
+        const requiredItems = [];
+        const agreementMap = {
+            'purpose': 'mnoAgreementPurpose',
+            'items': 'mnoAgreementItems',
+            'period': 'mnoAgreementPeriod',
+            'thirdParty': 'mnoAgreementThirdParty',
+            'serviceNotice': 'mnoAgreementServiceNotice',
+            'marketing': 'mnoAgreementMarketing'
+        };
+
+        if (typeof mnoPrivacyContents !== 'undefined') {
+            for (const [key, id] of Object.entries(agreementMap)) {
+                const setting = mnoPrivacyContents[key];
+                if (!setting) continue;
+                
+                const isVisible = setting.isVisible !== false;
+                if (setting.isRequired === true && isVisible) {
+                    requiredItems.push(id);
+                }
             }
+        } else {
+            // 기본값: marketing 제외 모두 필수
+            requiredItems.push('mnoAgreementPurpose', 'mnoAgreementItems', 'mnoAgreementPeriod', 'mnoAgreementThirdParty', 'mnoAgreementServiceNotice');
+        }
+
+        // 전체 동의 체크박스 상태 업데이트
+        let allRequiredChecked = true;
+        for (const itemId of requiredItems) {
+            const checkbox = document.getElementById(itemId);
+            if (checkbox && !checkbox.checked) {
+                allRequiredChecked = false;
+                break;
+            }
+        }
+        if (agreementAll) {
+            agreementAll.checked = allRequiredChecked;
+        }
+
+        // 개인정보 입력 검증
+        const name = nameInput ? nameInput.value.trim() : '';
+        const phone = phoneInput ? phoneInput.value.replace(/[^\d]/g, '') : '';
+        const email = emailInput ? emailInput.value.trim() : '';
+
+        const isNameValid = name.length > 0;
+        const isPhoneValid = phone.length === 11 && phone.startsWith('010');
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const isEmailValid = email.length > 0 && emailRegex.test(email);
+        
+        // 필수 동의 항목 체크 여부 확인
+        let isAgreementsChecked = true;
+        for (const itemId of requiredItems) {
+            const checkbox = document.getElementById(itemId);
+            if (checkbox && !checkbox.checked) {
+                isAgreementsChecked = false;
+                break;
+            }
+        }
+
+        // 버튼 활성화 조건: 필수 항목 모두 체크 + 개인정보 입력 완료
+        submitBtn.disabled = !(isNameValid && isPhoneValid && isEmailValid && isAgreementsChecked);
+    }
+    
+    // 서비스 이용 및 혜택 안내 알림 채널 활성화/비활성화 토글 함수
+    function toggleMnoServiceNoticeChannels() {
+        const agreementServiceNotice = document.getElementById('mnoAgreementServiceNotice');
+        const serviceNoticeChannels = document.querySelectorAll('.mno-service-notice-channel');
+        
+        if (agreementServiceNotice && serviceNoticeChannels.length > 0) {
+            const isEnabled = agreementServiceNotice.checked;
+            serviceNoticeChannels.forEach(channel => {
+                channel.disabled = !isEnabled;
+                if (!isEnabled) {
+                    channel.checked = false;
+                }
+            });
         }
     }
     
     // 마케팅 채널 활성화/비활성화 토글 함수
     function toggleMnoMarketingChannels() {
-        const agreementMarketing = document.getElementById('agreementMarketing');
+        const agreementMarketing = document.getElementById('mnoAgreementMarketing');
         const marketingChannels = document.querySelectorAll('.mno-marketing-channel');
         
         if (agreementMarketing && marketingChannels.length > 0) {
@@ -2029,10 +2107,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
-            // 모든 동의 체크박스 확인
-            const agreementPurpose = document.getElementById('agreementPurpose');
-            const agreementItems = document.getElementById('agreementItems');
-            const agreementPeriod = document.getElementById('agreementPeriod');
+            // 모든 동의 체크박스 확인 (실제 ID 사용)
+            const agreementPurpose = document.getElementById('mnoAgreementPurpose');
+            const agreementItems = document.getElementById('mnoAgreementItems');
+            const agreementPeriod = document.getElementById('mnoAgreementPeriod');
+            
+            if (!agreementPurpose || !agreementItems || !agreementPeriod) {
+                alert('개인정보 동의 항목을 찾을 수 없습니다.');
+                return;
+            }
             
             if (!agreementPurpose.checked || !agreementItems.checked || !agreementPeriod.checked) {
                 alert('모든 개인정보 동의 항목에 동의해주세요.');

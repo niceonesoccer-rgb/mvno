@@ -878,25 +878,71 @@ function getRelativeTime($datetime) {
                     
                     <!-- 체크박스 -->
                     <div class="internet-checkbox-group">
+                        <?php
+                        // 동의 항목 정의 (순서대로)
+                        $agreementItems = [
+                            'purpose' => ['id' => 'mvnoAgreementPurpose', 'name' => 'agreementPurpose', 'modal' => 'openMvnoPrivacyModal'],
+                            'items' => ['id' => 'mvnoAgreementItems', 'name' => 'agreementItems', 'modal' => 'openMvnoPrivacyModal'],
+                            'period' => ['id' => 'mvnoAgreementPeriod', 'name' => 'agreementPeriod', 'modal' => 'openMvnoPrivacyModal'],
+                            'thirdParty' => ['id' => 'mvnoAgreementThirdParty', 'name' => 'agreementThirdParty', 'modal' => 'openMvnoPrivacyModal'],
+                            'serviceNotice' => ['id' => 'mvnoAgreementServiceNotice', 'name' => 'service_notice_opt_in', 'accordion' => 'mvnoServiceNoticeContent', 'accordionFunc' => 'toggleMvnoAccordion'],
+                            'marketing' => ['id' => 'mvnoAgreementMarketing', 'name' => 'marketing_opt_in', 'accordion' => 'mvnoMarketingContent', 'accordionFunc' => 'toggleMvnoAccordion']
+                        ];
+                        
+                        // 노출되는 항목이 있는지 확인
+                        $hasVisibleItems = false;
+                        foreach ($agreementItems as $key => $item) {
+                            $setting = $privacySettings[$key] ?? [];
+                            if (array_key_exists('isVisible', $setting)) {
+                                $isVisible = (bool)$setting['isVisible'];
+                            } else {
+                                $isVisible = true;
+                            }
+                            if ($isVisible) {
+                                $hasVisibleItems = true;
+                                break;
+                            }
+                        }
+                        
+                        // 노출되는 항목이 있을 때만 "전체 동의" 표시
+                        if ($hasVisibleItems):
+                        ?>
                         <label class="internet-checkbox-all">
                             <input type="checkbox" id="mvnoAgreementAll" class="internet-checkbox-input">
                             <span class="internet-checkbox-label">전체 동의</span>
                         </label>
+                        <?php endif; ?>
                         <div class="internet-checkbox-list">
                             <?php
-                            // 동의 항목 정의 (순서대로)
-                            $agreementItems = [
-                                'purpose' => ['id' => 'mvnoAgreementPurpose', 'name' => 'agreementPurpose', 'modal' => 'openMvnoPrivacyModal'],
-                                'items' => ['id' => 'mvnoAgreementItems', 'name' => 'agreementItems', 'modal' => 'openMvnoPrivacyModal'],
-                                'period' => ['id' => 'mvnoAgreementPeriod', 'name' => 'agreementPeriod', 'modal' => 'openMvnoPrivacyModal'],
-                                'thirdParty' => ['id' => 'mvnoAgreementThirdParty', 'name' => 'agreementThirdParty', 'modal' => 'openMvnoPrivacyModal'],
-                                'serviceNotice' => ['id' => 'mvnoAgreementServiceNotice', 'name' => 'service_notice_opt_in', 'accordion' => 'mvnoServiceNoticeContent', 'accordionFunc' => 'toggleMvnoAccordion'],
-                                'marketing' => ['id' => 'mvnoAgreementMarketing', 'name' => 'marketing_opt_in', 'accordion' => 'mvnoMarketingContent', 'accordionFunc' => 'toggleMvnoAccordion']
-                            ];
-                            
+                            // 관리자 페이지 설정에 따라 동의 항목 동적 렌더링
                             foreach ($agreementItems as $key => $item):
                                 $setting = $privacySettings[$key] ?? [];
+                                
+                                // 노출 여부 확인 (isVisible = false인 항목은 렌더링하지 않음)
+                                if (array_key_exists('isVisible', $setting)) {
+                                    $isVisible = (bool)$setting['isVisible'];
+                                } else {
+                                    $isVisible = true;
+                                }
+                                
+                                if (!$isVisible) {
+                                    continue;
+                                }
+                                
+                                // 제목 및 필수/선택 설정 (관리자 페이지에서 설정한 제목 사용)
                                 $title = htmlspecialchars($setting['title'] ?? '');
+                                // 제목이 비어있으면 기본값 사용
+                                if (empty($title)) {
+                                    $defaultTitles = [
+                                        'purpose' => '개인정보 수집 및 이용목적',
+                                        'items' => '개인정보 수집하는 항목',
+                                        'period' => '개인정보 보유 및 이용기간',
+                                        'thirdParty' => '개인정보 제3자 제공',
+                                        'serviceNotice' => '서비스 이용 및 혜택 안내 알림',
+                                        'marketing' => '광고성 정보수신'
+                                    ];
+                                    $title = $defaultTitles[$key] ?? '';
+                                }
                                 $isRequired = $setting['isRequired'] ?? ($key !== 'marketing');
                                 $requiredText = $isRequired ? '(필수)' : '(선택)';
                                 $requiredColor = $isRequired ? '#4f46e5' : '#6b7280';
@@ -915,7 +961,7 @@ function getRelativeTime($datetime) {
                                         </svg>
                                     </a>
                                     <?php elseif (isset($item['accordion'])): ?>
-                                    <a href="#" class="internet-checkbox-link" onclick="event.preventDefault(); <?php echo $item['accordionFunc']; ?>('<?php echo $item['accordion']; ?>', this); return false;">
+                                    <a href="#" class="internet-checkbox-link" onclick="event.preventDefault(); openMvnoPrivacyModal('<?php echo $key; ?>'); return false;">
                                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="arrow-down">
                                             <path d="M3.646 4.646a.5.5 0 0 1 .708 0L8 8.293l3.646-3.647a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 0-.708z"></path>
                                         </svg>
@@ -967,6 +1013,36 @@ function getRelativeTime($datetime) {
     </div>
 </div>
 
+<style>
+.internet-accordion-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+    margin-top: 0;
+    margin-left: 2rem;
+}
+
+.internet-accordion-content.active {
+    max-height: 500px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    transition: max-height 0.4s ease-in;
+    margin-top: 0.75rem;
+}
+
+.internet-accordion-inner {
+    background-color: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+.arrow-up {
+    transform: rotate(180deg);
+    transition: transform 0.3s ease;
+}
+</style>
+
 <!-- 개인정보 내용보기 모달 (MVNO용) -->
 <div class="privacy-content-modal" id="mvnoPrivacyContentModal">
     <div class="privacy-content-modal-overlay" id="mvnoPrivacyContentModalOverlay"></div>
@@ -986,6 +1062,13 @@ function getRelativeTime($datetime) {
 </div>
 
 <script>
+// 관리자 페이지 설정 로드 (DB의 app_settings 테이블)
+<?php
+// 이미 위에서 로드했으므로 재사용 (일관성 유지)
+// $privacySettings는 12줄에서 이미 로드됨
+echo "const mvnoPrivacyContents = " . json_encode($privacySettings, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . ";\n";
+?>
+
 // 아코디언 기능
 // 아코디언 토글 함수 (전역으로 노출)
 function toggleMvnoAccordionByArrow(accordionId, arrowLinkId) {
@@ -1031,8 +1114,16 @@ function checkAllMvnoAgreements() {
     };
 
     if (typeof mvnoPrivacyContents !== 'undefined') {
+        // DB에서 로드한 설정 기반으로 필수 항목 결정
         for (const [key, id] of Object.entries(agreementMap)) {
-            if (mvnoPrivacyContents[key] && mvnoPrivacyContents[key].isRequired) {
+            const setting = mvnoPrivacyContents[key];
+            if (!setting) continue;
+            
+            // 노출 여부 확인: isVisible이 false이면 화면에 없으므로 필수 항목에서 제외
+            const isVisible = setting.isVisible !== false;
+            
+            // 필수 여부 확인: isRequired가 true이고 노출된 항목만 필수 항목에 추가
+            if (setting.isRequired === true && isVisible) {
                 requiredItems.push(id);
             }
         }
@@ -1779,6 +1870,73 @@ document.addEventListener('DOMContentLoaded', function() {
         return true;
     }
     
+    // 아코디언 토글 함수
+    function toggleMvnoAccordion(accordionId, arrowLink) {
+        const accordion = document.getElementById(accordionId);
+        if (!accordion || !arrowLink) return;
+        
+        const isOpen = accordion.classList.contains('active');
+        if (isOpen) {
+            accordion.classList.remove('active');
+            arrowLink.classList.remove('arrow-up');
+        } else {
+            accordion.classList.add('active');
+            arrowLink.classList.add('arrow-up');
+        }
+    }
+    
+    // 개인정보 내용보기 모달 열기 함수
+    function openMvnoPrivacyModal(type) {
+        const modal = document.getElementById('mvnoPrivacyContentModal');
+        const modalTitle = document.getElementById('mvnoPrivacyContentModalTitle');
+        const modalBody = document.getElementById('mvnoPrivacyContentModalBody');
+        
+        if (!modal || !modalTitle || !modalBody) return;
+        
+        if (typeof mvnoPrivacyContents !== 'undefined' && mvnoPrivacyContents[type]) {
+            modalTitle.textContent = mvnoPrivacyContents[type].title || '';
+            modalBody.innerHTML = mvnoPrivacyContents[type].content || '';
+        } else {
+            return; // 데이터가 없으면 모달을 열지 않음
+        }
+        
+        modal.style.display = 'flex';
+        modal.classList.add('privacy-content-modal-active');
+        document.body.style.overflow = 'hidden';
+    }
+    
+    // 개인정보 내용보기 모달 닫기 함수
+    function closeMvnoPrivacyModal() {
+        const modal = document.getElementById('mvnoPrivacyContentModal');
+        if (!modal) return;
+        
+        modal.classList.remove('privacy-content-modal-active');
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+    
+    // 모달 닫기 이벤트 리스너
+    document.addEventListener('DOMContentLoaded', function() {
+        const modal = document.getElementById('mvnoPrivacyContentModal');
+        const modalOverlay = document.getElementById('mvnoPrivacyContentModalOverlay');
+        const modalClose = document.getElementById('mvnoPrivacyContentModalClose');
+        
+        if (modalOverlay) {
+            modalOverlay.addEventListener('click', closeMvnoPrivacyModal);
+        }
+        
+        if (modalClose) {
+            modalClose.addEventListener('click', closeMvnoPrivacyModal);
+        }
+        
+        // ESC 키로 모달 닫기
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && modal && modal.classList.contains('privacy-content-modal-active')) {
+                closeMvnoPrivacyModal();
+            }
+        });
+    });
+    
     function showStep(stepNumber) {
         const step2 = document.getElementById('step2');
         const step3 = document.getElementById('step3');
@@ -1906,13 +2064,44 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
-            // 모든 동의 체크박스 확인
-            const agreementPurpose = document.getElementById('mvnoAgreementPurpose');
-            const agreementItems = document.getElementById('mvnoAgreementItems');
-            const agreementPeriod = document.getElementById('mvnoAgreementPeriod');
+            // 필수 동의 항목 확인 (동적으로 계산)
+            const requiredItems = [];
+            const agreementMap = {
+                'purpose': 'mvnoAgreementPurpose',
+                'items': 'mvnoAgreementItems',
+                'period': 'mvnoAgreementPeriod',
+                'thirdParty': 'mvnoAgreementThirdParty',
+                'serviceNotice': 'mvnoAgreementServiceNotice',
+                'marketing': 'mvnoAgreementMarketing'
+            };
             
-            if (!agreementPurpose.checked || !agreementItems.checked || !agreementPeriod.checked) {
-                alert('모든 개인정보 동의 항목에 동의해주세요.');
+            if (typeof mvnoPrivacyContents !== 'undefined') {
+                for (const [key, id] of Object.entries(agreementMap)) {
+                    const setting = mvnoPrivacyContents[key];
+                    if (!setting) continue;
+                    
+                    const isVisible = setting.isVisible !== false;
+                    if (setting.isRequired === true && isVisible) {
+                        requiredItems.push(id);
+                    }
+                }
+            } else {
+                // 기본값: marketing 제외 모두 필수
+                requiredItems.push('mvnoAgreementPurpose', 'mvnoAgreementItems', 'mvnoAgreementPeriod', 'mvnoAgreementThirdParty', 'mvnoAgreementServiceNotice');
+            }
+            
+            // 필수 항목 모두 체크되었는지 확인
+            let allRequiredChecked = true;
+            for (const itemId of requiredItems) {
+                const checkbox = document.getElementById(itemId);
+                if (checkbox && !checkbox.checked) {
+                    allRequiredChecked = false;
+                    break;
+                }
+            }
+            
+            if (!allRequiredChecked) {
+                alert('모든 필수 개인정보 동의 항목에 동의해주세요.');
                 return;
             }
             

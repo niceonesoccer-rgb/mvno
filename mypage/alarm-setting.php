@@ -6,6 +6,7 @@ $is_main_page = true;
 
 // 로그인 체크를 위한 auth-functions 포함 (세션 설정과 함께 세션을 시작함)
 require_once '../includes/data/auth-functions.php';
+require_once '../includes/data/privacy-functions.php';
 
 // 로그인 체크 - 로그인하지 않은 경우 회원가입 모달로 리다이렉트
 if (!isLoggedIn()) {
@@ -30,6 +31,47 @@ if (!$currentUser) {
     $_SESSION['redirect_url'] = $_SERVER['REQUEST_URI'];
     header('Location: /MVNO/?show_login=1');
     exit;
+}
+
+// 관리자 페이지에서 설정한 개인정보 설정 가져오기
+$privacySettings = getPrivacySettings();
+$serviceNoticeSettings = $privacySettings['serviceNotice'] ?? [];
+$marketingSettings = $privacySettings['marketing'] ?? [];
+
+// 관리자 페이지에서 설정한 개인정보 설정 가져오기
+$privacySettings = getPrivacySettings();
+$serviceNoticeSettings = $privacySettings['serviceNotice'] ?? [];
+$marketingSettings = $privacySettings['marketing'] ?? [];
+
+// 관리자 설정에서 제목과 내용 가져오기 (없으면 기본값 사용)
+// 노출 여부 확인
+$serviceNoticeIsVisible = $serviceNoticeSettings['isVisible'] ?? true;
+$marketingIsVisible = $marketingSettings['isVisible'] ?? true;
+
+$serviceNoticeTitle = htmlspecialchars($serviceNoticeSettings['title'] ?? '서비스 이용 및 혜택 안내 알림');
+$serviceNoticeContent = $serviceNoticeSettings['content'] ?? '';
+$serviceNoticeIsRequired = $serviceNoticeSettings['isRequired'] ?? true;
+
+$marketingTitle = htmlspecialchars($marketingSettings['title'] ?? '광고성 정보수신');
+$marketingContent = $marketingSettings['content'] ?? '';
+$marketingIsRequired = $marketingSettings['isRequired'] ?? false;
+
+// 서비스 이용 및 혜택 안내 알림의 하위 항목 추출 (HTML에서 li 태그 내용 추출)
+$serviceNoticeItems = [];
+if (!empty($serviceNoticeContent)) {
+    // HTML에서 <li> 태그 내용 추출
+    preg_match_all('/<li[^>]*>(.*?)<\/li>/i', $serviceNoticeContent, $matches);
+    if (!empty($matches[1])) {
+        $serviceNoticeItems = array_map('strip_tags', $matches[1]);
+    }
+}
+// 기본값이 없으면 기본 항목 사용
+if (empty($serviceNoticeItems)) {
+    $serviceNoticeItems = [
+        '요금제 유지기간 만료 및 변경 안내',
+        '부가서비스 종료 및 이용 조건 변경 안내',
+        '가입 고객 대상 혜택·이벤트 안내'
+    ];
 }
 
 // 사용자 알림 설정 가져오기
@@ -81,6 +123,7 @@ include '../includes/header.php';
         </div>
 
         <!-- 서비스 이용 및 혜택 안내 알림(필수) 섹션 -->
+        <?php if ($serviceNoticeIsVisible): ?>
         <div style="background-color: #ffffff; border-radius: 8px; padding: 20px; margin-bottom: 16px;">
             <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;">
                 <div style="display: flex; align-items: flex-start; gap: 16px; flex: 1;">
@@ -94,12 +137,19 @@ include '../includes/header.php';
 
                     <!-- 텍스트 -->
                     <div style="flex: 1;">
-                        <h3 style="font-size: 16px; font-weight: 700; margin: 0 0 6px 0; color: #212529;">서비스 이용 및 혜택 안내 알림 <span style="font-size: 12px; font-weight: 600; color: #4f46e5; vertical-align: middle;">(필수)</span></h3>
+                        <h3 style="font-size: 16px; font-weight: 700; margin: 0 0 6px 0; color: #212529;">
+                            <?php echo $serviceNoticeTitle; ?> 
+                            <span style="font-size: 12px; font-weight: 600; color: <?php echo $serviceNoticeIsRequired ? '#4f46e5' : '#6b7280'; ?>; vertical-align: middle;">
+                                (<?php echo $serviceNoticeIsRequired ? '필수' : '선택'; ?>)
+                            </span>
+                        </h3>
+                        <?php if (!empty($serviceNoticeItems)): ?>
                         <ul style="margin: 0; padding-left: 18px; color: #6b7280; font-size: 14px; line-height: 1.65;">
-                            <li>요금제 유지기간 만료 및 변경 안내</li>
-                            <li>부가서비스 종료 및 이용 조건 변경 안내</li>
-                            <li>가입 고객 대상 혜택·이벤트 안내</li>
+                            <?php foreach ($serviceNoticeItems as $item): ?>
+                            <li><?php echo htmlspecialchars($item); ?></li>
+                            <?php endforeach; ?>
                         </ul>
+                        <?php endif; ?>
                     </div>
                 </div>
 
@@ -112,8 +162,10 @@ include '../includes/header.php';
                 </label>
             </div>
         </div>
+        <?php endif; ?>
 
-        <!-- 광고성 정보 수신동의(선택) 섹션 -->
+        <!-- 광고성 정보수신(선택) 섹션 -->
+        <?php if ($marketingIsVisible): ?>
         <div style="background-color: #ffffff; border-radius: 8px; padding: 20px; margin-bottom: 16px;">
             <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;">
                 <div style="display: flex; align-items: flex-start; gap: 16px; flex: 1;">
@@ -128,8 +180,12 @@ include '../includes/header.php';
 
                     <!-- 텍스트 -->
                     <div style="flex: 1;">
-                        <h3 style="font-size: 16px; font-weight: 700; margin: 0 0 6px 0; color: #212529;">광고성 정보 수신동의 <span style="font-size: 12px; font-weight: 600; color: #6b7280; vertical-align: middle;">(선택)</span></h3>
-                        <p style="font-size: 14px; color: #6b7280; margin: 0; line-height: 1.65;">광고성 정보를 받으시려면 아래 항목을 선택해주세요</p>
+                        <h3 style="font-size: 16px; font-weight: 700; margin: 0 0 6px 0; color: #212529;">
+                            <?php echo $marketingTitle; ?> 
+                            <span style="font-size: 12px; font-weight: 600; color: <?php echo $marketingIsRequired ? '#4f46e5' : '#6b7280'; ?>; vertical-align: middle;">
+                                (<?php echo $marketingIsRequired ? '필수' : '선택'; ?>)
+                            </span>
+                        </h3>
                     </div>
                 </div>
 
@@ -169,6 +225,7 @@ include '../includes/header.php';
                 </label>
             </div>
         </div>
+        <?php endif; ?>
     </div>
 </main>
 
@@ -297,6 +354,26 @@ function saveAlarmSettings() {
 
 // 초기 상태 적용
 document.addEventListener('DOMContentLoaded', function() {
+    // 마케팅 채널 중 하나라도 체크되어 있으면 전체 토글도 자동으로 체크
+    const marketingEmail = document.getElementById('marketingEmailOptIn');
+    const marketingSmsSns = document.getElementById('marketingSmsSnsOptIn');
+    const marketingPush = document.getElementById('marketingPushOptIn');
+    const marketingOptIn = document.getElementById('marketingOptIn');
+    
+    if (marketingEmail && marketingSmsSns && marketingPush && marketingOptIn) {
+        const anyChannelChecked = marketingEmail.checked || marketingSmsSns.checked || marketingPush.checked;
+        if (anyChannelChecked && !marketingOptIn.checked) {
+            marketingOptIn.checked = true;
+            // 토글 UI 업데이트
+            const slider = marketingOptIn.nextElementSibling;
+            const knob = slider.querySelector('.toggle-knob');
+            if (slider && knob) {
+                slider.style.backgroundColor = '#6366f1';
+                knob.style.transform = 'translateX(20px)';
+            }
+        }
+    }
+    
     applyMarketingDisabledState();
 });
 </script>

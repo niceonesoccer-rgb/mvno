@@ -140,12 +140,93 @@ if ($is_mno) {
             include '../includes/layouts/plan-list-layout.php';
             ?>
         <?php endif; ?>
+        
+        <!-- 더보기 버튼 -->
+        <?php if ($is_mno && count($phones) > 10): ?>
+            <?php 
+            $remaining = count($phones) - 10;
+            ?>
+            <div style="margin-top: 32px; margin-bottom: 32px;" id="moreButtonContainer">
+                <button class="plan-review-more-btn" id="moreWishlistBtn" 
+                        data-type="mno"
+                        data-total="<?php echo count($phones); ?>"
+                        style="width: 100%; padding: 12px; background: #6366f1; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer;">
+                    더보기 (<?php echo $remaining > 10 ? 10 : $remaining; ?>개)
+                </button>
+            </div>
+        <?php elseif (!$is_mno && count($plans) > 10): ?>
+            <?php 
+            $remaining = count($plans) - 10;
+            ?>
+            <div style="margin-top: 32px; margin-bottom: 32px;" id="moreButtonContainer">
+                <button class="plan-review-more-btn" id="moreWishlistBtn" 
+                        data-type="mvno"
+                        data-total="<?php echo count($plans); ?>"
+                        style="width: 100%; padding: 12px; background: #6366f1; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer;">
+                    더보기 (<?php echo $remaining > 10 ? 10 : $remaining; ?>개)
+                </button>
+            </div>
+        <?php endif; ?>
     </div>
 </main>
 
 <script src="../assets/js/plan-accordion.js" defer></script>
 <script src="../assets/js/favorite-heart.js" defer></script>
 <script src="../assets/js/share.js" defer></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const moreBtn = document.getElementById('moreWishlistBtn');
+    if (!moreBtn) return;
+    
+    const container = document.querySelector('.plans-list-container');
+    if (!container) return;
+    
+    const allItems = Array.from(container.querySelectorAll('.plan-item, .phone-item'));
+    const totalCount = allItems.length;
+    let visibleCount = 10;
+    const loadCount = 10;
+    
+    // 처음 10개만 표시하고 나머지는 숨김
+    allItems.forEach((item, index) => {
+        if (index >= visibleCount) {
+            item.style.display = 'none';
+        }
+    });
+    
+    function updateButtonText() {
+        const remaining = totalCount - visibleCount;
+        if (remaining > 0) {
+            const showCount = remaining > loadCount ? loadCount : remaining;
+            moreBtn.textContent = `더보기 (${showCount}개)`;
+        }
+    }
+    
+    moreBtn.addEventListener('click', function() {
+        const endCount = Math.min(visibleCount + loadCount, totalCount);
+        
+        // 다음 10개 아이템 표시
+        for (let i = visibleCount; i < endCount; i++) {
+            if (allItems[i]) {
+                allItems[i].style.display = '';
+            }
+        }
+        
+        visibleCount = endCount;
+        
+        if (visibleCount >= totalCount) {
+            const moreButtonContainer = document.getElementById('moreButtonContainer');
+            if (moreButtonContainer) {
+                moreButtonContainer.style.display = 'none';
+            }
+        } else {
+            updateButtonText();
+        }
+    });
+    
+    updateButtonText();
+});
+</script>
 
 <?php
 // 푸터 포함

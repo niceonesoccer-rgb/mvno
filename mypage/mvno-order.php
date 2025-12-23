@@ -73,11 +73,12 @@ include '../includes/components/mvno-review-modal.php';
                             신청한 알뜰폰이 없습니다.
                         </div>
                     <?php else: ?>
-                        <div style="display: flex; flex-direction: column; gap: 16px;">
+                        <div style="display: flex; flex-direction: column; gap: 16px;" id="applicationsContainer">
                             <?php foreach ($applications as $index => $app): ?>
                                 <div class="plan-item application-card" 
+                                     data-index="<?php echo $index; ?>"
                                      data-application-id="<?php echo htmlspecialchars($app['application_id'] ?? ''); ?>"
-                                     style="padding: 24px; border: 1px solid #e5e7eb; border-radius: 12px; background: white; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.05);"
+                                     style="<?php echo $index >= 10 ? 'display: none;' : ''; ?> padding: 24px; border: 1px solid #e5e7eb; border-radius: 12px; background: white; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.05);"
                                      onmouseover="this.style.borderColor='#6366f1'; this.style.boxShadow='0 4px 12px rgba(99, 102, 241, 0.15)'"
                                      onmouseout="this.style.borderColor='#e5e7eb'; this.style.boxShadow='0 1px 3px rgba(0,0,0,0.05)'">
                                     
@@ -404,6 +405,18 @@ include '../includes/components/mvno-review-modal.php';
                                 </div>
                             <?php endforeach; ?>
                         </div>
+                        
+                        <!-- 더보기 버튼 -->
+                        <?php if (count($applications) > 10): ?>
+                        <div style="margin-top: 32px; margin-bottom: 32px;" id="moreButtonContainer">
+                            <button class="plan-review-more-btn" id="moreApplicationsBtn" style="width: 100%; padding: 12px; background: #6366f1; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer;">
+                                더보기 (<?php 
+                                $remaining = count($applications) - 10;
+                                echo $remaining > 10 ? 10 : $remaining;
+                                ?>개)
+                            </button>
+                        </div>
+                        <?php endif; ?>
                     <?php endif; ?>
                 </div>
             </div>
@@ -1137,6 +1150,51 @@ document.addEventListener('DOMContentLoaded', function() {
     function formatNumber(num) {
         if (!num) return '0';
         return parseInt(num).toLocaleString('ko-KR');
+    }
+    
+    // 더보기 기능
+    const moreBtn = document.getElementById('moreApplicationsBtn');
+    const applicationItems = document.querySelectorAll('.application-card');
+    let visibleCount = 10;
+    const totalApplications = applicationItems.length;
+    const loadCount = 10;
+
+    function updateButtonText() {
+        if (!moreBtn) return;
+        const remaining = totalApplications - visibleCount;
+        if (remaining > 0) {
+            const showCount = remaining > loadCount ? loadCount : remaining;
+            moreBtn.textContent = `더보기 (${showCount}개)`;
+        }
+    }
+
+    if (moreBtn && totalApplications > 10) {
+        updateButtonText();
+        
+        moreBtn.addEventListener('click', function() {
+            const endCount = Math.min(visibleCount + loadCount, totalApplications);
+            for (let i = visibleCount; i < endCount; i++) {
+                if (applicationItems[i]) {
+                    applicationItems[i].style.display = 'block';
+                }
+            }
+            
+            visibleCount = endCount;
+            
+            if (visibleCount >= totalApplications) {
+                const moreButtonContainer = document.getElementById('moreButtonContainer');
+                if (moreButtonContainer) {
+                    moreButtonContainer.style.display = 'none';
+                }
+            } else {
+                updateButtonText();
+            }
+        });
+    } else if (moreBtn && totalApplications <= 10) {
+        const moreButtonContainer = document.getElementById('moreButtonContainer');
+        if (moreButtonContainer) {
+            moreButtonContainer.style.display = 'none';
+        }
     }
 });
 </script>

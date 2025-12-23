@@ -178,6 +178,103 @@ try {
     
     error_log("MVNO Application - addProductApplication returned: " . ($applicationId === false ? 'false' : $applicationId));
     
+    // 알림 설정 저장 (서비스 이용 및 혜택 안내 알림, 광고성 정보 수신동의)
+    $serviceNoticeOptIn = isset($_POST['service_notice_opt_in']) ? (bool)$_POST['service_notice_opt_in'] : false;
+    $serviceNoticePlanOptIn = isset($_POST['service_notice_plan_opt_in']) ? (bool)$_POST['service_notice_plan_opt_in'] : false;
+    $serviceNoticeServiceOptIn = isset($_POST['service_notice_service_opt_in']) ? (bool)$_POST['service_notice_service_opt_in'] : false;
+    $serviceNoticeBenefitOptIn = isset($_POST['service_notice_benefit_opt_in']) ? (bool)$_POST['service_notice_benefit_opt_in'] : false;
+    
+    $marketingOptIn = isset($_POST['marketing_opt_in']) ? (bool)$_POST['marketing_opt_in'] : false;
+    $marketingEmailOptIn = isset($_POST['marketing_email_opt_in']) ? (bool)$_POST['marketing_email_opt_in'] : false;
+    $marketingSmsSnsOptIn = isset($_POST['marketing_sms_sns_opt_in']) ? (bool)$_POST['marketing_sms_sns_opt_in'] : false;
+    $marketingPushOptIn = isset($_POST['marketing_push_opt_in']) ? (bool)$_POST['marketing_push_opt_in'] : false;
+    
+    // 서비스 이용 및 혜택 안내 알림이 체크 해제되면 하위 항목들도 모두 false로 설정
+    if (!$serviceNoticeOptIn) {
+        $serviceNoticePlanOptIn = false;
+        $serviceNoticeServiceOptIn = false;
+        $serviceNoticeBenefitOptIn = false;
+    }
+    
+    // 마케팅 동의가 있으면 마케팅 전체 동의도 true로 설정
+    if ($marketingEmailOptIn || $marketingSmsSnsOptIn || $marketingPushOptIn) {
+        $marketingOptIn = true;
+    }
+    
+    // 마케팅 동의가 없으면 모든 채널을 false로 설정
+    if (!$marketingOptIn) {
+        $marketingEmailOptIn = false;
+        $marketingSmsSnsOptIn = false;
+        $marketingPushOptIn = false;
+    }
+    
+    try {
+        // 데이터베이스에 필드가 있는지 확인하여 동적으로 쿼리 생성
+        $checkColumnsStmt = $pdo->prepare("
+            SELECT COLUMN_NAME 
+            FROM INFORMATION_SCHEMA.COLUMNS 
+            WHERE TABLE_SCHEMA = DATABASE() 
+            AND TABLE_NAME = 'users' 
+            AND COLUMN_NAME IN ('service_notice_plan_opt_in', 'service_notice_service_opt_in', 'service_notice_benefit_opt_in')
+        ");
+        $checkColumnsStmt->execute();
+        $existingColumns = $checkColumnsStmt->fetchAll(PDO::FETCH_COLUMN);
+        $hasDetailFields = in_array('service_notice_plan_opt_in', $existingColumns);
+        
+        if ($hasDetailFields) {
+            // 하위 항목 필드가 있는 경우
+            $alarmStmt = $pdo->prepare("
+                UPDATE users
+                SET service_notice_opt_in = :service_notice_opt_in,
+                    service_notice_plan_opt_in = :service_notice_plan_opt_in,
+                    service_notice_service_opt_in = :service_notice_service_opt_in,
+                    service_notice_benefit_opt_in = :service_notice_benefit_opt_in,
+                    marketing_opt_in = :marketing_opt_in,
+                    marketing_email_opt_in = :marketing_email_opt_in,
+                    marketing_sms_sns_opt_in = :marketing_sms_sns_opt_in,
+                    marketing_push_opt_in = :marketing_push_opt_in,
+                    alarm_settings_updated_at = NOW()
+                WHERE user_id = :user_id
+            ");
+            
+            $alarmStmt->execute([
+                ':service_notice_opt_in' => $serviceNoticeOptIn ? 1 : 0,
+                ':service_notice_plan_opt_in' => $serviceNoticePlanOptIn ? 1 : 0,
+                ':service_notice_service_opt_in' => $serviceNoticeServiceOptIn ? 1 : 0,
+                ':service_notice_benefit_opt_in' => $serviceNoticeBenefitOptIn ? 1 : 0,
+                ':marketing_opt_in' => $marketingOptIn ? 1 : 0,
+                ':marketing_email_opt_in' => $marketingEmailOptIn ? 1 : 0,
+                ':marketing_sms_sns_opt_in' => $marketingSmsSnsOptIn ? 1 : 0,
+                ':marketing_push_opt_in' => $marketingPushOptIn ? 1 : 0,
+                ':user_id' => $userId
+            ]);
+        } else {
+            // 하위 항목 필드가 없는 경우 (기존 방식)
+            $alarmStmt = $pdo->prepare("
+                UPDATE users
+                SET service_notice_opt_in = :service_notice_opt_in,
+                    marketing_opt_in = :marketing_opt_in,
+                    marketing_email_opt_in = :marketing_email_opt_in,
+                    marketing_sms_sns_opt_in = :marketing_sms_sns_opt_in,
+                    marketing_push_opt_in = :marketing_push_opt_in,
+                    alarm_settings_updated_at = NOW()
+                WHERE user_id = :user_id
+            ");
+            
+            $alarmStmt->execute([
+                ':service_notice_opt_in' => $serviceNoticeOptIn ? 1 : 0,
+                ':marketing_opt_in' => $marketingOptIn ? 1 : 0,
+                ':marketing_email_opt_in' => $marketingEmailOptIn ? 1 : 0,
+                ':marketing_sms_sns_opt_in' => $marketingSmsSnsOptIn ? 1 : 0,
+                ':marketing_push_opt_in' => $marketingPushOptIn ? 1 : 0,
+                ':user_id' => $userId
+            ]);
+        }
+    } catch (PDOException $e) {
+        // 알림 설정 저장 실패는 로그만 남기고 계속 진행 (신청은 성공으로 처리)
+        error_log("MVNO Application - Failed to save alarm settings: " . $e->getMessage());
+    }
+    
     if ($applicationId === false) {
         global $lastDbError, $lastDbConnectionError;
         $errorMsg = '신청정보 저장에 실패했습니다.';

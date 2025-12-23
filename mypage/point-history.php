@@ -138,8 +138,8 @@ include '../includes/header.php';
                 </ul>
                 
                 <?php if ($remaining_count > 0): ?>
-                    <div style="margin-top: 16px; text-align: center;">
-                        <button type="button" id="showMorePointHistory" style="padding: 12px 24px; background-color: #6366f1; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;">
+                    <div style="margin-top: 16px;">
+                        <button type="button" id="showMorePointHistory" style="width: 100%; padding: 12px; background-color: #6366f1; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;">
                             더보기 (<?php echo $remaining_count; ?>개)
                         </button>
                     </div>
@@ -223,8 +223,8 @@ include '../includes/header.php';
             
             <!-- 모달 내 더보기 버튼 -->
             <?php if (!empty($sorted_history) && $modal_remaining_count > 0): ?>
-                <div style="margin-top: 16px; text-align: center;">
-                    <button type="button" id="showMoreModalHistory" class="plan-review-more-btn" data-total-count="<?php echo count($sorted_history); ?>" data-current-count="<?php echo $modal_display_count; ?>">
+                <div style="margin-top: 16px;">
+                    <button type="button" id="showMoreModalHistory" class="plan-review-more-btn" data-total-count="<?php echo count($sorted_history); ?>" data-current-count="<?php echo $modal_display_count; ?>" style="width: 100%; padding: 12px; background: #6366f1; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer;">
                         더보기 (<?php echo $modal_remaining_count > 10 ? 10 : $modal_remaining_count; ?>개)
                     </button>
                 </div>

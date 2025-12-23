@@ -606,25 +606,75 @@ function getInternetIconPath($registrationPlace) {
                     
                     <!-- 체크박스 -->
                     <div class="internet-checkbox-group">
+                        <?php
+                        // 동의 항목 정의 (순서대로)
+                        $agreementItems = [
+                            'purpose' => ['id' => 'agreePurpose', 'name' => 'agreementPurpose', 'modal' => 'openInternetPrivacyModal'],
+                            'items' => ['id' => 'agreeItems', 'name' => 'agreementItems', 'modal' => 'openInternetPrivacyModal'],
+                            'period' => ['id' => 'agreePeriod', 'name' => 'agreementPeriod', 'modal' => 'openInternetPrivacyModal'],
+                            'thirdParty' => ['id' => 'agreeThirdParty', 'name' => 'agreementThirdParty', 'modal' => 'openInternetPrivacyModal'],
+                            'serviceNotice' => ['id' => 'agreeServiceNotice', 'name' => 'service_notice_opt_in', 'accordion' => 'internetServiceNoticeContent', 'accordionFunc' => 'toggleInternetAccordion'],
+                            'marketing' => ['id' => 'agreeMarketing', 'name' => 'marketing_opt_in', 'accordion' => 'internetMarketingContent', 'accordionFunc' => 'toggleInternetAccordion']
+                        ];
+                        
+                        // 노출되는 항목이 있는지 확인
+                        $hasVisibleItems = false;
+                        foreach ($agreementItems as $key => $item) {
+                            $setting = $privacySettings[$key] ?? [];
+                            if (array_key_exists('isVisible', $setting)) {
+                                $isVisible = (bool)$setting['isVisible'];
+                            } else {
+                                $isVisible = true;
+                            }
+                            if ($isVisible) {
+                                $hasVisibleItems = true;
+                                break;
+                            }
+                        }
+                        
+                        // 노출되는 항목이 있을 때만 "전체 동의" 표시
+                        if ($hasVisibleItems):
+                        ?>
                         <label class="internet-checkbox-all">
                             <input type="checkbox" id="agreeAll" class="internet-checkbox-input">
                             <span class="internet-checkbox-label">전체 동의</span>
                         </label>
+                        <?php endif; ?>
                         <div class="internet-checkbox-list">
                             <?php
-                            // 동의 항목 정의 (순서대로)
-                            $agreementItems = [
-                                'purpose' => ['id' => 'agreePurpose', 'name' => 'agreementPurpose', 'modal' => 'openInternetPrivacyModal'],
-                                'items' => ['id' => 'agreeItems', 'name' => 'agreementItems', 'modal' => 'openInternetPrivacyModal'],
-                                'period' => ['id' => 'agreePeriod', 'name' => 'agreementPeriod', 'modal' => 'openInternetPrivacyModal'],
-                                'thirdParty' => ['id' => 'agreeThirdParty', 'name' => 'agreementThirdParty', 'modal' => 'openInternetPrivacyModal'],
-                                'serviceNotice' => ['id' => 'agreeServiceNotice', 'name' => 'service_notice_opt_in', 'accordion' => 'internetServiceNoticeContent', 'accordionFunc' => 'toggleInternetAccordion'],
-                                'marketing' => ['id' => 'agreeMarketing', 'name' => 'marketing_opt_in', 'accordion' => 'internetMarketingContent', 'accordionFunc' => 'toggleInternetAccordion']
-                            ];
-                            
+                            // 관리자 페이지 설정에 따라 동의 항목 동적 렌더링
                             foreach ($agreementItems as $key => $item):
                                 $setting = $privacySettings[$key] ?? [];
+                                
+                                // 노출 여부 확인 (isVisible = false인 항목은 렌더링하지 않음)
+                                if (array_key_exists('isVisible', $setting)) {
+                                    $isVisible = (bool)$setting['isVisible'];
+                                } else {
+                                    $isVisible = true;
+                                }
+                                
+                                if (!$isVisible) {
+                                    // 디버깅: 비노출 항목 로그
+                                    if ($key === 'purpose') {
+                                        error_log("DEBUG [internets.php] purpose 항목이 비노출로 설정되어 렌더링하지 않습니다. isVisible=" . var_export($setting['isVisible'] ?? 'NOT SET', true));
+                                    }
+                                    continue;
+                                }
+                                
+                                // 제목 및 필수/선택 설정 (관리자 페이지에서 설정한 제목 사용)
                                 $title = htmlspecialchars($setting['title'] ?? '');
+                                // 제목이 비어있으면 기본값 사용
+                                if (empty($title)) {
+                                    $defaultTitles = [
+                                        'purpose' => '개인정보 수집 및 이용목적',
+                                        'items' => '개인정보 수집하는 항목',
+                                        'period' => '개인정보 보유 및 이용기간',
+                                        'thirdParty' => '개인정보 제3자 제공',
+                                        'serviceNotice' => '서비스 이용 및 혜택 안내 알림',
+                                        'marketing' => '광고성 정보수신'
+                                    ];
+                                    $title = $defaultTitles[$key] ?? '';
+                                }
                                 $isRequired = $setting['isRequired'] ?? ($key !== 'marketing');
                                 $requiredText = $isRequired ? '(필수)' : '(선택)';
                                 $requiredColor = $isRequired ? '#4f46e5' : '#6b7280';
@@ -643,7 +693,7 @@ function getInternetIconPath($registrationPlace) {
                                         </svg>
                                     </a>
                                     <?php elseif (isset($item['accordion'])): ?>
-                                    <a href="#" class="internet-checkbox-link" onclick="event.preventDefault(); <?php echo $item['accordionFunc']; ?>('<?php echo $item['accordion']; ?>', this); return false;">
+                                    <a href="#" class="internet-checkbox-link" onclick="event.preventDefault(); openInternetPrivacyModal('<?php echo $key; ?>'); return false;">
                                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="arrow-down">
                                             <path d="M3.646 4.646a.5.5 0 0 1 .708 0L8 8.293l3.646-3.647a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 0-.708z"></path>
                                         </svg>
@@ -654,8 +704,19 @@ function getInternetIconPath($registrationPlace) {
                                 <div class="internet-accordion-content" id="internetServiceNoticeContent">
                                     <div class="internet-accordion-inner">
                                         <div class="internet-accordion-section">
-                                            <div style="font-size: 0.875rem; color: #6b7280; line-height: 1.65;">
-                                                <?php echo $setting['content'] ?? ''; ?>
+                                            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                                                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                                                    <input type="checkbox" id="internetServiceNoticePlan" name="service_notice_plan_opt_in" class="internet-service-notice-channel" style="width: 18px; height: 18px; cursor: pointer; accent-color: #6366f1;">
+                                                    <span style="font-size: 0.875rem; color: #374151;">요금제 유지기간 만료 및 변경 안내</span>
+                                                </label>
+                                                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                                                    <input type="checkbox" id="internetServiceNoticeService" name="service_notice_service_opt_in" class="internet-service-notice-channel" style="width: 18px; height: 18px; cursor: pointer; accent-color: #6366f1;">
+                                                    <span style="font-size: 0.875rem; color: #374151;">부가서비스 종료 및 이용 조건 변경 안내</span>
+                                                </label>
+                                                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                                                    <input type="checkbox" id="internetServiceNoticeBenefit" name="service_notice_benefit_opt_in" class="internet-service-notice-channel" style="width: 18px; height: 18px; cursor: pointer; accent-color: #6366f1;">
+                                                    <span style="font-size: 0.875rem; color: #374151;">가입 고객 대상 혜택·이벤트 안내</span>
+                                                </label>
                                             </div>
                                         </div>
                                     </div>
@@ -2340,6 +2401,9 @@ function toggleAllAgreements(checked) {
         agreePeriod.checked = checked;
         agreeThirdParty.checked = checked;
         agreeServiceNotice.checked = checked;
+        if (checked) {
+            toggleInternetServiceNoticeChannels();
+        }
         if (agreeMarketing) {
             agreeMarketing.checked = checked;
             if (checked) {
@@ -2350,11 +2414,53 @@ function toggleAllAgreements(checked) {
     }
 }
 
-// 인터넷 개인정보 내용 정의 (설정 파일에서 로드)
+// 관리자 페이지 설정 로드 (DB의 app_settings 테이블)
 <?php
-require_once __DIR__ . '/../includes/data/privacy-functions.php';
-$privacySettings = getPrivacySettings();
-echo "const internetPrivacyContents = " . json_encode($privacySettings, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . ";\n";
+// 이미 위에서 로드했으므로 재사용 (일관성 유지)
+// $privacySettings는 14줄에서 이미 로드됨
+
+// 재귀적으로 데이터 정리 함수 (참조 제거 및 안전한 타입 변환)
+function cleanForJson($data) {
+    if (is_array($data)) {
+        $cleaned = [];
+        foreach ($data as $key => $value) {
+            $cleaned[$key] = cleanForJson($value);
+        }
+        return $cleaned;
+    } elseif (is_object($data)) {
+        // 객체는 배열로 변환
+        return cleanForJson((array)$data);
+    } elseif (is_string($data) || is_numeric($data) || is_bool($data) || is_null($data)) {
+        return $data;
+    } else {
+        // 기타 타입은 문자열로 변환
+        return (string)$data;
+    }
+}
+
+// 데이터 정리
+$cleanSettings = cleanForJson($privacySettings);
+
+// JSON 인코딩 (에러 처리 강화)
+$jsonData = json_encode($cleanSettings, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+if ($jsonData === false) {
+    $jsonData = '{}';
+    error_log("Internet Privacy Settings JSON encoding failed: " . json_last_error_msg());
+} else {
+    $jsonData = trim($jsonData);
+    // JSON 유효성 최종 검사
+    $testDecode = json_decode($jsonData, true);
+    if ($testDecode === null && json_last_error() !== JSON_ERROR_NONE) {
+        error_log("WARNING: JSON is invalid before output: " . json_last_error_msg());
+        $jsonData = '{}';
+    }
+    // 빈 객체나 배열이 아닌지 확인
+    if ($jsonData === '[]' || $jsonData === 'null' || $jsonData === '') {
+        $jsonData = '{}';
+    }
+}
+
+echo "const internetPrivacyContents = " . $jsonData . ";\n";
 ?>
 
 // 페이지 로드 시 서비스 이용 및 혜택 안내 알림, 광고성 정보 수신동의 내용 설정
@@ -2418,6 +2524,10 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
+/**
+ * 동의 항목 및 개인정보 입력 검증 함수
+ * 관리자 설정(isVisible, isRequired)에 따라 버튼 활성화 조건 결정
+ */
 function checkAllAgreements() {
     const agreeAll = document.getElementById('agreeAll');
     const submitBtn = document.getElementById('submitBtn');
@@ -2427,7 +2537,7 @@ function checkAllAgreements() {
 
     if (!agreeAll || !submitBtn) return;
 
-    // internetPrivacyContents에서 필수 항목 확인
+    // 필수 항목 목록 생성 (노출된 필수 항목만 포함)
     const requiredItems = [];
     const agreementMap = {
         'purpose': 'agreePurpose',
@@ -2440,7 +2550,11 @@ function checkAllAgreements() {
 
     if (typeof internetPrivacyContents !== 'undefined') {
         for (const [key, id] of Object.entries(agreementMap)) {
-            if (internetPrivacyContents[key] && internetPrivacyContents[key].isRequired) {
+            const setting = internetPrivacyContents[key];
+            if (!setting) continue;
+            
+            const isVisible = setting.isVisible !== false;
+            if (setting.isRequired === true && isVisible) {
                 requiredItems.push(id);
             }
         }
@@ -2449,7 +2563,7 @@ function checkAllAgreements() {
         requiredItems.push('agreePurpose', 'agreeItems', 'agreePeriod', 'agreeThirdParty', 'agreeServiceNotice');
     }
 
-    // 전체 동의 체크박스 상태 업데이트 (필수 항목만 포함)
+    // 전체 동의 체크박스 상태 업데이트
     let allRequiredChecked = true;
     for (const itemId of requiredItems) {
         const checkbox = document.getElementById(itemId);
@@ -2460,18 +2574,17 @@ function checkAllAgreements() {
     }
     agreeAll.checked = allRequiredChecked;
 
-    // 이름, 휴대폰 번호, 이메일 확인
+    // 개인정보 입력 검증
     const name = nameInput ? nameInput.value.trim() : '';
     const phone = phoneInput ? phoneInput.value.replace(/[^\d]/g, '') : '';
     const email = emailInput ? emailInput.value.trim() : '';
 
-    // 제출 버튼 활성화/비활성화 (모든 필드가 입력되어야 활성화)
     const isNameValid = name.length > 0;
     const isPhoneValid = phone.length === 11 && phone.startsWith('010');
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const isEmailValid = email.length > 0 && emailRegex.test(email);
     
-    // 필수 동의 항목 모두 체크되었는지 확인
+    // 필수 동의 항목 체크 여부 확인
     let isAgreementsChecked = true;
     for (const itemId of requiredItems) {
         const checkbox = document.getElementById(itemId);
@@ -2481,11 +2594,8 @@ function checkAllAgreements() {
         }
     }
 
-    if (isNameValid && isPhoneValid && isEmailValid && isAgreementsChecked) {
-        submitBtn.disabled = false;
-    } else {
-        submitBtn.disabled = true;
-    }
+    // 버튼 활성화 조건: 필수 항목 모두 체크 + 개인정보 입력 완료
+    submitBtn.disabled = !(isNameValid && isPhoneValid && isEmailValid && isAgreementsChecked);
 }
 
 // 전화번호 검증 함수
@@ -2555,6 +2665,22 @@ function validateEmailOnModal() {
     return true;
 }
 
+// 서비스 이용 및 혜택 안내 알림 채널 활성화/비활성화 토글 함수
+function toggleInternetServiceNoticeChannels() {
+    const agreeServiceNotice = document.getElementById('agreeServiceNotice');
+    const serviceNoticeChannels = document.querySelectorAll('.internet-service-notice-channel');
+    
+    if (agreeServiceNotice && serviceNoticeChannels.length > 0) {
+        const isEnabled = agreeServiceNotice.checked;
+        serviceNoticeChannels.forEach(channel => {
+            channel.disabled = !isEnabled;
+            if (!isEnabled) {
+                channel.checked = false;
+            }
+        });
+    }
+}
+
 // 마케팅 채널 활성화/비활성화 토글 함수
 function toggleInternetMarketingChannels() {
     const agreeMarketing = document.getElementById('agreeMarketing');
@@ -2570,6 +2696,27 @@ function toggleInternetMarketingChannels() {
         });
     }
 }
+
+// 서비스 이용 및 혜택 안내 알림 채널 변경 시 상위 체크박스 업데이트
+document.addEventListener('DOMContentLoaded', function() {
+    const serviceNoticeChannels = document.querySelectorAll('.internet-service-notice-channel');
+    const agreeServiceNotice = document.getElementById('agreeServiceNotice');
+    
+    serviceNoticeChannels.forEach(channel => {
+        channel.addEventListener('change', function() {
+            if (agreeServiceNotice) {
+                const anyChecked = Array.from(serviceNoticeChannels).some(ch => ch.checked);
+                if (anyChecked && !agreeServiceNotice.checked) {
+                    agreeServiceNotice.checked = true;
+                    toggleInternetServiceNoticeChannels();
+                }
+            }
+        });
+    });
+    
+    // 초기 상태 설정
+    toggleInternetServiceNoticeChannels();
+});
 
 // 마케팅 채널 변경 시 상위 체크박스 업데이트
 document.addEventListener('DOMContentLoaded', function() {
@@ -3136,8 +3283,13 @@ document.addEventListener('keydown', function(e) {
                 agreeItemCheckboxes.forEach(checkbox => {
                     checkbox.checked = isChecked;
                 });
-                // 마케팅 체크박스가 체크되면 채널 활성화
+                // 서비스 이용 및 혜택 안내 알림 체크박스가 체크되면 채널 활성화
                 if (isChecked) {
+                    const agreeServiceNotice = document.getElementById('agreeServiceNotice');
+                    if (agreeServiceNotice && agreeServiceNotice.checked) {
+                        toggleInternetServiceNoticeChannels();
+                    }
+                    // 마케팅 체크박스가 체크되면 채널 활성화
                     const agreeMarketing = document.getElementById('agreeMarketing');
                     if (agreeMarketing && agreeMarketing.checked) {
                         toggleInternetMarketingChannels();
@@ -3151,6 +3303,10 @@ document.addEventListener('keydown', function(e) {
         agreeItemCheckboxes.forEach(checkbox => {
             checkbox.addEventListener('change', function() {
                 checkAllAgreements();
+                // 서비스 이용 및 혜택 안내 알림 체크박스인 경우 채널 토글
+                if (this.id === 'agreeServiceNotice') {
+                    toggleInternetServiceNoticeChannels();
+                }
                 // 마케팅 체크박스인 경우 채널 토글
                 if (this.id === 'agreeMarketing') {
                     toggleInternetMarketingChannels();

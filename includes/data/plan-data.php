@@ -580,10 +580,23 @@ function getInternetReviewCategoryAverages($productId, $productType = 'internet'
                 $result['speed'] = round((float)$speedData['avg_speed'], 1);
             }
             
-            // 통계 테이블이 비어있거나 잘못된 경우 로그 기록
+            // 통계 테이블이 비어있거나 잘못된 경우 통계 테이블 업데이트 시도
             if (!$stats || ($stats['kindness_review_count'] == 0 && $kindnessData && $kindnessData['count'] > 0) || 
                 ($stats['speed_review_count'] == 0 && $speedData && $speedData['count'] > 0)) {
                 error_log("getInternetReviewCategoryAverages: 통계 테이블이 비어있어 fallback 사용. product_id={$productId}, product_type={$productType}");
+                
+                // 통계 테이블 자동 업데이트 시도
+                try {
+                    require_once __DIR__ . '/product-functions.php';
+                    updateReviewStatistics($productId, null, 
+                        $kindnessData && $kindnessData['count'] > 0 ? (int)$kindnessData['avg_kindness'] : null,
+                        $speedData && $speedData['count'] > 0 ? (int)$speedData['avg_speed'] : null,
+                        $productType
+                    );
+                    error_log("getInternetReviewCategoryAverages: 통계 테이블 자동 업데이트 완료. product_id={$productId}");
+                } catch (Exception $e) {
+                    error_log("getInternetReviewCategoryAverages: 통계 테이블 업데이트 실패: " . $e->getMessage());
+                }
             }
         }
         

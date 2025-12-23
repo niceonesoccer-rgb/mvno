@@ -9,6 +9,7 @@
  */
 function getPrivacySettings() {
     require_once __DIR__ . '/app-settings.php';
+    require_once __DIR__ . '/db-config.php';
     $defaults = [
         'purpose' => [
             'title' => '개인정보 수집 및 이용목적',
@@ -36,7 +37,7 @@ function getPrivacySettings() {
             'isRequired' => true
         ],
         'marketing' => [
-            'title' => '광고성 정보 수신동의',
+            'title' => '광고성 정보수신',
             'content' => '<div class="privacy-content-text"><p>광고성 정보를 받으시려면 아래 항목을 선택해주세요</p><ul><li>이메일 수신동의</li><li>SMS, SNS 수신동의</li><li>앱 푸시 수신동의</li></ul></div>',
             'isRequired' => false
         ]
@@ -44,18 +45,46 @@ function getPrivacySettings() {
     
     $settings = getAppSettings('privacy', $defaults);
     
-    // isRequired 값이 없는 경우 기본값 설정
-    foreach ($settings as $key => $value) {
-        if (!isset($value['isRequired'])) {
-            $settings[$key]['isRequired'] = ($key !== 'marketing');
+    // DB에서 직접 읽어서 isVisible 값 명시적으로 적용
+    // array_replace_recursive는 기본값을 우선하므로, DB 값을 직접 확인
+    $pdo = getDBConnection();
+    if ($pdo) {
+        try {
+            $stmt = $pdo->prepare('SELECT json_value FROM app_settings WHERE namespace = :ns LIMIT 1');
+            $stmt->execute([':ns' => 'privacy']);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($row && isset($row['json_value'])) {
+                $val = $row['json_value'];
+                $decoded = is_string($val) ? json_decode($val, true) : $val;
+                if (is_array($decoded)) {
+                    foreach ($decoded as $key => $dbValue) {
+                        if (is_array($dbValue) && array_key_exists('isVisible', $dbValue)) {
+                            $settings[$key]['isVisible'] = (bool)$dbValue['isVisible'];
+                        }
+                    }
+                }
+            }
+        } catch (PDOException $e) {
+            error_log('getPrivacySettings DB error: ' . $e->getMessage());
         }
     }
     
-    return $settings;
-
-    return getAppSettings('privacy', $defaults);
+    // 기본값 설정 (content 필드는 DB에 저장된 그대로 사용)
+    foreach ($settings as $key => &$value) {
+        // isRequired 기본값 설정
+        if (!isset($value['isRequired'])) {
+            $value['isRequired'] = ($key !== 'marketing');
+        }
+        // isVisible 기본값 설정
+        if (!array_key_exists('isVisible', $value)) {
+            $value['isVisible'] = true;
+        }
+        // content 필드는 DB에 저장된 그대로 사용 (검증이나 정리 로직 없음)
+        // 숫자, 줄바꿈, 공백 등 모든 내용이 그대로 유지되어야 함
+    }
+    unset($value); // 참조 해제
     
-    // 기본값 반환
+    return $settings;
 }
 
 /**
