@@ -351,6 +351,7 @@ include '../includes/components/internet-review-delete-modal.php';
                                     }
                                     
                                     $sellerPhone = $seller ? ($seller['phone'] ?? ($seller['mobile'] ?? '')) : '';
+                                    $sellerChatUrl = $seller ? ($seller['chat_consultation_url'] ?? '') : '';
                                     
                                     // 판매자명 가져오기 (seller_name > company_name > name 우선순위)
                                     $sellerName = '';
@@ -386,12 +387,27 @@ include '../includes/components/internet-review-delete-modal.php';
                                         $buttonHoverColor = $hasReview ? '#4b5563' : '#dc2626';
                                     }
                                     
-                                    // 판매자 전화번호가 있거나 리뷰 버튼이 필요한 경우에만 섹션 표시
-                                    if ($sellerPhone || $canWrite):
+                                    // 판매자 전화번호, 채팅상담, 리뷰 버튼이 필요한 경우에만 섹션 표시
+                                    if ($sellerPhone || $sellerChatUrl || $canWrite):
                                     ?>
                                         <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #e5e7eb;">
-                                            <div class="review-section-layout" style="display: grid; grid-template-columns: <?php echo ($sellerPhone && $canWrite) ? '1fr 1fr' : '1fr'; ?>; gap: 16px;">
-                                                <!-- 왼쪽: 전화번호 (모든 상태에서 표시) -->
+                                            <?php
+                                            // 버튼 개수 계산
+                                            $buttonCount = 0;
+                                            if ($sellerPhone) $buttonCount++;
+                                            if ($sellerChatUrl) $buttonCount++;
+                                            if ($canWrite) $buttonCount++;
+                                            
+                                            // 그리드 컬럼 수 결정
+                                            $gridCols = '1fr';
+                                            if ($buttonCount === 2) {
+                                                $gridCols = '1fr 1fr';
+                                            } elseif ($buttonCount === 3) {
+                                                $gridCols = '1fr 1fr 1fr';
+                                            }
+                                            ?>
+                                            <div class="review-section-layout" style="display: grid; grid-template-columns: <?php echo $gridCols; ?>; gap: 12px;">
+                                                <!-- 전화번호 버튼 (모든 상태에서 표시) -->
                                                 <?php if ($sellerPhone): 
                                                     $phoneNumberOnly = preg_replace('/[^0-9]/', '', $sellerPhone);
                                                 ?>
@@ -400,21 +416,35 @@ include '../includes/components/internet-review-delete-modal.php';
                                                         <button class="phone-inquiry-pc" 
                                                                 disabled
                                                                 style="width: 100%; padding: 12px 16px; background: #f3f4f6; color: #374151; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: not-allowed;">
-                                                            <?php echo htmlspecialchars($sellerPhoneDisplay); ?>
+                                                            전화: <?php echo htmlspecialchars($sellerPhoneDisplay); ?>
                                                         </button>
                                                         <!-- 모바일 버전: 전화번호 버튼 (클릭 시 전화 연결) -->
                                                         <a href="tel:<?php echo htmlspecialchars($phoneNumberOnly); ?>" 
                                                            class="phone-inquiry-mobile"
                                                            onclick="event.stopPropagation();"
-                                                           style="display: none; width: 100%; align-items: center; justify-content: center; padding: 12px 16px; background: #EF4444; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; text-decoration: none; cursor: pointer; transition: background 0.2s;"
-                                                           onmouseover="this.style.background='#dc2626'"
-                                                           onmouseout="this.style.background='#EF4444'">
-                                                            <?php echo htmlspecialchars($sellerPhoneDisplay); ?>
+                                                           style="display: none; width: 100%; align-items: center; justify-content: center; padding: 12px 16px; background: #10b981; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; text-decoration: none; cursor: pointer; transition: background 0.2s;"
+                                                           onmouseover="this.style.background='#059669'"
+                                                           onmouseout="this.style.background='#10b981'">
+                                                            전화: <?php echo htmlspecialchars($sellerPhoneDisplay); ?>
                                                         </a>
                                                     </div>
                                                 <?php endif; ?>
                                                 
-                                                <!-- 오른쪽: 리뷰 작성 버튼 (설치완료/종료 상태일 때만 표시) -->
+                                                <!-- 채팅상담 버튼 (채팅상담 URL이 있을 때 표시) -->
+                                                <?php if ($sellerChatUrl): ?>
+                                                <div style="display: flex; align-items: center; justify-content: center;" onclick="event.stopPropagation();">
+                                                    <a href="<?php echo htmlspecialchars($sellerChatUrl); ?>" 
+                                                       target="_blank" 
+                                                       rel="noopener noreferrer"
+                                                       style="width: 100%; display: flex; align-items: center; justify-content: center; padding: 12px 16px; background: #FEE500; color: #000000; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; text-decoration: none; cursor: pointer; transition: background 0.2s;"
+                                                       onmouseover="this.style.background='#FDD835'"
+                                                       onmouseout="this.style.background='#FEE500'">
+                                                        채팅상담
+                                                    </a>
+                                                </div>
+                                                <?php endif; ?>
+                                                
+                                                <!-- 리뷰 작성 버튼 (설치완료/종료 상태일 때만 표시) -->
                                                 <?php if ($canWrite): ?>
                                                 <div style="display: flex; align-items: center; justify-content: center;" onclick="event.stopPropagation();">
                                                     <button 

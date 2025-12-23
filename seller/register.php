@@ -237,6 +237,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $additionalData['company_representative'] = trim($_POST['company_representative'] ?? '');
         $additionalData['business_type'] = trim($_POST['business_type'] ?? '');
         $additionalData['business_item'] = trim($_POST['business_item'] ?? '');
+        $additionalData['chat_consultation_url'] = trim($_POST['chat_consultation_url'] ?? '');
         
         // 판매 상품 선택 (permissions)
         $permissions = $_POST['permissions'] ?? [];
@@ -1457,6 +1458,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <div class="form-group">
                             <label for="phone">전화번호</label>
                             <input type="tel" id="phone" name="phone" placeholder="1588-1588-070-1234-5678,010-1234-5678" value="<?php echo htmlspecialchars($_SERVER['REQUEST_METHOD'] === 'POST' ? ($_POST['phone'] ?? '') : ''); ?>">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="chat_consultation_url">채팅상담 URL</label>
+                            <input type="url" id="chat_consultation_url" name="chat_consultation_url" placeholder="https://pf.kakao.com/_abc123 또는 네이버톡톡 URL" value="<?php echo htmlspecialchars($_SERVER['REQUEST_METHOD'] === 'POST' ? ($_POST['chat_consultation_url'] ?? '') : ''); ?>">
+                            <div class="form-help">카카오톡 채널 또는 네이버톡톡 등 채팅상담 URL을 입력해주세요.</div>
                         </div>
                     </div>
                     

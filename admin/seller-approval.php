@@ -2011,6 +2011,9 @@ $paginatedSellers = array_slice($currentSellers, $offset, $perPage);
         if (seller.mobile) {
             html += '<div class="detail-row"><div class="detail-label">휴대폰</div><div class="detail-value">' + escapeHtml(seller.mobile) + '</div></div>';
         }
+        if (seller.chat_consultation_url) {
+            html += '<div class="detail-row"><div class="detail-label">채팅상담</div><div class="detail-value"><a href="' + escapeHtml(seller.chat_consultation_url) + '" target="_blank" rel="noopener noreferrer" style="color: #6366f1; text-decoration: none;">' + escapeHtml(seller.chat_consultation_url) + '</a></div></div>';
+        }
         
         // 주소 정보
         if (seller.address) {

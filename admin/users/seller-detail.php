@@ -457,6 +457,19 @@ if (!$seller || $seller['role'] !== 'seller') {
                         </button>
                     </div>
                 </div>
+                <div class="detail-item">
+                    <div class="detail-label">채팅상담</div>
+                    <div class="detail-value">
+                        <?php 
+                        $chatUrl = $seller['chat_consultation_url'] ?? '';
+                        if (empty($chatUrl)) {
+                            echo '<span style="color: #9ca3af; font-style: italic;">미설정</span>';
+                        } else {
+                            echo '<a href="' . htmlspecialchars($chatUrl) . '" target="_blank" rel="noopener noreferrer" style="color: #6366f1; text-decoration: none;">' . htmlspecialchars($chatUrl) . '</a>';
+                        }
+                        ?>
+                    </div>
+                </div>
             </div>
         </div>
         

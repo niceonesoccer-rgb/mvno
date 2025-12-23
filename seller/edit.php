@@ -213,6 +213,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_seller'])) {
         $businessItem = trim($_POST['business_item'] ?? '');
         // business_number는 변경 불가이지만 "필수" 조건 충족을 위해 존재 여부는 확인한다.
         $businessNumber = trim($_POST['business_number'] ?? ($seller['business_number'] ?? ''));
+        $chatConsultationUrl = trim($_POST['chat_consultation_url'] ?? '');
         
         // 이메일 검증
         if (empty($emailLocal)) {
@@ -414,6 +415,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_seller'])) {
                 'company_representative' => $companyRepresentative,
                 'business_type' => $businessType,
                 'business_item' => $businessItem,
+                'chat_consultation_url' => $chatConsultationUrl,
             ];
             
             // 비밀번호 변경이 있는 경우
@@ -523,6 +525,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_seller'])) {
                             $passwordHashed = $updateData['password'] ?? password_hash($_POST['password'], PASSWORD_DEFAULT);
                         }
 
+                        // chat_consultation_url 필드 존재 여부 확인
+                        $checkColumn = $pdo->query("
+                            SELECT COUNT(*) 
+                            FROM INFORMATION_SCHEMA.COLUMNS 
+                            WHERE TABLE_SCHEMA = DATABASE() 
+                            AND TABLE_NAME = 'users' 
+                            AND COLUMN_NAME = 'chat_consultation_url'
+                        ");
+                        $columnExists = $checkColumn->fetchColumn() > 0;
+
+                        // 필드가 있으면 포함, 없으면 제외
+                        $chatConsultationSql = $columnExists ? "chat_consultation_url = :chat_consultation_url," : "";
+
                         $u = $pdo->prepare("
                             UPDATE users
                             SET name = :name,
@@ -537,13 +552,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_seller'])) {
                                 business_type = :business_type,
                                 business_item = :business_item,
                                 business_license_image = :business_license_image,
+                                " . $chatConsultationSql . "
                                 password = COALESCE(:password, password),
                                 updated_at = NOW()
                             WHERE user_id = :user_id
                               AND role = 'seller'
                             LIMIT 1
                         ");
-                        $u->execute([
+                        $executeParams = [
                             ':name' => $updateData['name'] ?? ($seller['name'] ?? ''),
                             ':seller_name' => $updateData['seller_name'] ?? ($seller['seller_name'] ?? null),
                             ':email' => $updateData['email'] ?? ($seller['email'] ?? null),
@@ -558,7 +574,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_seller'])) {
                             ':business_license_image' => $updateData['business_license_image'] ?? ($seller['business_license_image'] ?? null),
                             ':password' => $passwordHashed,
                             ':user_id' => $userId
-                        ]);
+                        ];
+                        
+                        if ($columnExists) {
+                            $executeParams[':chat_consultation_url'] = $updateData['chat_consultation_url'] ?? ($seller['chat_consultation_url'] ?? null);
+                        }
+                        
+                        $u->execute($executeParams);
 
                         $sp = $pdo->prepare("
                             UPDATE seller_profiles
@@ -1038,6 +1060,11 @@ require_once __DIR__ . '/includes/seller-header.php';
                     <label class="form-label">휴대폰 <span class="required">*</span></label>
                     <input type="tel" name="mobile" id="mobile" class="form-input" value="<?php echo htmlspecialchars($seller['mobile'] ?? ''); ?>" placeholder="010-1234-5678" required>
                 </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">채팅상담 URL</label>
+                <input type="url" name="chat_consultation_url" id="chat_consultation_url" class="form-input" value="<?php echo htmlspecialchars($seller['chat_consultation_url'] ?? ''); ?>" placeholder="https://pf.kakao.com/_abc123 또는 네이버톡톡 URL">
+                <small style="display: block; margin-top: 4px; color: #6b7280; font-size: 13px;">카카오톡 채널 또는 네이버톡톡 등 채팅상담 URL을 입력해주세요.</small>
             </div>
         </div>
         

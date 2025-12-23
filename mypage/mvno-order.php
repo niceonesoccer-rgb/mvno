@@ -247,6 +247,7 @@ include '../includes/components/mvno-review-modal.php';
                                     }
                                     
                                     $sellerPhone = $seller ? ($seller['phone'] ?? ($seller['mobile'] ?? '')) : '';
+                                    $sellerChatUrl = $seller ? ($seller['chat_consultation_url'] ?? '') : '';
                                     error_log("MVNO Order Debug - Final sellerPhone for application {$applicationId}: " . ($sellerPhone ?: 'EMPTY'));
                                     
                                     // 판매자명 가져오기 (seller_name > company_name > name 우선순위)
@@ -339,10 +340,10 @@ include '../includes/components/mvno-review-modal.php';
                                     }
                                     
                                     // 디버깅: 조건 확인
-                                    error_log("MVNO Order Debug - Condition check: sellerPhone=" . ($sellerPhone ?: 'EMPTY') . ", canWrite=" . ($canWrite ? 'true' : 'false') . ", will show section=" . (($sellerPhone || $canWrite) ? 'YES' : 'NO'));
+                                    error_log("MVNO Order Debug - Condition check: sellerPhone=" . ($sellerPhone ?: 'EMPTY') . ", sellerChatUrl=" . ($sellerChatUrl ?: 'EMPTY') . ", canWrite=" . ($canWrite ? 'true' : 'false') . ", will show section=" . (($sellerPhone || $sellerChatUrl || $canWrite) ? 'YES' : 'NO'));
                                     
-                                    // 판매자 전화번호가 있거나 리뷰 버튼이 필요한 경우에만 섹션 표시
-                                    if ($sellerPhone || $canWrite):
+                                    // 판매자 전화번호, 채팅상담, 리뷰 버튼이 필요한 경우에만 섹션 표시
+                                    if ($sellerPhone || $sellerChatUrl || $canWrite):
                                     ?>
                                         <!-- 디버깅 정보 (임시) -->
                                         <?php if (isset($_GET['debug']) && $_GET['debug'] === '1'): ?>
@@ -353,14 +354,30 @@ include '../includes/components/mvno-review-modal.php';
                                             seller_id (used): <?php echo htmlspecialchars($debugInfo['seller_id_used']); ?><br>
                                             seller found: <?php echo htmlspecialchars($debugInfo['seller_found']); ?><br>
                                             seller_phone: <?php echo htmlspecialchars($debugInfo['seller_phone']); ?><br>
+                                            seller_chat_url: <?php echo htmlspecialchars($sellerChatUrl ?: 'EMPTY'); ?><br>
                                             canWrite: <?php echo htmlspecialchars($debugInfo['canWrite']); ?><br>
-                                            condition: sellerPhone=<?php echo $sellerPhone ? 'YES' : 'NO'; ?> || canWrite=<?php echo $canWrite ? 'YES' : 'NO'; ?> = <?php echo ($sellerPhone || $canWrite) ? 'SHOW' : 'HIDE'; ?>
+                                            condition: sellerPhone=<?php echo $sellerPhone ? 'YES' : 'NO'; ?> || sellerChatUrl=<?php echo $sellerChatUrl ? 'YES' : 'NO'; ?> || canWrite=<?php echo $canWrite ? 'YES' : 'NO'; ?> = <?php echo ($sellerPhone || $sellerChatUrl || $canWrite) ? 'SHOW' : 'HIDE'; ?>
                                         </div>
                                         <?php endif; ?>
                                         
                                         <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #e5e7eb;">
-                                            <div class="review-section-layout" style="display: grid; grid-template-columns: <?php echo ($sellerPhone && $canWrite) ? '1fr 1fr' : '1fr'; ?>; gap: 16px;">
-                                                <!-- 왼쪽: 전화번호 (모든 상태에서 표시) -->
+                                            <?php
+                                            // 버튼 개수 계산
+                                            $buttonCount = 0;
+                                            if ($sellerPhone) $buttonCount++;
+                                            if ($sellerChatUrl) $buttonCount++;
+                                            if ($canWrite) $buttonCount++;
+                                            
+                                            // 그리드 컬럼 수 결정
+                                            $gridCols = '1fr';
+                                            if ($buttonCount === 2) {
+                                                $gridCols = '1fr 1fr';
+                                            } elseif ($buttonCount === 3) {
+                                                $gridCols = '1fr 1fr 1fr';
+                                            }
+                                            ?>
+                                            <div class="review-section-layout" style="display: grid; grid-template-columns: <?php echo $gridCols; ?>; gap: 12px;">
+                                                <!-- 전화번호 버튼 (모든 상태에서 표시) -->
                                                 <?php if ($sellerPhone): 
                                                     $phoneNumberOnly = preg_replace('/[^0-9]/', '', $sellerPhone);
                                                 ?>
@@ -369,21 +386,35 @@ include '../includes/components/mvno-review-modal.php';
                                                         <button class="phone-inquiry-pc" 
                                                                 disabled
                                                                 style="width: 100%; padding: 12px 16px; background: #f3f4f6; color: #374151; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: not-allowed;">
-                                                            <?php echo htmlspecialchars($sellerPhoneDisplay); ?>
+                                                            전화: <?php echo htmlspecialchars($sellerPhoneDisplay); ?>
                                                         </button>
                                                         <!-- 모바일 버전: 전화번호 버튼 (클릭 시 전화 연결) -->
                                                         <a href="tel:<?php echo htmlspecialchars($phoneNumberOnly); ?>" 
                                                            class="phone-inquiry-mobile"
                                                            onclick="event.stopPropagation();"
-                                                           style="display: none; width: 100%; align-items: center; justify-content: center; padding: 12px 16px; background: #EF4444; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; text-decoration: none; cursor: pointer; transition: background 0.2s;"
-                                                           onmouseover="this.style.background='#dc2626'"
-                                                           onmouseout="this.style.background='#EF4444'">
-                                                            <?php echo htmlspecialchars($sellerPhoneDisplay); ?>
+                                                           style="display: none; width: 100%; align-items: center; justify-content: center; padding: 12px 16px; background: #10b981; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; text-decoration: none; cursor: pointer; transition: background 0.2s;"
+                                                           onmouseover="this.style.background='#059669'"
+                                                           onmouseout="this.style.background='#10b981'">
+                                                            전화: <?php echo htmlspecialchars($sellerPhoneDisplay); ?>
                                                         </a>
                                                     </div>
                                                 <?php endif; ?>
                                                 
-                                                <!-- 오른쪽: 리뷰 작성 버튼 (개통완료/종료 상태일 때만 표시) -->
+                                                <!-- 채팅상담 버튼 (채팅상담 URL이 있을 때 표시) -->
+                                                <?php if ($sellerChatUrl): ?>
+                                                <div style="display: flex; align-items: center; justify-content: center;" onclick="event.stopPropagation();">
+                                                    <a href="<?php echo htmlspecialchars($sellerChatUrl); ?>" 
+                                                       target="_blank" 
+                                                       rel="noopener noreferrer"
+                                                       style="width: 100%; display: flex; align-items: center; justify-content: center; padding: 12px 16px; background: #FEE500; color: #000000; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; text-decoration: none; cursor: pointer; transition: background 0.2s;"
+                                                       onmouseover="this.style.background='#FDD835'"
+                                                       onmouseout="this.style.background='#FEE500'">
+                                                        채팅상담
+                                                    </a>
+                                                </div>
+                                                <?php endif; ?>
+                                                
+                                                <!-- 리뷰 작성 버튼 (개통완료/종료 상태일 때만 표시) -->
                                                 <?php if ($canWrite): ?>
                                                 <div style="display: flex; align-items: center; justify-content: center; gap: 8px;" onclick="event.stopPropagation();">
                                                     <button 
@@ -392,7 +423,7 @@ include '../includes/components/mvno-review-modal.php';
                                                         data-product-id="<?php echo htmlspecialchars($productId); ?>"
                                                         data-has-review="<?php echo $hasReview ? '1' : '0'; ?>"
                                                         <?php if (isset($buttonDataReviewId)) echo $buttonDataReviewId; ?>
-                                                        style="flex: 1; padding: 12px 16px; background: <?php echo $buttonBgColor; ?>; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: background 0.2s;"
+                                                        style="width: 100%; padding: 12px 16px; background: <?php echo $buttonBgColor; ?>; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: background 0.2s;"
                                                         onmouseover="this.style.background='<?php echo $buttonHoverColor; ?>'"
                                                         onmouseout="this.style.background='<?php echo $buttonBgColor; ?>'">
                                                         <?php echo htmlspecialchars($buttonText); ?>

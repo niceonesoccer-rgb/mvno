@@ -601,11 +601,11 @@ function registerDirectUser($userId, $password, $email, $name, $role, $additiona
         $stmt = $pdo->prepare("
             INSERT INTO users (
                 user_id, email, name, password, phone, mobile, seller_name, role,
-                seller_approved, approval_status,
+                seller_approved, approval_status, chat_consultation_url,
                 created_at
             ) VALUES (
                 :user_id, :email, :name, :password, :phone, :mobile, :seller_name, :role,
-                :seller_approved, :approval_status,
+                :seller_approved, :approval_status, :chat_consultation_url,
                 NOW()
             )
         ");
@@ -620,7 +620,8 @@ function registerDirectUser($userId, $password, $email, $name, $role, $additiona
             ':seller_name' => $newUser['seller_name'] ?? null,
             ':role' => $role,
             ':seller_approved' => ($role === 'seller') ? 0 : 1,
-            ':approval_status' => ($role === 'seller') ? 'pending' : null
+            ':approval_status' => ($role === 'seller') ? 'pending' : null,
+            ':chat_consultation_url' => $newUser['chat_consultation_url'] ?? null
         ]);
 
         // seller_profiles 저장 (판매자 전용)

@@ -237,6 +237,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_seller'])) {
             'company_representative' => $_POST['company_representative'] ?? ($seller['company_representative'] ?? ''),
             'business_type' => $_POST['business_type'] ?? ($seller['business_type'] ?? ''),
             'business_item' => $_POST['business_item'] ?? ($seller['business_item'] ?? ''),
+            'chat_consultation_url' => trim($_POST['chat_consultation_url'] ?? ''),
         ];
         
         // 비밀번호 변경이 있는 경우
@@ -384,6 +385,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_seller'])) {
                     try {
                         $pdo->beginTransaction();
 
+                        // chat_consultation_url 필드 존재 여부 확인
+                        $checkColumn = $pdo->query("
+                            SELECT COUNT(*) 
+                            FROM INFORMATION_SCHEMA.COLUMNS 
+                            WHERE TABLE_SCHEMA = DATABASE() 
+                            AND TABLE_NAME = 'users' 
+                            AND COLUMN_NAME = 'chat_consultation_url'
+                        ");
+                        $columnExists = $checkColumn->fetchColumn() > 0;
+
+                        // 필드가 있으면 포함, 없으면 제외
+                        $chatConsultationSql = $columnExists ? "chat_consultation_url = :chat_consultation_url," : "";
+
                         // users(표시/로그인 호환용) 업데이트
                         $u = $pdo->prepare("
                             UPDATE users
@@ -400,6 +414,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_seller'])) {
                                 business_type = :business_type,
                                 business_item = :business_item,
                                 business_license_image = :business_license_image,
+                                " . $chatConsultationSql . "
                                 password = COALESCE(:password, password),
                                 updated_at = NOW()
                             WHERE user_id = :user_id
@@ -412,7 +427,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_seller'])) {
                             $passwordHashed = $updateData['password'] ?? password_hash($_POST['password'], PASSWORD_DEFAULT);
                         }
 
-                        $u->execute([
+                        $executeParams = [
                             ':name' => $updateData['name'] ?? ($seller['name'] ?? ''),
                             ':seller_name' => $updateData['seller_name'] ?? ($seller['seller_name'] ?? null),
                             ':email' => $updateData['email'] ?? ($seller['email'] ?? null),
@@ -428,7 +443,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_seller'])) {
                             ':business_license_image' => $updateData['business_license_image'] ?? ($seller['business_license_image'] ?? null),
                             ':password' => $passwordHashed,
                             ':user_id' => $userId
-                        ]);
+                        ];
+                        
+                        if ($columnExists) {
+                            $executeParams[':chat_consultation_url'] = $updateData['chat_consultation_url'] ?? ($seller['chat_consultation_url'] ?? null);
+                        }
+                        
+                        $u->execute($executeParams);
 
                         // seller_profiles 업데이트 (존재하면)
                         $sp = $pdo->prepare("
@@ -972,6 +993,11 @@ require_once __DIR__ . '/../includes/admin-header.php';
                         <input type="tel" id="mobile" name="mobile" class="form-input" value="<?php echo htmlspecialchars($seller['mobile'] ?? ''); ?>" placeholder="010-1234-5678" required>
                         <div class="password-note">010으로 시작하는 11자리 숫자를 입력해주세요.</div>
                     </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">채팅상담 URL</label>
+                    <input type="url" id="chat_consultation_url" name="chat_consultation_url" class="form-input" value="<?php echo htmlspecialchars($seller['chat_consultation_url'] ?? ''); ?>" placeholder="https://pf.kakao.com/_abc123 또는 네이버톡톡 URL">
+                    <div class="password-note">카카오톡 채널 또는 네이버톡톡 등 채팅상담 URL을 입력해주세요.</div>
                 </div>
             </div>
             
