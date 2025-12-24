@@ -31,3 +31,4 @@ try {
     echo '<h2 style="color: red;">오류 발생: ' . htmlspecialchars($e->getMessage()) . '</h2>';
 }
 ?>
+

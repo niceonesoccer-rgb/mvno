@@ -338,3 +338,4 @@ SELECT * FROM product_review_statistics WHERE product_id = 1;
 - 트리거 존재 여부 확인
 - 실제 리뷰 데이터와 통계 테이블 비교
 - 테스트 리뷰 작성 후 통계 누적 확인
+

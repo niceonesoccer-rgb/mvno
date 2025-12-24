@@ -216,3 +216,4 @@ SELECT * FROM product_review_statistics WHERE product_id = 24;
 - **리뷰 삭제**: `api/delete-review.php`
 - **평균 조회**: `includes/data/plan-data.php` (getProductAverageRating)
 - **검증 스크립트**: `rebuild-review-statistics-system.php`
+

@@ -153,3 +153,4 @@ if (empty($recentAnswered)) {
 echo "<hr>";
 echo "<p><a href='/MVNO/admin/content/qna-manage.php'>관리자 페이지로 돌아가기</a></p>";
 ?>
+

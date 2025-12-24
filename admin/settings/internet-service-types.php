@@ -196,3 +196,4 @@ if ($pdo) {
 </div>
 
 <?php include __DIR__ . '/../includes/admin-footer.php'; ?>
+

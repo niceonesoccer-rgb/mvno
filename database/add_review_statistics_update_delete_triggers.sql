@@ -138,3 +138,4 @@ FROM information_schema.TRIGGERS
 WHERE TRIGGER_SCHEMA = DATABASE()
 AND TRIGGER_NAME LIKE 'trg_update_review_statistics%'
 ORDER BY TRIGGER_NAME;
+

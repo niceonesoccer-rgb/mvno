@@ -57,3 +57,4 @@ try {
     echo '<h2 class="error">오류 발생: ' . htmlspecialchars($e->getMessage()) . '</h2>';
 }
 ?>
+

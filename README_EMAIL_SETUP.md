@@ -134,3 +134,4 @@ define('SMTP_PASSWORD', 'your-password');
 - **웹 호스팅**: `MAIL_METHOD = 'mail'` 설정만 하면 대부분 작동 ✅
 - **로컬 PC (XAMPP)**: PHPMailer + SMTP 설정 필요 또는 개발용으로 DB에서 확인
 - **실제 서비스**: 호스팅에 업로드하면 바로 사용 가능!
+

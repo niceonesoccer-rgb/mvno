@@ -141,3 +141,4 @@ echo "<p><a href='/MVNO/admin/settings/privacy-settings.php'>관리자 페이지
 echo "<a href='/MVNO/internets/internets.php'>가입 신청 페이지로 이동</a></p>";
 ?>
 
+

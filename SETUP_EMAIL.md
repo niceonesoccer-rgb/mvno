@@ -146,3 +146,4 @@ define('SMTP_FROM_NAME', 'MVNO');
 - 로컬: PHPMailer 있으면 SMTP, 없으면 개발용으로 DB 확인 ✅
 
 추가 설정 없이 호스팅에 업로드하면 바로 사용 가능합니다!
+

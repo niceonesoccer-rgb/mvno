@@ -500,6 +500,9 @@ $currentPage = basename($_SERVER['PHP_SELF']);
             <a href="/MVNO/seller/products/mno.php" class="menu-item menu-item-sub <?php echo ($currentPage === 'mno.php' && strpos($_SERVER['REQUEST_URI'], '/products/') !== false && strpos($_SERVER['REQUEST_URI'], '/orders/') === false) ? 'active' : ''; ?>">
                 통신사폰
             </a>
+            <a href="/MVNO/seller/products/mno-sim.php" class="menu-item menu-item-sub <?php echo ($currentPage === 'mno-sim.php' && strpos($_SERVER['REQUEST_URI'], '/products/') !== false && strpos($_SERVER['REQUEST_URI'], '/orders/') === false) ? 'active' : ''; ?>">
+                통신사유심
+            </a>
             <a href="/MVNO/seller/products/internet.php" class="menu-item menu-item-sub <?php echo ($currentPage === 'internet.php' && strpos($_SERVER['REQUEST_URI'], '/products/') !== false && strpos($_SERVER['REQUEST_URI'], '/orders/') === false) ? 'active' : ''; ?>">
                 인터넷
             </a>

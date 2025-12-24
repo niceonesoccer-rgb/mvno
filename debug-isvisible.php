@@ -222,3 +222,4 @@ echo "<a href='/MVNO/internets/internets.php'>가입 신청 페이지로 이동<
 echo "<a href='/MVNO/debug-privacy-settings.php'>전체 설정 확인</a></p>";
 ?>
 
+

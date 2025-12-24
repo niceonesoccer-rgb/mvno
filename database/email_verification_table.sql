@@ -21,3 +21,4 @@ CREATE TABLE IF NOT EXISTS `email_verifications` (
     KEY `idx_expires_at` (`expires_at`),
     KEY `idx_type` (`type`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='이메일 인증 정보';
+

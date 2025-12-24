@@ -204,3 +204,4 @@ echo "<li>통계 테이블 값이 변경되었다면 'ERROR updateProductReview'
 echo "<li>트리거가 UPDATE 시에도 작동하는지 확인하세요.</li>";
 echo "</ol>";
 
+

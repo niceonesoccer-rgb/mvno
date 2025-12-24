@@ -87,3 +87,4 @@ Get-Content C:\xampp\php\logs\php_error_log -Wait -Tail 10 -Encoding UTF8
 - 로그 파일은 UTF-8 인코딩으로 저장되므로 텍스트 에디터에서 UTF-8로 열어야 한글이 제대로 표시됩니다.
 - 로그 파일은 계속 쌓이므로 주기적으로 확인하고 정리하는 것이 좋습니다.
 
+

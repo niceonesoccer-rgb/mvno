@@ -11,3 +11,4 @@ ADD COLUMN `speed_rating` TINYINT(1) UNSIGNED DEFAULT NULL COMMENT '설치 빨�
 
 
 
+

@@ -38,3 +38,4 @@ if (class_exists('PHPMailer\PHPMailer\Exception')) {
 
 echo "<hr>";
 echo "<p><a href='/MVNO/mypage/account-management.php'>계정 설정으로 돌아가기</a></p>";
+

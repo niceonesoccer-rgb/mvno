@@ -75,3 +75,4 @@ try {
     echo "<p style='color: red;'>오류: " . htmlspecialchars($e->getMessage()) . "</p>";
 }
 
+

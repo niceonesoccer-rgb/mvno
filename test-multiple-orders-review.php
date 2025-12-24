@@ -253,3 +253,4 @@ try {
     echo "<p style='color: red;'>오류 발생: " . htmlspecialchars($e->getMessage()) . "</p>";
 }
 
+

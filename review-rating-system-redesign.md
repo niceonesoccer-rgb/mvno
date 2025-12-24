@@ -207,3 +207,4 @@ CREATE TABLE product_review_current_statistics (
 3. **방안 3 (인덱스만)**: 간단한 개선
 4. **방안 4 (실시간)**: 일반적인 방식 (처음 값 보존 불가)
 
+

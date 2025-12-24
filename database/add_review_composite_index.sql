@@ -13,3 +13,4 @@ ADD INDEX `idx_product_id_type_status_kindness` (`product_id`, `product_type`, `
 ALTER TABLE `product_reviews` 
 ADD INDEX `idx_product_id_type_status_speed` (`product_id`, `product_type`, `status`, `speed_rating`);
 
+
