@@ -361,8 +361,27 @@ include __DIR__ . '/../includes/admin-header.php';
         <h2 class="section-title">메인 이미지 (16:9 비율)</h2>
         <div class="form-group">
             <label for="main_image">메인 이미지 <span class="required">*</span></label>
-            <input type="file" id="main_image" name="main_image" accept="image/*" required class="form-control">
-            <small class="form-help">16:9 비율로 자동 리사이징됩니다. (JPG, PNG, GIF, WEBP, 최대 10MB)</small>
+            <div class="file-upload-area" id="main_image_upload_area">
+                <input type="file" id="main_image" name="main_image" accept="image/*" required class="file-input-hidden">
+                <div class="file-upload-content">
+                    <div class="file-upload-icon-wrapper">
+                        <svg class="file-upload-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <polyline points="17 8 12 3 7 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <line x1="12" y1="3" x2="12" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <div class="file-upload-text">
+                        <span class="file-upload-primary">클릭하여 파일 선택</span>
+                        <span class="file-upload-secondary">또는 여기에 파일을 드래그하세요</span>
+                    </div>
+                    <div class="file-upload-hint">
+                        <span class="file-upload-badge">JPG, PNG, GIF, WEBP</span>
+                        <span class="file-upload-badge">최대 10MB</span>
+                        <span class="file-upload-badge">16:9 자동 리사이징</span>
+                    </div>
+                </div>
+            </div>
             <div id="main_image_preview" class="image-preview"></div>
         </div>
     </div>
@@ -371,8 +390,27 @@ include __DIR__ . '/../includes/admin-header.php';
         <h2 class="section-title">상세 이미지</h2>
         <div class="form-group">
             <label for="detail_images">상세 이미지 (여러 장 선택 가능)</label>
-            <input type="file" id="detail_images" name="detail_images[]" accept="image/*" multiple class="form-control">
-            <small class="form-help">여러 장의 이미지를 업로드할 수 있습니다. 드래그하여 순서를 변경할 수 있습니다. (JPG, PNG, GIF, WEBP, 최대 10MB)</small>
+            <div class="file-upload-area" id="detail_images_upload_area">
+                <input type="file" id="detail_images" name="detail_images[]" accept="image/*" multiple class="file-input-hidden">
+                <div class="file-upload-content">
+                    <div class="file-upload-icon-wrapper">
+                        <svg class="file-upload-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/>
+                            <polyline points="21 15 16 10 5 21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <div class="file-upload-text">
+                        <span class="file-upload-primary">클릭하여 파일 선택</span>
+                        <span class="file-upload-secondary">또는 여기에 파일을 드래그하세요</span>
+                    </div>
+                    <div class="file-upload-hint">
+                        <span class="file-upload-badge">여러 장 선택 가능</span>
+                        <span class="file-upload-badge">JPG, PNG, GIF, WEBP</span>
+                        <span class="file-upload-badge">최대 10MB</span>
+                    </div>
+                </div>
+            </div>
             <div id="detail_images_preview" class="images-preview sortable-images"></div>
             <div id="detail_images_order" style="display: none;"></div>
         </div>
@@ -524,6 +562,173 @@ label {
     margin-top: 4px;
 }
 
+/* 파일 업로드 영역 스타일 */
+.file-upload-area {
+    position: relative;
+    border: 2px dashed #d1d5db;
+    border-radius: 12px;
+    padding: 48px 24px;
+    text-align: center;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    margin-top: 8px;
+    overflow: hidden;
+}
+
+.file-upload-area::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(139, 92, 246, 0.05) 100%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+.file-upload-area:hover {
+    border-color: #6366f1;
+    background: linear-gradient(135deg, #f0f4ff 0%, #eef2ff 100%);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+    transform: translateY(-2px);
+}
+
+.file-upload-area:hover::before {
+    opacity: 1;
+}
+
+.file-upload-area.dragover {
+    border-color: #6366f1;
+    background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+    box-shadow: 0 8px 24px rgba(99, 102, 241, 0.25);
+    transform: scale(1.01) translateY(-2px);
+    border-style: solid;
+}
+
+.file-upload-area.dragover::before {
+    opacity: 1;
+}
+
+.file-upload-area.has-file {
+    border-color: #10b981;
+    background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+    padding: 32px 24px;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
+}
+
+.file-upload-area.has-file::before {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(5, 150, 105, 0.05) 100%);
+    opacity: 1;
+}
+
+.file-input-hidden {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    opacity: 0;
+    cursor: pointer;
+    z-index: 10;
+}
+
+.file-upload-content {
+    pointer-events: none;
+    position: relative;
+    z-index: 1;
+}
+
+.file-upload-icon-wrapper {
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.file-upload-icon {
+    width: 56px;
+    height: 56px;
+    color: #6366f1;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    filter: drop-shadow(0 2px 4px rgba(99, 102, 241, 0.2));
+}
+
+.file-upload-area:hover .file-upload-icon {
+    color: #4f46e5;
+    transform: translateY(-4px) scale(1.1);
+    filter: drop-shadow(0 4px 8px rgba(99, 102, 241, 0.3));
+}
+
+.file-upload-area.has-file .file-upload-icon {
+    color: #10b981;
+    width: 48px;
+    height: 48px;
+}
+
+.file-upload-text {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 16px;
+}
+
+.file-upload-primary {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1f2937;
+    letter-spacing: -0.02em;
+}
+
+.file-upload-secondary {
+    font-size: 14px;
+    color: #6b7280;
+    font-weight: 400;
+}
+
+.file-upload-area.has-file .file-upload-primary {
+    color: #10b981;
+    font-size: 16px;
+}
+
+.file-upload-area.has-file .file-upload-secondary {
+    color: #059669;
+    font-size: 13px;
+}
+
+.file-upload-hint {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    align-items: center;
+}
+
+.file-upload-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 12px;
+    background: rgba(99, 102, 241, 0.1);
+    color: #6366f1;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    transition: all 0.2s ease;
+}
+
+.file-upload-area.has-file .file-upload-badge {
+    background: rgba(16, 185, 129, 0.1);
+    color: #059669;
+}
+
+.file-upload-area:hover .file-upload-badge {
+    background: rgba(99, 102, 241, 0.15);
+    transform: translateY(-1px);
+}
+
 .checkbox-label {
     display: flex;
     align-items: center;
@@ -535,10 +740,64 @@ label {
 }
 
 .image-preview, .images-preview {
-    margin-top: 12px;
+    margin-top: 16px;
 }
 
-.image-preview img, .images-preview img {
+.image-preview-wrapper {
+    position: relative;
+    display: inline-block;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.image-preview-wrapper:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.image-preview-wrapper img {
+    display: block;
+    max-width: 100%;
+    max-height: 400px;
+    width: auto;
+    height: auto;
+    border-radius: 12px;
+}
+
+.image-preview-info {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.7), transparent);
+    padding: 16px 12px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: white;
+    font-size: 12px;
+}
+
+.image-preview-name {
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+    margin-right: 8px;
+}
+
+.image-preview-size {
+    font-weight: 600;
+    background: rgba(255, 255, 255, 0.2);
+    padding: 4px 8px;
+    border-radius: 12px;
+    backdrop-filter: blur(4px);
+}
+
+.images-preview img {
     max-width: 100%;
     max-height: 300px;
     border-radius: 6px;
@@ -559,15 +818,34 @@ label {
     position: relative;
     background: #ffffff;
     border: 2px solid #e5e7eb;
-    border-radius: 8px;
+    border-radius: 12px;
     padding: 12px;
     cursor: move;
-    transition: all 0.2s;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+}
+
+.detail-image-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(139, 92, 246, 0.05) 100%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
 }
 
 .detail-image-item:hover {
     border-color: #6366f1;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 8px 16px rgba(99, 102, 241, 0.2);
+    transform: translateY(-4px);
+}
+
+.detail-image-item:hover::before {
+    opacity: 1;
 }
 
 .detail-image-item.sortable-ghost {
@@ -579,18 +857,25 @@ label {
     position: absolute;
     top: 8px;
     left: 8px;
-    background: rgba(99, 102, 241, 0.9);
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
     color: white;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 14px;
+    padding: 6px;
+    border-radius: 8px;
+    font-size: 16px;
     cursor: move;
     z-index: 10;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 28px;
-    height: 28px;
+    width: 32px;
+    height: 32px;
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+    transition: all 0.2s ease;
+}
+
+.detail-image-item .drag-handle:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
 }
 
 .detail-image-item .image-wrapper {
@@ -617,19 +902,27 @@ label {
 
 .detail-image-item .remove-image-btn {
     width: 100%;
-    padding: 8px;
-    background: #ef4444;
+    padding: 10px;
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
     color: white;
     border: none;
-    border-radius: 6px;
-    font-size: 12px;
-    font-weight: 500;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2);
+    letter-spacing: -0.01em;
 }
 
 .detail-image-item .remove-image-btn:hover {
-    background: #dc2626;
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(239, 68, 68, 0.3);
+}
+
+.detail-image-item .remove-image-btn:active {
+    transform: translateY(0);
 }
 
 .product-search-box {
@@ -808,35 +1101,172 @@ label {
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // 메인 이미지 미리보기
+    // 메인 이미지 미리보기 및 드래그 앤 드롭
     const mainImageInput = document.getElementById('main_image');
     const mainImagePreview = document.getElementById('main_image_preview');
+    const mainImageUploadArea = document.getElementById('main_image_upload_area');
     
+    // 파일 선택 시
     mainImageInput.addEventListener('change', function(e) {
-        const file = e.target.files[0];
+        handleMainImageFile(e.target.files[0]);
+    });
+    
+    // 드래그 앤 드롭 이벤트
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        mainImageUploadArea.addEventListener(eventName, preventDefaults, false);
+    });
+    
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    
+    ['dragenter', 'dragover'].forEach(eventName => {
+        mainImageUploadArea.addEventListener(eventName, function() {
+            mainImageUploadArea.classList.add('dragover');
+        }, false);
+    });
+    
+    ['dragleave', 'drop'].forEach(eventName => {
+        mainImageUploadArea.addEventListener(eventName, function() {
+            mainImageUploadArea.classList.remove('dragover');
+        }, false);
+    });
+    
+    mainImageUploadArea.addEventListener('drop', function(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        if (files.length > 0) {
+            handleMainImageFile(files[0]);
+            // input에도 파일 설정
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(files[0]);
+            mainImageInput.files = dataTransfer.files;
+        }
+    }, false);
+    
+    function handleMainImageFile(file) {
         if (file) {
+            // 파일 유효성 검사
+            const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+            const maxSize = 10 * 1024 * 1024; // 10MB
+            
+            if (!allowedTypes.includes(file.type)) {
+                alert('지원하지 않는 파일 형식입니다. JPG, PNG, GIF, WEBP 파일만 업로드 가능합니다.');
+                return;
+            }
+            
+            if (file.size > maxSize) {
+                alert('파일 크기는 10MB를 초과할 수 없습니다.');
+                return;
+            }
+            
             const reader = new FileReader();
             reader.onload = function(e) {
-                mainImagePreview.innerHTML = '<img src="' + e.target.result + '" alt="메인 이미지 미리보기">';
+                const fileSize = (file.size / 1024 / 1024).toFixed(2);
+                mainImagePreview.innerHTML = `
+                    <div class="image-preview-wrapper">
+                        <img src="${e.target.result}" alt="메인 이미지 미리보기">
+                        <div class="image-preview-info">
+                            <span class="image-preview-name">${escapeHtml(file.name)}</span>
+                            <span class="image-preview-size">${fileSize} MB</span>
+                        </div>
+                    </div>
+                `;
+                mainImageUploadArea.classList.add('has-file');
+                mainImageUploadArea.querySelector('.file-upload-content').innerHTML = `
+                    <div class="file-upload-icon-wrapper">
+                        <svg class="file-upload-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <div class="file-upload-text">
+                        <span class="file-upload-primary">파일이 선택되었습니다</span>
+                        <span class="file-upload-secondary">다른 파일을 선택하려면 클릭하세요</span>
+                    </div>
+                    <div class="file-upload-hint">
+                        <span class="file-upload-badge">${escapeHtml(file.name)}</span>
+                        <span class="file-upload-badge">${fileSize} MB</span>
+                    </div>
+                `;
             };
             reader.readAsDataURL(file);
         } else {
             mainImagePreview.innerHTML = '';
+            mainImageUploadArea.classList.remove('has-file');
         }
-    });
+    }
     
-    // 상세 이미지 미리보기
+    // 상세 이미지 미리보기 및 드래그 앤 드롭
     const detailImagesInput = document.getElementById('detail_images');
     const detailImagesPreview = document.getElementById('detail_images_preview');
+    const detailImagesUploadArea = document.getElementById('detail_images_upload_area');
     
     let detailImageFiles = []; // 업로드된 파일들을 순서대로 저장
     
+    // 파일 선택 시
     detailImagesInput.addEventListener('change', function(e) {
-        const files = Array.from(e.target.files);
+        handleDetailImageFiles(Array.from(e.target.files));
+    });
+    
+    // 드래그 앤 드롭 이벤트
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        detailImagesUploadArea.addEventListener(eventName, preventDefaultsDetail, false);
+    });
+    
+    function preventDefaultsDetail(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    
+    ['dragenter', 'dragover'].forEach(eventName => {
+        detailImagesUploadArea.addEventListener(eventName, function() {
+            detailImagesUploadArea.classList.add('dragover');
+        }, false);
+    });
+    
+    ['dragleave', 'drop'].forEach(eventName => {
+        detailImagesUploadArea.addEventListener(eventName, function() {
+            detailImagesUploadArea.classList.remove('dragover');
+        }, false);
+    });
+    
+    detailImagesUploadArea.addEventListener('drop', function(e) {
+        const dt = e.dataTransfer;
+        const files = Array.from(dt.files);
+        if (files.length > 0) {
+            handleDetailImageFiles(files);
+            // input에도 파일 설정
+            const dataTransfer = new DataTransfer();
+            files.forEach(file => {
+                // 중복 체크
+                const isDuplicate = detailImageFiles.some(f => f.file.name === file.name && f.file.size === file.size);
+                if (!isDuplicate) {
+                    dataTransfer.items.add(file);
+                }
+            });
+            detailImagesInput.files = dataTransfer.files;
+        }
+    }, false);
+    
+    function handleDetailImageFiles(files) {
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+        const maxSize = 10 * 1024 * 1024; // 10MB
         
         files.forEach(file => {
+            // 파일 유효성 검사
+            if (!allowedTypes.includes(file.type)) {
+                alert(`"${file.name}"은(는) 지원하지 않는 파일 형식입니다. JPG, PNG, GIF, WEBP 파일만 업로드 가능합니다.`);
+                return;
+            }
+            
+            if (file.size > maxSize) {
+                alert(`"${file.name}"의 파일 크기는 10MB를 초과할 수 없습니다.`);
+                return;
+            }
+            
             // 중복 체크
-            const isDuplicate = detailImageFiles.some(f => f.name === file.name && f.size === file.size);
+            const isDuplicate = detailImageFiles.some(f => f.file.name === file.name && f.file.size === file.size);
             if (isDuplicate) {
                 return;
             }
@@ -868,10 +1298,56 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // Sortable 초기화/업데이트
                 initDetailImagesSortable();
+                
+                // 업로드 영역 업데이트
+                updateDetailImagesUploadArea();
             };
             reader.readAsDataURL(file);
         });
-    });
+    }
+    
+    function updateDetailImagesUploadArea() {
+        if (detailImageFiles.length > 0) {
+            const totalSize = detailImageFiles.reduce((sum, f) => sum + f.file.size, 0);
+            const totalSizeMB = (totalSize / 1024 / 1024).toFixed(2);
+            detailImagesUploadArea.classList.add('has-file');
+            detailImagesUploadArea.querySelector('.file-upload-content').innerHTML = `
+                <div class="file-upload-icon-wrapper">
+                    <svg class="file-upload-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <div class="file-upload-text">
+                    <span class="file-upload-primary">${detailImageFiles.length}개의 파일이 선택되었습니다</span>
+                    <span class="file-upload-secondary">추가 파일을 선택하려면 클릭하세요</span>
+                </div>
+                <div class="file-upload-hint">
+                    <span class="file-upload-badge">${detailImageFiles.length}개 파일</span>
+                    <span class="file-upload-badge">${totalSizeMB} MB</span>
+                </div>
+            `;
+        } else {
+            detailImagesUploadArea.classList.remove('has-file');
+            detailImagesUploadArea.querySelector('.file-upload-content').innerHTML = `
+                <div class="file-upload-icon-wrapper">
+                    <svg class="file-upload-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/>
+                        <polyline points="21 15 16 10 5 21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <div class="file-upload-text">
+                    <span class="file-upload-primary">클릭하여 파일 선택</span>
+                    <span class="file-upload-secondary">또는 여기에 파일을 드래그하세요</span>
+                </div>
+                <div class="file-upload-hint">
+                    <span class="file-upload-badge">여러 장 선택 가능</span>
+                    <span class="file-upload-badge">JPG, PNG, GIF, WEBP</span>
+                    <span class="file-upload-badge">최대 10MB</span>
+                </div>
+            `;
+        }
+    }
     
     // 상세 이미지 삭제 함수
     window.removeDetailImage = function(fileId) {
@@ -886,6 +1362,9 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // FileList 업데이트
         updateDetailImagesFileList();
+        
+        // 업로드 영역 업데이트
+        updateDetailImagesUploadArea();
         
         // Sortable 재초기화
         if (detailImageFiles.length > 0) {
