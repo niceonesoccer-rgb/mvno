@@ -164,3 +164,5 @@ echo "<p><a href='/MVNO/admin/test-qna-status.php?force=true'>상태 확인 페�
 echo "<a href='/MVNO/admin/content/qna-manage.php'>관리자 페이지로</a></p>";
 ?>
 
+
+

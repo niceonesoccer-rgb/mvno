@@ -16,3 +16,5 @@ ADD INDEX `idx_deleted_at` (`deleted_at`);
 -- 기존 데이터는 삭제되지 않은 것으로 표시 (deleted_at = NULL)
 -- 이미 삭제된 데이터는 복구 불가능
 
+
+

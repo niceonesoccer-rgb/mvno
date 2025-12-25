@@ -69,3 +69,5 @@ ADD INDEX IF NOT EXISTS `idx_application_id` (`application_id`);
 -- 이미 위에서 추가했지만, 중복 방지를 위해 IF NOT EXISTS 사용 불가 시 별도 처리
 
 
+
+

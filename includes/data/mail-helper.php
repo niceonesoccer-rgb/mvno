@@ -389,3 +389,5 @@ function sendVerificationLinkEmail($to, $verificationToken, $type = 'email_chang
     return sendEmail($to, $subject, $message);
 }
 
+
+

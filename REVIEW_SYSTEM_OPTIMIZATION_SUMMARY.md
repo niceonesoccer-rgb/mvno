@@ -119,3 +119,5 @@ WHERE DIGEST_TEXT LIKE '%product_review_statistics%';
 - [ ] 테스트 (리뷰 작성/수정/삭제)
 - [ ] 성능 모니터링
 
+
+

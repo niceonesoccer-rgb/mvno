@@ -339,3 +339,5 @@ WHERE product_id = ? AND status = 'approved'
 
 **대규모 트래픽이 예상되는 경우에만 방안 2 (비동기 시스템)을 고려하세요.**
 
+
+

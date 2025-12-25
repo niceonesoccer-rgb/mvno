@@ -17,3 +17,5 @@ SET @sql := IF(@col_exists = 0,
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 
+
+

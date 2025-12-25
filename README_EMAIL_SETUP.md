@@ -135,3 +135,5 @@ define('SMTP_PASSWORD', 'your-password');
 - **로컬 PC (XAMPP)**: PHPMailer + SMTP 설정 필요 또는 개발용으로 DB에서 확인
 - **실제 서비스**: 호스팅에 업로드하면 바로 사용 가능!
 
+
+

@@ -121,3 +121,5 @@ database/redesign_review_rating_system.sql
 1. `http://localhost/MVNO/check-review-statistics-display.php?product_id=33` 실행하여 통계 확인
 
 
+
+

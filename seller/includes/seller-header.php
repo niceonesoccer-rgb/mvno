@@ -463,6 +463,9 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         
         <div class="menu-section">
             <div class="menu-section-title">주문 관리</div>
+            <a href="/MVNO/seller/orders/mno-sim.php" class="menu-item menu-item-sub <?php echo (basename($_SERVER['PHP_SELF']) === 'mno-sim.php' && strpos($_SERVER['REQUEST_URI'], '/orders/') !== false) ? 'active' : ''; ?>">
+                통신사유심
+            </a>
             <a href="/MVNO/seller/orders/mvno.php" class="menu-item menu-item-sub <?php echo (basename($_SERVER['PHP_SELF']) === 'mvno.php' && strpos($_SERVER['REQUEST_URI'], '/orders/') !== false) ? 'active' : ''; ?>">
                 알뜰폰
             </a>
@@ -480,6 +483,9 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                 <div style="padding: 8px 24px; font-size: 12px; color: rgba(255, 255, 255, 0.5); font-weight: 600;">
                     등록 상품
                 </div>
+                <a href="/MVNO/seller/products/mno-sim-list.php" class="menu-item menu-item-sub <?php echo $currentPage === 'mno-sim-list.php' ? 'active' : ''; ?>">
+                    통신사유심
+                </a>
                 <a href="/MVNO/seller/products/mvno-list.php" class="menu-item menu-item-sub <?php echo $currentPage === 'mvno-list.php' ? 'active' : ''; ?>">
                     알뜰폰
                 </a>
@@ -494,14 +500,14 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         
         <div class="menu-section">
             <div class="menu-section-title">상품 등록</div>
+            <a href="/MVNO/seller/products/mno-sim.php" class="menu-item menu-item-sub <?php echo ($currentPage === 'mno-sim.php' && strpos($_SERVER['REQUEST_URI'], '/products/') !== false && strpos($_SERVER['REQUEST_URI'], '/orders/') === false) ? 'active' : ''; ?>">
+                통신사유심
+            </a>
             <a href="/MVNO/seller/products/mvno.php" class="menu-item menu-item-sub <?php echo ($currentPage === 'mvno.php' && strpos($_SERVER['REQUEST_URI'], '/products/') !== false && strpos($_SERVER['REQUEST_URI'], '/orders/') === false) ? 'active' : ''; ?>">
                 알뜰폰
             </a>
             <a href="/MVNO/seller/products/mno.php" class="menu-item menu-item-sub <?php echo ($currentPage === 'mno.php' && strpos($_SERVER['REQUEST_URI'], '/products/') !== false && strpos($_SERVER['REQUEST_URI'], '/orders/') === false) ? 'active' : ''; ?>">
                 통신사폰
-            </a>
-            <a href="/MVNO/seller/products/mno-sim.php" class="menu-item menu-item-sub <?php echo ($currentPage === 'mno-sim.php' && strpos($_SERVER['REQUEST_URI'], '/products/') !== false && strpos($_SERVER['REQUEST_URI'], '/orders/') === false) ? 'active' : ''; ?>">
-                통신사유심
             </a>
             <a href="/MVNO/seller/products/internet.php" class="menu-item menu-item-sub <?php echo ($currentPage === 'internet.php' && strpos($_SERVER['REQUEST_URI'], '/products/') !== false && strpos($_SERVER['REQUEST_URI'], '/orders/') === false) ? 'active' : ''; ?>">
                 인터넷

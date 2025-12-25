@@ -9,3 +9,5 @@ ALTER TABLE `notices` DROP COLUMN `publish_start_at`;
 -- publish_end_at 컬럼 제거
 ALTER TABLE `notices` DROP COLUMN `publish_end_at`;
 
+
+

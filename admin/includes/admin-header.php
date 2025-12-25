@@ -586,6 +586,15 @@ if ($pdo) {
             <!-- 주문 관리 -->
             <div class="menu-section">
                 <div class="menu-section-title">주문 관리</div>
+                <a href="/MVNO/admin/orders/mno-sim-list.php" class="menu-item <?php echo ($currentPage === 'mno-sim-list.php' && strpos($_SERVER['REQUEST_URI'], '/orders/') !== false) ? 'active' : ''; ?>">
+                    <span class="menu-item-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
+                            <line x1="12" y1="18" x2="12.01" y2="18"/>
+                        </svg>
+                    </span>
+                    통신사유심
+                </a>
                 <a href="/MVNO/admin/orders/mvno-list.php" class="menu-item <?php echo ($currentPage === 'mvno-list.php' && strpos($_SERVER['REQUEST_URI'], '/orders/') !== false) ? 'active' : ''; ?>">
                     <span class="menu-item-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -618,6 +627,15 @@ if ($pdo) {
             <!-- 상품 관리 -->
             <div class="menu-section">
                 <div class="menu-section-title">상품 관리</div>
+                <a href="/MVNO/admin/products/mno-sim-list.php" class="menu-item <?php echo ($currentPage === 'mno-sim-list.php' && strpos($_SERVER['REQUEST_URI'], '/products/') !== false) ? 'active' : ''; ?>">
+                    <span class="menu-item-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
+                            <line x1="12" y1="18" x2="12.01" y2="18"/>
+                        </svg>
+                    </span>
+                    통신사유심 관리
+                </a>
                 <a href="/MVNO/admin/products/mvno-list.php" class="menu-item">
                     <span class="menu-item-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

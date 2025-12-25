@@ -88,3 +88,5 @@ Get-Content C:\xampp\php\logs\php_error_log -Wait -Tail 10 -Encoding UTF8
 - 로그 파일은 계속 쌓이므로 주기적으로 확인하고 정리하는 것이 좋습니다.
 
 
+
+

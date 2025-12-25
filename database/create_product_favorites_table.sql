@@ -26,3 +26,5 @@ CREATE TABLE IF NOT EXISTS product_favorites (
 
 
 
+
+

@@ -5,3 +5,5 @@ USE `mvno_db`;
 -- is_important 컬럼 제거
 ALTER TABLE `notices` DROP COLUMN `is_important`;
 
+
+

@@ -217,3 +217,5 @@ SELECT * FROM product_review_statistics WHERE product_id = 24;
 - **평균 조회**: `includes/data/plan-data.php` (getProductAverageRating)
 - **검증 스크립트**: `rebuild-review-statistics-system.php`
 
+
+

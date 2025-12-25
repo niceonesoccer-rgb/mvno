@@ -208,3 +208,5 @@ CREATE TABLE product_review_current_statistics (
 4. **방안 4 (실시간)**: 일반적인 방식 (처음 값 보존 불가)
 
 
+
+
