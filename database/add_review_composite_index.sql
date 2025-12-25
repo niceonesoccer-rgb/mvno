@@ -16,3 +16,4 @@ ADD INDEX `idx_product_id_type_status_speed` (`product_id`, `product_type`, `sta
 
 
 
+

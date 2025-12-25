@@ -82,7 +82,8 @@ try {
         'plan' => 'mvno',
         'mvno' => 'mvno',
         'mno' => 'mno',
-        'internet' => 'internet'
+        'internet' => 'internet',
+        'mno-sim' => 'mno-sim'
     ];
 
     if (!empty($productType) && isset($typeMapping[$productType])) {
@@ -169,16 +170,68 @@ try {
             // favorite_count 조회 실패해도 찜 처리는 성공으로 간주
         }
         
+        // 실제로 DB에 저장되었는지 확인
+        $pdo = getDBConnection();
+        if ($pdo) {
+            try {
+                $checkStmt = $pdo->prepare("
+                    SELECT COUNT(*) as count 
+                    FROM product_favorites 
+                    WHERE product_id = :product_id 
+                    AND user_id = :user_id 
+                    AND product_type = :product_type
+                ");
+                $checkStmt->execute([
+                    ':product_id' => $productId,
+                    ':user_id' => $userId,
+                    ':product_type' => $productType
+                ]);
+                $checkResult = $checkStmt->fetch(PDO::FETCH_ASSOC);
+                $isSaved = ($checkResult['count'] ?? 0) > 0;
+                
+                if ($action === 'add' && !$isSaved) {
+                    error_log("track-favorite.php: WARNING - Favorite was not saved to DB: product_id=$productId, user_id=$userId, product_type=$productType");
+                }
+            } catch (Exception $e) {
+                error_log("track-favorite.php: Check favorite save error - " . $e->getMessage());
+            }
+        }
+        
         sendJsonResponse([
             'success' => true,
             'favorite_count' => $favoriteCount,
-            'action' => $action
+            'action' => $action,
+            'product_type' => $productType,
+            'product_id' => $productId
         ]);
     } else {
         error_log("Failed to toggle favorite: product_id=$productId, user_id=$userId, product_type=$productType, action=$action");
+        
+        // 더 자세한 에러 정보 수집
+        $errorDetails = [];
+        $pdo = getDBConnection();
+        if ($pdo) {
+            try {
+                // 상품 존재 확인
+                $productStmt = $pdo->prepare("SELECT id, product_type FROM products WHERE id = :product_id");
+                $productStmt->execute([':product_id' => $productId]);
+                $product = $productStmt->fetch(PDO::FETCH_ASSOC);
+                if ($product) {
+                    $errorDetails['product_exists'] = true;
+                    $errorDetails['product_type_in_db'] = $product['product_type'];
+                    $errorDetails['product_type_expected'] = $productType;
+                } else {
+                    $errorDetails['product_exists'] = false;
+                }
+            } catch (Exception $e) {
+                $errorDetails['check_error'] = $e->getMessage();
+            }
+        }
+        
         sendJsonResponse([
             'success' => false,
-            'message' => '찜 처리에 실패했습니다.'
+            'message' => '찜 처리에 실패했습니다.',
+            'error_details' => $errorDetails
         ], 500);
     }
     

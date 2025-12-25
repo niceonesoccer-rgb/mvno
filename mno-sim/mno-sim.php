@@ -446,7 +446,8 @@ function formatPriceAfter($priceAfterType, $priceAfter, $priceAfterUnit) {
                         'is_favorited' => $isFavorited,
                         'gifts' => $gifts, // 혜택 목록
                         'promotion_title' => $promotionTitle, // 프로모션 제목
-                        'link_url' => '/MVNO/mno-sim/mno-sim-detail.php?id=' . $product['id'] // 상세 페이지 링크
+                        'link_url' => '/MVNO/mno-sim/mno-sim-detail.php?id=' . $product['id'], // 상세 페이지 링크
+                        'item_type' => 'mno-sim' // 찜 버튼용 타입
                     ];
                     
                     // 알뜰폰 카드 컴포넌트 사용
@@ -473,9 +474,19 @@ function formatPriceAfter($priceAfterType, $priceAfter, $priceAfterUnit) {
 <script>
 // 아코디언 기능 (plan-accordion.js가 로드되지 않을 경우를 대비한 폴백)
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('=== 통신사유심 아코디언 디버깅 ===');
+    // 디버깅 모드 확인 (URL에 ?debug=1이 있을 때만 로그 출력)
+    const urlParams = new URLSearchParams(window.location.search);
+    const isDebugMode = urlParams.get('debug') === '1';
+    
+    if (isDebugMode) {
+        console.log('=== 통신사유심 아코디언 디버깅 ===');
+    }
+    
     const accordionTriggers = document.querySelectorAll('.plan-accordion-trigger');
-    console.log('아코디언 버튼 개수:', accordionTriggers.length);
+    
+    if (isDebugMode) {
+        console.log('아코디언 버튼 개수:', accordionTriggers.length);
+    }
     
     // 이미 이벤트가 바인딩되어 있는지 확인하기 위한 플래그
     const processedTriggers = new Set();
@@ -483,7 +494,9 @@ document.addEventListener('DOMContentLoaded', function() {
     accordionTriggers.forEach((trigger, index) => {
         // 중복 바인딩 방지
         if (processedTriggers.has(trigger)) {
-            console.log(`아코디언 ${index + 1}: 이미 처리됨`);
+            if (isDebugMode) {
+                console.log(`아코디언 ${index + 1}: 이미 처리됨`);
+            }
             return;
         }
         processedTriggers.add(trigger);
@@ -492,13 +505,15 @@ document.addEventListener('DOMContentLoaded', function() {
         const content = accordion ? accordion.querySelector('.plan-accordion-content') : null;
         const arrow = trigger.querySelector('.plan-accordion-arrow');
         
-        console.log(`아코디언 ${index + 1}:`, {
-            element: trigger,
-            ariaExpanded: trigger.getAttribute('aria-expanded'),
-            hasContent: !!content,
-            initialDisplay: content?.style.display || 'none',
-            gifts: accordion?.querySelector('.plan-gifts-text-accordion')?.textContent
-        });
+        if (isDebugMode) {
+            console.log(`아코디언 ${index + 1}:`, {
+                element: trigger,
+                ariaExpanded: trigger.getAttribute('aria-expanded'),
+                hasContent: !!content,
+                initialDisplay: content?.style.display || 'none',
+                gifts: accordion?.querySelector('.plan-gifts-text-accordion')?.textContent
+            });
+        }
         
         // 초기 상태 확인 및 설정
         const initialExpanded = trigger.getAttribute('aria-expanded') === 'true';
@@ -515,14 +530,25 @@ document.addEventListener('DOMContentLoaded', function() {
         // 카드 링크 확인
         const cardLink = trigger.closest('.plan-card-link');
         const isInsideLink = !!cardLink;
-        console.log(`아코디언 ${index + 1} 카드 링크 내부 여부:`, isInsideLink);
+        if (isDebugMode) {
+            console.log(`아코디언 ${index + 1} 카드 링크 내부 여부:`, isInsideLink);
+        }
         
         // 클릭 이벤트 바인딩 (capture 단계에서 먼저 실행)
         const clickHandler = function(e) {
-            console.log('=== 아코디언 클릭 이벤트 발생! ===', index + 1);
-            console.log('이벤트 타겟:', e.target);
-            console.log('이벤트 currentTarget:', e.currentTarget);
-            console.log('이벤트 버블링 단계:', e.eventPhase);
+            // 찜 버튼이나 공유 버튼 클릭 시 아코디언 동작 방지
+            const clickedFavorite = e.target.closest('.plan-favorite-btn-inline');
+            const clickedShare = e.target.closest('[data-share-url]');
+            if (clickedFavorite || clickedShare) {
+                return; // 찜/공유 버튼 클릭 시 아코디언 동작하지 않음
+            }
+            
+            if (isDebugMode) {
+                console.log('=== 아코디언 클릭 이벤트 발생! ===', index + 1);
+                console.log('이벤트 타겟:', e.target);
+                console.log('이벤트 currentTarget:', e.currentTarget);
+                console.log('이벤트 버블링 단계:', e.eventPhase);
+            }
             
             e.preventDefault();
             e.stopPropagation();
@@ -534,16 +560,20 @@ document.addEventListener('DOMContentLoaded', function() {
             const arrow = trigger.querySelector('.plan-accordion-arrow');
             
             if (!content) {
-                console.error('아코디언 콘텐츠를 찾을 수 없습니다.');
+                if (isDebugMode) {
+                    console.error('아코디언 콘텐츠를 찾을 수 없습니다.');
+                }
                 return false;
             }
             
-            console.log('아코디언 클릭 처리:', {
-                index: index + 1,
-                beforeState: isExpanded ? '열림' : '닫힘',
-                currentDisplay: content.style.display,
-                willToggleTo: !isExpanded ? '열기' : '닫기'
-            });
+            if (isDebugMode) {
+                console.log('아코디언 클릭 처리:', {
+                    index: index + 1,
+                    beforeState: isExpanded ? '열림' : '닫힘',
+                    currentDisplay: content.style.display,
+                    willToggleTo: !isExpanded ? '열기' : '닫기'
+                });
+            }
             
             // aria-expanded 상태 토글
             trigger.setAttribute('aria-expanded', !isExpanded);
@@ -561,10 +591,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
             
-            console.log('아코디언 토글 완료:', {
-                afterState: !isExpanded ? '열림' : '닫힘',
-                newDisplay: content.style.display
-            });
+            if (isDebugMode) {
+                console.log('아코디언 토글 완료:', {
+                    afterState: !isExpanded ? '열림' : '닫힘',
+                    newDisplay: content.style.display
+                });
+            }
             
             return false;
         };
@@ -574,21 +606,47 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // 추가: 마우스다운 이벤트도 처리
         trigger.addEventListener('mousedown', function(e) {
-            console.log('아코디언 마우스다운:', index + 1);
+            // 찜 버튼이나 공유 버튼 클릭 시 아코디언 동작 방지
+            const clickedFavorite = e.target.closest('.plan-favorite-btn-inline');
+            const clickedShare = e.target.closest('[data-share-url]');
+            if (clickedFavorite || clickedShare) {
+                return; // 찜/공유 버튼 클릭 시 아코디언 동작하지 않음
+            }
+            
+            if (isDebugMode) {
+                console.log('아코디언 마우스다운:', index + 1);
+            }
+            e.preventDefault();
             e.stopPropagation();
+            e.stopImmediatePropagation();
         }, true);
         
         // 추가: 포인터 이벤트도 처리
         trigger.addEventListener('pointerdown', function(e) {
-            console.log('아코디언 포인터다운:', index + 1);
+            // 찜 버튼이나 공유 버튼 클릭 시 아코디언 동작 방지
+            const clickedFavorite = e.target.closest('.plan-favorite-btn-inline');
+            const clickedShare = e.target.closest('[data-share-url]');
+            if (clickedFavorite || clickedShare) {
+                return; // 찜/공유 버튼 클릭 시 아코디언 동작하지 않음
+            }
+            
+            if (isDebugMode) {
+                console.log('아코디언 포인터다운:', index + 1);
+            }
+            e.preventDefault();
             e.stopPropagation();
+            e.stopImmediatePropagation();
         }, true);
         
         // 이벤트 리스너가 제대로 바인딩되었는지 확인
-        console.log(`아코디언 ${index + 1} 이벤트 바인딩 완료`);
+        if (isDebugMode) {
+            console.log(`아코디언 ${index + 1} 이벤트 바인딩 완료`);
+        }
     });
     
-    console.log('아코디언 이벤트 바인딩 완료');
+    if (isDebugMode) {
+        console.log('아코디언 이벤트 바인딩 완료');
+    }
 });
 
 function filterByProvider(provider) {

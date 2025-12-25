@@ -7,3 +7,4 @@ ADD COLUMN `end_at` DATE DEFAULT NULL COMMENT '메인공지 종료일' AFTER `st
 
 
 
+

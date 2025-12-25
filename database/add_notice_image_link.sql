@@ -7,3 +7,4 @@ ADD COLUMN `link_url` VARCHAR(500) DEFAULT NULL COMMENT '공지사항 링크 URL
 
 
 
+

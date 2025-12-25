@@ -16,9 +16,10 @@ if (!isLoggedIn()) {
     exit;
 }
 
-// type 파라미터 확인 (mvno 또는 mno)
+// type 파라미터 확인 (mvno, mno, 또는 mno-sim)
 $type = isset($_GET['type']) ? $_GET['type'] : 'mvno';
 $is_mno = ($type === 'mno');
+$is_mno_sim = ($type === 'mno-sim');
 
 // 헤더 포함
 include '../includes/header.php';
@@ -46,11 +47,18 @@ $pdo = getDBConnection();
 // 변수 초기화 (혼선 방지)
 $plans = [];
 $phones = [];
+$mnoSimPlans = [];
 $wishlistProductIds = [];
 
 if ($pdo) {
     try {
-        $productType = $is_mno ? 'mno' : 'mvno';
+        if ($is_mno_sim) {
+            $productType = 'mno-sim';
+        } elseif ($is_mno) {
+            $productType = 'mno';
+        } else {
+            $productType = 'mvno';
+        }
         $stmt = $pdo->prepare("
             SELECT product_id 
             FROM product_favorites 
@@ -68,7 +76,76 @@ if ($pdo) {
 }
 
 // 타입에 따라 데이터 가져오기
-if ($is_mno) {
+if ($is_mno_sim) {
+    // 통신사유심 데이터
+    require_once '../includes/data/plan-data.php';
+    require_once '../includes/data/product-functions.php';
+    
+    // 위시리스트에 있는 통신사유심 상품만 가져오기
+    if (!empty($wishlistProductIds)) {
+        $placeholders = implode(',', array_fill(0, count($wishlistProductIds), '?'));
+        $stmt = $pdo->prepare("
+            SELECT 
+                p.id,
+                p.seller_id,
+                p.status,
+                p.view_count,
+                p.favorite_count,
+                p.application_count,
+                mno_sim.provider,
+                mno_sim.service_type,
+                mno_sim.plan_name,
+                mno_sim.contract_period,
+                mno_sim.contract_period_discount_value,
+                mno_sim.contract_period_discount_unit,
+                mno_sim.price_main,
+                mno_sim.price_main_unit,
+                mno_sim.discount_period,
+                mno_sim.discount_period_value,
+                mno_sim.discount_period_unit,
+                mno_sim.price_after_type,
+                mno_sim.price_after,
+                mno_sim.price_after_unit,
+                mno_sim.data_amount,
+                mno_sim.data_amount_value,
+                mno_sim.data_unit,
+                mno_sim.data_additional,
+                mno_sim.data_additional_value,
+                mno_sim.data_exhausted,
+                mno_sim.data_exhausted_value,
+                mno_sim.call_type,
+                mno_sim.call_amount,
+                mno_sim.call_amount_unit,
+                mno_sim.additional_call_type,
+                mno_sim.additional_call,
+                mno_sim.additional_call_unit,
+                mno_sim.sms_type,
+                mno_sim.sms_amount,
+                mno_sim.sms_amount_unit,
+                mno_sim.promotion_title,
+                mno_sim.promotions,
+                mno_sim.benefits
+            FROM products p
+            INNER JOIN product_mno_sim_details mno_sim ON p.id = mno_sim.product_id
+            WHERE p.id IN ({$placeholders}) AND p.status = 'active'
+            ORDER BY p.created_at DESC
+        ");
+        $stmt->execute($wishlistProductIds);
+        $mnoSimProducts = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // plan 카드 형식으로 변환
+        foreach ($mnoSimProducts as $product) {
+            $plan = convertMnoSimProductToPlanCard($product);
+            $plan['is_favorited'] = true;
+            $plan['link_url'] = '/MVNO/mno-sim/mno-sim-detail.php?id=' . $product['id'];
+            $plan['item_type'] = 'mno-sim'; // 찜 버튼용 타입 (확실히 설정)
+            $mnoSimPlans[] = $plan;
+        }
+    }
+    
+    $page_title = '찜한 통신사유심 내역';
+    $result_count = count($mnoSimPlans) . '개의 결과';
+} elseif ($is_mno) {
     // 통신사폰 데이터
     require_once '../includes/data/phone-data.php';
     
@@ -125,7 +202,19 @@ if ($is_mno) {
         </div>
 
         <!-- 요금제/통신사폰 카드 목록 -->
-        <?php if ($is_mno): ?>
+        <?php if ($is_mno_sim): ?>
+            <!-- 통신사유심 목록 레이아웃 -->
+            <div class="plans-list-container">
+                <?php foreach ($mnoSimPlans as $plan): ?>
+                    <?php
+                    $card_wrapper_class = '';
+                    $layout_type = 'list';
+                    include '../includes/components/plan-card.php';
+                    ?>
+                    <hr class="plan-card-divider">
+                <?php endforeach; ?>
+            </div>
+        <?php elseif ($is_mno): ?>
             <!-- 통신사폰 목록 레이아웃 -->
             <?php
             $section_title = '';
@@ -142,7 +231,19 @@ if ($is_mno) {
         <?php endif; ?>
         
         <!-- 더보기 버튼 -->
-        <?php if ($is_mno && count($phones) > 10): ?>
+        <?php if ($is_mno_sim && count($mnoSimPlans) > 10): ?>
+            <?php 
+            $remaining = count($mnoSimPlans) - 10;
+            ?>
+            <div style="margin-top: 32px; margin-bottom: 32px;" id="moreButtonContainer">
+                <button class="plan-review-more-btn" id="moreWishlistBtn" 
+                        data-type="mno-sim"
+                        data-total="<?php echo count($mnoSimPlans); ?>"
+                        style="width: 100%; padding: 12px; background: #6366f1; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer;">
+                    더보기 (<?php echo $remaining > 10 ? 10 : $remaining; ?>개)
+                </button>
+            </div>
+        <?php elseif ($is_mno && count($phones) > 10): ?>
             <?php 
             $remaining = count($phones) - 10;
             ?>
@@ -154,7 +255,7 @@ if ($is_mno) {
                     더보기 (<?php echo $remaining > 10 ? 10 : $remaining; ?>개)
                 </button>
             </div>
-        <?php elseif (!$is_mno && count($plans) > 10): ?>
+        <?php elseif (!$is_mno && !$is_mno_sim && count($plans) > 10): ?>
             <?php 
             $remaining = count($plans) - 10;
             ?>

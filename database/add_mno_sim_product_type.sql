@@ -8,3 +8,4 @@ USE `mvno_db`;
 ALTER TABLE `products` 
 MODIFY COLUMN `product_type` ENUM('mvno', 'mno', 'internet', 'mno-sim') NOT NULL COMMENT '상품 타입';
 
+

@@ -191,6 +191,26 @@ function getRelativeTime($datetime) {
                             </div>
                         </div>
                         <div class="plan-detail-item">
+                            <div class="plan-detail-label">할인기간</div>
+                            <div class="plan-detail-value">
+                                <?php
+                                $discountPeriod = $rawData['discount_period'] ?? '';
+                                $discountPeriodValue = $rawData['discount_period_value'] ?? null;
+                                $discountPeriodUnit = $rawData['discount_period_unit'] ?? '';
+                                
+                                if ($discountPeriod === '프로모션 없음') {
+                                    echo '프로모션 없음';
+                                } elseif ($discountPeriod === '직접입력' && !empty($discountPeriodValue) && !empty($discountPeriodUnit)) {
+                                    echo htmlspecialchars($discountPeriodValue . $discountPeriodUnit);
+                                } elseif (!empty($discountPeriod)) {
+                                    echo htmlspecialchars($discountPeriod);
+                                } else {
+                                    echo '정보 없음';
+                                }
+                                ?>
+                            </div>
+                        </div>
+                        <div class="plan-detail-item">
                             <div class="plan-detail-label">요금제 유지기간</div>
                             <div class="plan-detail-value">
                                 <?php
@@ -347,19 +367,33 @@ function getRelativeTime($datetime) {
                             <div class="plan-detail-value">
                                 <?php
                                 $additionalCallType = $rawData['additional_call_type'] ?? '';
-                                if (!empty($rawData['additional_call']) && !empty($rawData['additional_call_unit'])) {
-                                    $additionalCall = floatval($rawData['additional_call']);
-                                    // 소수점이 있으면 소수점 표시, 없으면 정수로 표시
-                                    if (floor($additionalCall) == $additionalCall) {
-                                        echo number_format($additionalCall, 0) . $rawData['additional_call_unit'];
+                                $additionalCall = $rawData['additional_call'] ?? '';
+                                if ($additionalCallType === '직접입력' && !empty($additionalCall)) {
+                                    // 직접입력인 경우: 입력된 값 표시
+                                    if (!empty($rawData['additional_call_unit'])) {
+                                        $additionalCallValue = floatval($additionalCall);
+                                        // 소수점이 있으면 소수점 표시, 없으면 정수로 표시
+                                        if (floor($additionalCallValue) == $additionalCallValue) {
+                                            echo number_format($additionalCallValue, 0) . $rawData['additional_call_unit'];
+                                        } else {
+                                            $formatted = number_format($additionalCallValue, 2, '.', '');
+                                            echo rtrim(rtrim($formatted, '0'), '.') . $rawData['additional_call_unit'];
+                                        }
                                     } else {
-                                        $formatted = number_format($additionalCall, 2, '.', '');
-                                        echo rtrim(rtrim($formatted, '0'), '.') . $rawData['additional_call_unit'];
+                                        // 단위가 없으면 숫자만 표시
+                                        $additionalCallValue = floatval($additionalCall);
+                                        if (floor($additionalCallValue) == $additionalCallValue) {
+                                            echo number_format($additionalCallValue, 0);
+                                        } else {
+                                            $formatted = number_format($additionalCallValue, 2, '.', '');
+                                            echo rtrim(rtrim($formatted, '0'), '.');
+                                        }
                                     }
                                 } elseif (!empty($additionalCallType)) {
+                                    // 무제한, 기본제공 등은 그대로 표시
                                     echo htmlspecialchars($additionalCallType);
                                 } else {
-                                    echo '정보 없음';
+                                    echo '없음';
                                 }
                                 ?>
                             </div>
@@ -2213,6 +2247,7 @@ function checkAllMnoSimAgreements() {
 }
 </script>
 
+<script src="/MVNO/assets/js/plan-accordion.js" defer></script>
 <script src="/MVNO/assets/js/favorite-heart.js" defer></script>
 <script src="/MVNO/assets/js/point-usage-integration.js" defer></script>
 

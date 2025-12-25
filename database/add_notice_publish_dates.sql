@@ -7,3 +7,4 @@ ADD COLUMN `publish_end_at` DATE DEFAULT NULL COMMENT '발행 종료일' AFTER `
 
 
 
+

@@ -456,7 +456,7 @@ include '../includes/components/mvno-review-modal.php';
 </main>
 
 <!-- 신청 상세 정보 모달 -->
-<div id="applicationDetailModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.5); z-index: 10000; overflow-y: auto; padding: 20px;">
+<div id="applicationDetailModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.5); z-index: 10000; overflow: hidden; padding: 20px;">
     <div style="max-width: 800px; margin: 40px auto; background: white; border-radius: 12px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2); position: relative;">
         <!-- 모달 헤더 -->
         <div style="padding: 24px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center;">
@@ -868,7 +868,11 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function openModal(applicationId) {
         modal.style.display = 'block';
-        document.body.style.overflow = 'hidden'; // 배경 스크롤 방지
+        // 배경 페이지 스크롤 완전 차단 (스크롤바도 숨김)
+        document.body.style.overflow = 'hidden';
+        document.body.style.paddingRight = '0px';
+        // html 요소도 스크롤 차단
+        document.documentElement.style.overflow = 'hidden';
         
         // 로딩 표시
         modalContent.innerHTML = `
@@ -906,7 +910,10 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function closeModal() {
         modal.style.display = 'none';
-        document.body.style.overflow = ''; // 배경 스크롤 복원
+        // 배경 페이지 스크롤 복원
+        document.body.style.overflow = '';
+        document.body.style.paddingRight = '';
+        document.documentElement.style.overflow = '';
     }
     
     function displayApplicationDetails(data) {
@@ -934,6 +941,22 @@ document.addEventListener('DOMContentLoaded', function() {
         if (data.status_changed_at) {
             html += `<div style="color: #6b7280; font-weight: 500;">상태 변경일시:</div>`;
             html += `<div style="color: #1f2937;">${escapeHtml(data.status_changed_at)}</div>`;
+        }
+        
+        // 가격 정보 (주문 정보 섹션에 추가)
+        if (productSnapshot.price_main) {
+            html += `<div style="color: #6b7280; font-weight: 500;">기본 요금:</div>`;
+            html += `<div style="color: #1f2937; font-weight: 600;">월 ${formatNumber(productSnapshot.price_main)}원</div>`;
+        }
+        
+        if (productSnapshot.price_after) {
+            html += `<div style="color: #6b7280; font-weight: 500;">할인 후 요금:</div>`;
+            html += `<div style="color: #6366f1; font-weight: 600;">월 ${formatNumber(productSnapshot.price_after)}원</div>`;
+        }
+        
+        if (productSnapshot.discount_period) {
+            html += `<div style="color: #6b7280; font-weight: 500;">할인 기간:</div>`;
+            html += `<div style="color: #1f2937;">${escapeHtml(productSnapshot.discount_period)}</div>`;
         }
         
         html += '</div></div>';
@@ -1018,10 +1041,10 @@ document.addEventListener('DOMContentLoaded', function() {
             html += `<div style="color: #1f2937;">${escapeHtml(productSnapshot.contract_period)}</div>`;
         }
         
-        // 데이터 정보
+        // 데이터 제공량
         if (productSnapshot.data_amount) {
-            html += `<div style="color: #6b7280; font-weight: 500;">데이터:</div>`;
-            let dataText = productSnapshot.data_amount;
+            html += `<div style="color: #6b7280; font-weight: 500;">데이터 제공량:</div>`;
+            let dataText = '';
             if (productSnapshot.data_amount === '직접입력' && productSnapshot.data_amount_value) {
                 // data_amount_value에 이미 단위가 포함되어 있는지 확인
                 const dataValueStr = String(productSnapshot.data_amount_value);
@@ -1033,20 +1056,34 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else {
                     dataText = dataValueStr + unit;
                 }
-            }
-            if (productSnapshot.data_additional && productSnapshot.data_additional !== '없음') {
-                if (productSnapshot.data_additional === '직접입력' && productSnapshot.data_additional_value) {
-                    dataText += ' + ' + productSnapshot.data_additional_value;
-                } else {
-                    dataText += ' + ' + productSnapshot.data_additional;
-                }
-            }
-            if (productSnapshot.data_exhausted && productSnapshot.data_exhausted !== '직접입력') {
-                dataText += ' + ' + productSnapshot.data_exhausted;
-            } else if (productSnapshot.data_exhausted === '직접입력' && productSnapshot.data_exhausted_value) {
-                dataText += ' + ' + productSnapshot.data_exhausted_value;
+            } else {
+                dataText = productSnapshot.data_amount;
             }
             html += `<div style="color: #1f2937;">${escapeHtml(dataText)}</div>`;
+        }
+        
+        // 데이터 추가제공
+        if (productSnapshot.data_additional && productSnapshot.data_additional !== '없음') {
+            html += `<div style="color: #6b7280; font-weight: 500;">데이터 추가제공:</div>`;
+            let dataAdditionalText = '';
+            if (productSnapshot.data_additional === '직접입력' && productSnapshot.data_additional_value) {
+                dataAdditionalText = productSnapshot.data_additional_value;
+            } else {
+                dataAdditionalText = productSnapshot.data_additional;
+            }
+            html += `<div style="color: #1f2937;">${escapeHtml(dataAdditionalText)}</div>`;
+        }
+        
+        // 데이터 소진시
+        if (productSnapshot.data_exhausted) {
+            html += `<div style="color: #6b7280; font-weight: 500;">데이터 소진시:</div>`;
+            let dataExhaustedText = '';
+            if (productSnapshot.data_exhausted === '직접입력' && productSnapshot.data_exhausted_value) {
+                dataExhaustedText = productSnapshot.data_exhausted_value;
+            } else {
+                dataExhaustedText = productSnapshot.data_exhausted;
+            }
+            html += `<div style="color: #1f2937;">${escapeHtml(dataExhaustedText)}</div>`;
         }
         
         // 통화 정보
@@ -1085,21 +1122,99 @@ document.addEventListener('DOMContentLoaded', function() {
             html += `<div style="color: #1f2937;">${escapeHtml(smsText)}</div>`;
         }
         
-        // 가격 정보
-        if (productSnapshot.price_main) {
-            html += `<div style="color: #6b7280; font-weight: 500;">기본 요금:</div>`;
-            html += `<div style="color: #1f2937; font-weight: 600;">월 ${formatNumber(productSnapshot.price_main)}원</div>`;
+        // 부가·영상통화
+        if (productSnapshot.additional_call_type) {
+            html += `<div style="color: #6b7280; font-weight: 500;">부가·영상통화:</div>`;
+            let additionalCallText = productSnapshot.additional_call_type;
+            if (productSnapshot.additional_call_type === '직접입력' && productSnapshot.additional_call) {
+                // additional_call에 이미 단위가 포함되어 있는지 확인
+                const additionalCallStr = String(productSnapshot.additional_call);
+                const unit = productSnapshot.additional_call_unit || '분';
+                // 끝에 단위가 이미 포함되어 있으면 추가하지 않음
+                if (additionalCallStr.endsWith('분') || additionalCallStr.endsWith('초') || additionalCallStr.endsWith('건')) {
+                    additionalCallText = additionalCallStr;
+                } else {
+                    additionalCallText = additionalCallStr + unit;
+                }
+            }
+            html += `<div style="color: #1f2937;">${escapeHtml(additionalCallText)}</div>`;
         }
         
-        if (productSnapshot.price_after) {
-            html += `<div style="color: #6b7280; font-weight: 500;">할인 후 요금:</div>`;
-            html += `<div style="color: #6366f1; font-weight: 600;">월 ${formatNumber(productSnapshot.price_after)}원</div>`;
+        // 테더링(핫스팟)
+        html += `<div style="color: #6b7280; font-weight: 500;">테더링(핫스팟):</div>`;
+        let hotspotText = '기본 제공량 내에서 사용';
+        if (productSnapshot.mobile_hotspot) {
+            if (productSnapshot.mobile_hotspot === '직접선택' && productSnapshot.mobile_hotspot_value) {
+                hotspotText = productSnapshot.mobile_hotspot_value;
+            } else {
+                hotspotText = productSnapshot.mobile_hotspot;
+            }
         }
+        html += `<div style="color: #1f2937;">${escapeHtml(hotspotText)}</div>`;
         
-        if (productSnapshot.discount_period) {
-            html += `<div style="color: #6b7280; font-weight: 500;">할인 기간:</div>`;
-            html += `<div style="color: #1f2937;">${escapeHtml(productSnapshot.discount_period)}</div>`;
+        html += '</div></div>';
+        
+        // 유심 정보 섹션
+        html += '<div>';
+        html += '<h3 style="font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #6366f1;">유심 정보</h3>';
+        html += '<div style="display: grid; grid-template-columns: 150px 1fr; gap: 12px 16px; font-size: 14px;">';
+        
+        // 일반 유심
+        html += `<div style="color: #6b7280; font-weight: 500;">일반 유심:</div>`;
+        let regularSimText = '배송불가';
+        if (productSnapshot.regular_sim_available === '배송가능') {
+            if (productSnapshot.regular_sim_price) {
+                // 가격에 이미 단위가 포함되어 있는지 확인
+                const priceStr = String(productSnapshot.regular_sim_price);
+                if (priceStr.match(/^(\d+)(.+)$/)) {
+                    const matches = priceStr.match(/^(\d+)(.+)$/);
+                    regularSimText = `배송가능 (${parseInt(matches[1]).toLocaleString('ko-KR')}${matches[2]})`;
+                } else {
+                    regularSimText = `배송가능 (${parseInt(productSnapshot.regular_sim_price).toLocaleString('ko-KR')}원)`;
+                }
+            } else {
+                regularSimText = '배송가능';
+            }
         }
+        html += `<div style="color: #1f2937;">${escapeHtml(regularSimText)}</div>`;
+        
+        // NFC 유심
+        html += `<div style="color: #6b7280; font-weight: 500;">NFC 유심:</div>`;
+        let nfcSimText = '배송불가';
+        if (productSnapshot.nfc_sim_available === '배송가능') {
+            if (productSnapshot.nfc_sim_price) {
+                // 가격에 이미 단위가 포함되어 있는지 확인
+                const priceStr = String(productSnapshot.nfc_sim_price);
+                if (priceStr.match(/^(\d+)(.+)$/)) {
+                    const matches = priceStr.match(/^(\d+)(.+)$/);
+                    nfcSimText = `배송가능 (${parseInt(matches[1]).toLocaleString('ko-KR')}${matches[2]})`;
+                } else {
+                    nfcSimText = `배송가능 (${parseInt(productSnapshot.nfc_sim_price).toLocaleString('ko-KR')}원)`;
+                }
+            } else {
+                nfcSimText = '배송가능';
+            }
+        }
+        html += `<div style="color: #1f2937;">${escapeHtml(nfcSimText)}</div>`;
+        
+        // eSIM
+        html += `<div style="color: #6b7280; font-weight: 500;">eSIM:</div>`;
+        let esimText = '개통불가';
+        if (productSnapshot.esim_available === '개통가능') {
+            if (productSnapshot.esim_price) {
+                // 가격에 이미 단위가 포함되어 있는지 확인
+                const priceStr = String(productSnapshot.esim_price);
+                if (priceStr.match(/^(\d+)(.+)$/)) {
+                    const matches = priceStr.match(/^(\d+)(.+)$/);
+                    esimText = `개통가능 (${parseInt(matches[1]).toLocaleString('ko-KR')}${matches[2]})`;
+                } else {
+                    esimText = `개통가능 (${parseInt(productSnapshot.esim_price).toLocaleString('ko-KR')}원)`;
+                }
+            } else {
+                esimText = '개통가능';
+            }
+        }
+        html += `<div style="color: #1f2937;">${escapeHtml(esimText)}</div>`;
         
         html += '</div></div>';
         

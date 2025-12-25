@@ -495,7 +495,7 @@ include '../includes/components/mno-review-modal.php';
 </main>
 
 <!-- 주문 상세 정보 모달 -->
-<div id="orderDetailModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.5); z-index: 10000; overflow-y: auto; padding: 20px;">
+<div id="orderDetailModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.5); z-index: 10000; overflow: hidden; padding: 20px;">
     <div style="max-width: 800px; margin: 40px auto; background: white; border-radius: 12px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2); position: relative;">
         <!-- 모달 헤더 -->
         <div style="padding: 24px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center;">
@@ -530,7 +530,11 @@ function openOrderModal(applicationId) {
     const modalContent = document.getElementById('orderModalContent');
     
     modal.style.display = 'block';
+    // 배경 페이지 스크롤 완전 차단 (스크롤바도 숨김)
     document.body.style.overflow = 'hidden';
+    document.body.style.paddingRight = '0px';
+    // html 요소도 스크롤 차단
+    document.documentElement.style.overflow = 'hidden';
     
     // 로딩 표시
     modalContent.innerHTML = `
@@ -568,7 +572,10 @@ function openOrderModal(applicationId) {
 function closeOrderModal() {
     const modal = document.getElementById('orderDetailModal');
     modal.style.display = 'none';
+    // 배경 페이지 스크롤 복원
     document.body.style.overflow = '';
+    document.body.style.paddingRight = '';
+    document.documentElement.style.overflow = '';
 }
 
 function escapeHtml(text) {

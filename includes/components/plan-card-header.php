@@ -36,7 +36,8 @@ $has_reviews = !empty($rating) && $rating !== '';
         <?php
         $button_id = ($layout_type === 'detail') ? 'planFavoriteBtn' : '';
         $item_id = $plan_id;
-        $item_type = 'plan';
+        // plan 배열에 item_type이 있으면 사용, 없으면 기본값 'plan'
+        $item_type = $plan['item_type'] ?? 'plan';
         $is_favorited = $plan['is_favorited'] ?? false;
         include __DIR__ . '/favorite-button.php';
         ?>

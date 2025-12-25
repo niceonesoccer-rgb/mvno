@@ -369,6 +369,8 @@ function convertMnoSimProductToPlanCard($product) {
         'gifts' => $gifts,
         'promotion_title' => $promotionTitle,
         'gift_icons' => [],
+        'item_type' => 'mno-sim', // 찜 버튼용 타입
+        'is_favorited' => false, // 기본값, wishlist.php에서 true로 설정됨
     ];
 }
 

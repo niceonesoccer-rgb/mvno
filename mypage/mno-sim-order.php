@@ -447,7 +447,7 @@ include '../includes/components/mvno-review-modal.php';
 </main>
 
 <!-- 신청 상세 정보 모달 -->
-<div id="applicationDetailModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.5); z-index: 10000; overflow-y: auto; padding: 20px;">
+<div id="applicationDetailModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.5); z-index: 10000; overflow: hidden; padding: 20px;">
     <div style="max-width: 800px; margin: 40px auto; background: white; border-radius: 12px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2); position: relative;">
         <!-- 모달 헤더 -->
         <div style="padding: 24px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center;">
@@ -512,7 +512,11 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function openModal(applicationId) {
         modal.style.display = 'block';
+        // 배경 페이지 스크롤 완전 차단 (스크롤바도 숨김)
         document.body.style.overflow = 'hidden';
+        document.body.style.paddingRight = '0px';
+        // html 요소도 스크롤 차단
+        document.documentElement.style.overflow = 'hidden';
         
         // 로딩 표시
         modalContent.innerHTML = `
@@ -550,7 +554,10 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function closeModal() {
         modal.style.display = 'none';
+        // 배경 페이지 스크롤 복원
         document.body.style.overflow = '';
+        document.body.style.paddingRight = '';
+        document.documentElement.style.overflow = '';
     }
     
     function displayApplicationDetails(data) {
@@ -578,6 +585,41 @@ document.addEventListener('DOMContentLoaded', function() {
         if (data.status_changed_at) {
             html += `<div style="color: #6b7280; font-weight: 500;">상태 변경일시:</div>`;
             html += `<div style="color: #1f2937;">${escapeHtml(data.status_changed_at)}</div>`;
+        }
+        
+        // 기본 요금
+        if (productSnapshot.price_main) {
+            html += `<div style="color: #6b7280; font-weight: 500;">기본 요금:</div>`;
+            const priceMainUnit = productSnapshot.price_main_unit || '원';
+            html += `<div style="color: #1f2937; font-weight: 600;">월 ${formatNumber(productSnapshot.price_main)}${escapeHtml(priceMainUnit)}</div>`;
+        }
+        
+        // 할인 후 요금
+        if (productSnapshot.price_after_type && productSnapshot.price_after_type !== 'none') {
+            html += `<div style="color: #6b7280; font-weight: 500;">할인 후 요금:</div>`;
+            if (productSnapshot.price_after_type === 'free' || productSnapshot.price_after == 0) {
+                html += `<div style="color: #6366f1; font-weight: 600;">무료</div>`;
+            } else if (productSnapshot.price_after) {
+                const priceAfterUnit = productSnapshot.price_after_unit || '원';
+                html += `<div style="color: #6366f1; font-weight: 600;">월 ${formatNumber(productSnapshot.price_after)}${escapeHtml(priceAfterUnit)}</div>`;
+            }
+        }
+        
+        // 할인기간
+        if (productSnapshot.discount_period) {
+            html += `<div style="color: #6b7280; font-weight: 500;">할인기간:</div>`;
+            let discountPeriodText = '';
+            const discountPeriod = productSnapshot.discount_period;
+            if (discountPeriod === '프로모션 없음') {
+                discountPeriodText = '프로모션 없음';
+            } else if (discountPeriod === '직접입력' && productSnapshot.discount_period_value && productSnapshot.discount_period_unit) {
+                discountPeriodText = String(productSnapshot.discount_period_value) + escapeHtml(productSnapshot.discount_period_unit);
+            } else if (discountPeriod) {
+                discountPeriodText = discountPeriod;
+            } else {
+                discountPeriodText = '정보 없음';
+            }
+            html += `<div style="color: #1f2937;">${escapeHtml(discountPeriodText)}</div>`;
         }
         
         html += '</div></div>';
@@ -620,8 +662,8 @@ document.addEventListener('DOMContentLoaded', function() {
         
         html += '</div></div>';
         
-        // 상품 정보 섹션
-        html += '<div>';
+        // 기본 정보 섹션
+        html += '<div style="margin-bottom: 24px;">';
         html += '<h3 style="font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #6366f1;">기본 정보</h3>';
         html += '<div style="display: grid; grid-template-columns: 150px 1fr; gap: 12px 16px; font-size: 14px;">';
         
@@ -653,24 +695,21 @@ document.addEventListener('DOMContentLoaded', function() {
             html += `<div style="color: #1f2937;">${escapeHtml(productSnapshot.service_type)}</div>`;
         }
         
-        // 가입 형태
-        if (productSnapshot.registration_types) {
+        // 가입 형태 (사용자가 선택한 정보)
+        if (additionalInfo.subscription_type) {
             html += `<div style="color: #6b7280; font-weight: 500;">가입 형태</div>`;
-            let registrationTypes = [];
-            try {
-                if (typeof productSnapshot.registration_types === 'string') {
-                    registrationTypes = JSON.parse(productSnapshot.registration_types);
-                } else if (Array.isArray(productSnapshot.registration_types)) {
-                    registrationTypes = productSnapshot.registration_types;
-                }
-            } catch(e) {
-                registrationTypes = [];
+            // 가입 형태 한글 변환 (고객용 표시)
+            let subscriptionTypeText = additionalInfo.subscription_type;
+            const subscriptionTypeMap = {
+                'new': '신규가입',
+                'mnp': '번호이동',
+                'port': '번호이동', // 하위 호환성
+                'change': '기기변경'
+            };
+            if (subscriptionTypeMap[subscriptionTypeText]) {
+                subscriptionTypeText = subscriptionTypeMap[subscriptionTypeText];
             }
-            if (registrationTypes.length > 0) {
-                html += `<div style="color: #1f2937;">${registrationTypes.map(t => escapeHtml(t)).join(', ')}</div>`;
-            } else {
-                html += `<div style="color: #1f2937;">정보 없음</div>`;
-            }
+            html += `<div style="color: #1f2937;">${escapeHtml(subscriptionTypeText)}</div>`;
         }
         
         // 요금제 유지기간
@@ -709,47 +748,12 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         
-        // 데이터 제공량 (항목별로 분리)
-        if (productSnapshot.data_amount) {
-            html += `<div style="color: #6b7280; font-weight: 500;">데이터 제공량</div>`;
-            let dataText = '';
-            if (productSnapshot.data_amount === '무제한') {
-                dataText = '무제한';
-            } else if (productSnapshot.data_amount === '직접입력' && productSnapshot.data_amount_value) {
-                const dataValueStr = String(productSnapshot.data_amount_value);
-                const unit = productSnapshot.data_unit || 'GB';
-                if (dataValueStr.endsWith('GB') || dataValueStr.endsWith('MB') || dataValueStr.endsWith('TB') || 
-                    dataValueStr.endsWith('Mbps') || dataValueStr.endsWith('Gbps') || dataValueStr.endsWith('Kbps')) {
-                    dataText = dataValueStr;
-                } else {
-                    dataText = dataValueStr + unit;
-                }
-            } else {
-                dataText = productSnapshot.data_amount;
-            }
-            html += `<div style="color: #1f2937;">${escapeHtml(dataText)}</div>`;
-        }
+        html += '</div></div>';
         
-        // 데이터 추가제공 (항목별로 분리)
-        if (productSnapshot.data_additional && productSnapshot.data_additional !== '없음') {
-            html += `<div style="color: #6b7280; font-weight: 500;">데이터 추가제공</div>`;
-            let additionalText = '';
-            if (productSnapshot.data_additional === '직접입력' && productSnapshot.data_additional_value) {
-                additionalText = productSnapshot.data_additional_value;
-            } else {
-                additionalText = productSnapshot.data_additional;
-            }
-            html += `<div style="color: #1f2937;">${escapeHtml(additionalText)}</div>`;
-        }
-        
-        // 데이터 소진시 (기본 제공 초과 시) (항목별로 분리)
-        if (productSnapshot.data_exhausted && productSnapshot.data_exhausted !== '직접입력') {
-            html += `<div style="color: #6b7280; font-weight: 500;">기본 제공 초과 시</div>`;
-            html += `<div style="color: #1f2937;">${escapeHtml(productSnapshot.data_exhausted)}</div>`;
-        } else if (productSnapshot.data_exhausted === '직접입력' && productSnapshot.data_exhausted_value) {
-            html += `<div style="color: #6b7280; font-weight: 500;">기본 제공 초과 시</div>`;
-            html += `<div style="color: #1f2937;">${escapeHtml(productSnapshot.data_exhausted_value)}</div>`;
-        }
+        // 데이터 정보 섹션
+        html += '<div style="margin-bottom: 24px;">';
+        html += '<h3 style="font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #6366f1;">데이터 정보</h3>';
+        html += '<div style="display: grid; grid-template-columns: 150px 1fr; gap: 12px 16px; font-size: 14px;">';
         
         // 통화 정보
         if (productSnapshot.call_type) {
@@ -783,22 +787,46 @@ document.addEventListener('DOMContentLoaded', function() {
             html += `<div style="color: #1f2937;">${escapeHtml(smsText)}</div>`;
         }
         
-        // 기본 요금 (원래 월요금)
-        if (productSnapshot.price_main) {
-            html += `<div style="color: #6b7280; font-weight: 500;">기본 요금</div>`;
-            const priceMainUnit = productSnapshot.price_main_unit || '원';
-            html += `<div style="color: #1f2937; font-weight: 600;">월 ${formatNumber(productSnapshot.price_main)}${escapeHtml(priceMainUnit)}</div>`;
+        // 데이터 제공량
+        if (productSnapshot.data_amount) {
+            html += `<div style="color: #6b7280; font-weight: 500;">데이터 제공량</div>`;
+            let dataText = '';
+            if (productSnapshot.data_amount === '무제한') {
+                dataText = '무제한';
+            } else if (productSnapshot.data_amount === '직접입력' && productSnapshot.data_amount_value) {
+                const dataValueStr = String(productSnapshot.data_amount_value);
+                const unit = productSnapshot.data_unit || 'GB';
+                if (dataValueStr.endsWith('GB') || dataValueStr.endsWith('MB') || dataValueStr.endsWith('TB') || 
+                    dataValueStr.endsWith('Mbps') || dataValueStr.endsWith('Gbps') || dataValueStr.endsWith('Kbps')) {
+                    dataText = dataValueStr;
+                } else {
+                    dataText = dataValueStr + unit;
+                }
+            } else {
+                dataText = productSnapshot.data_amount;
+            }
+            html += `<div style="color: #1f2937;">${escapeHtml(dataText)}</div>`;
         }
         
-        // 할인 후 요금 (프로모션 기간 요금)
-        if (productSnapshot.price_after_type && productSnapshot.price_after_type !== 'none') {
-            html += `<div style="color: #6b7280; font-weight: 500;">할인 후 요금</div>`;
-            if (productSnapshot.price_after_type === 'free' || productSnapshot.price_after == 0) {
-                html += `<div style="color: #6366f1; font-weight: 600;">무료</div>`;
-            } else if (productSnapshot.price_after) {
-                const priceAfterUnit = productSnapshot.price_after_unit || '원';
-                html += `<div style="color: #6366f1; font-weight: 600;">월 ${formatNumber(productSnapshot.price_after)}${escapeHtml(priceAfterUnit)}</div>`;
+        // 데이터 추가제공
+        if (productSnapshot.data_additional && productSnapshot.data_additional !== '없음') {
+            html += `<div style="color: #6b7280; font-weight: 500;">데이터 추가제공</div>`;
+            let additionalText = '';
+            if (productSnapshot.data_additional === '직접입력' && productSnapshot.data_additional_value) {
+                additionalText = productSnapshot.data_additional_value;
+            } else {
+                additionalText = productSnapshot.data_additional;
             }
+            html += `<div style="color: #1f2937;">${escapeHtml(additionalText)}</div>`;
+        }
+        
+        // 데이터 소진시
+        if (productSnapshot.data_exhausted && productSnapshot.data_exhausted !== '직접입력') {
+            html += `<div style="color: #6b7280; font-weight: 500;">데이터 소진시</div>`;
+            html += `<div style="color: #1f2937;">${escapeHtml(productSnapshot.data_exhausted)}</div>`;
+        } else if (productSnapshot.data_exhausted === '직접입력' && productSnapshot.data_exhausted_value) {
+            html += `<div style="color: #6b7280; font-weight: 500;">데이터 소진시</div>`;
+            html += `<div style="color: #1f2937;">${escapeHtml(productSnapshot.data_exhausted_value)}</div>`;
         }
         
         // 부가·영상통화 정보
@@ -814,6 +842,36 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             html += `<div style="color: #1f2937;">${escapeHtml(additionalCallText)}</div>`;
         }
+        
+        // 테더링(핫스팟) 정보
+        if (productSnapshot.mobile_hotspot) {
+            html += `<div style="color: #6b7280; font-weight: 500;">테더링(핫스팟)</div>`;
+            let hotspotText = '';
+            const mobileHotspot = productSnapshot.mobile_hotspot;
+            if (mobileHotspot === '기본 제공량 내에서 사용') {
+                hotspotText = '기본 제공량 내에서 사용';
+            } else if (productSnapshot.mobile_hotspot_value && productSnapshot.mobile_hotspot_unit) {
+                const hotspotValue = parseFloat(productSnapshot.mobile_hotspot_value);
+                if (Math.floor(hotspotValue) === hotspotValue) {
+                    hotspotText = formatNumber(hotspotValue) + escapeHtml(productSnapshot.mobile_hotspot_unit);
+                } else {
+                    const formatted = hotspotValue.toFixed(2).replace(/\.?0+$/, '');
+                    hotspotText = formatted + escapeHtml(productSnapshot.mobile_hotspot_unit);
+                }
+            } else if (mobileHotspot) {
+                hotspotText = mobileHotspot;
+            } else {
+                hotspotText = '정보 없음';
+            }
+            html += `<div style="color: #1f2937;">${escapeHtml(hotspotText)}</div>`;
+        }
+        
+        html += '</div></div>';
+        
+        // 유심 정보 섹션
+        html += '<div style="margin-bottom: 24px;">';
+        html += '<h3 style="font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #6366f1;">유심 정보</h3>';
+        html += '<div style="display: grid; grid-template-columns: 150px 1fr; gap: 12px 16px; font-size: 14px;">';
         
         // 일반 유심 정보
         if (productSnapshot.regular_sim_available) {
@@ -853,41 +911,23 @@ document.addEventListener('DOMContentLoaded', function() {
             html += `<div style="color: #1f2937;">${escapeHtml(nfcSimText)}</div>`;
         }
         
-        // 혜택 정보 (프로모션 제목 + 항목들)
-        if (productSnapshot.promotion_title || productSnapshot.promotions) {
-            html += `<div style="color: #6b7280; font-weight: 500;">혜택</div>`;
-            let benefitText = '';
-            
-            // 제목이 있으면 표시
-            if (productSnapshot.promotion_title) {
-                benefitText = productSnapshot.promotion_title;
-            }
-            
-            // 항목들 가져오기
-            let promotions = [];
-            try {
-                if (typeof productSnapshot.promotions === 'string') {
-                    promotions = JSON.parse(productSnapshot.promotions);
-                } else if (Array.isArray(productSnapshot.promotions)) {
-                    promotions = productSnapshot.promotions;
-                }
-            } catch(e) {
-                promotions = [];
-            }
-            
-            // 항목이 있으면 제목 ( 항목, 항목, ... ) 형식으로 표시
-            if (promotions.length > 0) {
-                const promotionList = promotions.filter(p => p && p.trim()).map(p => escapeHtml(p.trim())).join(', ');
-                if (benefitText) {
-                    benefitText = `${benefitText} (${promotionList})`;
+        // eSIM 정보
+        if (productSnapshot.esim_available) {
+            html += `<div style="color: #6b7280; font-weight: 500;">eSIM</div>`;
+            let esimText = productSnapshot.esim_available;
+            if (esimText === '개통불가') {
+                esimText = '개통불가';
+            } else if (esimText === 'eSIM 유료' || esimText === '유심비 유료' || esimText === '개통가능') {
+                if (productSnapshot.esim_price && productSnapshot.esim_price > 0) {
+                    const esimUnit = productSnapshot.esim_price_unit || '원';
+                    esimText = `개통가능 (${formatNumber(productSnapshot.esim_price)}${escapeHtml(esimUnit)})`;
                 } else {
-                    benefitText = promotionList;
+                    esimText = '개통가능';
                 }
+            } else if (esimText === 'eSIM 무료' || esimText === '유심비 무료' || esimText === '유심 무료' || esimText === '무료제공') {
+                esimText = 'eSIM 무료';
             }
-            
-            if (benefitText) {
-                html += `<div style="color: #1f2937;">${benefitText}</div>`;
-            }
+            html += `<div style="color: #1f2937;">${escapeHtml(esimText)}</div>`;
         }
         
         html += '</div></div>';
@@ -983,14 +1023,59 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             html += '</div></div>';
+            
+            // 문자메시지 주의사항
+            html += '<div style="margin-top: 16px; padding: 12px; background: #f9fafb; border-radius: 8px; font-size: 13px; color: #6b7280; line-height: 1.6;">';
+            html += '문자메시지 기본제공 혜택을 약관에 정한 기준보다 많이 사용하거나 스팸, 광고 목적으로 이용한 것이 확인되면 추가 요금을 내야 하거나 서비스 이용이 정지될 수 있어요.';
+            html += '</div>';
         }
         
         // 혜택 및 유의사항 섹션
-        if (productSnapshot.benefits) {
-            html += '<div>';
+        if (productSnapshot.benefits || productSnapshot.promotion_title || productSnapshot.promotions) {
+            html += '<div style="margin-bottom: 24px;">';
             html += '<h3 style="font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #6366f1;">혜택 및 유의사항</h3>';
             html += '<div style="font-size: 14px; color: #374151; line-height: 1.8;">';
             
+            // 혜택 정보 (프로모션 제목 + 항목들)
+            if (productSnapshot.promotion_title || productSnapshot.promotions) {
+                html += '<div style="margin-bottom: 16px;">';
+                html += '<div style="font-weight: 600; color: #1f2937; margin-bottom: 8px;">혜택</div>';
+                let benefitText = '';
+                
+                // 제목이 있으면 표시
+                if (productSnapshot.promotion_title) {
+                    benefitText = escapeHtml(productSnapshot.promotion_title);
+                }
+                
+                // 항목들 가져오기
+                let promotions = [];
+                try {
+                    if (typeof productSnapshot.promotions === 'string') {
+                        promotions = JSON.parse(productSnapshot.promotions);
+                    } else if (Array.isArray(productSnapshot.promotions)) {
+                        promotions = productSnapshot.promotions;
+                    }
+                } catch(e) {
+                    promotions = [];
+                }
+                
+                // 항목이 있으면 제목 ( 항목, 항목, ... ) 형식으로 표시
+                if (promotions.length > 0) {
+                    const promotionList = promotions.filter(p => p && p.trim()).map(p => escapeHtml(p.trim())).join(', ');
+                    if (benefitText) {
+                        benefitText = `${benefitText} (${promotionList})`;
+                    } else {
+                        benefitText = promotionList;
+                    }
+                }
+                
+                if (benefitText) {
+                    html += `<div style="color: #374151;">${benefitText}</div>`;
+                }
+                html += '</div>';
+            }
+            
+            // 유의사항 (benefits)
             let benefits = null;
             try {
                 if (typeof productSnapshot.benefits === 'string') {
@@ -1010,6 +1095,8 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             if (benefits && benefits.length > 0) {
+                html += '<div style="margin-top: 16px;">';
+                html += '<div style="font-weight: 600; color: #1f2937; margin-bottom: 8px;">유의사항</div>';
                 html += '<ul style="margin: 0; padding-left: 20px; list-style-type: disc;">';
                 benefits.forEach(function(benefit) {
                     const benefitText = String(benefit).trim();
@@ -1019,8 +1106,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 });
                 html += '</ul>';
-            } else {
-                html += '<div style="color: #9ca3af;">추가 정보 없음</div>';
+                html += '</div>';
             }
             
             html += '</div></div>';

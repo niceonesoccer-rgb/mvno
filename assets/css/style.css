@@ -2722,6 +2722,14 @@ button:focus {
     text-decoration: none;
     color: inherit;
     display: block;
+    position: relative;
+}
+
+/* 하트 버튼 영역은 링크 클릭 차단 */
+.plan-card-link .plan-favorite-btn-inline {
+    position: relative;
+    z-index: 1000;
+    pointer-events: auto;
 }
 
 .plan-card-link:focus,
@@ -3001,6 +3009,7 @@ button:focus {
 
 .plan-favorite-btn-inline.favorited .favorite-icon-path {
     fill: #ef4444 !important;
+    stroke: none !important;
 }
 
 .plan-favorite-btn-inline svg,
