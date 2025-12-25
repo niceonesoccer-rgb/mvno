@@ -1115,7 +1115,7 @@ document.addEventListener('DOMContentLoaded', function() {
         <!-- 제출 버튼 -->
         <div class="form-actions">
             <a href="/MVNO/seller/products/internet-list.php" class="btn btn-secondary">취소</a>
-            <button type="submit" class="btn btn-primary">
+            <button type="button" id="submitBtn" class="btn btn-primary">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M5 13l4 4L19 7"/>
                 </svg>
@@ -1471,7 +1471,7 @@ function removePromotionField(button) {
 
 // 제출 버튼 클릭 시 즉시 포커스 제거 (mousedown 이벤트로 submit보다 먼저 처리)
 document.addEventListener('DOMContentLoaded', function() {
-    const submitButton = document.querySelector('button[type="submit"]');
+    const submitButton = document.getElementById('submitBtn');
     if (submitButton) {
         submitButton.addEventListener('mousedown', function(e) {
             // 모든 입력 필드의 포커스 즉시 제거
@@ -1483,6 +1483,36 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+// 엔터 키로 폼 제출 방지
+const productForm = document.getElementById('productForm');
+if (productForm) {
+    // 폼 내 모든 input, textarea, select에서 엔터 키 방지
+    const formInputs = productForm.querySelectorAll('input, textarea, select');
+    formInputs.forEach(input => {
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
+                e.preventDefault();
+                return false;
+            }
+        });
+    });
+}
+
+// 제출 버튼 클릭 이벤트
+const submitBtn = document.getElementById('submitBtn');
+if (submitBtn) {
+    submitBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        // 폼 검증 후 제출
+        const form = document.getElementById('productForm');
+        if (form.checkValidity()) {
+            form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+        } else {
+            form.reportValidity();
+        }
+    });
+}
 
 document.getElementById('productForm').addEventListener('submit', function(e) {
     e.preventDefault();
@@ -1588,7 +1618,7 @@ document.getElementById('productForm').addEventListener('submit', function(e) {
     });
     
     // 버튼에 포커스 주기 (입력 필드로 포커스가 가지 않도록)
-    const submitButton = document.querySelector('button[type="submit"]');
+    const submitButton = document.getElementById('submitBtn');
     if (submitButton) {
         submitButton.focus();
         setTimeout(function() {

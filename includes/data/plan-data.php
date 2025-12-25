@@ -206,6 +206,173 @@ function convertMvnoProductToPlanCard($product) {
 }
 
 /**
+ * 통신사유심(MNO-SIM) 상품을 plan 카드 형식으로 변환
+ */
+function convertMnoSimProductToPlanCard($product) {
+    // 데이터 제공량 포맷팅
+    $dataMain = '';
+    if (!empty($product['data_amount'])) {
+        if ($product['data_amount'] === '무제한') {
+            $dataMain = '무제한';
+        } elseif (!empty($product['data_amount_value']) && !empty($product['data_unit'])) {
+            $dataMain = number_format($product['data_amount_value']) . $product['data_unit'];
+        } elseif (!empty($product['data_amount'])) {
+            $dataMain = $product['data_amount'];
+        }
+        
+        // 데이터 추가제공 추가
+        if (!empty($product['data_additional']) && $product['data_additional'] !== '없음') {
+            if (!empty($product['data_additional_value'])) {
+                $dataMain .= ' + ' . $product['data_additional_value'];
+            } else {
+                $dataMain .= ' + ' . $product['data_additional'];
+            }
+        }
+        
+        // 데이터 소진시 추가
+        if (!empty($product['data_exhausted'])) {
+            if (!empty($product['data_exhausted_value'])) {
+                $dataMain .= ' +' . $product['data_exhausted_value'];
+            } else {
+                $dataMain .= ' +' . $product['data_exhausted'];
+            }
+        }
+    }
+    
+    // 기능 배열 생성
+    $features = [];
+    
+    // 통화 정보
+    if (!empty($product['call_type'])) {
+        $callType = trim($product['call_type']);
+        if ($callType === '무제한') {
+            $features[] = '통화 무제한';
+        } elseif ($callType === '기본제공') {
+            $features[] = '통화 기본제공';
+        } elseif (!empty($product['call_amount']) && !empty($product['call_amount_unit'])) {
+            $features[] = '통화 ' . number_format($product['call_amount']) . $product['call_amount_unit'];
+        }
+    }
+    
+    // 문자 정보
+    if (!empty($product['sms_type'])) {
+        $smsType = trim($product['sms_type']);
+        if ($smsType === '무제한') {
+            $features[] = '문자 무제한';
+        } elseif ($smsType === '기본제공') {
+            $features[] = '문자 기본제공';
+        } elseif (!empty($product['sms_amount']) && !empty($product['sms_amount_unit'])) {
+            $features[] = '문자 ' . number_format($product['sms_amount']) . $product['sms_amount_unit'];
+        }
+    }
+    
+    // 부가·영상통화 정보
+    if (!empty($product['additional_call_type']) && !empty($product['additional_call']) && !empty($product['additional_call_unit'])) {
+        $features[] = '부가영상통화 ' . number_format($product['additional_call']) . $product['additional_call_unit'];
+    }
+    
+    // 가격 포맷팅
+    $priceMain = '월 ' . number_format((int)$product['price_main']) . ($product['price_main_unit'] ?: '원');
+    
+    // price_after: 할인기간 + 할인기간 요금
+    $priceAfter = '';
+    $discountPeriod = '';
+    if (!empty($product['discount_period']) && $product['discount_period'] !== '프로모션 없음') {
+        if (!empty($product['discount_period_value']) && !empty($product['discount_period_unit'])) {
+            $discountPeriod = $product['discount_period_value'] . $product['discount_period_unit'];
+        } else {
+            $discountPeriod = $product['discount_period'];
+        }
+    }
+    
+    $priceAfterValue = '';
+    if (!empty($product['price_after_type'])) {
+        if ($product['price_after_type'] === 'free' || ($product['price_after'] !== null && $product['price_after'] == 0)) {
+            $priceAfterValue = '무료';
+        } elseif ($product['price_after_type'] === 'custom' && !empty($product['price_after'])) {
+            $priceAfterValue = '월 ' . number_format((int)$product['price_after']) . ($product['price_after_unit'] ?: '원');
+        }
+    }
+    
+    if ($discountPeriod && $priceAfterValue) {
+        $priceAfter = $discountPeriod . ' 이후 ' . $priceAfterValue;
+    } elseif ($priceAfterValue) {
+        $priceAfter = $priceAfterValue;
+    }
+    
+    // 선택 수 포맷팅
+    $applicationCount = isset($product['application_count']) ? (int)$product['application_count'] : 0;
+    $selectionCount = number_format($applicationCount) . '명이 선택';
+    
+    // 프로모션 목록 (gifts)
+    $gifts = [];
+    if (!empty($product['promotions'])) {
+        $promotions = json_decode($product['promotions'], true);
+        if (is_array($promotions)) {
+            $gifts = array_filter($promotions, function($p) {
+                return !empty(trim($p));
+            });
+        }
+    }
+    
+    // benefits도 확인
+    if (empty($gifts) && !empty($product['benefits'])) {
+        $benefits = json_decode($product['benefits'], true);
+        if (is_array($benefits)) {
+            $gifts = array_filter($benefits, function($b) {
+                return !empty(trim($b));
+            });
+        }
+    }
+    
+    // 프로모션 제목
+    $promotionTitle = $product['promotion_title'] ?? '';
+    
+    // 판매자명 가져오기
+    $sellerId = $product['seller_id'] ?? null;
+    $sellerName = '';
+    if ($sellerId) {
+        $seller = getSellerById($sellerId);
+        $sellerName = getSellerDisplayName($seller);
+    }
+    
+    // provider 필드에 판매자명 사용
+    $displayProvider = !empty($sellerName) ? $sellerName : ($product['provider'] ?? '판매자 정보 없음');
+    
+    // 평균 별점 가져오기
+    $productId = (int)$product['id'];
+    $averageRating = getProductAverageRating($productId, 'mno-sim');
+    $displayRating = $averageRating > 0 ? number_format($averageRating, 1) : '';
+    
+    // 제목 구성: "통신사 | 데이터속도 | 할인방법"
+    $title = ($product['provider'] ?? '') . ' | ' . ($product['service_type'] ?? '');
+    $contractPeriod = $product['contract_period'] ?? '';
+    if (!empty($contractPeriod)) {
+        $title .= ' | ' . $contractPeriod;
+        if (!empty($product['contract_period_discount_value']) && !empty($product['contract_period_discount_unit'])) {
+            $title .= ' ' . $product['contract_period_discount_value'] . $product['contract_period_discount_unit'];
+        }
+    }
+    
+    return [
+        'id' => $productId,
+        'status' => $product['status'] ?? 'active',
+        'provider' => $displayProvider,
+        'rating' => $displayRating,
+        'title' => $title,
+        'plan_name' => $product['plan_name'] ?? '',
+        'data_main' => $dataMain ?: '데이터 정보 없음',
+        'features' => $features,
+        'price_main' => $priceMain,
+        'price_after' => $priceAfter,
+        'selection_count' => $selectionCount,
+        'gifts' => $gifts,
+        'promotion_title' => $promotionTitle,
+        'gift_icons' => [],
+    ];
+}
+
+/**
  * 등록된 모든 MVNO 상품 목록 가져오기 (상세 정보 포함)
  * @param string $status 상품 상태 필터 (기본: 'active', null이면 모든 상태)
  * @return array 상품 배열
@@ -1993,6 +2160,171 @@ function getInternetDetailData($internet_id) {
         return null;
     } catch (Exception $e) {
         error_log("Unexpected error in getInternetDetailData: " . $e->getMessage());
+        return null;
+    }
+}
+
+/**
+ * 통신사유심(MNO-SIM) 상품 상세 데이터 가져오기
+ * @param int $product_id 통신사유심 상품 ID
+ * @return array|null 통신사유심 상품 데이터 또는 null
+ */
+function getMnoSimDetailData($product_id) {
+    $pdo = getDBConnection();
+    if (!$pdo) {
+        return null;
+    }
+    
+    // 현재 로그인한 사용자 ID 및 관리자 여부 확인 (에러 발생 시 무시)
+    $currentUserId = null;
+    $isAdmin = false;
+    try {
+        if (function_exists('isLoggedIn') && function_exists('getCurrentUser') && function_exists('isAdmin')) {
+            if (isLoggedIn()) {
+                $currentUser = getCurrentUser();
+                $currentUserId = $currentUser['user_id'] ?? null;
+                $isAdmin = isAdmin($currentUserId);
+            }
+        }
+    } catch (Exception $e) {
+        error_log("Warning: Failed to get current user in getMnoSimDetailData: " . $e->getMessage());
+    } catch (Error $e) {
+        error_log("Warning: Fatal error getting current user in getMnoSimDetailData: " . $e->getMessage());
+    }
+    
+    try {
+        // 관리자는 inactive 상태도 볼 수 있음
+        $statusCondition = $isAdmin ? "AND p.status != 'deleted'" : "AND p.status = 'active'";
+        
+        $stmt = $pdo->prepare("
+            SELECT 
+                p.id,
+                p.seller_id,
+                p.status,
+                p.view_count,
+                p.favorite_count,
+                p.review_count,
+                p.share_count,
+                p.application_count,
+                mno_sim.provider,
+                mno_sim.service_type,
+                mno_sim.plan_name,
+                mno_sim.contract_period,
+                mno_sim.contract_period_discount_value,
+                mno_sim.contract_period_discount_unit,
+                mno_sim.price_main,
+                mno_sim.price_main_unit,
+                mno_sim.discount_period,
+                mno_sim.discount_period_value,
+                mno_sim.discount_period_unit,
+                mno_sim.price_after_type,
+                mno_sim.price_after,
+                mno_sim.price_after_unit,
+                mno_sim.data_amount,
+                mno_sim.data_amount_value,
+                mno_sim.data_unit,
+                mno_sim.data_additional,
+                mno_sim.data_additional_value,
+                mno_sim.data_exhausted,
+                mno_sim.data_exhausted_value,
+                mno_sim.call_type,
+                mno_sim.call_amount,
+                mno_sim.call_amount_unit,
+                mno_sim.additional_call_type,
+                mno_sim.additional_call,
+                mno_sim.additional_call_unit,
+                mno_sim.sms_type,
+                mno_sim.sms_amount,
+                mno_sim.sms_amount_unit,
+                mno_sim.mobile_hotspot,
+                mno_sim.mobile_hotspot_value,
+                mno_sim.mobile_hotspot_unit,
+                mno_sim.regular_sim_available,
+                mno_sim.regular_sim_price,
+                mno_sim.regular_sim_price_unit,
+                mno_sim.nfc_sim_available,
+                mno_sim.nfc_sim_price,
+                mno_sim.nfc_sim_price_unit,
+                mno_sim.esim_available,
+                mno_sim.esim_price,
+                mno_sim.esim_price_unit,
+                mno_sim.over_data_price,
+                mno_sim.over_data_price_unit,
+                mno_sim.over_voice_price,
+                mno_sim.over_voice_price_unit,
+                mno_sim.over_video_price,
+                mno_sim.over_video_price_unit,
+                mno_sim.over_sms_price,
+                mno_sim.over_sms_price_unit,
+                mno_sim.over_lms_price,
+                mno_sim.over_lms_price_unit,
+                mno_sim.over_mms_price,
+                mno_sim.over_mms_price_unit,
+                mno_sim.plan_maintenance_period_type,
+                mno_sim.plan_maintenance_period_prefix,
+                mno_sim.plan_maintenance_period_value,
+                mno_sim.plan_maintenance_period_unit,
+                mno_sim.sim_change_restriction_period_type,
+                mno_sim.sim_change_restriction_period_prefix,
+                mno_sim.sim_change_restriction_period_value,
+                mno_sim.sim_change_restriction_period_unit,
+                mno_sim.promotion_title,
+                mno_sim.promotions,
+                mno_sim.benefits,
+                mno_sim.registration_types,
+                mno_sim.redirect_url
+            FROM products p
+            INNER JOIN product_mno_sim_details mno_sim ON p.id = mno_sim.product_id
+            WHERE p.id = :product_id 
+            AND p.product_type = 'mno-sim'
+            {$statusCondition}
+        ");
+        
+        $stmt->bindValue(':product_id', $product_id, PDO::PARAM_INT);
+        $stmt->execute();
+        
+        $product = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if ($product) {
+            // 통신사유심 데이터를 plan 카드 형식으로 변환
+            $planCard = convertMnoSimProductToPlanCard($product);
+            
+            // 찜 상태 확인
+            $isFavorited = false;
+            if ($currentUserId) {
+                try {
+                    $favStmt = $pdo->prepare("
+                        SELECT COUNT(*) 
+                        FROM product_favorites 
+                        WHERE user_id = :user_id 
+                        AND product_id = :product_id
+                        AND product_type = 'mno-sim'
+                    ");
+                    $favStmt->execute([
+                        ':user_id' => $currentUserId,
+                        ':product_id' => $product_id
+                    ]);
+                    $favCount = $favStmt->fetchColumn();
+                    $isFavorited = ($favCount > 0);
+                } catch (Exception $e) {
+                    error_log("Warning: Failed to get favorite status in getMnoSimDetailData: " . $e->getMessage());
+                }
+            }
+            
+            $planCard['is_favorited'] = $isFavorited;
+            
+            // 원본 상세 데이터도 함께 반환
+            $planCard['_raw_data'] = $product;
+            return $planCard;
+        }
+        
+        return null;
+    } catch (PDOException $e) {
+        error_log("Error fetching mno-sim detail data: " . $e->getMessage());
+        error_log("Product ID: " . $product_id);
+        return null;
+    } catch (Exception $e) {
+        error_log("Unexpected error in getMnoSimDetailData: " . $e->getMessage());
         return null;
     }
 }

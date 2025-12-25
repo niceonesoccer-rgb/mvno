@@ -37,7 +37,7 @@ if (isset($currentUser['withdrawal_requested']) && $currentUser['withdrawal_requ
 // 필터 파라미터
 $status = isset($_GET['status']) && trim($_GET['status']) !== '' ? trim($_GET['status']) : null;
 $searchKeyword = trim($_GET['search_keyword'] ?? '');
-$dateRange = $_GET['date_range'] ?? '7';
+$dateRange = $_GET['date_range'] ?? '7'; // 기본값 7일
 $page = max(1, intval($_GET['page'] ?? 1));
 $perPageValue = isset($_GET['per_page']) ? intval($_GET['per_page']) : 10;
 $perPage = in_array($perPageValue, [10, 20, 50, 100]) ? $perPageValue : 10;
@@ -129,6 +129,7 @@ try {
         $whereClause = implode(' AND ', $whereConditions);
         
         // 전체 개수 조회 (중복 방지를 위해 DISTINCT 사용)
+        // MVNO 페이지와 동일하게 products 조인 없이 카운트만 수행
         $countSql = "
             SELECT COUNT(DISTINCT a.id) as total
             FROM product_applications a
@@ -140,8 +141,9 @@ try {
         $totalOrders = $countStmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
         $totalPages = $perPage > 0 ? max(1, ceil($totalOrders / $perPage)) : 1;
         
-        // 주문 목록 조회 (중복 방지를 위해 DISTINCT 사용)
+        // 주문 목록 조회
         $offset = ($page - 1) * $perPage;
+        
         $sql = "
             SELECT DISTINCT
                 a.id as application_id,
@@ -154,12 +156,13 @@ try {
                 c.phone,
                 c.email,
                 c.additional_info,
-                p.id as product_id,
+                p.id as product_table_id,
                 mno_sim.plan_name,
                 mno_sim.provider,
                 mno_sim.service_type,
                 mno_sim.contract_period,
-                mno_sim.contract_period_discount,
+                mno_sim.contract_period_discount_value,
+                mno_sim.contract_period_discount_unit,
                 mno_sim.price_main,
                 mno_sim.price_after,
                 mno_sim.data_amount,
@@ -204,10 +207,173 @@ try {
         foreach ($params as $key => $value) {
             $stmt->bindValue($key, $value);
         }
-        $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
-        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-        $stmt->execute();
-        $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $stmt->bindValue(':limit', (int)$perPage, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', (int)$offset, PDO::PARAM_INT);
+        
+        // 디버깅: 바인딩된 파라미터 확인
+        error_log("MNO-SIM Orders Query - Bound limit: " . $perPage . " (type: " . gettype($perPage) . ")");
+        error_log("MNO-SIM Orders Query - Bound offset: " . $offset . " (type: " . gettype($offset) . ")");
+        
+        // 디버깅: 쿼리 실행 전 파라미터 확인
+        error_log("MNO-SIM Orders Query - About to execute with params: " . json_encode($params, JSON_UNESCAPED_UNICODE));
+        error_log("MNO-SIM Orders Query - Limit: " . $perPage . ", Offset: " . $offset);
+        
+        try {
+            $execResult = $stmt->execute();
+            error_log("MNO-SIM Orders Query - Execute result: " . ($execResult ? 'SUCCESS' : 'FAILED'));
+            if (!$execResult) {
+                $errorInfo = $stmt->errorInfo();
+                error_log("MNO-SIM Orders Query - Execute failed. Error Info: " . json_encode($errorInfo, JSON_UNESCAPED_UNICODE));
+                $orders = [];
+            } else {
+                $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                error_log("MNO-SIM Orders Query - Fetched " . count($orders) . " rows");
+                if (count($orders) > 0) {
+                    error_log("MNO-SIM Orders Query - First order before normalization: " . json_encode($orders[0], JSON_UNESCAPED_UNICODE));
+                }
+            }
+        } catch (PDOException $e) {
+            error_log("MNO-SIM Orders Query - PDO Exception: " . $e->getMessage());
+            error_log("MNO-SIM Orders Query - Error Code: " . $e->getCode());
+            error_log("MNO-SIM Orders Query - SQL State: " . $e->getCode());
+            error_log("MNO-SIM Orders Query - Trace: " . $e->getTraceAsString());
+            $orders = [];
+        } catch (Exception $e) {
+            error_log("MNO-SIM Orders Query - General Exception: " . $e->getMessage());
+            error_log("MNO-SIM Orders Query - Trace: " . $e->getTraceAsString());
+            $orders = [];
+        }
+        
+        // 디버깅: 정규화 전 orders 상태 확인
+        error_log("MNO-SIM Orders Query - Orders count before normalization: " . count($orders));
+        
+        // 디버깅: 쿼리 결과 로그
+        error_log("MNO-SIM Orders Query - Total results: " . count($orders));
+        error_log("MNO-SIM Orders Query - SQL: " . $sql);
+        error_log("MNO-SIM Orders Query - Orders array type: " . gettype($orders));
+        error_log("MNO-SIM Orders Query - Orders empty check: " . (empty($orders) ? 'TRUE' : 'FALSE'));
+        
+        // 실제 쿼리와 동일한 조건으로 직접 테스트
+        if (count($orders) == 0) {
+            error_log("MNO-SIM Orders Query - Testing with same SQL but direct LIMIT values...");
+            $testSqlDirect = str_replace(['LIMIT :limit OFFSET :offset'], ["LIMIT {$perPage} OFFSET {$offset}"], $sql);
+            $testStmtDirect = $pdo->prepare($testSqlDirect);
+            foreach ($params as $key => $value) {
+                $testStmtDirect->bindValue($key, $value);
+            }
+            $testStmtDirect->execute();
+            $testOrdersDirect = $testStmtDirect->fetchAll(PDO::FETCH_ASSOC);
+            error_log("MNO-SIM Orders Query - Direct LIMIT test result: " . count($testOrdersDirect) . " rows");
+            if (count($testOrdersDirect) > 0) {
+                error_log("MNO-SIM Orders Query - Direct LIMIT test first order: " . json_encode($testOrdersDirect[0], JSON_UNESCAPED_UNICODE));
+                // 직접 LIMIT으로 결과가 나오면 orders에 할당
+                $orders = $testOrdersDirect;
+                error_log("MNO-SIM Orders Query - Orders updated from direct LIMIT test");
+            }
+        }
+        if (count($orders) > 0) {
+            error_log("MNO-SIM Orders Query - First order keys: " . implode(', ', array_keys($orders[0])));
+        } else {
+            // products 조인 없이 테스트
+            $testSql = "
+                SELECT DISTINCT
+                    a.id as application_id,
+                    a.order_number,
+                    a.product_id
+                FROM product_applications a
+                INNER JOIN application_customers c ON a.id = c.application_id
+                WHERE $whereClause
+                LIMIT 1
+            ";
+            $testStmt = $pdo->prepare($testSql);
+            foreach ($params as $key => $value) {
+                $testStmt->bindValue($key, $value);
+            }
+            $testStmt->execute();
+            $testOrders = $testStmt->fetchAll(PDO::FETCH_ASSOC);
+            error_log("MNO-SIM Orders Query - Test without products join: " . count($testOrders) . " results");
+            if (count($testOrders) > 0) {
+                error_log("MNO-SIM Orders Query - Test order product_id: " . ($testOrders[0]['product_id'] ?? 'NULL'));
+                // 해당 product_id가 products 테이블에 있는지 확인
+                $productCheckStmt = $pdo->prepare("SELECT id FROM products WHERE id = :product_id");
+                $productCheckStmt->execute([':product_id' => $testOrders[0]['product_id']]);
+                $productExists = $productCheckStmt->fetch(PDO::FETCH_ASSOC);
+                error_log("MNO-SIM Orders Query - Product exists in products table: " . ($productExists ? 'YES' : 'NO'));
+            }
+        }
+        
+        if (count($orders) > 0) {
+            error_log("MNO-SIM Orders Query - First order: " . json_encode($orders[0], JSON_UNESCAPED_UNICODE));
+        } else {
+            // 결과가 없을 때 원인 파악을 위한 추가 쿼리
+            error_log("MNO-SIM Orders Query - No results found. Debugging...");
+            
+            // 1. 기본 카운트 (조인 없이)
+            $debugStmt = $pdo->prepare("
+                SELECT COUNT(*) as cnt FROM product_applications 
+                WHERE seller_id = :seller_id AND product_type = 'mno-sim'
+            ");
+            $debugStmt->execute([':seller_id' => $sellerId]);
+            $debugCount = $debugStmt->fetch(PDO::FETCH_ASSOC);
+            error_log("MNO-SIM Orders Query - Debug 1: mno-sim applications count (no join): " . ($debugCount['cnt'] ?? 0));
+            
+            // 2. application_customers 조인 확인
+            $debugStmt2 = $pdo->prepare("
+                SELECT COUNT(*) as cnt 
+                FROM product_applications a
+                INNER JOIN application_customers c ON a.id = c.application_id
+                WHERE a.seller_id = :seller_id AND a.product_type = 'mno-sim'
+            ");
+            $debugStmt2->execute([':seller_id' => $sellerId]);
+            $debugCount2 = $debugStmt2->fetch(PDO::FETCH_ASSOC);
+            error_log("MNO-SIM Orders Query - Debug 2: with customers join count: " . ($debugCount2['cnt'] ?? 0));
+            
+            // 3. products 조인 확인
+            $debugStmt3 = $pdo->prepare("
+                SELECT COUNT(*) as cnt 
+                FROM product_applications a
+                INNER JOIN application_customers c ON a.id = c.application_id
+                INNER JOIN products p ON a.product_id = p.id
+                WHERE a.seller_id = :seller_id AND a.product_type = 'mno-sim'
+            ");
+            $debugStmt3->execute([':seller_id' => $sellerId]);
+            $debugCount3 = $debugStmt3->fetch(PDO::FETCH_ASSOC);
+            error_log("MNO-SIM Orders Query - Debug 3: with products join count: " . ($debugCount3['cnt'] ?? 0));
+            
+            // 4. 날짜 필터 확인
+            if ($dateFrom && $dateTo) {
+                $debugStmt4 = $pdo->prepare("
+                    SELECT COUNT(*) as cnt 
+                    FROM product_applications a
+                    INNER JOIN application_customers c ON a.id = c.application_id
+                    INNER JOIN products p ON a.product_id = p.id
+                    WHERE a.seller_id = :seller_id 
+                    AND a.product_type = 'mno-sim'
+                    AND DATE(a.created_at) >= :date_from
+                    AND DATE(a.created_at) <= :date_to
+                ");
+                $debugStmt4->execute([
+                    ':seller_id' => $sellerId,
+                    ':date_from' => $dateFrom,
+                    ':date_to' => $dateTo
+                ]);
+                $debugCount4 = $debugStmt4->fetch(PDO::FETCH_ASSOC);
+                error_log("MNO-SIM Orders Query - Debug 4: with date filter count: " . ($debugCount4['cnt'] ?? 0));
+                error_log("MNO-SIM Orders Query - Debug 4: date_from: " . $dateFrom . ", date_to: " . $dateTo);
+            }
+            
+            // 5. 실제 신청 날짜 확인
+            $debugStmt5 = $pdo->prepare("
+                SELECT a.id, a.order_number, a.created_at, DATE(a.created_at) as created_date
+                FROM product_applications a
+                WHERE a.seller_id = :seller_id AND a.product_type = 'mno-sim'
+                ORDER BY a.created_at DESC
+                LIMIT 5
+            ");
+            $debugStmt5->execute([':seller_id' => $sellerId]);
+            $debugDates = $debugStmt5->fetchAll(PDO::FETCH_ASSOC);
+            error_log("MNO-SIM Orders Query - Debug 5: recent applications dates: " . json_encode($debugDates, JSON_UNESCAPED_UNICODE));
+        }
         
         // 주문 데이터 정규화
         foreach ($orders as &$order) {
@@ -864,9 +1030,98 @@ include __DIR__ . '/../includes/seller-header.php';
 ?>
 
 <!-- 디버깅 정보 -->
-<?php if (!empty($orders) && isset($_GET['debug'])): ?>
+<?php if (isset($_GET['debug'])): ?>
 <div style="background: #fff3cd; border: 2px solid #ffc107; padding: 15px; margin: 20px; border-radius: 8px; font-family: monospace; font-size: 12px;">
     <h3 style="margin-top: 0; color: #856404;">🔍 디버깅 정보</h3>
+    
+    <div style="margin-bottom: 15px;">
+        <strong>쿼리 정보:</strong><br>
+        <span style="color: #856404;">seller_id:</span> <?php echo htmlspecialchars($sellerId ?? 'N/A'); ?><br>
+        <span style="color: #856404;">dateRange:</span> <?php echo htmlspecialchars($dateRange ?? 'N/A'); ?><br>
+        <span style="color: #856404;">dateFrom:</span> <?php echo htmlspecialchars($dateFrom ?? 'N/A'); ?><br>
+        <span style="color: #856404;">dateTo:</span> <?php echo htmlspecialchars($dateTo ?? 'N/A'); ?><br>
+        <span style="color: #856404;">status:</span> <?php echo htmlspecialchars($status ?? 'N/A'); ?><br>
+        <span style="color: #856404;">totalOrders:</span> <?php echo $totalOrders; ?><br>
+        <span style="color: #856404;">orders count:</span> <?php echo count($orders); ?><br>
+        <span style="color: #856404;">orders empty check:</span> <?php echo empty($orders) ? 'TRUE (empty)' : 'FALSE (has data)'; ?><br>
+        <span style="color: #856404;">orders is_array:</span> <?php echo is_array($orders) ? 'YES' : 'NO'; ?><br>
+        <span style="color: #856404;">page:</span> <?php echo $page ?? 1; ?><br>
+        <span style="color: #856404;">perPage:</span> <?php echo $perPage ?? 10; ?><br>
+        <span style="color: #856404;">offset:</span> <?php echo isset($page, $perPage) ? (($page - 1) * $perPage) : 'N/A'; ?><br>
+    </div>
+    
+    <?php 
+    // 실제 쿼리 재실행하여 결과 확인
+    if (isset($pdo) && isset($sellerId) && isset($whereClause) && isset($params)) {
+        try {
+            $debugSql = "
+                SELECT DISTINCT
+                    a.id as application_id,
+                    a.order_number,
+                    a.product_id,
+                    a.application_status,
+                    a.created_at,
+                    c.name,
+                    c.phone,
+                    c.email
+                FROM product_applications a
+                INNER JOIN application_customers c ON a.id = c.application_id
+                INNER JOIN products p ON a.product_id = p.id
+                LEFT JOIN product_mno_sim_details mno_sim ON p.id = mno_sim.product_id
+                WHERE $whereClause
+                ORDER BY a.created_at DESC, a.id DESC
+                LIMIT 5
+            ";
+            $debugStmt = $pdo->prepare($debugSql);
+            foreach ($params as $key => $value) {
+                $debugStmt->bindValue($key, $value);
+            }
+            $debugStmt->execute();
+            $debugOrders = $debugStmt->fetchAll(PDO::FETCH_ASSOC);
+    ?>
+    <div style="margin-bottom: 15px; padding: 10px; background: #e7f3ff; border: 1px solid #b3d9ff; border-radius: 4px;">
+        <strong style="color: #004085;">🔍 실시간 쿼리 테스트:</strong><br>
+        <span style="color: #004085;">디버그 쿼리 결과: </span><?php echo count($debugOrders); ?>개<br>
+        <?php if (count($debugOrders) > 0): ?>
+        <div style="margin-top: 10px;">
+            <strong>첫 번째 결과:</strong><br>
+            <pre style="background: white; padding: 10px; border: 1px solid #b3d9ff; border-radius: 4px; overflow-x: auto; font-size: 11px; max-height: 200px; overflow-y: auto;"><?php echo htmlspecialchars(json_encode($debugOrders[0], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)); ?></pre>
+        </div>
+        <?php else: ?>
+        <div style="color: #721c24; margin-top: 10px;">
+            ⚠️ 디버그 쿼리도 결과가 없습니다. WHERE 조건을 확인하세요.<br>
+            <strong>WHERE 절:</strong> <?php echo htmlspecialchars($whereClause); ?><br>
+            <strong>파라미터:</strong> <?php echo htmlspecialchars(json_encode($params, JSON_UNESCAPED_UNICODE)); ?>
+        </div>
+        <?php endif; ?>
+    </div>
+    <?php 
+        } catch (Exception $e) {
+    ?>
+    <div style="margin-bottom: 15px; padding: 10px; background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 4px;">
+        <strong style="color: #721c24;">❌ 디버그 쿼리 실행 오류:</strong><br>
+        <?php echo htmlspecialchars($e->getMessage()); ?>
+    </div>
+    <?php 
+        }
+    }
+    ?>
+    
+    <?php if (is_array($orders) && count($orders) > 0): ?>
+    <div style="margin-bottom: 15px; padding: 10px; background: #d4edda; border: 1px solid #c3e6cb; border-radius: 4px;">
+        <strong style="color: #155724;">✅ 주문 데이터가 있습니다!</strong><br>
+        <span style="color: #155724;">첫 번째 주문 데이터:</span><br>
+        <pre style="background: white; padding: 10px; border: 1px solid #c3e6cb; border-radius: 4px; overflow-x: auto; font-size: 11px;"><?php echo htmlspecialchars(json_encode($orders[0], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)); ?></pre>
+    </div>
+    <?php else: ?>
+    <div style="margin-bottom: 15px; padding: 10px; background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 4px;">
+        <strong style="color: #721c24;">❌ 주문 데이터가 없습니다!</strong><br>
+        <span style="color: #721c24;">orders 변수 타입: </span><?php echo gettype($orders); ?><br>
+        <span style="color: #721c24;">orders 값: </span><?php echo var_export($orders, true); ?><br>
+    </div>
+    <?php endif; ?>
+    
+    <?php if (!empty($orders)): ?>
     <table style="width: 100%; border-collapse: collapse;">
         <thead>
             <tr style="background: #ffeaa7;">
@@ -889,16 +1144,23 @@ include __DIR__ . '/../includes/seller-header.php';
             <?php endforeach; ?>
         </tbody>
     </table>
+    <?php else: ?>
+    <div style="color: #d63031; font-weight: bold;">
+        ⚠️ 주문이 없습니다. 에러 로그를 확인하세요.
+    </div>
+    <?php endif; ?>
+    
     <p style="margin: 10px 0 0 0; color: #856404;">
-        <strong>참고:</strong> URL에 <code>?debug=1</code>을 추가하면 이 정보가 표시됩니다.
+        <strong>참고:</strong> URL에 <code>?debug=1</code>을 추가하면 이 정보가 표시됩니다.<br>
+        에러 로그 위치: <code>C:\xampp\apache\logs\error.log</code> 또는 <code>C:\xampp\php\logs\php_error_log</code>
     </p>
 </div>
 <?php endif; ?>
 
 <div class="orders-container">
     <div class="orders-header">
-        <h1>알뜰폰 주문 관리</h1>
-        <p>알뜰폰 상품 주문 내역을 확인하고 관리하세요</p>
+        <h1>통신사유심 주문 관리</h1>
+        <p>통신사유심 상품 주문 내역을 확인하고 관리하세요</p>
     </div>
     
     <!-- 필터 -->
@@ -1494,7 +1756,7 @@ function showProductInfo(order, productType) {
             addRowIfNotDash(overLimitRows, '음성', overVoicePrice);
             addRowIfNotDash(overLimitRows, '영상통화', overVideoPrice);
             addRowIfNotDash(overLimitRows, '단문메시지(SMS)', overSmsPrice);
-            addRowIfNotDash(overLimitRows, '텍스트형(LMS,MMS)', overLmsPrice);
+            addRowIfNotDash(overLimitRows, '텍스트형(LMS)', overLmsPrice);
             addRowIfNotDash(overLimitRows, '멀티미디어형(MMS)', overMmsPrice);
             
             if (overLimitRows.length > 0) {

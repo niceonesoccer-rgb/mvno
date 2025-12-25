@@ -72,7 +72,7 @@ if ($productId <= 0) {
     exit;
 }
 
-$validTypes = ['mvno', 'mno', 'internet'];
+$validTypes = ['mvno', 'mno', 'internet', 'mno-sim'];
 if (!in_array($productType, $validTypes)) {
     http_response_code(400);
     echo json_encode([
@@ -129,6 +129,9 @@ try {
             break;
         case 'internet':
             $detailTable = 'product_internet_details';
+            break;
+        case 'mno-sim':
+            $detailTable = 'product_mno_sim_details';
             break;
     }
     

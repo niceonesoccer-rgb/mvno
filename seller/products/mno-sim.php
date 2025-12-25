@@ -64,18 +64,20 @@ function formatDecimalForInput($value) {
     return rtrim(rtrim($str, '0'), '.');
 }
 
-// 수정 모드: 상품 데이터 불러오기 (DB 설계 전까지는 비활성화)
+// 수정 모드: 상품 데이터 불러오기
 $productId = isset($_GET['id']) ? intval($_GET['id']) : 0;
 $productData = null;
 $isEditMode = false;
 
-// TODO: DB 설계 후 수정 모드 구현
-/*
 if ($productId > 0) {
     try {
         $pdo = getDBConnection();
         if ($pdo) {
+            // seller_id는 문자열일 수 있으므로 문자열로 처리
             $sellerId = (string)$currentUser['user_id'];
+            
+            // 디버깅: seller_id 확인
+            error_log("Checking product ID: $productId, seller_id: $sellerId (type: " . gettype($sellerId) . ")");
             
             // 기본 상품 정보 조회
             $stmt = $pdo->prepare("
@@ -86,7 +88,7 @@ if ($productId > 0) {
                 ':product_id' => $productId,
                 ':seller_id' => $sellerId
             ]);
-            $product = $stmt->fetch();
+            $product = $stmt->fetch(PDO::FETCH_ASSOC);
             
             if ($product) {
                 // 통신사유심 상세 정보 조회
@@ -98,10 +100,43 @@ if ($productId > 0) {
                 $detailStmt->setFetchMode(PDO::FETCH_ASSOC);
                 $productDetail = $detailStmt->fetch();
                 
+                // 디버깅: 쿼리 결과 확인
+                error_log("Product query result: " . json_encode($product, JSON_UNESCAPED_UNICODE));
+                error_log("ProductDetail query result: " . json_encode($productDetail, JSON_UNESCAPED_UNICODE));
+                
                 if ($productDetail) {
                     $isEditMode = true;
                     $productData = array_merge($product, $productDetail);
-                    
+                } else {
+                    // productDetail이 없어도 기본 정보는 표시
+                    error_log("Warning: product_mno_sim_details에서 데이터를 찾을 수 없습니다. product_id: $productId");
+                    $isEditMode = true;
+                    $productData = $product; // 기본 정보만 사용
+                    $productDetail = []; // 빈 배열로 설정하여 오류 방지
+                }
+                
+                // 디버깅: 원본 데이터를 JSON으로 로그 출력 (productDetail이 있어도 없어도 실행)
+                $debugData = [
+                    'product_id' => $productId,
+                    'product_basic' => $product,
+                    'product_detail' => $productDetail ?? null,
+                    'merged_data' => $productData ?? null,
+                    'key_fields' => isset($productData) ? [
+                        'discount_period' => $productData['discount_period'] ?? 'NULL',
+                        'call_type' => $productData['call_type'] ?? 'NULL',
+                        'sms_type' => $productData['sms_type'] ?? 'NULL',
+                        'data_amount' => $productData['data_amount'] ?? 'NULL',
+                        'data_additional' => $productData['data_additional'] ?? 'NULL',
+                        'data_exhausted' => $productData['data_exhausted'] ?? 'NULL',
+                        'additional_call_type' => $productData['additional_call_type'] ?? 'NULL',
+                        'mobile_hotspot' => $productData['mobile_hotspot'] ?? 'NULL',
+                    ] : 'productData 없음'
+                ];
+                error_log("=== Product Data Loaded (ID: $productId) ===");
+                error_log("Full Data (JSON): " . json_encode($debugData, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+                
+                // productData가 있을 때만 파싱 처리
+                if (isset($productData) && is_array($productData)) {
                     // price_after 처리: null이면 'free' (공짜), 숫자(0 포함)면 그대로 표시
                     // PDO에서 가져온 값이 실제 null인지 확인 (0과 구분)
                     // PDO::FETCH_ASSOC를 사용하면 null 값이 PHP null로 반환됨
@@ -318,14 +353,13 @@ if ($productId > 0) {
                             }
                         }
                     }
-                }
-            }
-        }
+                } // end if (isset($productData))
+            } // end if ($product)
+        } // end if ($pdo)
     } catch (PDOException $e) {
         error_log("Error loading product: " . $e->getMessage());
     }
 }
-*/
 
 // 페이지별 스타일
 $pageStyles = '
@@ -725,12 +759,19 @@ document.addEventListener('DOMContentLoaded', function() {
             if (isset($productData['contract_period']) && !empty($productData['contract_period'])) {
                 if ($productData['contract_period'] === '선택약정할인' || $productData['contract_period'] === '공시지원할인') {
                     $contractPeriodType = $productData['contract_period'];
-                    if (isset($productData['contract_period_discount'])) {
+                    // 새로운 구조: contract_period_discount_value와 contract_period_discount_unit를 직접 사용
+                    if (isset($productData['contract_period_discount_value']) && !empty($productData['contract_period_discount_value'])) {
+                        $contractPeriodParsed = [
+                            'value' => $productData['contract_period_discount_value'],
+                            'unit' => isset($productData['contract_period_discount_unit']) ? $productData['contract_period_discount_unit'] : '개월'
+                        ];
+                    } elseif (isset($productData['contract_period_discount'])) {
+                        // 기존 데이터 호환: contract_period_discount 문자열 파싱
                         if (preg_match('/(\d+)(개월|월|일)/', $productData['contract_period_discount'], $matches)) {
                             $contractPeriodParsed = ['value' => $matches[1], 'unit' => ($matches[2] === '개월' || $matches[2] === '월') ? '개월' : '일'];
                         }
                     } elseif (preg_match('/(\d+)(개월|월|일)/', $productData['contract_period'], $matches)) {
-                        // 기존 데이터 호환
+                        // 기존 데이터 호환: contract_period에서 파싱
                         $contractPeriodParsed = ['value' => $matches[1], 'unit' => ($matches[2] === '개월' || $matches[2] === '월') ? '개월' : '일'];
                     }
                 }
@@ -843,26 +884,47 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
             
             <?php
-            // 요금제 유지기간 파싱
+            // 요금제 유지기간 파싱 - DB에는 개별 필드로 저장되어 있음
             $planMaintenanceType = '무약정';
             $planMaintenanceParsed = [];
-            if (isset($productData['plan_maintenance_period']) && !empty($productData['plan_maintenance_period'])) {
-                if ($productData['plan_maintenance_period'] === '무약정') {
-                    $planMaintenanceType = '무약정';
-                } elseif (preg_match('/^(M|D)\+(\d+)(개월|일)$/u', $productData['plan_maintenance_period'], $matches)) {
-                    $planMaintenanceParsed = ['prefix' => $matches[1], 'value' => $matches[2], 'unit' => $matches[3]];
-                    $planMaintenanceType = '직접입력';
+            
+            // DB에서 개별 필드로 가져오기
+            if (isset($productData['plan_maintenance_period_type']) && !empty($productData['plan_maintenance_period_type'])) {
+                $planMaintenanceType = $productData['plan_maintenance_period_type'];
+                
+                if ($planMaintenanceType === '직접입력') {
+                    // 개별 필드에서 값 가져오기
+                    if (isset($productData['plan_maintenance_period_prefix']) && 
+                        isset($productData['plan_maintenance_period_value']) && 
+                        isset($productData['plan_maintenance_period_unit'])) {
+                        $planMaintenanceParsed = [
+                            'prefix' => $productData['plan_maintenance_period_prefix'],
+                            'value' => $productData['plan_maintenance_period_value'],
+                            'unit' => $productData['plan_maintenance_period_unit']
+                        ];
+                    }
                 }
             }
-            // 유심기변 불가기간 파싱
+            
+            // 유심기변 불가기간 파싱 - DB에는 개별 필드로 저장되어 있음
             $simChangeRestrictionType = '무약정';
             $simChangeRestrictionParsed = [];
-            if (isset($productData['sim_change_restriction_period']) && !empty($productData['sim_change_restriction_period'])) {
-                if ($productData['sim_change_restriction_period'] === '무약정') {
-                    $simChangeRestrictionType = '무약정';
-                } elseif (preg_match('/^(M|D)\+(\d+)(개월|일)$/u', $productData['sim_change_restriction_period'], $matches)) {
-                    $simChangeRestrictionParsed = ['prefix' => $matches[1], 'value' => $matches[2], 'unit' => $matches[3]];
-                    $simChangeRestrictionType = '직접입력';
+            
+            // DB에서 개별 필드로 가져오기
+            if (isset($productData['sim_change_restriction_period_type']) && !empty($productData['sim_change_restriction_period_type'])) {
+                $simChangeRestrictionType = $productData['sim_change_restriction_period_type'];
+                
+                if ($simChangeRestrictionType === '직접입력') {
+                    // 개별 필드에서 값 가져오기
+                    if (isset($productData['sim_change_restriction_period_prefix']) && 
+                        isset($productData['sim_change_restriction_period_value']) && 
+                        isset($productData['sim_change_restriction_period_unit'])) {
+                        $simChangeRestrictionParsed = [
+                            'prefix' => $productData['sim_change_restriction_period_prefix'],
+                            'value' => $productData['sim_change_restriction_period_value'],
+                            'unit' => $productData['sim_change_restriction_period_unit']
+                        ];
+                    }
                 }
             }
             ?>
@@ -877,14 +939,14 @@ document.addEventListener('DOMContentLoaded', function() {
                             <option value="무약정" <?php echo $planMaintenanceType === '무약정' ? 'selected' : ''; ?>>무약정</option>
                             <option value="직접입력" <?php echo $planMaintenanceType === '직접입력' ? 'selected' : ''; ?>>직접입력</option>
                         </select>
-                        <div id="plan_maintenance_period_input" style="gap: 0; align-items: center; display: none;">
-                            <select name="plan_maintenance_period_prefix" id="plan_maintenance_period_prefix" class="form-select" style="max-width: 70px; min-width: 70px; border-top-right-radius: 0; border-bottom-right-radius: 0;">
+                        <div id="plan_maintenance_period_input" style="gap: 0; align-items: center; display: <?php echo $planMaintenanceType === '직접입력' ? 'flex' : 'none'; ?>;">
+                            <select name="plan_maintenance_period_prefix" id="plan_maintenance_period_prefix" class="form-select" style="max-width: 70px; min-width: 70px; border-top-right-radius: 0; border-bottom-right-radius: 0;" <?php echo $planMaintenanceType === '직접입력' ? '' : 'disabled'; ?>>
                                 <option value="M" <?php echo (isset($planMaintenanceParsed['prefix']) && $planMaintenanceParsed['prefix'] === 'M') ? 'selected' : ''; ?>>M</option>
                                 <option value="D" <?php echo (isset($planMaintenanceParsed['prefix']) && $planMaintenanceParsed['prefix'] === 'D') ? 'selected' : ''; ?>>D</option>
                             </select>
                             <span style="font-size: 15px; color: #374151; padding: 0 4px;">+</span>
-                            <input type="number" name="plan_maintenance_period_value" id="plan_maintenance_period_value" class="form-control" placeholder="6" min="0" max="9999" maxlength="4" style="max-width: 120px; border-radius: 0;" value="<?php echo isset($planMaintenanceParsed['value']) ? htmlspecialchars($planMaintenanceParsed['value']) : ''; ?>">
-                            <select name="plan_maintenance_period_unit" id="plan_maintenance_period_unit" class="form-select" style="max-width: 90px; border-top-left-radius: 0; border-bottom-left-radius: 0;">
+                            <input type="number" name="plan_maintenance_period_value" id="plan_maintenance_period_value" class="form-control" placeholder="6" min="0" max="9999" maxlength="4" style="max-width: 120px; border-radius: 0;" value="<?php echo isset($planMaintenanceParsed['value']) ? htmlspecialchars($planMaintenanceParsed['value']) : ''; ?>" <?php echo $planMaintenanceType === '직접입력' ? '' : 'disabled'; ?>>
+                            <select name="plan_maintenance_period_unit" id="plan_maintenance_period_unit" class="form-select" style="max-width: 90px; border-top-left-radius: 0; border-bottom-left-radius: 0;" <?php echo $planMaintenanceType === '직접입력' ? '' : 'disabled'; ?>>
                                 <option value="개월" <?php echo (isset($planMaintenanceParsed['unit']) && $planMaintenanceParsed['unit'] === '개월') ? 'selected' : ''; ?>>개월</option>
                                 <option value="일" <?php echo (isset($planMaintenanceParsed['unit']) && $planMaintenanceParsed['unit'] === '일') ? 'selected' : ''; ?>>일</option>
                             </select>
@@ -901,14 +963,14 @@ document.addEventListener('DOMContentLoaded', function() {
                             <option value="무약정" <?php echo $simChangeRestrictionType === '무약정' ? 'selected' : ''; ?>>무약정</option>
                             <option value="직접입력" <?php echo $simChangeRestrictionType === '직접입력' ? 'selected' : ''; ?>>직접입력</option>
                         </select>
-                        <div id="sim_change_restriction_period_input" style="gap: 0; align-items: center; display: none;">
-                            <select name="sim_change_restriction_period_prefix" id="sim_change_restriction_period_prefix" class="form-select" style="max-width: 70px; min-width: 70px; border-top-right-radius: 0; border-bottom-right-radius: 0;">
+                        <div id="sim_change_restriction_period_input" style="gap: 0; align-items: center; display: <?php echo $simChangeRestrictionType === '직접입력' ? 'flex' : 'none'; ?>;">
+                            <select name="sim_change_restriction_period_prefix" id="sim_change_restriction_period_prefix" class="form-select" style="max-width: 70px; min-width: 70px; border-top-right-radius: 0; border-bottom-right-radius: 0;" <?php echo $simChangeRestrictionType === '직접입력' ? '' : 'disabled'; ?>>
                                 <option value="M" <?php echo (isset($simChangeRestrictionParsed['prefix']) && $simChangeRestrictionParsed['prefix'] === 'M') ? 'selected' : ''; ?>>M</option>
                                 <option value="D" <?php echo (isset($simChangeRestrictionParsed['prefix']) && $simChangeRestrictionParsed['prefix'] === 'D') ? 'selected' : ''; ?>>D</option>
                             </select>
                             <span style="font-size: 15px; color: #374151; padding: 0 4px;">+</span>
-                            <input type="number" name="sim_change_restriction_period_value" id="sim_change_restriction_period_value" class="form-control" placeholder="185" min="0" max="9999" maxlength="4" style="max-width: 120px; border-radius: 0;" value="<?php echo isset($simChangeRestrictionParsed['value']) ? htmlspecialchars($simChangeRestrictionParsed['value']) : ''; ?>">
-                            <select name="sim_change_restriction_period_unit" id="sim_change_restriction_period_unit" class="form-select" style="max-width: 90px; border-top-left-radius: 0; border-bottom-left-radius: 0;">
+                            <input type="number" name="sim_change_restriction_period_value" id="sim_change_restriction_period_value" class="form-control" placeholder="185" min="0" max="9999" maxlength="4" style="max-width: 120px; border-radius: 0;" value="<?php echo isset($simChangeRestrictionParsed['value']) ? htmlspecialchars($simChangeRestrictionParsed['value']) : ''; ?>" <?php echo $simChangeRestrictionType === '직접입력' ? '' : 'disabled'; ?>>
+                            <select name="sim_change_restriction_period_unit" id="sim_change_restriction_period_unit" class="form-select" style="max-width: 90px; border-top-left-radius: 0; border-bottom-left-radius: 0;" <?php echo $simChangeRestrictionType === '직접입력' ? '' : 'disabled'; ?>>
                                 <option value="개월" <?php echo (isset($simChangeRestrictionParsed['unit']) && $simChangeRestrictionParsed['unit'] === '개월') ? 'selected' : ''; ?>>개월</option>
                                 <option value="일" <?php echo (isset($simChangeRestrictionParsed['unit']) && $simChangeRestrictionParsed['unit'] === '일') ? 'selected' : ''; ?>>일</option>
                             </select>
@@ -1169,7 +1231,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 <div style="flex: 1;">
                     <label class="form-label" for="over_lms_price">
-                        텍스트형(LMS,MMS)
+                        텍스트형(LMS)
                     </label>
                     <div style="display: flex; gap: 0; align-items: center;">
                         <input type="text" name="over_lms_price" id="over_lms_price" class="form-control" placeholder="33" maxlength="8" style="max-width: 150px; border-top-right-radius: 0; border-bottom-right-radius: 0;" value="<?php echo isset($productData['over_lms_price']) ? htmlspecialchars(formatIntegerForInput($productData['over_lms_price'])) : ''; ?>">
@@ -1278,7 +1340,7 @@ document.addEventListener('DOMContentLoaded', function() {
         <!-- 제출 버튼 -->
         <div class="form-actions">
             <a href="/MVNO/seller/products/" class="btn btn-secondary">취소</a>
-            <button type="submit" class="btn btn-primary">
+            <button type="button" id="submitBtn" class="btn btn-primary">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M5 13l4 4L19 7"/>
                 </svg>
@@ -1322,16 +1384,40 @@ document.addEventListener('DOMContentLoaded', function() {
         const select = document.getElementById(selectId);
         const container = document.getElementById(inputContainerId);
         if (!select || !container) {
-            console.log('toggleInputField: 요소를 찾을 수 없음', selectId, inputContainerId);
+            console.error('toggleInputField: 요소를 찾을 수 없음', {selectId, inputContainerId, select: !!select, container: !!container});
             return;
         }
         
         // 초기 상태 설정
         const initialValue = select.value;
         const isInitiallyShow = initialValue === triggerValue;
+        
+        // 디버깅: 상세 정보 로그 (명확하게 출력)
+        const allOptions = Array.from(select.options).map(opt => ({
+            value: opt.value, 
+            text: opt.text, 
+            selected: opt.selected
+        }));
+        
+        console.log(`[toggleInputField] ${selectId}:`, {
+            '초기값': initialValue,
+            '트리거값': triggerValue,
+            '표시여부': isInitiallyShow ? 'YES' : 'NO',
+            '표시타입': displayType,
+            '컨테이너표시': container.style.display,
+            '선택된옵션': allOptions.find(opt => opt.selected) || '없음',
+            '모든옵션': allOptions
+        });
+        
         // display 속성만 업데이트 (margin-top 등 다른 스타일 유지)
         container.style.display = isInitiallyShow ? displayType : 'none';
-        console.log('toggleInputField init:', selectId, 'value:', initialValue, 'triggerValue:', triggerValue, 'isShow:', isInitiallyShow, 'display:', container.style.display);
+        
+        // 추가 디버깅: 실제 DOM 상태 확인
+        if (!isInitiallyShow && initialValue !== triggerValue) {
+            console.log(`  → ${selectId}: "${initialValue}" !== "${triggerValue}" 이므로 필드 숨김`);
+        } else if (isInitiallyShow) {
+            console.log(`  → ${selectId}: "${initialValue}" === "${triggerValue}" 이므로 필드 표시`);
+        }
         
         if (inputId) {
             const input = document.getElementById(inputId);
@@ -1397,10 +1483,48 @@ document.addEventListener('DOMContentLoaded', function() {
     function setupSimpleToggle(selectId, containerId, triggerValue, displayType = 'flex') {
         const select = document.getElementById(selectId);
         const container = document.getElementById(containerId);
-        if (!select || !container) return;
+        
+        console.log('[DEBUG] setupSimpleToggle 호출:', {
+            selectId,
+            containerId,
+            triggerValue,
+            select: select ? '존재' : '없음',
+            container: container ? '존재' : '없음',
+            selectValue: select ? select.value : 'N/A'
+        });
+        
+        if (!select || !container) {
+            console.warn('[DEBUG] setupSimpleToggle 실패: select 또는 container가 없습니다');
+            return;
+        }
         
         const updateDisplay = () => {
-            container.style.display = (select.value === triggerValue) ? displayType : 'none';
+            const isShow = (select.value === triggerValue);
+            console.log('[DEBUG] updateDisplay:', {
+                selectId,
+                selectValue: select.value,
+                triggerValue,
+                isShow,
+                displayType
+            });
+            
+            container.style.display = isShow ? displayType : 'none';
+            
+            // 입력 필드들 활성화/비활성화 처리
+            const inputs = container.querySelectorAll('input, select');
+            console.log('[DEBUG] 입력 필드 개수:', inputs.length);
+            
+            inputs.forEach((input, index) => {
+                if (isShow) {
+                    input.removeAttribute('disabled');
+                    input.disabled = false;
+                    console.log(`[DEBUG] 입력 필드 ${index} 활성화:`, input.id || input.name, input.value);
+                } else {
+                    input.setAttribute('disabled', 'disabled');
+                    input.disabled = true;
+                    console.log(`[DEBUG] 입력 필드 ${index} 비활성화:`, input.id || input.name);
+                }
+            });
         };
         
         select.addEventListener('change', updateDisplay);
@@ -1492,8 +1616,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // 할인방법 (약정기간)
     limitNumericInput('contract_period_discount_value', 4);
     
-    // 할인기간(프로모션기간)
-    toggleInputField('discount_period', 'discount_period_input', '직접입력', 'discount_period_value', null, 'flex');
+    // 할인기간(프로모션기간) - 약간의 지연을 두고 초기화 (DOM이 완전히 렌더링된 후)
+    setTimeout(() => {
+        console.log('=== Initializing toggleInputField functions ===');
+        toggleInputField('discount_period', 'discount_period_input', '직접입력', 'discount_period_value', null, 'flex');
+    }, 100);
     limitNumericInput('discount_period_value', 4);
     
     // 할인기간요금(프로모션기간요금)
@@ -1528,32 +1655,46 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // 통화
-    toggleInputField('call_type', 'call_type_input', '직접입력', 'call_amount', null, 'flex');
+    // 통화 - 약간의 지연을 두고 초기화
+    setTimeout(() => {
+        toggleInputField('call_type', 'call_type_input', '직접입력', 'call_amount', null, 'flex');
+    }, 100);
     limitNumericInput('call_amount', 4);
     
-    // 문자
-    toggleInputField('sms_type', 'sms_type_input', '직접입력', 'sms_amount', null, 'flex');
+    // 문자 - 약간의 지연을 두고 초기화
+    setTimeout(() => {
+        toggleInputField('sms_type', 'sms_type_input', '직접입력', 'sms_amount', null, 'flex');
+    }, 100);
     limitNumericInput('sms_amount', 4);
     
-    // 데이터 제공량
-    toggleInputField('data_amount', 'data_amount_input', '직접입력', 'data_amount_value', null, 'flex');
+    // 데이터 제공량 - 약간의 지연을 두고 초기화
+    setTimeout(() => {
+        toggleInputField('data_amount', 'data_amount_input', '직접입력', 'data_amount_value', null, 'flex');
+    }, 100);
     limitNumericInput('data_amount_value', 4);
     
-    // 데이터 추가제공 (텍스트 입력)
-    toggleInputField('data_additional', 'data_additional_input', '직접입력', 'data_additional_value');
+    // 데이터 추가제공 (텍스트 입력) - 약간의 지연을 두고 초기화
+    setTimeout(() => {
+        toggleInputField('data_additional', 'data_additional_input', '직접입력', 'data_additional_value');
+    }, 100);
     limitTextInput('data_additional_value', 15, false);
     
-    // 데이터 소진시 (텍스트 입력)
-    toggleInputField('data_exhausted', 'data_exhausted_input', '직접입력', 'data_exhausted_value');
+    // 데이터 소진시 (텍스트 입력) - 약간의 지연을 두고 초기화
+    setTimeout(() => {
+        toggleInputField('data_exhausted', 'data_exhausted_input', '직접입력', 'data_exhausted_value');
+    }, 100);
     limitTextInput('data_exhausted_value', 50, false);
     
-    // 부가·영상통화
-    toggleInputField('additional_call_type', 'additional_call_input', '직접입력', 'additional_call', null, 'flex');
+    // 부가·영상통화 - 약간의 지연을 두고 초기화
+    setTimeout(() => {
+        toggleInputField('additional_call_type', 'additional_call_input', '직접입력', 'additional_call', null, 'flex');
+    }, 100);
     limitNumericInput('additional_call', 4);
     
-    // 테더링(핫스팟)
-    toggleInputField('mobile_hotspot', 'mobile_hotspot_input', '직접입력', 'mobile_hotspot_value', null, 'flex');
+    // 테더링(핫스팟) - 약간의 지연을 두고 초기화
+    setTimeout(() => {
+        toggleInputField('mobile_hotspot', 'mobile_hotspot_input', '직접입력', 'mobile_hotspot_value', null, 'flex');
+    }, 100);
     limitNumericInput('mobile_hotspot_value', 4);
     
     // 일반 유심 (유심비 유료 또는 배송가능일 때 표시)
@@ -1613,11 +1754,127 @@ document.addEventListener('DOMContentLoaded', function() {
     limitNumericInput('sim_change_restriction_period_value', 4);
     
     // 요금제 유지기간 및 유심기변 불가기간 토글
+    console.log('[DEBUG] 요금제 유지기간 및 유심기변 불가기간 토글 초기화 시작');
+    
+    // PHP에서 설정된 초기값 확인
+    const planMaintenanceTypeSelect = document.getElementById('plan_maintenance_period_type');
+    const simChangeRestrictionTypeSelect = document.getElementById('sim_change_restriction_period_type');
+    
+    console.log('[DEBUG] PHP에서 설정된 초기값:', {
+        planMaintenanceType: planMaintenanceTypeSelect ? planMaintenanceTypeSelect.value : '없음',
+        simChangeRestrictionType: simChangeRestrictionTypeSelect ? simChangeRestrictionTypeSelect.value : '없음',
+        planMaintenanceTypeOptions: planMaintenanceTypeSelect ? Array.from(planMaintenanceTypeSelect.options).map(opt => ({
+            value: opt.value,
+            selected: opt.selected,
+            text: opt.text
+        })) : '없음',
+        simChangeRestrictionTypeOptions: simChangeRestrictionTypeSelect ? Array.from(simChangeRestrictionTypeSelect.options).map(opt => ({
+            value: opt.value,
+            selected: opt.selected,
+            text: opt.text
+        })) : '없음'
+    });
+    
     setupSimpleToggle('plan_maintenance_period_type', 'plan_maintenance_period_input', '직접입력', 'flex');
     setupSimpleToggle('sim_change_restriction_period_type', 'sim_change_restriction_period_input', '직접입력', 'flex');
     
+    // 수정 모드에서 초기 로드 시 입력 필드 활성화 확인
+    console.log('[DEBUG] 초기 로드 시 입력 필드 활성화 확인 시작');
+    const planMaintenanceType = document.getElementById('plan_maintenance_period_type');
+    const planMaintenanceInput = document.getElementById('plan_maintenance_period_input');
+    console.log('[DEBUG] 요금제 유지기간 필드 상태:', {
+        planMaintenanceType: planMaintenanceType ? planMaintenanceType.value : '없음',
+        planMaintenanceInput: planMaintenanceInput ? '존재' : '없음',
+        planMaintenanceInputDisplay: planMaintenanceInput ? planMaintenanceInput.style.display : 'N/A'
+    });
     
-    // 폼 제출
+    if (planMaintenanceType && planMaintenanceInput) {
+        if (planMaintenanceType.value === '직접입력') {
+            console.log('[DEBUG] 요금제 유지기간: 직접입력 선택됨, 입력 필드 활성화');
+            planMaintenanceInput.style.display = 'flex';
+            const inputs = planMaintenanceInput.querySelectorAll('input, select');
+            console.log('[DEBUG] 요금제 유지기간 입력 필드 개수:', inputs.length);
+            inputs.forEach((input, index) => {
+                input.removeAttribute('disabled');
+                input.disabled = false;
+                console.log(`[DEBUG] 요금제 유지기간 입력 필드 ${index} 활성화:`, {
+                    id: input.id,
+                    name: input.name,
+                    value: input.value,
+                    disabled: input.disabled
+                });
+            });
+        } else {
+            console.log('[DEBUG] 요금제 유지기간: 무약정 선택됨');
+        }
+    } else {
+        console.warn('[DEBUG] 요금제 유지기간 필드를 찾을 수 없습니다');
+    }
+    
+    const simChangeRestrictionType = document.getElementById('sim_change_restriction_period_type');
+    const simChangeRestrictionInput = document.getElementById('sim_change_restriction_period_input');
+    console.log('[DEBUG] 유심기변 불가기간 필드 상태:', {
+        simChangeRestrictionType: simChangeRestrictionType ? simChangeRestrictionType.value : '없음',
+        simChangeRestrictionInput: simChangeRestrictionInput ? '존재' : '없음',
+        simChangeRestrictionInputDisplay: simChangeRestrictionInput ? simChangeRestrictionInput.style.display : 'N/A'
+    });
+    
+    if (simChangeRestrictionType && simChangeRestrictionInput) {
+        if (simChangeRestrictionType.value === '직접입력') {
+            console.log('[DEBUG] 유심기변 불가기간: 직접입력 선택됨, 입력 필드 활성화');
+            simChangeRestrictionInput.style.display = 'flex';
+            const inputs = simChangeRestrictionInput.querySelectorAll('input, select');
+            console.log('[DEBUG] 유심기변 불가기간 입력 필드 개수:', inputs.length);
+            inputs.forEach((input, index) => {
+                input.removeAttribute('disabled');
+                input.disabled = false;
+                console.log(`[DEBUG] 유심기변 불가기간 입력 필드 ${index} 활성화:`, {
+                    id: input.id,
+                    name: input.name,
+                    value: input.value,
+                    disabled: input.disabled
+                });
+            });
+        } else {
+            console.log('[DEBUG] 유심기변 불가기간: 무약정 선택됨');
+        }
+    } else {
+        console.warn('[DEBUG] 유심기변 불가기간 필드를 찾을 수 없습니다');
+    }
+    console.log('[DEBUG] 초기 로드 시 입력 필드 활성화 확인 완료');
+    
+    
+    // 엔터 키로 폼 제출 방지
+    const productForm = document.getElementById('productForm');
+    if (productForm) {
+        // 폼 내 모든 input, textarea, select에서 엔터 키 방지
+        const formInputs = productForm.querySelectorAll('input, textarea, select');
+        formInputs.forEach(input => {
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
+                    e.preventDefault();
+                    return false;
+                }
+            });
+        });
+    }
+    
+    // 제출 버튼 클릭 이벤트
+    const submitBtn = document.getElementById('submitBtn');
+    if (submitBtn) {
+        submitBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            // 폼 검증 후 제출
+            const form = document.getElementById('productForm');
+            if (form.checkValidity()) {
+                form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+            } else {
+                form.reportValidity();
+            }
+        });
+    }
+    
+    // 폼 제출 (버튼 클릭 시에만)
     document.getElementById('productForm').addEventListener('submit', function(e) {
         e.preventDefault();
         
@@ -1756,21 +2013,23 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const formData = new FormData(this);
         
-        // 할인방법 (약정기간) 합치기
+        // 할인방법 (약정기간) 처리
         const contractPeriodSelect = document.getElementById('contract_period');
         if (contractPeriodSelect) {
             const contractPeriodValue = contractPeriodSelect.value;
+            formData.set('contract_period', contractPeriodValue);
+            
             const contractPeriodDiscountValue = document.getElementById('contract_period_discount_value');
             const contractPeriodDiscountUnit = document.getElementById('contract_period_discount_unit');
             if (contractPeriodDiscountValue && contractPeriodDiscountUnit) {
                 const value = contractPeriodDiscountValue.value.trim();
                 const unit = contractPeriodDiscountUnit.value;
                 if (value !== '') {
-                    formData.set('contract_period', contractPeriodValue);
-                    formData.set('contract_period_discount', value + unit);
+                    formData.set('contract_period_discount_value', value);
+                    formData.set('contract_period_discount_unit', unit);
                 } else {
-                    formData.set('contract_period', contractPeriodValue);
-                    formData.set('contract_period_discount', '');
+                    formData.set('contract_period_discount_value', '');
+                    formData.set('contract_period_discount_unit', '');
                 }
             }
         }
@@ -1818,52 +2077,102 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // 요금제 유지기간 합치기
+        console.log('[DEBUG] 요금제 유지기간 폼 제출 처리 시작');
         const planMaintenanceType = document.getElementById('plan_maintenance_period_type');
+        console.log('[DEBUG] 요금제 유지기간 타입:', planMaintenanceType ? planMaintenanceType.value : '없음');
+        
         if (planMaintenanceType) {
             if (planMaintenanceType.value === '무약정') {
+                console.log('[DEBUG] 요금제 유지기간: 무약정으로 설정');
                 formData.set('plan_maintenance_period', '무약정');
             } else if (planMaintenanceType.value === '직접입력') {
                 const planMaintenancePrefix = document.getElementById('plan_maintenance_period_prefix');
                 const planMaintenanceValue = document.getElementById('plan_maintenance_period_value');
                 const planMaintenanceUnit = document.getElementById('plan_maintenance_period_unit');
+                
+                console.log('[DEBUG] 요금제 유지기간 직접입력 필드:', {
+                    prefix: planMaintenancePrefix ? planMaintenancePrefix.value : '없음',
+                    value: planMaintenanceValue ? planMaintenanceValue.value : '없음',
+                    unit: planMaintenanceUnit ? planMaintenanceUnit.value : '없음',
+                    prefixDisabled: planMaintenancePrefix ? planMaintenancePrefix.disabled : 'N/A',
+                    valueDisabled: planMaintenanceValue ? planMaintenanceValue.disabled : 'N/A',
+                    unitDisabled: planMaintenanceUnit ? planMaintenanceUnit.disabled : 'N/A'
+                });
+                
                 if (planMaintenancePrefix && planMaintenanceValue && planMaintenanceUnit) {
                     const prefix = planMaintenancePrefix.value;
                     const value = planMaintenanceValue.value.trim();
                     const unit = planMaintenanceUnit.value;
                     if (value !== '') {
-                        formData.set('plan_maintenance_period', prefix + '+' + value + unit);
+                        const combinedValue = prefix + '+' + value + unit;
+                        console.log('[DEBUG] 요금제 유지기간 합쳐진 값:', combinedValue);
+                        formData.set('plan_maintenance_period', combinedValue);
                     } else {
+                        console.log('[DEBUG] 요금제 유지기간: 값이 비어있음');
                         formData.set('plan_maintenance_period', '');
                     }
+                } else {
+                    console.warn('[DEBUG] 요금제 유지기간: 필드 중 일부가 없습니다');
                 }
             } else {
+                console.log('[DEBUG] 요금제 유지기간: 알 수 없는 값, 빈 값으로 설정');
                 formData.set('plan_maintenance_period', '');
             }
+        } else {
+            console.warn('[DEBUG] 요금제 유지기간 타입 필드를 찾을 수 없습니다');
         }
         
         // 유심기변 불가기간 합치기
+        console.log('[DEBUG] 유심기변 불가기간 폼 제출 처리 시작');
         const simChangeRestrictionType = document.getElementById('sim_change_restriction_period_type');
+        console.log('[DEBUG] 유심기변 불가기간 타입:', simChangeRestrictionType ? simChangeRestrictionType.value : '없음');
+        
         if (simChangeRestrictionType) {
             if (simChangeRestrictionType.value === '무약정') {
+                console.log('[DEBUG] 유심기변 불가기간: 무약정으로 설정');
                 formData.set('sim_change_restriction_period', '무약정');
             } else if (simChangeRestrictionType.value === '직접입력') {
                 const simChangeRestrictionPrefix = document.getElementById('sim_change_restriction_period_prefix');
                 const simChangeRestrictionValue = document.getElementById('sim_change_restriction_period_value');
                 const simChangeRestrictionUnit = document.getElementById('sim_change_restriction_period_unit');
+                
+                console.log('[DEBUG] 유심기변 불가기간 직접입력 필드:', {
+                    prefix: simChangeRestrictionPrefix ? simChangeRestrictionPrefix.value : '없음',
+                    value: simChangeRestrictionValue ? simChangeRestrictionValue.value : '없음',
+                    unit: simChangeRestrictionUnit ? simChangeRestrictionUnit.value : '없음',
+                    prefixDisabled: simChangeRestrictionPrefix ? simChangeRestrictionPrefix.disabled : 'N/A',
+                    valueDisabled: simChangeRestrictionValue ? simChangeRestrictionValue.disabled : 'N/A',
+                    unitDisabled: simChangeRestrictionUnit ? simChangeRestrictionUnit.disabled : 'N/A'
+                });
+                
                 if (simChangeRestrictionPrefix && simChangeRestrictionValue && simChangeRestrictionUnit) {
                     const prefix = simChangeRestrictionPrefix.value;
                     const value = simChangeRestrictionValue.value.trim();
                     const unit = simChangeRestrictionUnit.value;
                     if (value !== '') {
-                        formData.set('sim_change_restriction_period', prefix + '+' + value + unit);
+                        const combinedValue = prefix + '+' + value + unit;
+                        console.log('[DEBUG] 유심기변 불가기간 합쳐진 값:', combinedValue);
+                        formData.set('sim_change_restriction_period', combinedValue);
                     } else {
+                        console.log('[DEBUG] 유심기변 불가기간: 값이 비어있음');
                         formData.set('sim_change_restriction_period', '');
                     }
+                } else {
+                    console.warn('[DEBUG] 유심기변 불가기간: 필드 중 일부가 없습니다');
                 }
             } else {
+                console.log('[DEBUG] 유심기변 불가기간: 알 수 없는 값, 빈 값으로 설정');
                 formData.set('sim_change_restriction_period', '');
             }
+        } else {
+            console.warn('[DEBUG] 유심기변 불가기간 타입 필드를 찾을 수 없습니다');
         }
+        
+        // 폼 데이터 확인
+        console.log('[DEBUG] 최종 폼 데이터:', {
+            plan_maintenance_period: formData.get('plan_maintenance_period'),
+            sim_change_restriction_period: formData.get('sim_change_restriction_period')
+        });
         
         // redirect_url 처리: 체크박스가 체크되지 않았으면 빈 값으로 설정
         const enableRedirectUrlCheckbox = document.getElementById('enable_redirect_url');
@@ -1894,8 +2203,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     // 수정 모드면 등록 상품 리스트로, 등록 모드면 등록 페이지로
                     const productId = formData.get('product_id');
                     if (productId && productId !== '0') {
-                        // 수정 모드: 등록 상품 리스트로 리다이렉트
-                        window.location.href = '/MVNO/seller/products/?success=1';
+                        // 수정 모드: 상품관리(등록 상품 목록) 페이지로 리다이렉트
+                        window.location.href = '/MVNO/seller/products/mno-sim-list.php?success=1';
                     } else {
                         // 등록 모드: 등록 페이지로 리다이렉트
                         window.location.href = '/MVNO/seller/products/mno-sim.php?success=1';

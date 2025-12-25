@@ -37,17 +37,36 @@ $user_id = $currentUser['user_id'];
 // 필요한 함수 포함
 require_once '../includes/data/product-functions.php';
 require_once '../includes/data/db-config.php';
-require_once '../includes/data/contract-type-functions.php';
 require_once '../includes/data/plan-data.php';
 
 // DB에서 실제 신청 내역 가져오기
-$applications = getUserMvnoApplications($user_id);
+$applications = getUserMnoSimApplications($user_id);
 
 // 헤더 포함
 include '../includes/header.php';
 // 리뷰 모달 포함
 include '../includes/components/mvno-review-modal.php';
 ?>
+
+<style>
+/* 전화번호 버튼 반응형 스타일 */
+@media (max-width: 768px) {
+    .phone-inquiry-pc {
+        display: none !important;
+    }
+    .phone-inquiry-mobile {
+        display: flex !important;
+    }
+}
+@media (min-width: 769px) {
+    .phone-inquiry-pc {
+        display: block !important;
+    }
+    .phone-inquiry-mobile {
+        display: none !important;
+    }
+}
+</style>
 
 <main class="main-content">
     <div class="content-layout">
@@ -61,16 +80,16 @@ include '../includes/components/mvno-review-modal.php';
                                 <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                             </svg>
                         </a>
-                        <h2 style="font-size: 24px; font-weight: bold; margin: 0;">신청한 알뜰폰</h2>
+                        <h2 style="font-size: 24px; font-weight: bold; margin: 0;">신청한 통신사유심</h2>
                     </div>
                     <p style="font-size: 14px; color: #6b7280; margin: 0; margin-left: 36px;">카드를 클릭하면 신청 정보를 확인할 수 있습니다.</p>
                 </div>
                 
-                <!-- 신청한 알뜰폰 목록 -->
+                <!-- 신청한 통신사유심 목록 -->
                 <div style="margin-bottom: 32px;">
                     <?php if (empty($applications)): ?>
                         <div style="padding: 40px 20px; text-align: center; color: #6b7280;">
-                            신청한 알뜰폰이 없습니다.
+                            신청한 통신사유심이 없습니다.
                         </div>
                     <?php else: ?>
                         <div style="display: flex; flex-direction: column; gap: 16px;" id="applicationsContainer">
@@ -80,7 +99,8 @@ include '../includes/components/mvno-review-modal.php';
                                      data-application-id="<?php echo htmlspecialchars($app['application_id'] ?? ''); ?>"
                                      style="<?php echo $index >= 10 ? 'display: none;' : ''; ?> padding: 24px; border: 1px solid #e5e7eb; border-radius: 12px; background: white; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.05);"
                                      onmouseover="this.style.borderColor='#6366f1'; this.style.boxShadow='0 4px 12px rgba(99, 102, 241, 0.15)'"
-                                     onmouseout="this.style.borderColor='#e5e7eb'; this.style.boxShadow='0 1px 3px rgba(0,0,0,0.05)'">
+                                     onmouseout="this.style.borderColor='#e5e7eb'; this.style.boxShadow='0 1px 3px rgba(0,0,0,0.05)'"
+                                     onclick="openModal(<?php echo htmlspecialchars($app['application_id'] ?? ''); ?>)">
                                     
                                     <!-- 상단: 요금제 정보 -->
                                     <div style="position: relative; margin-bottom: 16px;">
@@ -107,7 +127,7 @@ include '../includes/components/mvno-review-modal.php';
                                         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                                             <div style="flex: 1;">
                                                 <div style="font-size: 20px; font-weight: 700; color: #1f2937; margin-bottom: 6px; line-height: 1.3;">
-                                                    <?php echo htmlspecialchars($app['provider'] ?? '알 수 없음'); ?> <?php echo htmlspecialchars($app['title'] ?? '요금제 정보 없음'); ?>
+                                                    <?php echo htmlspecialchars($app['title'] ?? ($app['plan_name'] ?? '요금제 정보 없음')); ?>
                                                 </div>
                                                 <?php if (!empty($app['data_main'])): ?>
                                                     <div style="font-size: 14px; color: #6b7280; margin-bottom: 8px;">
@@ -130,24 +150,24 @@ include '../includes/components/mvno-review-modal.php';
                                         </div>
                                     </div>
                                     
-                                    <!-- 중간: 약정기간 및 프로모션 기간 -->
+                                    <!-- 중간: 요금제 유지기간 및 유심기변 불가기간 -->
                                     <div style="display: flex; gap: 16px; flex-wrap: wrap; padding: 12px 0; margin-bottom: 12px;">
-                                        <?php if (!empty($app['contract_period'])): ?>
+                                        <?php if (!empty($app['plan_maintenance_period'])): ?>
                                             <div style="display: flex; align-items: center; gap: 6px;">
                                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="color: #6366f1; flex-shrink: 0;">
-                                                    <path d="M8 2V6M16 2V6M3 10H21M5 4H19C20.1046 4 21 4.89543 21 6V20C21 21.1046 20.1046 22 19 22H5C3.89543 22 3 21.1046 3 20V6C3 4.89543 3.89543 4 5 4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                                    <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM13 17H11V15H13V17ZM13 13H11V7H13V13Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                                                 </svg>
-                                                <span style="font-size: 13px; color: #6b7280;">약정기간:</span>
-                                                <span style="font-size: 13px; color: #374151; font-weight: 600;"><?php echo htmlspecialchars($app['contract_period']); ?></span>
+                                                <span style="font-size: 13px; color: #6b7280;">요금제 유지기간:</span>
+                                                <span style="font-size: 13px; color: #374151; font-weight: 600;"><?php echo htmlspecialchars($app['plan_maintenance_period']); ?></span>
                                             </div>
                                         <?php endif; ?>
-                                        <?php if (!empty($app['discount_period'])): ?>
+                                        <?php if (!empty($app['sim_change_restriction_period'])): ?>
                                             <div style="display: flex; align-items: center; gap: 6px;">
-                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="color: #10b981; flex-shrink: 0;">
-                                                    <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="color: #8b5cf6; flex-shrink: 0;">
+                                                    <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM13 17H11V15H13V17ZM13 13H11V7H13V13Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                                                 </svg>
-                                                <span style="font-size: 13px; color: #6b7280;">프로모션:</span>
-                                                <span style="font-size: 13px; color: #10b981; font-weight: 600;"><?php echo htmlspecialchars($app['discount_period']); ?></span>
+                                                <span style="font-size: 13px; color: #6b7280;">유심기변 불가기간:</span>
+                                                <span style="font-size: 13px; color: #8b5cf6; font-weight: 600;"><?php echo htmlspecialchars($app['sim_change_restriction_period']); ?></span>
                                             </div>
                                         <?php endif; ?>
                                     </div>
@@ -203,31 +223,18 @@ include '../includes/components/mvno-review-modal.php';
                                     
                                     <!-- 판매자 정보 및 리뷰 작성 영역 -->
                                     <?php
-                                    // getUserMvnoApplications는 'id' 키에 product_id를 저장하고 'product_id' 키도 추가함
                                     $productId = $app['product_id'] ?? ($app['id'] ?? 0);
                                     $applicationId = $app['application_id'] ?? '';
                                     
-                                    // 판매자 정보 가져오기 (모든 상태에서)
-                                    // getUserMvnoApplications에서 seller_id를 반환 배열에 포함시킴
+                                    // 판매자 정보 가져오기
                                     $sellerId = isset($app['seller_id']) && $app['seller_id'] > 0 ? (int)$app['seller_id'] : null;
                                     $seller = null;
                                     $sellerPhone = '';
                                     
-                                    // 디버깅: 초기값 확인
-                                    error_log("MVNO Order Debug - application_id: {$applicationId}, product_id: {$productId}, seller_id from app: " . ($sellerId ?: 'NULL'));
-                                    
                                     if ($sellerId) {
                                         // 판매자 정보 가져오기
-                                        $seller = getSellerById($sellerId);
-                                        
-                                        // 디버깅: 판매자 정보 조회 결과
-                                        if ($seller) {
-                                            error_log("MVNO Order Debug - seller found for seller_id {$sellerId}: name=" . ($seller['seller_name'] ?? '') . ", phone=" . ($seller['phone'] ?? '') . ", mobile=" . ($seller['mobile'] ?? ''));
-                                        } else {
-                                            error_log("MVNO Order Debug - seller NOT found for seller_id: {$sellerId}");
-                                        }
+                                        $seller = getUserById($sellerId);
                                     } else {
-                                        error_log("MVNO Order Debug - No seller_id in application data for product_id: {$productId}");
                                         // seller_id가 없으면 product_id로 다시 시도
                                         try {
                                             $pdo = getDBConnection();
@@ -237,18 +244,16 @@ include '../includes/components/mvno-review-modal.php';
                                                 $product = $sellerStmt->fetch(PDO::FETCH_ASSOC);
                                                 if ($product && !empty($product['seller_id'])) {
                                                     $sellerId = $product['seller_id'];
-                                                    $seller = getSellerById($sellerId);
-                                                    error_log("MVNO Order Debug - seller_id found via products table: {$sellerId}");
+                                                    $seller = getUserById($sellerId);
                                                 }
                                             }
                                         } catch (Exception $e) {
-                                            error_log("MVNO Order Debug - Exception: " . $e->getMessage());
+                                            error_log("Error getting seller info: " . $e->getMessage());
                                         }
                                     }
                                     
                                     $sellerPhone = $seller ? ($seller['phone'] ?? ($seller['mobile'] ?? '')) : '';
                                     $sellerChatUrl = $seller ? ($seller['chat_consultation_url'] ?? '') : '';
-                                    error_log("MVNO Order Debug - Final sellerPhone for application {$applicationId}: " . ($sellerPhone ?: 'EMPTY'));
                                     
                                     // 판매자명 가져오기 (seller_name > company_name > name 우선순위)
                                     $sellerName = '';
@@ -262,50 +267,43 @@ include '../includes/components/mvno-review-modal.php';
                                         }
                                     }
                                     
-                                    // 판매자명과 전화번호 결합 (두 칸 띄고)
                                     $sellerPhoneDisplay = $sellerPhone;
                                     if ($sellerName && $sellerPhone) {
                                         $sellerPhoneDisplay = $sellerName . '  ' . $sellerPhone;
                                     }
                                     
-                                    // 개통완료 또는 종료 상태일 때만 리뷰 버튼 표시 (인터넷과 동일하게)
+                                    // 개통완료 또는 종료 상태일 때만 리뷰 버튼 표시
+                                    $appStatus = $app['application_status'] ?? '';
                                     $canWrite = in_array($appStatus, ['activation_completed', 'completed', 'closed', 'terminated']);
                                     
-                                    // 디버깅: 화면에 임시로 정보 표시 (나중에 제거) - URL에 ?debug=1 추가하면 표시됨
-                                    $debugInfo = [
-                                        'product_id' => $productId,
-                                        'application_id' => $applicationId,
-                                        'seller_id_from_app' => $app['seller_id'] ?? 'NULL',
-                                        'seller_id_used' => $sellerId ?: 'NULL',
-                                        'seller_found' => $seller ? 'YES' : 'NO',
-                                        'seller_phone' => $sellerPhone ?: 'EMPTY',
-                                        'seller_name' => $sellerName ?: 'EMPTY',
-                                        'canWrite' => $canWrite ? 'YES' : 'NO',
-                                        'appStatus' => $appStatus ?: 'EMPTY'
-                                    ];
                                     $hasReview = false;
                                     $buttonText = '리뷰 작성';
-                                    $buttonClass = 'mvno-review-write-btn';
+                                    $buttonClass = 'mno-sim-review-write-btn';
                                     $buttonBgColor = '#EF4444';
                                     $buttonHoverColor = '#dc2626';
+                                    $buttonDataReviewId = '';
                                     
-                                    if ($canWrite) {
-                                        // 주문건별로 여러 리뷰 작성 가능하므로 항상 "리뷰 작성" 버튼 표시
-                                        // 최근 작성한 리뷰가 있으면 수정 가능하도록 확인
-                                        $latestReviewId = null;
-                                        if ($applicationId && $productId) {
-                                            try {
-                                                $pdo = getDBConnection();
-                                                if ($pdo) {
-                                                    // 같은 주문건의 최근 리뷰 확인 (수정용)
+                                    if ($canWrite && $applicationId && $productId) {
+                                        // 리뷰 작성 여부 확인
+                                        try {
+                                            $pdo = getDBConnection();
+                                            if ($pdo) {
+                                                // application_id 컬럼 존재 여부 확인
+                                                $hasApplicationId = false;
+                                                try {
+                                                    $checkStmt = $pdo->query("SHOW COLUMNS FROM product_reviews LIKE 'application_id'");
+                                                    $hasApplicationId = $checkStmt->rowCount() > 0;
+                                                } catch (PDOException $e) {}
+                                                
+                                                if ($hasApplicationId && !empty($applicationId)) {
                                                     $reviewStmt = $pdo->prepare("
                                                         SELECT id 
                                                         FROM product_reviews 
                                                         WHERE application_id = :application_id 
                                                         AND product_id = :product_id 
                                                         AND user_id = :user_id 
-                                                        AND product_type = 'mvno'
-                                                        AND status != 'deleted'
+                                                        AND product_type = 'mno-sim'
+                                                        AND status = 'approved'
                                                         ORDER BY created_at DESC
                                                         LIMIT 1
                                                     ");
@@ -314,52 +312,44 @@ include '../includes/components/mvno-review-modal.php';
                                                         ':product_id' => $productId,
                                                         ':user_id' => $user_id
                                                     ]);
-                                                    $reviewResult = $reviewStmt->fetch(PDO::FETCH_ASSOC);
-                                                    if ($reviewResult) {
-                                                        $latestReviewId = $reviewResult['id'];
-                                                        $hasReview = true;
-                                                    }
+                                                } else {
+                                                    $reviewStmt = $pdo->prepare("
+                                                        SELECT id 
+                                                        FROM product_reviews 
+                                                        WHERE product_id = :product_id 
+                                                        AND user_id = :user_id 
+                                                        AND product_type = 'mno-sim'
+                                                        AND status = 'approved'
+                                                        ORDER BY created_at DESC
+                                                        LIMIT 1
+                                                    ");
+                                                    $reviewStmt->execute([
+                                                        ':product_id' => $productId,
+                                                        ':user_id' => $user_id
+                                                    ]);
                                                 }
-                                            } catch (Exception $e) {
-                                                error_log("Error checking review: " . $e->getMessage());
+                                                
+                                                $reviewResult = $reviewStmt->fetch(PDO::FETCH_ASSOC);
+                                                if ($reviewResult) {
+                                                    $latestReviewId = $reviewResult['id'];
+                                                    $hasReview = true;
+                                                    $buttonDataReviewId = ' data-review-id="' . htmlspecialchars($latestReviewId) . '"';
+                                                }
                                             }
+                                        } catch (Exception $e) {
+                                            error_log("Error checking review: " . $e->getMessage());
                                         }
                                         
                                         // 최근 리뷰가 있으면 "리뷰 수정", 없으면 "리뷰 작성"
                                         $buttonText = $hasReview ? '리뷰 수정' : '리뷰 작성';
-                                        $buttonClass = $hasReview ? 'mvno-review-edit-btn' : 'mvno-review-write-btn';
+                                        $buttonClass = $hasReview ? 'mno-sim-review-edit-btn' : 'mno-sim-review-write-btn';
                                         $buttonBgColor = $hasReview ? '#6b7280' : '#EF4444';
                                         $buttonHoverColor = $hasReview ? '#4b5563' : '#dc2626';
-                                        
-                                        // 최근 리뷰 ID를 data 속성에 저장 (수정 시 사용)
-                                        if ($latestReviewId) {
-                                            $buttonDataReviewId = ' data-review-id="' . htmlspecialchars($latestReviewId) . '"';
-                                        } else {
-                                            $buttonDataReviewId = '';
-                                        }
                                     }
-                                    
-                                    // 디버깅: 조건 확인
-                                    error_log("MVNO Order Debug - Condition check: sellerPhone=" . ($sellerPhone ?: 'EMPTY') . ", sellerChatUrl=" . ($sellerChatUrl ?: 'EMPTY') . ", canWrite=" . ($canWrite ? 'true' : 'false') . ", will show section=" . (($sellerPhone || $sellerChatUrl || $canWrite) ? 'YES' : 'NO'));
                                     
                                     // 판매자 전화번호, 채팅상담, 리뷰 버튼이 필요한 경우에만 섹션 표시
                                     if ($sellerPhone || $sellerChatUrl || $canWrite):
                                     ?>
-                                        <!-- 디버깅 정보 (임시) -->
-                                        <?php if (isset($_GET['debug']) && $_GET['debug'] === '1'): ?>
-                                        <div style="margin-top: 8px; padding: 8px; background: #fef3c7; border: 1px solid #f59e0b; border-radius: 4px; font-size: 12px; color: #92400e;">
-                                            <strong>디버그 정보:</strong><br>
-                                            product_id: <?php echo htmlspecialchars($debugInfo['product_id']); ?><br>
-                                            seller_id (from app): <?php echo htmlspecialchars($debugInfo['seller_id_from_app']); ?><br>
-                                            seller_id (used): <?php echo htmlspecialchars($debugInfo['seller_id_used']); ?><br>
-                                            seller found: <?php echo htmlspecialchars($debugInfo['seller_found']); ?><br>
-                                            seller_phone: <?php echo htmlspecialchars($debugInfo['seller_phone']); ?><br>
-                                            seller_chat_url: <?php echo htmlspecialchars($sellerChatUrl ?: 'EMPTY'); ?><br>
-                                            canWrite: <?php echo htmlspecialchars($debugInfo['canWrite']); ?><br>
-                                            condition: sellerPhone=<?php echo $sellerPhone ? 'YES' : 'NO'; ?> || sellerChatUrl=<?php echo $sellerChatUrl ? 'YES' : 'NO'; ?> || canWrite=<?php echo $canWrite ? 'YES' : 'NO'; ?> = <?php echo ($sellerPhone || $sellerChatUrl || $canWrite) ? 'SHOW' : 'HIDE'; ?>
-                                        </div>
-                                        <?php endif; ?>
-                                        
                                         <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #e5e7eb;">
                                             <?php
                                             // 버튼 개수 계산
@@ -421,8 +411,9 @@ include '../includes/components/mvno-review-modal.php';
                                                         class="<?php echo $buttonClass; ?>" 
                                                         data-application-id="<?php echo htmlspecialchars($applicationId); ?>"
                                                         data-product-id="<?php echo htmlspecialchars($productId); ?>"
+                                                        data-product-type="mno-sim"
                                                         data-has-review="<?php echo $hasReview ? '1' : '0'; ?>"
-                                                        <?php if (isset($buttonDataReviewId)) echo $buttonDataReviewId; ?>
+                                                        <?php echo $buttonDataReviewId; ?>
                                                         style="width: 100%; padding: 12px 16px; background: <?php echo $buttonBgColor; ?>; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: background 0.2s;"
                                                         onmouseover="this.style.background='<?php echo $buttonHoverColor; ?>'"
                                                         onmouseout="this.style.background='<?php echo $buttonBgColor; ?>'">
@@ -485,355 +476,8 @@ include '../includes/components/mvno-review-modal.php';
 }
 </style>
 
-<!-- 전화번호 반응형 스타일 및 리뷰 삭제 버튼 스타일 -->
-<style>
-@media (max-width: 768px) {
-    .phone-inquiry-pc {
-        display: none !important;
-    }
-    .phone-inquiry-mobile {
-        display: flex !important;
-    }
-}
-@media (min-width: 769px) {
-    .phone-inquiry-pc {
-        display: block !important;
-    }
-    .phone-inquiry-mobile {
-        display: none !important;
-    }
-}
-
-/* MVNO 리뷰 삭제 버튼 스타일 */
-.mvno-review-btn-delete {
-    background: #fee2e2;
-    color: #dc2626;
-    padding: 16px 20px;
-    border-radius: 12px;
-    font-size: 16px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    border: none;
-}
-
-.mvno-review-btn-delete:hover {
-    background: #fecaca;
-    color: #b91c1c;
-    transform: translateY(-1px);
-}
-
-.mvno-review-btn-delete:active {
-    transform: translateY(0);
-}
-</style>
-
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // MVNO 리뷰 작성/수정 기능
-    const reviewWriteButtons = document.querySelectorAll('.mvno-review-write-btn, .mvno-review-edit-btn');
-    const reviewModal = document.getElementById('mvnoReviewModal');
-    const reviewForm = document.getElementById('mvnoReviewForm');
-    const reviewModalClose = reviewModal ? reviewModal.querySelector('.mvno-review-modal-close') : null;
-    const reviewModalOverlay = reviewModal ? reviewModal.querySelector('.mvno-review-modal-overlay') : null;
-    const reviewCancelBtn = reviewForm ? reviewForm.querySelector('.mvno-review-btn-cancel') : null;
-    
-    let currentReviewApplicationId = null;
-    let currentReviewProductId = null;
-    let currentReviewId = null;
-    let isEditMode = false;
-    
-    // 리뷰 작성/수정 버튼 클릭 이벤트
-    reviewWriteButtons.forEach(btn => {
-        btn.addEventListener('click', function(e) {
-            e.stopPropagation(); // 카드 클릭 이벤트 방지
-            currentReviewApplicationId = this.getAttribute('data-application-id');
-            currentReviewProductId = this.getAttribute('data-product-id');
-            const hasReview = this.getAttribute('data-has-review') === '1';
-            const reviewIdAttr = this.getAttribute('data-review-id');
-            isEditMode = hasReview && reviewIdAttr !== null;
-            currentReviewId = reviewIdAttr ? parseInt(reviewIdAttr) : null;
-            
-            if (reviewModal) {
-                // 먼저 모달 제목과 버튼 텍스트를 설정
-                const modalTitle = reviewModal.querySelector('.mvno-review-modal-title');
-                if (modalTitle) {
-                    modalTitle.textContent = isEditMode ? '리뷰 수정' : '리뷰 작성';
-                }
-                
-                                // 제출 버튼 텍스트 변경
-                const submitBtn = reviewForm ? reviewForm.querySelector('.mvno-review-btn-submit') : null;
-                if (submitBtn) {
-                    submitBtn.textContent = isEditMode ? '저장하기' : '작성하기';
-                }
-                
-                // 삭제 버튼 표시/숨김
-                const deleteBtn = document.getElementById('mvnoReviewDeleteBtn');
-                if (deleteBtn) {
-                    deleteBtn.style.display = isEditMode ? 'flex' : 'none';
-                }
-                
-                // 현재 스크롤 위치 저장
-                const scrollY = window.scrollY;
-                document.body.style.position = 'fixed';
-                document.body.style.top = `-${scrollY}px`;
-                document.body.style.width = '100%';
-                document.body.style.overflow = 'hidden';
-                
-                // 폼 초기화
-                if (reviewForm) {
-                    reviewForm.reset();
-                    // 별점 초기화
-                    const starLabels = reviewForm.querySelectorAll('.star-label');
-                    starLabels.forEach(label => {
-                        label.classList.remove('active');
-                        label.classList.remove('hover-active');
-                    });
-                }
-                
-                // 수정 모드일 경우 기존 리뷰 데이터 로드
-                if (isEditMode && currentReviewApplicationId && currentReviewProductId) {
-                    fetch(`/MVNO/api/get-review-by-application.php?application_id=${currentReviewApplicationId}&product_id=${currentReviewProductId}&product_type=mvno`)
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.success && data.review) {
-                                currentReviewId = data.review.id;
-                                // 별점 설정
-                                if (data.review.kindness_rating) {
-                                    const kindnessInput = reviewForm.querySelector(`input[name="kindness_rating"][value="${data.review.kindness_rating}"]`);
-                                    if (kindnessInput) {
-                                        kindnessInput.checked = true;
-                                        const rating = parseInt(data.review.kindness_rating);
-                                        const kindnessLabels = reviewForm.querySelectorAll('.mvno-star-rating[data-rating-type="kindness"] .star-label');
-                                        kindnessLabels.forEach((label, index) => {
-                                            if (index < rating) {
-                                                label.classList.add('active');
-                                            } else {
-                                                label.classList.remove('active');
-                                            }
-                                        });
-                                    }
-                                }
-                                if (data.review.speed_rating) {
-                                    const speedInput = reviewForm.querySelector(`input[name="speed_rating"][value="${data.review.speed_rating}"]`);
-                                    if (speedInput) {
-                                        speedInput.checked = true;
-                                        const rating = parseInt(data.review.speed_rating);
-                                        const speedLabels = reviewForm.querySelectorAll('.mvno-star-rating[data-rating-type="speed"] .star-label');
-                                        speedLabels.forEach((label, index) => {
-                                            if (index < rating) {
-                                                label.classList.add('active');
-                                            } else {
-                                                label.classList.remove('active');
-                                            }
-                                        });
-                                    }
-                                }
-                                // 리뷰 내용 설정
-                                const reviewTextarea = reviewForm.querySelector('#mvnoReviewText');
-                                if (reviewTextarea && data.review.content) {
-                                    reviewTextarea.value = data.review.content;
-                                    // 텍스트 카운터 업데이트
-                                    const counter = document.getElementById('mvnoReviewTextCounter');
-                                    if (counter) {
-                                        counter.textContent = data.review.content.length;
-                                    }
-                                }
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Error loading review:', error);
-                        });
-                }
-                
-                // 모달 표시
-                reviewModal.style.display = 'block';
-            }
-        });
-    });
-    
-    // 모달 닫기 함수
-    function closeReviewModal() {
-        if (reviewModal) {
-            const scrollY = document.body.style.top;
-            reviewModal.style.display = 'none';
-            document.body.style.position = '';
-            document.body.style.top = '';
-            document.body.style.width = '';
-            document.body.style.overflow = '';
-            if (scrollY) {
-                window.scrollTo(0, parseInt(scrollY || '0') * -1);
-            }
-        }
-    }
-    
-    // 모달 닫기 이벤트
-    if (reviewModalClose) {
-        reviewModalClose.addEventListener('click', closeReviewModal);
-    }
-    
-    if (reviewModalOverlay) {
-        reviewModalOverlay.addEventListener('click', closeReviewModal);
-    }
-    
-    if (reviewCancelBtn) {
-        reviewCancelBtn.addEventListener('click', closeReviewModal);
-    }
-    
-    // ESC 키로 모달 닫기
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' && reviewModal && reviewModal.style.display === 'block') {
-            closeReviewModal();
-        }
-    });
-    
-    // 리뷰 폼 제출
-    if (reviewForm) {
-        reviewForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const kindnessRatingInput = reviewForm.querySelector('input[name="kindness_rating"]:checked');
-            const speedRatingInput = reviewForm.querySelector('input[name="speed_rating"]:checked');
-            const reviewText = reviewForm.querySelector('#mvnoReviewText').value.trim();
-            
-            if (!kindnessRatingInput) {
-                showAlert('친절해요 별점을 선택해주세요.', '알림');
-                return;
-            }
-            
-            if (!speedRatingInput) {
-                showAlert('개통 빨라요 별점을 선택해주세요.', '알림');
-                return;
-            }
-            
-            if (!reviewText) {
-                showAlert('리뷰 내용을 입력해주세요.', '알림');
-                return;
-            }
-            
-            const formData = new FormData();
-            formData.append('product_id', currentReviewProductId);
-            formData.append('product_type', 'mvno');
-            formData.append('kindness_rating', kindnessRatingInput.value);
-            formData.append('speed_rating', speedRatingInput.value);
-            formData.append('content', reviewText);
-            formData.append('application_id', currentReviewApplicationId);
-            
-            if (isEditMode && currentReviewId) {
-                formData.append('review_id', currentReviewId);
-            }
-            
-            // 제출 버튼 비활성화
-            const submitBtn = reviewForm.querySelector('.mvno-review-btn-submit');
-            const submitBtnSpan = submitBtn ? submitBtn.querySelector('span') : null;
-            if (submitBtn) {
-                submitBtn.disabled = true;
-                if (submitBtnSpan) {
-                    submitBtnSpan.textContent = '처리 중...';
-                } else {
-                    submitBtn.textContent = '처리 중...';
-                }
-            }
-            
-            fetch('/MVNO/api/submit-review.php', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showAlert('리뷰가 ' + (isEditMode ? '수정' : '작성') + '되었습니다.', '알림').then(() => {
-                        closeReviewModal();
-                        location.reload(); // 페이지 새로고침하여 리뷰 버튼 상태 업데이트
-                    });
-                } else {
-                    showAlert(data.message || '리뷰 작성에 실패했습니다.', '오류').then(() => {
-                        if (submitBtn) {
-                            submitBtn.disabled = false;
-                            if (submitBtnSpan) {
-                                submitBtnSpan.textContent = isEditMode ? '저장하기' : '작성하기';
-                            } else {
-                                submitBtn.textContent = isEditMode ? '저장하기' : '작성하기';
-                            }
-                        }
-                    });
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showAlert('리뷰 작성 중 오류가 발생했습니다.', '오류').then(() => {
-                    if (submitBtn) {
-                        submitBtn.disabled = false;
-                        if (submitBtnSpan) {
-                            submitBtnSpan.textContent = isEditMode ? '저장하기' : '작성하기';
-                        } else {
-                            submitBtn.textContent = isEditMode ? '저장하기' : '작성하기';
-                        }
-                    }
-                });
-            });
-        });
-    }
-    
-    // MVNO 리뷰 삭제 버튼 클릭 이벤트
-    const deleteReviewBtn = document.getElementById('mvnoReviewDeleteBtn');
-    if (deleteReviewBtn) {
-        deleteReviewBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            const reviewId = this.getAttribute('data-review-id') || currentReviewId;
-            if (!reviewId) {
-                showAlert('리뷰 정보를 찾을 수 없습니다.', '오류');
-                return;
-            }
-            
-            showConfirm('정말로 리뷰를 삭제하시겠습니까?\n삭제된 리뷰는 복구할 수 없습니다.', '리뷰 삭제').then(confirmed => {
-                if (!confirmed) return;
-                
-                // 삭제 버튼 비활성화
-                this.disabled = true;
-                const originalText = this.querySelector('span').textContent;
-                this.querySelector('span').textContent = '삭제 중...';
-                
-                const formData = new FormData();
-                formData.append('review_id', reviewId);
-                formData.append('product_type', 'mvno');
-                
-                fetch('/MVNO/api/delete-review.php', {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        showAlert('리뷰가 삭제되었습니다.', '알림').then(() => {
-                            closeReviewModal();
-                            location.reload();
-                        });
-                    } else {
-                        showAlert(data.message || '리뷰 삭제에 실패했습니다.', '오류').then(() => {
-                            this.disabled = false;
-                            this.querySelector('span').textContent = originalText;
-                        });
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    showAlert('리뷰 삭제 중 오류가 발생했습니다.', '오류').then(() => {
-                        this.disabled = false;
-                        this.querySelector('span').textContent = originalText;
-                    });
-                });
-            });
-        });
-    }
-    
-    // 기존 코드
     const modal = document.getElementById('applicationDetailModal');
     const modalContent = document.getElementById('modalContent');
     const closeBtn = document.getElementById('closeModalBtn');
@@ -868,7 +512,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function openModal(applicationId) {
         modal.style.display = 'block';
-        document.body.style.overflow = 'hidden'; // 배경 스크롤 방지
+        document.body.style.overflow = 'hidden';
         
         // 로딩 표시
         modalContent.innerHTML = `
@@ -906,7 +550,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function closeModal() {
         modal.style.display = 'none';
-        document.body.style.overflow = ''; // 배경 스크롤 복원
+        document.body.style.overflow = '';
     }
     
     function displayApplicationDetails(data) {
@@ -916,7 +560,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         let html = '<div style="display: flex; flex-direction: column; gap: 24px;">';
         
-        // 주문 정보 섹션 (맨 위로 이동)
+        // 주문 정보 섹션
         html += '<div>';
         html += '<h3 style="font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #6366f1;">주문 정보</h3>';
         html += '<div style="display: grid; grid-template-columns: 150px 1fr; gap: 12px 16px; font-size: 14px;">';
@@ -976,88 +620,144 @@ document.addEventListener('DOMContentLoaded', function() {
         
         html += '</div></div>';
         
-        // 상품 정보 섹션 (신청 시점)
+        // 상품 정보 섹션
         html += '<div>';
-        html += '<h3 style="font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #6366f1;">상품정보</h3>';
+        html += '<h3 style="font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #6366f1;">기본 정보</h3>';
         html += '<div style="display: grid; grid-template-columns: 150px 1fr; gap: 12px 16px; font-size: 14px;">';
         
-        // 가입 형태를 상품 정보 섹션 첫 번째 항목으로 추가
-        if (additionalInfo.subscription_type) {
-            html += `<div style="color: #6b7280; font-weight: 500;">가입 형태:</div>`;
-            // 가입 형태 한글 변환
-            let subscriptionTypeText = additionalInfo.subscription_type;
-            const subscriptionTypeMap = {
-                'new': '신규가입',
-                'mnp': '번호이동',
-                'port': '번호이동', // 하위 호환성
-                'change': '기기변경'
-            };
-            if (subscriptionTypeMap[subscriptionTypeText]) {
-                subscriptionTypeText = subscriptionTypeMap[subscriptionTypeText];
-            }
-            html += `<div style="color: #1f2937;">${escapeHtml(subscriptionTypeText)}</div>`;
-        }
-        
-        if (productSnapshot.provider) {
-            html += `<div style="color: #6b7280; font-weight: 500;">통신사:</div>`;
-            html += `<div style="color: #1f2937;">${escapeHtml(productSnapshot.provider)}</div>`;
-        }
-        
+        // 요금제 이름
         if (productSnapshot.plan_name) {
-            html += `<div style="color: #6b7280; font-weight: 500;">요금제명:</div>`;
+            html += `<div style="color: #6b7280; font-weight: 500;">요금제 이름</div>`;
             html += `<div style="color: #1f2937; font-weight: 600;">${escapeHtml(productSnapshot.plan_name)}</div>`;
         }
         
+        // 통신사 약정
+        if (productSnapshot.contract_period) {
+            html += `<div style="color: #6b7280; font-weight: 500;">통신사 약정</div>`;
+            html += `<div style="color: #1f2937;">${escapeHtml(productSnapshot.contract_period)}`;
+            if (productSnapshot.contract_period_discount_value && productSnapshot.contract_period_discount_unit) {
+                html += ` ${productSnapshot.contract_period_discount_value}${escapeHtml(productSnapshot.contract_period_discount_unit)}`;
+            }
+            html += `</div>`;
+        }
+        
+        // 통신망
+        if (productSnapshot.provider) {
+            html += `<div style="color: #6b7280; font-weight: 500;">통신망</div>`;
+            html += `<div style="color: #1f2937;">${escapeHtml(productSnapshot.provider)}</div>`;
+        }
+        
+        // 통신 기술
         if (productSnapshot.service_type) {
-            html += `<div style="color: #6b7280; font-weight: 500;">데이터 속도:</div>`;
+            html += `<div style="color: #6b7280; font-weight: 500;">통신 기술</div>`;
             html += `<div style="color: #1f2937;">${escapeHtml(productSnapshot.service_type)}</div>`;
         }
         
-        if (productSnapshot.contract_period) {
-            html += `<div style="color: #6b7280; font-weight: 500;">약정 기간:</div>`;
-            html += `<div style="color: #1f2937;">${escapeHtml(productSnapshot.contract_period)}</div>`;
+        // 가입 형태
+        if (productSnapshot.registration_types) {
+            html += `<div style="color: #6b7280; font-weight: 500;">가입 형태</div>`;
+            let registrationTypes = [];
+            try {
+                if (typeof productSnapshot.registration_types === 'string') {
+                    registrationTypes = JSON.parse(productSnapshot.registration_types);
+                } else if (Array.isArray(productSnapshot.registration_types)) {
+                    registrationTypes = productSnapshot.registration_types;
+                }
+            } catch(e) {
+                registrationTypes = [];
+            }
+            if (registrationTypes.length > 0) {
+                html += `<div style="color: #1f2937;">${registrationTypes.map(t => escapeHtml(t)).join(', ')}</div>`;
+            } else {
+                html += `<div style="color: #1f2937;">정보 없음</div>`;
+            }
         }
         
-        // 데이터 정보
+        // 요금제 유지기간
+        if (productSnapshot.plan_maintenance_period_type) {
+            html += `<div style="color: #6b7280; font-weight: 500;">요금제 유지기간</div>`;
+            const planMaintenanceType = productSnapshot.plan_maintenance_period_type;
+            if (planMaintenanceType === '무약정') {
+                html += `<div style="color: #1f2937;">무약정</div>`;
+            } else if (planMaintenanceType === '직접입력') {
+                const prefix = productSnapshot.plan_maintenance_period_prefix || '';
+                const value = productSnapshot.plan_maintenance_period_value || null;
+                const unit = productSnapshot.plan_maintenance_period_unit || '';
+                if (value && unit) {
+                    html += `<div style="color: #1f2937;">${escapeHtml(prefix + '+' + value + unit)}</div>`;
+                } else {
+                    html += `<div style="color: #1f2937;">정보 없음</div>`;
+                }
+            }
+        }
+        
+        // 유심기변 불가기간
+        if (productSnapshot.sim_change_restriction_period_type) {
+            html += `<div style="color: #6b7280; font-weight: 500;">유심기변 불가기간</div>`;
+            const simChangeRestrictionType = productSnapshot.sim_change_restriction_period_type;
+            if (simChangeRestrictionType === '무약정') {
+                html += `<div style="color: #1f2937;">무약정</div>`;
+            } else if (simChangeRestrictionType === '직접입력') {
+                const prefix = productSnapshot.sim_change_restriction_period_prefix || '';
+                const value = productSnapshot.sim_change_restriction_period_value || null;
+                const unit = productSnapshot.sim_change_restriction_period_unit || '';
+                if (value && unit) {
+                    html += `<div style="color: #1f2937;">${escapeHtml(prefix + '+' + value + unit)}</div>`;
+                } else {
+                    html += `<div style="color: #1f2937;">정보 없음</div>`;
+                }
+            }
+        }
+        
+        // 데이터 제공량 (항목별로 분리)
         if (productSnapshot.data_amount) {
-            html += `<div style="color: #6b7280; font-weight: 500;">데이터:</div>`;
-            let dataText = productSnapshot.data_amount;
-            if (productSnapshot.data_amount === '직접입력' && productSnapshot.data_amount_value) {
-                // data_amount_value에 이미 단위가 포함되어 있는지 확인
+            html += `<div style="color: #6b7280; font-weight: 500;">데이터 제공량</div>`;
+            let dataText = '';
+            if (productSnapshot.data_amount === '무제한') {
+                dataText = '무제한';
+            } else if (productSnapshot.data_amount === '직접입력' && productSnapshot.data_amount_value) {
                 const dataValueStr = String(productSnapshot.data_amount_value);
                 const unit = productSnapshot.data_unit || 'GB';
-                // 끝에 단위가 이미 포함되어 있으면 추가하지 않음
                 if (dataValueStr.endsWith('GB') || dataValueStr.endsWith('MB') || dataValueStr.endsWith('TB') || 
                     dataValueStr.endsWith('Mbps') || dataValueStr.endsWith('Gbps') || dataValueStr.endsWith('Kbps')) {
                     dataText = dataValueStr;
                 } else {
                     dataText = dataValueStr + unit;
                 }
-            }
-            if (productSnapshot.data_additional && productSnapshot.data_additional !== '없음') {
-                if (productSnapshot.data_additional === '직접입력' && productSnapshot.data_additional_value) {
-                    dataText += ' + ' + productSnapshot.data_additional_value;
-                } else {
-                    dataText += ' + ' + productSnapshot.data_additional;
-                }
-            }
-            if (productSnapshot.data_exhausted && productSnapshot.data_exhausted !== '직접입력') {
-                dataText += ' + ' + productSnapshot.data_exhausted;
-            } else if (productSnapshot.data_exhausted === '직접입력' && productSnapshot.data_exhausted_value) {
-                dataText += ' + ' + productSnapshot.data_exhausted_value;
+            } else {
+                dataText = productSnapshot.data_amount;
             }
             html += `<div style="color: #1f2937;">${escapeHtml(dataText)}</div>`;
         }
         
+        // 데이터 추가제공 (항목별로 분리)
+        if (productSnapshot.data_additional && productSnapshot.data_additional !== '없음') {
+            html += `<div style="color: #6b7280; font-weight: 500;">데이터 추가제공</div>`;
+            let additionalText = '';
+            if (productSnapshot.data_additional === '직접입력' && productSnapshot.data_additional_value) {
+                additionalText = productSnapshot.data_additional_value;
+            } else {
+                additionalText = productSnapshot.data_additional;
+            }
+            html += `<div style="color: #1f2937;">${escapeHtml(additionalText)}</div>`;
+        }
+        
+        // 데이터 소진시 (기본 제공 초과 시) (항목별로 분리)
+        if (productSnapshot.data_exhausted && productSnapshot.data_exhausted !== '직접입력') {
+            html += `<div style="color: #6b7280; font-weight: 500;">기본 제공 초과 시</div>`;
+            html += `<div style="color: #1f2937;">${escapeHtml(productSnapshot.data_exhausted)}</div>`;
+        } else if (productSnapshot.data_exhausted === '직접입력' && productSnapshot.data_exhausted_value) {
+            html += `<div style="color: #6b7280; font-weight: 500;">기본 제공 초과 시</div>`;
+            html += `<div style="color: #1f2937;">${escapeHtml(productSnapshot.data_exhausted_value)}</div>`;
+        }
+        
         // 통화 정보
         if (productSnapshot.call_type) {
-            html += `<div style="color: #6b7280; font-weight: 500;">통화:</div>`;
+            html += `<div style="color: #6b7280; font-weight: 500;">통화</div>`;
             let callText = productSnapshot.call_type;
             if (productSnapshot.call_type === '직접입력' && productSnapshot.call_amount) {
-                // call_amount에 이미 단위가 포함되어 있는지 확인
                 const callAmountStr = String(productSnapshot.call_amount);
                 const unit = productSnapshot.call_amount_unit || '분';
-                // 끝에 단위가 이미 포함되어 있으면 추가하지 않음
                 if (callAmountStr.endsWith('분') || callAmountStr.endsWith('초') || callAmountStr.endsWith('건')) {
                     callText = callAmountStr;
                 } else {
@@ -1069,13 +769,11 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // 문자 정보
         if (productSnapshot.sms_type) {
-            html += `<div style="color: #6b7280; font-weight: 500;">문자:</div>`;
+            html += `<div style="color: #6b7280; font-weight: 500;">문자</div>`;
             let smsText = productSnapshot.sms_type;
             if (productSnapshot.sms_type === '직접입력' && productSnapshot.sms_amount) {
-                // sms_amount에 이미 단위가 포함되어 있는지 확인
                 const smsAmountStr = String(productSnapshot.sms_amount);
                 const unit = productSnapshot.sms_amount_unit || '건';
-                // 끝에 단위가 이미 포함되어 있으면 추가하지 않음
                 if (smsAmountStr.endsWith('분') || smsAmountStr.endsWith('초') || smsAmountStr.endsWith('건')) {
                     smsText = smsAmountStr;
                 } else {
@@ -1085,26 +783,87 @@ document.addEventListener('DOMContentLoaded', function() {
             html += `<div style="color: #1f2937;">${escapeHtml(smsText)}</div>`;
         }
         
-        // 가격 정보
+        // 기본 요금 (원래 월요금)
         if (productSnapshot.price_main) {
-            html += `<div style="color: #6b7280; font-weight: 500;">기본 요금:</div>`;
-            html += `<div style="color: #1f2937; font-weight: 600;">월 ${formatNumber(productSnapshot.price_main)}원</div>`;
+            html += `<div style="color: #6b7280; font-weight: 500;">기본 요금</div>`;
+            const priceMainUnit = productSnapshot.price_main_unit || '원';
+            html += `<div style="color: #1f2937; font-weight: 600;">월 ${formatNumber(productSnapshot.price_main)}${escapeHtml(priceMainUnit)}</div>`;
         }
         
-        if (productSnapshot.price_after) {
-            html += `<div style="color: #6b7280; font-weight: 500;">할인 후 요금:</div>`;
-            html += `<div style="color: #6366f1; font-weight: 600;">월 ${formatNumber(productSnapshot.price_after)}원</div>`;
+        // 할인 후 요금 (프로모션 기간 요금)
+        if (productSnapshot.price_after_type && productSnapshot.price_after_type !== 'none') {
+            html += `<div style="color: #6b7280; font-weight: 500;">할인 후 요금</div>`;
+            if (productSnapshot.price_after_type === 'free' || productSnapshot.price_after == 0) {
+                html += `<div style="color: #6366f1; font-weight: 600;">무료</div>`;
+            } else if (productSnapshot.price_after) {
+                const priceAfterUnit = productSnapshot.price_after_unit || '원';
+                html += `<div style="color: #6366f1; font-weight: 600;">월 ${formatNumber(productSnapshot.price_after)}${escapeHtml(priceAfterUnit)}</div>`;
+            }
         }
         
-        if (productSnapshot.discount_period) {
-            html += `<div style="color: #6b7280; font-weight: 500;">할인 기간:</div>`;
-            html += `<div style="color: #1f2937;">${escapeHtml(productSnapshot.discount_period)}</div>`;
+        // 부가·영상통화 정보
+        if (productSnapshot.additional_call_type && productSnapshot.additional_call) {
+            html += `<div style="color: #6b7280; font-weight: 500;">부가·영상통화</div>`;
+            let additionalCallText = '';
+            const additionalCallStr = String(productSnapshot.additional_call);
+            const additionalCallUnit = productSnapshot.additional_call_unit || '분';
+            if (additionalCallStr.endsWith('분') || additionalCallStr.endsWith('초') || additionalCallStr.endsWith('건')) {
+                additionalCallText = additionalCallStr;
+            } else {
+                additionalCallText = additionalCallStr + additionalCallUnit;
+            }
+            html += `<div style="color: #1f2937;">${escapeHtml(additionalCallText)}</div>`;
         }
         
-        html += '</div></div>';
+        // 일반 유심 정보
+        if (productSnapshot.regular_sim_available) {
+            html += `<div style="color: #6b7280; font-weight: 500;">일반 유심</div>`;
+            let regularSimText = productSnapshot.regular_sim_available;
+            if (regularSimText === '유심비 유료' || regularSimText === '배송가능') {
+                if (productSnapshot.regular_sim_price && productSnapshot.regular_sim_price > 0) {
+                    const regularSimUnit = productSnapshot.regular_sim_price_unit || '원';
+                    regularSimText = `유심비 유료 (${formatNumber(productSnapshot.regular_sim_price)}${escapeHtml(regularSimUnit)})`;
+                } else {
+                    regularSimText = '유심비 유료';
+                }
+            } else if (regularSimText === '유심비 무료' || regularSimText === '유심 무료' || regularSimText === '무료제공') {
+                regularSimText = '유심비 무료';
+            } else if (regularSimText === '유심·배송비 무료' || regularSimText === '무료제공(배송비무료)') {
+                regularSimText = '유심·배송비 무료';
+            }
+            html += `<div style="color: #1f2937;">${escapeHtml(regularSimText)}</div>`;
+        }
         
-        // 프로모션 이벤트 섹션
+        // NFC 유심 정보
+        if (productSnapshot.nfc_sim_available) {
+            html += `<div style="color: #6b7280; font-weight: 500;">NFC 유심</div>`;
+            let nfcSimText = productSnapshot.nfc_sim_available;
+            if (nfcSimText === '유심비 유료' || nfcSimText === '배송가능') {
+                if (productSnapshot.nfc_sim_price && productSnapshot.nfc_sim_price > 0) {
+                    const nfcSimUnit = productSnapshot.nfc_sim_price_unit || '원';
+                    nfcSimText = `유심비 유료 (${formatNumber(productSnapshot.nfc_sim_price)}${escapeHtml(nfcSimUnit)})`;
+                } else {
+                    nfcSimText = '유심비 유료';
+                }
+            } else if (nfcSimText === '유심비 무료' || nfcSimText === '유심 무료' || nfcSimText === '무료제공') {
+                nfcSimText = '유심비 무료';
+            } else if (nfcSimText === '유심·배송비 무료' || nfcSimText === '무료제공(배송비무료)') {
+                nfcSimText = '유심·배송비 무료';
+            }
+            html += `<div style="color: #1f2937;">${escapeHtml(nfcSimText)}</div>`;
+        }
+        
+        // 혜택 정보 (프로모션 제목 + 항목들)
         if (productSnapshot.promotion_title || productSnapshot.promotions) {
+            html += `<div style="color: #6b7280; font-weight: 500;">혜택</div>`;
+            let benefitText = '';
+            
+            // 제목이 있으면 표시
+            if (productSnapshot.promotion_title) {
+                benefitText = productSnapshot.promotion_title;
+            }
+            
+            // 항목들 가져오기
             let promotions = [];
             try {
                 if (typeof productSnapshot.promotions === 'string') {
@@ -1116,37 +875,22 @@ document.addEventListener('DOMContentLoaded', function() {
                 promotions = [];
             }
             
-            const giftCount = promotions.filter(p => p && p.trim()).length;
-            const promotionTitle = productSnapshot.promotion_title || '';
+            // 항목이 있으면 제목 ( 항목, 항목, ... ) 형식으로 표시
+            if (promotions.length > 0) {
+                const promotionList = promotions.filter(p => p && p.trim()).map(p => escapeHtml(p.trim())).join(', ');
+                if (benefitText) {
+                    benefitText = `${benefitText} (${promotionList})`;
+                } else {
+                    benefitText = promotionList;
+                }
+            }
             
-            if (giftCount > 0 || promotionTitle) {
-                html += '<div>';
-                html += '<h3 style="font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #6366f1;">프로모션 이벤트</h3>';
-                html += '<div style="display: grid; grid-template-columns: 150px 1fr; gap: 12px 16px; font-size: 14px;">';
-                
-                // 프로모션 제목 (항목1, 항목2, 항목3...) 형식
-                let promotionText = '';
-                if (promotionTitle) {
-                    promotionText = promotionTitle;
-                }
-                
-                if (giftCount > 0) {
-                    const promotionList = promotions.filter(p => p && p.trim()).map(p => escapeHtml(p.trim())).join(', ');
-                    if (promotionText) {
-                        promotionText = `${promotionText} (${promotionList})`;
-                    } else {
-                        promotionText = promotionList;
-                    }
-                }
-                
-                if (promotionText) {
-                    html += `<div style="color: #6b7280; font-weight: 500;">프로모션 이벤트:</div>`;
-                    html += `<div style="color: #1f2937;">${promotionText}</div>`;
-                }
-                
-                html += '</div></div>';
+            if (benefitText) {
+                html += `<div style="color: #1f2937;">${benefitText}</div>`;
             }
         }
+        
+        html += '</div></div>';
         
         // 기본 제공 초과 시 섹션
         let hasOverData = false;
@@ -1161,8 +905,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (overVoicePrice !== null && overVoicePrice !== undefined && overVoicePrice !== '') hasOverData = true;
         if (overVideoPrice !== null && overVideoPrice !== undefined && overVideoPrice !== '') hasOverData = true;
         if (overSmsPrice !== null && overSmsPrice !== undefined && overSmsPrice !== '') hasOverData = true;
-        if (overLmsPrice !== null && overLmsPrice !== undefined && overLmsPrice !== '' && String(overLmsPrice).trim() !== '') hasOverData = true;
-        if (overMmsPrice !== null && overMmsPrice !== undefined && overMmsPrice !== '' && String(overMmsPrice).trim() !== '') hasOverData = true;
+        if (overLmsPrice !== null && overLmsPrice !== undefined && overLmsPrice !== '') hasOverData = true;
+        if (overMmsPrice !== null && overMmsPrice !== undefined && overMmsPrice !== '') hasOverData = true;
         
         if (hasOverData) {
             html += '<div>';
@@ -1172,37 +916,70 @@ document.addEventListener('DOMContentLoaded', function() {
             // 데이터
             if (overDataPrice !== null && overDataPrice !== undefined && overDataPrice !== '') {
                 html += `<div style="color: #6b7280; font-weight: 500;">데이터</div>`;
-                html += `<div style="color: #1f2937;">${escapeHtml(String(overDataPrice))}</div>`;
+                const overDataPriceUnit = productSnapshot.over_data_price_unit || '원/MB';
+                const overDataPriceFloat = parseFloat(overDataPrice);
+                let overDataFormatted = '';
+                if (isNaN(overDataPriceFloat)) {
+                    overDataFormatted = String(overDataPrice);
+                } else if (Math.floor(overDataPriceFloat) === overDataPriceFloat) {
+                    overDataFormatted = formatNumber(overDataPriceFloat);
+                } else {
+                    overDataFormatted = parseFloat(overDataPriceFloat.toFixed(2)).toString();
+                }
+                html += `<div style="color: #1f2937;">${escapeHtml(overDataFormatted)} ${escapeHtml(overDataPriceUnit)}</div>`;
             }
             
             // 음성
             if (overVoicePrice !== null && overVoicePrice !== undefined && overVoicePrice !== '') {
                 html += `<div style="color: #6b7280; font-weight: 500;">음성</div>`;
-                html += `<div style="color: #1f2937;">${escapeHtml(String(overVoicePrice))}</div>`;
+                const overVoicePriceUnit = productSnapshot.over_voice_price_unit || '원/초';
+                const overVoicePriceFloat = parseFloat(overVoicePrice);
+                let overVoiceFormatted = '';
+                if (isNaN(overVoicePriceFloat)) {
+                    overVoiceFormatted = String(overVoicePrice);
+                } else if (Math.floor(overVoicePriceFloat) === overVoicePriceFloat) {
+                    overVoiceFormatted = formatNumber(overVoicePriceFloat);
+                } else {
+                    overVoiceFormatted = parseFloat(overVoicePriceFloat.toFixed(2)).toString();
+                }
+                html += `<div style="color: #1f2937;">${escapeHtml(overVoiceFormatted)} ${escapeHtml(overVoicePriceUnit)}</div>`;
             }
             
             // 영상통화
             if (overVideoPrice !== null && overVideoPrice !== undefined && overVideoPrice !== '') {
                 html += `<div style="color: #6b7280; font-weight: 500;">영상통화</div>`;
-                html += `<div style="color: #1f2937;">${escapeHtml(String(overVideoPrice))}</div>`;
+                const overVideoPriceUnit = productSnapshot.over_video_price_unit || '원/초';
+                const overVideoPriceFloat = parseFloat(overVideoPrice);
+                let overVideoFormatted = '';
+                if (isNaN(overVideoPriceFloat)) {
+                    overVideoFormatted = String(overVideoPrice);
+                } else if (Math.floor(overVideoPriceFloat) === overVideoPriceFloat) {
+                    overVideoFormatted = formatNumber(overVideoPriceFloat);
+                } else {
+                    overVideoFormatted = parseFloat(overVideoPriceFloat.toFixed(2)).toString();
+                }
+                html += `<div style="color: #1f2937;">${escapeHtml(overVideoFormatted)} ${escapeHtml(overVideoPriceUnit)}</div>`;
             }
             
             // 단문메시지(SMS)
             if (overSmsPrice !== null && overSmsPrice !== undefined && overSmsPrice !== '') {
                 html += `<div style="color: #6b7280; font-weight: 500;">단문메시지(SMS)</div>`;
-                html += `<div style="color: #1f2937;">${escapeHtml(String(overSmsPrice))}</div>`;
+                const overSmsPriceUnit = productSnapshot.over_sms_price_unit || '원/건';
+                html += `<div style="color: #1f2937;">${formatNumber(overSmsPrice)} ${escapeHtml(overSmsPriceUnit)}</div>`;
             }
             
             // 텍스트형(LMS)
-            if (overLmsPrice !== null && overLmsPrice !== undefined && overLmsPrice !== '' && String(overLmsPrice).trim() !== '') {
+            if (overLmsPrice !== null && overLmsPrice !== undefined && overLmsPrice !== '') {
                 html += `<div style="color: #6b7280; font-weight: 500;">텍스트형(LMS)</div>`;
-                html += `<div style="color: #1f2937;">${escapeHtml(String(overLmsPrice))}</div>`;
+                const overLmsPriceUnit = productSnapshot.over_lms_price_unit || '원/건';
+                html += `<div style="color: #1f2937;">${formatNumber(overLmsPrice)} ${escapeHtml(overLmsPriceUnit)}</div>`;
             }
             
             // 멀티미디어형(MMS)
-            if (overMmsPrice !== null && overMmsPrice !== undefined && overMmsPrice !== '' && String(overMmsPrice).trim() !== '') {
+            if (overMmsPrice !== null && overMmsPrice !== undefined && overMmsPrice !== '') {
                 html += `<div style="color: #6b7280; font-weight: 500;">멀티미디어형(MMS)</div>`;
-                html += `<div style="color: #1f2937;">${escapeHtml(String(overMmsPrice))}</div>`;
+                const overMmsPriceUnit = productSnapshot.over_mms_price_unit || '원/건';
+                html += `<div style="color: #1f2937;">${formatNumber(overMmsPrice)} ${escapeHtml(overMmsPriceUnit)}</div>`;
             }
             
             html += '</div></div>';
@@ -1216,7 +993,6 @@ document.addEventListener('DOMContentLoaded', function() {
             
             let benefits = null;
             try {
-                // benefits가 문자열인 경우 JSON 파싱 시도
                 if (typeof productSnapshot.benefits === 'string') {
                     const parsed = JSON.parse(productSnapshot.benefits);
                     if (Array.isArray(parsed)) {
@@ -1230,7 +1006,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     benefits = [String(productSnapshot.benefits)];
                 }
             } catch(e) {
-                // JSON 파싱 실패 시 문자열로 처리
                 benefits = [String(productSnapshot.benefits)];
             }
             
@@ -1239,7 +1014,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 benefits.forEach(function(benefit) {
                     const benefitText = String(benefit).trim();
                     if (benefitText) {
-                        // 줄바꿈 문자(\n)를 <br> 태그로 변환
                         const formattedText = escapeHtml(benefitText).replace(/\n/g, '<br>');
                         html += `<li style="margin-bottom: 8px;">${formattedText}</li>`;
                     }
@@ -1257,6 +1031,11 @@ document.addEventListener('DOMContentLoaded', function() {
         modalContent.innerHTML = html;
     }
     
+    function formatNumber(num) {
+        if (!num) return '0';
+        return parseFloat(num).toLocaleString('ko-KR');
+    }
+    
     function escapeHtml(text) {
         if (!text) return '';
         const div = document.createElement('div');
@@ -1264,39 +1043,266 @@ document.addEventListener('DOMContentLoaded', function() {
         return div.innerHTML;
     }
     
-    function formatNumber(num) {
-        if (!num) return '0';
-        return parseInt(num).toLocaleString('ko-KR');
-    }
+    // 리뷰 작성/수정 기능
+    const reviewWriteButtons = document.querySelectorAll('.mno-sim-review-write-btn, .mno-sim-review-edit-btn');
+    const reviewModal = document.getElementById('mvnoReviewModal');
+    const reviewForm = document.getElementById('mvnoReviewForm');
+    const reviewModalClose = reviewModal ? reviewModal.querySelector('.mvno-review-modal-close') : null;
+    const reviewModalOverlay = reviewModal ? reviewModal.querySelector('.mvno-review-modal-overlay') : null;
+    const reviewCancelBtn = reviewForm ? reviewForm.querySelector('.mvno-review-btn-cancel') : null;
     
-    // 아코디언 토글 기능 (동적으로 추가된 아코디언도 작동하도록)
-    document.addEventListener('click', function(e) {
-        if (e.target.closest('.plan-accordion-trigger')) {
-            const trigger = e.target.closest('.plan-accordion-trigger');
-            const isExpanded = trigger.getAttribute('aria-expanded') === 'true';
-            const accordion = trigger.closest('.plan-accordion');
-            const content = accordion ? accordion.querySelector('.plan-accordion-content') : null;
-            const arrow = trigger.querySelector('.plan-accordion-arrow');
+    let currentReviewApplicationId = null;
+    let currentReviewProductId = null;
+    let currentReviewId = null;
+    let isEditMode = false;
+    
+    // 리뷰 작성/수정 버튼 클릭 이벤트
+    reviewWriteButtons.forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation(); // 카드 클릭 이벤트 방지
+            currentReviewApplicationId = this.getAttribute('data-application-id');
+            currentReviewProductId = this.getAttribute('data-product-id');
+            const productType = this.getAttribute('data-product-type') || 'mno-sim';
+            const hasReview = this.getAttribute('data-has-review') === '1';
+            const reviewIdAttr = this.getAttribute('data-review-id');
+            isEditMode = hasReview && reviewIdAttr !== null;
+            currentReviewId = reviewIdAttr ? parseInt(reviewIdAttr) : null;
             
-            if (!content) return;
-            
-            // aria-expanded 상태 토글
-            trigger.setAttribute('aria-expanded', !isExpanded);
-            
-            // 콘텐츠 표시/숨김
-            if (isExpanded) {
-                content.style.display = 'none';
-                if (arrow) {
-                    arrow.style.transform = 'rotate(0deg)';
+            if (reviewModal) {
+                // 먼저 모달 제목과 버튼 텍스트를 설정
+                const modalTitle = reviewModal.querySelector('.mvno-review-modal-title');
+                if (modalTitle) {
+                    modalTitle.textContent = isEditMode ? '리뷰 수정' : '리뷰 작성';
                 }
-            } else {
-                content.style.display = 'block';
-                if (arrow) {
-                    arrow.style.transform = 'rotate(180deg)';
+                
+                // 제출 버튼 텍스트 변경
+                const submitBtn = reviewForm ? reviewForm.querySelector('.mvno-review-btn-submit') : null;
+                if (submitBtn) {
+                    submitBtn.textContent = isEditMode ? '저장하기' : '작성하기';
+                }
+                
+                // 삭제 버튼 표시/숨김
+                const deleteBtn = document.getElementById('mvnoReviewDeleteBtn');
+                if (deleteBtn) {
+                    deleteBtn.style.display = isEditMode ? 'flex' : 'none';
+                }
+                
+                // 현재 스크롤 위치 저장
+                const scrollY = window.scrollY;
+                document.body.style.position = 'fixed';
+                document.body.style.top = `-${scrollY}px`;
+                document.body.style.width = '100%';
+                document.body.style.overflow = 'hidden';
+                
+                // 폼 초기화
+                if (reviewForm) {
+                    reviewForm.reset();
+                    // 별점 초기화
+                    const starLabels = reviewForm.querySelectorAll('.star-label');
+                    starLabels.forEach(label => {
+                        label.classList.remove('active');
+                        label.classList.remove('hover-active');
+                    });
+                }
+                
+                // 수정 모드일 경우 기존 리뷰 데이터 로드
+                if (isEditMode && currentReviewApplicationId && currentReviewProductId) {
+                    fetch(`/MVNO/api/get-review-by-application.php?application_id=${currentReviewApplicationId}&product_id=${currentReviewProductId}&product_type=${productType}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success && data.review) {
+                                currentReviewId = data.review.id;
+                                // 별점 설정
+                                if (data.review.kindness_rating) {
+                                    const kindnessInput = reviewForm.querySelector(`input[name="kindness_rating"][value="${data.review.kindness_rating}"]`);
+                                    if (kindnessInput) {
+                                        kindnessInput.checked = true;
+                                        const rating = parseInt(data.review.kindness_rating);
+                                        const kindnessLabels = reviewForm.querySelectorAll('.mvno-star-rating[data-rating-type="kindness"] .star-label');
+                                        kindnessLabels.forEach((label, index) => {
+                                            if (index < rating) {
+                                                label.classList.add('active');
+                                            } else {
+                                                label.classList.remove('active');
+                                            }
+                                        });
+                                    }
+                                }
+                                if (data.review.speed_rating) {
+                                    const speedInput = reviewForm.querySelector(`input[name="speed_rating"][value="${data.review.speed_rating}"]`);
+                                    if (speedInput) {
+                                        speedInput.checked = true;
+                                        const rating = parseInt(data.review.speed_rating);
+                                        const speedLabels = reviewForm.querySelectorAll('.mvno-star-rating[data-rating-type="speed"] .star-label');
+                                        speedLabels.forEach((label, index) => {
+                                            if (index < rating) {
+                                                label.classList.add('active');
+                                            } else {
+                                                label.classList.remove('active');
+                                            }
+                                        });
+                                    }
+                                }
+                                // 리뷰 내용 설정
+                                const reviewTextarea = reviewForm.querySelector('#mvnoReviewText');
+                                if (reviewTextarea && data.review.content) {
+                                    reviewTextarea.value = data.review.content;
+                                }
+                            }
+                            // 모달 표시
+                            reviewModal.style.display = 'flex';
+                        })
+                        .catch(error => {
+                            console.error('Error loading review:', error);
+                            // 에러가 발생해도 모달 표시
+                            reviewModal.style.display = 'flex';
+                        });
+                } else {
+                    // 새 리뷰 작성 모드
+                    reviewModal.style.display = 'flex';
                 }
             }
+        });
+    });
+    
+    // 리뷰 모달 닫기
+    function closeReviewModal() {
+        if (reviewModal) {
+            reviewModal.style.display = 'none';
+            // 스크롤 복원
+            const scrollY = document.body.style.top;
+            document.body.style.position = '';
+            document.body.style.top = '';
+            document.body.style.width = '';
+            document.body.style.overflow = '';
+            if (scrollY) {
+                window.scrollTo(0, parseInt(scrollY || '0') * -1);
+            }
+        }
+        currentReviewApplicationId = null;
+        currentReviewProductId = null;
+        currentReviewId = null;
+        isEditMode = false;
+    }
+    
+    // 모달 닫기 버튼
+    if (reviewModalClose) {
+        reviewModalClose.addEventListener('click', closeReviewModal);
+    }
+    
+    // 오버레이 클릭 시 닫기
+    if (reviewModalOverlay) {
+        reviewModalOverlay.addEventListener('click', closeReviewModal);
+    }
+    
+    // 취소 버튼
+    if (reviewCancelBtn) {
+        reviewCancelBtn.addEventListener('click', closeReviewModal);
+    }
+    
+    // ESC 키로 모달 닫기
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && reviewModal && reviewModal.style.display === 'flex') {
+            closeReviewModal();
         }
     });
+    
+    // 리뷰 폼 제출
+    if (reviewForm) {
+        reviewForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const submitBtn = this.querySelector('.mvno-review-btn-submit');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.textContent = '처리 중...';
+            }
+            
+            const formData = new FormData(this);
+            formData.append('application_id', currentReviewApplicationId);
+            formData.append('product_id', currentReviewProductId);
+            formData.append('product_type', 'mno-sim');
+            if (isEditMode && currentReviewId) {
+                formData.append('review_id', currentReviewId);
+            }
+            
+            fetch('/MVNO/api/submit-review.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAlert(isEditMode ? '리뷰가 수정되었습니다.' : '리뷰가 작성되었습니다.', '알림').then(() => {
+                        closeReviewModal();
+                        location.reload();
+                    });
+                } else {
+                    showAlert(data.message || '리뷰 작성에 실패했습니다.', '오류');
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = isEditMode ? '저장하기' : '작성하기';
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showAlert('리뷰 작성 중 오류가 발생했습니다.', '오류');
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = isEditMode ? '저장하기' : '작성하기';
+                }
+            });
+        });
+    }
+    
+    // 리뷰 삭제 버튼
+    const reviewDeleteBtn = document.getElementById('mvnoReviewDeleteBtn');
+    if (reviewDeleteBtn) {
+        reviewDeleteBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            if (!currentReviewId) return;
+            
+            if (!confirm('정말 이 리뷰를 삭제하시겠습니까?')) {
+                return;
+            }
+            
+            this.disabled = true;
+            const originalText = this.querySelector('span').textContent;
+            this.querySelector('span').textContent = '삭제 중...';
+            
+            const formData = new FormData();
+            formData.append('review_id', currentReviewId);
+            formData.append('product_type', 'mno-sim');
+            
+            fetch('/MVNO/api/delete-review.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAlert('리뷰가 삭제되었습니다.', '알림').then(() => {
+                        closeReviewModal();
+                        location.reload();
+                    });
+                } else {
+                    showAlert(data.message || '리뷰 삭제에 실패했습니다.', '오류').then(() => {
+                        this.disabled = false;
+                        this.querySelector('span').textContent = originalText;
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showAlert('리뷰 삭제 중 오류가 발생했습니다.', '오류').then(() => {
+                    this.disabled = false;
+                    this.querySelector('span').textContent = originalText;
+                });
+            });
+        });
+    }
     
     // 더보기 기능
     const moreBtn = document.getElementById('moreApplicationsBtn');
@@ -1336,11 +1342,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 updateButtonText();
             }
         });
-    } else if (moreBtn && totalApplications <= 10) {
-        const moreButtonContainer = document.getElementById('moreButtonContainer');
-        if (moreButtonContainer) {
-            moreButtonContainer.style.display = 'none';
-        }
     }
 });
 </script>
@@ -1349,16 +1350,4 @@ document.addEventListener('DOMContentLoaded', function() {
 // 푸터 포함
 include '../includes/footer.php';
 ?>
-
-
-
-
-
-
-
-
-
-
-
-
 

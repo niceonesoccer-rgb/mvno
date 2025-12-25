@@ -472,7 +472,7 @@ function getRelativeTime($datetime) {
                             </div>
                         </div>
                         <div class="plan-detail-item">
-                            <div class="plan-detail-label">텍스트형(LMS,MMS)</div>
+                            <div class="plan-detail-label">텍스트형(LMS)</div>
                             <div class="plan-detail-value">
                                 <?php
                                 $overLmsPrice = $rawData['over_lms_price'] ?? '';

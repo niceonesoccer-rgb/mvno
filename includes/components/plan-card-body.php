@@ -11,6 +11,8 @@ if (!isset($plan)) {
 }
 $layout_type = $layout_type ?? 'list';
 $title = $plan['title'] ?? '요금제 제목';
+// 통신사유심 카드인지 확인 (plan_name이 있으면 통신사유심)
+$is_mno_sim = !empty($plan['plan_name']);
 // 하이픈 앞뒤 모두 값이 있으면 하이픈 삭제, 값이 없으면 유지
 // "데이터 소진시 - 5Mbps 무제한" → "데이터 소진시 5Mbps 무제한" (하이픈 제거)
 // "통화 기본제공 -" → "통화 기본제공 -" (유지, 뒤에 값 없음)
@@ -27,8 +29,33 @@ $show_features = ($layout_type === 'list');
 
 <!-- 제목 -->
 <div class="plan-title-row">
-    <span class="plan-title-text"><?php echo htmlspecialchars($title); ?></span>
+    <span class="plan-title-text">
+        <?php if ($is_mno_sim): ?>
+            <?php
+            // 통신사유심: | 구분자를 별도로 처리하여 스타일 적용
+            $titleParts = explode(' | ', $title);
+            $titlePartsCount = count($titleParts);
+            foreach ($titleParts as $index => $part):
+                echo htmlspecialchars($part);
+                if ($index < $titlePartsCount - 1):
+            ?>
+                    <span class="plan-title-separator">|</span>
+            <?php
+                endif;
+            endforeach;
+            ?>
+        <?php else: ?>
+            <?php echo htmlspecialchars($title); ?>
+        <?php endif; ?>
+    </span>
 </div>
+
+<!-- 요금제명 (통신사유심 전용) -->
+<?php if (!empty($plan['plan_name'])): ?>
+<div class="plan-name-row">
+    <span class="plan-name-text"><?php echo htmlspecialchars($plan['plan_name']); ?></span>
+</div>
+<?php endif; ?>
 
 <!-- 데이터 정보와 기능 -->
 <div class="plan-info-section">
@@ -43,7 +70,11 @@ $show_features = ($layout_type === 'list');
         <?php foreach ($features as $index => $feature): ?>
             <span class="plan-feature-item"><?php echo htmlspecialchars($feature); ?></span>
             <?php if ($index < count($features) - 1): ?>
-                <div class="plan-feature-divider"></div>
+                <?php if ($is_mno_sim): ?>
+                    <span class="plan-title-separator">|</span>
+                <?php else: ?>
+                    <div class="plan-feature-divider"></div>
+                <?php endif; ?>
             <?php endif; ?>
         <?php endforeach; ?>
     </div>

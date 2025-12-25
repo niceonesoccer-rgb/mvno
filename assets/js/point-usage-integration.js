@@ -73,6 +73,12 @@
         const applyBtns = document.querySelectorAll('.plan-apply-btn, [data-apply-type="mvno"]');
         
         applyBtns.forEach(btn => {
+            // 이미 이벤트 리스너가 추가되었는지 확인
+            if (btn.hasAttribute('data-point-integration-added')) {
+                return;
+            }
+            btn.setAttribute('data-point-integration-added', 'true');
+            
             btn.addEventListener('click', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
@@ -87,8 +93,47 @@
                 if (typeof openPointUsageModal === 'function') {
                     openPointUsageModal('mvno', planId);
                 } else {
-                    // 포인트 모달이 없으면 직접 신청 모달 열기
-                    console.warn('포인트 모달 함수를 찾을 수 없습니다.');
+                    // 포인트 모달이 없으면 기존 신청 모달 열기 함수 호출
+                    if (typeof openMvnoApplicationModal === 'function') {
+                        openMvnoApplicationModal(planId);
+                    } else {
+                        console.warn('포인트 모달 함수를 찾을 수 없습니다. 기존 신청 모달을 열 수 없습니다.');
+                    }
+                }
+            });
+        });
+    }
+    
+    // 통신사유심 신청하기 버튼에 포인트 모달 연동
+    function initMnoSimPointIntegration() {
+        const applyBtns = document.querySelectorAll('#planApplyBtn, [data-apply-type="mno-sim"]');
+        
+        applyBtns.forEach(btn => {
+            // 이미 이벤트 리스너가 추가되었는지 확인
+            if (btn.hasAttribute('data-point-integration-added')) {
+                return;
+            }
+            btn.setAttribute('data-point-integration-added', 'true');
+            
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                // 상품 ID 가져오기
+                const productId = this.getAttribute('data-product-id') || 
+                                this.closest('[data-product-id]')?.getAttribute('data-product-id') ||
+                                new URLSearchParams(window.location.search).get('id') ||
+                                0;
+                
+                // 포인트 모달 열기
+                if (typeof openPointUsageModal === 'function') {
+                    openPointUsageModal('mno-sim', productId);
+                } else if (typeof openApplyModal === 'function') {
+                    // 포인트 모달이 없으면 통신사유심 신청 모달 직접 열기
+                    console.warn('포인트 모달 함수를 찾을 수 없습니다. 통신사유심 신청 모달을 직접 엽니다.');
+                    openApplyModal();
+                } else {
+                    console.error('포인트 모달 함수와 통신사유심 신청 모달 함수를 모두 찾을 수 없습니다.');
                 }
             });
         });
@@ -139,11 +184,13 @@
         document.addEventListener('DOMContentLoaded', function() {
             initMvnoPointIntegration();
             initMnoPointIntegration();
+            initMnoSimPointIntegration();
             initInternetPointIntegration();
         });
     } else {
         initMvnoPointIntegration();
         initMnoPointIntegration();
+        initMnoSimPointIntegration();
         initInternetPointIntegration();
     }
 })();

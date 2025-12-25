@@ -1030,7 +1030,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 <div style="flex: 1;">
                     <label class="form-label" for="over_lms_price">
-                        텍스트형(LMS,MMS)
+                        텍스트형(LMS)
                     </label>
                     <div style="display: flex; gap: 8px; align-items: center;">
                         <input type="text" name="over_lms_price" id="over_lms_price" class="form-control" placeholder="33" maxlength="8" style="max-width: 150px;" value="<?php echo isset($productData['over_lms_price']) ? htmlspecialchars(formatIntegerForInput($productData['over_lms_price'])) : ''; ?>">
@@ -1137,7 +1137,7 @@ document.addEventListener('DOMContentLoaded', function() {
         <!-- 제출 버튼 -->
         <div class="form-actions">
             <a href="/MVNO/seller/products/mvno-list.php" class="btn btn-secondary">취소</a>
-            <button type="submit" class="btn btn-primary">
+            <button type="button" id="submitBtn" class="btn btn-primary">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M5 13l4 4L19 7"/>
                 </svg>
@@ -1592,7 +1592,37 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // 폼 제출
+    // 엔터 키로 폼 제출 방지
+    const productForm = document.getElementById('productForm');
+    if (productForm) {
+        // 폼 내 모든 input, textarea, select에서 엔터 키 방지
+        const formInputs = productForm.querySelectorAll('input, textarea, select');
+        formInputs.forEach(input => {
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
+                    e.preventDefault();
+                    return false;
+                }
+            });
+        });
+    }
+    
+    // 제출 버튼 클릭 이벤트
+    const submitBtn = document.getElementById('submitBtn');
+    if (submitBtn) {
+        submitBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            // 폼 검증 후 제출
+            const form = document.getElementById('productForm');
+            if (form.checkValidity()) {
+                form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+            } else {
+                form.reportValidity();
+            }
+        });
+    }
+    
+    // 폼 제출 (버튼 클릭 시에만)
     document.getElementById('productForm').addEventListener('submit', function(e) {
         e.preventDefault();
         

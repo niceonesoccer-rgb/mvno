@@ -2698,8 +2698,9 @@ button:focus {
 }
 
 .basic-plan-card:hover {
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.08);
-    transform: translateY(0);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15), 0 4px 8px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+    transition: all 0.3s ease;
 }
 
 .plan-card-divider {
@@ -2900,8 +2901,25 @@ button:focus {
 }
 
 .plan-title-separator {
+    color: var(--color-gray-400); /* 더 연한 회색으로 변경 */
+    opacity: 0.6; /* 약간 투명도 추가 */
+    margin: 0 0.125rem; /* 간격 조정 (50% 더 줄임) */
+    font-weight: 400; /* 굵기 조정 */
+}
+
+.plan-name-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: var(--spacing-sm);
+    margin-bottom: calc(var(--spacing-md) * 0.125);
+}
+
+.plan-name-text {
+    font-size: 1.0625rem; /* 17px - 알뜰폰 제목과 동일 */
+    font-weight: 500;
     color: var(--color-gray-500);
-    margin: 0 0.5rem; /* | 앞뒤로 한 칸씩 더 띄우기 */
+    flex: 1;
 }
 
 /* 통신사폰 전용 스타일 (알뜰폰과 독립적) */

@@ -3731,6 +3731,462 @@ function getUserInternetApplications($userId) {
 }
 
 /**
+ * 사용자의 통신사유심 신청 내역 조회
+ * @param int $userId 사용자 ID
+ * @return array 신청 내역 배열
+ */
+function getUserMnoSimApplications($userId) {
+    $pdo = getDBConnection();
+    if (!$pdo) {
+        error_log("getUserMnoSimApplications: DB connection failed");
+        return [];
+    }
+    
+    try {
+        $stmt = $pdo->prepare("
+            SELECT 
+                a.id as application_id,
+                a.order_number,
+                a.product_id,
+                a.application_status,
+                a.created_at as order_date,
+                p.seller_id,
+                c.name,
+                c.phone,
+                c.email,
+                c.additional_info,
+                mno_sim.provider,
+                mno_sim.service_type,
+                mno_sim.plan_name,
+                mno_sim.contract_period,
+                mno_sim.contract_period_discount_value,
+                mno_sim.contract_period_discount_unit,
+                mno_sim.price_main,
+                mno_sim.price_main_unit,
+                mno_sim.discount_period,
+                mno_sim.discount_period_value,
+                mno_sim.discount_period_unit,
+                mno_sim.price_after_type,
+                mno_sim.price_after,
+                mno_sim.price_after_unit,
+                mno_sim.data_amount,
+                mno_sim.data_amount_value,
+                mno_sim.data_unit,
+                mno_sim.data_additional,
+                mno_sim.data_additional_value,
+                mno_sim.data_exhausted,
+                mno_sim.data_exhausted_value,
+                mno_sim.call_type,
+                mno_sim.call_amount,
+                mno_sim.call_amount_unit,
+                mno_sim.sms_type,
+                mno_sim.sms_amount,
+                mno_sim.sms_amount_unit,
+                mno_sim.promotions,
+                mno_sim.benefits,
+                mno_sim.promotion_title,
+                mno_sim.plan_maintenance_period_type,
+                mno_sim.plan_maintenance_period_prefix,
+                mno_sim.plan_maintenance_period_value,
+                mno_sim.plan_maintenance_period_unit,
+                mno_sim.sim_change_restriction_period_type,
+                mno_sim.sim_change_restriction_period_prefix,
+                mno_sim.sim_change_restriction_period_value,
+                mno_sim.sim_change_restriction_period_unit,
+                p.status as product_status
+            FROM product_applications a
+            INNER JOIN (
+                SELECT c1.application_id, c1.id, c1.user_id, c1.additional_info, c1.name, c1.phone, c1.email
+                FROM application_customers c1
+                INNER JOIN (
+                    SELECT application_id, MAX(id) as max_id
+                    FROM application_customers
+                    GROUP BY application_id
+                ) c2 ON c1.application_id = c2.application_id AND c1.id = c2.max_id
+            ) c ON a.id = c.application_id
+            INNER JOIN products p ON a.product_id = p.id
+            LEFT JOIN product_mno_sim_details mno_sim ON p.id = mno_sim.product_id
+            WHERE c.user_id = :user_id 
+            AND a.product_type = 'mno-sim'
+            ORDER BY a.created_at DESC
+        ");
+        $stmt->execute([':user_id' => $userId]);
+        $applications = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // 데이터 포맷팅
+        $formattedApplications = [];
+        foreach ($applications as $app) {
+            try {
+                // additional_info 파싱
+                $additionalInfo = [];
+                $productSnapshot = null;
+                
+                if (!empty($app['additional_info'])) {
+                    $decoded = json_decode($app['additional_info'], true);
+                    if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                        $additionalInfo = $decoded;
+                        $productSnapshot = $additionalInfo['product_snapshot'] ?? null;
+                    }
+                }
+                
+                // 상품 정보 변수 초기화
+                $planName = '';
+                $provider = '';
+                $priceMain = 0;
+                $priceAfter = null;
+                $priceAfterType = null;
+                $contractPeriod = '';
+                $contractPeriodValue = '';
+                $contractPeriodUnit = '';
+                $discountPeriod = '';
+                $discountPeriodValue = '';
+                $discountPeriodUnit = '';
+                $dataAmount = '';
+                $dataAmountValue = '';
+                $dataUnit = '';
+                $dataAdditional = '';
+                $dataAdditionalValue = '';
+                $dataExhausted = '';
+                $dataExhaustedValue = '';
+                $callType = '';
+                $callAmount = '';
+                $callAmountUnit = '';
+                $smsType = '';
+                $smsAmount = '';
+                $smsAmountUnit = '';
+                $serviceType = '';
+                $promotions = '';
+                $promotionTitle = '';
+                $priceMainUnit = '';
+                $priceAfterUnit = '';
+                $planMaintenancePeriodType = '';
+                $planMaintenancePeriodPrefix = '';
+                $planMaintenancePeriodValue = '';
+                $planMaintenancePeriodUnit = '';
+                $simChangeRestrictionPeriodType = '';
+                $simChangeRestrictionPeriodPrefix = '';
+                $simChangeRestrictionPeriodValue = '';
+                $simChangeRestrictionPeriodUnit = '';
+                
+                // product_snapshot이 있으면 우선 사용 (신청 당시 상품 정보)
+                if (!empty($productSnapshot) && is_array($productSnapshot)) {
+                    $planName = $productSnapshot['plan_name'] ?? '';
+                    $provider = $productSnapshot['provider'] ?? '';
+                    $priceMain = isset($productSnapshot['price_main']) && is_numeric($productSnapshot['price_main']) ? (float)$productSnapshot['price_main'] : 0;
+                    $priceAfter = isset($productSnapshot['price_after']) && $productSnapshot['price_after'] !== null && $productSnapshot['price_after'] !== '' && $productSnapshot['price_after'] != '0' ? (float)$productSnapshot['price_after'] : null;
+                    $priceAfterType = $productSnapshot['price_after_type'] ?? null;
+                    $contractPeriod = $productSnapshot['contract_period'] ?? '';
+                    $contractPeriodValue = $productSnapshot['contract_period_discount_value'] ?? '';
+                    $contractPeriodUnit = $productSnapshot['contract_period_discount_unit'] ?? '';
+                    $discountPeriod = $productSnapshot['discount_period'] ?? '';
+                    $discountPeriodValue = $productSnapshot['discount_period_value'] ?? '';
+                    $discountPeriodUnit = $productSnapshot['discount_period_unit'] ?? '';
+                    $dataAmount = $productSnapshot['data_amount'] ?? '';
+                    $dataAmountValue = $productSnapshot['data_amount_value'] ?? '';
+                    $dataUnit = $productSnapshot['data_unit'] ?? '';
+                    $dataAdditional = $productSnapshot['data_additional'] ?? '';
+                    $dataAdditionalValue = $productSnapshot['data_additional_value'] ?? '';
+                    $dataExhausted = $productSnapshot['data_exhausted'] ?? '';
+                    $dataExhaustedValue = $productSnapshot['data_exhausted_value'] ?? '';
+                    $callType = $productSnapshot['call_type'] ?? '';
+                    $callAmount = $productSnapshot['call_amount'] ?? '';
+                    $callAmountUnit = $productSnapshot['call_amount_unit'] ?? '분';
+                    $smsType = $productSnapshot['sms_type'] ?? '';
+                    $smsAmount = $productSnapshot['sms_amount'] ?? '';
+                    $smsAmountUnit = $productSnapshot['sms_amount_unit'] ?? '건';
+                    $serviceType = $productSnapshot['service_type'] ?? '';
+                    $promotions = isset($productSnapshot['promotions']) ? (is_string($productSnapshot['promotions']) ? $productSnapshot['promotions'] : json_encode($productSnapshot['promotions'])) : '';
+                    $promotionTitle = $productSnapshot['promotion_title'] ?? '';
+                    $priceMainUnit = $productSnapshot['price_main_unit'] ?? '원';
+                    $priceAfterUnit = $productSnapshot['price_after_unit'] ?? '원';
+                    $planMaintenancePeriodType = $productSnapshot['plan_maintenance_period_type'] ?? '';
+                    $planMaintenancePeriodPrefix = $productSnapshot['plan_maintenance_period_prefix'] ?? '';
+                    $planMaintenancePeriodValue = $productSnapshot['plan_maintenance_period_value'] ?? '';
+                    $planMaintenancePeriodUnit = $productSnapshot['plan_maintenance_period_unit'] ?? '';
+                    $simChangeRestrictionPeriodType = $productSnapshot['sim_change_restriction_period_type'] ?? '';
+                    $simChangeRestrictionPeriodPrefix = $productSnapshot['sim_change_restriction_period_prefix'] ?? '';
+                    $simChangeRestrictionPeriodValue = $productSnapshot['sim_change_restriction_period_value'] ?? '';
+                    $simChangeRestrictionPeriodUnit = $productSnapshot['sim_change_restriction_period_unit'] ?? '';
+                } else {
+                    // product_snapshot이 없으면 현재 상품 정보 사용
+                    $planName = $app['plan_name'] ?? '';
+                    $provider = $app['provider'] ?? '';
+                    $priceMain = isset($app['price_main']) && $app['price_main'] !== null && $app['price_main'] !== '' ? (float)$app['price_main'] : 0;
+                    $priceAfter = isset($app['price_after']) && $app['price_after'] !== null && $app['price_after'] !== '' && $app['price_after'] != '0' ? (float)$app['price_after'] : null;
+                    $priceAfterType = $app['price_after_type'] ?? null;
+                    $contractPeriod = $app['contract_period'] ?? '';
+                    $contractPeriodValue = $app['contract_period_discount_value'] ?? '';
+                    $contractPeriodUnit = $app['contract_period_discount_unit'] ?? '';
+                    $discountPeriod = $app['discount_period'] ?? '';
+                    $discountPeriodValue = $app['discount_period_value'] ?? '';
+                    $discountPeriodUnit = $app['discount_period_unit'] ?? '';
+                    $dataAmount = $app['data_amount'] ?? '';
+                    $dataAmountValue = $app['data_amount_value'] ?? '';
+                    $dataUnit = $app['data_unit'] ?? '';
+                    $dataAdditional = $app['data_additional'] ?? '';
+                    $dataAdditionalValue = $app['data_additional_value'] ?? '';
+                    $dataExhausted = $app['data_exhausted'] ?? '';
+                    $dataExhaustedValue = $app['data_exhausted_value'] ?? '';
+                    $callType = $app['call_type'] ?? '';
+                    $callAmount = $app['call_amount'] ?? '';
+                    $callAmountUnit = $app['call_amount_unit'] ?? '분';
+                    $smsType = $app['sms_type'] ?? '';
+                    $smsAmount = $app['sms_amount'] ?? '';
+                    $smsAmountUnit = $app['sms_amount_unit'] ?? '건';
+                    $serviceType = $app['service_type'] ?? '';
+                    $promotions = $app['promotions'] ?? '';
+                    $promotionTitle = $app['promotion_title'] ?? '';
+                    $priceMainUnit = $app['price_main_unit'] ?? '원';
+                    $priceAfterUnit = $app['price_after_unit'] ?? '원';
+                    $planMaintenancePeriodType = $app['plan_maintenance_period_type'] ?? '';
+                    $planMaintenancePeriodPrefix = $app['plan_maintenance_period_prefix'] ?? '';
+                    $planMaintenancePeriodValue = $app['plan_maintenance_period_value'] ?? '';
+                    $planMaintenancePeriodUnit = $app['plan_maintenance_period_unit'] ?? '';
+                    $simChangeRestrictionPeriodType = $app['sim_change_restriction_period_type'] ?? '';
+                    $simChangeRestrictionPeriodPrefix = $app['sim_change_restriction_period_prefix'] ?? '';
+                    $simChangeRestrictionPeriodValue = $app['sim_change_restriction_period_value'] ?? '';
+                    $simChangeRestrictionPeriodUnit = $app['sim_change_restriction_period_unit'] ?? '';
+                }
+                
+                // 약정기간 포맷팅
+                $contractPeriodFormatted = $contractPeriod;
+                if (!empty($contractPeriodValue) && !empty($contractPeriodUnit)) {
+                    $contractPeriodFormatted = $contractPeriod . ' ' . $contractPeriodValue . $contractPeriodUnit;
+                }
+                
+                // 할인기간(프로모션) 포맷팅
+                $discountPeriodFormatted = '';
+                if ($discountPeriod === '프로모션 없음' || empty($discountPeriod)) {
+                    $discountPeriodFormatted = '';
+                } elseif (!empty($discountPeriodValue) && !empty($discountPeriodUnit)) {
+                    $discountPeriodFormatted = $discountPeriodValue . $discountPeriodUnit;
+                } elseif (!empty($discountPeriod)) {
+                    $discountPeriodFormatted = $discountPeriod;
+                }
+                
+                // 요금제 유지기간 포맷팅
+                $planMaintenancePeriodFormatted = '';
+                if ($planMaintenancePeriodType === '무약정') {
+                    $planMaintenancePeriodFormatted = '무약정';
+                } elseif ($planMaintenancePeriodType === '직접입력') {
+                    $prefix = $planMaintenancePeriodPrefix ?? '';
+                    $value = $planMaintenancePeriodValue ?? null;
+                    $unit = $planMaintenancePeriodUnit ?? '';
+                    if (!empty($value) && !empty($unit)) {
+                        $planMaintenancePeriodFormatted = $prefix . '+' . $value . $unit;
+                    }
+                }
+                
+                // 유심기변 불가기간 포맷팅
+                $simChangeRestrictionPeriodFormatted = '';
+                if ($simChangeRestrictionPeriodType === '무약정') {
+                    $simChangeRestrictionPeriodFormatted = '무약정';
+                } elseif ($simChangeRestrictionPeriodType === '직접입력') {
+                    $prefix = $simChangeRestrictionPeriodPrefix ?? '';
+                    $value = $simChangeRestrictionPeriodValue ?? null;
+                    $unit = $simChangeRestrictionPeriodUnit ?? '';
+                    if (!empty($value) && !empty($unit)) {
+                        $simChangeRestrictionPeriodFormatted = $prefix . '+' . $value . $unit;
+                    }
+                }
+                
+                // 데이터 제공량 포맷팅
+                $dataMain = '';
+                if (!empty($dataAmount)) {
+                    if ($dataAmount === '무제한') {
+                        $dataMain = '무제한';
+                    } elseif ($dataAmount === '직접입력' && !empty($dataAmountValue)) {
+                        $dataMain = number_format((float)$dataAmountValue) . $dataUnit;
+                    } else {
+                        $dataMain = $dataAmount;
+                    }
+                    
+                    if (!empty($dataAdditional) && $dataAdditional !== '없음') {
+                        if ($dataAdditional === '직접입력' && !empty($dataAdditionalValue)) {
+                            $dataMain .= ' + ' . $dataAdditionalValue;
+                        } else {
+                            $dataMain .= ' + ' . $dataAdditional;
+                        }
+                    }
+                    
+                    if (!empty($dataExhausted) && $dataExhausted !== '직접입력') {
+                        $dataMain .= ' + ' . $dataExhausted;
+                    } elseif (!empty($dataExhausted) && $dataExhausted === '직접입력' && !empty($dataExhaustedValue)) {
+                        $dataMain .= ' + ' . $dataExhaustedValue;
+                    }
+                }
+                
+                // 제목 생성: "KT | LTE | 선택약정할인 24개월" 형식
+                $title = $provider;
+                if (!empty($serviceType)) {
+                    $title .= ' | ' . $serviceType;
+                }
+                if (!empty($contractPeriodFormatted) && $contractPeriodFormatted !== $contractPeriod) {
+                    $title .= ' | ' . $contractPeriodFormatted;
+                }
+                
+                // 기능 배열 생성
+                $features = [];
+                if (!empty($callType)) {
+                    if ($callType === '무제한') {
+                        $features[] = '통화 무제한';
+                    } elseif ($callType === '기본제공') {
+                        $features[] = '통화 기본제공';
+                    } elseif ($callType === '직접입력' && !empty($callAmount)) {
+                        $callAmountUnit = $app['call_amount_unit'] ?? '분';
+                        $features[] = '통화 ' . number_format((float)$callAmount) . $callAmountUnit;
+                    }
+                }
+                
+                if (!empty($smsType)) {
+                    if ($smsType === '무제한') {
+                        $features[] = '문자 무제한';
+                    } elseif ($smsType === '기본제공') {
+                        $features[] = '문자 기본제공';
+                    } elseif ($smsType === '직접입력' && !empty($smsAmount)) {
+                        $smsAmountUnit = $app['sms_amount_unit'] ?? '건';
+                        $features[] = '문자 ' . number_format((float)$smsAmount) . $smsAmountUnit;
+                    }
+                }
+                
+                if (!empty($provider)) {
+                    $features[] = $provider;
+                }
+                
+                if (!empty($serviceType)) {
+                    $features[] = $serviceType;
+                }
+                
+                // 가격 포맷팅
+                $priceMainFormatted = '월 ' . number_format((int)$priceMain) . $priceMainUnit;
+                
+                $priceAfterFormatted = '';
+                if ($priceAfterType === 'none' || $priceAfter === null) {
+                    $priceAfterFormatted = '';
+                } elseif ($priceAfterType === 'free' || $priceAfter == 0) {
+                    $priceAfterFormatted = '무료';
+                } elseif (!empty($priceAfter)) {
+                    $priceAfterFormatted = number_format((int)$priceAfter) . $priceAfterUnit;
+                }
+                
+                // 할인 후 가격이 있으면 표시 형식 조정
+                if ($priceAfterFormatted && $discountPeriodFormatted) {
+                    $priceAfterFormatted = $discountPeriodFormatted . ' 이후 ' . $priceAfterFormatted;
+                }
+                
+                // 프로모션 파싱
+                $gifts = [];
+                if (!empty($promotions)) {
+                    $promotionsArray = json_decode($promotions, true);
+                    if (is_array($promotionsArray)) {
+                        $gifts = array_filter($promotionsArray, function($p) {
+                            return !empty(trim($p));
+                        });
+                    }
+                }
+                
+                // 리뷰 작성 여부 확인
+                $hasReview = false;
+                $rating = '';
+                if (!empty($app['product_id'])) {
+                    try {
+                        $hasApplicationId = false;
+                        try {
+                            $checkStmt = $pdo->query("SHOW COLUMNS FROM product_reviews LIKE 'application_id'");
+                            $hasApplicationId = $checkStmt->rowCount() > 0;
+                        } catch (PDOException $e) {}
+                        
+                        if ($hasApplicationId && !empty($app['application_id'])) {
+                            $reviewStmt = $pdo->prepare("
+                                SELECT COUNT(*) as count
+                                FROM product_reviews
+                                WHERE application_id = :application_id 
+                                AND user_id = :user_id 
+                                AND product_type = 'mno-sim'
+                                AND status = 'approved'
+                            ");
+                            $reviewStmt->execute([
+                                ':application_id' => $app['application_id'],
+                                ':user_id' => $userId
+                            ]);
+                        } else {
+                            $reviewStmt = $pdo->prepare("
+                                SELECT COUNT(*) as count
+                                FROM product_reviews
+                                WHERE product_id = :product_id 
+                                AND user_id = :user_id 
+                                AND product_type = 'mno-sim'
+                                AND status = 'approved'
+                            ");
+                            $reviewStmt->execute([
+                                ':product_id' => $app['product_id'],
+                                ':user_id' => $userId
+                            ]);
+                        }
+                        $reviewResult = $reviewStmt->fetch(PDO::FETCH_ASSOC);
+                        $hasReview = ($reviewResult['count'] ?? 0) > 0;
+                        
+                        // 평균 별점 가져오기
+                        if (!function_exists('getProductAverageRating')) {
+                            require_once __DIR__ . '/plan-data.php';
+                        }
+                        if (function_exists('getProductAverageRating')) {
+                            $averageRating = getProductAverageRating($app['product_id'], 'mno-sim');
+                            $rating = $averageRating > 0 ? number_format($averageRating, 1) : '';
+                        }
+                    } catch (Exception $e) {
+                        error_log("Error fetching review info for mno-sim product {$app['product_id']}: " . $e->getMessage());
+                    }
+                }
+                
+                // 상태 한글 변환
+                $statusKor = getApplicationStatusLabel($app['application_status'] ?? 'pending');
+                
+                $formattedApplications[] = [
+                    'id' => (int)$app['product_id'],
+                    'product_id' => (int)$app['product_id'],
+                    'application_id' => (int)$app['application_id'],
+                    'seller_id' => (int)($app['seller_id'] ?? 0),
+                    'order_number' => $app['order_number'] ?? '',
+                    'provider' => !empty($provider) ? $provider : '알 수 없음',
+                    'rating' => $rating,
+                    'title' => !empty($title) ? $title : (!empty($planName) ? $planName : '요금제 정보 없음'),
+                    'plan_name' => $planName,
+                    'data_main' => !empty($dataMain) ? $dataMain : '데이터 정보 없음',
+                    'features' => $features,
+                    'price_main' => !empty($priceMainFormatted) ? $priceMainFormatted : '가격 정보 없음',
+                    'price_after' => $priceAfterFormatted,
+                    'contract_period' => $contractPeriodFormatted ?: $contractPeriod,
+                    'discount_period' => $discountPeriodFormatted,
+                    'plan_maintenance_period' => $planMaintenancePeriodFormatted,
+                    'sim_change_restriction_period' => $simChangeRestrictionPeriodFormatted,
+                    'gifts' => $gifts,
+                    'gift_count' => count($gifts),
+                    'promotion_title' => $promotionTitle,
+                    'order_date' => !empty($app['order_date']) ? date('Y.m.d', strtotime($app['order_date'])) : date('Y.m.d'),
+                    'activation_date' => '',
+                    'has_review' => $hasReview,
+                    'is_sold_out' => ($app['product_status'] ?? 'active') !== 'active',
+                    'status' => $statusKor,
+                    'application_status' => $app['application_status']
+                ];
+            } catch (Exception $e) {
+                error_log("Error formatting mno-sim application: " . $e->getMessage());
+                continue;
+            }
+        }
+        
+        return $formattedApplications;
+    } catch (PDOException $e) {
+        error_log("Error fetching user MNO-SIM applications: " . $e->getMessage());
+        return [];
+    } catch (Exception $e) {
+        error_log("General error in getUserMnoSimApplications: " . $e->getMessage());
+        return [];
+    }
+}
+
+/**
  * 관리자용 - 모든 판매자의 알뜰폰 접수건 조회
  * @param array $filters 필터 조건 (seller_id, status, date_from, date_to 등)
  * @param int $page 페이지 번호

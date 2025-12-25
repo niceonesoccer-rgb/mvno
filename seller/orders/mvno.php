@@ -1495,7 +1495,7 @@ function showProductInfo(order, productType) {
             addRowIfNotDash(overLimitRows, '음성', overVoicePrice);
             addRowIfNotDash(overLimitRows, '영상통화', overVideoPrice);
             addRowIfNotDash(overLimitRows, '단문메시지(SMS)', overSmsPrice);
-            addRowIfNotDash(overLimitRows, '텍스트형(LMS,MMS)', overLmsPrice);
+            addRowIfNotDash(overLimitRows, '텍스트형(LMS)', overLmsPrice);
             addRowIfNotDash(overLimitRows, '멀티미디어형(MMS)', overMmsPrice);
             
             if (overLimitRows.length > 0) {

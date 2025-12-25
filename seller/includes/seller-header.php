@@ -98,8 +98,8 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         /* 헤더 */
         .seller-top-header {
             width: 100%;
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            border-bottom: 1px solid #047857;
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
             padding: 16px 24px;
             display: flex;
             justify-content: space-between;
@@ -109,8 +109,8 @@ $currentPage = basename($_SERVER['PHP_SELF']);
             left: 0;
             right: 0;
             z-index: 1000;
-            height: 60px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            height: 64px;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
         }
         
         .seller-top-header-left {
@@ -119,53 +119,70 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         }
         
         .seller-top-header-logo {
-            font-size: 18px;
-            font-weight: 700;
+            font-size: 22px;
+            font-weight: 800;
             color: #ffffff;
             text-decoration: none;
+            letter-spacing: -0.5px;
+            transition: opacity 0.2s;
+        }
+        
+        .seller-top-header-logo:hover {
+            opacity: 0.9;
         }
         
         .seller-top-header-right {
             display: flex;
             align-items: center;
-            gap: 16px;
+            gap: 20px;
         }
         
         .seller-info {
-            font-size: 14px;
+            font-size: 15px;
             color: rgba(255, 255, 255, 0.95);
-            font-weight: 500;
-            padding: 6px 12px;
+            font-weight: 600;
+            padding: 8px 16px;
             border-right: 1px solid rgba(255, 255, 255, 0.3);
             margin-right: 8px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        
+        .seller-info:hover {
+            background: rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+            transform: translateY(-1px);
         }
         
         .seller-top-header-link {
-            font-size: 14px;
+            font-size: 15px;
             color: #ffffff;
             text-decoration: none;
-            font-weight: 500;
-            padding: 6px 12px;
-            border-radius: 6px;
-            transition: background 0.2s;
+            font-weight: 600;
+            padding: 8px 16px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
         }
         
         .seller-top-header-link:hover {
-            background: rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-1px);
         }
         
         /* 사이드바 */
         .seller-sidebar {
-            width: 260px;
-            background: linear-gradient(180deg, #065f46 0%, #047857 50%, #059669 100%);
+            width: 280px;
+            background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
             color: #f1f5f9;
             position: fixed;
-            height: calc(100vh - 60px);
-            top: 60px;
+            height: calc(100vh - 64px);
+            top: 64px;
             left: 0;
             overflow-y: auto;
-            padding: 24px 0;
-            box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+            padding: 32px 0;
+            box-shadow: 4px 0 16px rgba(0, 0, 0, 0.15);
         }
         
         .seller-sidebar::-webkit-scrollbar {
@@ -186,72 +203,219 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         }
         
         .menu-section {
-            margin-bottom: 32px;
+            margin-bottom: 0;
+            padding-bottom: 28px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            margin-bottom: 28px;
+            position: relative;
+        }
+        
+        .menu-section:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+        
+        .menu-section::after {
+            content: "";
+            position: absolute;
+            bottom: 0;
+            left: 24px;
+            right: 24px;
+            height: 1px;
+            background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.1) 50%, transparent 100%);
+        }
+        
+        .menu-section:last-child::after {
+            display: none;
         }
         
         .menu-section-title {
             font-size: 12px;
-            font-weight: 600;
-            color: rgba(255, 255, 255, 0.6);
+            font-weight: 800;
+            color: rgba(255, 255, 255, 0.5);
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 1.5px;
             padding: 0 24px;
             margin-bottom: 12px;
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        
+        .menu-section-title::before {
+            content: "";
+            width: 3px;
+            height: 12px;
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            border-radius: 2px;
+            margin-right: 10px;
         }
         
         .menu-item {
             display: flex;
             align-items: center;
-            padding: 12px 24px;
-            color: rgba(255, 255, 255, 0.8);
+            padding: 14px 24px;
+            color: rgba(255, 255, 255, 0.85);
             text-decoration: none;
-            transition: all 0.2s;
-            font-size: 14px;
-            border-left: 3px solid transparent;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 15px;
+            font-weight: 600;
+            border-left: 4px solid transparent;
+            position: relative;
+            margin: 2px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .menu-item::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 0;
+            background: linear-gradient(90deg, rgba(99, 102, 241, 0.2) 0%, rgba(139, 92, 246, 0.15) 100%);
+            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 0 8px 8px 0;
         }
         
         .menu-item:hover {
-            background: rgba(255, 255, 255, 0.1);
+            background: linear-gradient(90deg, rgba(99, 102, 241, 0.15) 0%, rgba(139, 92, 246, 0.1) 100%);
             color: #ffffff;
+            padding-left: 28px;
+            transform: translateX(4px);
+        }
+        
+        .menu-item:hover::before {
+            width: 4px;
+            background: linear-gradient(180deg, #6366f1 0%, #8b5cf6 100%);
+        }
+        
+        .menu-item-sub:hover {
+            transform: translateX(2px);
         }
         
         .menu-item.active {
-            background: rgba(255, 255, 255, 0.15);
+            background: linear-gradient(90deg, rgba(99, 102, 241, 0.25) 0%, rgba(139, 92, 246, 0.18) 100%);
             color: #ffffff;
-            border-left-color: #fbbf24;
+            border-left-color: #6366f1;
+            box-shadow: inset 0 0 20px rgba(99, 102, 241, 0.15), 0 2px 8px rgba(99, 102, 241, 0.1);
+            font-weight: 700;
+        }
+        
+        .menu-item.active::before {
+            width: 100%;
+            background: linear-gradient(90deg, rgba(99, 102, 241, 0.25) 0%, rgba(139, 92, 246, 0.18) 100%);
         }
         
         .menu-item-sub {
-            padding-left: 56px;
-            font-size: 13px;
+            padding-left: 64px;
+            font-size: 15px;
+            font-weight: 500;
+            position: relative;
+        }
+        
+        .menu-item-sub .menu-item-icon {
+            width: 18px;
+            height: 18px;
+            margin-right: 10px;
+        }
+        
+        .menu-item-sub::after {
+            content: "";
+            position: absolute;
+            left: 40px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.35);
+            transition: all 0.3s ease;
+        }
+        
+        .menu-item-sub:hover::after {
+            background: rgba(99, 102, 241, 0.8);
+            width: 7px;
+            height: 7px;
+            box-shadow: 0 0 6px rgba(99, 102, 241, 0.4);
         }
         
         .menu-item-sub.active {
-            background: rgba(255, 255, 255, 0.1);
+            background: linear-gradient(90deg, rgba(99, 102, 241, 0.2) 0%, rgba(139, 92, 246, 0.15) 100%);
             color: #ffffff;
-            border-left-color: #fbbf24;
+            border-left-color: #6366f1;
+            font-weight: 600;
+        }
+        
+        .menu-item-sub.active::after {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            width: 8px;
+            height: 8px;
+            box-shadow: 0 0 8px rgba(99, 102, 241, 0.5);
+        }
+        
+        .menu-item-sub.active::before {
+            width: 100%;
+        }
+        
+        .menu-sub-category {
+            padding: 10px 24px;
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.45);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 12px;
+            margin-bottom: 8px;
+            position: relative;
+            padding-left: 40px;
+        }
+        
+        .menu-sub-category::before {
+            content: "";
+            position: absolute;
+            left: 24px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: rgba(99, 102, 241, 0.6);
+            box-shadow: 0 0 4px rgba(99, 102, 241, 0.3);
         }
         
         .menu-item-icon {
-            width: 20px;
-            height: 20px;
-            margin-right: 12px;
+            width: 24px;
+            height: 24px;
+            margin-right: 14px;
             display: flex;
             align-items: center;
             justify-content: center;
+            flex-shrink: 0;
+            transition: all 0.3s ease;
+        }
+        
+        .menu-item:hover .menu-item-icon {
+            transform: scale(1.1);
         }
         
         .menu-item-icon svg {
             width: 100%;
             height: 100%;
             stroke: currentColor;
+            stroke-width: 2.5;
+        }
+        
+        .menu-item.active .menu-item-icon svg {
+            filter: drop-shadow(0 0 4px rgba(99, 102, 241, 0.5));
         }
         
         /* 메인 컨텐츠 */
         .seller-content-wrapper {
-            margin-left: 260px;
-            margin-top: 60px;
-            min-height: calc(100vh - 60px);
+            margin-left: 280px;
+            margin-top: 64px;
+            min-height: calc(100vh - 64px);
             padding: 0;
         }
         
@@ -435,9 +599,9 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         </div>
         <div class="seller-top-header-right">
             <?php if ($currentUser && isset($currentUser['user_id']) && isset($currentUser['company_name'])): ?>
-                <span class="seller-info">
+                <a href="/MVNO/seller/profile.php" class="seller-info">
                     <?php echo htmlspecialchars($currentUser['company_name']); ?> (<?php echo htmlspecialchars($currentUser['user_id']); ?>)
-                </span>
+                </a>
             <?php endif; ?>
             <a href="/MVNO/" class="seller-top-header-link">사이트보기</a>
             <a href="/MVNO/seller/logout.php" class="seller-top-header-link">로그아웃</a>
@@ -464,52 +628,122 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         <div class="menu-section">
             <div class="menu-section-title">주문 관리</div>
             <a href="/MVNO/seller/orders/mno-sim.php" class="menu-item menu-item-sub <?php echo (basename($_SERVER['PHP_SELF']) === 'mno-sim.php' && strpos($_SERVER['REQUEST_URI'], '/orders/') !== false) ? 'active' : ''; ?>">
+                <span class="menu-item-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
+                        <line x1="12" y1="18" x2="12.01" y2="18"/>
+                    </svg>
+                </span>
                 통신사유심
             </a>
             <a href="/MVNO/seller/orders/mvno.php" class="menu-item menu-item-sub <?php echo (basename($_SERVER['PHP_SELF']) === 'mvno.php' && strpos($_SERVER['REQUEST_URI'], '/orders/') !== false) ? 'active' : ''; ?>">
+                <span class="menu-item-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
+                        <line x1="12" y1="18" x2="12.01" y2="18"/>
+                    </svg>
+                </span>
                 알뜰폰
             </a>
             <a href="/MVNO/seller/orders/mno.php" class="menu-item menu-item-sub <?php echo (basename($_SERVER['PHP_SELF']) === 'mno.php' && strpos($_SERVER['REQUEST_URI'], '/orders/') !== false) ? 'active' : ''; ?>">
+                <span class="menu-item-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
+                        <line x1="12" y1="18" x2="12.01" y2="18"/>
+                    </svg>
+                </span>
                 통신사폰
             </a>
             <a href="/MVNO/seller/orders/internet.php" class="menu-item menu-item-sub <?php echo (basename($_SERVER['PHP_SELF']) === 'internet.php' && strpos($_SERVER['REQUEST_URI'], '/orders/') !== false) ? 'active' : ''; ?>">
+                <span class="menu-item-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="2" y1="12" x2="22" y2="12"/>
+                        <path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/>
+                    </svg>
+                </span>
                 인터넷
             </a>
         </div>
         
         <div class="menu-section">
             <div class="menu-section-title">상품 관리</div>
-            <div style="margin-top: 8px;">
-                <div style="padding: 8px 24px; font-size: 12px; color: rgba(255, 255, 255, 0.5); font-weight: 600;">
-                    등록 상품
-                </div>
-                <a href="/MVNO/seller/products/mno-sim-list.php" class="menu-item menu-item-sub <?php echo $currentPage === 'mno-sim-list.php' ? 'active' : ''; ?>">
-                    통신사유심
-                </a>
-                <a href="/MVNO/seller/products/mvno-list.php" class="menu-item menu-item-sub <?php echo $currentPage === 'mvno-list.php' ? 'active' : ''; ?>">
-                    알뜰폰
-                </a>
-                <a href="/MVNO/seller/products/mno-list.php" class="menu-item menu-item-sub <?php echo $currentPage === 'mno-list.php' ? 'active' : ''; ?>">
-                    통신사폰
-                </a>
-                <a href="/MVNO/seller/products/internet-list.php" class="menu-item menu-item-sub <?php echo $currentPage === 'internet-list.php' ? 'active' : ''; ?>">
-                    인터넷
-                </a>
-            </div>
+            <a href="/MVNO/seller/products/mno-sim-list.php" class="menu-item menu-item-sub <?php echo $currentPage === 'mno-sim-list.php' ? 'active' : ''; ?>">
+                <span class="menu-item-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
+                        <line x1="12" y1="18" x2="12.01" y2="18"/>
+                    </svg>
+                </span>
+                통신사유심
+            </a>
+            <a href="/MVNO/seller/products/mvno-list.php" class="menu-item menu-item-sub <?php echo $currentPage === 'mvno-list.php' ? 'active' : ''; ?>">
+                <span class="menu-item-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
+                        <line x1="12" y1="18" x2="12.01" y2="18"/>
+                    </svg>
+                </span>
+                알뜰폰
+            </a>
+            <a href="/MVNO/seller/products/mno-list.php" class="menu-item menu-item-sub <?php echo $currentPage === 'mno-list.php' ? 'active' : ''; ?>">
+                <span class="menu-item-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
+                        <line x1="12" y1="18" x2="12.01" y2="18"/>
+                    </svg>
+                </span>
+                통신사폰
+            </a>
+            <a href="/MVNO/seller/products/internet-list.php" class="menu-item menu-item-sub <?php echo $currentPage === 'internet-list.php' ? 'active' : ''; ?>">
+                <span class="menu-item-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="2" y1="12" x2="22" y2="12"/>
+                        <path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/>
+                    </svg>
+                </span>
+                인터넷
+            </a>
         </div>
         
         <div class="menu-section">
             <div class="menu-section-title">상품 등록</div>
             <a href="/MVNO/seller/products/mno-sim.php" class="menu-item menu-item-sub <?php echo ($currentPage === 'mno-sim.php' && strpos($_SERVER['REQUEST_URI'], '/products/') !== false && strpos($_SERVER['REQUEST_URI'], '/orders/') === false) ? 'active' : ''; ?>">
+                <span class="menu-item-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
+                        <line x1="12" y1="18" x2="12.01" y2="18"/>
+                    </svg>
+                </span>
                 통신사유심
             </a>
             <a href="/MVNO/seller/products/mvno.php" class="menu-item menu-item-sub <?php echo ($currentPage === 'mvno.php' && strpos($_SERVER['REQUEST_URI'], '/products/') !== false && strpos($_SERVER['REQUEST_URI'], '/orders/') === false) ? 'active' : ''; ?>">
+                <span class="menu-item-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
+                        <line x1="12" y1="18" x2="12.01" y2="18"/>
+                    </svg>
+                </span>
                 알뜰폰
             </a>
             <a href="/MVNO/seller/products/mno.php" class="menu-item menu-item-sub <?php echo ($currentPage === 'mno.php' && strpos($_SERVER['REQUEST_URI'], '/products/') !== false && strpos($_SERVER['REQUEST_URI'], '/orders/') === false) ? 'active' : ''; ?>">
+                <span class="menu-item-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
+                        <line x1="12" y1="18" x2="12.01" y2="18"/>
+                    </svg>
+                </span>
                 통신사폰
             </a>
             <a href="/MVNO/seller/products/internet.php" class="menu-item menu-item-sub <?php echo ($currentPage === 'internet.php' && strpos($_SERVER['REQUEST_URI'], '/products/') !== false && strpos($_SERVER['REQUEST_URI'], '/orders/') === false) ? 'active' : ''; ?>">
+                <span class="menu-item-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="2" y1="12" x2="22" y2="12"/>
+                        <path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/>
+                    </svg>
+                </span>
                 인터넷
             </a>
         </div>

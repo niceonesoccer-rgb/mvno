@@ -106,7 +106,7 @@ header('Content-Type: text/html; charset=utf-8');
             echo '<li>음성: 원</li>';
             echo '<li>영상통화: 원</li>';
             echo '<li>단문메시지(SMS): 원</li>';
-            echo '<li>텍스트형(LMS,MMS): 원</li>';
+            echo '<li>텍스트형(LMS): 원</li>';
             echo '<li>멀티미디어형(MMS): 원</li>';
             echo '</ul>';
             echo '</div>';
@@ -188,6 +188,7 @@ header('Content-Type: text/html; charset=utf-8');
     </div>
 </body>
 </html>
+
 
 
 

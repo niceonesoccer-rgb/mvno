@@ -872,7 +872,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <button type="button" class="btn btn-danger" onclick="deleteProduct()">삭제</button>
             <?php endif; ?>
             <a href="<?php echo $editMode ? '/MVNO/seller/products/mno-list.php' : '/MVNO/seller/products/list.php'; ?>" class="btn btn-secondary">취소</a>
-            <button type="submit" class="btn btn-primary">
+            <button type="button" id="submitBtn" class="btn btn-primary">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M5 13l4 4L19 7"/>
                 </svg>
@@ -1669,6 +1669,36 @@ document.addEventListener('keydown', function(e) {
     }
 });
 
+// 엔터 키로 폼 제출 방지
+const productForm = document.getElementById('productForm');
+if (productForm) {
+    // 폼 내 모든 input, textarea, select에서 엔터 키 방지
+    const formInputs = productForm.querySelectorAll('input, textarea, select');
+    formInputs.forEach(input => {
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
+                e.preventDefault();
+                return false;
+            }
+        });
+    });
+}
+
+// 제출 버튼 클릭 이벤트
+const submitBtn = document.getElementById('submitBtn');
+if (submitBtn) {
+    submitBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        // 폼 검증 후 제출
+        const form = document.getElementById('productForm');
+        if (form.checkValidity()) {
+            form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+        } else {
+            form.reportValidity();
+        }
+    });
+}
+
 document.getElementById('productForm').addEventListener('submit', function(e) {
     e.preventDefault();
     
@@ -1804,8 +1834,10 @@ document.getElementById('productForm').addEventListener('submit', function(e) {
     document.getElementById('modalConfirmBtn').style.display = 'none';
     
     // 제출 버튼 비활성화
-    const submitBtn = this.querySelector('button[type="submit"]');
-    submitBtn.disabled = true;
+    const submitBtn = document.getElementById('submitBtn');
+    if (submitBtn) {
+        submitBtn.disabled = true;
+    }
     
     fetch('/MVNO/api/product-register-mno.php', {
         method: 'POST',

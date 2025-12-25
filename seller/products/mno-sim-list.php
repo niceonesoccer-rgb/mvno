@@ -336,6 +336,15 @@ $pageStyles = '
         background: #2563eb;
     }
     
+    .btn-copy {
+        background: #10b981;
+        color: white;
+    }
+    
+    .btn-copy:hover {
+        background: #059669;
+    }
+    
     .btn-danger {
         background: #ef4444;
         color: white;
@@ -526,6 +535,7 @@ include __DIR__ . '/../includes/seller-header.php';
                             <td>
                                 <div class="action-buttons">
                                     <button class="btn-sm btn-edit" onclick="editProduct(<?php echo $product['id']; ?>)">수정</button>
+                                    <button class="btn-sm btn-copy" onclick="copyProduct(<?php echo $product['id']; ?>)">복사</button>
                                 </div>
                             </td>
                         </tr>
@@ -664,6 +674,57 @@ function processBulkInactive(checkboxes) {
 
 function editProduct(productId) {
     window.location.href = '/MVNO/seller/products/mno-sim.php?id=' + productId;
+}
+
+function copyProduct(productId) {
+    const message = '이 상품을 복사하시겠습니까?\n\n※ 복사된 상품은 판매종료 상태로 설정됩니다.';
+    if (typeof showConfirm === 'function') {
+        showConfirm(message, '상품 복사').then(confirmed => {
+            if (confirmed) {
+                processCopyProduct(productId);
+            }
+        });
+    } else if (confirm(message)) {
+        processCopyProduct(productId);
+    }
+}
+
+function processCopyProduct(productId) {
+    fetch('/MVNO/api/product-copy.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            product_id: productId,
+            product_type: 'mno-sim'
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            if (typeof showAlert === 'function') {
+                showAlert('상품이 복사되었습니다.\n복사된 상품은 판매종료 상태로 설정되었습니다.', '완료');
+            } else {
+                alert('상품이 복사되었습니다.\n복사된 상품은 판매종료 상태로 설정되었습니다.');
+            }
+            location.reload();
+        } else {
+            if (typeof showAlert === 'function') {
+                showAlert(data.message || '상품 복사에 실패했습니다.', '오류', true);
+            } else {
+                alert(data.message || '상품 복사에 실패했습니다.');
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        if (typeof showAlert === 'function') {
+            showAlert('상품 복사 중 오류가 발생했습니다.', '오류', true);
+        } else {
+            alert('상품 복사 중 오류가 발생했습니다.');
+        }
+    });
 }
 </script>
 
