@@ -104,7 +104,7 @@
         });
     }
     
-    // 통신사유심 신청하기 버튼에 포인트 모달 연동
+    // 통신사단독유심 신청하기 버튼에 포인트 모달 연동
     function initMnoSimPointIntegration() {
         const applyBtns = document.querySelectorAll('#planApplyBtn, [data-apply-type="mno-sim"]');
         
@@ -129,11 +129,11 @@
                 if (typeof openPointUsageModal === 'function') {
                     openPointUsageModal('mno-sim', productId);
                 } else if (typeof openApplyModal === 'function') {
-                    // 포인트 모달이 없으면 통신사유심 신청 모달 직접 열기
-                    console.warn('포인트 모달 함수를 찾을 수 없습니다. 통신사유심 신청 모달을 직접 엽니다.');
+                    // 포인트 모달이 없으면 통신사단독유심 신청 모달 직접 열기
+                    console.warn('포인트 모달 함수를 찾을 수 없습니다. 통신사단독유심 신청 모달을 직접 엽니다.');
                     openApplyModal();
                 } else {
-                    console.error('포인트 모달 함수와 통신사유심 신청 모달 함수를 모두 찾을 수 없습니다.');
+                    console.error('포인트 모달 함수와 통신사단독유심 신청 모달 함수를 모두 찾을 수 없습니다.');
                 }
             });
         });

@@ -634,7 +634,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                         <line x1="12" y1="18" x2="12.01" y2="18"/>
                     </svg>
                 </span>
-                통신사유심
+                통신사단독유심
             </a>
             <a href="/MVNO/seller/orders/mvno.php" class="menu-item menu-item-sub <?php echo (basename($_SERVER['PHP_SELF']) === 'mvno.php' && strpos($_SERVER['REQUEST_URI'], '/orders/') !== false) ? 'active' : ''; ?>">
                 <span class="menu-item-icon">
@@ -675,7 +675,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                         <line x1="12" y1="18" x2="12.01" y2="18"/>
                     </svg>
                 </span>
-                통신사유심
+                통신사단독유심
             </a>
             <a href="/MVNO/seller/products/mvno-list.php" class="menu-item menu-item-sub <?php echo $currentPage === 'mvno-list.php' ? 'active' : ''; ?>">
                 <span class="menu-item-icon">
@@ -716,7 +716,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                         <line x1="12" y1="18" x2="12.01" y2="18"/>
                     </svg>
                 </span>
-                통신사유심
+                통신사단독유심
             </a>
             <a href="/MVNO/seller/products/mvno.php" class="menu-item menu-item-sub <?php echo ($currentPage === 'mvno.php' && strpos($_SERVER['REQUEST_URI'], '/products/') !== false && strpos($_SERVER['REQUEST_URI'], '/orders/') === false) ? 'active' : ''; ?>">
                 <span class="menu-item-icon">

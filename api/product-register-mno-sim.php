@@ -1,7 +1,7 @@
 <?php
 /**
- * 통신사유심(MNO-SIM) 상품 등록 API
- * 통신사유심 전용 - 단위까지 저장
+ * 통신사단독유심(MNO-SIM) 상품 등록 API
+ * 통신사단독유심 전용 - 단위까지 저장
  */
 
 require_once __DIR__ . '/../includes/data/auth-functions.php';
@@ -27,9 +27,9 @@ if (!isSellerApproved()) {
     exit;
 }
 
-// 통신사유심 권한 체크 (주석 처리 - DB 설계 후 활성화)
+// 통신사단독유심 권한 체크 (주석 처리 - DB 설계 후 활성화)
 // if (!hasSellerPermission($currentUser['user_id'], 'mno-sim')) {
-//     echo json_encode(['success' => false, 'message' => '통신사유심 등록 권한이 없습니다. 관리자에게 권한을 요청하세요.']);
+//     echo json_encode(['success' => false, 'message' => '통신사단독유심 등록 권한이 없습니다. 관리자에게 권한을 요청하세요.']);
 //     exit;
 // }
 

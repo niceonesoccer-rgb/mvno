@@ -210,7 +210,7 @@ else if (!isset($is_main_page)) {
                                 <path d="M9 8H15M9 12H15M9 16H12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                                 <circle cx="12" cy="6" r="1.5" fill="currentColor"/>
                             </svg>
-                            <span>통신사유심</span>
+                            <span>통신사단독유심</span>
                         </a>
                     </li>
                     <li class="nav-item">

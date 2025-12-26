@@ -26,8 +26,8 @@ BEGIN
             `updated_at` = NOW()
         WHERE product_id = OLD.product_id;
         
-        -- 항목별 통계 제거 (인터넷, MVNO, MNO)
-        IF OLD.product_type IN ('internet', 'mvno', 'mno') THEN
+        -- 항목별 통계 제거 (인터넷, MVNO, MNO, MNO-SIM)
+        IF OLD.product_type IN ('internet', 'mvno', 'mno', 'mno-sim') THEN
             IF OLD.kindness_rating IS NOT NULL THEN
                 UPDATE `product_review_statistics`
                 SET 
@@ -59,8 +59,8 @@ BEGIN
             `total_review_count` = `total_review_count` + 1,
             `updated_at` = NOW();
         
-        -- 항목별 통계 추가 (인터넷, MVNO, MNO)
-        IF NEW.product_type IN ('internet', 'mvno', 'mno') THEN
+        -- 항목별 통계 추가 (인터넷, MVNO, MNO, MNO-SIM)
+        IF NEW.product_type IN ('internet', 'mvno', 'mno', 'mno-sim') THEN
             IF NEW.kindness_rating IS NOT NULL THEN
                 UPDATE `product_review_statistics`
                 SET 
@@ -101,8 +101,8 @@ BEGIN
             `updated_at` = NOW()
         WHERE product_id = OLD.product_id;
         
-        -- 항목별 통계 제거 (인터넷, MVNO, MNO)
-        IF OLD.product_type IN ('internet', 'mvno', 'mno') THEN
+        -- 항목별 통계 제거 (인터넷, MVNO, MNO, MNO-SIM)
+        IF OLD.product_type IN ('internet', 'mvno', 'mno', 'mno-sim') THEN
             IF OLD.kindness_rating IS NOT NULL THEN
                 UPDATE `product_review_statistics`
                 SET 
@@ -138,6 +138,7 @@ FROM information_schema.TRIGGERS
 WHERE TRIGGER_SCHEMA = DATABASE()
 AND TRIGGER_NAME LIKE 'trg_update_review_statistics%'
 ORDER BY TRIGGER_NAME;
+
 
 
 

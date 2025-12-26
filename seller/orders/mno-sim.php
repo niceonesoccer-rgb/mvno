@@ -1,6 +1,6 @@
 <?php
 /**
- * 통신사유심 주문 관리 페이지
+ * 통신사단독유심 주문 관리 페이지
  * 경로: /seller/orders/mno-sim.php
  */
 
@@ -1159,8 +1159,8 @@ include __DIR__ . '/../includes/seller-header.php';
 
 <div class="orders-container">
     <div class="orders-header">
-        <h1>통신사유심 주문 관리</h1>
-        <p>통신사유심 상품 주문 내역을 확인하고 관리하세요</p>
+        <h1>통신사단독유심 주문 관리</h1>
+        <p>통신사단독유심 상품 주문 내역을 확인하고 관리하세요</p>
     </div>
     
     <!-- 필터 -->

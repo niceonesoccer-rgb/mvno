@@ -51,10 +51,30 @@ if (!$isAdmin && isset($plan['status']) && $plan['status'] === 'inactive') {
     die('판매종료된 상품입니다.');
 }
 
+// 리뷰 목록 가져오기 (탭 네비게이션용)
+// 정렬 방식 가져오기 (기본값: 최신순)
+$sort = $_GET['review_sort'] ?? 'created_desc';
+if (!in_array($sort, ['rating_desc', 'rating_asc', 'created_desc'])) {
+    $sort = 'created_desc';
+}
+
 // 리뷰 목록 가져오기 (같은 판매자의 같은 타입의 모든 상품 리뷰 통합)
-$reviews = getProductReviews($plan_id, 'mvno', 20);
-$averageRating = getProductAverageRating($plan_id, 'mvno');
-$reviewCount = getProductReviewCount($plan_id, 'mvno');
+$allReviews = getProductReviews($plan_id, 'mvno', 1000, $sort);
+$reviews = array_slice($allReviews, 0, 5); // 페이지에는 처음 5개만 표시
+$reviewCount = count($allReviews);
+$hasReviews = !empty($allReviews) && $reviewCount > 0;
+$remainingCount = max(0, $reviewCount - 5);
+
+// 카테고리별 평균 별점 가져오기
+$categoryAverages = getInternetReviewCategoryAverages($plan_id, 'mvno');
+
+// 총별점: kindness와 speed의 평균으로 계산 (통신사단독유심과 동일한 방식)
+if ($categoryAverages['kindness'] > 0 && $categoryAverages['speed'] > 0) {
+    $averageRating = round(($categoryAverages['kindness'] + $categoryAverages['speed']) / 2, 1);
+} else {
+    // 폴백: 기존 방식 사용
+    $averageRating = getProductAverageRating($plan_id, 'mvno');
+}
 
 // 상대 시간 표시 함수
 function getRelativeTime($datetime) {
@@ -113,10 +133,24 @@ function getRelativeTime($datetime) {
     <!-- 요금제 상세 레이아웃 (모듈 사용) -->
     <?php include '../includes/layouts/plan-detail-layout.php'; ?>
 
-    <!-- 요금제 상세 정보 섹션 (통합) -->
-    <section class="plan-detail-info-section">
+    <!-- 탭 네비게이션 -->
+    <section class="plan-detail-tabs-section">
         <div class="content-layout">
-            <h2 class="section-title">상세정보</h2>
+            <div class="plan-detail-tabs">
+                <button class="plan-detail-tab active" data-tab="info">상세정보</button>
+                <?php if ($hasReviews): ?>
+                <button class="plan-detail-tab" data-tab="review">리뷰(<?php echo number_format($reviewCount); ?>개)</button>
+                <?php endif; ?>
+            </div>
+        </div>
+    </section>
+
+    <!-- 탭 컨텐츠: 상세정보 -->
+    <section class="plan-detail-tab-content active" id="tab-info">
+        <!-- 요금제 상세 정보 섹션 (통합) -->
+        <section class="plan-detail-info-section">
+            <div class="content-layout">
+                <h2 class="section-title">상세정보</h2>
             
             <!-- 기본 정보 카드 -->
             <div class="plan-info-card">
@@ -508,39 +542,43 @@ function getRelativeTime($datetime) {
         </div>
     </section>
 
-    <!-- 판매자 추가 정보 섹션 -->
-    <section class="plan-seller-info-section">
-        <div class="content-layout">
-            <div class="plan-info-card">
-                <h3 class="plan-info-card-title">혜택 및 유의사항</h3>
-                <div class="plan-info-card-content">
-                    <div class="plan-seller-additional-text">
-                        <?php
-                        $benefits = $rawData['benefits'] ?? '';
-                        if (!empty($benefits)) {
-                            $benefitsArray = json_decode($benefits, true);
-                            if (is_array($benefitsArray)) {
-                                echo '<ul>';
-                                foreach ($benefitsArray as $benefit) {
-                                    if (!empty(trim($benefit))) {
-                                        echo '<li>' . htmlspecialchars($benefit) . '</li>';
+        <!-- 판매자 추가 정보 섹션 -->
+        <section class="plan-seller-info-section">
+            <div class="content-layout">
+                <div class="plan-info-card">
+                    <h3 class="plan-info-card-title">혜택 및 유의사항</h3>
+                    <div class="plan-info-card-content">
+                        <div class="plan-seller-additional-text">
+                            <?php
+                            $benefits = $rawData['benefits'] ?? '';
+                            if (!empty($benefits)) {
+                                $benefitsArray = json_decode($benefits, true);
+                                if (is_array($benefitsArray)) {
+                                    echo '<ul>';
+                                    foreach ($benefitsArray as $benefit) {
+                                        if (!empty(trim($benefit))) {
+                                            echo '<li>' . htmlspecialchars($benefit) . '</li>';
+                                        }
                                     }
+                                    echo '</ul>';
+                                } else {
+                                    echo htmlspecialchars($benefits);
                                 }
-                                echo '</ul>';
                             } else {
-                                echo htmlspecialchars($benefits);
+                                echo '추가 정보 없음';
                             }
-                        } else {
-                            echo '추가 정보 없음';
-                        }
-                        ?>
+                            ?>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
+        </section>
     </section>
 
-    <!-- 통신사 리뷰 섹션 -->
+    <!-- 탭 컨텐츠: 리뷰 -->
+    <?php if ($hasReviews): ?>
+    <section class="plan-detail-tab-content" id="tab-review">
+        <!-- 통신사 리뷰 섹션 -->
     <?php
     // 정렬 방식 가져오기 (기본값: 최신순)
     $sort = $_GET['review_sort'] ?? 'created_desc';
@@ -548,20 +586,22 @@ function getRelativeTime($datetime) {
         $sort = 'created_desc';
     }
     
-    // 리뷰 목록 가져오기 (같은 판매자의 같은 타입의 모든 상품 리뷰 통합)
-    // 모달에서 모든 리뷰를 표시하기 위해 충분히 많은 수를 가져옴
+    // 리뷰 목록 가져오기 (정렬 변경 시 다시 가져오기)
     $allReviews = getProductReviews($plan_id, 'mvno', 1000, $sort);
     $reviews = array_slice($allReviews, 0, 5); // 페이지에는 처음 5개만 표시
-    $averageRating = getProductAverageRating($plan_id, 'mvno');
-    // 실제 리뷰 배열의 개수를 사용 (통계 테이블 대신 실제 데이터 확인)
     $reviewCount = count($allReviews);
-    $hasReviews = !empty($allReviews) && $reviewCount > 0;
-    $remainingCount = max(0, $reviewCount - 5); // 남은 리뷰 개수
+    $remainingCount = max(0, $reviewCount - 5);
     
     // 카테고리별 평균 별점 가져오기
-    // MVNO 리뷰도 kindness_rating과 speed_rating을 사용하므로 실제 데이터 가져오기
-    require_once '../includes/data/plan-data.php';
     $categoryAverages = getInternetReviewCategoryAverages($plan_id, 'mvno');
+    
+    // 총별점: kindness와 speed의 평균으로 계산 (통신사단독유심과 동일한 방식)
+    if ($categoryAverages['kindness'] > 0 && $categoryAverages['speed'] > 0) {
+        $averageRating = round(($categoryAverages['kindness'] + $categoryAverages['speed']) / 2, 1);
+    } else {
+        // 폴백: 기존 방식 사용
+        $averageRating = getProductAverageRating($plan_id, 'mvno');
+    }
     
     // 판매자명 가져오기
     $sellerName = '';
@@ -592,7 +632,6 @@ function getRelativeTime($datetime) {
                 $allReviews = getProductReviews($plan_id, 'mvno', 1000, $sort);
                 $reviews = array_slice($allReviews, 0, 5);
                 $reviewCount = count($allReviews);
-                $hasReviews = !empty($allReviews) && $reviewCount > 0;
                 $remainingCount = max(0, $reviewCount - 5);
             }
         }
@@ -601,8 +640,7 @@ function getRelativeTime($datetime) {
     }
     ?>
     
-    <?php if ($hasReviews): ?>
-    <section class="plan-review-section" id="planReviewSection" style="margin-top: 2rem; padding: 2rem 0; background: #f9fafb;">
+    <section class="plan-review-section" id="planReviewSection" style="padding: 2rem 0; background: #f9fafb;">
         <div class="content-layout">
             <div class="plan-review-header">
                 <span class="plan-review-logo-text"><?php echo htmlspecialchars($sellerName ?: ($plan['provider'] ?? '알뜰폰')); ?></span>
@@ -702,8 +740,82 @@ function getRelativeTime($datetime) {
             <?php endif; ?>
         </div>
     </section>
+    </section>
     <?php endif; ?>
 </main>
+
+<style>
+.plan-detail-tabs-section {
+    background: #fff;
+    border-bottom: 1px solid #e5e7eb;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    margin-top: 2rem;
+}
+
+.plan-detail-tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 2px solid transparent;
+}
+
+.plan-detail-tab {
+    padding: 1rem 1.5rem;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    font-size: 1rem;
+    font-weight: 500;
+    color: #6b7280;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+}
+
+.plan-detail-tab:hover {
+    color: #111827;
+    background: #f9fafb;
+}
+
+.plan-detail-tab.active {
+    color: #EF4444;
+    border-bottom-color: #EF4444;
+    font-weight: 600;
+}
+
+.plan-detail-tab-content {
+    display: none;
+}
+
+.plan-detail-tab-content.active {
+    display: block;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tabs = document.querySelectorAll('.plan-detail-tab');
+    const tabContents = document.querySelectorAll('.plan-detail-tab-content');
+    
+    tabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+            const targetTab = this.getAttribute('data-tab');
+            
+            // 모든 탭 비활성화
+            tabs.forEach(t => t.classList.remove('active'));
+            tabContents.forEach(content => content.classList.remove('active'));
+            
+            // 선택한 탭 활성화
+            this.classList.add('active');
+            const targetContent = document.getElementById('tab-' + targetTab);
+            if (targetContent) {
+                targetContent.classList.add('active');
+            }
+        });
+    });
+});
+</script>
 
 <!-- 리뷰 모달 -->
 <div class="review-modal" id="reviewModal">

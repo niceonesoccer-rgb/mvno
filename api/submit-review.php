@@ -1,7 +1,7 @@
 <?php
 /**
  * 리뷰 작성 API
- * 통신사폰(MNO), 알뜰폰(MVNO), 인터넷(Internet) 상품 리뷰 작성
+ * 통신사폰(MNO), 알뜰폰(MVNO), 인터넷(Internet), 통신사단독유심(MNO-SIM) 상품 리뷰 작성
  */
 
 header('Content-Type: application/json');
@@ -38,9 +38,12 @@ $rating = isset($_POST['rating']) ? intval($_POST['rating']) : 0;
 $content = isset($_POST['content']) ? trim($_POST['content']) : '';
 $title = isset($_POST['title']) ? trim($_POST['title']) : '';
 $reviewId = isset($_POST['review_id']) ? intval($_POST['review_id']) : 0; // 수정 모드일 때 리뷰 ID
-$kindnessRating = isset($_POST['kindness_rating']) ? intval($_POST['kindness_rating']) : null; // 인터넷 리뷰용
-$speedRating = isset($_POST['speed_rating']) ? intval($_POST['speed_rating']) : null; // 인터넷 리뷰용
+$kindnessRating = isset($_POST['kindness_rating']) ? intval($_POST['kindness_rating']) : null; // 인터넷/MVNO/MNO/MNO-SIM 리뷰용
+$speedRating = isset($_POST['speed_rating']) ? intval($_POST['speed_rating']) : null; // 인터넷/MVNO/MNO/MNO-SIM 리뷰용
 $applicationId = isset($_POST['application_id']) ? intval($_POST['application_id']) : null; // 신청 ID
+
+// 디버깅 로그
+error_log("submit-review.php: product_id=$productId, product_type=$productType, kindness_rating=" . ($kindnessRating ?? 'NULL') . ", speed_rating=" . ($speedRating ?? 'NULL') . ", content_length=" . strlen($content));
 
 
 // 유효성 검사
@@ -49,13 +52,13 @@ if ($productId <= 0) {
     exit;
 }
 
-if (!in_array($productType, ['mvno', 'mno', 'internet'])) {
-    echo json_encode(['success' => false, 'message' => '상품 타입이 올바르지 않습니다. (mvno, mno, internet만 가능)']);
+if (!in_array($productType, ['mvno', 'mno', 'internet', 'mno-sim'])) {
+    echo json_encode(['success' => false, 'message' => '상품 타입이 올바르지 않습니다. (mvno, mno, internet, mno-sim만 가능)']);
     exit;
 }
 
-// 인터넷, MVNO, MNO 리뷰의 경우 kindness_rating과 speed_rating으로 rating 계산 (MVNO와 동일하게)
-if ($productType === 'internet' || $productType === 'mvno' || $productType === 'mno') {
+// 인터넷, MVNO, MNO, MNO-SIM 리뷰의 경우 kindness_rating과 speed_rating으로 rating 계산 (MVNO와 동일하게)
+if ($productType === 'internet' || $productType === 'mvno' || $productType === 'mno' || $productType === 'mno-sim') {
     if ($kindnessRating !== null && $speedRating !== null) {
         // 평균 별점 계산 (반올림)
         $rating = round(($kindnessRating + $speedRating) / 2);
@@ -109,7 +112,9 @@ try {
         }
     } else {
         // 새 리뷰 작성
+        error_log("submit-review.php: 새 리뷰 작성 시작 - product_id=$productId, product_type=$productType");
         $newReviewId = addProductReview($productId, $userId, $productType, $rating, $content, $title, $kindnessRating, $speedRating, $applicationId);
+        error_log("submit-review.php: 리뷰 작성 결과 - review_id=" . ($newReviewId !== false ? $newReviewId : 'false'));
         
         if ($newReviewId === false) {
             echo json_encode(['success' => false, 'message' => '리뷰 작성에 실패했습니다. 이미 작성한 리뷰가 있을 수 있습니다.']);
@@ -136,6 +141,7 @@ try {
         'message' => '리뷰 처리 중 오류가 발생했습니다.'
     ]);
 }
+
 
 
 

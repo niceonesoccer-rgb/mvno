@@ -1424,13 +1424,7 @@ span.internet-checkbox-text {
     color: #6b7280;
     display: flex;
     align-items: center;
-    justify-content: center;
     text-decoration: none;
-    padding: 0.6rem;
-    min-width: 2.88rem;
-    min-height: 2.88rem;
-    border-radius: 0.25rem;
-    transition: background-color 0.2s;
 }
 
 .internet-checkbox-link svg {

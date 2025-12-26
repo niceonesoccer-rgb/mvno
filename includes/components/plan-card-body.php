@@ -11,7 +11,7 @@ if (!isset($plan)) {
 }
 $layout_type = $layout_type ?? 'list';
 $title = $plan['title'] ?? '요금제 제목';
-// 통신사유심 카드인지 확인 (plan_name이 있으면 통신사유심)
+// 통신사단독유심 카드인지 확인 (plan_name이 있으면 통신사단독유심)
 $is_mno_sim = !empty($plan['plan_name']);
 // 하이픈 앞뒤 모두 값이 있으면 하이픈 삭제, 값이 없으면 유지
 // "데이터 소진시 - 5Mbps 무제한" → "데이터 소진시 5Mbps 무제한" (하이픈 제거)
@@ -32,7 +32,7 @@ $show_features = ($layout_type === 'list');
     <span class="plan-title-text">
         <?php if ($is_mno_sim): ?>
             <?php
-            // 통신사유심: | 구분자를 별도로 처리하여 스타일 적용
+            // 통신사단독유심: | 구분자를 별도로 처리하여 스타일 적용
             $titleParts = explode(' | ', $title);
             $titlePartsCount = count($titleParts);
             foreach ($titleParts as $index => $part):
@@ -50,7 +50,7 @@ $show_features = ($layout_type === 'list');
     </span>
 </div>
 
-<!-- 요금제명 (통신사유심 전용) -->
+<!-- 요금제명 (통신사단독유심 전용) -->
 <?php if (!empty($plan['plan_name'])): ?>
 <div class="plan-name-row">
     <span class="plan-name-text"><?php echo htmlspecialchars($plan['plan_name']); ?></span>

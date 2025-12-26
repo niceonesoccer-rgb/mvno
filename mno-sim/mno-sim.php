@@ -35,7 +35,7 @@ try {
 $filterProvider = $_GET['provider'] ?? '';
 $filterServiceType = $_GET['service_type'] ?? '';
 
-// 데이터베이스에서 통신사유심 상품 목록 가져오기
+// 데이터베이스에서 통신사단독유심 상품 목록 가져오기
 $mnoSimProducts = [];
 $providers = [];
 $serviceTypes = [];
@@ -246,7 +246,7 @@ function formatPriceAfter($priceAfterType, $priceAfter, $priceAfterUnit) {
         <!-- 카드 그리드 -->
         <?php if (empty($mnoSimProducts)): ?>
             <div style="text-align: center; padding: 60px 20px; color: #6b7280;">
-                <p>등록된 통신사유심 상품이 없습니다.</p>
+                <p>등록된 통신사단독유심 상품이 없습니다.</p>
             </div>
         <?php else: ?>
             <div class="plans-list-container">
@@ -470,6 +470,91 @@ function formatPriceAfter($priceAfterType, $priceAfter, $priceAfterUnit) {
 
 <!-- 아코디언 스크립트 -->
 <script src="/MVNO/assets/js/plan-accordion.js"></script>
+<!-- 찜하기 스크립트 -->
+<script src="/MVNO/assets/js/favorite-heart.js" defer></script>
+<!-- 공유 스크립트 -->
+<script src="/MVNO/assets/js/share.js" defer></script>
+
+<!-- 통신사단독유심 전용 하트 클릭 이벤트 차단 스크립트 -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 통신사단독유심 페이지 전용: 하트 클릭 시 링크 이동 차단
+    function preventLinkNavigationOnFavoriteClick() {
+        const favoriteButtons = document.querySelectorAll('.plan-favorite-btn-inline[data-item-type="mno-sim"]');
+        const cardLinks = document.querySelectorAll('article.basic-plan-card > a.plan-card-link');
+        
+        // 각 카드 링크에 이벤트 리스너 추가
+        cardLinks.forEach(function(link) {
+            // capture phase에서 실행하여 다른 리스너보다 먼저 실행
+            link.addEventListener('click', function(e) {
+                const clickedElement = e.target;
+                const favoriteButton = clickedElement.closest('.plan-favorite-btn-inline');
+                const shareButton = clickedElement.closest('[data-share-url]');
+                
+                if (favoriteButton || shareButton) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
+                    return false;
+                }
+            }, { capture: true, passive: false });
+            
+            // mousedown에서도 차단
+            link.addEventListener('mousedown', function(e) {
+                const clickedElement = e.target;
+                const favoriteButton = clickedElement.closest('.plan-favorite-btn-inline');
+                
+                if (favoriteButton) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
+                    return false;
+                }
+            }, { capture: true, passive: false });
+        });
+        
+        // 각 찜 버튼에 직접 이벤트 리스너 추가
+        favoriteButtons.forEach(function(button) {
+            button.addEventListener('click', function(e) {
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+            }, { capture: true, passive: false });
+        });
+    }
+    
+    // 즉시 실행
+    preventLinkNavigationOnFavoriteClick();
+    
+    // DOM이 완전히 로드된 후에도 다시 실행
+    setTimeout(preventLinkNavigationOnFavoriteClick, 100);
+    setTimeout(preventLinkNavigationOnFavoriteClick, 500);
+    
+    // 동적으로 추가된 요소를 위해 MutationObserver 사용
+    const observer = new MutationObserver(function(mutations) {
+        preventLinkNavigationOnFavoriteClick();
+    });
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
+});
+</script>
+
+<style>
+/* 통신사폰 페이지 아코디언 버튼 높이 조정 (모바일 터치 최적화) */
+.plan-accordion-trigger {
+    min-height: 48px !important;
+    padding: 12px 16px !important;
+}
+
+/* 모바일에서 더 큰 터치 영역 확보 */
+@media (max-width: 768px) {
+    .plan-accordion-trigger {
+        min-height: 52px !important;
+        padding: 14px 16px !important;
+    }
+}
+</style>
 
 <script>
 // 아코디언 기능 (plan-accordion.js가 로드되지 않을 경우를 대비한 폴백)
@@ -479,7 +564,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const isDebugMode = urlParams.get('debug') === '1';
     
     if (isDebugMode) {
-        console.log('=== 통신사유심 아코디언 디버깅 ===');
+        console.log('=== 통신사단독유심 아코디언 디버깅 ===');
     }
     
     const accordionTriggers = document.querySelectorAll('.plan-accordion-trigger');

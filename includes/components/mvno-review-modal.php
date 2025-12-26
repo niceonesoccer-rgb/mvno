@@ -143,6 +143,7 @@
 }
 
 .mvno-review-modal[style*="display: block"],
+.mvno-review-modal[style*="display: flex"],
 .mvno-review-modal.show {
     opacity: 1;
     visibility: visible;

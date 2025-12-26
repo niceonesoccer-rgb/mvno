@@ -206,7 +206,7 @@ function convertMvnoProductToPlanCard($product) {
 }
 
 /**
- * 통신사유심(MNO-SIM) 상품을 plan 카드 형식으로 변환
+ * 통신사단독유심(MNO-SIM) 상품을 plan 카드 형식으로 변환
  */
 function convertMnoSimProductToPlanCard($product) {
     // 데이터 제공량 포맷팅
@@ -685,60 +685,101 @@ function getInternetReviewCategoryAverages($productId, $productType = 'internet'
     }
     
     try {
-        // 통계 테이블에서 실시간 통계 조회 (성능 최적화)
-        $stmt = $pdo->prepare("
-            SELECT 
-                kindness_rating_sum,
-                kindness_review_count,
-                speed_rating_sum,
-                speed_review_count
-            FROM product_review_statistics
-            WHERE product_id = :product_id
-        ");
-        $stmt->execute([':product_id' => $productId]);
-        $stats = $stmt->fetch(PDO::FETCH_ASSOC);
+        // MVNO, MNO-SIM의 경우 같은 판매자의 같은 타입의 모든 상품 리뷰를 통합해서 계산
+        // 먼저 해당 상품의 seller_id 가져오기
+        $productStmt = $pdo->prepare("SELECT seller_id FROM products WHERE id = :product_id LIMIT 1");
+        $productStmt->execute([':product_id' => $productId]);
+        $product = $productStmt->fetch(PDO::FETCH_ASSOC);
         
+        if (!$product || empty($product['seller_id'])) {
+            // seller_id가 없으면 해당 상품의 리뷰만 계산
+            $sellerId = null;
+        } else {
+            $sellerId = (int)$product['seller_id'];
+        }
+        
+        // 같은 판매자의 같은 타입의 모든 상품 ID 가져오기 (MVNO, MNO-SIM만)
+        $productIds = [$productId]; // 기본값: 해당 상품만
+        if (in_array($productType, ['mvno', 'mno-sim']) && $sellerId) {
+            $productsStmt = $pdo->prepare("
+                SELECT id 
+                FROM products 
+                WHERE seller_id = :seller_id 
+                AND product_type = :product_type
+                AND status = 'active'
+            ");
+            $productsStmt->execute([':seller_id' => $sellerId, ':product_type' => $productType]);
+            $productIds = $productsStmt->fetchAll(PDO::FETCH_COLUMN);
+            
+            if (empty($productIds)) {
+                $productIds = [$productId]; // 폴백: 해당 상품만
+            }
+        }
+        
+        // 통계 테이블에서 먼저 조회 시도 (성능 최적화)
+        // 같은 판매자의 모든 상품 통계를 합산
         $result = ['kindness' => 0.0, 'speed' => 0.0];
         $useFallback = false;
         
-        // 통계 테이블에 데이터가 있고 합계가 0이 아니면 사용
-        // ROUND 사용: 소수 첫째자리까지 정확하게 표시
-        if ($stats && $stats['kindness_review_count'] > 0 && $stats['kindness_rating_sum'] > 0) {
-            $average = $stats['kindness_rating_sum'] / $stats['kindness_review_count'];
-            $result['kindness'] = round($average, 1);
-        } else {
-            $useFallback = true;
-        }
-        
-        if ($stats && $stats['speed_review_count'] > 0 && $stats['speed_rating_sum'] > 0) {
-            $average = $stats['speed_rating_sum'] / $stats['speed_review_count'];
-            $result['speed'] = round($average, 1);
-        } else {
+        try {
+            $placeholders = implode(',', array_fill(0, count($productIds), '?'));
+            $statsStmt = $pdo->prepare("
+                SELECT 
+                    SUM(kindness_rating_sum) as total_kindness_sum,
+                    SUM(kindness_review_count) as total_kindness_count,
+                    SUM(speed_rating_sum) as total_speed_sum,
+                    SUM(speed_review_count) as total_speed_count
+                FROM product_review_statistics
+                WHERE product_id IN ($placeholders)
+            ");
+            $statsStmt->execute($productIds);
+            $stats = $statsStmt->fetch(PDO::FETCH_ASSOC);
+            
+            // 통계 테이블에 데이터가 있고 합계가 0이 아니면 사용
+            if ($stats && $stats['total_kindness_count'] > 0 && $stats['total_kindness_sum'] > 0) {
+                $average = $stats['total_kindness_sum'] / $stats['total_kindness_count'];
+                $result['kindness'] = round($average, 1);
+            } else {
+                $useFallback = true;
+            }
+            
+            if ($stats && $stats['total_speed_count'] > 0 && $stats['total_speed_sum'] > 0) {
+                $average = $stats['total_speed_sum'] / $stats['total_speed_count'];
+                $result['speed'] = round($average, 1);
+            } else {
+                $useFallback = true;
+            }
+        } catch (PDOException $e) {
+            // 통계 테이블이 없거나 오류 발생 시 폴백 사용
             $useFallback = true;
         }
         
         // 통계 테이블에 데이터가 없거나 합계가 0이면 실제 리뷰 데이터에서 계산 (폴백)
         if ($useFallback) {
+            $placeholders = implode(',', array_fill(0, count($productIds), '?'));
+            
             $kindnessStmt = $pdo->prepare("
                 SELECT AVG(kindness_rating) as avg_kindness, COUNT(*) as count, SUM(kindness_rating) as total_sum
                 FROM product_reviews
-                WHERE product_id = :product_id
-                AND product_type = :product_type
+                WHERE product_id IN ($placeholders)
+                AND product_type = ?
                 AND status = 'approved'
                 AND kindness_rating IS NOT NULL
             ");
-            $kindnessStmt->execute([':product_id' => $productId, ':product_type' => $productType]);
+            $kindnessParams = array_merge($productIds, [$productType]);
+            $kindnessStmt->execute($kindnessParams);
             $kindnessData = $kindnessStmt->fetch(PDO::FETCH_ASSOC);
             
             $speedStmt = $pdo->prepare("
                 SELECT AVG(speed_rating) as avg_speed, COUNT(*) as count, SUM(speed_rating) as total_sum
                 FROM product_reviews
-                WHERE product_id = :product_id
-                AND product_type = :product_type
+                WHERE product_id IN ($placeholders)
+                AND product_type = ?
                 AND status = 'approved'
                 AND speed_rating IS NOT NULL
             ");
-            $speedStmt->execute([':product_id' => $productId, ':product_type' => $productType]);
+            $speedParams = array_merge($productIds, [$productType]);
+            $speedStmt->execute($speedParams);
             $speedData = $speedStmt->fetch(PDO::FETCH_ASSOC);
             
             if ($kindnessData && $kindnessData['count'] > 0 && $kindnessData['avg_kindness'] !== null) {
@@ -749,22 +790,23 @@ function getInternetReviewCategoryAverages($productId, $productType = 'internet'
                 $result['speed'] = round((float)$speedData['avg_speed'], 1);
             }
             
-            // 통계 테이블이 비어있거나 잘못된 경우 통계 테이블 업데이트 시도
-            if (!$stats || ($stats['kindness_review_count'] == 0 && $kindnessData && $kindnessData['count'] > 0) || 
-                ($stats['speed_review_count'] == 0 && $speedData && $speedData['count'] > 0)) {
-                error_log("getInternetReviewCategoryAverages: 통계 테이블이 비어있어 fallback 사용. product_id={$productId}, product_type={$productType}");
-                
-                // 통계 테이블 자동 업데이트 시도
+            // 통계 테이블 불일치 감지 시 자동 재계산 (백그라운드에서 실행)
+            // 실제 리뷰 데이터와 통계 테이블이 다르면 통계 테이블 업데이트
+            if ($stats && (
+                ($kindnessData && $kindnessData['count'] > 0 && 
+                 abs($stats['total_kindness_count'] - $kindnessData['count']) > 0) ||
+                ($speedData && $speedData['count'] > 0 && 
+                 abs($stats['total_speed_count'] - $speedData['count']) > 0)
+            )) {
+                // 통계 테이블 불일치 감지 - 각 상품별로 통계 재계산
                 try {
                     require_once __DIR__ . '/product-functions.php';
-                    updateReviewStatistics($productId, null, 
-                        $kindnessData && $kindnessData['count'] > 0 ? (int)$kindnessData['avg_kindness'] : null,
-                        $speedData && $speedData['count'] > 0 ? (int)$speedData['avg_speed'] : null,
-                        $productType
-                    );
-                    error_log("getInternetReviewCategoryAverages: 통계 테이블 자동 업데이트 완료. product_id={$productId}");
+                    foreach ($productIds as $pid) {
+                        updateReviewStatistics($pid, null, null, null, $productType);
+                    }
+                    error_log("getInternetReviewCategoryAverages: 통계 테이블 불일치 감지 및 자동 재계산 완료. product_ids=" . implode(',', $productIds));
                 } catch (Exception $e) {
-                    error_log("getInternetReviewCategoryAverages: 통계 테이블 업데이트 실패: " . $e->getMessage());
+                    error_log("getInternetReviewCategoryAverages: 통계 테이블 자동 재계산 실패: " . $e->getMessage());
                 }
             }
         }
@@ -894,6 +936,42 @@ function getProductReviews($productId, $productType = 'mvno', $limit = 10, $sort
                     FROM product_reviews r
                     INNER JOIN products p ON r.product_id = p.id
                     INNER JOIN product_mvno_details mvno ON p.id = mvno.product_id
+                    WHERE r.product_id = :product_id
+                    AND r.product_type = :product_type
+                    AND r.status = 'approved'
+                    ORDER BY $orderBy
+                    LIMIT :limit
+                ");
+            }
+        } elseif ($productType === 'mno-sim') {
+            // MNO-SIM의 경우 provider 정보 가져오기
+            if ($hasApplicationId && $hasOrderNumber) {
+                $stmt = $pdo->prepare("
+                    SELECT 
+                        $selectFields,
+                        a.order_number,
+                        c.additional_info,
+                        mno_sim.provider as current_provider
+                    FROM product_reviews r
+                    INNER JOIN products p ON r.product_id = p.id
+                    INNER JOIN product_mno_sim_details mno_sim ON p.id = mno_sim.product_id
+                    LEFT JOIN product_applications a ON r.application_id = a.id
+                    LEFT JOIN application_customers c ON a.id = c.application_id
+                    WHERE r.product_id = :product_id
+                    AND r.product_type = :product_type
+                    AND r.status = 'approved'
+                    ORDER BY $orderBy
+                    LIMIT :limit
+                ");
+            } else {
+                $stmt = $pdo->prepare("
+                    SELECT 
+                        $selectFields,
+                        mno_sim.provider as current_provider,
+                        NULL as additional_info
+                    FROM product_reviews r
+                    INNER JOIN products p ON r.product_id = p.id
+                    INNER JOIN product_mno_sim_details mno_sim ON p.id = mno_sim.product_id
                     WHERE r.product_id = :product_id
                     AND r.product_type = :product_type
                     AND r.status = 'approved'
@@ -1459,20 +1537,20 @@ function getPartialStarsFromRating($rating) {
     
     // 완전히 채워진 별
     for ($i = 0; $i < $fullStars; $i++) {
-        $html .= '<span class="star-full">★</span>';
+        $html .= '<span style="color: #EF4444; display: inline-block; vertical-align: middle;">★</span>';
     }
     
     // 부분 채워진 별
     if ($partialStarPercent > 0) {
-        $html .= '<span class="star-partial" style="--fill-percent: ' . number_format($partialStarPercent, 1) . '%;">';
-        $html .= '<span class="star-partial-empty">☆</span>';
-        $html .= '<span class="star-partial-filled">★</span>';
+        $html .= '<span style="position: relative; display: inline-block; width: 1em; height: 1em; vertical-align: middle; line-height: 1;">';
+        $html .= '<span style="color: #d1d5db; display: block; position: absolute; left: 0; top: 0; width: 100%; height: 100%; line-height: 1;">☆</span>'; // 빈 별 (배경)
+        $html .= '<span style="position: absolute; left: 0; top: 0; width: ' . number_format($partialStarPercent, 1) . '%; height: 100%; overflow: hidden; color: #EF4444; white-space: nowrap; line-height: 1;">★</span>'; // 채워진 부분
         $html .= '</span>';
     }
     
     // 빈 별
     for ($i = 0; $i < $emptyStars; $i++) {
-        $html .= '<span class="star-empty">☆</span>';
+        $html .= '<span style="color: #d1d5db; display: inline-block; vertical-align: middle;">☆</span>';
     }
     
     return $html;
@@ -2167,9 +2245,9 @@ function getInternetDetailData($internet_id) {
 }
 
 /**
- * 통신사유심(MNO-SIM) 상품 상세 데이터 가져오기
- * @param int $product_id 통신사유심 상품 ID
- * @return array|null 통신사유심 상품 데이터 또는 null
+ * 통신사단독유심(MNO-SIM) 상품 상세 데이터 가져오기
+ * @param int $product_id 통신사단독유심 상품 ID
+ * @return array|null 통신사단독유심 상품 데이터 또는 null
  */
 function getMnoSimDetailData($product_id) {
     $pdo = getDBConnection();
@@ -2288,7 +2366,7 @@ function getMnoSimDetailData($product_id) {
         $product = $stmt->fetch(PDO::FETCH_ASSOC);
         
         if ($product) {
-            // 통신사유심 데이터를 plan 카드 형식으로 변환
+            // 통신사단독유심 데이터를 plan 카드 형식으로 변환
             $planCard = convertMnoSimProductToPlanCard($product);
             
             // 찜 상태 확인

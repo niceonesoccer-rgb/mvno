@@ -1,6 +1,6 @@
 <?php
 /**
- * 관리자 통신사유심(MNO-SIM) 상품 목록 페이지
+ * 관리자 통신사단독유심(MNO-SIM) 상품 목록 페이지
  * 경로: /admin/products/mno-sim-list.php
  */
 
@@ -78,7 +78,7 @@ try {
         $totalProducts = $countStmt->fetch()['total'];
         $totalPages = ceil($totalProducts / $perPage);
         
-        // 통신사유심 상품 목록 조회
+        // 통신사단독유심 상품 목록 조회
         $offset = ($page - 1) * $perPage;
         $stmt = $pdo->prepare("
             SELECT 
@@ -398,7 +398,7 @@ try {
 <div class="admin-content">
     <div class="product-list-container">
         <div class="page-header">
-            <h1>통신사유심 등록상품</h1>
+            <h1>통신사단독유심 등록상품</h1>
             <div style="display: flex; align-items: center; gap: 8px;">
                 <label style="font-size: 14px; color: #374151; font-weight: 600;">페이지당 표시:</label>
                 <select class="filter-select" id="per_page_select" onchange="changePerPage()" style="width: 80px;">
@@ -457,7 +457,7 @@ try {
         <div class="product-table-wrapper">
             <?php if (empty($products)): ?>
                 <div class="empty-state">
-                    <div class="empty-state-title">등록된 통신사유심 상품이 없습니다</div>
+                    <div class="empty-state-title">등록된 통신사단독유심 상품이 없습니다</div>
                 </div>
             <?php else: ?>
                 <table class="product-table">

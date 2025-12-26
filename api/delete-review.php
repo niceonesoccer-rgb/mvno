@@ -48,7 +48,7 @@ if ($reviewId <= 0) {
     exit;
 }
 
-if (!in_array($productType, ['mvno', 'mno', 'internet'])) {
+if (!in_array($productType, ['mvno', 'mno', 'internet', 'mno-sim'])) {
     echo json_encode([
         'success' => false,
         'message' => '상품 타입이 올바르지 않습니다.'
@@ -97,6 +97,14 @@ try {
     
     // 통계 업데이트는 트리거(trg_update_review_statistics_on_delete)가 자동으로 처리
     // 트리거가 삭제된 리뷰의 통계를 자동으로 제거하여 통계 업데이트
+    // 트리거가 작동하지 않을 경우를 대비해 수동 업데이트도 시도
+    try {
+        require_once __DIR__ . '/../includes/data/product-functions.php';
+        updateReviewStatistics($productId, null, null, null, $productType);
+    } catch (Exception $e) {
+        // 통계 업데이트 실패는 치명적이지 않으므로 로그만 남김
+        error_log("delete-review.php: 통계 수동 업데이트 실패 (트리거가 처리할 수 있음) - " . $e->getMessage());
+    }
     
     echo json_encode([
         'success' => true,
@@ -110,6 +118,7 @@ try {
         'message' => '리뷰 삭제 중 오류가 발생했습니다.'
     ]);
 }
+
 
 
 

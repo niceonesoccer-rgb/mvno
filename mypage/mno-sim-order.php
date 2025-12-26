@@ -80,16 +80,16 @@ include '../includes/components/mvno-review-modal.php';
                                 <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                             </svg>
                         </a>
-                        <h2 style="font-size: 24px; font-weight: bold; margin: 0;">신청한 통신사유심</h2>
+                        <h2 style="font-size: 24px; font-weight: bold; margin: 0;">신청한 통신사단독유심</h2>
                     </div>
                     <p style="font-size: 14px; color: #6b7280; margin: 0; margin-left: 36px;">카드를 클릭하면 신청 정보를 확인할 수 있습니다.</p>
                 </div>
                 
-                <!-- 신청한 통신사유심 목록 -->
+                <!-- 신청한 통신사단독유심 목록 -->
                 <div style="margin-bottom: 32px;">
                     <?php if (empty($applications)): ?>
                         <div style="padding: 40px 20px; text-align: center; color: #6b7280;">
-                            신청한 통신사유심이 없습니다.
+                            신청한 통신사단독유심이 없습니다.
                         </div>
                     <?php else: ?>
                         <div style="display: flex; flex-direction: column; gap: 16px;" id="applicationsContainer">
@@ -293,7 +293,24 @@ include '../includes/components/mvno-review-modal.php';
                                                 try {
                                                     $checkStmt = $pdo->query("SHOW COLUMNS FROM product_reviews LIKE 'application_id'");
                                                     $hasApplicationId = $checkStmt->rowCount() > 0;
-                                                } catch (PDOException $e) {}
+                                                } catch (PDOException $e) {
+                                                    error_log("Error checking application_id column: " . $e->getMessage());
+                                                }
+                                                
+                                                // product_type에 'mno-sim'이 있는지 확인 (없으면 'mno'로 대체)
+                                                $productTypeForQuery = 'mno-sim';
+                                                try {
+                                                    $typeCheckStmt = $pdo->query("SHOW COLUMNS FROM product_reviews WHERE Field = 'product_type'");
+                                                    $typeColumn = $typeCheckStmt->fetch(PDO::FETCH_ASSOC);
+                                                    if ($typeColumn && strpos($typeColumn['Type'], 'mno-sim') === false) {
+                                                        // 'mno-sim'이 ENUM에 없으면 'mno'로 조회
+                                                        $productTypeForQuery = 'mno';
+                                                        error_log("Warning: product_type ENUM에 'mno-sim'이 없어 'mno'로 조회합니다. DB 업데이트가 필요합니다.");
+                                                    }
+                                                } catch (PDOException $e) {
+                                                    error_log("Error checking product_type: " . $e->getMessage());
+                                                    $productTypeForQuery = 'mno'; // 안전을 위해 'mno'로 대체
+                                                }
                                                 
                                                 if ($hasApplicationId && !empty($applicationId)) {
                                                     $reviewStmt = $pdo->prepare("
@@ -302,7 +319,7 @@ include '../includes/components/mvno-review-modal.php';
                                                         WHERE application_id = :application_id 
                                                         AND product_id = :product_id 
                                                         AND user_id = :user_id 
-                                                        AND product_type = 'mno-sim'
+                                                        AND product_type = :product_type
                                                         AND status = 'approved'
                                                         ORDER BY created_at DESC
                                                         LIMIT 1
@@ -310,7 +327,8 @@ include '../includes/components/mvno-review-modal.php';
                                                     $reviewStmt->execute([
                                                         ':application_id' => $applicationId,
                                                         ':product_id' => $productId,
-                                                        ':user_id' => $user_id
+                                                        ':user_id' => $user_id,
+                                                        ':product_type' => $productTypeForQuery
                                                     ]);
                                                 } else {
                                                     $reviewStmt = $pdo->prepare("
@@ -318,14 +336,15 @@ include '../includes/components/mvno-review-modal.php';
                                                         FROM product_reviews 
                                                         WHERE product_id = :product_id 
                                                         AND user_id = :user_id 
-                                                        AND product_type = 'mno-sim'
+                                                        AND product_type = :product_type
                                                         AND status = 'approved'
                                                         ORDER BY created_at DESC
                                                         LIMIT 1
                                                     ");
                                                     $reviewStmt->execute([
                                                         ':product_id' => $productId,
-                                                        ':user_id' => $user_id
+                                                        ':user_id' => $user_id,
+                                                        ':product_type' => $productTypeForQuery
                                                     ]);
                                                 }
                                                 
@@ -1237,15 +1256,24 @@ document.addEventListener('DOMContentLoaded', function() {
                             }
                             // 모달 표시
                             reviewModal.style.display = 'flex';
+                            setTimeout(() => {
+                                reviewModal.classList.add('show');
+                            }, 10);
                         })
                         .catch(error => {
                             console.error('Error loading review:', error);
                             // 에러가 발생해도 모달 표시
                             reviewModal.style.display = 'flex';
+                            setTimeout(() => {
+                                reviewModal.classList.add('show');
+                            }, 10);
                         });
                 } else {
                     // 새 리뷰 작성 모드
                     reviewModal.style.display = 'flex';
+                    setTimeout(() => {
+                        reviewModal.classList.add('show');
+                    }, 10);
                 }
             }
         });
@@ -1254,16 +1282,34 @@ document.addEventListener('DOMContentLoaded', function() {
     // 리뷰 모달 닫기
     function closeReviewModal() {
         if (reviewModal) {
-            reviewModal.style.display = 'none';
-            // 스크롤 복원
-            const scrollY = document.body.style.top;
-            document.body.style.position = '';
-            document.body.style.top = '';
-            document.body.style.width = '';
-            document.body.style.overflow = '';
-            if (scrollY) {
-                window.scrollTo(0, parseInt(scrollY || '0') * -1);
-            }
+            reviewModal.classList.remove('show');
+            setTimeout(() => {
+                reviewModal.style.display = 'none';
+                // 스크롤 복원
+                const scrollY = document.body.style.top;
+                document.body.style.position = '';
+                document.body.style.top = '';
+                document.body.style.width = '';
+                document.body.style.overflow = '';
+                if (scrollY) {
+                    window.scrollTo(0, parseInt(scrollY || '0') * -1);
+                }
+                
+                // 폼 초기화
+                if (reviewForm) {
+                    reviewForm.reset();
+                    // 별점 초기화
+                    const starLabels = reviewForm.querySelectorAll('.star-label');
+                    starLabels.forEach(label => {
+                        label.classList.remove('active');
+                        label.classList.remove('hover-active');
+                    });
+                }
+                const reviewTextCounter = document.getElementById('mvnoReviewTextCounter');
+                if (reviewTextCounter) {
+                    reviewTextCounter.textContent = '0';
+                }
+            }, 300);
         }
         currentReviewApplicationId = null;
         currentReviewProductId = null;
@@ -1288,7 +1334,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // ESC 키로 모달 닫기
     document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' && reviewModal && reviewModal.style.display === 'flex') {
+        if (e.key === 'Escape' && reviewModal && (reviewModal.style.display === 'flex' || reviewModal.classList.contains('show'))) {
             closeReviewModal();
         }
     });
@@ -1304,10 +1350,49 @@ document.addEventListener('DOMContentLoaded', function() {
                 submitBtn.textContent = '처리 중...';
             }
             
-            const formData = new FormData(this);
-            formData.append('application_id', currentReviewApplicationId);
+            // 필드 값 가져오기
+            const kindnessRatingInput = reviewForm.querySelector('input[name="kindness_rating"]:checked');
+            const speedRatingInput = reviewForm.querySelector('input[name="speed_rating"]:checked');
+            const reviewTextarea = reviewForm.querySelector('#mvnoReviewText');
+            const reviewText = reviewTextarea ? reviewTextarea.value.trim() : '';
+            
+            // 클라이언트 사이드 validation
+            if (!kindnessRatingInput) {
+                showAlert('친절해요 별점을 선택해주세요.', '알림');
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = isEditMode ? '저장하기' : '작성하기';
+                }
+                return;
+            }
+            
+            if (!speedRatingInput) {
+                showAlert('개통 빨라요 별점을 선택해주세요.', '알림');
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = isEditMode ? '저장하기' : '작성하기';
+                }
+                return;
+            }
+            
+            if (!reviewText) {
+                showAlert('리뷰 내용을 입력해주세요.', '알림');
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = isEditMode ? '저장하기' : '작성하기';
+                }
+                return;
+            }
+            
+            // FormData 생성
+            const formData = new FormData();
             formData.append('product_id', currentReviewProductId);
             formData.append('product_type', 'mno-sim');
+            formData.append('kindness_rating', kindnessRatingInput.value);
+            formData.append('speed_rating', speedRatingInput.value);
+            formData.append('content', reviewText);
+            formData.append('application_id', currentReviewApplicationId);
+            
             if (isEditMode && currentReviewId) {
                 formData.append('review_id', currentReviewId);
             }

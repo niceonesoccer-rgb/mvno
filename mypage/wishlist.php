@@ -77,11 +77,11 @@ if ($pdo) {
 
 // 타입에 따라 데이터 가져오기
 if ($is_mno_sim) {
-    // 통신사유심 데이터
+    // 통신사단독유심 데이터
     require_once '../includes/data/plan-data.php';
     require_once '../includes/data/product-functions.php';
     
-    // 위시리스트에 있는 통신사유심 상품만 가져오기
+    // 위시리스트에 있는 통신사단독유심 상품만 가져오기
     if (!empty($wishlistProductIds)) {
         $placeholders = implode(',', array_fill(0, count($wishlistProductIds), '?'));
         $stmt = $pdo->prepare("
@@ -143,7 +143,7 @@ if ($is_mno_sim) {
         }
     }
     
-    $page_title = '찜한 통신사유심 내역';
+    $page_title = '찜한 통신사단독유심 내역';
     $result_count = count($mnoSimPlans) . '개의 결과';
 } elseif ($is_mno) {
     // 통신사폰 데이터
@@ -203,7 +203,7 @@ if ($is_mno_sim) {
 
         <!-- 요금제/통신사폰 카드 목록 -->
         <?php if ($is_mno_sim): ?>
-            <!-- 통신사유심 목록 레이아웃 -->
+            <!-- 통신사단독유심 목록 레이아웃 -->
             <div class="plans-list-container">
                 <?php foreach ($mnoSimPlans as $plan): ?>
                     <?php

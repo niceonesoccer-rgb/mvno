@@ -593,7 +593,7 @@ if ($pdo) {
                             <line x1="12" y1="18" x2="12.01" y2="18"/>
                         </svg>
                     </span>
-                    통신사유심
+                    통신사단독유심
                 </a>
                 <a href="/MVNO/admin/orders/mvno-list.php" class="menu-item <?php echo ($currentPage === 'mvno-list.php' && strpos($_SERVER['REQUEST_URI'], '/orders/') !== false) ? 'active' : ''; ?>">
                     <span class="menu-item-icon">
@@ -634,7 +634,7 @@ if ($pdo) {
                             <line x1="12" y1="18" x2="12.01" y2="18"/>
                         </svg>
                     </span>
-                    통신사유심 관리
+                    통신사단독유심 관리
                 </a>
                 <a href="/MVNO/admin/products/mvno-list.php" class="menu-item">
                     <span class="menu-item-icon">

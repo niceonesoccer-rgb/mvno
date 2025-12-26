@@ -56,14 +56,34 @@ if (!$isAdmin && isset($plan['status']) && $plan['status'] === 'inactive') {
     die('판매종료된 상품입니다.');
 }
 
-// 리뷰 목록 가져오기
+// 리뷰 목록 가져오기 (탭 네비게이션용)
 $reviews = [];
 $averageRating = 0;
 $reviewCount = 0;
+$hasReviews = false;
 if (function_exists('getProductReviews')) {
-    $reviews = getProductReviews($product_id, 'mno-sim', 20);
-    $averageRating = getProductAverageRating($product_id, 'mno-sim');
-    $reviewCount = getProductReviewCount($product_id, 'mno-sim');
+    // 정렬 방식 가져오기 (기본값: 최신순)
+    $sort = $_GET['review_sort'] ?? 'created_desc';
+    if (!in_array($sort, ['rating_desc', 'rating_asc', 'created_desc'])) {
+        $sort = 'created_desc';
+    }
+    
+    // 리뷰 목록 가져오기
+    $allReviews = getProductReviews($product_id, 'mno-sim', 1000, $sort);
+    $reviews = array_slice($allReviews, 0, 5); // 페이지에는 처음 5개만 표시
+    $reviewCount = count($allReviews);
+    $hasReviews = !empty($allReviews) && $reviewCount > 0;
+    
+    // 카테고리별 평균 별점 가져오기
+    $categoryAverages = getInternetReviewCategoryAverages($product_id, 'mno-sim');
+    
+    // 총별점: kindness와 speed의 평균으로 계산
+    if ($categoryAverages['kindness'] > 0 && $categoryAverages['speed'] > 0) {
+        $averageRating = round(($categoryAverages['kindness'] + $categoryAverages['speed']) / 2, 1);
+    } else {
+        // 폴백: 기존 방식 사용
+        $averageRating = getProductAverageRating($product_id, 'mno-sim');
+    }
 }
 
 // 상대 시간 표시 함수
@@ -123,10 +143,24 @@ function getRelativeTime($datetime) {
     <!-- 요금제 상세 레이아웃 (모듈 사용) -->
     <?php include '../includes/layouts/plan-detail-layout.php'; ?>
 
-    <!-- 요금제 상세 정보 섹션 (통합) -->
-    <section class="plan-detail-info-section">
+    <!-- 탭 네비게이션 -->
+    <section class="plan-detail-tabs-section">
         <div class="content-layout">
-            <h2 class="section-title">상세정보</h2>
+            <div class="plan-detail-tabs">
+                <button class="plan-detail-tab active" data-tab="info">상세정보</button>
+                <?php if ($hasReviews): ?>
+                <button class="plan-detail-tab" data-tab="review">리뷰(<?php echo number_format($reviewCount); ?>개)</button>
+                <?php endif; ?>
+            </div>
+        </div>
+    </section>
+
+    <!-- 탭 컨텐츠: 상세정보 -->
+    <section class="plan-detail-tab-content active" id="tab-info">
+        <!-- 요금제 상세 정보 섹션 (통합) -->
+        <section class="plan-detail-info-section">
+            <div class="content-layout">
+                <h2 class="section-title">상세정보</h2>
             
             <!-- 기본 정보 카드 -->
             <div class="plan-info-card">
@@ -633,39 +667,43 @@ function getRelativeTime($datetime) {
         </div>
     </section>
 
-    <!-- 판매자 추가 정보 섹션 -->
-    <section class="plan-seller-info-section">
-        <div class="content-layout">
-            <div class="plan-info-card">
-                <h3 class="plan-info-card-title">혜택 및 유의사항</h3>
-                <div class="plan-info-card-content">
-                    <div class="plan-seller-additional-text">
-                        <?php
-                        $benefits = $rawData['benefits'] ?? '';
-                        if (!empty($benefits)) {
-                            $benefitsArray = json_decode($benefits, true);
-                            if (is_array($benefitsArray)) {
-                                echo '<ul>';
-                                foreach ($benefitsArray as $benefit) {
-                                    if (!empty(trim($benefit))) {
-                                        echo '<li>' . htmlspecialchars($benefit) . '</li>';
+        <!-- 판매자 추가 정보 섹션 -->
+        <section class="plan-seller-info-section">
+            <div class="content-layout">
+                <div class="plan-info-card">
+                    <h3 class="plan-info-card-title">혜택 및 유의사항</h3>
+                    <div class="plan-info-card-content">
+                        <div class="plan-seller-additional-text">
+                            <?php
+                            $benefits = $rawData['benefits'] ?? '';
+                            if (!empty($benefits)) {
+                                $benefitsArray = json_decode($benefits, true);
+                                if (is_array($benefitsArray)) {
+                                    echo '<ul>';
+                                    foreach ($benefitsArray as $benefit) {
+                                        if (!empty(trim($benefit))) {
+                                            echo '<li>' . htmlspecialchars($benefit) . '</li>';
+                                        }
                                     }
+                                    echo '</ul>';
+                                } else {
+                                    echo htmlspecialchars($benefits);
                                 }
-                                echo '</ul>';
                             } else {
-                                echo htmlspecialchars($benefits);
+                                echo '추가 정보 없음';
                             }
-                        } else {
-                            echo '추가 정보 없음';
-                        }
-                        ?>
+                            ?>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
+        </section>
     </section>
 
-    <!-- 통신사 리뷰 섹션 -->
+    <!-- 탭 컨텐츠: 리뷰 -->
+    <?php if ($hasReviews): ?>
+    <section class="plan-detail-tab-content" id="tab-review">
+        <!-- 통신사 리뷰 섹션 -->
     <?php
     // 정렬 방식 가져오기 (기본값: 최신순)
     $sort = $_GET['review_sort'] ?? 'created_desc';
@@ -673,16 +711,23 @@ function getRelativeTime($datetime) {
         $sort = 'created_desc';
     }
     
-    // 리뷰 목록 가져오기
+    // 리뷰 목록 가져오기 (정렬 변경 시 다시 가져오기)
     $allReviews = getProductReviews($product_id, 'mno-sim', 1000, $sort);
     $reviews = array_slice($allReviews, 0, 5); // 페이지에는 처음 5개만 표시
-    $averageRating = getProductAverageRating($product_id, 'mno-sim');
     $reviewCount = count($allReviews);
-    $hasReviews = !empty($allReviews) && $reviewCount > 0;
     $remainingCount = max(0, $reviewCount - 5);
     
     // 카테고리별 평균 별점 가져오기
     $categoryAverages = getInternetReviewCategoryAverages($product_id, 'mno-sim');
+    
+    // 총별점: kindness와 speed의 평균으로 계산 (알뜰폰과 동일한 방식)
+    // mno-sim의 경우 kindness_rating과 speed_rating의 평균을 총별점으로 사용
+    if ($categoryAverages['kindness'] > 0 && $categoryAverages['speed'] > 0) {
+        $averageRating = round(($categoryAverages['kindness'] + $categoryAverages['speed']) / 2, 1);
+    } else {
+        // 폴백: 기존 방식 사용
+        $averageRating = getProductAverageRating($product_id, 'mno-sim');
+    }
     
     // 판매자명 가져오기
     $sellerName = '';
@@ -700,11 +745,10 @@ function getRelativeTime($datetime) {
     }
     ?>
     
-    <?php if ($hasReviews): ?>
-    <section class="plan-review-section" id="planReviewSection" style="margin-top: 2rem; padding: 2rem 0; background: #f9fafb;">
+    <section class="plan-review-section" id="planReviewSection" style="padding: 2rem 0; background: #f9fafb;">
         <div class="content-layout">
             <div class="plan-review-header">
-                <span class="plan-review-logo-text"><?php echo htmlspecialchars($sellerName ?: ($plan['provider'] ?? '통신사유심')); ?></span>
+                <span class="plan-review-logo-text"><?php echo htmlspecialchars($sellerName ?: ($plan['provider'] ?? '통신사단독유심')); ?></span>
                 <h2 class="section-title">리뷰</h2>
             </div>
             
@@ -799,8 +843,82 @@ function getRelativeTime($datetime) {
             <?php endif; ?>
         </div>
     </section>
+    </section>
     <?php endif; ?>
 </main>
+
+<style>
+.plan-detail-tabs-section {
+    background: #fff;
+    border-bottom: 1px solid #e5e7eb;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    margin-top: 2rem;
+}
+
+.plan-detail-tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 2px solid transparent;
+}
+
+.plan-detail-tab {
+    padding: 1rem 1.5rem;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    font-size: 1rem;
+    font-weight: 500;
+    color: #6b7280;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+}
+
+.plan-detail-tab:hover {
+    color: #111827;
+    background: #f9fafb;
+}
+
+.plan-detail-tab.active {
+    color: #EF4444;
+    border-bottom-color: #EF4444;
+    font-weight: 600;
+}
+
+.plan-detail-tab-content {
+    display: none;
+}
+
+.plan-detail-tab-content.active {
+    display: block;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tabs = document.querySelectorAll('.plan-detail-tab');
+    const tabContents = document.querySelectorAll('.plan-detail-tab-content');
+    
+    tabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+            const targetTab = this.getAttribute('data-tab');
+            
+            // 모든 탭 비활성화
+            tabs.forEach(t => t.classList.remove('active'));
+            tabContents.forEach(content => content.classList.remove('active'));
+            
+            // 선택한 탭 활성화
+            this.classList.add('active');
+            const targetContent = document.getElementById('tab-' + targetTab);
+            if (targetContent) {
+                targetContent.classList.add('active');
+            }
+        });
+    });
+});
+</script>
 
 <!-- 신청하기 모달 -->
 <div class="apply-modal" id="applyModal">
@@ -989,7 +1107,7 @@ function getRelativeTime($datetime) {
     </div>
 </div>
 
-<!-- 개인정보 내용보기 모달 (통신사유심용) -->
+<!-- 개인정보 내용보기 모달 (통신사단독유심용) -->
 <div class="privacy-content-modal" id="mnoSimPrivacyContentModal">
     <div class="privacy-content-modal-overlay" id="mnoSimPrivacyContentModalOverlay"></div>
     <div class="privacy-content-modal-content">
@@ -1202,6 +1320,20 @@ span.internet-checkbox-text {
 .arrow-up {
     transform: rotate(180deg);
     transition: transform 0.3s ease;
+}
+
+/* 통신사폰 상세 페이지 아코디언 버튼 높이 조정 (모바일 터치 최적화) */
+.plan-accordion-trigger {
+    min-height: 48px !important;
+    padding: 12px 16px !important;
+}
+
+/* 모바일에서 더 큰 터치 영역 확보 */
+@media (max-width: 768px) {
+    .plan-accordion-trigger {
+        min-height: 52px !important;
+        padding: 14px 16px !important;
+    }
 }
 </style>
 
@@ -1874,7 +2006,7 @@ function closeApplyModal() {
     }
 }
 
-// 통신사유심 신청 폼 제출 이벤트
+// 통신사단독유심 신청 폼 제출 이벤트
 const mnoSimApplicationForm = document.getElementById('mnoSimApplicationForm');
 if (mnoSimApplicationForm) {
     mnoSimApplicationForm.addEventListener('submit', function(e) {
@@ -1990,7 +2122,7 @@ if (mnoSimApplicationForm) {
                     }
                     window.location.href = redirectUrl;
                 } else {
-                    // redirect_url이 없으면 마이페이지 통신사유심 주문내역으로 이동
+                    // redirect_url이 없으면 마이페이지 통신사단독유심 주문내역으로 이동
                     window.location.href = '/MVNO/mypage/mno-sim-order.php';
                 }
             } else {
@@ -2028,7 +2160,7 @@ if (mnoSimApplicationForm) {
     });
 }
 
-// 통신사유심 개인정보 동의 체크박스 처리
+// 통신사단독유심 개인정보 동의 체크박스 처리
 const mnoSimAgreementAll = document.getElementById('mnoSimAgreementAll');
 const mnoSimAgreementItemCheckboxes = document.querySelectorAll('#mnoSimApplicationForm .internet-checkbox-input-item');
 
@@ -2112,14 +2244,14 @@ document.addEventListener('DOMContentLoaded', function() {
     toggleMnoSimMarketingChannels();
 });
 
-// 통신사유심 개인정보 내용보기 모달
+// 통신사단독유심 개인정보 내용보기 모달
 const mnoSimPrivacyModal = document.getElementById('mnoSimPrivacyContentModal');
 const mnoSimPrivacyModalOverlay = document.getElementById('mnoSimPrivacyContentModalOverlay');
 const mnoSimPrivacyModalClose = document.getElementById('mnoSimPrivacyContentModalClose');
 const mnoSimPrivacyModalTitle = document.getElementById('mnoSimPrivacyContentModalTitle');
 const mnoSimPrivacyModalBody = document.getElementById('mnoSimPrivacyContentModalBody');
 
-// 통신사유심 개인정보 내용보기 모달 열기 (전역으로 노출)
+// 통신사단독유심 개인정보 내용보기 모달 열기 (전역으로 노출)
 window.openMnoSimPrivacyModal = function(type) {
     if (!mnoSimPrivacyModal || !mnoSimPrivacyContents[type]) return;
     
@@ -2131,7 +2263,7 @@ window.openMnoSimPrivacyModal = function(type) {
     document.body.style.overflow = 'hidden';
 };
 
-// 통신사유심 개인정보 내용보기 모달 닫기 이벤트
+// 통신사단독유심 개인정보 내용보기 모달 닫기 이벤트
 if (mnoSimPrivacyModalOverlay) {
     mnoSimPrivacyModalOverlay.addEventListener('click', closeMnoSimPrivacyModal);
 }

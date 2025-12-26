@@ -36,7 +36,7 @@ if ($applicationId <= 0 && $productId <= 0) {
     exit;
 }
 
-if (!in_array($productType, ['mvno', 'mno', 'internet'])) {
+if (!in_array($productType, ['mvno', 'mno', 'internet', 'mno-sim'])) {
     echo json_encode(['success' => false, 'message' => '상품 타입이 올바르지 않습니다.']);
     exit;
 }
@@ -145,6 +145,23 @@ try {
         $selectFields = str_replace("product_id,", "product_id, application_id,", $selectFields);
     }
     
+    // product_type에 'mno-sim'이 있는지 확인 (없으면 'mno'로 대체)
+    $productTypeForQuery = $productType;
+    try {
+        $typeCheckStmt = $pdo->query("SHOW COLUMNS FROM product_reviews WHERE Field = 'product_type'");
+        $typeColumn = $typeCheckStmt->fetch(PDO::FETCH_ASSOC);
+        if ($typeColumn && $productType === 'mno-sim' && strpos($typeColumn['Type'], 'mno-sim') === false) {
+            // 'mno-sim'이 ENUM에 없으면 'mno'로 조회
+            $productTypeForQuery = 'mno';
+            error_log("Warning: product_type ENUM에 'mno-sim'이 없어 'mno'로 조회합니다. DB 업데이트가 필요합니다.");
+        }
+    } catch (PDOException $e) {
+        error_log("Error checking product_type: " . $e->getMessage());
+        if ($productType === 'mno-sim') {
+            $productTypeForQuery = 'mno'; // 안전을 위해 'mno'로 대체
+        }
+    }
+    
     // application_id로 조회
     if ($hasApplicationId && $applicationId > 0) {
         $stmt = $pdo->prepare("
@@ -163,7 +180,7 @@ try {
         $stmt->execute([
             ':product_id' => $actualProductId,
             ':user_id' => $userId,
-            ':product_type' => $productType,
+            ':product_type' => $productTypeForQuery,
             ':application_id' => $applicationId
         ]);
     } else {
@@ -182,7 +199,7 @@ try {
         $stmt->execute([
             ':product_id' => $actualProductId,
             ':user_id' => $userId,
-            ':product_type' => $productType
+            ':product_type' => $productTypeForQuery
         ]);
     }
     
@@ -206,6 +223,12 @@ try {
         if ($product && !empty($product['seller_id'])) {
             $sellerId = $product['seller_id'];
             
+            // product_type이 'mno-sim'인 경우 'mno'로도 조회
+            $productTypesForSearch = [$productTypeForQuery];
+            if ($productType === 'mno-sim' && $productTypeForQuery === 'mno') {
+                // 이미 'mno'로 변환되었으므로 그대로 사용
+            }
+            
             $productsStmt = $pdo->prepare("
                 SELECT id 
                 FROM products 
@@ -215,7 +238,7 @@ try {
             ");
             $productsStmt->execute([
                 ':seller_id' => $sellerId,
-                ':product_type' => $productType
+                ':product_type' => $productType === 'mno-sim' ? 'mno' : $productType
             ]);
             $productIds = $productsStmt->fetchAll(PDO::FETCH_COLUMN);
             
@@ -233,7 +256,7 @@ try {
                         created_at DESC
                     LIMIT 1
                 ");
-                $params = array_merge($productIds, [$userId, $productType]);
+                $params = array_merge($productIds, [$userId, $productTypeForQuery]);
                 $stmt->execute($params);
                 $review = $stmt->fetch(PDO::FETCH_ASSOC);
             }
@@ -271,6 +294,7 @@ echo json_encode([
     'has_review' => true,
     'review' => $review
 ]);
+
 
 
 

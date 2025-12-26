@@ -1,7 +1,7 @@
 <?php
 
 /**
- * 판매자 통신사유심 상품 등록 페이지
+ * 판매자 통신사단독유심 상품 등록 페이지
  * 경로: /seller/products/mno-sim.php
  */
 
@@ -34,7 +34,7 @@ if (isset($currentUser['withdrawal_requested']) && $currentUser['withdrawal_requ
     exit;
 }
 
-// 통신사유심 권한 확인 (일단 주석 처리 - DB 설계 후 활성화)
+// 통신사단독유심 권한 확인 (일단 주석 처리 - DB 설계 후 활성화)
 // $hasPermission = hasSellerPermission($currentUser['user_id'], 'mno-sim');
 // if (!$hasPermission) {
 //     $noPermission = true;
@@ -91,7 +91,7 @@ if ($productId > 0) {
             $product = $stmt->fetch(PDO::FETCH_ASSOC);
             
             if ($product) {
-                // 통신사유심 상세 정보 조회
+                // 통신사단독유심 상세 정보 조회
                 $detailStmt = $pdo->prepare("
                     SELECT * FROM product_mno_sim_details 
                     WHERE product_id = :product_id
@@ -652,8 +652,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <div class="product-register-container">
     <div class="page-header">
-        <h1><?php echo $isEditMode ? '통신사유심 상품 수정' : '통신사유심 상품 등록'; ?></h1>
-        <p><?php echo $isEditMode ? '통신사유심 요금제 정보를 수정하세요' : '새로운 통신사유심 요금제를 등록하세요'; ?></p>
+        <h1><?php echo $isEditMode ? '통신사단독유심 상품 수정' : '통신사단독유심 상품 등록'; ?></h1>
+        <p><?php echo $isEditMode ? '통신사단독유심 요금제 정보를 수정하세요' : '새로운 통신사단독유심 요금제를 등록하세요'; ?></p>
     </div>
     
     <?php if (isset($_GET['success'])): ?>

@@ -1209,7 +1209,7 @@ function updateReviewStatistics($productId, $rating = null, $kindnessRating = nu
  * @return int|false 리뷰 ID (성공 시) 또는 false (실패 시)
  */
 function addProductReview($productId, $userId, $productType, $rating, $content, $title = null, $kindnessRating = null, $speedRating = null, $applicationId = null) {
-    if (!in_array($productType, ['mvno', 'mno', 'internet'])) {
+    if (!in_array($productType, ['mvno', 'mno', 'internet', 'mno-sim'])) {
         return false;
     }
     
@@ -1233,11 +1233,11 @@ function addProductReview($productId, $userId, $productType, $rating, $content, 
         // 같은 주문건(application_id)에 대해서도 여러 리뷰 작성 가능 (요구사항에 따라)
         // 중복 체크 없이 항상 리뷰 작성 허용
         
-        // 인터넷과 MVNO 리뷰는 자동으로 승인, MNO는 pending 상태로 저장
+        // 인터넷과 MVNO, MNO-SIM 리뷰는 자동으로 승인, MNO는 pending 상태로 저장
         $status = ($productType === 'mno') ? 'pending' : 'approved';
         
-        // 인터넷/MVNO/MNO 리뷰의 경우 kindness_rating과 speed_rating으로 rating 계산
-        if (in_array($productType, ['internet', 'mvno', 'mno']) && $kindnessRating !== null && $speedRating !== null) {
+        // 인터넷/MVNO/MNO/MNO-SIM 리뷰의 경우 kindness_rating과 speed_rating으로 rating 계산
+        if (in_array($productType, ['internet', 'mvno', 'mno', 'mno-sim']) && $kindnessRating !== null && $speedRating !== null) {
             $rating = round(($kindnessRating + $speedRating) / 2);
         }
         
@@ -1580,8 +1580,8 @@ function updateProductReview($reviewId, $userId, $rating, $content, $title = nul
             $hasSpeedRating = $checkStmt->rowCount() > 0;
         } catch (PDOException $e) {}
         
-        // 인터넷/MVNO/MNO 리뷰인 경우 kindness_rating과 speed_rating으로 rating 계산
-        if (in_array($review['product_type'], ['internet', 'mvno', 'mno']) && $kindnessRating !== null && $speedRating !== null) {
+        // 인터넷/MVNO/MNO/MNO-SIM 리뷰인 경우 kindness_rating과 speed_rating으로 rating 계산
+        if (in_array($review['product_type'], ['internet', 'mvno', 'mno', 'mno-sim']) && $kindnessRating !== null && $speedRating !== null) {
             $rating = round(($kindnessRating + $speedRating) / 2);
         }
         
@@ -1628,6 +1628,13 @@ function updateProductReview($reviewId, $userId, $rating, $content, $title = nul
         
         // 통계 업데이트는 트리거(trg_update_review_statistics_on_update)가 자동으로 처리
         // 트리거가 기존 리뷰 통계를 제거하고 새 리뷰 통계를 추가하여 자동 업데이트
+        // 트리거가 작동하지 않을 경우를 대비해 수동 업데이트도 시도
+        try {
+            updateReviewStatistics($productId, $rating, $kindnessRating, $speedRating, $review['product_type']);
+        } catch (Exception $e) {
+            // 통계 업데이트 실패는 치명적이지 않으므로 로그만 남김
+            error_log("updateProductReview: 통계 수동 업데이트 실패 (트리거가 처리할 수 있음) - " . $e->getMessage());
+        }
         
         return true;
     } catch (PDOException $e) {
@@ -3731,7 +3738,7 @@ function getUserInternetApplications($userId) {
 }
 
 /**
- * 사용자의 통신사유심 신청 내역 조회
+ * 사용자의 통신사단독유심 신청 내역 조회
  * @param int $userId 사용자 ID
  * @return array 신청 내역 배열
  */

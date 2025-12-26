@@ -1,6 +1,6 @@
 <?php
 /**
- * 통신사유심 접수건 목록 페이지 (관리자)
+ * 통신사단독유심 접수건 목록 페이지 (관리자)
  * 경로: /admin/orders/mno-sim-list.php
  */
 
@@ -184,7 +184,7 @@ if ($pdo && empty($errors)) {
         if ($total === 0) {
             $warnings[] = [
                 'type' => 'warning',
-                'message' => '데이터베이스에 통신사유심 접수건이 없습니다. product_applications 테이블에서 product_type = "mno-sim"인 데이터가 있는지 확인해주세요.',
+                'message' => '데이터베이스에 통신사단독유심 접수건이 없습니다. product_applications 테이블에서 product_type = "mno-sim"인 데이터가 있는지 확인해주세요.',
                 'timestamp' => date('Y-m-d H:i:s')
             ];
         }
@@ -831,7 +831,7 @@ function getContractType($app) {
 
 <div class="order-list-container">
     <div class="page-header">
-        <h1>통신사유심 접수건 관리</h1>
+        <h1>통신사단독유심 접수건 관리</h1>
         <div style="font-size: 14px; color: #6b7280;">
             총 <strong><?php echo number_format($total); ?></strong>건
         </div>
@@ -984,7 +984,7 @@ function getContractType($app) {
                     <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z"/>
                 </svg>
                 <h3>접수건이 없습니다</h3>
-                <p>등록된 통신사유심 접수건이 없습니다.</p>
+                <p>등록된 통신사단독유심 접수건이 없습니다.</p>
             </div>
         <?php endif; ?>
     </div>

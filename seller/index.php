@@ -476,7 +476,7 @@ include 'includes/seller-header.php';
                             <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
                             <line x1="12" y1="18" x2="12.01" y2="18"/>
                         </svg>
-                        통신사유심 등록
+                        통신사단독유심 등록
                     </a>
                 </div>
             </div>

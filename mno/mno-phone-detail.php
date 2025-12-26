@@ -2529,13 +2529,7 @@ span.internet-checkbox-text {
     color: #6b7280;
     display: flex;
     align-items: center;
-    justify-content: center;
     text-decoration: none;
-    padding: 0.6rem; /* 클릭 영역 확대 */
-    min-width: 2.88rem; /* 최소 너비 설정 */
-    min-height: 2.88rem; /* 최소 높이 설정 (기존 높이에서 20% 증가) */
-    border-radius: 0.25rem;
-    transition: background-color 0.2s;
 }
 
 .internet-checkbox-link svg {
@@ -2767,13 +2761,7 @@ span.internet-checkbox-text {
     color: #6b7280;
     display: flex;
     align-items: center;
-    justify-content: center;
     text-decoration: none;
-    padding: 0.6rem; /* 클릭 영역 확대 */
-    min-width: 2.88rem; /* 최소 너비 설정 */
-    min-height: 2.88rem; /* 최소 높이 설정 (기존 높이에서 20% 증가) */
-    border-radius: 0.25rem;
-    transition: background-color 0.2s;
 }
 
 .internet-checkbox-link svg {
