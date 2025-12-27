@@ -64,7 +64,8 @@ try {
         // WHERE 조건 구성
         $whereConditions = [
             'a.seller_id = :seller_id',
-            "a.product_type = 'mno-sim'"
+            "a.product_type = 'mno-sim'",
+            "p.product_type = 'mno-sim'"
         ];
         $params = [':seller_id' => $sellerId];
         
@@ -129,11 +130,12 @@ try {
         $whereClause = implode(' AND ', $whereConditions);
         
         // 전체 개수 조회 (중복 방지를 위해 DISTINCT 사용)
-        // MVNO 페이지와 동일하게 products 조인 없이 카운트만 수행
         $countSql = "
             SELECT COUNT(DISTINCT a.id) as total
             FROM product_applications a
             INNER JOIN application_customers c ON a.id = c.application_id
+            INNER JOIN products p ON a.product_id = p.id AND p.product_type = 'mno-sim'
+            INNER JOIN product_mno_sim_details mno_sim ON p.id = mno_sim.product_id
             WHERE $whereClause
         ";
         $countStmt = $pdo->prepare($countSql);
@@ -197,8 +199,8 @@ try {
                 mno_sim.benefits
             FROM product_applications a
             INNER JOIN application_customers c ON a.id = c.application_id
-            INNER JOIN products p ON a.product_id = p.id
-            LEFT JOIN product_mno_sim_details mno_sim ON p.id = mno_sim.product_id
+            INNER JOIN products p ON a.product_id = p.id AND p.product_type = 'mno-sim'
+            INNER JOIN product_mno_sim_details mno_sim ON p.id = mno_sim.product_id
             WHERE $whereClause
             ORDER BY a.created_at DESC, a.id DESC
             LIMIT :limit OFFSET :offset
@@ -333,7 +335,8 @@ try {
                 SELECT COUNT(*) as cnt 
                 FROM product_applications a
                 INNER JOIN application_customers c ON a.id = c.application_id
-                INNER JOIN products p ON a.product_id = p.id
+                INNER JOIN products p ON a.product_id = p.id AND p.product_type = 'mno-sim'
+                INNER JOIN product_mno_sim_details mno_sim ON p.id = mno_sim.product_id
                 WHERE a.seller_id = :seller_id AND a.product_type = 'mno-sim'
             ");
             $debugStmt3->execute([':seller_id' => $sellerId]);
@@ -346,7 +349,8 @@ try {
                     SELECT COUNT(*) as cnt 
                     FROM product_applications a
                     INNER JOIN application_customers c ON a.id = c.application_id
-                    INNER JOIN products p ON a.product_id = p.id
+                    INNER JOIN products p ON a.product_id = p.id AND p.product_type = 'mno-sim'
+                    INNER JOIN product_mno_sim_details mno_sim ON p.id = mno_sim.product_id
                     WHERE a.seller_id = :seller_id 
                     AND a.product_type = 'mno-sim'
                     AND DATE(a.created_at) >= :date_from
@@ -852,6 +856,14 @@ $pageStyles = '
         height: 100%;
         background-color: rgba(0, 0, 0, 0.5);
         overflow: auto;
+        align-items: flex-start;
+        justify-content: center;
+        padding: 20px;
+    }
+    
+    .product-modal[style*="display: flex"],
+    .product-modal[style*="display:block"] {
+        display: flex !important;
     }
     
     .product-modal-content {
@@ -1251,8 +1263,29 @@ include __DIR__ . '/../includes/seller-header.php';
                             <td><?php echo htmlspecialchars($order['order_number'] ?? '-'); ?></td>
                             <td><?php echo htmlspecialchars($order['provider'] ?? '-'); ?></td>
                             <td>
-                                <span class="product-name-link" onclick="showProductInfo(<?php echo htmlspecialchars(json_encode($order)); ?>, 'mvno')">
-                                    <?php echo htmlspecialchars($order['plan_name'] ?? '상품명 없음'); ?>
+                                <span class="product-name-link" onclick="showProductInfo(<?php echo htmlspecialchars(json_encode($order, JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE)); ?>, 'mno-sim')">
+                                    <?php 
+                                    $planName = $order['plan_name'] ?? '';
+                                    $provider = $order['provider'] ?? '';
+                                    
+                                    // plan_name 표시 (실제 상품명일 수 있으므로 그대로 표시)
+                                    if (empty($planName) || $planName === '상품명 없음') {
+                                        // 비어있거나 기본값인 경우만 처리
+                                        if (!empty($provider)) {
+                                            echo htmlspecialchars($provider . ' 통신사단독유심');
+                                        } else {
+                                            echo htmlspecialchars('통신사단독유심');
+                                        }
+                                    } else {
+                                        // plan_name이 있으면 그대로 표시
+                                        // plan_name에 provider가 포함되어 있지 않으면 provider 추가
+                                        if (!empty($provider) && strpos($planName, $provider) === false) {
+                                            echo htmlspecialchars($provider . ' ' . $planName);
+                                        } else {
+                                            echo htmlspecialchars($planName);
+                                        }
+                                    }
+                                    ?>
                                 </span>
                             </td>
                             <td>
@@ -1374,10 +1407,31 @@ function showProductInfo(order, productType) {
             return;
         }
         
+        // order가 문자열인 경우 파싱
+        if (typeof order === 'string') {
+            try {
+                order = JSON.parse(order);
+            } catch (e) {
+                console.error('Failed to parse order data:', e);
+                alert('상품 정보를 불러올 수 없습니다.');
+                return;
+            }
+        }
+        
         if (!order || typeof order !== 'object') {
             console.error('Invalid order data:', order);
             alert('상품 정보를 불러올 수 없습니다.');
             return;
+        }
+        
+        // additional_info가 문자열인 경우 파싱
+        if (order.additional_info && typeof order.additional_info === 'string') {
+            try {
+                order.additional_info = JSON.parse(order.additional_info);
+            } catch (e) {
+                console.warn('Failed to parse additional_info, using empty object:', e);
+                order.additional_info = {};
+            }
         }
         
         let html = '';
@@ -1434,17 +1488,9 @@ function showProductInfo(order, productType) {
                                     serviceType === '3g' ? '3G' : 
                                     serviceType || '-';
             
-            // 통신망 (provider)
+            // 통신망 (provider) - 통신사단독유심은 알뜰폰이 아님
             const provider = getValue('provider', 'provider');
-            // provider 값이 이미 "알뜰폰"을 포함하고 있으면 추가하지 않음
-            let providerLabel = '-';
-            if (provider) {
-                if (provider.includes('알뜰폰')) {
-                    providerLabel = provider;
-                } else {
-                    providerLabel = provider + (serviceTypeLabel !== '-' ? '알뜰폰' : '');
-                }
-            }
+            let providerLabel = provider || '-';
             
             // 약정기간
             const contractPeriod = getValue('contract_period', 'contract_period');
@@ -1807,7 +1853,16 @@ function showProductInfo(order, productType) {
             }
             
             modalBody.innerHTML = html;
-            modal.style.display = 'block';
+            modal.style.display = 'flex';
+            
+            // 디버깅: 모달 표시 확인
+            console.log('Product info modal displayed', {
+                productType: productType,
+                hasSnapshot: !!productSnapshot,
+                snapshotKeys: Object.keys(productSnapshot).slice(0, 10),
+                planName: order.plan_name || productSnapshot.plan_name || 'N/A',
+                provider: order.provider || productSnapshot.provider || 'N/A'
+            });
         }
     } catch (error) {
         console.error('Error showing product info:', error);
@@ -1826,17 +1881,22 @@ document.addEventListener('DOMContentLoaded', function() {
     const modal = document.getElementById('productInfoModal');
     const closeBtn = document.querySelector('.product-modal-close');
     
-    if (closeBtn) {
-        closeBtn.onclick = function() {
+    if (closeBtn && modal) {
+        closeBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
             modal.style.display = 'none';
-        };
+        });
     }
     
-    window.onclick = function(event) {
-        if (event.target === modal) {
-            modal.style.display = 'none';
-        }
-    };
+    // 모달 배경 클릭 시 닫기
+    if (modal) {
+        modal.addEventListener('click', function(event) {
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+    }
 });
 
 // 상태 변경 모달 열기

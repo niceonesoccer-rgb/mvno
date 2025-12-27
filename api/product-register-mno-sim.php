@@ -223,9 +223,29 @@ try {
     if (empty($registrationTypes)) {
         throw new Exception('가입 형태를 최소 하나 이상 선택해주세요.');
     }
-    if (empty($detailData['plan_name'])) {
+    // plan_name 검증 및 정리
+    $planName = trim($detailData['plan_name'] ?? '');
+    
+    if (empty($planName)) {
         throw new Exception('요금제명을 입력해주세요.');
     }
+    
+    // plan_name 검증 (완화된 버전)
+    // 실제 상품명일 수 있으므로 엄격한 검증은 하지 않음
+    // 단, 명백히 잘못된 경우만 체크
+    
+    // 너무 긴 경우만 체크 (50자 이상)
+    if (mb_strlen($planName) > 50) {
+        throw new Exception('요금제명은 50자 이하로 입력해주세요. (현재: ' . mb_strlen($planName) . '자)');
+    }
+    
+    // 완전히 비어있거나 공백만 있는 경우
+    if (trim($planName) === '') {
+        throw new Exception('요금제명을 입력해주세요.');
+    }
+    
+    // 정리된 plan_name 저장
+    $detailData['plan_name'] = $planName;
     if (empty($detailData['price_main']) || $detailData['price_main'] <= 0) {
         throw new Exception('월 요금을 입력해주세요.');
     }

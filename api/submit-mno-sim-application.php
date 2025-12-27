@@ -124,7 +124,7 @@ try {
     $stmt = $pdo->prepare("
         SELECT p.seller_id, mno_sim.*
         FROM products p
-        LEFT JOIN product_mno_sim_details mno_sim ON p.id = mno_sim.product_id
+        INNER JOIN product_mno_sim_details mno_sim ON p.id = mno_sim.product_id
         WHERE p.id = ? AND p.product_type = 'mno-sim' AND p.status = 'active'
         LIMIT 1
     ");
@@ -168,10 +168,71 @@ try {
     }
     
     // 상품 정보 전체를 배열로 구성 (판매자가 저장한 정보 전체 저장)
-    // seller_id, product_id, id는 제외하고 나머지 모든 필드 저장
+    // mno-sim 관련 필드만 저장 (알뜰폰 데이터가 섞이지 않도록)
     $productSnapshot = [];
+    
+    // mno-sim 관련 필드 목록 (product_mno_sim_details 테이블의 필드)
+    $mnoSimFields = [
+        'provider', 'service_type', 'registration_types', 'plan_name',
+        'contract_period', 'contract_period_discount_value', 'contract_period_discount_unit',
+        'price_main', 'price_main_unit',
+        'discount_period', 'discount_period_value', 'discount_period_unit',
+        'price_after_type', 'price_after', 'price_after_unit',
+        'plan_maintenance_period_type', 'plan_maintenance_period_prefix', 
+        'plan_maintenance_period_value', 'plan_maintenance_period_unit',
+        'sim_change_restriction_period_type', 'sim_change_restriction_period_prefix',
+        'sim_change_restriction_period_value', 'sim_change_restriction_period_unit',
+        'data_amount', 'data_amount_value', 'data_unit',
+        'data_additional', 'data_additional_value',
+        'data_exhausted', 'data_exhausted_value',
+        'call_type', 'call_amount', 'call_amount_unit',
+        'additional_call_type', 'additional_call', 'additional_call_unit',
+        'sms_type', 'sms_amount', 'sms_amount_unit',
+        'mobile_hotspot', 'mobile_hotspot_value', 'mobile_hotspot_unit',
+        'regular_sim_available', 'regular_sim_price', 'regular_sim_price_unit',
+        'nfc_sim_available', 'nfc_sim_price', 'nfc_sim_price_unit',
+        'esim_available', 'esim_price', 'esim_price_unit',
+        'over_data_price', 'over_data_price_unit',
+        'over_voice_price', 'over_voice_price_unit',
+        'over_video_price', 'over_video_price_unit',
+        'over_sms_price', 'over_sms_price_unit',
+        'over_lms_price', 'over_lms_price_unit',
+        'over_mms_price', 'over_mms_price_unit',
+        'promotion_title', 'promotions', 'benefits', 'redirect_url'
+    ];
+    
+    // mno-sim 관련 필드만 저장
     foreach ($product as $key => $value) {
-        if ($key !== 'seller_id' && $key !== 'product_id' && $key !== 'id') {
+        // seller_id, product_id, id는 제외
+        if ($key === 'seller_id' || $key === 'product_id' || $key === 'id') {
+            continue;
+        }
+        
+        // mno-sim 관련 필드만 포함
+        if (in_array($key, $mnoSimFields)) {
+            // plan_name은 문자열로만 저장 (다른 값이 섞이지 않도록)
+            if ($key === 'plan_name') {
+                $value = trim((string)$value);
+                // 비정상적인 값 체크
+                $invalidKeywords = ['URL', '없음', '세가지', '형태', '가입', '다음', '추가'];
+                $isInvalid = false;
+                foreach ($invalidKeywords as $keyword) {
+                    if (stripos($value, $keyword) !== false) {
+                        $isInvalid = true;
+                        break;
+                    }
+                }
+                // 비정상적인 경우 빈 문자열로 저장하지 않고 로그만 남김
+                if ($isInvalid) {
+                    error_log("MNO-SIM Application - Warning: Invalid plan_name detected: " . $value);
+                    // 비정상적인 키워드 제거 시도
+                    foreach ($invalidKeywords as $keyword) {
+                        $value = str_ireplace($keyword, '', $value);
+                    }
+                    $value = trim($value);
+                }
+            }
+            
             $productSnapshot[$key] = $value;
         }
     }

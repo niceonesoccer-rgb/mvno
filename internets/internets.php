@@ -48,6 +48,9 @@ try {
             $whereClause .= " AND p.id = :product_id";
         }
         
+        // 특정 상품 ID가 있으면 제한 없이, 없으면 초기 20개만 로드
+        $limitClause = $productId ? "" : "LIMIT 20";
+        
         $stmt = $pdo->prepare("
             SELECT 
                 p.id,
@@ -74,6 +77,7 @@ try {
             INNER JOIN product_internet_details inet ON p.id = inet.product_id
             {$whereClause}
             ORDER BY p.created_at DESC
+            {$limitClause}
         ");
         
         if ($productId) {
@@ -82,6 +86,19 @@ try {
         
         $stmt->execute();
         $internetProducts = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // 전체 개수 조회 (더보기 버튼용)
+        $totalCount = count($internetProducts); // 기본값은 현재 로드된 개수
+        if (!$productId) {
+            $countStmt = $pdo->prepare("
+                SELECT COUNT(*) as total
+                FROM products p
+                INNER JOIN product_internet_details inet ON p.id = inet.product_id
+                {$whereClause}
+            ");
+            $countStmt->execute();
+            $totalCount = intval($countStmt->fetch(PDO::FETCH_ASSOC)['total']);
+        }
         
         // JSON 필드 디코딩
         foreach ($internetProducts as &$product) {
@@ -155,7 +172,7 @@ function getInternetIconPath($registrationPlace) {
     
     <div class="PlanDetail_content_wrapper__0YNeJ">
         <div class="tw-w-full">
-            <div class="css-2l6pil e1ebrc9o0">
+            <div class="css-2l6pil e1ebrc9o0" id="internet-products-container">
                 <?php if (empty($internetProducts)): ?>
                     <div style="text-align: center; padding: 60px 20px; color: #6b7280;">
                         <p>등록된 인터넷 상품이 없습니다.</p>
@@ -437,6 +454,13 @@ function getInternetIconPath($registrationPlace) {
                     <?php endforeach; ?>
                 <?php endif; ?>
             </div>
+            <?php if (!empty($internetProducts) && !$productId && isset($totalCount) && $totalCount > 20): ?>
+            <div class="load-more-container">
+                <button id="load-more-internet-btn" class="load-more-btn" data-type="internet" data-page="2" data-total="<?php echo $totalCount; ?>">
+                    더보기 (<span id="remaining-count"><?php echo max(0, $totalCount - 20); ?></span>개 남음)
+                </button>
+            </div>
+            <?php endif; ?>
         </div>
     </div>
 </main>
@@ -851,6 +875,45 @@ function getInternetIconPath($registrationPlace) {
 /* 필터가 sticky일 때 추가 여백 */
 .css-2l6pil.e1ebrc9o0.filter-active {
     padding-top: 50px;
+}
+
+/* 더보기 버튼 컨테이너 */
+.load-more-container {
+    width: 100%;
+    padding: 30px 20px;
+    box-sizing: border-box;
+}
+
+/* 더보기 버튼 스타일 (좌우 길게) */
+.load-more-btn {
+    width: 100%;
+    max-width: 100%;
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    color: white;
+    border: none;
+    padding: 16px 32px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+    box-sizing: border-box;
+}
+
+.load-more-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+}
+
+.load-more-btn:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.load-more-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 
 /* Product card wrapper */
@@ -3442,6 +3505,8 @@ document.addEventListener('keydown', function(e) {
 })();
 </script>
 
+<!-- 더보기 기능 스크립트 -->
+<script src="/MVNO/assets/js/load-more-products.js"></script>
 
 <?php
 // 푸터 포함

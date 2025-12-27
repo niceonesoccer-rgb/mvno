@@ -35,6 +35,12 @@ try {
 $filterProvider = $_GET['provider'] ?? '';
 $filterServiceType = $_GET['service_type'] ?? '';
 
+// 페이지 번호 가져오기
+$page = isset($_GET['page']) ? intval($_GET['page']) : 1;
+if ($page < 1) $page = 1;
+$limit = 20;
+$offset = ($page - 1) * $limit;
+
 // 데이터베이스에서 통신사단독유심 상품 목록 가져오기
 $mnoSimProducts = [];
 $providers = [];
@@ -64,6 +70,20 @@ try {
         
         $whereClause = 'WHERE ' . implode(' AND ', $whereConditions);
         
+        // 전체 개수 조회
+        $countStmt = $pdo->prepare("
+            SELECT COUNT(*) as total
+            FROM products p
+            INNER JOIN product_mno_sim_details mno_sim ON p.id = mno_sim.product_id
+            {$whereClause}
+        ");
+        foreach ($params as $key => $value) {
+            $countStmt->bindValue($key, $value);
+        }
+        $countStmt->execute();
+        $totalCount = intval($countStmt->fetch(PDO::FETCH_ASSOC)['total']);
+        
+        // 상품 목록 조회 (LIMIT/OFFSET 추가)
         $stmt = $pdo->prepare("
             SELECT 
                 p.id,
@@ -109,12 +129,14 @@ try {
             INNER JOIN product_mno_sim_details mno_sim ON p.id = mno_sim.product_id
             {$whereClause}
             ORDER BY p.created_at DESC
+            LIMIT :limit OFFSET :offset
         ");
         
         foreach ($params as $key => $value) {
             $stmt->bindValue($key, $value);
         }
-        
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
         $stmt->execute();
         $mnoSimProducts = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
@@ -249,7 +271,7 @@ function formatPriceAfter($priceAfterType, $priceAfter, $priceAfterUnit) {
                 <p>등록된 통신사단독유심 상품이 없습니다.</p>
             </div>
         <?php else: ?>
-            <div class="plans-list-container">
+            <div class="plans-list-container" id="mno-sim-products-container">
                 <?php foreach ($mnoSimProducts as $product): ?>
                     <?php
                     // 판매자명 가져오기 (알뜰폰 카드와 동일하게)
@@ -459,6 +481,19 @@ function formatPriceAfter($priceAfterType, $priceAfter, $priceAfterUnit) {
                     <!-- 카드 구분선 (모바일용) -->
                     <hr class="plan-card-divider">
                 <?php endforeach; ?>
+                <?php 
+                $currentCount = count($mnoSimProducts);
+                $remainingCount = max(0, $totalCount - ($offset + $currentCount));
+                $nextPage = $page + 1;
+                $hasMore = ($offset + $currentCount) < $totalCount;
+                ?>
+                <?php if ($hasMore && $totalCount > 0): ?>
+                <div class="load-more-container" id="load-more-anchor">
+                    <a href="?page=<?php echo $nextPage; ?><?php echo !empty($filterProvider) ? '&provider=' . urlencode($filterProvider) : ''; ?><?php echo !empty($filterServiceType) ? '&service_type=' . urlencode($filterServiceType) : ''; ?>#load-more-anchor" class="load-more-btn">
+                        더보기 (<?php echo number_format($remainingCount); ?>개 남음)
+                    </a>
+                </div>
+                <?php endif; ?>
                 <?php endif; ?>
                 </section>
             </div>
@@ -474,6 +509,71 @@ function formatPriceAfter($priceAfterType, $priceAfter, $priceAfterUnit) {
 <script src="/MVNO/assets/js/favorite-heart.js" defer></script>
 <!-- 공유 스크립트 -->
 <script src="/MVNO/assets/js/share.js" defer></script>
+<script>
+// 페이지 로드 후 스크롤 위치 복원
+window.addEventListener('DOMContentLoaded', function() {
+    // URL에 앵커가 있으면 해당 위치로 이동
+    if (window.location.hash === '#load-more-anchor') {
+        setTimeout(function() {
+            const element = document.querySelector('#load-more-anchor');
+            if (element) {
+                const offset = 100; // 더보기 버튼 위쪽 여백
+                const elementPosition = element.getBoundingClientRect().top;
+                const offsetPosition = elementPosition + window.pageYOffset - offset;
+                
+                window.scrollTo({
+                    top: offsetPosition,
+                    behavior: 'smooth'
+                });
+            }
+        }, 100); // DOM이 완전히 로드될 때까지 대기
+    }
+});
+</script>
+
+<style>
+/* 더보기 버튼 컨테이너 */
+.load-more-container {
+    width: 100%;
+    padding: 30px 20px;
+    box-sizing: border-box;
+}
+
+/* 더보기 버튼 스타일 (좌우 길게) - 링크도 버튼처럼 보이게 */
+.load-more-btn {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    color: white !important;
+    text-decoration: none;
+    text-align: center;
+    border: none;
+    padding: 16px 32px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+    box-sizing: border-box;
+}
+
+.load-more-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+}
+
+.load-more-btn:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.load-more-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+</style>
 
 <!-- 통신사단독유심 전용 하트 클릭 이벤트 차단 스크립트 -->
 <script>

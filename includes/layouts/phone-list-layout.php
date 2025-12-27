@@ -20,7 +20,7 @@ $is_wishlist = $is_wishlist ?? false;
 </div>
 <?php endif; ?>
 
-<div class="plans-list-container">
+<div class="plans-list-container" id="mno-products-container">
     <?php foreach ($phones as $phone): ?>
         <?php
         // 각 카드에 필요한 변수 설정

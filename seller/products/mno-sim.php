@@ -1998,7 +1998,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        // plan_name 필드 확인
+        // plan_name 필드 확인 및 검증
         const planNameField = document.getElementById('plan_name');
         if (planNameField && !planNameField.value.trim()) {
             if (typeof showAlert === 'function') {
@@ -2009,6 +2009,25 @@ document.addEventListener('DOMContentLoaded', function() {
             planNameField.focus();
             e.preventDefault();
             return;
+        }
+        
+        // plan_name 값 검증 (완화된 버전)
+        // 실제 상품명일 수 있으므로 엄격한 검증은 하지 않음
+        if (planNameField) {
+            const planName = planNameField.value.trim();
+            
+            // 길이 체크만 (50자 이상)
+            if (planName.length > 50) {
+                if (typeof showAlert === 'function') {
+                    showAlert('요금제명은 50자 이하로 입력해주세요. (현재: ' + planName.length + '자)', '오류', true);
+                } else {
+                    alert('요금제명은 50자 이하로 입력해주세요.');
+                }
+                planNameField.focus();
+                planNameField.select();
+                e.preventDefault();
+                return;
+            }
         }
         
         const formData = new FormData(this);

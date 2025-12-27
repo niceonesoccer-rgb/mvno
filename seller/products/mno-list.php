@@ -43,7 +43,7 @@ $searchDeviceName = $_GET['search_device_name'] ?? '';
 $searchDeliveryMethod = $_GET['search_delivery_method'] ?? '';
 $page = max(1, intval($_GET['page'] ?? 1));
 $perPage = isset($_GET['per_page']) ? intval($_GET['per_page']) : 10;
-if (!in_array($perPage, [10, 30, 50, 100, 500])) {
+if (!in_array($perPage, [10, 20, 50, 100, 500])) {
     $perPage = 10;
 }
 
@@ -132,7 +132,7 @@ try {
 // 페이지별 스타일 (mvno-list.php와 동일)
 $pageStyles = '
     .product-list-container {
-        max-width: 1200px;
+        max-width: 1400px;
         margin: 0 auto;
     }
     
@@ -188,9 +188,28 @@ $pageStyles = '
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         border: 1px solid #e5e7eb;
         display: flex;
+        gap: 20px;
+        align-items: flex-start;
+        flex-wrap: wrap;
+    }
+    
+    .filter-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .filter-row {
+        display: flex;
         gap: 16px;
         align-items: center;
         flex-wrap: wrap;
+        margin-bottom: 12px;
+    }
+    
+    .filter-row:last-child {
+        margin-bottom: 0;
     }
     
     .filter-group {
@@ -203,64 +222,45 @@ $pageStyles = '
         font-size: 14px;
         font-weight: 600;
         color: #374151;
+        min-width: 80px;
     }
     
-    .filter-select {
-        padding: 8px 12px;
-        font-size: 14px;
-        border: 1px solid #d1d5db;
-        border-radius: 6px;
-        background: white;
-        cursor: pointer;
-    }
-    
+    .filter-select,
     .filter-input {
         padding: 8px 12px;
         font-size: 14px;
         border: 1px solid #d1d5db;
         border-radius: 6px;
         background: white;
-        min-width: 200px;
     }
     
     .filter-input:focus {
         outline: none;
         border-color: #10b981;
-        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
     }
     
-    .per-page-selector {
-        display: flex;
-        align-items: center;
-        justify-content: flex-end;
-        gap: 12px;
-        padding: 12px 20px;
-        background: #f3f4f6;
-        border-bottom: 1px solid #e5e7eb;
-        margin-bottom: 0;
-    }
-    
-    .per-page-label {
+    .search-button {
+        padding: 8px 20px;
         font-size: 14px;
         font-weight: 600;
-        color: #374151;
-    }
-    
-    .per-page-select {
-        padding: 6px 12px;
-        font-size: 14px;
-        border: 1px solid #d1d5db;
+        border: none;
         border-radius: 6px;
-        background: white;
-        color: #374151;
+        background: #10b981;
+        color: white;
         cursor: pointer;
-        min-width: 80px;
+        transition: all 0.2s;
     }
     
-    .per-page-select:focus {
-        outline: none;
-        border-color: #10b981;
-        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+    .search-button:hover {
+        background: #059669;
+    }
+    
+    .search-button.secondary {
+        background: #6b7280;
+    }
+    
+    .search-button.secondary:hover {
+        background: #4b5563;
     }
     
     .product-table-wrapper {
@@ -465,43 +465,57 @@ include __DIR__ . '/../includes/seller-header.php';
 ?>
 
 <div class="product-list-container">
-    <!-- 필터 바 -->
-    <div class="filter-bar">
-        <div class="filter-group">
-            <label class="filter-label">상태:</label>
-            <select class="filter-select" id="filter_status" onchange="applyFilters()">
-                <option value="">전체</option>
-                <option value="active" <?php echo $status === 'active' ? 'selected' : ''; ?>>판매중</option>
-                <option value="inactive" <?php echo $status === 'inactive' ? 'selected' : ''; ?>>판매종료</option>
+    <div class="page-header">
+        <h1>통신사폰 등록상품</h1>
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <label style="font-size: 14px; color: #374151; font-weight: 600;">페이지당 표시:</label>
+            <select class="filter-select" id="per_page_select" onchange="changePerPage(this.value)" style="width: 80px;">
+                <option value="10" <?php echo $perPage === 10 ? 'selected' : ''; ?>>10개</option>
+                <option value="20" <?php echo $perPage === 20 ? 'selected' : ''; ?>>20개</option>
+                <option value="50" <?php echo $perPage === 50 ? 'selected' : ''; ?>>50개</option>
+                <option value="100" <?php echo $perPage === 100 ? 'selected' : ''; ?>>100개</option>
+                <option value="500" <?php echo $perPage === 500 ? 'selected' : ''; ?>>500개</option>
             </select>
         </div>
-        <div class="filter-group">
-            <label class="filter-label">단말기명:</label>
-            <input type="text" class="filter-input" id="filter_device_name" 
-                   placeholder="단말기명 검색" 
-                   value="<?php echo htmlspecialchars($searchDeviceName); ?>"
-                   onkeypress="if(event.key==='Enter') applyFilters()">
-        </div>
-        <div class="filter-group">
-            <label class="filter-label">수령방법:</label>
-            <input type="text" class="filter-input" id="filter_delivery_method" 
-                   placeholder="택배/내방/지역명 검색" 
-                   value="<?php echo htmlspecialchars($searchDeliveryMethod); ?>"
-                   onkeypress="if(event.key==='Enter') applyFilters()">
-        </div>
-        <button class="btn btn-primary" onclick="applyFilters()" style="margin-left: auto;">검색</button>
     </div>
     
-    <!-- 페이지당 항목 수 선택 -->
-    <div class="per-page-selector">
-        <span class="per-page-label">페이지당 표시:</span>
-        <select class="per-page-select" id="per_page_select" onchange="changePerPage(this.value)">
-            <option value="10" <?php echo $perPage == 10 ? 'selected' : ''; ?>>10개</option>
-            <option value="30" <?php echo $perPage == 30 ? 'selected' : ''; ?>>30개</option>
-            <option value="50" <?php echo $perPage == 50 ? 'selected' : ''; ?>>50개</option>
-            <option value="100" <?php echo $perPage == 100 ? 'selected' : ''; ?>>100개</option>
-            <option value="500" <?php echo $perPage == 500 ? 'selected' : ''; ?>>500개</option>
-        </select>
+    <!-- 필터 바 -->
+    <div class="filter-bar">
+        <div class="filter-content">
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label class="filter-label">상태:</label>
+                    <select class="filter-select" id="filter_status">
+                        <option value="">전체</option>
+                        <option value="active" <?php echo $status === 'active' ? 'selected' : ''; ?>>판매중</option>
+                        <option value="inactive" <?php echo $status === 'inactive' ? 'selected' : ''; ?>>판매종료</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label class="filter-label">검색:</label>
+                    <input type="text" class="filter-input" id="filter_device_name" 
+                           placeholder="단말기명" 
+                           value="<?php echo htmlspecialchars($searchDeviceName); ?>"
+                           style="width: 250px;"
+                           onkeypress="if(event.key==='Enter') applyFilters()">
+                </div>
+                
+                <div class="filter-group">
+                    <label class="filter-label">수령방법:</label>
+                    <input type="text" class="filter-input" id="filter_delivery_method" 
+                           placeholder="택배/내방/지역명 검색" 
+                           value="<?php echo htmlspecialchars($searchDeliveryMethod); ?>"
+                           style="width: 250px;"
+                           onkeypress="if(event.key==='Enter') applyFilters()">
+                </div>
+            </div>
+        </div>
+        
+        <div style="display: flex; flex-direction: column; gap: 8px; min-width: 100px;">
+            <button type="button" class="search-button" onclick="applyFilters()">검색</button>
+            <button type="button" class="search-button secondary" onclick="resetFilters()">초기화</button>
+        </div>
     </div>
     
     <!-- 상품 테이블 -->
@@ -523,9 +537,16 @@ include __DIR__ . '/../includes/seller-header.php';
             <table class="product-table">
                 <thead>
                     <tr>
-                        <th style="width: 60px;">
-                            <div style="display: flex; flex-direction: column; gap: 8px; align-items: center;">
-                                <button class="btn btn-sm" onclick="bulkInactive()" style="background: #ef4444; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; width: 60px; white-space: nowrap;">판매종료</button>
+                        <th style="width: 100px;">
+                            <div style="display: flex; flex-direction: column; gap: 8px; align-items: center; position: relative;">
+                                <div style="position: relative;">
+                                    <button class="btn btn-sm" onclick="toggleStatusMenu(event)" style="background: #ef4444; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; width: 60px; white-space: nowrap; text-align: center; display: flex; align-items: center; justify-content: center;">변경</button>
+                                    <div id="statusMenu" style="display: none; position: absolute; top: 100%; left: 0; background: white; border: 1px solid #d1d5db; border-radius: 6px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); z-index: 1000; margin-top: 4px; min-width: 100px;">
+                                        <button onclick="bulkChangeStatus('active')" style="display: block; width: 100%; padding: 8px 12px; text-align: left; border: none; background: none; cursor: pointer; font-size: 13px; color: #1f2937;" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background='none'">판매중</button>
+                                        <button onclick="bulkChangeStatus('inactive')" style="display: block; width: 100%; padding: 8px 12px; text-align: left; border: none; background: none; cursor: pointer; font-size: 13px; color: #1f2937; border-top: 1px solid #e5e7eb;" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background='none'">판매종료</button>
+                                        <button onclick="bulkCopyProducts()" style="display: block; width: 100%; padding: 8px 12px; text-align: left; border: none; background: none; cursor: pointer; font-size: 13px; color: #1f2937; border-top: 1px solid #e5e7eb;" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background='none'">복사</button>
+                                    </div>
+                                </div>
                                 <input type="checkbox" id="selectAll" onchange="toggleSelectAll()" style="cursor: pointer;">
                             </div>
                         </th>
@@ -552,7 +573,7 @@ include __DIR__ . '/../includes/seller-header.php';
                                 echo $productNumber ? htmlspecialchars($productNumber) : htmlspecialchars($product['id'] ?? '-');
                             ?></td>
                             <td>
-                                <a href="javascript:void(0);" onclick="showProductInfo(<?php echo $product['id']; ?>)" style="color: #3b82f6; text-decoration: none; font-weight: 600; cursor: pointer;">
+                                <a href="javascript:void(0);" onclick="showProductInfo(<?php echo $product['id']; ?>, 'mno')" style="color: #3b82f6; text-decoration: none; font-weight: 600; cursor: pointer;">
                                     <?php echo htmlspecialchars($product['product_name'] ?? '-'); ?>
                                 </a>
                             </td>
@@ -597,7 +618,7 @@ include __DIR__ . '/../includes/seller-header.php';
         if ($status) $paginationParams['status'] = $status;
         if ($searchDeviceName) $paginationParams['search_device_name'] = $searchDeviceName;
         if ($searchDeliveryMethod) $paginationParams['search_delivery_method'] = $searchDeliveryMethod;
-        if ($perPage != 10) $paginationParams['per_page'] = $perPage;
+        $paginationParams['per_page'] = $perPage;
         $paginationQuery = http_build_query($paginationParams);
         ?>
         <div class="pagination">
@@ -818,7 +839,28 @@ function toggleSelectAll() {
     });
 }
 
-function bulkInactive() {
+function toggleStatusMenu(event) {
+    event.stopPropagation();
+    const menu = document.getElementById('statusMenu');
+    const isVisible = menu.style.display === 'block';
+    
+    // 다른 메뉴 닫기
+    document.querySelectorAll('#statusMenu').forEach(m => {
+        if (m !== menu) m.style.display = 'none';
+    });
+    
+    menu.style.display = isVisible ? 'none' : 'block';
+}
+
+// 메뉴 외부 클릭 시 닫기
+document.addEventListener('click', function(event) {
+    const menu = document.getElementById('statusMenu');
+    if (menu && !menu.contains(event.target) && !event.target.closest('button[onclick="toggleStatusMenu(event)"]')) {
+        menu.style.display = 'none';
+    }
+});
+
+function bulkChangeStatus(status) {
     const checkboxes = document.querySelectorAll('.product-checkbox:checked');
     if (checkboxes.length === 0) {
         if (typeof showAlert === 'function') {
@@ -826,24 +868,28 @@ function bulkInactive() {
         } else {
             alert('선택된 상품이 없습니다.');
         }
+        document.getElementById('statusMenu').style.display = 'none';
         return;
     }
     
     const productCount = checkboxes.length;
-    const message = '선택한 ' + productCount + '개의 상품을 판매종료 처리하시겠습니까?';
+    const statusText = status === 'active' ? '판매중' : '판매종료';
+    const message = '선택한 ' + productCount + '개의 상품을 ' + statusText + ' 처리하시겠습니까?';
+    
+    document.getElementById('statusMenu').style.display = 'none';
     
     if (typeof showConfirm === 'function') {
-        showConfirm(message, '판매종료 확인').then(confirmed => {
+        showConfirm(message, '상태 변경 확인').then(confirmed => {
             if (confirmed) {
-                processBulkInactive(checkboxes);
+                processBulkChangeStatus(checkboxes, status);
             }
         });
     } else if (confirm(message)) {
-        processBulkInactive(checkboxes);
+        processBulkChangeStatus(checkboxes, status);
     }
 }
 
-function showProductInfo(productId) {
+function showProductInfo(productId, productType = 'mno') {
     const modal = document.getElementById('productInfoModal');
     const content = document.getElementById('productInfoContent');
     
@@ -853,10 +899,12 @@ function showProductInfo(productId) {
         return;
     }
     
+    // 배경 스크롤 방지
+    document.body.style.overflow = 'hidden';
     modal.style.display = 'block';
     content.innerHTML = '<div style="text-align: center; padding: 40px; color: #6b7280;">상품 정보를 불러오는 중...</div>';
     
-    fetch('/MVNO/api/get-product-info.php?product_id=' + productId + '&product_type=mno')
+    fetch('/MVNO/api/get-product-info.php?product_id=' + productId + '&product_type=' + productType)
         .then(response => response.json())
         .then(data => {
             if (data.success && data.product) {
@@ -864,8 +912,14 @@ function showProductInfo(productId) {
                 console.log('Product data:', product); // 디버깅용
                 let html = '';
                 
-                // 주문정보 섹션 (맨 위)
-                html += '<div style="margin-bottom: 32px;"><strong style="font-size: 18px; color: #1f2937; display: block; margin-bottom: 16px;">주문정보</strong>';
+                // 판매 상태
+                html += '<div style="margin-bottom: 32px;"><h3 style="font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #e5e7eb;">판매 상태</h3>';
+                html += '<table class="product-info-table">';
+                html += '<tr><th>상태</th><td>' + (product.status === 'active' ? '판매중' : '판매종료') + '</td></tr>';
+                html += '</table></div>';
+                
+                // 단말기
+                html += '<div style="margin-bottom: 32px;"><h3 style="font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #e5e7eb;">단말기</h3>';
                 html += '<table class="product-info-table">';
                 html += '<tr><th>단말기명</th><td>' + (product.device_name || '-') + '</td></tr>';
                 html += '<tr><th>단말기 출고가</th><td>' + (product.device_price ? number_format(product.device_price) + '원' : '-') + '</td></tr>';
@@ -880,32 +934,56 @@ function showProductInfo(productId) {
                     }
                 }
                 html += '<tr><th>색상</th><td>' + colors + '</td></tr>';
+                html += '</table></div>';
+                
+                // 할인방법
+                const allDiscounts = buildAllDiscountTables(product);
+                if (allDiscounts) {
+                    html += allDiscounts;
+                }
                 
                 // 단말기 수령방법
+                html += '<div style="margin-bottom: 32px;"><h3 style="font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #e5e7eb;">단말기 수령방법</h3>';
+                html += '<table class="product-info-table">';
                 let deliveryMethod = '-';
                 if (product.delivery_method === 'delivery') {
                     deliveryMethod = '택배';
                 } else if (product.delivery_method === 'visit') {
                     deliveryMethod = '내방' + (product.visit_region ? ' (' + product.visit_region + ')' : '');
                 }
-                html += '<tr><th>단말기 수령방법</th><td>' + deliveryMethod + '</td></tr>';
-                html += '<tr><th>서비스 타입</th><td>' + (product.service_type || '-') + '</td></tr>';
-                html += '<tr><th>약정기간</th><td>' + (product.contract_period_value ? product.contract_period_value + '일' : '-') + '</td></tr>';
-                html += '<tr><th>기본 요금</th><td>' + (product.price_main ? number_format(product.price_main) + '원' : '-') + '</td></tr>';
-                html += '<tr><th>데이터</th><td>-</td></tr>';
-                html += '<tr><th>데이터 소진 시</th><td>-</td></tr>';
-                html += '<tr><th>통화</th><td>-</td></tr>';
-                html += '<tr><th>SMS</th><td>-</td></tr>';
+                html += '<tr><th>수령방법</th><td>' + deliveryMethod + '</td></tr>';
                 html += '</table></div>';
                 
-                // 공통지원할인과 선택약정할인 (고객 신청 화면과 동일한 형태)
-                const allDiscounts = buildAllDiscountTables(product);
-                console.log('All discounts HTML:', allDiscounts); // 디버깅용
-                if (allDiscounts) {
-                    html += allDiscounts;
-                } else {
-                    console.log('No discounts to display (all filtered out or no data)');
+                // 부가서비스 및 유지기간
+                if (product.promotion_title || (product.promotions && (typeof product.promotions === 'string' ? JSON.parse(product.promotions) : product.promotions).length > 0)) {
+                    html += '<div style="margin-bottom: 32px;"><h3 style="font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #e5e7eb;">부가서비스 및 유지기간</h3>';
+                    html += '<table class="product-info-table">';
+                    if (product.promotion_title) html += '<tr><th>제목</th><td>' + product.promotion_title + '</td></tr>';
+                    if (product.promotions) {
+                        const promotions = typeof product.promotions === 'string' ? JSON.parse(product.promotions) : product.promotions;
+                        if (Array.isArray(promotions) && promotions.length > 0) {
+                            html += '<tr><th>항목</th><td>' + promotions.join(', ') + '</td></tr>';
+                        }
+                    }
+                    html += '</table></div>';
                 }
+                
+                // 리다이렉트 URL
+                if (product.redirect_url) {
+                    html += '<div style="margin-bottom: 32px;"><h3 style="font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #e5e7eb;">신청 후 리다이렉트 URL</h3>';
+                    html += '<table class="product-info-table">';
+                    html += '<tr><th>URL</th><td>' + product.redirect_url + '</td></tr>';
+                    html += '</table></div>';
+                }
+                
+                // 기타 정보
+                html += '<div style="margin-bottom: 32px;"><h3 style="font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #e5e7eb;">기타 정보</h3>';
+                html += '<table class="product-info-table">';
+                html += '<tr><th>서비스 타입</th><td>' + (product.service_type || '-') + '</td></tr>';
+                if (product.contract_period_value) html += '<tr><th>약정기간</th><td>' + product.contract_period_value + '일</td></tr>';
+                if (product.price_main) html += '<tr><th>기본 요금</th><td>' + number_format(product.price_main) + '원</td></tr>';
+                html += '<tr><th>등록일</th><td>' + (product.created_at ? new Date(product.created_at).toLocaleString('ko-KR') : '-') + '</td></tr>';
+                html += '</table></div>';
                 
                 content.innerHTML = html;
             } else {
@@ -1211,6 +1289,8 @@ function closeProductInfoModal() {
     const modal = document.getElementById('productInfoModal');
     if (modal) {
         modal.style.display = 'none';
+        // 배경 스크롤 복원
+        document.body.style.overflow = '';
     }
 }
 
@@ -1228,10 +1308,21 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+    
+    // ESC 키로 모달 닫기
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            const modal = document.getElementById('productInfoModal');
+            if (modal && modal.style.display === 'block') {
+                closeProductInfoModal();
+            }
+        }
+    });
 });
 
-function processBulkInactive(checkboxes) {
+function processBulkChangeStatus(checkboxes, status) {
     const productIds = Array.from(checkboxes).map(cb => cb.value);
+    const statusText = status === 'active' ? '판매중' : '판매종료';
     
     fetch('/MVNO/api/product-bulk-update.php', {
         method: 'POST',
@@ -1240,16 +1331,16 @@ function processBulkInactive(checkboxes) {
         },
         body: JSON.stringify({
             product_ids: productIds,
-            status: 'inactive'
+            status: status
         })
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
             if (typeof showAlert === 'function') {
-                showAlert('선택한 상품이 판매종료 처리되었습니다.', '완료');
+                showAlert('선택한 상품이 ' + statusText + ' 처리되었습니다.', '완료');
             } else {
-                alert('선택한 상품이 판매종료 처리되었습니다.');
+                alert('선택한 상품이 ' + statusText + ' 처리되었습니다.');
             }
             location.reload();
         } else {
@@ -1261,11 +1352,101 @@ function processBulkInactive(checkboxes) {
         }
     })
     .catch(error => {
+        console.error('Error:', error);
         if (typeof showAlert === 'function') {
             showAlert('상품 상태 변경 중 오류가 발생했습니다.', '오류', true);
         } else {
             alert('상품 상태 변경 중 오류가 발생했습니다.');
         }
+    });
+}
+
+function bulkCopyProducts() {
+    const checkboxes = document.querySelectorAll('.product-checkbox:checked');
+    if (checkboxes.length === 0) {
+        if (typeof showAlert === 'function') {
+            showAlert('선택된 상품이 없습니다.', '알림');
+        } else {
+            alert('선택된 상품이 없습니다.');
+        }
+        document.getElementById('statusMenu').style.display = 'none';
+        return;
+    }
+    
+    const productCount = checkboxes.length;
+    const message = '선택한 ' + productCount + '개의 상품을 복사하시겠습니까?\n\n※ 복사된 상품은 판매종료 상태로 설정됩니다.';
+    
+    document.getElementById('statusMenu').style.display = 'none';
+    
+    if (typeof showConfirm === 'function') {
+        showConfirm(message, '상품 복사').then(confirmed => {
+            if (confirmed) {
+                processBulkCopy(checkboxes);
+            }
+        });
+    } else if (confirm(message)) {
+        processBulkCopy(checkboxes);
+    }
+}
+
+function processBulkCopy(checkboxes) {
+    const productIds = Array.from(checkboxes).map(cb => cb.value);
+    const totalCount = productIds.length;
+    let completedCount = 0;
+    let failedCount = 0;
+    
+    // 각 상품을 순차적으로 복사
+    productIds.forEach((productId, index) => {
+        fetch('/MVNO/api/product-copy.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                product_id: productId,
+                product_type: 'mno'
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                completedCount++;
+            } else {
+                failedCount++;
+            }
+            
+            // 모든 복사 작업이 완료되면 결과 표시
+            if (completedCount + failedCount === totalCount) {
+                if (failedCount === 0) {
+                    if (typeof showAlert === 'function') {
+                        showAlert(totalCount + '개의 상품이 복사되었습니다.\n복사된 상품은 판매종료 상태로 설정되었습니다.', '완료');
+                    } else {
+                        alert(totalCount + '개의 상품이 복사되었습니다.\n복사된 상품은 판매종료 상태로 설정되었습니다.');
+                    }
+                    location.reload();
+                } else {
+                    if (typeof showAlert === 'function') {
+                        showAlert(completedCount + '개의 상품이 복사되었습니다.\n' + failedCount + '개의 상품 복사에 실패했습니다.', '알림', true);
+                    } else {
+                        alert(completedCount + '개의 상품이 복사되었습니다.\n' + failedCount + '개의 상품 복사에 실패했습니다.');
+                    }
+                    location.reload();
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error copying product:', error);
+            failedCount++;
+            
+            if (completedCount + failedCount === totalCount) {
+                if (typeof showAlert === 'function') {
+                    showAlert(completedCount + '개의 상품이 복사되었습니다.\n' + failedCount + '개의 상품 복사 중 오류가 발생했습니다.', '오류', true);
+                } else {
+                    alert(completedCount + '개의 상품이 복사되었습니다.\n' + failedCount + '개의 상품 복사 중 오류가 발생했습니다.');
+                }
+                location.reload();
+            }
+        });
     });
 }
 </script>

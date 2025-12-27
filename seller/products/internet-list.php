@@ -44,7 +44,10 @@ $speedOption = $_GET['speed_option'] ?? '';
 $dateFrom = $_GET['date_from'] ?? '';
 $dateTo = $_GET['date_to'] ?? '';
 $page = max(1, intval($_GET['page'] ?? 1));
-$perPage = isset($_GET['per_page']) ? max(10, min(100, intval($_GET['per_page']))) : 10;
+$perPage = isset($_GET['per_page']) ? intval($_GET['per_page']) : 10;
+if (!in_array($perPage, [10, 20, 50, 100, 500])) {
+    $perPage = 10;
+}
 
 // DB에서 인터넷 상품 목록 가져오기
 $products = [];
@@ -134,7 +137,7 @@ try {
 // 페이지별 스타일 (mvno-list.php와 동일)
 $pageStyles = '
     .product-list-container {
-        max-width: 1200px;
+        max-width: 1400px;
         margin: 0 auto;
     }
     
@@ -190,9 +193,16 @@ $pageStyles = '
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         border: 1px solid #e5e7eb;
         display: flex;
-        gap: 16px;
+        gap: 20px;
         align-items: flex-start;
         flex-wrap: wrap;
+    }
+    
+    .filter-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
     }
     
     .filter-row {
@@ -200,59 +210,11 @@ $pageStyles = '
         gap: 16px;
         align-items: center;
         flex-wrap: wrap;
-        width: 100%;
+        margin-bottom: 12px;
     }
     
-    .filter-row:first-child {
-        margin-bottom: 16px;
-    }
-    
-    .date-input-group {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-    
-    .date-input {
-        padding: 8px 12px;
-        font-size: 14px;
-        border: 1px solid #d1d5db;
-        border-radius: 6px;
-        background: white;
-    }
-    
-    .filter-bar-left {
-        display: flex;
-        gap: 16px;
-        align-items: center;
-        flex-wrap: wrap;
-    }
-    
-    .filter-bar-right {
-        display: flex;
-        gap: 16px;
-        align-items: center;
-        flex-wrap: wrap;
-    }
-    
-    .btn-reset {
-        padding: 8px 16px;
-        font-size: 14px;
-        font-weight: 600;
-        border: none;
-        border-radius: 6px;
-        background: #6b7280;
-        color: white;
-        cursor: pointer;
-        transition: all 0.2s;
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-    }
-    
-    .btn-reset:hover {
-        background: #4b5563;
-        color: white;
+    .filter-row:last-child {
+        margin-bottom: 0;
     }
     
     .filter-group {
@@ -265,15 +227,45 @@ $pageStyles = '
         font-size: 14px;
         font-weight: 600;
         color: #374151;
+        min-width: 80px;
     }
     
-    .filter-select {
+    .filter-select,
+    .filter-input {
         padding: 8px 12px;
         font-size: 14px;
         border: 1px solid #d1d5db;
         border-radius: 6px;
         background: white;
+    }
+    
+    .filter-input:focus {
+        outline: none;
+        border-color: #10b981;
+    }
+    
+    .search-button {
+        padding: 8px 20px;
+        font-size: 14px;
+        font-weight: 600;
+        border: none;
+        border-radius: 6px;
+        background: #10b981;
+        color: white;
         cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .search-button:hover {
+        background: #059669;
+    }
+    
+    .search-button.secondary {
+        background: #6b7280;
+    }
+    
+    .search-button.secondary:hover {
+        background: #4b5563;
     }
     
     .product-table-wrapper {
@@ -456,6 +448,20 @@ include __DIR__ . '/../includes/seller-header.php';
 ?>
 
 <div class="product-list-container">
+    <div class="page-header">
+        <h1>인터넷 등록상품</h1>
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <label style="font-size: 14px; color: #374151; font-weight: 600;">페이지당 표시:</label>
+            <select class="filter-select" id="per_page_select" onchange="changePerPage(this.value)" style="width: 80px;">
+                <option value="10" <?php echo $perPage === 10 ? 'selected' : ''; ?>>10개</option>
+                <option value="20" <?php echo $perPage === 20 ? 'selected' : ''; ?>>20개</option>
+                <option value="50" <?php echo $perPage === 50 ? 'selected' : ''; ?>>50개</option>
+                <option value="100" <?php echo $perPage === 100 ? 'selected' : ''; ?>>100개</option>
+                <option value="500" <?php echo $perPage === 500 ? 'selected' : ''; ?>>500개</option>
+            </select>
+        </div>
+    </div>
+    
     <?php if (isset($_GET['success'])): ?>
         <div class="alert alert-success" style="margin-bottom: 24px; padding: 16px; border-radius: 8px; background: #d1fae5; color: #065f46; border: 1px solid #10b981;">
             상품이 성공적으로 처리되었습니다.
@@ -464,11 +470,11 @@ include __DIR__ . '/../includes/seller-header.php';
     
     <!-- 필터 바 -->
     <div class="filter-bar">
-        <div style="flex: 1; min-width: 0;">
+        <div class="filter-content">
             <div class="filter-row">
                 <div class="filter-group">
                     <label class="filter-label">상태:</label>
-                    <select class="filter-select" id="filter_status" onchange="applyFilters()">
+                    <select class="filter-select" id="filter_status">
                         <option value="">전체</option>
                         <option value="active" <?php echo $status === 'active' ? 'selected' : ''; ?>>판매중</option>
                         <option value="inactive" <?php echo $status === 'inactive' ? 'selected' : ''; ?>>판매종료</option>
@@ -477,7 +483,7 @@ include __DIR__ . '/../includes/seller-header.php';
                 
                 <div class="filter-group">
                     <label class="filter-label">가입처:</label>
-                    <select class="filter-select" id="filter_registration_place" onchange="applyFilters()">
+                    <select class="filter-select" id="filter_registration_place">
                         <option value="">전체</option>
                         <option value="KT" <?php echo $registrationPlace === 'KT' ? 'selected' : ''; ?>>KT</option>
                         <option value="SKT" <?php echo $registrationPlace === 'SKT' ? 'selected' : ''; ?>>SKT</option>
@@ -492,7 +498,7 @@ include __DIR__ . '/../includes/seller-header.php';
                 
                 <div class="filter-group">
                     <label class="filter-label">인터넷속도:</label>
-                    <select class="filter-select" id="filter_speed_option" onchange="applyFilters()">
+                    <select class="filter-select" id="filter_speed_option">
                         <option value="">전체</option>
                         <option value="100M" <?php echo $speedOption === '100M' ? 'selected' : ''; ?>>100M</option>
                         <option value="500M" <?php echo $speedOption === '500M' ? 'selected' : ''; ?>>500M</option>
@@ -505,36 +511,16 @@ include __DIR__ . '/../includes/seller-header.php';
                 
                 <div class="filter-group">
                     <label class="filter-label">등록일:</label>
-                    <div class="date-input-group">
-                        <input type="date" class="date-input" id="filter_date_from" value="<?php echo htmlspecialchars($dateFrom); ?>" onchange="applyFilters()">
-                        <span style="color: #6b7280;">~</span>
-                        <input type="date" class="date-input" id="filter_date_to" value="<?php echo htmlspecialchars($dateTo); ?>" onchange="applyFilters()">
-                    </div>
-                </div>
-                
-                <div class="filter-group">
-                    <button type="button" class="btn-reset" onclick="resetFilters()">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
-                            <path d="M21 3v5h-5"/>
-                            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
-                            <path d="M3 21v-5h5"/>
-                        </svg>
-                        초기화
-                    </button>
-                </div>
-                
-                <div class="filter-group">
-                    <label class="filter-label">페이지수:</label>
-                    <select class="filter-select" id="filter_per_page" onchange="applyFilters()">
-                        <option value="10" <?php echo ($perPage === 10 || !isset($_GET['per_page'])) ? 'selected' : ''; ?>>10개</option>
-                        <option value="20" <?php echo $perPage === 20 ? 'selected' : ''; ?>>20개</option>
-                        <option value="30" <?php echo $perPage === 30 ? 'selected' : ''; ?>>30개</option>
-                        <option value="50" <?php echo $perPage === 50 ? 'selected' : ''; ?>>50개</option>
-                        <option value="100" <?php echo $perPage === 100 ? 'selected' : ''; ?>>100개</option>
-                    </select>
+                    <input type="date" class="filter-input" id="filter_date_from" value="<?php echo htmlspecialchars($dateFrom); ?>">
+                    <span style="color: #6b7280;">~</span>
+                    <input type="date" class="filter-input" id="filter_date_to" value="<?php echo htmlspecialchars($dateTo); ?>">
                 </div>
             </div>
+        </div>
+        
+        <div style="display: flex; flex-direction: column; gap: 8px; min-width: 100px;">
+            <button type="button" class="search-button" onclick="applyFilters()">검색</button>
+            <button type="button" class="search-button secondary" onclick="resetFilters()">초기화</button>
         </div>
     </div>
     
@@ -557,9 +543,16 @@ include __DIR__ . '/../includes/seller-header.php';
             <table class="product-table">
                 <thead>
                     <tr>
-                        <th style="width: 60px;">
-                            <div style="display: flex; flex-direction: column; gap: 8px; align-items: center;">
-                                <button class="btn btn-sm" onclick="bulkInactive()" style="background: #ef4444; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; width: 60px; white-space: nowrap;">판매종료</button>
+                        <th style="width: 100px;">
+                            <div style="display: flex; flex-direction: column; gap: 8px; align-items: center; position: relative;">
+                                <div style="position: relative;">
+                                    <button class="btn btn-sm" onclick="toggleStatusMenu(event)" style="background: #ef4444; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; width: 60px; white-space: nowrap; text-align: center; display: flex; align-items: center; justify-content: center;">변경</button>
+                                    <div id="statusMenu" style="display: none; position: absolute; top: 100%; left: 0; background: white; border: 1px solid #d1d5db; border-radius: 6px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); z-index: 1000; margin-top: 4px; min-width: 100px;">
+                                        <button onclick="bulkChangeStatus('active')" style="display: block; width: 100%; padding: 8px 12px; text-align: left; border: none; background: none; cursor: pointer; font-size: 13px; color: #1f2937;" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background='none'">판매중</button>
+                                        <button onclick="bulkChangeStatus('inactive')" style="display: block; width: 100%; padding: 8px 12px; text-align: left; border: none; background: none; cursor: pointer; font-size: 13px; color: #1f2937; border-top: 1px solid #e5e7eb;" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background='none'">판매종료</button>
+                                        <button onclick="bulkCopyProducts()" style="display: block; width: 100%; padding: 8px 12px; text-align: left; border: none; background: none; cursor: pointer; font-size: 13px; color: #1f2937; border-top: 1px solid #e5e7eb;" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background='none'">복사</button>
+                                    </div>
+                                </div>
                                 <input type="checkbox" id="selectAll" onchange="toggleSelectAll()" style="cursor: pointer;">
                             </div>
                         </th>
@@ -586,7 +579,11 @@ include __DIR__ . '/../includes/seller-header.php';
                                 $productNumber = getProductNumberByType($product['id'], 'internet');
                                 echo $productNumber ? htmlspecialchars($productNumber) : htmlspecialchars($product['id'] ?? '-');
                             ?></td>
-                            <td><?php echo htmlspecialchars($product['provider'] ?? '-'); ?></td>
+                            <td>
+                                <a href="javascript:void(0);" onclick="showProductInfo(<?php echo $product['id']; ?>, 'internet')" style="color: #3b82f6; text-decoration: none; font-weight: 600; cursor: pointer;">
+                                    <?php echo htmlspecialchars($product['provider'] ?? '-'); ?>
+                                </a>
+                            </td>
                             <td><?php 
                                 $serviceType = $product['service_type'] ?? '인터넷';
                                 $serviceTypeDisplay = $serviceType;
@@ -637,7 +634,7 @@ include __DIR__ . '/../includes/seller-header.php';
                     if ($speedOption) $paginationParams['speed_option'] = $speedOption;
                     if ($dateFrom) $paginationParams['date_from'] = $dateFrom;
                     if ($dateTo) $paginationParams['date_to'] = $dateTo;
-                    if ($perPage != 10) $paginationParams['per_page'] = $perPage;
+                    $paginationParams['per_page'] = $perPage;
                     $paginationQuery = http_build_query($paginationParams);
                     ?>
                     <a href="?<?php echo $paginationQuery; ?>&page=<?php echo max(1, $page - 1); ?>" 
@@ -657,6 +654,13 @@ include __DIR__ . '/../includes/seller-header.php';
 </div>
 
 <script>
+function changePerPage(perPage) {
+    const params = new URLSearchParams(window.location.search);
+    params.set('per_page', perPage);
+    params.set('page', '1'); // 첫 페이지로 이동
+    window.location.href = '?' + params.toString();
+}
+
 function applyFilters() {
     const status = document.getElementById('filter_status').value;
     const registrationPlace = document.getElementById('filter_registration_place').value;
@@ -808,7 +812,28 @@ function processSetProductInactive(productId) {
     });
 }
 
-function bulkInactive() {
+function toggleStatusMenu(event) {
+    event.stopPropagation();
+    const menu = document.getElementById('statusMenu');
+    const isVisible = menu.style.display === 'block';
+    
+    // 다른 메뉴 닫기
+    document.querySelectorAll('#statusMenu').forEach(m => {
+        if (m !== menu) m.style.display = 'none';
+    });
+    
+    menu.style.display = isVisible ? 'none' : 'block';
+}
+
+// 메뉴 외부 클릭 시 닫기
+document.addEventListener('click', function(event) {
+    const menu = document.getElementById('statusMenu');
+    if (menu && !menu.contains(event.target) && !event.target.closest('button[onclick="toggleStatusMenu(event)"]')) {
+        menu.style.display = 'none';
+    }
+});
+
+function bulkChangeStatus(status) {
     const checkboxes = document.querySelectorAll('.product-checkbox:checked');
     if (checkboxes.length === 0) {
         if (typeof showAlert === 'function') {
@@ -816,25 +841,30 @@ function bulkInactive() {
         } else {
             alert('선택된 상품이 없습니다.');
         }
+        document.getElementById('statusMenu').style.display = 'none';
         return;
     }
     
     const productCount = checkboxes.length;
-    const message = '선택한 ' + productCount + '개의 상품을 판매종료 처리하시겠습니까?';
+    const statusText = status === 'active' ? '판매중' : '판매종료';
+    const message = '선택한 ' + productCount + '개의 상품을 ' + statusText + ' 처리하시겠습니까?';
+    
+    document.getElementById('statusMenu').style.display = 'none';
     
     if (typeof showConfirm === 'function') {
-        showConfirm(message, '판매종료 확인').then(confirmed => {
+        showConfirm(message, '상태 변경 확인').then(confirmed => {
             if (confirmed) {
-                processBulkInactive(checkboxes);
+                processBulkChangeStatus(checkboxes, status);
             }
         });
     } else if (confirm(message)) {
-        processBulkInactive(checkboxes);
+        processBulkChangeStatus(checkboxes, status);
     }
 }
 
-function processBulkInactive(checkboxes) {
+function processBulkChangeStatus(checkboxes, status) {
     const productIds = Array.from(checkboxes).map(cb => cb.value);
+    const statusText = status === 'active' ? '판매중' : '판매종료';
     
     fetch('/MVNO/api/product-bulk-update.php', {
         method: 'POST',
@@ -843,16 +873,16 @@ function processBulkInactive(checkboxes) {
         },
         body: JSON.stringify({
             product_ids: productIds,
-            status: 'inactive'
+            status: status
         })
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
             if (typeof showAlert === 'function') {
-                showAlert('선택한 상품이 판매종료 처리되었습니다.', '완료');
+                showAlert('선택한 상품이 ' + statusText + ' 처리되었습니다.', '완료');
             } else {
-                alert('선택한 상품이 판매종료 처리되었습니다.');
+                alert('선택한 상품이 ' + statusText + ' 처리되었습니다.');
             }
             location.reload();
         } else {
@@ -872,6 +902,341 @@ function processBulkInactive(checkboxes) {
         }
     });
 }
+
+function bulkCopyProducts() {
+    const checkboxes = document.querySelectorAll('.product-checkbox:checked');
+    if (checkboxes.length === 0) {
+        if (typeof showAlert === 'function') {
+            showAlert('선택된 상품이 없습니다.', '알림');
+        } else {
+            alert('선택된 상품이 없습니다.');
+        }
+        document.getElementById('statusMenu').style.display = 'none';
+        return;
+    }
+    
+    const productCount = checkboxes.length;
+    const message = '선택한 ' + productCount + '개의 상품을 복사하시겠습니까?\n\n※ 복사된 상품은 판매종료 상태로 설정됩니다.';
+    
+    document.getElementById('statusMenu').style.display = 'none';
+    
+    if (typeof showConfirm === 'function') {
+        showConfirm(message, '상품 복사').then(confirmed => {
+            if (confirmed) {
+                processBulkCopy(checkboxes);
+            }
+        });
+    } else if (confirm(message)) {
+        processBulkCopy(checkboxes);
+    }
+}
+
+function processBulkCopy(checkboxes) {
+    const productIds = Array.from(checkboxes).map(cb => cb.value);
+    const totalCount = productIds.length;
+    let completedCount = 0;
+    let failedCount = 0;
+    
+    // 각 상품을 순차적으로 복사
+    productIds.forEach((productId, index) => {
+        fetch('/MVNO/api/product-copy.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                product_id: productId,
+                product_type: 'internet'
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                completedCount++;
+            } else {
+                failedCount++;
+            }
+            
+            // 모든 복사 작업이 완료되면 결과 표시
+            if (completedCount + failedCount === totalCount) {
+                if (failedCount === 0) {
+                    if (typeof showAlert === 'function') {
+                        showAlert(totalCount + '개의 상품이 복사되었습니다.\n복사된 상품은 판매종료 상태로 설정되었습니다.', '완료');
+                    } else {
+                        alert(totalCount + '개의 상품이 복사되었습니다.\n복사된 상품은 판매종료 상태로 설정되었습니다.');
+                    }
+                    location.reload();
+                } else {
+                    if (typeof showAlert === 'function') {
+                        showAlert(completedCount + '개의 상품이 복사되었습니다.\n' + failedCount + '개의 상품 복사에 실패했습니다.', '알림', true);
+                    } else {
+                        alert(completedCount + '개의 상품이 복사되었습니다.\n' + failedCount + '개의 상품 복사에 실패했습니다.');
+                    }
+                    location.reload();
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error copying product:', error);
+            failedCount++;
+            
+            if (completedCount + failedCount === totalCount) {
+                if (typeof showAlert === 'function') {
+                    showAlert(completedCount + '개의 상품이 복사되었습니다.\n' + failedCount + '개의 상품 복사 중 오류가 발생했습니다.', '오류', true);
+                } else {
+                    alert(completedCount + '개의 상품이 복사되었습니다.\n' + failedCount + '개의 상품 복사 중 오류가 발생했습니다.');
+                }
+                location.reload();
+            }
+        });
+    });
+}
+</script>
+
+<!-- 상품 상세 정보 모달 -->
+<div id="productInfoModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 10000; overflow-y: auto;">
+    <div style="position: relative; max-width: 1200px; margin: 40px auto; background: white; border-radius: 12px; padding: 24px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; border-bottom: 2px solid #e5e7eb; padding-bottom: 16px;">
+            <h2 style="font-size: 24px; font-weight: 700; color: #1f2937; margin: 0;">상품 상세 정보</h2>
+            <button onclick="closeProductInfoModal()" style="background: none; border: none; font-size: 28px; color: #6b7280; cursor: pointer; padding: 0; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 4px; transition: all 0.2s;" onmouseover="this.style.background='#f3f4f6'; this.style.color='#374151';" onmouseout="this.style.background='none'; this.style.color='#6b7280';">×</button>
+        </div>
+        <div id="productInfoContent" style="color: #1f2937;">
+            <div style="text-align: center; padding: 40px; color: #6b7280;">상품 정보를 불러오는 중...</div>
+        </div>
+    </div>
+</div>
+
+<style>
+.product-info-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 24px;
+}
+.product-info-table th {
+    background: #f9fafb;
+    padding: 12px 16px;
+    text-align: left;
+    font-weight: 600;
+    color: #374151;
+    border: 1px solid #e5e7eb;
+    width: 200px;
+}
+.product-info-table td {
+    padding: 12px 16px;
+    border: 1px solid #e5e7eb;
+    color: #1f2937;
+}
+</style>
+
+<script>
+function showProductInfo(productId, productType) {
+    const modal = document.getElementById('productInfoModal');
+    const content = document.getElementById('productInfoContent');
+    
+    if (!modal || !content) {
+        console.error('Modal elements not found');
+        alert('상품 정보를 불러올 수 없습니다.');
+        return;
+    }
+    
+    // 배경 스크롤 방지
+    document.body.style.overflow = 'hidden';
+    modal.style.display = 'block';
+    content.innerHTML = '<div style="text-align: center; padding: 40px; color: #6b7280;">상품 정보를 불러오는 중...</div>';
+    
+    fetch('/MVNO/api/get-product-info.php?product_id=' + productId + '&product_type=' + productType)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.product) {
+                const product = data.product;
+                let html = '';
+                
+                if (productType === 'internet') {
+                    // 판매 상태
+                    html += '<div style="margin-bottom: 32px;"><h3 style="font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #e5e7eb;">판매 상태</h3>';
+                    html += '<table class="product-info-table">';
+                    html += '<tr><th>상태</th><td>' + (product.status === 'active' ? '판매중' : '판매종료') + '</td></tr>';
+                    html += '</table></div>';
+                    
+                    // 기본 정보
+                    html += '<div style="margin-bottom: 32px;"><h3 style="font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #e5e7eb;">기본 정보</h3>';
+                    html += '<table class="product-info-table">';
+                    html += '<tr><th>가입처</th><td>' + (product.registration_place || '-') + '</td></tr>';
+                    html += '<tr><th>결합여부</th><td>' + (product.service_type || '-') + '</td></tr>';
+                    html += '<tr><th>인터넷속도</th><td>' + (product.speed_option || '-') + '</td></tr>';
+                    // 월 요금 처리 (이미 "원"이 포함되어 있을 수 있음)
+                    let monthlyFeeText = '-';
+                    if (product.monthly_fee) {
+                        const monthlyFeeStr = String(product.monthly_fee);
+                        // 숫자만 추출
+                        const monthlyFeeNum = monthlyFeeStr.replace(/[^0-9]/g, '');
+                        if (monthlyFeeNum) {
+                            monthlyFeeText = number_format(parseInt(monthlyFeeNum)) + '원';
+                        } else {
+                            monthlyFeeText = monthlyFeeStr; // 숫자가 없으면 원본 그대로 표시
+                        }
+                    }
+                    html += '<tr><th>월 요금</th><td>' + monthlyFeeText + '</td></tr>';
+                    html += '</table></div>';
+                    
+                    // 현금지급
+                    if (product.cash_payment_names && product.cash_payment_prices) {
+                        const cashNames = typeof product.cash_payment_names === 'string' ? JSON.parse(product.cash_payment_names) : product.cash_payment_names;
+                        const cashPrices = typeof product.cash_payment_prices === 'string' ? JSON.parse(product.cash_payment_prices) : product.cash_payment_prices;
+                        if (Array.isArray(cashNames) && cashNames.length > 0 && cashNames.some(name => name)) {
+                            html += '<div style="margin-bottom: 32px;"><h3 style="font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #e5e7eb;">현금지급</h3>';
+                            html += '<table class="product-info-table">';
+                            cashNames.forEach((name, index) => {
+                                if (name && name.trim()) {
+                                    // 가격 처리
+                                    let priceText = '-';
+                                    if (cashPrices[index]) {
+                                        const priceStr = String(cashPrices[index]);
+                                        const priceNum = priceStr.replace(/[^0-9]/g, '');
+                                        if (priceNum) {
+                                            priceText = number_format(parseInt(priceNum)) + '원';
+                                        } else {
+                                            priceText = priceStr; // 숫자가 없으면 원본 그대로 표시
+                                        }
+                                    }
+                                    html += '<tr><th>' + name.trim() + '</th><td>' + priceText + '</td></tr>';
+                                }
+                            });
+                            html += '</table></div>';
+                        }
+                    }
+                    
+                    // 상품권 지급
+                    if (product.gift_card_names && product.gift_card_prices) {
+                        const giftNames = typeof product.gift_card_names === 'string' ? JSON.parse(product.gift_card_names) : product.gift_card_names;
+                        const giftPrices = typeof product.gift_card_prices === 'string' ? JSON.parse(product.gift_card_prices) : product.gift_card_prices;
+                        if (Array.isArray(giftNames) && giftNames.length > 0 && giftNames.some(name => name)) {
+                            html += '<div style="margin-bottom: 32px;"><h3 style="font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #e5e7eb;">상품권 지급</h3>';
+                            html += '<table class="product-info-table">';
+                            giftNames.forEach((name, index) => {
+                                if (name && name.trim()) {
+                                    // 가격 처리
+                                    let priceText = '-';
+                                    if (giftPrices[index]) {
+                                        const priceStr = String(giftPrices[index]);
+                                        const priceNum = priceStr.replace(/[^0-9]/g, '');
+                                        if (priceNum) {
+                                            priceText = number_format(parseInt(priceNum)) + '원';
+                                        } else {
+                                            priceText = priceStr; // 숫자가 없으면 원본 그대로 표시
+                                        }
+                                    }
+                                    html += '<tr><th>' + name.trim() + '</th><td>' + priceText + '</td></tr>';
+                                }
+                            });
+                            html += '</table></div>';
+                        }
+                    }
+                    
+                    // 장비 및 기타 서비스
+                    if ((product.equipment_names && (typeof product.equipment_names === 'string' ? JSON.parse(product.equipment_names) : product.equipment_names).length > 0) || 
+                        (product.installation_names && (typeof product.installation_names === 'string' ? JSON.parse(product.installation_names) : product.installation_names).length > 0)) {
+                        html += '<div style="margin-bottom: 32px;"><h3 style="font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #e5e7eb;">장비 및 기타 서비스</h3>';
+                        html += '<table class="product-info-table">';
+                        if (product.equipment_names) {
+                            const equipNames = typeof product.equipment_names === 'string' ? JSON.parse(product.equipment_names) : product.equipment_names;
+                            const equipPrices = typeof product.equipment_prices === 'string' ? JSON.parse(product.equipment_prices) : product.equipment_prices;
+                            if (Array.isArray(equipNames) && equipNames.length > 0 && equipNames.some(name => name)) {
+                                html += '<tr><th>장비 제공</th><td>';
+                                const equipItems = [];
+                                equipNames.forEach((name, index) => {
+                                    if (name) {
+                                        equipItems.push(name + (equipPrices[index] ? ' (' + equipPrices[index] + ')' : ''));
+                                    }
+                                });
+                                html += equipItems.join(', ') || '-';
+                                html += '</td></tr>';
+                            }
+                        }
+                        if (product.installation_names) {
+                            const installNames = typeof product.installation_names === 'string' ? JSON.parse(product.installation_names) : product.installation_names;
+                            const installPrices = typeof product.installation_prices === 'string' ? JSON.parse(product.installation_prices) : product.installation_prices;
+                            if (Array.isArray(installNames) && installNames.length > 0 && installNames.some(name => name)) {
+                                html += '<tr><th>설치 및 기타 서비스</th><td>';
+                                const installItems = [];
+                                installNames.forEach((name, index) => {
+                                    if (name) {
+                                        installItems.push(name + (installPrices[index] ? ' (' + installPrices[index] + ')' : ''));
+                                    }
+                                });
+                                html += installItems.join(', ') || '-';
+                                html += '</td></tr>';
+                            }
+                        }
+                        html += '</table></div>';
+                    }
+                    
+                    // 프로모션 이벤트
+                    if (product.promotion_title || (product.promotions && (typeof product.promotions === 'string' ? JSON.parse(product.promotions) : product.promotions).length > 0)) {
+                        html += '<div style="margin-bottom: 32px;"><h3 style="font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #e5e7eb;">프로모션 이벤트</h3>';
+                        html += '<table class="product-info-table">';
+                        if (product.promotion_title) html += '<tr><th>제목</th><td>' + product.promotion_title + '</td></tr>';
+                        if (product.promotions) {
+                            const promotions = typeof product.promotions === 'string' ? JSON.parse(product.promotions) : product.promotions;
+                            if (Array.isArray(promotions) && promotions.length > 0) {
+                                html += '<tr><th>항목</th><td>' + promotions.join(', ') + '</td></tr>';
+                            }
+                        }
+                        html += '</table></div>';
+                    }
+                    
+                    // 등록일
+                    html += '<div style="margin-bottom: 32px;"><h3 style="font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #e5e7eb;">기타 정보</h3>';
+                    html += '<table class="product-info-table">';
+                    html += '<tr><th>등록일</th><td>' + (product.created_at ? new Date(product.created_at).toLocaleString('ko-KR') : '-') + '</td></tr>';
+                    html += '</table></div>';
+                }
+                
+                content.innerHTML = html;
+            } else {
+                content.innerHTML = '<div style="text-align: center; padding: 40px; color: #ef4444;">상품 정보를 불러올 수 없습니다.</div>';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            content.innerHTML = '<div style="text-align: center; padding: 40px; color: #ef4444;">상품 정보를 불러오는 중 오류가 발생했습니다.</div>';
+        });
+}
+
+function closeProductInfoModal() {
+    const modal = document.getElementById('productInfoModal');
+    if (modal) {
+        modal.style.display = 'none';
+        // 배경 스크롤 복원
+        document.body.style.overflow = '';
+    }
+}
+
+function number_format(number) {
+    return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+// 모달 외부 클릭 시 닫기
+document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('productInfoModal');
+    if (modal) {
+        modal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeProductInfoModal();
+            }
+        });
+    }
+    
+    // ESC 키로 모달 닫기
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            const modal = document.getElementById('productInfoModal');
+            if (modal && modal.style.display === 'block') {
+                closeProductInfoModal();
+            }
+        }
+    });
+});
 </script>
 
 <?php include __DIR__ . '/../includes/seller-footer.php'; ?>

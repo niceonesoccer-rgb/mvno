@@ -114,6 +114,28 @@ try {
             'success' => true,
             'product' => $product
         ]);
+    } else if ($productType === 'mno-sim') {
+        // 통신사단독유심 상품 정보
+        $stmt = $pdo->prepare("
+            SELECT 
+                p.*,
+                sim.*
+            FROM products p
+            LEFT JOIN product_mno_sim_details sim ON p.id = sim.product_id
+            WHERE p.id = ? AND p.seller_id = ? AND p.product_type = 'mno-sim' AND p.status != 'deleted'
+            LIMIT 1
+        ");
+        $stmt->execute([$productId, $sellerId]);
+        $product = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$product) {
+            throw new Exception('상품을 찾을 수 없습니다.');
+        }
+        
+        echo json_encode([
+            'success' => true,
+            'product' => $product
+        ]);
     } else {
         throw new Exception('지원하지 않는 상품 타입입니다.');
     }
