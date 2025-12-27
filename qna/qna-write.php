@@ -2,13 +2,40 @@
 /**
  * 1:1 Q&A 질문 작성 페이지
  */
-session_start();
+
+// 로그인 체크를 위한 auth-functions 포함 (세션 설정과 함께 세션을 시작함)
+require_once '../includes/data/auth-functions.php';
+
+// 로그인 체크 - 로그인하지 않은 경우 회원가입 모달로 리다이렉트
+if (!isLoggedIn()) {
+    // 현재 URL을 세션에 저장 (회원가입 후 돌아올 주소)
+    $_SESSION['redirect_url'] = $_SERVER['REQUEST_URI'];
+    // 로그인 모달이 있는 홈으로 리다이렉트 (모달 자동 열기)
+    header('Location: /MVNO/?show_login=1');
+    exit;
+}
+
+// 현재 사용자 정보 가져오기
+$currentUser = getCurrentUser();
+if (!$currentUser) {
+    // 세션 정리 후 로그인 페이지로 리다이렉트
+    if (isset($_SESSION['logged_in'])) {
+        unset($_SESSION['logged_in']);
+    }
+    if (isset($_SESSION['user_id'])) {
+        unset($_SESSION['user_id']);
+    }
+    // 현재 URL을 세션에 저장 (회원가입 후 돌아올 주소)
+    $_SESSION['redirect_url'] = $_SERVER['REQUEST_URI'];
+    header('Location: /MVNO/?show_login=1');
+    exit;
+}
 
 // Q&A 함수 포함 (헤더 포함 전에 처리)
 require_once '../includes/data/qna-functions.php';
 
 // 사용자 ID 가져오기
-$user_id = getCurrentUserId();
+$user_id = $currentUser['user_id'];
 
 // 폼 제출 처리 (헤더 포함 전에 처리하여 리다이렉트 가능하도록)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {

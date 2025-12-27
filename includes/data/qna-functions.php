@@ -9,14 +9,15 @@ date_default_timezone_set('Asia/Seoul');
 
 require_once __DIR__ . '/db-config.php';
 
-// 사용자 ID 가져오기 (세션에서, 임시로 'default' 사용)
+// 사용자 ID 가져오기 (세션에서)
 if (!function_exists('getCurrentUserId')) {
     function getCurrentUserId() {
-        // 실제로는 세션에서 가져옴
+        // auth-functions.php의 getCurrentUser()를 사용하도록 변경
+        // 이 함수는 로그인 체크 후에만 호출되어야 함
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
-        return isset($_SESSION['user_id']) ? $_SESSION['user_id'] : 'default';
+        return isset($_SESSION['user_id']) ? $_SESSION['user_id'] : null;
     }
 }
 
