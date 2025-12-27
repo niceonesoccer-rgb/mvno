@@ -265,6 +265,13 @@ function formatPriceAfter($priceAfterType, $priceAfter, $priceAfterUnit) {
             <div class="plans-left-section">
                 <section class="theme-plans-list-section">
         
+        <!-- 결과 개수 표시 -->
+        <?php if (!empty($mnoSimProducts) || $totalCount > 0): ?>
+            <div class="plans-results-count">
+                <span><?php echo number_format($totalCount); ?>개의 결과</span>
+            </div>
+        <?php endif; ?>
+        
         <!-- 카드 그리드 -->
         <?php if (empty($mnoSimProducts)): ?>
             <div style="text-align: center; padding: 60px 20px; color: #6b7280;">
@@ -519,9 +526,9 @@ function formatPriceAfter($priceAfterType, $priceAfter, $priceAfterUnit) {
                 ?>
                 <?php if ($hasMore && $totalCount > 0): ?>
                 <div class="load-more-container" id="load-more-anchor">
-                    <a href="?page=<?php echo $nextPage; ?><?php echo !empty($filterProvider) ? '&provider=' . urlencode($filterProvider) : ''; ?><?php echo !empty($filterServiceType) ? '&service_type=' . urlencode($filterServiceType) : ''; ?>" class="load-more-btn">
-                        더보기 (<?php echo number_format($remainingCount); ?>개 남음)
-                    </a>
+                    <button id="load-more-mno-sim-btn" class="load-more-btn" data-type="mno-sim" data-page="2" data-total="<?php echo $totalCount; ?>"<?php echo !empty($filterProvider) ? ' data-provider="' . htmlspecialchars($filterProvider) . '"' : ''; ?><?php echo !empty($filterServiceType) ? ' data-service-type="' . htmlspecialchars($filterServiceType) . '"' : ''; ?>>
+                        더보기 (<span id="remaining-count"><?php echo number_format($remainingCount); ?></span>개 남음)
+                    </button>
                 </div>
                 <?php endif; ?>
                 <?php endif; ?>
@@ -539,495 +546,49 @@ function formatPriceAfter($priceAfterType, $priceAfter, $priceAfterUnit) {
 <script src="/MVNO/assets/js/favorite-heart.js" defer></script>
 <!-- 공유 스크립트 -->
 <script src="/MVNO/assets/js/share.js" defer></script>
+<!-- 더보기 기능 스크립트 -->
+<script src="/MVNO/assets/js/load-more-products.js?v=2"></script>
 <script>
-// 더보기 버튼 클릭 시 현재 스크롤 위치 저장 및 복원
-(function() {
-    'use strict';
-    
-    const DEBUG = true; // 디버깅 모드 (false로 설정하면 콘솔 로그 비활성화)
-    let isRestoring = false; // 복원 중 플래그
-    let restoreAttempts = 0; // 복원 시도 횟수
-    const MAX_RESTORE_ATTEMPTS = 10; // 최대 복원 시도 횟수
-    let scrollRestoreBlocked = false; // 브라우저 자동 스크롤 복원 차단 플래그
-    
-    function log(message, data) {
-        if (DEBUG) {
-            console.log('[더보기 스크롤] ' + message, data || '');
-        }
+// 필터 함수들
+function filterByProvider(provider) {
+    const url = new URL(window.location.href);
+    if (url.searchParams.get('provider') === provider) {
+        url.searchParams.delete('provider');
+    } else {
+        url.searchParams.set('provider', provider);
     }
-    
-    // 브라우저의 자동 스크롤 복원 설정
-    // 더보기 버튼 클릭으로 온 경우에만 수동 복원, 일반 새로고침은 브라우저 기본 복원 사용
-    function configureBrowserScrollRestore() {
-        if ('scrollRestoration' in history) {
-            const urlParams = new URLSearchParams(window.location.search);
-            const hasPageParam = urlParams.has('page') && parseInt(urlParams.get('page')) > 1;
-            const fromButton = sessionStorage.getItem('mnoSimLoadMoreFromButton') === 'true';
-            
-            // 더보기 버튼 클릭으로 온 경우에만 수동 복원
-            if (hasPageParam && fromButton) {
-                history.scrollRestoration = 'manual';
-                log('더보기 버튼 클릭으로 판단 - 브라우저 자동 스크롤 복원 비활성화');
-            } else {
-                history.scrollRestoration = 'auto';
-                log('일반 페이지 로드 - 브라우저 자동 스크롤 복원 활성화');
-            }
-        }
-    }
-    
-    // 브라우저 자동 스크롤 복원 설정
-    configureBrowserScrollRestore();
-    
-    // 더보기 버튼 클릭 시 현재 스크롤 위치 저장
-    document.addEventListener('DOMContentLoaded', function() {
-        const loadMoreBtn = document.querySelector('.load-more-btn');
-        if (loadMoreBtn) {
-            log('더보기 버튼 찾음');
-            loadMoreBtn.addEventListener('click', function(e) {
-                // 현재 화면에 보이는 카드 중 가장 위쪽 카드의 ID를 찾아서 저장
-                const cards = document.querySelectorAll('article.basic-plan-card[data-plan-id]');
-                const scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
-                const windowHeight = window.innerHeight;
-                const viewportTop = scrollPosition;
-                
-                // 더보기 버튼의 위치 확인
-                const loadMoreBtnRect = loadMoreBtn.getBoundingClientRect();
-                const btnTop = loadMoreBtnRect.top + scrollPosition;
-                
-                // 화면에 보이는 카드 중 가장 위쪽 카드 찾기
-                let targetCard = null;
-                let targetCardId = null;
-                let targetCardTop = null;
-                let minDistance = Infinity;
-                
-                for (let i = 0; i < cards.length; i++) {
-                    const card = cards[i];
-                    const cardRect = card.getBoundingClientRect();
-                    const cardTop = cardRect.top + scrollPosition;
-                    const cardBottom = cardTop + cardRect.height;
-                    const cardId = card.getAttribute('data-plan-id');
-                    
-                    // 더보기 버튼보다 위에 있는 카드만 고려
-                    if (cardTop < btnTop - 50 && cardId) {
-                        // 화면에 보이는 카드 찾기 (화면 상단에서 화면 하단까지)
-                        if (cardTop < viewportTop + windowHeight && cardBottom > viewportTop) {
-                            // 화면 상단에 가장 가까운 카드 찾기
-                            const distance = Math.abs(cardTop - viewportTop);
-                            if (distance < minDistance) {
-                                minDistance = distance;
-                                targetCard = card;
-                                targetCardId = cardId;
-                                targetCardTop = cardTop;
-                            }
-                        }
-                    }
-                }
-                
-                // 카드를 찾지 못했으면, 더보기 버튼 위쪽의 마지막 카드 찾기
-                if (targetCardId === null) {
-                    for (let i = cards.length - 1; i >= 0; i--) {
-                        const card = cards[i];
-                        const cardRect = card.getBoundingClientRect();
-                        const cardTop = cardRect.top + scrollPosition;
-                        const cardId = card.getAttribute('data-plan-id');
-                        
-                        // 더보기 버튼보다 위에 있고, 화면 상단보다 아래에 있는 카드
-                        if (cardTop < btnTop - 50 && cardTop > viewportTop - 300 && cardId) {
-                            targetCard = card;
-                            targetCardId = cardId;
-                            targetCardTop = cardTop;
-                            log('더보기 버튼 위쪽 마지막 카드 찾음', {
-                                cardId: cardId,
-                                cardTop: cardTop,
-                                btnTop: btnTop,
-                                viewportTop: viewportTop
-                            });
-                            break;
-                        }
-                    }
-                }
-                
-                const scrollHeight = document.documentElement.scrollHeight;
-                const clientHeight = document.documentElement.clientHeight;
-                
-                log('더보기 버튼 클릭 - 카드 ID 저장', {
-                    scrollPosition: scrollPosition,
-                    targetCardId: targetCardId,
-                    targetCardTop: targetCardTop,
-                    scrollHeight: scrollHeight,
-                    clientHeight: clientHeight,
-                    windowHeight: windowHeight,
-                    totalCards: cards.length,
-                    targetCardFound: targetCard !== null,
-                    btnTop: btnTop,
-                    distanceFromTop: targetCardTop,
-                    distanceFromButton: targetCardTop ? (btnTop - targetCardTop) : null
-                });
-                
-                // 카드 ID와 위치를 모두 저장 (ID가 없을 경우를 대비)
-                if (targetCardId) {
-                    sessionStorage.setItem('mnoSimLoadMoreCardId', targetCardId);
-                    sessionStorage.setItem('mnoSimLoadMoreCardTop', targetCardTop.toString());
-                } else {
-                    // 카드 ID를 찾지 못했으면 스크롤 위치만 저장 (폴백)
-                    const fallbackPosition = Math.min(scrollPosition, btnTop - 200);
-                    sessionStorage.setItem('mnoSimLoadMoreScrollPosition', fallbackPosition.toString());
-                    log('카드 ID를 찾지 못함 - 스크롤 위치만 저장', {
-                        fallbackPosition: fallbackPosition
-                    });
-                }
-                
-                sessionStorage.setItem('mnoSimLoadMoreTimestamp', Date.now().toString());
-                sessionStorage.setItem('mnoSimLoadMoreRestored', 'false'); // 복원 완료 플래그
-                sessionStorage.setItem('mnoSimLoadMoreFromButton', 'true'); // 더보기 버튼 클릭으로 온 것임을 표시
-                sessionStorage.setItem('mnoSimLoadMoreScrollHeight', scrollHeight.toString()); // 현재 문서 높이도 저장
-                sessionStorage.setItem('mnoSimLoadMoreCardCount', cards.length.toString()); // 현재 카드 개수도 저장
-            });
-        } else {
-            log('더보기 버튼을 찾을 수 없음');
-        }
-    });
+    window.location.href = url.toString();
+}
 
-    // 페이지 로드 시 스크롤 위치 복원 (카드 ID 기반)
-    function restoreScrollPosition() {
-        // URL에 page 파라미터가 없으면 (더보기 버튼을 클릭한 것이 아니면) 스크롤 복원하지 않음
-        const urlParams = new URLSearchParams(window.location.search);
-        const hasPageParam = urlParams.has('page') && parseInt(urlParams.get('page')) > 1;
-        const fromButton = sessionStorage.getItem('mnoSimLoadMoreFromButton') === 'true';
-        
-        if (!hasPageParam || !fromButton) {
-            // page 파라미터가 없거나 더보기 버튼 클릭이 아니면 저장된 데이터 삭제
-            sessionStorage.removeItem('mnoSimLoadMoreCardId');
-            sessionStorage.removeItem('mnoSimLoadMoreCardTop');
-            sessionStorage.removeItem('mnoSimLoadMoreScrollPosition');
-            sessionStorage.removeItem('mnoSimLoadMoreTimestamp');
-            sessionStorage.removeItem('mnoSimLoadMoreRestored');
-            sessionStorage.removeItem('mnoSimLoadMoreFromButton');
-            return;
-        }
-        
-        // 이미 복원이 완료되었으면 스킵
-        const isRestored = sessionStorage.getItem('mnoSimLoadMoreRestored') === 'true';
-        if (isRestored && restoreAttempts > 3) {
-            return;
-        }
-        
-        restoreAttempts++;
-        
-        const savedCardId = sessionStorage.getItem('mnoSimLoadMoreCardId');
-        const savedCardTop = sessionStorage.getItem('mnoSimLoadMoreCardTop');
-        const savedScrollPosition = sessionStorage.getItem('mnoSimLoadMoreScrollPosition'); // 폴백용
-        const savedTimestamp = sessionStorage.getItem('mnoSimLoadMoreTimestamp');
-        
-        let targetPosition = null;
-        let restoreMethod = null;
-        
-        // 카드 ID 기반 복원 시도
-        if (savedCardId) {
-            const targetCard = document.querySelector(`article.basic-plan-card[data-plan-id="${savedCardId}"]`);
-            if (targetCard) {
-                const cardRect = targetCard.getBoundingClientRect();
-                targetPosition = cardRect.top + (window.pageYOffset || document.documentElement.scrollTop);
-                restoreMethod = 'cardId';
-                log('카드 ID로 카드 찾음', {
-                    cardId: savedCardId,
-                    cardTop: targetPosition,
-                    savedCardTop: savedCardTop
-                });
-            } else {
-                log('⚠️ 저장된 카드 ID로 카드를 찾을 수 없음', {
-                    cardId: savedCardId
-                });
-            }
-        }
-        
-        // 카드 ID로 찾지 못했고, 저장된 카드 위치가 있으면 사용
-        if (targetPosition === null && savedCardTop) {
-            targetPosition = parseInt(savedCardTop);
-            restoreMethod = 'cardTop';
-            log('저장된 카드 위치 사용', {
-                cardTop: targetPosition
-            });
-        }
-        
-        // 여전히 없으면 폴백으로 스크롤 위치 사용
-        if (targetPosition === null && savedScrollPosition) {
-            targetPosition = parseInt(savedScrollPosition);
-            restoreMethod = 'scrollPosition';
-            log('폴백: 저장된 스크롤 위치 사용', {
-                scrollPosition: targetPosition
-            });
-        }
-        
-        if (targetPosition === null) {
-            log('⚠️ 복원할 위치를 찾을 수 없음');
-            return;
-        }
-        
-        const currentScroll = window.pageYOffset || document.documentElement.scrollTop;
-        const scrollHeight = document.documentElement.scrollHeight;
-        const savedScrollHeight = sessionStorage.getItem('mnoSimLoadMoreScrollHeight');
-        
-        log('스크롤 위치 복원 시도 #' + restoreAttempts, {
-            restoreMethod: restoreMethod,
-            savedCardId: savedCardId,
-            savedCardTop: savedCardTop,
-            savedScrollPosition: savedScrollPosition,
-            targetPosition: targetPosition,
-            currentScroll: currentScroll,
-            documentReadyState: document.readyState,
-            scrollHeight: scrollHeight,
-            savedScrollHeight: savedScrollHeight,
-            isRestored: isRestored,
-            isRestoring: isRestoring,
-            scrollRestoreBlocked: scrollRestoreBlocked
-        });
-        
-        // 스크롤 위치가 0이 아니고, 현재 위치와 다르면 복원
-        // 차이가 5px 이상이면 복원
-        if (targetPosition > 0 && Math.abs(targetPosition - currentScroll) > 5) {
-            log('✅ 스크롤 위치 복원 실행', {
-                restoreMethod: restoreMethod,
-                targetPosition: targetPosition,
-                currentScroll: currentScroll,
-                difference: Math.abs(targetPosition - currentScroll)
-            });
-            isRestoring = true;
-            
-            // 즉시 스크롤 복원
-                window.scrollTo({
-                top: targetPosition,
-                behavior: 'auto'
-            });
-            
-            // requestAnimationFrame으로도 복원 (더 정확하게)
-            requestAnimationFrame(function() {
-                const rafScroll = window.pageYOffset || document.documentElement.scrollTop;
-                log('requestAnimationFrame 복원', {
-                    before: rafScroll,
-                    target: targetPosition
-                });
-                window.scrollTo({
-                    top: targetPosition,
-                    behavior: 'auto'
-                });
-            });
-            
-            // 복원 후 확인
-            setTimeout(function() {
-                const afterScroll = window.pageYOffset || document.documentElement.scrollTop;
-                const success = Math.abs(targetPosition - afterScroll) < 30; // 30px 이내면 성공
-                
-                log('스크롤 복원 후 위치 확인', {
-                    restoreMethod: restoreMethod,
-                    expected: targetPosition,
-                    actual: afterScroll,
-                    difference: Math.abs(targetPosition - afterScroll),
-                    success: success,
-                    attempt: restoreAttempts,
-                    scrollHeight: document.documentElement.scrollHeight
-                });
-                
-                if (success || restoreAttempts >= MAX_RESTORE_ATTEMPTS) {
-                    // 복원 성공 또는 최대 시도 횟수 도달
-                    sessionStorage.setItem('mnoSimLoadMoreRestored', 'true');
-                    isRestoring = false;
-                    scrollRestoreBlocked = false; // 스크롤 차단 해제
-                    
-                    log('✅ 스크롤 복원 완료', {
-                        restoreMethod: restoreMethod,
-                        success: success,
-                        finalPosition: afterScroll,
-                        targetPosition: targetPosition
-                    });
-                    
-                    // 최종 복원 후 sessionStorage 정리 (약간의 지연 후)
-                    if (restoreAttempts >= MAX_RESTORE_ATTEMPTS) {
-                        setTimeout(function() {
-                            sessionStorage.removeItem('mnoSimLoadMoreCardId');
-                            sessionStorage.removeItem('mnoSimLoadMoreCardTop');
-                            sessionStorage.removeItem('mnoSimLoadMoreScrollPosition');
-                            sessionStorage.removeItem('mnoSimLoadMoreTimestamp');
-                            sessionStorage.removeItem('mnoSimLoadMoreRestored');
-                            sessionStorage.removeItem('mnoSimLoadMoreFromButton');
-                            sessionStorage.removeItem('mnoSimLoadMoreScrollHeight');
-                            log('sessionStorage 정리 완료');
-                        }, 1000);
-                    }
-                } else {
-                    log('⚠️ 스크롤 복원 실패 - 재시도 필요', {
-                        expected: targetPosition,
-                        actual: afterScroll,
-                        difference: Math.abs(targetPosition - afterScroll)
-                    });
-                    isRestoring = false;
-                }
-            }, 50);
-        } else {
-            log('ℹ️ 스크롤 복원 불필요 - 이미 올바른 위치', {
-                targetPosition: targetPosition,
-                currentScroll: currentScroll,
-                difference: Math.abs(targetPosition - currentScroll)
-            });
-            sessionStorage.setItem('mnoSimLoadMoreRestored', 'true');
-            scrollRestoreBlocked = false; // 스크롤 차단 해제
-        }
-    }
-    
-    // URL에 해시가 있으면 제거 (자동 스크롤 방지)
-    if (window.location.hash) {
-        log('URL 해시 제거', window.location.hash);
-        history.replaceState(null, null, window.location.pathname + window.location.search);
-    }
-    
-    // 페이지 로드 시 스크롤 처리
-    const urlParams = new URLSearchParams(window.location.search);
-    const hasPageParam = urlParams.has('page') && parseInt(urlParams.get('page')) > 1;
-    const hasSavedCardId = sessionStorage.getItem('mnoSimLoadMoreCardId') !== null;
-    const hasSavedPosition = sessionStorage.getItem('mnoSimLoadMoreScrollPosition') !== null;
-    const fromButton = sessionStorage.getItem('mnoSimLoadMoreFromButton') === 'true';
-    
-    if (!hasPageParam || !fromButton) {
-        // 더보기 버튼 클릭이 아닌 경우: 브라우저 기본 스크롤 복원 사용
-        log('일반 페이지 로드 - 브라우저 기본 스크롤 복원 사용');
-        
-        // 헤더 메뉴 클릭으로 온 경우 저장된 데이터 정리
-        if (!hasPageParam) {
-            sessionStorage.removeItem('mnoSimLoadMoreCardId');
-            sessionStorage.removeItem('mnoSimLoadMoreCardTop');
-            sessionStorage.removeItem('mnoSimLoadMoreScrollPosition');
-            sessionStorage.removeItem('mnoSimLoadMoreTimestamp');
-            sessionStorage.removeItem('mnoSimLoadMoreRestored');
-            sessionStorage.removeItem('mnoSimLoadMoreFromButton');
-            log('헤더 메뉴 클릭으로 판단 - 저장된 데이터 정리');
-        }
+function filterByServiceType(serviceType) {
+    const url = new URL(window.location.href);
+    if (url.searchParams.get('service_type') === serviceType) {
+        url.searchParams.delete('service_type');
     } else {
-        // 더보기 버튼 클릭으로 온 경우: 스크롤을 맨 위로 고정하고 나중에 복원
-        window.scrollTo(0, 0);
-        scrollRestoreBlocked = true;
-        log('더보기 버튼 클릭으로 판단 - 스크롤 맨 위로 고정 후 복원 대기', {
-            hasSavedCardId: hasSavedCardId,
-            hasSavedPosition: hasSavedPosition
-        });
-        
-        // 스크롤 위치를 계속 맨 위로 고정 (브라우저가 자동으로 복원하려는 것을 방지)
-        const blockScrollInterval = setInterval(function() {
-            if (!scrollRestoreBlocked) {
-                clearInterval(blockScrollInterval);
-                return;
-            }
-            
-            const currentScroll = window.pageYOffset || document.documentElement.scrollTop;
-            if (currentScroll > 0 && !isRestoring) {
-                window.scrollTo(0, 0);
-            }
-        }, 10);
-        
-        // 300ms 후 스크롤 차단 해제하고 복원 시작
-        setTimeout(function() {
-            scrollRestoreBlocked = false;
-            clearInterval(blockScrollInterval);
-            log('스크롤 차단 해제 - 복원 시작');
-            restoreScrollPosition();
-        }, 300);
+        url.searchParams.set('service_type', serviceType);
     }
-    
-    // DOMContentLoaded에서 복원 시도 (더보기 버튼 클릭으로 온 경우만)
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', function() {
-            log('DOMContentLoaded 이벤트');
-            const urlParams = new URLSearchParams(window.location.search);
-            const hasPageParam = urlParams.has('page') && parseInt(urlParams.get('page')) > 1;
-            const fromButton = sessionStorage.getItem('mnoSimLoadMoreFromButton') === 'true';
-            
-            if (hasPageParam && fromButton && !scrollRestoreBlocked) {
-                restoreScrollPosition();
-                setTimeout(restoreScrollPosition, 50);
-                setTimeout(restoreScrollPosition, 100);
-            }
-        });
-    } else {
-        log('DOMContentLoaded 이미 발생함');
-        const urlParams = new URLSearchParams(window.location.search);
-        const hasPageParam = urlParams.has('page') && parseInt(urlParams.get('page')) > 1;
-        const fromButton = sessionStorage.getItem('mnoSimLoadMoreFromButton') === 'true';
-        
-        if (hasPageParam && fromButton && !scrollRestoreBlocked) {
-            restoreScrollPosition();
-            setTimeout(restoreScrollPosition, 50);
-            setTimeout(restoreScrollPosition, 100);
-        }
-    }
-    
-    // window.load에서도 복원 시도 (이미지 등 모든 리소스 로드 후)
-    window.addEventListener('load', function() {
-        log('window.load 이벤트');
-        const urlParams = new URLSearchParams(window.location.search);
-        const hasPageParam = urlParams.has('page') && parseInt(urlParams.get('page')) > 1;
-        const fromButton = sessionStorage.getItem('mnoSimLoadMoreFromButton') === 'true';
-        
-        if (hasPageParam && fromButton && !scrollRestoreBlocked) {
-            restoreScrollPosition();
-            setTimeout(restoreScrollPosition, 100);
-            setTimeout(restoreScrollPosition, 200);
-            setTimeout(restoreScrollPosition, 300);
-            setTimeout(restoreScrollPosition, 500);
-        }
-    });
-    
-    // 스크롤 이벤트 모니터링 및 의도치 않은 스크롤 변경 방지
-    if (DEBUG) {
-        let scrollCheckCount = 0;
-        let lastScrollPosition = window.pageYOffset || document.documentElement.scrollTop;
-        
-        window.addEventListener('scroll', function() {
-            if (isRestoring) {
-                return; // 복원 중에는 모니터링 스킵
-            }
-            
-            scrollCheckCount++;
-            const currentScroll = window.pageYOffset || document.documentElement.scrollTop;
-            const savedPosition = sessionStorage.getItem('mnoSimLoadMoreScrollPosition');
-            const isRestored = sessionStorage.getItem('mnoSimLoadMoreRestored') === 'true';
-            
-            // 복원이 완료되지 않았고 저장된 위치가 있으면, 의도치 않은 스크롤 변경 방지
-            if (savedPosition && !isRestored && restoreAttempts < MAX_RESTORE_ATTEMPTS) {
-                const targetPosition = parseInt(savedPosition);
-                // 스크롤이 저장된 위치에서 크게 벗어나면 다시 복원 시도
-                if (Math.abs(currentScroll - targetPosition) > 100) {
-                    log('의도치 않은 스크롤 변경 감지 - 복원 재시도', {
-                        currentScroll: currentScroll,
-                        targetPosition: targetPosition,
-                        difference: Math.abs(currentScroll - targetPosition)
-                    });
-                    setTimeout(restoreScrollPosition, 0);
-                }
-            }
-            
-            if (scrollCheckCount % 20 === 0 && savedPosition) { // 20번마다 한 번씩만 로그
-                log('스크롤 이벤트', {
-                    currentScroll: currentScroll,
-                    savedPosition: savedPosition,
-                    difference: Math.abs(currentScroll - parseInt(savedPosition)),
-                    isRestored: isRestored
-                });
-            }
-            
-            lastScrollPosition = currentScroll;
-        }, { passive: true });
-    }
-})();
+    window.location.href = url.toString();
+}
+
+function clearFilters() {
+    const url = new URL(window.location.href);
+    url.searchParams.delete('provider');
+    url.searchParams.delete('service_type');
+    window.location.href = url.toString();
+}
 </script>
 
 <style>
-/* 더보기 버튼 컨테이너 */
+/* 더보기 버튼 컨테이너 - 카드와 같은 너비 */
 .load-more-container {
     width: 100%;
-    padding: 30px 20px;
+    max-width: 100%;
+    padding: 30px 0;
     box-sizing: border-box;
+    margin: 0;
 }
 
-/* 더보기 버튼 스타일 (좌우 길게) - 링크도 버튼처럼 보이게 */
+/* 더보기 버튼 스타일 - 카드와 같은 너비 */
 .load-more-btn {
     display: block;
     width: 100%;

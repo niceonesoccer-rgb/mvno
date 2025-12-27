@@ -172,6 +172,13 @@ function getInternetIconPath($registrationPlace) {
     
     <div class="PlanDetail_content_wrapper__0YNeJ">
         <div class="tw-w-full">
+            <!-- 결과 개수 표시 -->
+            <?php if (!empty($internetProducts) || $totalCount > 0): ?>
+                <div class="plans-results-count">
+                    <span><?php echo number_format($totalCount); ?>개의 결과</span>
+                </div>
+            <?php endif; ?>
+            
             <div class="css-2l6pil e1ebrc9o0" id="internet-products-container">
                 <?php if (empty($internetProducts)): ?>
                     <div style="text-align: center; padding: 60px 20px; color: #6b7280;">
@@ -453,14 +460,14 @@ function getInternetIconPath($registrationPlace) {
                         </div>
                     <?php endforeach; ?>
                 <?php endif; ?>
+                <?php if (!empty($internetProducts) && !$productId && isset($totalCount) && $totalCount > 20): ?>
+                <div class="load-more-container" id="load-more-anchor">
+                    <button id="load-more-internet-btn" class="load-more-btn" data-type="internet" data-page="2" data-total="<?php echo $totalCount; ?>">
+                        더보기 (<span id="remaining-count"><?php echo max(0, $totalCount - 20); ?></span>개 남음)
+                    </button>
+                </div>
+                <?php endif; ?>
             </div>
-            <?php if (!empty($internetProducts) && !$productId && isset($totalCount) && $totalCount > 20): ?>
-            <div class="load-more-container">
-                <button id="load-more-internet-btn" class="load-more-btn" data-type="internet" data-page="2" data-total="<?php echo $totalCount; ?>">
-                    더보기 (<span id="remaining-count"><?php echo max(0, $totalCount - 20); ?></span>개 남음)
-                </button>
-            </div>
-            <?php endif; ?>
         </div>
     </div>
 </main>
@@ -3506,7 +3513,7 @@ document.addEventListener('keydown', function(e) {
 </script>
 
 <!-- 더보기 기능 스크립트 -->
-<script src="/MVNO/assets/js/load-more-products.js"></script>
+<script src="/MVNO/assets/js/load-more-products.js?v=2"></script>
 
 <?php
 // 푸터 포함

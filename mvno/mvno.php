@@ -53,7 +53,7 @@ $plans = array_slice($plans, $offset, $limit);
             <div class="plans-left-section">
                 <section class="theme-plans-list-section">
                     <?php
-                    $section_title = count($plans) . '개의 결과';
+                    $section_title = number_format($totalCount) . '개의 결과';
                     include '../includes/layouts/plan-list-layout.php';
                     ?>
                     <?php 
@@ -65,9 +65,9 @@ $plans = array_slice($plans, $offset, $limit);
                     ?>
                     <?php if ($hasMore && $totalPlansCount > 0): ?>
                     <div class="load-more-container" id="load-more-anchor">
-                        <a href="?page=<?php echo $nextPage; ?>#load-more-anchor" class="load-more-btn">
-                            더보기 (<?php echo number_format($remainingCount); ?>개 남음)
-                        </a>
+                        <button id="load-more-mvno-btn" class="load-more-btn" data-type="mvno" data-page="2" data-total="<?php echo $totalPlansCount; ?>">
+                            더보기 (<span id="remaining-count"><?php echo number_format($remainingCount); ?></span>개 남음)
+                        </button>
                     </div>
                     <?php endif; ?>
                 </section>
@@ -81,53 +81,54 @@ $plans = array_slice($plans, $offset, $limit);
 <script src="/MVNO/assets/js/plan-accordion.js" defer></script>
 <script src="/MVNO/assets/js/favorite-heart.js" defer></script>
 <script src="/MVNO/assets/js/share.js" defer></script>
+<!-- 더보기 기능 스크립트 -->
+<script src="/MVNO/assets/js/load-more-products.js?v=2"></script>
 
-<script>
-// 더보기 버튼 클릭 시 현재 스크롤 위치 저장
-document.addEventListener('DOMContentLoaded', function() {
-    const loadMoreBtn = document.querySelector('.load-more-btn');
-    if (loadMoreBtn) {
-        loadMoreBtn.addEventListener('click', function() {
-            // 현재 스크롤 위치 저장
-            const scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
-            sessionStorage.setItem('loadMoreScrollPosition', scrollPosition.toString());
-        });
-    }
-});
+<style>
+/* 더보기 버튼 컨테이너 - 카드와 같은 너비 */
+.load-more-container {
+    width: 100%;
+    max-width: 100%;
+    padding: 30px 0;
+    box-sizing: border-box;
+    margin: 0;
+}
 
-// 페이지 로드 후 스크롤 위치 복원
-window.addEventListener('DOMContentLoaded', function() {
-    // 저장된 스크롤 위치가 있으면 복원
-    const savedScrollPosition = sessionStorage.getItem('loadMoreScrollPosition');
-    if (savedScrollPosition !== null) {
-        // 저장된 위치 삭제
-        sessionStorage.removeItem('loadMoreScrollPosition');
-        
-        // DOM이 완전히 로드될 때까지 대기 후 스크롤 복원
-        setTimeout(function() {
-            window.scrollTo({
-                top: parseInt(savedScrollPosition),
-                behavior: 'auto' // 즉시 이동 (smooth 대신)
-            });
-        }, 50);
-    } else if (window.location.hash === '#load-more-anchor') {
-        // 저장된 위치가 없고 앵커가 있으면 앵커 위치로 이동
-        setTimeout(function() {
-            const element = document.querySelector('#load-more-anchor');
-            if (element) {
-                const offset = 100; // 더보기 버튼 위쪽 여백
-                const elementPosition = element.getBoundingClientRect().top;
-                const offsetPosition = elementPosition + window.pageYOffset - offset;
-                
-                window.scrollTo({
-                    top: offsetPosition,
-                    behavior: 'smooth'
-                });
-            }
-        }, 100);
-    }
-});
-</script>
+/* 더보기 버튼 스타일 - 카드와 같은 너비로 설정 */
+.load-more-btn {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    color: white !important;
+    text-decoration: none;
+    text-align: center;
+    border: none;
+    padding: 16px 32px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+    box-sizing: border-box;
+}
+
+.load-more-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+}
+
+.load-more-btn:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.load-more-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+</style>
 
 <style>
 /* 더보기 버튼 컨테이너 */
@@ -246,9 +247,12 @@ window.addEventListener('DOMContentLoaded', function() {
             .map(btn => btn.getAttribute('data-filter'))
             .filter(f => f !== null);
         
+        let visibleCount = 0;
+        
         planItems.forEach(item => {
             if (activeFilters.length === 0) {
                 item.style.display = '';
+                visibleCount++;
                 return;
             }
             
@@ -258,8 +262,19 @@ window.addEventListener('DOMContentLoaded', function() {
                 return planText.includes(filterText);
             });
             
-            item.style.display = matches ? '' : 'none';
+            if (matches) {
+                item.style.display = '';
+                visibleCount++;
+            } else {
+                item.style.display = 'none';
+            }
         });
+        
+        // 결과 개수 업데이트
+        const resultsCountElement = document.querySelector('.plans-results-count span');
+        if (resultsCountElement) {
+            resultsCountElement.textContent = visibleCount.toLocaleString() + '개의 결과';
+        }
     }
     
     filterButtons.forEach(button => {
