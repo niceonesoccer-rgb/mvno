@@ -9,13 +9,13 @@ $is_main_page = false;
 
 require_once '../includes/data/auth-functions.php';
 require_once '../includes/data/db-config.php';
-include '../includes/header.php';
 
 $eventId = $_GET['id'] ?? '';
 $event = null;
 $detailImages = [];
 $eventProducts = [];
 
+// 이벤트 ID가 없으면 리다이렉트 (header() 호출 전에 처리)
 if (empty($eventId)) {
     header('Location: /MVNO/event/event.php');
     exit;
@@ -24,15 +24,38 @@ if (empty($eventId)) {
 $pdo = getDBConnection();
 if ($pdo) {
     try {
-        // 이벤트 기본 정보 조회
+        // 이벤트 기본 정보 조회 (is_published 컬럼 제거, start_at과 end_at으로 판단)
         $stmt = $pdo->prepare("
             SELECT * FROM events 
-            WHERE id = :id AND is_published = 1
+            WHERE id = :id
         ");
         $stmt->execute([':id' => $eventId]);
         $event = $stmt->fetch(PDO::FETCH_ASSOC);
         
+        // 이벤트가 없거나 공개 기간이 아니면 리다이렉트 (header() 호출 전에 처리)
         if (!$event) {
+            header('Location: /MVNO/event/event.php');
+            exit;
+        }
+        
+        // 공개 기간 확인 (start_at과 end_at 기준)
+        $now = time();
+        $startAt = $event['start_at'] ? strtotime($event['start_at']) : null;
+        $endAt = $event['end_at'] ? strtotime($event['end_at']) : null;
+        
+        $isPublished = false;
+        if ($startAt && $endAt) {
+            $isPublished = ($now >= $startAt && $now <= $endAt);
+        } elseif ($startAt) {
+            $isPublished = ($now >= $startAt);
+        } elseif ($endAt) {
+            $isPublished = ($now <= $endAt);
+        } else {
+            // 시작일과 종료일이 모두 없으면 비공개로 처리
+            $isPublished = false;
+        }
+        
+        if (!$isPublished) {
             header('Location: /MVNO/event/event.php');
             exit;
         }
@@ -79,10 +102,14 @@ if ($pdo) {
     }
 }
 
+// 이벤트가 없으면 리다이렉트 (header() 호출 전에 처리)
 if (!$event) {
     header('Location: /MVNO/event/event.php');
     exit;
 }
+
+// 모든 리다이렉트 처리가 끝난 후에만 header.php 포함
+include '../includes/header.php';
 
 // 관리자 여부 확인 (드래그 기능 사용 가능 여부)
 $isAdmin = false;

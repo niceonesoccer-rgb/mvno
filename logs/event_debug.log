@@ -1,0 +1,192 @@
+=== Event INSERT Debug Info ===
+Time: 2025-12-27 23:48:34
+SQL: INSERT INTO events (id, title, event_type, category, main_image, description, start_at, end_at, created_at, updated_at) VALUES (:id, :title, :event_type, :category, :main_image, :description, :start_at, :end_at, NOW(), NOW())
+Columns (10): id, title, event_type, category, main_image, description, start_at, end_at, created_at, updated_at
+Values (10): :id, :title, :event_type, :category, :main_image, :description, :start_at, :end_at, NOW(), NOW()
+Params (8): {
+    ":id": "evt_1766846914_5a6dee93",
+    ":title": "333333333333",
+    ":event_type": "promotion",
+    ":category": "all",
+    ":main_image": "\/MVNO\/uploads\/events\/evt_1766846914_5a6dee93_main_1766846914_ea3e3116.webp",
+    ":description": "",
+    ":start_at": "2025-12-18",
+    ":end_at": "2026-01-08"
+}
+Placeholder count: 8
+==============================
+
+=== Event INSERT Debug Info ===
+Time: 2025-12-27 23:53:08
+SQL: INSERT INTO events (id, title, event_type, category, main_image, description, start_at, end_at, created_at, updated_at) VALUES (:id, :title, :event_type, :category, :main_image, :description, :start_at, :end_at, NOW(), NOW())
+Columns (10): id, title, event_type, category, main_image, description, start_at, end_at, created_at, updated_at
+Values (10): :id, :title, :event_type, :category, :main_image, :description, :start_at, :end_at, NOW(), NOW()
+Params (8): {
+    ":id": "evt_1766847188_8818ab02",
+    ":title": "6666666666",
+    ":event_type": "promotion",
+    ":category": "all",
+    ":main_image": "\/MVNO\/uploads\/events\/evt_1766847188_8818ab02_main_1766847188_3352effe.webp",
+    ":description": "",
+    ":start_at": "2025-12-26",
+    ":end_at": "2026-01-02"
+}
+Placeholder count: 8
+==============================
+
+=== Event INSERT Debug Info ===
+Time: 2025-12-27 23:54:37
+SQL: INSERT INTO events (id, title, event_type, category, main_image, description, start_at, end_at, created_at, updated_at) VALUES (:id, :title, :event_type, :category, :main_image, :description, :start_at, :end_at, :created_at, :updated_at)
+Columns (10): id, title, event_type, category, main_image, description, start_at, end_at, created_at, updated_at
+Values (10): :id, :title, :event_type, :category, :main_image, :description, :start_at, :end_at, :created_at, :updated_at
+Params (10): {
+    ":id": "evt_1766847277_8ab8d0a4",
+    ":title": "111111111",
+    ":event_type": "promotion",
+    ":category": "all",
+    ":main_image": "\/MVNO\/uploads\/events\/evt_1766847277_8ab8d0a4_main_1766847277_16236cbd.webp",
+    ":description": "",
+    ":start_at": "2025-12-26",
+    ":end_at": "2026-01-03",
+    ":created_at": "2025-12-27 23:54:37",
+    ":updated_at": "2025-12-27 23:54:37"
+}
+Placeholder count: 10
+==============================
+
+=== Event INSERT Debug Info ===
+Time: 2025-12-27 23:56:24
+SQL: INSERT INTO events (id, title, event_type, category, main_image, description, start_at, end_at, created_at, updated_at) VALUES (:id, :title, :event_type, :category, :main_image, :description, :start_at, :end_at, :created_at, :updated_at)
+Columns (10): id, title, event_type, category, main_image, description, start_at, end_at, created_at, updated_at
+Values (10): :id, :title, :event_type, :category, :main_image, :description, :start_at, :end_at, :created_at, :updated_at
+Params (10): {
+    ":id": "evt_1766847384_a5a689c2",
+    ":title": "000000000000",
+    ":event_type": "promotion",
+    ":category": "all",
+    ":main_image": "\/MVNO\/uploads\/events\/evt_1766847384_a5a689c2_main_1766847384_ffbd5afa.webp",
+    ":description": "",
+    ":start_at": "2025-12-05",
+    ":end_at": "2026-01-03",
+    ":created_at": "2025-12-27 23:56:24",
+    ":updated_at": "2025-12-27 23:56:24"
+}
+Placeholder count: 10
+==============================
+
+=== Event INSERT Debug Info ===
+Time: 2025-12-27 23:58:12
+SQL: INSERT INTO events (id, title, event_type, category, main_image, description, start_at, end_at, created_at, updated_at) VALUES (:id, :title, :event_type, :category, :main_image, :description, :start_at, :end_at, :created_at, :updated_at)
+Columns (10): id, title, event_type, category, main_image, description, start_at, end_at, created_at, updated_at
+Values (10): :id, :title, :event_type, :category, :main_image, :description, :start_at, :end_at, :created_at, :updated_at
+Params (10): {
+    ":id": "evt_1766847492_639907db",
+    ":title": "55555555",
+    ":event_type": "promotion",
+    ":category": "all",
+    ":main_image": "\/MVNO\/uploads\/events\/evt_1766847492_639907db_main_1766847492_42a3b867.webp",
+    ":description": "",
+    ":start_at": "2025-12-18",
+    ":end_at": "2026-01-03",
+    ":created_at": "2025-12-27 23:58:12",
+    ":updated_at": "2025-12-27 23:58:12"
+}
+Placeholder count: 10
+==============================
+
+=== Parameter Binding Debug ===
+SQL Placeholders: :id, :title, :event_type, :category, :main_image, :description, :start_at, :end_at, :created_at, :updated_at
+Bound Params Keys: :id, :title, :event_type, :category, :main_image, :description, :start_at, :end_at, :created_at, :updated_at
+Bound Params Count: 10
+Bound Params: {
+    ":id": "evt_1766847492_639907db",
+    ":title": "55555555",
+    ":event_type": "promotion",
+    ":category": "all",
+    ":main_image": "\/MVNO\/uploads\/events\/evt_1766847492_639907db_main_1766847492_42a3b867.webp",
+    ":description": "",
+    ":start_at": "2025-12-18",
+    ":end_at": "2026-01-03",
+    ":created_at": "2025-12-27 23:58:12",
+    ":updated_at": "2025-12-27 23:58:12"
+}
+================================
+
+=== Event INSERT Debug Info ===
+Time: 2025-12-28 00:03:17
+SQL: INSERT INTO events (id, title, event_type, category, main_image, description, start_at, end_at, created_at, updated_at) VALUES (:id, :title, :event_type, :category, :main_image, :description, :start_at, :end_at, :created_at, :updated_at)
+Columns (10): id, title, event_type, category, main_image, description, start_at, end_at, created_at, updated_at
+Values (10): :id, :title, :event_type, :category, :main_image, :description, :start_at, :end_at, :created_at, :updated_at
+Params (10): {
+    ":id": "evt_1766847797_73d15019",
+    ":title": "5555555555",
+    ":event_type": "promotion",
+    ":category": "all",
+    ":main_image": "\/MVNO\/uploads\/events\/evt_1766847797_73d15019_main_1766847797_d8667810.webp",
+    ":description": "",
+    ":start_at": "2025-12-15",
+    ":end_at": "2026-01-07",
+    ":created_at": "2025-12-28 00:03:17",
+    ":updated_at": "2025-12-28 00:03:17"
+}
+Placeholder count: 10
+==============================
+
+=== Parameter Binding Debug ===
+SQL: INSERT INTO events (id, title, event_type, category, main_image, description, start_at, end_at, created_at, updated_at) VALUES (:id, :title, :event_type, :category, :main_image, :description, :start_at, :end_at, :created_at, :updated_at)
+SQL Placeholders (10): :id, :title, :event_type, :category, :main_image, :description, :start_at, :end_at, :created_at, :updated_at
+Original Params Keys (10): :id, :title, :event_type, :category, :main_image, :description, :start_at, :end_at, :created_at, :updated_at
+Bound Params Keys (10): :id, :title, :event_type, :category, :main_image, :description, :start_at, :end_at, :created_at, :updated_at
+Bound Params: {
+    ":id": "evt_1766847797_73d15019",
+    ":title": "5555555555",
+    ":event_type": "promotion",
+    ":category": "all",
+    ":main_image": "\/MVNO\/uploads\/events\/evt_1766847797_73d15019_main_1766847797_d8667810.webp",
+    ":description": "",
+    ":start_at": "2025-12-15",
+    ":end_at": "2026-01-07",
+    ":created_at": "2025-12-28 00:03:17",
+    ":updated_at": "2025-12-28 00:03:17"
+}
+================================
+
+=== Event INSERT Debug Info ===
+Time: 2025-12-28 00:06:06
+SQL: INSERT INTO events (id, title, event_type, category, main_image, description, start_at, end_at, created_at, updated_at) VALUES (:id, :title, :event_type, :category, :main_image, :description, :start_at, :end_at, :created_at, :updated_at)
+Columns (10): id, title, event_type, category, main_image, description, start_at, end_at, created_at, updated_at
+Values (10): :id, :title, :event_type, :category, :main_image, :description, :start_at, :end_at, :created_at, :updated_at
+Params (10): {
+    ":id": "evt_1766847966_7df86851",
+    ":title": "6666666",
+    ":event_type": "promotion",
+    ":category": "all",
+    ":main_image": "\/MVNO\/uploads\/events\/evt_1766847966_7df86851_main_1766847966_dd9e2a65.webp",
+    ":description": "",
+    ":start_at": "2025-12-16",
+    ":end_at": "2026-01-08",
+    ":created_at": "2025-12-28 00:06:06",
+    ":updated_at": "2025-12-28 00:06:06"
+}
+Placeholder count: 10
+==============================
+
+=== Parameter Binding Debug ===
+SQL: INSERT INTO events (id, title, event_type, category, main_image, description, start_at, end_at, created_at, updated_at) VALUES (:id, :title, :event_type, :category, :main_image, :description, :start_at, :end_at, :created_at, :updated_at)
+SQL Placeholders (10): :id, :title, :event_type, :category, :main_image, :description, :start_at, :end_at, :created_at, :updated_at
+Original Params Keys (10): :id, :title, :event_type, :category, :main_image, :description, :start_at, :end_at, :created_at, :updated_at
+Bound Params Keys (10): :id, :title, :event_type, :category, :main_image, :description, :start_at, :end_at, :created_at, :updated_at
+Bound Params: {
+    ":id": "evt_1766847966_7df86851",
+    ":title": "6666666",
+    ":event_type": "promotion",
+    ":category": "all",
+    ":main_image": "\/MVNO\/uploads\/events\/evt_1766847966_7df86851_main_1766847966_dd9e2a65.webp",
+    ":description": "",
+    ":start_at": "2025-12-16",
+    ":end_at": "2026-01-08",
+    ":created_at": "2025-12-28 00:06:06",
+    ":updated_at": "2025-12-28 00:06:06"
+}
+================================
+

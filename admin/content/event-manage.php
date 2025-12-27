@@ -223,8 +223,29 @@ include __DIR__ . '/../includes/admin-header.php';
                             <?php endif; ?>
                         </td>
                         <td>
-                            <span class="status-badge <?php echo $event['is_published'] ? 'published' : 'unpublished'; ?>">
-                                <?php echo $event['is_published'] ? '공개' : '비공개'; ?>
+                            <?php
+                            // start_at과 end_at을 기준으로 공개/비공개 판단
+                            $now = time();
+                            $startAt = $event['start_at'] ? strtotime($event['start_at']) : null;
+                            $endAt = $event['end_at'] ? strtotime($event['end_at']) : null;
+                            
+                            $isPublished = false;
+                            if ($startAt && $endAt) {
+                                // 시작일과 종료일이 모두 있으면 현재 날짜가 그 사이에 있는지 확인
+                                $isPublished = ($now >= $startAt && $now <= $endAt);
+                            } elseif ($startAt) {
+                                // 시작일만 있으면 시작일 이후인지 확인
+                                $isPublished = ($now >= $startAt);
+                            } elseif ($endAt) {
+                                // 종료일만 있으면 종료일 이전인지 확인
+                                $isPublished = ($now <= $endAt);
+                            } else {
+                                // 시작일과 종료일이 모두 없으면 비공개
+                                $isPublished = false;
+                            }
+                            ?>
+                            <span class="status-badge <?php echo $isPublished ? 'published' : 'unpublished'; ?>">
+                                <?php echo $isPublished ? '공개' : '비공개'; ?>
                             </span>
                         </td>
                         <td><?php echo date('Y-m-d H:i', strtotime($event['created_at'])); ?></td>
