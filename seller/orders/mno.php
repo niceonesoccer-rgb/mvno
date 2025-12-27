@@ -874,6 +874,78 @@ $pageStyles = '
         background: #f9fafb;
     }
     
+    .bulk-actions {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 16px;
+        background: #f9fafb;
+        border-radius: 8px;
+        margin-bottom: 16px;
+        border: 1px solid #e5e7eb;
+    }
+    
+    .bulk-actions-info {
+        font-size: 14px;
+        color: #374151;
+        font-weight: 500;
+    }
+    
+    .bulk-actions-select {
+        padding: 8px 12px;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        font-size: 14px;
+        background: white;
+        color: #374151;
+        cursor: pointer;
+    }
+    
+    .bulk-actions-select:focus {
+        outline: none;
+        border-color: #10b981;
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+    }
+    
+    .bulk-actions-btn {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        background: #10b981;
+        color: white;
+        transition: all 0.2s;
+    }
+    
+    .bulk-actions-btn:hover {
+        background: #059669;
+    }
+    
+    .bulk-actions-btn:disabled {
+        background: #d1d5db;
+        color: #9ca3af;
+        cursor: not-allowed;
+    }
+    
+    .order-checkbox {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+        accent-color: #10b981;
+    }
+    
+    .orders-table th.checkbox-column {
+        width: 40px;
+        text-align: center;
+    }
+    
+    .orders-table td.checkbox-column {
+        text-align: center;
+        padding: 16px 8px;
+    }
+    
     .discount-selection-modal-body {
         margin-top: 32px;
     }
@@ -1018,7 +1090,7 @@ include __DIR__ . '/../includes/seller-header.php';
                 
                 <div class="filter-group" style="margin-left: auto; text-align: right;">
                     <label class="filter-label">페이지당 표시</label>
-                    <select name="per_page" class="filter-select" style="min-width: 100px;">
+                    <select name="per_page" class="filter-select" style="min-width: 100px;" onchange="this.form.submit()">
                         <option value="10" <?php echo $perPage === 10 ? 'selected' : ''; ?>>10개</option>
                         <option value="20" <?php echo $perPage === 20 ? 'selected' : ''; ?>>20개</option>
                         <option value="50" <?php echo $perPage === 50 ? 'selected' : ''; ?>>50개</option>
@@ -1038,9 +1110,29 @@ include __DIR__ . '/../includes/seller-header.php';
                 <div class="empty-state-subtext">고객이 주문하면 여기에 표시됩니다</div>
             </div>
         <?php else: ?>
+            <!-- 일괄 변경 UI -->
+            <div class="bulk-actions" id="bulkActions" style="display: none;">
+                <span class="bulk-actions-info">
+                    <span id="selectedCount">0</span>개 선택됨
+                </span>
+                <select id="bulkStatusSelect" class="bulk-actions-select">
+                    <option value="">진행상황 선택</option>
+                    <option value="received">접수</option>
+                    <option value="activating">개통중</option>
+                    <option value="on_hold">보류</option>
+                    <option value="cancelled">취소</option>
+                    <option value="activation_completed">개통완료</option>
+                    <option value="closed">종료</option>
+                </select>
+                <button type="button" class="bulk-actions-btn" onclick="bulkUpdateStatus()" id="bulkUpdateBtn" disabled>일괄 변경</button>
+            </div>
+            
             <table class="orders-table">
                 <thead>
                     <tr>
+                        <th class="checkbox-column">
+                            <input type="checkbox" id="selectAll" class="order-checkbox" onchange="toggleSelectAll(this)">
+                        </th>
                         <th>순번</th>
                         <th>주문번호</th>
                         <th>상품명</th>
@@ -1064,6 +1156,11 @@ include __DIR__ . '/../includes/seller-header.php';
                     foreach ($orders as $order): 
                     ?>
                         <tr>
+                            <td class="checkbox-column">
+                                <input type="checkbox" class="order-checkbox order-checkbox-item" 
+                                       value="<?php echo $order['application_id'] ?? $order['id']; ?>" 
+                                       onchange="updateBulkActions()">
+                            </td>
                             <td><?php echo $orderIndex--; ?></td>
                             <td><?php echo htmlspecialchars($order['order_number'] ?? '-'); ?></td>
                             <td>
@@ -1593,7 +1690,144 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+    
+    // 일괄 변경 셀렉트박스 변경 이벤트
+    const bulkStatusSelect = document.getElementById('bulkStatusSelect');
+    if (bulkStatusSelect) {
+        bulkStatusSelect.addEventListener('change', function() {
+            const bulkUpdateBtn = document.getElementById('bulkUpdateBtn');
+            if (bulkUpdateBtn) {
+                bulkUpdateBtn.disabled = !this.value || getSelectedOrderIds().length === 0;
+            }
+        });
+    }
 });
+
+// 전체 선택/해제
+function toggleSelectAll(checkbox) {
+    const checkboxes = document.querySelectorAll('.order-checkbox-item');
+    checkboxes.forEach(cb => {
+        cb.checked = checkbox.checked;
+    });
+    updateBulkActions();
+}
+
+// 선택된 주문 ID 목록 가져오기
+function getSelectedOrderIds() {
+    const checkboxes = document.querySelectorAll('.order-checkbox-item:checked');
+    return Array.from(checkboxes).map(cb => cb.value);
+}
+
+// 일괄 변경 UI 업데이트
+function updateBulkActions() {
+    const selectedIds = getSelectedOrderIds();
+    const selectedCount = selectedIds.length;
+    const bulkActions = document.getElementById('bulkActions');
+    const selectedCountSpan = document.getElementById('selectedCount');
+    const bulkUpdateBtn = document.getElementById('bulkUpdateBtn');
+    const bulkStatusSelect = document.getElementById('bulkStatusSelect');
+    const selectAllCheckbox = document.getElementById('selectAll');
+    
+    if (selectedCountSpan) {
+        selectedCountSpan.textContent = selectedCount;
+    }
+    
+    if (bulkActions) {
+        bulkActions.style.display = selectedCount > 0 ? 'flex' : 'none';
+    }
+    
+    if (bulkUpdateBtn) {
+        bulkUpdateBtn.disabled = selectedCount === 0 || !bulkStatusSelect || !bulkStatusSelect.value;
+    }
+    
+    // 전체 선택 체크박스 상태 업데이트
+    if (selectAllCheckbox) {
+        const allCheckboxes = document.querySelectorAll('.order-checkbox-item');
+        const checkedCount = document.querySelectorAll('.order-checkbox-item:checked').length;
+        selectAllCheckbox.checked = allCheckboxes.length > 0 && checkedCount === allCheckboxes.length;
+        selectAllCheckbox.indeterminate = checkedCount > 0 && checkedCount < allCheckboxes.length;
+    }
+}
+
+// 일괄 상태 변경
+function bulkUpdateStatus() {
+    const selectedIds = getSelectedOrderIds();
+    const statusSelect = document.getElementById('bulkStatusSelect');
+    
+    if (selectedIds.length === 0) {
+        alert('선택된 주문이 없습니다.');
+        return;
+    }
+    
+    if (!statusSelect || !statusSelect.value) {
+        alert('변경할 진행상황을 선택해주세요.');
+        return;
+    }
+    
+    const newStatus = statusSelect.value;
+    const statusLabels = {
+        'received': '접수',
+        'activating': '개통중',
+        'on_hold': '보류',
+        'cancelled': '취소',
+        'activation_completed': '개통완료',
+        'closed': '종료'
+    };
+    
+    if (!confirm(`선택한 ${selectedIds.length}개의 주문을 "${statusLabels[newStatus]}"로 변경하시겠습니까?`)) {
+        return;
+    }
+    
+    // 일괄 변경 API 호출
+    const promises = selectedIds.map(id => {
+        return fetch('/MVNO/api/update-order-status.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `application_id=${id}&status=${encodeURIComponent(newStatus)}`
+        })
+        .then(response => response.json())
+        .then(data => ({ id, success: data.success, message: data.message }));
+    });
+    
+    // 모든 요청 완료 대기
+    Promise.all(promises)
+        .then(results => {
+            const successCount = results.filter(r => r.success).length;
+            const failCount = results.length - successCount;
+            
+            if (failCount === 0) {
+                if (typeof showAlert === 'function') {
+                    showAlert(`${successCount}개의 주문 상태가 변경되었습니다.`, '완료');
+                } else {
+                    alert(`${successCount}개의 주문 상태가 변경되었습니다.`);
+                }
+                // 페이지 새로고침
+                setTimeout(() => {
+                    location.reload();
+                }, 500);
+            } else {
+                if (typeof showAlert === 'function') {
+                    showAlert(`${successCount}개 성공, ${failCount}개 실패했습니다.`, '알림', true);
+                } else {
+                    alert(`${successCount}개 성공, ${failCount}개 실패했습니다.`);
+                }
+                // 페이지 새로고침
+                setTimeout(() => {
+                    location.reload();
+                }, 1000);
+            }
+        })
+        .catch(error => {
+            console.error('Bulk update error:', error);
+            if (typeof showAlert === 'function') {
+                showAlert('일괄 변경 중 오류가 발생했습니다: ' + error.message, '오류', true);
+            } else {
+                alert('일괄 변경 중 오류가 발생했습니다: ' + error.message);
+            }
+        });
+}
 
 // 모달 닫기
 document.addEventListener('DOMContentLoaded', function() {

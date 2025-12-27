@@ -142,8 +142,8 @@ function saveMvnoProduct($productData) {
             // 공짜 선택 시 null로 저장
             $priceAfterValue = null;
         } elseif (isset($productData['price_after']) && $productData['price_after'] !== '' && $productData['price_after'] !== null && $productData['price_after'] !== 'free') {
-            // 직접입력 시 숫자로 변환 (0도 포함)
-            $priceAfterValue = floatval($productData['price_after']);
+            // 직접입력 시 정수로 변환 (0도 포함)
+            $priceAfterValue = intval($productData['price_after']);
         }
         
         // 약정기간 단위 처리: 값과 단위를 함께 저장 (예: "181일", "2개월")
@@ -184,7 +184,7 @@ function saveMvnoProduct($productData) {
             ':contract_period' => $contractPeriod ?: null,
             ':contract_period_days' => $contractPeriodDays,
             ':discount_period' => $discountPeriod ?: null,
-            ':price_main' => isset($productData['price_main']) ? floatval($productData['price_main']) : 0,
+            ':price_main' => isset($productData['price_main']) ? intval($productData['price_main']) : 0,
             ':price_after' => $priceAfterValue,
             ':data_amount' => $productData['data_amount'] ?? null,
             ':data_amount_value' => ($productData['data_amount'] === '직접입력' && !empty($productData['data_amount_value'])) ? ($productData['data_amount_value'] . ($productData['data_unit'] ?? 'GB')) : ($productData['data_amount_value'] ?? null),
@@ -475,7 +475,7 @@ function saveMnoProduct($productData) {
             ':service_type' => $productData['service_type'] ?? null,
             ':contract_period' => $productData['contract_period'] ?? null,
             ':contract_period_value' => $productData['contract_period_value'] ?? null,
-            ':price_main' => isset($productData['price_main']) && $productData['price_main'] !== '' ? floatval($productData['price_main']) : null,
+            ':price_main' => isset($productData['price_main']) && $productData['price_main'] !== '' ? intval($productData['price_main']) : null,
             ':data_amount' => $productData['data_amount'] ?? null,
             ':data_amount_value' => $productData['data_amount_value'] ?? null,
             ':data_unit' => $productData['data_unit'] ?? null,
@@ -810,20 +810,19 @@ function saveInternetProduct($productData) {
             
             // 이미 단위가 포함된 경우 그대로 저장 (쉼표만 제거)
             if (preg_match('/^(\d+)([가-힣]+)$/', $inputValue, $matches)) {
-                // 숫자 부분의 쉼표만 제거하고 단위는 그대로 유지
-                $numericPart = str_replace(',', '', $matches[1]);
+                // 숫자 부분의 쉼표와 소수점 제거 후 정수로 변환
+                $numericPart = str_replace([',', '.'], '', $matches[1]);
+                $numericValue = intval($numericPart);
                 $unit = $matches[2];
-                $monthlyFee = $numericPart . $unit;
+                $monthlyFee = $numericValue . $unit;
             } else {
                 // 숫자만 있는 경우 쉼표 제거 후 단위 추가
                 // 소수점이 포함된 경우(예: 30000.00) 정수 부분만 추출
                 $numericPart = str_replace(',', '', preg_replace('/[^0-9.]/', '', $inputValue));
-                // 소수점 제거 (정수로 변환)
-                if (strpos($numericPart, '.') !== false) {
-                    $numericPart = explode('.', $numericPart)[0];
-                }
+                // 소수점 제거 (정수로 변환) - intval 사용
+                $numericValue = intval($numericPart);
                 $unit = $productData['monthly_fee_unit'] ?? '원';
-                $monthlyFee = $numericPart ? ($numericPart . $unit) : '';
+                $monthlyFee = $numericValue ? ($numericValue . $unit) : '';
             }
         }
         

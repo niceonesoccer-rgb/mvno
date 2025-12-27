@@ -72,3 +72,4 @@ ADD INDEX IF NOT EXISTS `idx_application_id` (`application_id`);
 
 
 
+

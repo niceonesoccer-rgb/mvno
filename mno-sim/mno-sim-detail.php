@@ -160,8 +160,6 @@ function getRelativeTime($datetime) {
         <!-- 요금제 상세 정보 섹션 (통합) -->
         <section class="plan-detail-info-section">
             <div class="content-layout">
-                <h2 class="section-title">상세정보</h2>
-            
             <!-- 기본 정보 카드 -->
             <div class="plan-info-card">
                 <h3 class="plan-info-card-title">기본 정보</h3>
@@ -850,11 +848,19 @@ function getRelativeTime($datetime) {
 <style>
 .plan-detail-tabs-section {
     background: #fff;
-    border-bottom: 1px solid #e5e7eb;
+    border-bottom: none;
     position: sticky;
     top: 0;
     z-index: 10;
-    margin-top: 2rem;
+    margin-top: 0;
+    margin-bottom: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
+.plan-detail-tabs-section .content-layout {
+    padding-top: 0;
+    padding-bottom: 0;
 }
 
 .plan-detail-tabs {
@@ -870,21 +876,39 @@ function getRelativeTime($datetime) {
     border-bottom: 2px solid transparent;
     font-size: 1rem;
     font-weight: 500;
-    color: #6b7280;
+    color: var(--color-gray-700);
     cursor: pointer;
     transition: all 0.2s;
     position: relative;
+    outline: none;
 }
 
 .plan-detail-tab:hover {
-    color: #111827;
+    color: var(--color-gray-700);
     background: #f9fafb;
 }
 
+.plan-detail-tab:focus,
+.plan-detail-tab:active,
+.plan-detail-tab:focus-visible {
+    outline: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+}
+
 .plan-detail-tab.active {
-    color: #EF4444;
+    color: var(--color-gray-700);
     border-bottom-color: #EF4444;
     font-weight: 600;
+}
+
+.plan-detail-tab.active:focus,
+.plan-detail-tab.active:active,
+.plan-detail-tab.active:focus-visible {
+    outline: none;
+    border: none;
+    border-bottom: 2px solid #EF4444;
+    color: var(--color-gray-700);
 }
 
 .plan-detail-tab-content {

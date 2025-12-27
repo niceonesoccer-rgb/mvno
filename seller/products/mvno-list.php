@@ -403,6 +403,78 @@ $pageStyles = '
         border-bottom: none;
     }
     
+    .bulk-actions {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 16px;
+        background: #f9fafb;
+        border-radius: 8px;
+        margin-bottom: 16px;
+        border: 1px solid #e5e7eb;
+    }
+    
+    .bulk-actions-info {
+        font-size: 14px;
+        color: #374151;
+        font-weight: 500;
+    }
+    
+    .bulk-actions-select {
+        padding: 8px 12px;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        font-size: 14px;
+        background: white;
+        color: #374151;
+        cursor: pointer;
+    }
+    
+    .bulk-actions-select:focus {
+        outline: none;
+        border-color: #10b981;
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+    }
+    
+    .bulk-actions-btn {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        background: #10b981;
+        color: white;
+        transition: all 0.2s;
+    }
+    
+    .bulk-actions-btn:hover {
+        background: #059669;
+    }
+    
+    .bulk-actions-btn:disabled {
+        background: #d1d5db;
+        color: #9ca3af;
+        cursor: not-allowed;
+    }
+    
+    .product-checkbox {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+        accent-color: #10b981;
+    }
+    
+    .product-table th.checkbox-column {
+        width: 40px;
+        text-align: center;
+    }
+    
+    .product-table td.checkbox-column {
+        text-align: center;
+        padding: 16px 8px;
+    }
+    
     .badge {
         display: inline-block;
         padding: 4px 12px;
@@ -564,7 +636,7 @@ include __DIR__ . '/../includes/seller-header.php';
                 <div class="filter-group">
                     <label class="filter-label">상태:</label>
                     <select class="filter-select" id="filter_status">
-                        <option value="">전체</option>
+                        <option value="" <?php echo ($status === null || $status === '') ? 'selected' : ''; ?>>전체</option>
                         <option value="active" <?php echo $status === 'active' ? 'selected' : ''; ?>>판매중</option>
                         <option value="inactive" <?php echo $status === 'inactive' ? 'selected' : ''; ?>>판매종료</option>
                     </select>
@@ -664,21 +736,25 @@ include __DIR__ . '/../includes/seller-header.php';
                 </div>
             </div>
         <?php else: ?>
+            <!-- 일괄 변경 UI -->
+            <div class="bulk-actions" id="bulkActions" style="display: none;">
+                <span class="bulk-actions-info">
+                    <span id="selectedCount">0</span>개 선택됨
+                </span>
+                <select id="bulkActionSelect" class="bulk-actions-select">
+                    <option value="">작업 선택</option>
+                    <option value="active">판매중으로 변경</option>
+                    <option value="inactive">판매종료로 변경</option>
+                    <option value="copy">복사</option>
+                </select>
+                <button type="button" class="bulk-actions-btn" onclick="executeBulkAction()" id="bulkActionBtn" disabled>실행</button>
+            </div>
+            
             <table class="product-table">
                 <thead>
                     <tr>
-                        <th style="width: 100px;">
-                            <div style="display: flex; flex-direction: column; gap: 8px; align-items: center; position: relative;">
-                                <div style="position: relative;">
-                                    <button class="btn btn-sm" onclick="toggleStatusMenu(event)" style="background: #ef4444; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; width: 60px; white-space: nowrap; text-align: center; display: flex; align-items: center; justify-content: center;">변경</button>
-                                    <div id="statusMenu" style="display: none; position: absolute; top: 100%; left: 0; background: white; border: 1px solid #d1d5db; border-radius: 6px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); z-index: 1000; margin-top: 4px; min-width: 100px;">
-                                        <button onclick="bulkChangeStatus('active')" style="display: block; width: 100%; padding: 8px 12px; text-align: left; border: none; background: none; cursor: pointer; font-size: 13px; color: #1f2937;" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background='none'">판매중</button>
-                                        <button onclick="bulkChangeStatus('inactive')" style="display: block; width: 100%; padding: 8px 12px; text-align: left; border: none; background: none; cursor: pointer; font-size: 13px; color: #1f2937; border-top: 1px solid #e5e7eb;" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background='none'">판매종료</button>
-                                        <button onclick="bulkCopyProducts()" style="display: block; width: 100%; padding: 8px 12px; text-align: left; border: none; background: none; cursor: pointer; font-size: 13px; color: #1f2937; border-top: 1px solid #e5e7eb;" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background='none'">복사</button>
-                                    </div>
-                                </div>
-                                <input type="checkbox" id="selectAll" onchange="toggleSelectAll()" style="cursor: pointer;">
-                            </div>
+                        <th class="checkbox-column">
+                            <input type="checkbox" id="selectAll" class="product-checkbox" onchange="toggleSelectAll(this)">
                         </th>
                         <th style="text-align: center;">상품등록번호</th>
                         <th style="text-align: center;">요금제명</th>
@@ -696,8 +772,10 @@ include __DIR__ . '/../includes/seller-header.php';
                 <tbody>
                     <?php foreach ($products as $index => $product): ?>
                         <tr>
-                            <td style="text-align: center;">
-                                <input type="checkbox" class="product-checkbox" value="<?php echo $product['id']; ?>" style="cursor: pointer;">
+                            <td class="checkbox-column">
+                                <input type="checkbox" class="product-checkbox product-checkbox-item" 
+                                       value="<?php echo $product['id']; ?>" 
+                                       onchange="updateBulkActions()">
                             </td>
                             <td style="text-align: center;"><?php 
                                 $productNumber = getProductNumberByType($product['id'], 'mvno');
@@ -1008,13 +1086,88 @@ function processCopyProduct(productId) {
     });
 }
 
-function toggleSelectAll() {
-    const selectAll = document.getElementById('selectAll');
-    const checkboxes = document.querySelectorAll('.product-checkbox');
-    checkboxes.forEach(checkbox => {
-        checkbox.checked = selectAll.checked;
+// 전체 선택/해제
+function toggleSelectAll(checkbox) {
+    const checkboxes = document.querySelectorAll('.product-checkbox-item');
+    checkboxes.forEach(cb => {
+        cb.checked = checkbox.checked;
     });
+    updateBulkActions();
 }
+
+// 선택된 상품 ID 목록 가져오기
+function getSelectedProductIds() {
+    const checkboxes = document.querySelectorAll('.product-checkbox-item:checked');
+    return Array.from(checkboxes).map(cb => cb.value);
+}
+
+// 일괄 변경 UI 업데이트
+function updateBulkActions() {
+    const selectedIds = getSelectedProductIds();
+    const selectedCount = selectedIds.length;
+    const bulkActions = document.getElementById('bulkActions');
+    const selectedCountSpan = document.getElementById('selectedCount');
+    const bulkActionBtn = document.getElementById('bulkActionBtn');
+    const bulkActionSelect = document.getElementById('bulkActionSelect');
+    const selectAllCheckbox = document.getElementById('selectAll');
+    
+    if (selectedCountSpan) {
+        selectedCountSpan.textContent = selectedCount;
+    }
+    
+    if (bulkActions) {
+        bulkActions.style.display = selectedCount > 0 ? 'flex' : 'none';
+    }
+    
+    if (bulkActionBtn) {
+        bulkActionBtn.disabled = selectedCount === 0 || !bulkActionSelect || !bulkActionSelect.value;
+    }
+    
+    // 전체 선택 체크박스 상태 업데이트
+    if (selectAllCheckbox) {
+        const allCheckboxes = document.querySelectorAll('.product-checkbox-item');
+        const checkedCount = document.querySelectorAll('.product-checkbox-item:checked').length;
+        selectAllCheckbox.checked = allCheckboxes.length > 0 && checkedCount === allCheckboxes.length;
+        selectAllCheckbox.indeterminate = checkedCount > 0 && checkedCount < allCheckboxes.length;
+    }
+}
+
+// 일괄 작업 실행
+function executeBulkAction() {
+    const selectedIds = getSelectedProductIds();
+    const actionSelect = document.getElementById('bulkActionSelect');
+    
+    if (selectedIds.length === 0) {
+        alert('선택된 상품이 없습니다.');
+        return;
+    }
+    
+    if (!actionSelect || !actionSelect.value) {
+        alert('작업을 선택해주세요.');
+        return;
+    }
+    
+    const action = actionSelect.value;
+    
+    if (action === 'active' || action === 'inactive') {
+        bulkChangeStatus(action);
+    } else if (action === 'copy') {
+        bulkCopyProducts();
+    }
+}
+
+// 일괄 변경 셀렉트박스 변경 이벤트
+document.addEventListener('DOMContentLoaded', function() {
+    const bulkActionSelect = document.getElementById('bulkActionSelect');
+    if (bulkActionSelect) {
+        bulkActionSelect.addEventListener('change', function() {
+            const bulkActionBtn = document.getElementById('bulkActionBtn');
+            if (bulkActionBtn) {
+                bulkActionBtn.disabled = !this.value || getSelectedProductIds().length === 0;
+            }
+        });
+    }
+});
 
 function toggleStatusMenu(event) {
     event.stopPropagation();
@@ -1038,36 +1191,32 @@ document.addEventListener('click', function(event) {
 });
 
 function bulkChangeStatus(status) {
-    const checkboxes = document.querySelectorAll('.product-checkbox:checked');
-    if (checkboxes.length === 0) {
+    const selectedIds = getSelectedProductIds();
+    if (selectedIds.length === 0) {
         if (typeof showAlert === 'function') {
             showAlert('선택된 상품이 없습니다.', '알림');
         } else {
             alert('선택된 상품이 없습니다.');
         }
-        document.getElementById('statusMenu').style.display = 'none';
         return;
     }
     
-    const productCount = checkboxes.length;
+    const productCount = selectedIds.length;
     const statusText = status === 'active' ? '판매중' : '판매종료';
     const message = '선택한 ' + productCount + '개의 상품을 ' + statusText + ' 처리하시겠습니까?';
-    
-    document.getElementById('statusMenu').style.display = 'none';
     
     if (typeof showConfirm === 'function') {
         showConfirm(message, '상태 변경 확인').then(confirmed => {
             if (confirmed) {
-                processBulkChangeStatus(checkboxes, status);
+                processBulkChangeStatus(selectedIds, status);
             }
         });
     } else if (confirm(message)) {
-        processBulkChangeStatus(checkboxes, status);
+        processBulkChangeStatus(selectedIds, status);
     }
 }
 
-function processBulkChangeStatus(checkboxes, status) {
-    const productIds = Array.from(checkboxes).map(cb => cb.value);
+function processBulkChangeStatus(productIds, status) {
     const statusText = status === 'active' ? '판매중' : '판매종료';
     
     fetch('/MVNO/api/product-bulk-update.php', {
@@ -1108,35 +1257,31 @@ function processBulkChangeStatus(checkboxes, status) {
 }
 
 function bulkCopyProducts() {
-    const checkboxes = document.querySelectorAll('.product-checkbox:checked');
-    if (checkboxes.length === 0) {
+    const selectedIds = getSelectedProductIds();
+    if (selectedIds.length === 0) {
         if (typeof showAlert === 'function') {
             showAlert('선택된 상품이 없습니다.', '알림');
         } else {
             alert('선택된 상품이 없습니다.');
         }
-        document.getElementById('statusMenu').style.display = 'none';
         return;
     }
     
-    const productCount = checkboxes.length;
+    const productCount = selectedIds.length;
     const message = '선택한 ' + productCount + '개의 상품을 복사하시겠습니까?\n\n※ 복사된 상품은 판매종료 상태로 설정됩니다.';
-    
-    document.getElementById('statusMenu').style.display = 'none';
     
     if (typeof showConfirm === 'function') {
         showConfirm(message, '상품 복사').then(confirmed => {
             if (confirmed) {
-                processBulkCopy(checkboxes);
+                processBulkCopy(selectedIds);
             }
         });
     } else if (confirm(message)) {
-        processBulkCopy(checkboxes);
+        processBulkCopy(selectedIds);
     }
 }
 
-function processBulkCopy(checkboxes) {
-    const productIds = Array.from(checkboxes).map(cb => cb.value);
+function processBulkCopy(productIds) {
     const totalCount = productIds.length;
     let completedCount = 0;
     let failedCount = 0;
@@ -1436,7 +1581,22 @@ function closeProductInfoModal() {
 }
 
 function number_format(number) {
-    return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    // 숫자를 파싱
+    const numValue = parseFloat(number) || 0;
+    
+    // 소수점이 없거나 소수점 아래가 0이면 정수로 표시
+    if (numValue % 1 === 0) {
+        // 정수인 경우
+        return Math.floor(numValue).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    } else {
+        // 소수점이 있는 경우 - 소수점 아래 값 표시
+        // 소수점 아래 불필요한 0 제거 (예: 34000.50 → 34000.5, 34000.00 → 34000)
+        const formatted = numValue.toString().replace(/\.?0+$/, '');
+        // 천 단위 구분자 추가
+        const parts = formatted.split('.');
+        parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        return parts.join('.');
+    }
 }
 
 // 모달 외부 클릭 시 닫기

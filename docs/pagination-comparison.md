@@ -322,3 +322,4 @@ URL: /internets/internets.php
 
 **결론: 페이지 새로고침 방식이 현실적이고 실용적입니다!** ✅
 
+

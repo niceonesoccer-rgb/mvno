@@ -4302,9 +4302,9 @@ button:focus {
 }
 
 .plan-detail-page > section {
-    padding: 24px 20px;
-    border-top: 1px solid var(--color-gray-200);
-    margin-top: 40px;
+    padding: 0;
+    border-top: none;
+    margin-top: 0;
 }
 
 .plan-detail-page > section.plan-detail-apply-section {
@@ -4317,6 +4317,12 @@ button:focus {
     margin-bottom: 0;
 }
 
+.plan-detail-header-section .content-layout {
+    padding: 0 !important;
+    max-width: 640px;
+    margin: 0 auto;
+}
+
 @media (min-width: 992px) {
     .plan-detail-page {
         max-width: 640px;
@@ -4324,8 +4330,8 @@ button:focus {
     }
     
     .plan-detail-page > section {
-        padding: 40px 0;
-        margin-top: 40px;
+        padding: 0;
+        margin-top: 0;
     }
     
     .plan-detail-page > section.plan-detail-apply-section {
@@ -4335,6 +4341,12 @@ button:focus {
     .plan-detail-header-section {
         padding-top: 40px;
         padding-bottom: 2px;
+    }
+    
+    .plan-detail-header-section .content-layout {
+        padding: 0 !important;
+        max-width: 640px;
+        margin: 0 auto;
     }
 }
 
@@ -4728,7 +4740,8 @@ button:focus {
 }
 
 .plan-detail-info-section {
-    padding: 16px 0 0 0 !important;
+    padding: 0 !important;
+    padding-top: 30px !important;
 }
 
 .plan-detail-info-section .plan-info-card:last-child {
@@ -4736,9 +4749,32 @@ button:focus {
     margin-bottom: 0;
 }
 
+.plan-detail-info-section .content-layout {
+    padding: 0 !important;
+    max-width: 640px;
+    margin: 0 auto;
+}
+
+.plan-detail-info-section .plan-info-card {
+    max-width: 100%;
+    width: 100%;
+}
+
 @media (min-width: 992px) {
     .plan-detail-info-section {
-        padding: 40px 0 0 0 !important;
+        padding: 0 !important;
+        padding-top: 30px !important;
+    }
+    
+    .plan-detail-info-section .content-layout {
+        padding: 0 !important;
+        max-width: 640px;
+        margin: 0 auto;
+    }
+    
+    .plan-detail-info-section .plan-info-card {
+        max-width: 100%;
+        width: 100%;
     }
 }
 
@@ -4969,7 +5005,7 @@ button:focus {
     color: var(--color-gray-700);
     margin: 0 0 16px 0;
     padding-bottom: 12px;
-    border-bottom: 2px solid var(--color-gray-200);
+    border-bottom: none;
 }
 
 @media (min-width: 992px) {
@@ -5023,12 +5059,35 @@ button:focus {
 
 /* 초과 요금 섹션 */
 .plan-exceed-rate-section {
-    padding: 16px 0 16px 0 !important;
+    padding: 16px 0 !important;
     border-top: none !important;
+}
+
+.plan-exceed-rate-section .content-layout {
+    padding: 0 !important;
+    max-width: 640px;
+    margin: 0 auto;
 }
 
 .plan-exceed-rate-section .plan-info-card {
     margin-top: 0;
+    margin-bottom: 16px;
+}
+
+@media (min-width: 992px) {
+    .plan-exceed-rate-section {
+        padding: 20px 0 !important;
+    }
+    
+    .plan-exceed-rate-section .content-layout {
+        padding: 0 !important;
+        max-width: 640px;
+        margin: 0 auto;
+    }
+    
+    .plan-exceed-rate-section .plan-info-card {
+        margin-bottom: 20px;
+    }
 }
 
 .plan-exceed-rate-notice {
@@ -5045,6 +5104,16 @@ button:focus {
 .plan-seller-info-section {
     padding: 16px 0;
     border-top: none !important;
+}
+
+.plan-seller-info-section {
+    padding: 0 !important;
+}
+
+.plan-seller-info-section .content-layout {
+    padding: 0 !important;
+    max-width: 640px;
+    margin: 0 auto;
 }
 
 .plan-seller-info-section .plan-info-card {
@@ -5067,12 +5136,36 @@ button:focus {
 
 @media (min-width: 992px) {
     .plan-exceed-rate-section {
-        padding: 20px 0 40px 0 !important;
+        padding: 0 !important;
     }
     
-    .plan-seller-info-section {
-        padding: 20px 0 40px 0;
+    .plan-exceed-rate-section .content-layout {
+        padding: 0 !important;
+        max-width: 640px;
+        margin: 0 auto;
     }
+    
+.plan-seller-info-section {
+    padding: 0 !important;
+}
+
+.plan-seller-info-section .content-layout {
+    padding: 0 !important;
+    max-width: 640px;
+    margin: 0 auto;
+}
+
+@media (min-width: 992px) {
+    .plan-seller-info-section {
+        padding: 0 !important;
+    }
+    
+    .plan-seller-info-section .content-layout {
+        padding: 0 !important;
+        max-width: 640px;
+        margin: 0 auto;
+    }
+}
 }
 
 .plan-exceed-table {
@@ -5485,7 +5578,7 @@ button:focus {
     width: 100%;
     max-width: 100%;
     padding: 16px;
-    background-color: var(--color-gray-100);
+    background-color: var(--color-white);
     border: 1px solid var(--color-gray-200);
     border-radius: 8px;
     cursor: pointer;

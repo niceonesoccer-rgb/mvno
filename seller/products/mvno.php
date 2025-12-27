@@ -100,16 +100,16 @@ if ($productId > 0) {
                     $isEditMode = true;
                     $productData = array_merge($product, $productDetail);
                     
-                    // price_after 처리: null이면 'free' (공짜), 숫자(0 포함)면 그대로 표시
+                    // price_after 처리: null이면 프로모션 없음, 숫자(0 포함)면 그대로 표시 (0은 공짜로 표시됨)
                     // PDO에서 가져온 값이 실제 null인지 확인 (0과 구분)
                     // PDO::FETCH_ASSOC를 사용하면 null 값이 PHP null로 반환됨
                     if ($productData['price_after'] === null || 
                         (is_string($productData['price_after']) && (trim($productData['price_after']) === '' || strtolower(trim($productData['price_after'])) === 'null'))) {
-                        // null이면 'free'로 처리 (공짜)
-                        $productData['price_after'] = 'free';
-                        $productData['price_after_type_hidden'] = 'free';
+                        // null이면 프로모션 없음
+                        $productData['price_after'] = null;
+                        $productData['price_after_type_hidden'] = 'none';
                     } else {
-                        // 숫자로 변환하여 저장 (0도 숫자이므로 그대로 저장)
+                        // 숫자로 변환하여 저장 (0도 숫자이므로 그대로 저장, 0은 공짜로 표시됨)
                         $priceAfterValue = floatval($productData['price_after']);
                         $productData['price_after'] = $priceAfterValue;
                         $productData['price_after_type_hidden'] = 'custom';
@@ -744,7 +744,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     </label>
                     <div style="display: flex; gap: 8px; align-items: center;">
                         <select name="discount_period" id="discount_period" class="form-select" style="flex: 0 0 auto; max-width: 150px;">
-                            <option value="프로모션 없음" <?php echo (isset($productData['discount_period']) && $productData['discount_period'] === '프로모션 없음') ? 'selected' : ''; ?>>프로모션 없음</option>
+                            <option value="프로모션 없음" <?php echo (!isset($productData['discount_period']) || $productData['discount_period'] === '프로모션 없음' || $productData['discount_period'] === '') ? 'selected' : ''; ?>>프로모션 없음</option>
                             <option value="직접입력" <?php echo (isset($productData['discount_period']) && $productData['discount_period'] === '직접입력') ? 'selected' : ''; ?>>직접입력</option>
                         </select>
                         <div id="discount_period_input" style="display: <?php echo (isset($productData['discount_period']) && $productData['discount_period'] === '직접입력') ? 'flex' : 'none'; ?>; gap: 8px; align-items: center;">
@@ -759,11 +759,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 <div style="flex: 1;">
                     <label class="form-label" for="price_after_type">
-                        할인기간요금(프로포션기간)
+                        할인기간요금(프로포션기간) <span style="color: #6b7280; font-size: 12px; font-weight: normal;">(0=공짜)</span>
                     </label>
                     <div style="display: flex; gap: 8px; align-items: center;">
-                        <select name="price_after_type" id="price_after_type" class="form-select" style="flex: 0 0 auto; max-width: 120px;">
-                            <option value="free" <?php echo (!isset($productData['price_after']) || $productData['price_after'] === null || $productData['price_after'] === '' || $productData['price_after'] === 'free' || $productData['price_after'] === 'null') ? 'selected' : ''; ?>>공짜</option>
+                        <select name="price_after_type" id="price_after_type" class="form-select" style="flex: 0 0 auto; max-width: 150px;">
+                            <option value="none" <?php echo (!isset($productData['price_after']) || $productData['price_after'] === null || $productData['price_after'] === '' || $productData['price_after'] === 'null') ? 'selected' : ''; ?>>프로모션 없음</option>
                             <option value="custom" <?php echo (isset($productData['price_after']) && $productData['price_after'] !== null && $productData['price_after'] !== '' && $productData['price_after'] !== 'free' && $productData['price_after'] !== 'null') ? 'selected' : ''; ?>>직접입력</option>
                         </select>
                         <div id="price_after_input" style="display: <?php echo (isset($productData['price_after']) && $productData['price_after'] !== null && $productData['price_after'] !== '' && $productData['price_after'] !== 'free' && $productData['price_after'] !== 'null') ? 'flex' : 'none'; ?>; gap: 8px; align-items: center;">
@@ -822,6 +822,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     </label>
                     <select name="data_exhausted" id="data_exhausted" class="form-select">
                         <option value="">선택하세요</option>
+                        <option value="속도 제한 없음" <?php echo (isset($productData['data_exhausted']) && $productData['data_exhausted'] === '속도 제한 없음') ? 'selected' : ''; ?>>속도 제한 없음</option>
+                        <option value="10Mbps 무제한" <?php echo (isset($productData['data_exhausted']) && $productData['data_exhausted'] === '10Mbps 무제한') ? 'selected' : ''; ?>>10Mbps 무제한</option>
                         <option value="5Mbps 무제한" <?php echo (isset($productData['data_exhausted']) && $productData['data_exhausted'] === '5Mbps 무제한') ? 'selected' : ''; ?>>5Mbps 무제한</option>
                         <option value="3Mbps 무제한" <?php echo (isset($productData['data_exhausted']) && $productData['data_exhausted'] === '3Mbps 무제한') ? 'selected' : ''; ?>>3Mbps 무제한</option>
                         <option value="1Mbps 무제한" <?php echo (isset($productData['data_exhausted']) && $productData['data_exhausted'] === '1Mbps 무제한') ? 'selected' : ''; ?>>1Mbps 무제한</option>
@@ -854,9 +856,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 <div style="flex: 1;">
                     <label class="form-label" for="additional_call">
-                        부가·영상통화 <span class="required">*</span>
+                        부가·영상통화
                     </label>
-                    <select name="additional_call_type" id="additional_call_type" class="form-select" required>
+                    <select name="additional_call_type" id="additional_call_type" class="form-select">
                         <option value="">선택하세요</option>
                         <option value="무제한" <?php echo (isset($productData['additional_call_type']) && $productData['additional_call_type'] === '무제한') ? 'selected' : ''; ?>>무제한</option>
                         <option value="기본제공" <?php echo (isset($productData['additional_call_type']) && $productData['additional_call_type'] === '기본제공') ? 'selected' : ''; ?>>기본제공</option>
@@ -1155,7 +1157,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const select = document.getElementById(selectId);
         const container = document.getElementById(inputContainerId);
         if (!select || !container) {
-            console.log('toggleInputField: 요소를 찾을 수 없음', selectId, inputContainerId);
             return;
         }
         
@@ -1168,7 +1169,6 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             container.style.display = 'none';
         }
-        console.log('toggleInputField init:', selectId, 'value:', initialValue, 'triggerValue:', triggerValue, 'isShow:', isInitiallyShow, 'display:', container.style.display, 'computed:', window.getComputedStyle(container).display);
         
         if (inputId) {
             const input = document.getElementById(inputId);
@@ -1199,11 +1199,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // change 이벤트 리스너
         select.addEventListener('change', function() {
             const isShow = this.value === triggerValue;
-            console.log('toggleInputField change:', selectId, 'value:', this.value, 'triggerValue:', triggerValue, 'isShow:', isShow);
-            console.log('container:', container, 'display before:', container.style.display);
             // display 속성만 업데이트 (margin-top 등 다른 스타일 유지)
             container.style.display = isShow ? 'block' : 'none';
-            console.log('container display after:', container.style.display);
             
             if (inputId) {
                 const input = document.getElementById(inputId);
@@ -1212,15 +1209,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         input.removeAttribute('disabled');
                         input.disabled = false; // 명시적으로 활성화
                         input.focus();
-                        console.log('Input enabled:', inputId);
                     } else {
                         input.setAttribute('disabled', 'disabled');
                         input.disabled = true; // 명시적으로 비활성화
                         input.value = '';
-                        console.log('Input disabled:', inputId);
                     }
-                } else {
-                    console.log('Input not found:', inputId);
                 }
             }
             
@@ -1542,29 +1535,29 @@ document.addEventListener('DOMContentLoaded', function() {
     const priceAfterTypeHidden = document.getElementById('price_after_type_hidden');
     
     if (priceAfterType && priceAfterInput && priceAfterHidden && priceAfterTypeHidden) {
-        // 페이지 로드 시 초기값 설정 (기본값: 공짜)
-        if (priceAfterType.value === 'free' || priceAfterType.value === '') {
-            priceAfterType.value = 'free'; // 기본값 설정
-            priceAfterTypeHidden.value = 'free';
+        // 페이지 로드 시 초기값 설정 (기본값: 프로모션 없음)
+        if (priceAfterType.value === '' || priceAfterType.value === 'none') {
+            priceAfterType.value = 'none'; // 기본값 설정
+            priceAfterTypeHidden.value = 'none';
             priceAfterInput.style.display = 'none';
         } else if (priceAfterType.value === 'custom') {
             priceAfterTypeHidden.value = 'custom';
             priceAfterInput.style.display = 'flex';
         } else {
-            priceAfterType.value = 'free'; // 기본값 설정
-            priceAfterTypeHidden.value = 'free';
+            priceAfterType.value = 'none'; // 기본값 설정
+            priceAfterTypeHidden.value = 'none';
             priceAfterInput.style.display = 'none';
         }
         
         priceAfterType.addEventListener('change', function() {
-            if (this.value === 'free') {
-                // 공짜 선택 시: hidden 필드는 빈 문자열로 설정 (API에서 price_after_type_hidden으로 판단)
+            if (this.value === 'none') {
+                // 프로모션 없음 선택 시
                 priceAfterInput.style.display = 'none';
                 priceAfterHidden.value = '';
-                priceAfterTypeHidden.value = 'free';
+                priceAfterTypeHidden.value = 'none';
                 if (priceAfterField) priceAfterField.value = '';
             } else if (this.value === 'custom') {
-                // 직접입력 선택 시
+                // 직접입력 선택 시 (0 입력 시 공짜로 표시됨)
                 priceAfterInput.style.display = 'flex';
                 priceAfterHidden.value = '';
                 priceAfterTypeHidden.value = 'custom';
@@ -1683,20 +1676,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         
-        const additionalCallType = document.getElementById('additional_call_type');
-        const additionalCallInput = document.getElementById('additional_call');
-        if (additionalCallType && additionalCallType.value === '직접입력') {
-            if (!additionalCallInput || !additionalCallInput.value.trim()) {
-                if (typeof showAlert === 'function') {
-                    showAlert('부가·영상통화를 입력해주세요.', '입력 오류');
-                } else {
-                    alert('부가·영상통화를 입력해주세요.');
-                }
-                if (additionalCallInput) additionalCallInput.focus();
-                return;
-            }
-        }
-        
         const mobileHotspot = document.getElementById('mobile_hotspot');
         const mobileHotspotInput = document.getElementById('mobile_hotspot_value');
         if (mobileHotspot && mobileHotspot.value === '직접선택') {
@@ -1767,20 +1746,20 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (priceAfterType && priceAfterHidden && priceAfterTypeHidden) {
             // 현재 선택된 값을 다시 확인하여 설정
-            if (priceAfterType.value === 'free') {
-                // 공짜 선택 시: hidden 필드는 빈 문자열로 설정 (API에서 price_after_type_hidden으로 판단)
+            if (priceAfterType.value === 'none') {
+                // 프로모션 없음 선택 시
                 priceAfterHidden.value = '';
-                priceAfterTypeHidden.value = 'free';
+                priceAfterTypeHidden.value = 'none';
                 if (priceAfterField) priceAfterField.value = '';
             } else if (priceAfterType.value === 'custom' && priceAfterField) {
-                // 직접입력 시 입력값 사용 (0도 가능)
+                // 직접입력 시 입력값 사용 (0 입력 시 공짜로 표시됨)
                 const inputValue = priceAfterField.value.replace(/[^0-9]/g, '');
                 priceAfterHidden.value = inputValue || '0';
                 priceAfterTypeHidden.value = 'custom';
             } else {
-                // 선택 안함
+                // 선택 안함 (기본값: 프로모션 없음)
                 priceAfterHidden.value = '';
-                priceAfterTypeHidden.value = '';
+                priceAfterTypeHidden.value = 'none';
             }
         }
         

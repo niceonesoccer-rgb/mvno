@@ -672,6 +672,19 @@ document.addEventListener('DOMContentLoaded', function() {
         const additionalInfo = data.additional_info || {};
         const productSnapshot = additionalInfo.product_snapshot || {};
         
+        // 디버깅: product_snapshot 확인
+        console.log('=== Internet Order Detail Debug ===');
+        console.log('additionalInfo:', additionalInfo);
+        console.log('productSnapshot:', productSnapshot);
+        console.log('productSnapshot keys:', Object.keys(productSnapshot));
+        console.log('productSnapshot empty?', Object.keys(productSnapshot).length === 0);
+        
+        // product_snapshot이 비어있으면 경고 표시
+        if (!productSnapshot || Object.keys(productSnapshot).length === 0) {
+            console.warn('⚠️ product_snapshot이 비어있습니다!');
+            console.warn('additional_info 전체:', JSON.stringify(additionalInfo, null, 2));
+        }
+        
         let html = '<div class="product-modal-body">';
         
         // 통신사 로고 표시 (신청 시점 정보 사용)
@@ -742,6 +755,41 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         html += '</tbody></table>';
+        
+        // 프로모션 정보 표시 (값으로만)
+        let promotionTitle = productSnapshot.promotion_title || '';
+        let promotions = [];
+        
+        if (productSnapshot.promotions) {
+            if (typeof productSnapshot.promotions === 'string') {
+                try {
+                    promotions = JSON.parse(productSnapshot.promotions) || [];
+                } catch(e) {
+                    promotions = [productSnapshot.promotions];
+                }
+            } else if (Array.isArray(productSnapshot.promotions)) {
+                promotions = productSnapshot.promotions;
+            }
+        }
+        
+        const filteredPromotions = promotions.filter(p => p && p.trim());
+        const promotionCount = filteredPromotions.length;
+        
+        if (promotionCount > 0 || promotionTitle) {
+            html += '<h3 style="margin-top: 24px; margin-bottom: 12px; font-size: 16px; color: #1f2937;">프로모션 이벤트</h3>';
+            html += '<table class="product-info-table"><tbody>';
+            
+            if (promotionTitle) {
+                html += `<tr><th>프로모션 제목</th><td>${escapeHtml(promotionTitle)}</td></tr>`;
+            }
+            
+            if (promotionCount > 0) {
+                const promotionList = filteredPromotions.map(p => escapeHtml(p.trim())).join(', ');
+                html += `<tr><th>프로모션 항목</th><td>${promotionList}</td></tr>`;
+            }
+            
+            html += '</tbody></table>';
+        }
         
         // 현금지급 섹션
         if (productSnapshot.cash_payment_names) {

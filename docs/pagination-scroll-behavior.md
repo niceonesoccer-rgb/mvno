@@ -138,3 +138,4 @@ window.addEventListener('DOMContentLoaded', function() {
 - 하지만 JavaScript로 **원하는 위치로 이동 가능**
 - 추천: **더보기 버튼 위치 근처로 이동**
 
+

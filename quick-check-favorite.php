@@ -73,3 +73,4 @@ echo "<hr>";
 echo "<p><a href='/MVNO/mypage/wishlist.php?type=mno-sim'>마이페이지 찜 목록 보기</a></p>";
 ?>
 
+

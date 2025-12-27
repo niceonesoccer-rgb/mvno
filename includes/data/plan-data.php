@@ -132,10 +132,11 @@ function convertMvnoProductToPlanCard($product) {
     $originalPriceMain = $product['price_main'] ?? 0;
     
     // price_main: 할인 후 요금 표시 (프로모션 기간 요금)
-    if ($priceAfterValue === null || $priceAfterValue === '' || $priceAfterValue === '0') {
-        // 할인 후 요금이 없으면(공짜) "공짜"로 표시
+    // 0이면 공짜로 표시
+    if ($priceAfterValue === null || $priceAfterValue === '' || $priceAfterValue === '0' || $priceAfterValue == 0) {
+        // 할인 후 요금이 없거나 0이면 "공짜"로 표시
         $priceMain = '공짜';
-    } elseif ($priceAfterValue !== null && $priceAfterValue !== '' && $priceAfterValue !== '0') {
+    } elseif ($priceAfterValue !== null && $priceAfterValue !== '' && $priceAfterValue !== '0' && $priceAfterValue != 0) {
         // 할인 후 요금이 있으면 그것을 price_main으로 표시
         $priceMain = '월 ' . number_format((float)$priceAfterValue) . '원';
     } else {
@@ -272,10 +273,10 @@ function convertMnoSimProductToPlanCard($product) {
     }
     
     // 가격 포맷팅
-    $priceMain = '월 ' . number_format((int)$product['price_main']) . ($product['price_main_unit'] ?: '원');
-    
-    // price_after: 할인기간 + 할인기간 요금
-    $priceAfter = '';
+    // 통신사단독유심: 리스트 카드와 동일한 로직 적용
+    // price_main = 프로모션 금액 (위), price_after = 프로모션기간 후 원래 요금 (아래)
+    $regularPriceValue = (int)$product['price_main']; // 원래 요금
+    $promotionPriceValue = (int)$product['price_after']; // 프로모션 금액
     $discountPeriod = '';
     if (!empty($product['discount_period']) && $product['discount_period'] !== '프로모션 없음') {
         if (!empty($product['discount_period_value']) && !empty($product['discount_period_unit'])) {
@@ -285,19 +286,31 @@ function convertMnoSimProductToPlanCard($product) {
         }
     }
     
-    $priceAfterValue = '';
-    if (!empty($product['price_after_type'])) {
-        if ($product['price_after_type'] === 'free' || ($product['price_after'] !== null && $product['price_after'] == 0)) {
-            $priceAfterValue = '무료';
-        } elseif ($product['price_after_type'] === 'custom' && !empty($product['price_after'])) {
-            $priceAfterValue = '월 ' . number_format((int)$product['price_after']) . ($product['price_after_unit'] ?: '원');
-        }
-    }
+    // 프로모션 금액이 있는 경우와 없는 경우를 구분
+    $hasPromotion = ($promotionPriceValue > 0);
     
-    if ($discountPeriod && $priceAfterValue) {
-        $priceAfter = $discountPeriod . ' 이후 ' . $priceAfterValue;
-    } elseif ($priceAfterValue) {
-        $priceAfter = $priceAfterValue;
+    if ($hasPromotion) {
+        // 프로모션 금액이 있는 경우:
+        // 1. 프로모션 금액 (위) - price_main에 표시 - 프로모션기간 동안 부과되는 금액
+        $priceMain = '월 ' . number_format($promotionPriceValue) . ($product['price_after_unit'] ?: '원');
+        
+        // 2. 프로모션기간 후 원래 요금 (아래) - price_after에 표시 - "프로모션기간 후 월 원래요금" 형식
+        $priceAfter = '';
+        if ($regularPriceValue > 0 && $discountPeriod !== '') {
+            $priceAfter = $discountPeriod . ' 후 월 ' . number_format($regularPriceValue) . ($product['price_main_unit'] ?: '원');
+        } elseif ($regularPriceValue > 0) {
+            $priceAfter = '월 ' . number_format($regularPriceValue) . ($product['price_main_unit'] ?: '원');
+        }
+    } else {
+        // 프로모션 금액이 없는 경우:
+        // 원래 요금만 표시 (위) - "월" 붙임
+        if ($regularPriceValue > 0) {
+            $priceMain = '월 ' . number_format($regularPriceValue) . ($product['price_main_unit'] ?: '원');
+            $priceAfter = ''; // 아래는 표시하지 않음
+        } else {
+            $priceMain = '월 0원';
+            $priceAfter = '';
+        }
     }
     
     // 선택 수 포맷팅

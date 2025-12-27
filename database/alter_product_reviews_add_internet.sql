@@ -14,3 +14,4 @@ MODIFY COLUMN `product_type` ENUM('mvno', 'mno', 'internet') NOT NULL COMMENT 'ì
 
 
 
+

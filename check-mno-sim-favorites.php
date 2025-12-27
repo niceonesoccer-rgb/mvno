@@ -137,3 +137,4 @@ echo "<hr>";
 echo "<p><a href='/MVNO/mypage/wishlist.php?type=mno-sim'>찜한 통신사유심 내역 페이지로 이동</a></p>";
 ?>
 
+

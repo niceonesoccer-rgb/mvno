@@ -85,10 +85,21 @@ $show_features = ($layout_type === 'list');
 <?php if ($layout_type === 'list'): ?>
 <div class="plan-price-row">
     <div class="plan-price-left">
-        <div class="plan-price-main-row">
-            <span class="plan-price-main"><?php echo htmlspecialchars($price_main); ?></span>
-        </div>
-        <span class="plan-price-after"><?php echo htmlspecialchars($price_after); ?></span>
+        <?php if ($is_mno_sim): ?>
+            <!-- 통신사단독유심: 프로모션 금액 먼저, 그 아래 프로모션기간 월요금 (있을 때만 표시) -->
+            <div class="plan-price-main-row">
+                <span class="plan-price-main"><?php echo htmlspecialchars($price_main); ?></span>
+            </div>
+            <?php if (!empty($price_after) && $price_after !== '-'): ?>
+                <span class="plan-price-after"><?php echo htmlspecialchars($price_after); ?></span>
+            <?php endif; ?>
+        <?php else: ?>
+            <!-- 알뜰폰: 기존 방식 유지 -->
+            <div class="plan-price-main-row">
+                <span class="plan-price-main"><?php echo htmlspecialchars($price_main); ?></span>
+            </div>
+            <span class="plan-price-after"><?php echo htmlspecialchars($price_after); ?></span>
+        <?php endif; ?>
     </div>
     <div class="plan-price-right">
         <span class="plan-selection-count"><?php echo htmlspecialchars($selection_count); ?></span>

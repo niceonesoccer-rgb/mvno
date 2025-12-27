@@ -18,7 +18,7 @@ $link_url = $plan['link_url'] ?? '/MVNO/mvno/mvno-plan-detail.php?id=' . $plan_i
 $plan['link_url'] = $link_url;
 ?>
 
-<article class="basic-plan-card <?php echo htmlspecialchars($card_wrapper_class); ?>">
+<article class="basic-plan-card <?php echo htmlspecialchars($card_wrapper_class); ?>" data-plan-id="<?php echo $plan_id; ?>">
     <?php if ($is_link): ?>
     <a href="<?php echo htmlspecialchars($link_url); ?>" class="plan-card-link">
     <?php else: ?>

@@ -115,3 +115,4 @@ CREATE TABLE IF NOT EXISTS `product_mno_sim_details` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='통신사유심(MNO-SIM) 상품 상세 정보';
 
 
+

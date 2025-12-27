@@ -165,8 +165,13 @@ try {
                 mno_sim.contract_period,
                 mno_sim.contract_period_discount_value,
                 mno_sim.contract_period_discount_unit,
+                mno_sim.discount_period,
+                mno_sim.discount_period_value,
+                mno_sim.discount_period_unit,
                 mno_sim.price_main,
+                mno_sim.price_main_unit,
                 mno_sim.price_after,
+                mno_sim.price_after_unit,
                 mno_sim.data_amount,
                 mno_sim.data_amount_value,
                 mno_sim.data_unit,
@@ -176,12 +181,16 @@ try {
                 mno_sim.data_exhausted_value,
                 mno_sim.call_type,
                 mno_sim.call_amount,
+                mno_sim.call_amount_unit,
                 mno_sim.additional_call_type,
                 mno_sim.additional_call,
+                mno_sim.additional_call_unit,
                 mno_sim.sms_type,
                 mno_sim.sms_amount,
+                mno_sim.sms_amount_unit,
                 mno_sim.mobile_hotspot,
                 mno_sim.mobile_hotspot_value,
+                mno_sim.mobile_hotspot_unit,
                 mno_sim.regular_sim_available,
                 mno_sim.regular_sim_price,
                 mno_sim.nfc_sim_available,
@@ -189,11 +198,20 @@ try {
                 mno_sim.esim_available,
                 mno_sim.esim_price,
                 mno_sim.over_data_price,
+                mno_sim.over_data_price_unit,
                 mno_sim.over_voice_price,
+                mno_sim.over_voice_price_unit,
                 mno_sim.over_video_price,
+                mno_sim.over_video_price_unit,
                 mno_sim.over_sms_price,
+                mno_sim.over_sms_price_unit,
                 mno_sim.over_lms_price,
+                mno_sim.over_lms_price_unit,
                 mno_sim.over_mms_price,
+                mno_sim.over_mms_price_unit,
+                mno_sim.regular_sim_price_unit,
+                mno_sim.nfc_sim_price_unit,
+                mno_sim.esim_price_unit,
                 mno_sim.promotion_title,
                 mno_sim.promotions,
                 mno_sim.benefits
@@ -937,6 +955,78 @@ $pageStyles = '
         background: #f9fafb;
     }
     
+    .bulk-actions {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 16px;
+        background: #f9fafb;
+        border-radius: 8px;
+        margin-bottom: 16px;
+        border: 1px solid #e5e7eb;
+    }
+    
+    .bulk-actions-info {
+        font-size: 14px;
+        color: #374151;
+        font-weight: 500;
+    }
+    
+    .bulk-actions-select {
+        padding: 8px 12px;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        font-size: 14px;
+        background: white;
+        color: #374151;
+        cursor: pointer;
+    }
+    
+    .bulk-actions-select:focus {
+        outline: none;
+        border-color: #10b981;
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+    }
+    
+    .bulk-actions-btn {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        background: #10b981;
+        color: white;
+        transition: all 0.2s;
+    }
+    
+    .bulk-actions-btn:hover {
+        background: #059669;
+    }
+    
+    .bulk-actions-btn:disabled {
+        background: #d1d5db;
+        color: #9ca3af;
+        cursor: not-allowed;
+    }
+    
+    .order-checkbox {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+        accent-color: #10b981;
+    }
+    
+    .orders-table th.checkbox-column {
+        width: 40px;
+        text-align: center;
+    }
+    
+    .orders-table td.checkbox-column {
+        text-align: center;
+        padding: 16px 8px;
+    }
+    
     .product-info-section {
         margin-bottom: 24px;
     }
@@ -1218,7 +1308,7 @@ include __DIR__ . '/../includes/seller-header.php';
                 
                 <div class="filter-group" style="margin-left: auto; text-align: right;">
                     <label class="filter-label">페이지당 표시</label>
-                    <select name="per_page" class="filter-select" style="min-width: 100px;">
+                    <select name="per_page" class="filter-select" style="min-width: 100px;" onchange="this.form.submit()">
                         <option value="10" <?php echo $perPage === 10 ? 'selected' : ''; ?>>10개</option>
                         <option value="20" <?php echo $perPage === 20 ? 'selected' : ''; ?>>20개</option>
                         <option value="50" <?php echo $perPage === 50 ? 'selected' : ''; ?>>50개</option>
@@ -1238,9 +1328,29 @@ include __DIR__ . '/../includes/seller-header.php';
                 <div class="empty-state-subtext">고객이 주문하면 여기에 표시됩니다</div>
             </div>
         <?php else: ?>
+            <!-- 일괄 변경 UI -->
+            <div class="bulk-actions" id="bulkActions" style="display: none;">
+                <span class="bulk-actions-info">
+                    <span id="selectedCount">0</span>개 선택됨
+                </span>
+                <select id="bulkStatusSelect" class="bulk-actions-select">
+                    <option value="">진행상황 선택</option>
+                    <option value="received">접수</option>
+                    <option value="activating">개통중</option>
+                    <option value="on_hold">보류</option>
+                    <option value="cancelled">취소</option>
+                    <option value="activation_completed">개통완료</option>
+                    <option value="closed">종료</option>
+                </select>
+                <button type="button" class="bulk-actions-btn" onclick="bulkUpdateStatus()" id="bulkUpdateBtn" disabled>일괄 변경</button>
+            </div>
+            
             <table class="orders-table">
                 <thead>
                     <tr>
+                        <th class="checkbox-column">
+                            <input type="checkbox" id="selectAll" class="order-checkbox" onchange="toggleSelectAll(this)">
+                        </th>
                         <th>순번</th>
                         <th>주문번호</th>
                         <th>통신사</th>
@@ -1259,6 +1369,11 @@ include __DIR__ . '/../includes/seller-header.php';
                     foreach ($orders as $order): 
                     ?>
                         <tr>
+                            <td class="checkbox-column">
+                                <input type="checkbox" class="order-checkbox order-checkbox-item" 
+                                       value="<?php echo $order['application_id'] ?? $order['id']; ?>" 
+                                       onchange="updateBulkActions()">
+                            </td>
                             <td><?php echo $orderIndex--; ?></td>
                             <td><?php echo htmlspecialchars($order['order_number'] ?? '-'); ?></td>
                             <td><?php echo htmlspecialchars($order['provider'] ?? '-'); ?></td>
@@ -1518,11 +1633,16 @@ function showProductInfo(order, productType) {
             let dataAmountLabel = '-';
             if (dataAmount === '직접입력' && dataAmountValue && dataAmountValue !== '-') {
                 // 직접입력인 경우 저장된 값 그대로 표시 (단위가 이미 포함되어 있을 수 있음)
+                let dataAmountValueStr = String(dataAmountValue);
+                // 단위가 포함되어 있지 않으면 추가
+                if (!/gb|mb|tb/i.test(dataAmountValueStr) && dataUnit) {
+                    dataAmountValueStr = dataAmountValueStr + dataUnit;
+                }
                 // "월" 접두사가 없으면 추가
-                if (dataAmountValue.toLowerCase().includes('월') || dataAmountValue.toLowerCase().includes('month')) {
-                    dataAmountLabel = dataAmountValue;
+                if (!dataAmountValueStr.toLowerCase().includes('월') && !dataAmountValueStr.toLowerCase().includes('month')) {
+                    dataAmountLabel = '월 ' + dataAmountValueStr;
                 } else {
-                    dataAmountLabel = '월 ' + dataAmountValue;
+                    dataAmountLabel = dataAmountValueStr;
                 }
             } else if (dataAmount && dataAmount !== '-' && dataAmount !== '직접입력') {
                 dataAmountLabel = '월 ' + dataAmount;
@@ -1534,7 +1654,7 @@ function showProductInfo(order, productType) {
             let dataAdditionalLabel = '-';
             if (dataAdditional === '직접입력' && dataAdditionalValue) {
                 // 소문자 단위를 대문자로 변환 (10gb -> 10GB)
-                let displayValue = dataAdditionalValue;
+                let displayValue = String(dataAdditionalValue);
                 displayValue = displayValue.replace(/gb/gi, 'GB').replace(/mb/gi, 'MB').replace(/tb/gi, 'TB');
                 dataAdditionalLabel = displayValue;
             } else if (dataAdditional && dataAdditional !== '없음') {
@@ -1557,14 +1677,15 @@ function showProductInfo(order, productType) {
             // 통화 (저장된 값 그대로 표시 - 단위 포함 가능)
             const callType = getValue('call_type', 'call_type');
             const callAmount = getValue('call_amount', 'call_amount');
+            const callAmountUnit = getValue('call_amount_unit', 'call_amount_unit') || '분';
             let callLabel = '-';
             if (callType) {
                 if (callAmount && callAmount !== '-') {
                     // DB에 저장된 값이 "100분" 형식이면 그대로 표시
-                    // 숫자만 있으면 "분" 단위 추가
-                    let displayAmount = callAmount;
-                    if (/^\d+$/.test(callAmount)) {
-                        displayAmount = callAmount + '분';
+                    // 숫자만 있으면 DB의 단위 추가
+                    let displayAmount = String(callAmount);
+                    if (/^\d+$/.test(displayAmount)) {
+                        displayAmount = displayAmount + callAmountUnit;
                     }
                     const cleanedType = callType === '직접입력' ? '' : callType;
                     callLabel = cleanedType ? (cleanedType + ' ' + displayAmount) : displayAmount;
@@ -1576,14 +1697,15 @@ function showProductInfo(order, productType) {
             // 부가통화 (저장된 값 그대로 표시 - 단위 포함 가능)
             const additionalCallType = getValue('additional_call_type', 'additional_call_type');
             const additionalCall = getValue('additional_call', 'additional_call');
+            const additionalCallUnit = getValue('additional_call_unit', 'additional_call_unit') || '분';
             let additionalCallLabel = '-';
             if (additionalCallType) {
                 if (additionalCall && additionalCall !== '-') {
                     // DB에 저장된 값이 "100분" 형식이면 그대로 표시
-                    // 숫자만 있으면 "분" 단위 추가
-                    let displayAmount = additionalCall;
-                    if (/^\d+$/.test(additionalCall)) {
-                        displayAmount = additionalCall + '분';
+                    // 숫자만 있으면 DB의 단위 추가
+                    let displayAmount = String(additionalCall);
+                    if (/^\d+$/.test(displayAmount)) {
+                        displayAmount = displayAmount + additionalCallUnit;
                     }
                     const cleanedType = additionalCallType === '직접입력' ? '' : additionalCallType;
                     additionalCallLabel = cleanedType ? (cleanedType + ' ' + displayAmount) : displayAmount;
@@ -1595,12 +1717,17 @@ function showProductInfo(order, productType) {
             // 문자 (저장된 값 그대로 표시 - 단위 포함 가능)
             const smsType = getValue('sms_type', 'sms_type');
             const smsAmount = getValue('sms_amount', 'sms_amount');
+            const smsAmountUnit = getValue('sms_amount_unit', 'sms_amount_unit') || '건';
             let smsLabel = '-';
             if (smsType) {
                 if (smsAmount && smsAmount !== '-') {
-                    // "직접입력" 텍스트 제거 후 값 표시 (단위가 포함되어 있을 수 있음)
+                    // 숫자만 있으면 DB의 단위 추가
+                    let displayAmount = String(smsAmount);
+                    if (/^\d+$/.test(displayAmount)) {
+                        displayAmount = displayAmount + smsAmountUnit;
+                    }
                     const cleanedType = smsType === '직접입력' ? '' : smsType;
-                    smsLabel = cleanedType ? (cleanedType + ' ' + smsAmount) : smsAmount;
+                    smsLabel = cleanedType ? (cleanedType + ' ' + displayAmount) : displayAmount;
                 } else {
                     smsLabel = smsType === '직접입력' ? '-' : smsType;
                 }
@@ -1609,38 +1736,74 @@ function showProductInfo(order, productType) {
             // 테더링(핫스팟) (저장된 값 그대로 표시)
             const mobileHotspot = getValue('mobile_hotspot', 'mobile_hotspot');
             const mobileHotspotValue = getValue('mobile_hotspot_value', 'mobile_hotspot_value');
+            const mobileHotspotUnit = getValue('mobile_hotspot_unit', 'mobile_hotspot_unit');
             let mobileHotspotLabel = '-';
-            if (mobileHotspot === '직접선택' && mobileHotspotValue && mobileHotspotValue !== '-') {
+            // 직접선택 또는 직접입력인 경우 값 표시
+            if ((mobileHotspot === '직접선택' || mobileHotspot === '직접입력') && mobileHotspotValue && mobileHotspotValue !== '-') {
                 // DB에 저장된 값이 "20GB" 형식이면 그대로 표시
                 // 소문자 단위를 대문자로 변환 (20gb -> 20GB)
-                let displayValue = mobileHotspotValue;
+                let displayValue = String(mobileHotspotValue);
+                // 단위가 포함되어 있지 않으면 추가
+                if (!/gb|mb|tb/i.test(displayValue) && mobileHotspotUnit) {
+                    displayValue = displayValue + mobileHotspotUnit;
+                }
                 displayValue = displayValue.replace(/gb/gi, 'GB').replace(/mb/gi, 'MB').replace(/tb/gi, 'TB');
                 mobileHotspotLabel = displayValue;
-            } else if (mobileHotspot && mobileHotspot !== '-' && mobileHotspot !== '직접선택') {
+            } else if (mobileHotspot && mobileHotspot !== '-' && mobileHotspot !== '직접선택' && mobileHotspot !== '직접입력') {
                 mobileHotspotLabel = mobileHotspot;
             }
             
             // 유심 정보
             const regularSimAvailable = getValue('regular_sim_available', 'regular_sim_available');
             const regularSimPrice = getValue('regular_sim_price', 'regular_sim_price');
-            const regularSimLabel = regularSimAvailable === '배송가능' && regularSimPrice ? 
-                                   '배송가능 (' + number_format(regularSimPrice) + '원)' : 
-                                   regularSimAvailable === '배송불가' ? '배송불가' : 
-                                   regularSimAvailable || '-';
+            const regularSimPriceUnit = getValue('regular_sim_price_unit', 'regular_sim_price_unit') || '원';
+            let regularSimLabel = '-';
+            if (regularSimAvailable === '배송가능' || regularSimAvailable === '유심비 유료') {
+                if (regularSimPrice && regularSimPrice !== '0' && regularSimPrice !== 0) {
+                    const label = regularSimAvailable === '유심비 유료' ? '유심비 유료' : '배송가능';
+                    regularSimLabel = label + ' (' + number_format(regularSimPrice) + regularSimPriceUnit + ')';
+                } else {
+                    regularSimLabel = regularSimAvailable;
+                }
+            } else if (regularSimAvailable === '배송불가') {
+                regularSimLabel = '배송불가';
+            } else if (regularSimAvailable) {
+                regularSimLabel = regularSimAvailable;
+            }
             
             const nfcSimAvailable = getValue('nfc_sim_available', 'nfc_sim_available');
             const nfcSimPrice = getValue('nfc_sim_price', 'nfc_sim_price');
-            const nfcSimLabel = nfcSimAvailable === '배송가능' && nfcSimPrice ? 
-                               '배송가능 (' + number_format(nfcSimPrice) + '원)' : 
-                               nfcSimAvailable === '배송불가' ? '배송불가' : 
-                               nfcSimAvailable || '-';
+            const nfcSimPriceUnit = getValue('nfc_sim_price_unit', 'nfc_sim_price_unit') || '원';
+            let nfcSimLabel = '-';
+            if (nfcSimAvailable === '배송가능' || nfcSimAvailable === '유심비 유료') {
+                if (nfcSimPrice && nfcSimPrice !== '0' && nfcSimPrice !== 0) {
+                    const label = nfcSimAvailable === '유심비 유료' ? '유심비 유료' : '배송가능';
+                    nfcSimLabel = label + ' (' + number_format(nfcSimPrice) + nfcSimPriceUnit + ')';
+                } else {
+                    nfcSimLabel = nfcSimAvailable;
+                }
+            } else if (nfcSimAvailable === '배송불가') {
+                nfcSimLabel = '배송불가';
+            } else if (nfcSimAvailable) {
+                nfcSimLabel = nfcSimAvailable;
+            }
             
             const esimAvailable = getValue('esim_available', 'esim_available');
             const esimPrice = getValue('esim_price', 'esim_price');
-            const esimLabel = esimAvailable === '개통가능' && esimPrice ? 
-                             '개통가능 (' + number_format(esimPrice) + '원)' : 
-                             esimAvailable === '개통불가' ? '개통불가' : 
-                             esimAvailable || '-';
+            const esimPriceUnit = getValue('esim_price_unit', 'esim_price_unit') || '원';
+            let esimLabel = '-';
+            if (esimAvailable === '개통가능' || esimAvailable === 'eSIM 유료' || esimAvailable === '유심비 유료') {
+                if (esimPrice && esimPrice !== '0' && esimPrice !== 0) {
+                    const label = esimAvailable === 'eSIM 유료' ? 'eSIM 유료' : (esimAvailable === '유심비 유료' ? '유심비 유료' : '개통가능');
+                    esimLabel = label + ' (' + number_format(esimPrice) + esimPriceUnit + ')';
+                } else {
+                    esimLabel = esimAvailable;
+                }
+            } else if (esimAvailable === '개통불가') {
+                esimLabel = '개통불가';
+            } else if (esimAvailable) {
+                esimLabel = esimAvailable;
+            }
             
             // 기본 제공 초과 시 (DB에 저장된 값이 "22.53원/MB" 형식이면 그대로 표시)
             const formatOverPrice = (price, defaultUnit) => {
@@ -1666,19 +1829,25 @@ function showProductInfo(order, productType) {
             };
             
             const overDataPriceRaw = getValue('over_data_price', 'over_data_price');
+            const overDataPriceUnit = getValue('over_data_price_unit', 'over_data_price_unit') || '원/MB';
             const overVoicePriceRaw = getValue('over_voice_price', 'over_voice_price');
+            const overVoicePriceUnit = getValue('over_voice_price_unit', 'over_voice_price_unit') || '원/초';
             const overVideoPriceRaw = getValue('over_video_price', 'over_video_price');
+            const overVideoPriceUnit = getValue('over_video_price_unit', 'over_video_price_unit') || '원/초';
             const overSmsPriceRaw = getValue('over_sms_price', 'over_sms_price');
+            const overSmsPriceUnit = getValue('over_sms_price_unit', 'over_sms_price_unit') || '원/건';
             const overLmsPriceRaw = getValue('over_lms_price', 'over_lms_price');
+            const overLmsPriceUnit = getValue('over_lms_price_unit', 'over_lms_price_unit') || '원/건';
             const overMmsPriceRaw = getValue('over_mms_price', 'over_mms_price');
+            const overMmsPriceUnit = getValue('over_mms_price_unit', 'over_mms_price_unit') || '원/건';
             
-            // DB에 저장된 값 그대로 표시 (단위가 포함되어 있으면 그대로, 없으면 기본 단위 추가)
-            const overDataPrice = formatOverPrice(overDataPriceRaw, '원/MB');
-            const overVoicePrice = formatOverPrice(overVoicePriceRaw, '원/초');
-            const overVideoPrice = formatOverPrice(overVideoPriceRaw, '원/초');
-            const overSmsPrice = formatOverPrice(overSmsPriceRaw, '원/건');
-            const overLmsPrice = formatOverPrice(overLmsPriceRaw, '원/건');
-            const overMmsPrice = formatOverPrice(overMmsPriceRaw, '원/건');
+            // DB에 저장된 값 그대로 표시 (단위가 포함되어 있으면 그대로, 없으면 DB의 단위 추가)
+            const overDataPrice = formatOverPrice(overDataPriceRaw, overDataPriceUnit);
+            const overVoicePrice = formatOverPrice(overVoicePriceRaw, overVoicePriceUnit);
+            const overVideoPrice = formatOverPrice(overVideoPriceRaw, overVideoPriceUnit);
+            const overSmsPrice = formatOverPrice(overSmsPriceRaw, overSmsPriceUnit);
+            const overLmsPrice = formatOverPrice(overLmsPriceRaw, overLmsPriceUnit);
+            const overMmsPrice = formatOverPrice(overMmsPriceRaw, overMmsPriceUnit);
             
             // 프로모션 및 혜택
             const parseJsonField = (field) => {
@@ -1711,14 +1880,18 @@ function showProductInfo(order, productType) {
             
             // 가격 정보 처리
             const priceMain = getValue('price_main', 'price_main');
+            const priceMainUnit = getValue('price_main_unit', 'price_main_unit') || '원';
             const priceAfter = getValue('price_after', 'price_after');
+            const priceAfterUnit = getValue('price_after_unit', 'price_after_unit') || '원';
             const discountPeriod = getValue('discount_period', 'discount_period');
+            const discountPeriodValue = getValue('discount_period_value', 'discount_period_value');
+            const discountPeriodUnit = getValue('discount_period_unit', 'discount_period_unit');
             
             let priceMainLabel = '-';
             if (priceMain && priceMain !== '-' && priceMain !== null && priceMain !== '') {
                 const priceNum = parseFloat(String(priceMain).replace(/[^0-9.]/g, ''));
                 if (!isNaN(priceNum)) {
-                    priceMainLabel = '월 ' + number_format(priceNum) + '원';
+                    priceMainLabel = '월 ' + number_format(priceNum) + priceMainUnit;
                 } else {
                     priceMainLabel = priceMain;
                 }
@@ -1728,10 +1901,67 @@ function showProductInfo(order, productType) {
             if (priceAfter && priceAfter !== '-' && priceAfter !== null && priceAfter !== '') {
                 const priceNum = parseFloat(String(priceAfter).replace(/[^0-9.]/g, ''));
                 if (!isNaN(priceNum)) {
-                    priceAfterLabel = '월 ' + number_format(priceNum) + '원';
+                    priceAfterLabel = '월 ' + number_format(priceNum) + priceAfterUnit;
                 } else {
                     priceAfterLabel = priceAfter;
                 }
+            }
+            
+            // 할인 기간 처리 (직접입력인 경우 값과 단위 표시)
+            let discountPeriodLabel = '-';
+            if (discountPeriod === '직접입력' && discountPeriodValue && discountPeriodValue !== '-') {
+                discountPeriodLabel = discountPeriodValue + (discountPeriodUnit || '개월');
+            } else if (discountPeriod && discountPeriod !== '-' && discountPeriod !== '직접입력') {
+                discountPeriodLabel = discountPeriod;
+            }
+            
+            // 고객 주문 정보 섹션
+            let customerInfoRows = [];
+            if (order.order_number) {
+                customerInfoRows.push(`<tr><th>주문번호</th><td>${order.order_number}</td></tr>`);
+            }
+            if (order.name) {
+                customerInfoRows.push(`<tr><th>고객명</th><td>${order.name}</td></tr>`);
+            }
+            if (order.phone) {
+                customerInfoRows.push(`<tr><th>전화번호</th><td>${order.phone}</td></tr>`);
+            }
+            if (order.email) {
+                customerInfoRows.push(`<tr><th>이메일</th><td>${order.email}</td></tr>`);
+            }
+            if (order.created_at) {
+                const orderDate = new Date(order.created_at);
+                const formattedDate = orderDate.toLocaleString('ko-KR', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                customerInfoRows.push(`<tr><th>주문일시</th><td>${formattedDate}</td></tr>`);
+            }
+            if (order.application_status) {
+                const statusLabels = {
+                    'received': '접수',
+                    'activating': '개통중',
+                    'on_hold': '보류',
+                    'cancelled': '취소',
+                    'activation_completed': '개통완료',
+                    'closed': '종료'
+                };
+                const statusLabel = statusLabels[order.application_status] || order.application_status;
+                customerInfoRows.push(`<tr><th>진행상황</th><td>${statusLabel}</td></tr>`);
+            }
+            
+            if (customerInfoRows.length > 0) {
+                html += `
+                    <div class="product-info-section">
+                        <h3>고객 주문 정보</h3>
+                        <table class="product-info-table">
+                            ${customerInfoRows.join('')}
+                        </table>
+                    </div>
+                `;
             }
             
             // 기본 정보 섹션
@@ -1745,12 +1975,12 @@ function showProductInfo(order, productType) {
             addRowIfNotDash(basicInfoRows, '가입 형태', subscriptionTypesLabel);
             addRowIfNotDash(basicInfoRows, '기본 요금', priceMainLabel);
             addRowIfNotDash(basicInfoRows, '할인 후 요금', priceAfterLabel);
-            addRowIfNotDash(basicInfoRows, '할인 기간', discountPeriod);
+            addRowIfNotDash(basicInfoRows, '할인 기간', discountPeriodLabel);
             
             if (basicInfoRows.length > 0) {
                 html += `
                     <div class="product-info-section">
-                        <h3>기본 정보</h3>
+                        <h3>상품 기본 정보</h3>
                         <table class="product-info-table">
                             ${basicInfoRows.join('')}
                         </table>
@@ -2044,7 +2274,144 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+    
+    // 일괄 변경 셀렉트박스 변경 이벤트
+    const bulkStatusSelect = document.getElementById('bulkStatusSelect');
+    if (bulkStatusSelect) {
+        bulkStatusSelect.addEventListener('change', function() {
+            const bulkUpdateBtn = document.getElementById('bulkUpdateBtn');
+            if (bulkUpdateBtn) {
+                bulkUpdateBtn.disabled = !this.value || getSelectedOrderIds().length === 0;
+            }
+        });
+    }
 });
+
+// 전체 선택/해제
+function toggleSelectAll(checkbox) {
+    const checkboxes = document.querySelectorAll('.order-checkbox-item');
+    checkboxes.forEach(cb => {
+        cb.checked = checkbox.checked;
+    });
+    updateBulkActions();
+}
+
+// 선택된 주문 ID 목록 가져오기
+function getSelectedOrderIds() {
+    const checkboxes = document.querySelectorAll('.order-checkbox-item:checked');
+    return Array.from(checkboxes).map(cb => cb.value);
+}
+
+// 일괄 변경 UI 업데이트
+function updateBulkActions() {
+    const selectedIds = getSelectedOrderIds();
+    const selectedCount = selectedIds.length;
+    const bulkActions = document.getElementById('bulkActions');
+    const selectedCountSpan = document.getElementById('selectedCount');
+    const bulkUpdateBtn = document.getElementById('bulkUpdateBtn');
+    const bulkStatusSelect = document.getElementById('bulkStatusSelect');
+    const selectAllCheckbox = document.getElementById('selectAll');
+    
+    if (selectedCountSpan) {
+        selectedCountSpan.textContent = selectedCount;
+    }
+    
+    if (bulkActions) {
+        bulkActions.style.display = selectedCount > 0 ? 'flex' : 'none';
+    }
+    
+    if (bulkUpdateBtn) {
+        bulkUpdateBtn.disabled = selectedCount === 0 || !bulkStatusSelect || !bulkStatusSelect.value;
+    }
+    
+    // 전체 선택 체크박스 상태 업데이트
+    if (selectAllCheckbox) {
+        const allCheckboxes = document.querySelectorAll('.order-checkbox-item');
+        const checkedCount = document.querySelectorAll('.order-checkbox-item:checked').length;
+        selectAllCheckbox.checked = allCheckboxes.length > 0 && checkedCount === allCheckboxes.length;
+        selectAllCheckbox.indeterminate = checkedCount > 0 && checkedCount < allCheckboxes.length;
+    }
+}
+
+// 일괄 상태 변경
+function bulkUpdateStatus() {
+    const selectedIds = getSelectedOrderIds();
+    const statusSelect = document.getElementById('bulkStatusSelect');
+    
+    if (selectedIds.length === 0) {
+        alert('선택된 주문이 없습니다.');
+        return;
+    }
+    
+    if (!statusSelect || !statusSelect.value) {
+        alert('변경할 진행상황을 선택해주세요.');
+        return;
+    }
+    
+    const newStatus = statusSelect.value;
+    const statusLabels = {
+        'received': '접수',
+        'activating': '개통중',
+        'on_hold': '보류',
+        'cancelled': '취소',
+        'activation_completed': '개통완료',
+        'closed': '종료'
+    };
+    
+    if (!confirm(`선택한 ${selectedIds.length}개의 주문을 "${statusLabels[newStatus]}"로 변경하시겠습니까?`)) {
+        return;
+    }
+    
+    // 일괄 변경 API 호출
+    const promises = selectedIds.map(id => {
+        return fetch('/MVNO/api/update-order-status.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `application_id=${id}&status=${encodeURIComponent(newStatus)}`
+        })
+        .then(response => response.json())
+        .then(data => ({ id, success: data.success, message: data.message }));
+    });
+    
+    // 모든 요청 완료 대기
+    Promise.all(promises)
+        .then(results => {
+            const successCount = results.filter(r => r.success).length;
+            const failCount = results.length - successCount;
+            
+            if (failCount === 0) {
+                if (typeof showAlert === 'function') {
+                    showAlert(`${successCount}개의 주문 상태가 변경되었습니다.`, '완료');
+                } else {
+                    alert(`${successCount}개의 주문 상태가 변경되었습니다.`);
+                }
+                // 페이지 새로고침
+                setTimeout(() => {
+                    location.reload();
+                }, 500);
+            } else {
+                if (typeof showAlert === 'function') {
+                    showAlert(`${successCount}개 성공, ${failCount}개 실패했습니다.`, '알림', true);
+                } else {
+                    alert(`${successCount}개 성공, ${failCount}개 실패했습니다.`);
+                }
+                // 페이지 새로고침
+                setTimeout(() => {
+                    location.reload();
+                }, 1000);
+            }
+        })
+        .catch(error => {
+            console.error('Bulk update error:', error);
+            if (typeof showAlert === 'function') {
+                showAlert('일괄 변경 중 오류가 발생했습니다: ' + error.message, '오류', true);
+            } else {
+                alert('일괄 변경 중 오류가 발생했습니다: ' + error.message);
+            }
+        });
+}
 </script>
 
 <!-- 상품 정보 모달 -->

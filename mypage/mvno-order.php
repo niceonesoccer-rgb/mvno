@@ -945,18 +945,38 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // 가격 정보 (주문 정보 섹션에 추가)
         if (productSnapshot.price_main) {
-            html += `<div style="color: #6b7280; font-weight: 500;">기본 요금:</div>`;
-            html += `<div style="color: #1f2937; font-weight: 600;">월 ${formatNumber(productSnapshot.price_main)}원</div>`;
-        }
-        
-        if (productSnapshot.price_after) {
-            html += `<div style="color: #6b7280; font-weight: 500;">할인 후 요금:</div>`;
-            html += `<div style="color: #6366f1; font-weight: 600;">월 ${formatNumber(productSnapshot.price_after)}원</div>`;
+            html += `<div style="color: #6b7280; font-weight: 500;">월 요금:</div>`;
+            html += `<div style="color: #1f2937; font-weight: 600;">${formatNumber(productSnapshot.price_main)}원</div>`;
         }
         
         if (productSnapshot.discount_period) {
-            html += `<div style="color: #6b7280; font-weight: 500;">할인 기간:</div>`;
+            html += `<div style="color: #6b7280; font-weight: 500;">할인기간(프로모션기간):</div>`;
             html += `<div style="color: #1f2937;">${escapeHtml(productSnapshot.discount_period)}</div>`;
+        }
+        
+        // 할인기간요금(프로모션기간요금) - discount_period가 있고 프로모션이 없지 않을 때만 표시
+        if (productSnapshot.discount_period && 
+            productSnapshot.discount_period !== '프로모션 없음' && 
+            productSnapshot.discount_period !== '') {
+            if (productSnapshot.price_after !== null && productSnapshot.price_after !== undefined) {
+                // 0이면 공짜로 표시, 그 외는 금액 표시
+                if (productSnapshot.price_after === 0 || productSnapshot.price_after === '0') {
+                    html += `<div style="color: #6b7280; font-weight: 500;">할인기간요금(프로모션기간요금):</div>`;
+                    html += `<div style="color: #1f2937;">공짜</div>`;
+                } else {
+                    html += `<div style="color: #6b7280; font-weight: 500;">할인기간요금(프로모션기간요금):</div>`;
+                    html += `<div style="color: #6366f1; font-weight: 600;">${formatNumber(productSnapshot.price_after)}원</div>`;
+                }
+            } else {
+                // price_after가 null이면 프로모션 없음
+                html += `<div style="color: #6b7280; font-weight: 500;">할인기간요금(프로모션기간요금):</div>`;
+                html += `<div style="color: #1f2937;">-</div>`;
+            }
+        } else if (productSnapshot.discount_period === '프로모션 없음' || 
+                   (!productSnapshot.discount_period || productSnapshot.discount_period === '')) {
+            // 프로모션이 없을 때도 할인기간요금 필드 표시 (빈 값)
+            html += `<div style="color: #6b7280; font-weight: 500;">할인기간요금(프로모션기간요금):</div>`;
+            html += `<div style="color: #1f2937;">-</div>`;
         }
         
         html += '</div></div>';
@@ -1037,7 +1057,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         if (productSnapshot.contract_period) {
-            html += `<div style="color: #6b7280; font-weight: 500;">약정 기간:</div>`;
+            html += `<div style="color: #6b7280; font-weight: 500;">약정기간:</div>`;
             html += `<div style="color: #1f2937;">${escapeHtml(productSnapshot.contract_period)}</div>`;
         }
         

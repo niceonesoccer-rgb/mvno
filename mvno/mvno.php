@@ -83,10 +83,35 @@ $plans = array_slice($plans, $offset, $limit);
 <script src="/MVNO/assets/js/share.js" defer></script>
 
 <script>
+// 더보기 버튼 클릭 시 현재 스크롤 위치 저장
+document.addEventListener('DOMContentLoaded', function() {
+    const loadMoreBtn = document.querySelector('.load-more-btn');
+    if (loadMoreBtn) {
+        loadMoreBtn.addEventListener('click', function() {
+            // 현재 스크롤 위치 저장
+            const scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
+            sessionStorage.setItem('loadMoreScrollPosition', scrollPosition.toString());
+        });
+    }
+});
+
 // 페이지 로드 후 스크롤 위치 복원
 window.addEventListener('DOMContentLoaded', function() {
-    // URL에 앵커가 있으면 해당 위치로 이동
-    if (window.location.hash === '#load-more-anchor') {
+    // 저장된 스크롤 위치가 있으면 복원
+    const savedScrollPosition = sessionStorage.getItem('loadMoreScrollPosition');
+    if (savedScrollPosition !== null) {
+        // 저장된 위치 삭제
+        sessionStorage.removeItem('loadMoreScrollPosition');
+        
+        // DOM이 완전히 로드될 때까지 대기 후 스크롤 복원
+        setTimeout(function() {
+            window.scrollTo({
+                top: parseInt(savedScrollPosition),
+                behavior: 'auto' // 즉시 이동 (smooth 대신)
+            });
+        }, 50);
+    } else if (window.location.hash === '#load-more-anchor') {
+        // 저장된 위치가 없고 앵커가 있으면 앵커 위치로 이동
         setTimeout(function() {
             const element = document.querySelector('#load-more-anchor');
             if (element) {
@@ -99,7 +124,7 @@ window.addEventListener('DOMContentLoaded', function() {
                     behavior: 'smooth'
                 });
             }
-        }, 100); // DOM이 완전히 로드될 때까지 대기
+        }, 100);
     }
 });
 </script>

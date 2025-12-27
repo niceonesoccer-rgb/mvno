@@ -103,7 +103,7 @@ try {
     if ($priceAfterType === 'free') {
         $priceAfter = 0;
     } elseif ($priceAfterType === 'custom' && !empty($_POST['price_after'])) {
-        $priceAfter = floatval(str_replace(',', '', $_POST['price_after']));
+        $priceAfter = intval(str_replace(',', '', $_POST['price_after']));
     }
     
     // 프로모션 및 혜택 JSON 변환
@@ -131,7 +131,7 @@ try {
         'contract_period_discount_unit' => $_POST['contract_period_discount_unit'] ?? null,
         
         // 요금 정보
-        'price_main' => !empty($_POST['price_main']) ? floatval(str_replace(',', '', $_POST['price_main'])) : 0,
+        'price_main' => !empty($_POST['price_main']) ? intval(str_replace(',', '', $_POST['price_main'])) : 0,
         'price_main_unit' => $_POST['price_main_unit'] ?? '원',
         
         // 할인기간(프로모션기간)

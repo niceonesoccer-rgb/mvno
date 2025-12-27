@@ -179,3 +179,4 @@ AND EXISTS (SELECT 1 FROM product_reviews WHERE product_id = p.id AND status = '
 
 **추천: 통계 테이블 유지**
 
+

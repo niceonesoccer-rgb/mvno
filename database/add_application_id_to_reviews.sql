@@ -22,3 +22,4 @@ ADD INDEX `idx_application_id` (`application_id`);
 
 
 
+
