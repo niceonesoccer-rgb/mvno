@@ -15,13 +15,20 @@
         const loadMoreBtn = document.getElementById('load-more-internet-btn') || 
                            document.getElementById('load-more-mno-sim-btn') ||
                            document.getElementById('load-more-mvno-btn') ||
-                           document.getElementById('load-more-mno-btn');
+                           document.getElementById('load-more-mno-btn') ||
+                           document.getElementById('load-more-wishlist-btn') ||
+                           document.getElementById('load-more-mvno-order-btn') ||
+                           document.getElementById('load-more-mno-order-btn') ||
+                           document.getElementById('load-more-mno-sim-order-btn') ||
+                           document.getElementById('load-more-internet-order-btn');
         
         if (!loadMoreBtn) return;
 
         const productType = loadMoreBtn.getAttribute('data-type');
         let currentPage = parseInt(loadMoreBtn.getAttribute('data-page')) || 2;
         let isLoading = false;
+        const isWishlist = loadMoreBtn.getAttribute('data-wishlist') === 'true';
+        const isOrder = loadMoreBtn.getAttribute('data-order') === 'true';
 
         loadMoreBtn.addEventListener('click', function() {
             if (isLoading) return;
@@ -41,10 +48,11 @@
                 limit: ITEMS_PER_PAGE,
                 filterProvider: filterProvider,
                 filterServiceType: filterServiceType,
-                url: `/MVNO/api/load-more-products.php?type=${productType}&page=${currentPage}&limit=${ITEMS_PER_PAGE}`
+                isWishlist: isWishlist,
+                isOrder: isOrder
             });
 
-            loadMoreProducts(productType, currentPage, filterProvider, filterServiceType, function(success, data) {
+            loadMoreProducts(productType, currentPage, filterProvider, filterServiceType, isWishlist, isOrder, function(success, data) {
                 isLoading = false;
                 loadMoreBtn.disabled = false;
 
@@ -113,7 +121,8 @@
         const loadMoreBtn = document.getElementById('load-more-internet-btn') || 
                            document.getElementById('load-more-mno-sim-btn') ||
                            document.getElementById('load-more-mvno-btn') ||
-                           document.getElementById('load-more-mno-btn');
+                           document.getElementById('load-more-mno-btn') ||
+                           document.getElementById('load-more-wishlist-btn');
         
         if (!loadMoreBtn) return;
 
@@ -132,8 +141,10 @@
                     // 필터 파라미터 가져오기 (mno-sim용)
                     const filterProvider = loadMoreBtn.getAttribute('data-provider') || '';
                     const filterServiceType = loadMoreBtn.getAttribute('data-service-type') || '';
+                    const isWishlist = loadMoreBtn.getAttribute('data-wishlist') === 'true';
+                    const isOrder = loadMoreBtn.getAttribute('data-order') === 'true';
 
-                    loadMoreProducts(productType, currentPage, filterProvider, filterServiceType, function(success, data) {
+                    loadMoreProducts(productType, currentPage, filterProvider, filterServiceType, isWishlist, isOrder, function(success, data) {
                         isLoading = false;
                         loadMoreBtn.disabled = false;
 
@@ -174,8 +185,18 @@
     }
 
     // API 호출하여 더 많은 상품 로드
-    function loadMoreProducts(type, page, filterProvider, filterServiceType, callback) {
+    function loadMoreProducts(type, page, filterProvider, filterServiceType, isWishlist, isOrder, callback) {
         let url = `/MVNO/api/load-more-products.php?type=${type}&page=${page}&limit=${ITEMS_PER_PAGE}`;
+        
+        // 주문내역 파라미터 추가
+        if (isOrder) {
+            url += `&order=true`;
+        }
+        
+        // 위시리스트 파라미터 추가
+        if (isWishlist) {
+            url += `&wishlist=true`;
+        }
         
         // 필터 파라미터 추가 (mno-sim용)
         if (filterProvider) {
@@ -191,7 +212,8 @@
             page: page,
             limit: ITEMS_PER_PAGE,
             filterProvider: filterProvider,
-            filterServiceType: filterServiceType
+            filterServiceType: filterServiceType,
+            isWishlist: isWishlist
         });
         
         fetch(url)
@@ -237,7 +259,11 @@
         const container = document.getElementById('internet-products-container') ||
                          document.getElementById('mno-sim-products-container') ||
                          document.getElementById('mvno-products-container') ||
-                         document.getElementById('mno-products-container');
+                         document.getElementById('mno-products-container') ||
+                         document.getElementById('mvno-orders-container') ||
+                         document.getElementById('mno-orders-container') ||
+                         document.getElementById('mno-sim-orders-container') ||
+                         document.getElementById('internet-orders-container');
         
         if (!container) {
             console.error('appendProducts: 컨테이너를 찾을 수 없습니다.');
@@ -264,7 +290,7 @@
                 tempDiv.innerHTML = html;
                 
                 // 래퍼가 있으면 래퍼 자체를 추가, 없으면 모든 자식 요소를 추가
-                const wrapper = tempDiv.querySelector('.plan-item-wrapper');
+                const wrapper = tempDiv.querySelector('.plan-item-wrapper, .phone-item-wrapper, .internet-item-wrapper, .order-item-wrapper');
                 if (wrapper) {
                     // 래퍼가 있으면 래퍼를 직접 추가
                     if (loadMoreContainer) {
@@ -323,12 +349,33 @@
             // 찜하기 버튼 재초기화 (favorite-heart.js)
             if (typeof initFavoriteHearts === 'function') {
                 initFavoriteHearts();
+            } else if (typeof initFavoriteButtons === 'function') {
+                initFavoriteButtons();
+            }
+            
+            // 새로 추가된 카드의 찜 상태 초기화
+            if (typeof initializeFavoriteStates === 'function') {
+                initializeFavoriteStates();
             }
             
             // 공유 버튼 재초기화 (share.js)
             if (typeof initShareButtons === 'function') {
                 initShareButtons();
             }
+            
+            // 주문내역 카드 클릭 이벤트 재초기화
+            const newApplicationCards = container.querySelectorAll('.application-card:not([data-click-initialized])');
+            newApplicationCards.forEach(card => {
+                card.setAttribute('data-click-initialized', 'true');
+                const applicationId = card.getAttribute('data-application-id');
+                if (applicationId) {
+                    card.addEventListener('click', function(e) {
+                        if (typeof openModal === 'function') {
+                            openModal(applicationId);
+                        }
+                    });
+                }
+            });
         } 
         // JSON 데이터인 경우 (mvno, mno, mno-sim)
         else if (data.products && Array.isArray(data.products)) {

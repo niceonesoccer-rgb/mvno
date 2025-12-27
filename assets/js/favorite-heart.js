@@ -287,4 +287,9 @@
     } else {
         initFavoriteButtons();
     }
+    
+    // 전역으로 노출 (AJAX로 추가된 카드의 찜 상태 초기화용)
+    window.initFavoriteHearts = initFavoriteButtons;
+    window.initFavoriteButtons = initFavoriteButtons;
+    window.initializeFavoriteStates = initializeFavoriteStates;
 })();

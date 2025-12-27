@@ -2563,7 +2563,7 @@ function incrementProductView($productId) {
  * @param int $userId 사용자 ID
  * @return array 신청 내역 배열
  */
-function getUserMvnoApplications($userId) {
+function getUserMvnoApplications($userId, $limit = null, $offset = null) {
     $pdo = getDBConnection();
     if (!$pdo) {
         return [];
@@ -2571,7 +2571,7 @@ function getUserMvnoApplications($userId) {
     
     try {
         // 단순한 쿼리로 변경: application_customers에서 최신 레코드만 가져오기
-        $stmt = $pdo->prepare("
+        $sql = "
             SELECT 
                 a.id as application_id,
                 a.order_number,
@@ -2617,8 +2617,19 @@ function getUserMvnoApplications($userId) {
             WHERE c.user_id = :user_id 
             AND a.product_type = 'mvno'
             ORDER BY a.created_at DESC
-        ");
-        $stmt->execute([':user_id' => $userId]);
+        ";
+        
+        if ($limit !== null && $offset !== null) {
+            $sql .= " LIMIT :limit OFFSET :offset";
+        }
+        
+        $stmt = $pdo->prepare($sql);
+        $params = [':user_id' => $userId];
+        if ($limit !== null && $offset !== null) {
+            $params[':limit'] = (int)$limit;
+            $params[':offset'] = (int)$offset;
+        }
+        $stmt->execute($params);
         $applications = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
         // 디버깅 로그
@@ -3095,7 +3106,7 @@ function getUserMvnoApplications($userId) {
  * @param int $userId 사용자 ID
  * @return array 신청 내역 배열
  */
-function getUserMnoApplications($userId) {
+function getUserMnoApplications($userId, $limit = null, $offset = null) {
     $pdo = getDBConnection();
     if (!$pdo) {
         error_log("getUserMnoApplications: DB connection failed");
@@ -3106,7 +3117,7 @@ function getUserMnoApplications($userId) {
         // 디버깅: user_id 확인
         error_log("getUserMnoApplications: userId = " . var_export($userId, true));
         
-        $stmt = $pdo->prepare("
+        $sql = "
             SELECT 
                 a.id as application_id,
                 a.order_number,
@@ -3152,8 +3163,19 @@ function getUserMnoApplications($userId) {
             WHERE c.user_id = :user_id 
             AND a.product_type = 'mno'
             ORDER BY a.created_at DESC
-        ");
-        $stmt->execute([':user_id' => $userId]);
+        ";
+        
+        if ($limit !== null && $offset !== null) {
+            $sql .= " LIMIT :limit OFFSET :offset";
+        }
+        
+        $stmt = $pdo->prepare($sql);
+        $params = [':user_id' => $userId];
+        if ($limit !== null && $offset !== null) {
+            $params[':limit'] = (int)$limit;
+            $params[':offset'] = (int)$offset;
+        }
+        $stmt->execute($params);
         $applications = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
         // 디버깅: 쿼리 결과 확인
@@ -3398,7 +3420,7 @@ function getUserMnoApplications($userId) {
  * @param int $userId 사용자 ID
  * @return array 신청 내역 배열
  */
-function getUserInternetApplications($userId) {
+function getUserInternetApplications($userId, $limit = null, $offset = null) {
     $pdo = getDBConnection();
     if (!$pdo) {
         error_log("getUserInternetApplications: Database connection failed for user_id: " . $userId);
@@ -3407,7 +3429,7 @@ function getUserInternetApplications($userId) {
     
     try {
         error_log("getUserInternetApplications: Querying for user_id: " . $userId);
-        $stmt = $pdo->prepare("
+        $sql = "
             SELECT 
                 a.id as application_id,
                 a.order_number,
@@ -3439,8 +3461,19 @@ function getUserInternetApplications($userId) {
             WHERE c.user_id = :user_id 
             AND a.product_type = 'internet'
             ORDER BY a.created_at DESC
-        ");
-        $stmt->execute([':user_id' => $userId]);
+        ";
+        
+        if ($limit !== null && $offset !== null) {
+            $sql .= " LIMIT :limit OFFSET :offset";
+        }
+        
+        $stmt = $pdo->prepare($sql);
+        $params = [':user_id' => $userId];
+        if ($limit !== null && $offset !== null) {
+            $params[':limit'] = (int)$limit;
+            $params[':offset'] = (int)$offset;
+        }
+        $stmt->execute($params);
         $applications = $stmt->fetchAll(PDO::FETCH_ASSOC);
         error_log("getUserInternetApplications: Found " . count($applications) . " raw applications for user_id: " . $userId);
         
@@ -3701,6 +3734,7 @@ function getUserInternetApplications($userId) {
             
             $formattedApplications[] = [
                 'id' => (int)$app['product_id'],
+                'product_id' => (int)$app['product_id'],
                 'application_id' => (int)$app['application_id'],
                 'order_number' => $app['order_number'] ?? null,
                 'provider' => $registrationPlace,
@@ -3709,8 +3743,10 @@ function getUserInternetApplications($userId) {
                 'tv_combined' => !empty($cashPaymentNames) || !empty($giftCardNames) || !empty($equipmentNames) || !empty($installationNames),
                 'price' => $priceFormatted,
                 'installation_fee' => '무료',
-                'order_date' => date('Y.m.d', strtotime($app['order_date'])),
+                'order_date' => $app['order_date'], // 원본 날짜 형식 유지 (컴포넌트에서 포맷팅)
                 'installation_date' => '', // 설치일은 별도 관리 필요
+                'application_status' => $app['application_status'] ?? '', // 원본 상태 값
+                'status' => $statusKor, // 한글 상태 표시
                 'has_review' => $hasReview,
                 'review_count' => $reviewCount,
                 'is_sold_out' => ($app['product_status'] ?? 'active') !== 'active',
@@ -3741,7 +3777,7 @@ function getUserInternetApplications($userId) {
  * @param int $userId 사용자 ID
  * @return array 신청 내역 배열
  */
-function getUserMnoSimApplications($userId) {
+function getUserMnoSimApplications($userId, $limit = null, $offset = null) {
     $pdo = getDBConnection();
     if (!$pdo) {
         error_log("getUserMnoSimApplications: DB connection failed");
@@ -3749,7 +3785,7 @@ function getUserMnoSimApplications($userId) {
     }
     
     try {
-        $stmt = $pdo->prepare("
+        $sql = "
             SELECT 
                 a.id as application_id,
                 a.order_number,
@@ -3815,8 +3851,19 @@ function getUserMnoSimApplications($userId) {
             WHERE c.user_id = :user_id 
             AND a.product_type = 'mno-sim'
             ORDER BY a.created_at DESC
-        ");
-        $stmt->execute([':user_id' => $userId]);
+        ";
+        
+        if ($limit !== null && $offset !== null) {
+            $sql .= " LIMIT :limit OFFSET :offset";
+        }
+        
+        $stmt = $pdo->prepare($sql);
+        $params = [':user_id' => $userId];
+        if ($limit !== null && $offset !== null) {
+            $params[':limit'] = (int)$limit;
+            $params[':offset'] = (int)$offset;
+        }
+        $stmt->execute($params);
         $applications = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
         // 데이터 포맷팅

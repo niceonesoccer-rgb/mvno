@@ -75,6 +75,12 @@ if ($pdo) {
     }
 }
 
+// 페이지 번호 가져오기
+$page = isset($_GET['page']) ? intval($_GET['page']) : 1;
+if ($page < 1) $page = 1;
+$limit = 20;
+$offset = ($page - 1) * $limit;
+
 // 타입에 따라 데이터 가져오기
 if ($is_mno_sim) {
     // 통신사단독유심 데이터
@@ -83,7 +89,16 @@ if ($is_mno_sim) {
     
     // 위시리스트에 있는 통신사단독유심 상품만 가져오기
     if (!empty($wishlistProductIds)) {
-        $placeholders = implode(',', array_fill(0, count($wishlistProductIds), '?'));
+        // 이름이 있는 파라미터로 변경
+        $placeholders = [];
+        $params = [];
+        foreach ($wishlistProductIds as $idx => $id) {
+            $paramName = ':wishlist_id_' . $idx;
+            $placeholders[] = $paramName;
+            $params[$paramName] = $id;
+        }
+        $placeholdersStr = implode(',', $placeholders);
+        
         $stmt = $pdo->prepare("
             SELECT 
                 p.id,
@@ -127,11 +142,33 @@ if ($is_mno_sim) {
                 mno_sim.benefits
             FROM products p
             INNER JOIN product_mno_sim_details mno_sim ON p.id = mno_sim.product_id
-            WHERE p.id IN ({$placeholders}) AND p.status = 'active'
+            WHERE p.id IN ({$placeholdersStr}) AND p.status = 'active'
             ORDER BY p.created_at DESC
+            LIMIT :limit OFFSET :offset
         ");
-        $stmt->execute($wishlistProductIds);
+        
+        // 모든 파라미터 바인딩
+        foreach ($params as $paramName => $value) {
+            $stmt->bindValue($paramName, $value, PDO::PARAM_INT);
+        }
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
         $mnoSimProducts = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // 전체 개수 조회
+        $countStmt = $pdo->prepare("
+            SELECT COUNT(*) as total
+            FROM products p
+            INNER JOIN product_mno_sim_details mno_sim ON p.id = mno_sim.product_id
+            WHERE p.id IN ({$placeholdersStr}) AND p.status = 'active'
+        ");
+        // 모든 파라미터 바인딩
+        foreach ($params as $paramName => $value) {
+            $countStmt->bindValue($paramName, $value, PDO::PARAM_INT);
+        }
+        $countStmt->execute();
+        $totalCount = intval($countStmt->fetch(PDO::FETCH_ASSOC)['total']);
         
         // plan 카드 형식으로 변환
         foreach ($mnoSimProducts as $product) {
@@ -141,46 +178,58 @@ if ($is_mno_sim) {
             $plan['item_type'] = 'mno-sim'; // 찜 버튼용 타입 (확실히 설정)
             $mnoSimPlans[] = $plan;
         }
+    } else {
+        $totalCount = 0;
     }
     
     $page_title = '찜한 통신사단독유심 내역';
-    $result_count = count($mnoSimPlans) . '개의 결과';
+    $result_count = number_format($totalCount) . '개의 결과';
 } elseif ($is_mno) {
     // 통신사폰 데이터
     require_once '../includes/data/phone-data.php';
     
-    // 모든 통신사폰 데이터 가져오기 (큰 limit 사용)
-    $allPhones = getPhonesData(1000);
+    // 모든 통신사폰 데이터 가져오기
+    $allPhones = getPhonesData(10000);
     
     // 위시리스트에 있는 상품만 필터링
     if (!empty($wishlistProductIds)) {
-        $phones = array_filter($allPhones, function($phone) use ($wishlistProductIds) {
+        $filteredPhones = array_filter($allPhones, function($phone) use ($wishlistProductIds) {
             $phoneId = isset($phone['id']) ? (int)$phone['id'] : null;
             return $phoneId && in_array($phoneId, $wishlistProductIds, true);
         });
-        $phones = array_values($phones); // 인덱스 재정렬
+        $filteredPhones = array_values($filteredPhones); // 인덱스 재정렬
+        $totalCount = count($filteredPhones);
+        $phones = array_slice($filteredPhones, $offset, $limit);
+    } else {
+        $totalCount = 0;
+        $phones = [];
     }
     
     $page_title = '찜한 통신사폰 요금제';
-    $result_count = count($phones) . '개의 결과';
+    $result_count = number_format($totalCount) . '개의 결과';
 } else {
     // 알뜰폰 데이터
     require_once '../includes/data/plan-data.php';
     
-    // 모든 알뜰폰 데이터 가져오기 (큰 limit 사용)
-    $allPlans = getPlansData(1000);
+    // 모든 알뜰폰 데이터 가져오기
+    $allPlans = getPlansDataFromDB(10000, 'active');
     
     // 위시리스트에 있는 상품만 필터링
     if (!empty($wishlistProductIds)) {
-        $plans = array_filter($allPlans, function($plan) use ($wishlistProductIds) {
+        $filteredPlans = array_filter($allPlans, function($plan) use ($wishlistProductIds) {
             $planId = isset($plan['id']) ? (int)$plan['id'] : null;
             return $planId && in_array($planId, $wishlistProductIds, true);
         });
-        $plans = array_values($plans); // 인덱스 재정렬
+        $filteredPlans = array_values($filteredPlans); // 인덱스 재정렬
+        $totalCount = count($filteredPlans);
+        $plans = array_slice($filteredPlans, $offset, $limit);
+    } else {
+        $totalCount = 0;
+        $plans = [];
     }
     
     $page_title = '찜한 알뜰폰 요금제';
-    $result_count = count($plans) . '개의 결과';
+    $result_count = number_format($totalCount) . '개의 결과';
 }
 ?>
 
@@ -204,14 +253,16 @@ if ($is_mno_sim) {
         <!-- 요금제/통신사폰 카드 목록 -->
         <?php if ($is_mno_sim): ?>
             <!-- 통신사단독유심 목록 레이아웃 -->
-            <div class="plans-list-container">
+            <div class="plans-list-container" id="mno-sim-products-container">
                 <?php foreach ($mnoSimPlans as $plan): ?>
-                    <?php
-                    $card_wrapper_class = '';
-                    $layout_type = 'list';
-                    include '../includes/components/plan-card.php';
-                    ?>
-                    <hr class="plan-card-divider">
+                    <div class="plan-item-wrapper">
+                        <?php
+                        $card_wrapper_class = '';
+                        $layout_type = 'list';
+                        include '../includes/components/plan-card.php';
+                        ?>
+                        <hr class="plan-card-divider">
+                    </div>
                 <?php endforeach; ?>
             </div>
         <?php elseif ($is_mno): ?>
@@ -231,40 +282,29 @@ if ($is_mno_sim) {
         <?php endif; ?>
         
         <!-- 더보기 버튼 -->
-        <?php if ($is_mno_sim && count($mnoSimPlans) > 10): ?>
-            <?php 
-            $remaining = count($mnoSimPlans) - 10;
-            ?>
-            <div style="margin-top: 32px; margin-bottom: 32px;" id="moreButtonContainer">
-                <button class="plan-review-more-btn" id="moreWishlistBtn" 
-                        data-type="mno-sim"
-                        data-total="<?php echo count($mnoSimPlans); ?>"
-                        style="width: 100%; padding: 12px; background: #6366f1; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer;">
-                    더보기 (<?php echo $remaining > 10 ? 10 : $remaining; ?>개)
-                </button>
-            </div>
-        <?php elseif ($is_mno && count($phones) > 10): ?>
-            <?php 
-            $remaining = count($phones) - 10;
-            ?>
-            <div style="margin-top: 32px; margin-bottom: 32px;" id="moreButtonContainer">
-                <button class="plan-review-more-btn" id="moreWishlistBtn" 
-                        data-type="mno"
-                        data-total="<?php echo count($phones); ?>"
-                        style="width: 100%; padding: 12px; background: #6366f1; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer;">
-                    더보기 (<?php echo $remaining > 10 ? 10 : $remaining; ?>개)
-                </button>
-            </div>
-        <?php elseif (!$is_mno && !$is_mno_sim && count($plans) > 10): ?>
-            <?php 
-            $remaining = count($plans) - 10;
-            ?>
-            <div style="margin-top: 32px; margin-bottom: 32px;" id="moreButtonContainer">
-                <button class="plan-review-more-btn" id="moreWishlistBtn" 
-                        data-type="mvno"
-                        data-total="<?php echo count($plans); ?>"
-                        style="width: 100%; padding: 12px; background: #6366f1; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer;">
-                    더보기 (<?php echo $remaining > 10 ? 10 : $remaining; ?>개)
+        <?php 
+        $currentCount = 0;
+        $hasMore = false;
+        if ($is_mno_sim) {
+            $currentCount = count($mnoSimPlans);
+            $hasMore = ($offset + $currentCount) < $totalCount;
+        } elseif ($is_mno) {
+            $currentCount = count($phones);
+            $hasMore = ($offset + $currentCount) < $totalCount;
+        } else {
+            $currentCount = count($plans);
+            $hasMore = ($offset + $currentCount) < $totalCount;
+        }
+        $remainingCount = max(0, $totalCount - ($offset + $currentCount));
+        ?>
+        <?php if ($hasMore && $totalCount > 0): ?>
+            <div class="load-more-container" id="load-more-anchor">
+                <button id="load-more-wishlist-btn" class="load-more-btn" 
+                        data-type="<?php echo $is_mno_sim ? 'mno-sim' : ($is_mno ? 'mno' : 'mvno'); ?>" 
+                        data-page="2" 
+                        data-total="<?php echo $totalCount; ?>"
+                        data-wishlist="true">
+                    더보기 (<span id="remaining-count"><?php echo number_format($remainingCount); ?></span>개 남음)
                 </button>
             </div>
         <?php endif; ?>
@@ -274,60 +314,54 @@ if ($is_mno_sim) {
 <script src="../assets/js/plan-accordion.js" defer></script>
 <script src="../assets/js/favorite-heart.js" defer></script>
 <script src="../assets/js/share.js" defer></script>
+<!-- 더보기 기능 스크립트 -->
+<script src="/MVNO/assets/js/load-more-products.js?v=2"></script>
 
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const moreBtn = document.getElementById('moreWishlistBtn');
-    if (!moreBtn) return;
-    
-    const container = document.querySelector('.plans-list-container');
-    if (!container) return;
-    
-    const allItems = Array.from(container.querySelectorAll('.plan-item, .phone-item'));
-    const totalCount = allItems.length;
-    let visibleCount = 10;
-    const loadCount = 10;
-    
-    // 처음 10개만 표시하고 나머지는 숨김
-    allItems.forEach((item, index) => {
-        if (index >= visibleCount) {
-            item.style.display = 'none';
-        }
-    });
-    
-    function updateButtonText() {
-        const remaining = totalCount - visibleCount;
-        if (remaining > 0) {
-            const showCount = remaining > loadCount ? loadCount : remaining;
-            moreBtn.textContent = `더보기 (${showCount}개)`;
-        }
-    }
-    
-    moreBtn.addEventListener('click', function() {
-        const endCount = Math.min(visibleCount + loadCount, totalCount);
-        
-        // 다음 10개 아이템 표시
-        for (let i = visibleCount; i < endCount; i++) {
-            if (allItems[i]) {
-                allItems[i].style.display = '';
-            }
-        }
-        
-        visibleCount = endCount;
-        
-        if (visibleCount >= totalCount) {
-            const moreButtonContainer = document.getElementById('moreButtonContainer');
-            if (moreButtonContainer) {
-                moreButtonContainer.style.display = 'none';
-            }
-        } else {
-            updateButtonText();
-        }
-    });
-    
-    updateButtonText();
-});
-</script>
+<style>
+/* 더보기 버튼 컨테이너 - 카드와 같은 너비 */
+.load-more-container {
+    width: 100%;
+    max-width: 100%;
+    padding: 30px 0;
+    box-sizing: border-box;
+    margin: 0;
+}
+
+/* 더보기 버튼 스타일 - 카드와 같은 너비로 설정 */
+.load-more-btn {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    color: white !important;
+    text-decoration: none;
+    text-align: center;
+    border: none;
+    padding: 16px 32px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+    box-sizing: border-box;
+}
+
+.load-more-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+}
+
+.load-more-btn:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.load-more-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+</style>
 
 <?php
 // 푸터 포함

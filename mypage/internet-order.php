@@ -41,8 +41,18 @@ require_once '../includes/data/db-config.php';
 require_once '../includes/data/review-settings.php';
 require_once '../includes/data/plan-data.php';
 
-// DB에서 실제 신청 내역 가져오기
-$internets = getUserInternetApplications($user_id);
+// 페이지 번호 및 제한 설정
+$page = isset($_GET['page']) ? intval($_GET['page']) : 1;
+$limit = 20; // 초기 로드 개수
+$offset = ($page - 1) * $limit;
+
+// DB에서 실제 신청 내역 가져오기 (페이징 적용)
+$internets = getUserInternetApplications($user_id, $limit, $offset);
+$totalCount = count(getUserInternetApplications($user_id)); // 전체 개수
+
+$currentCount = count($internets);
+$remainingCount = max(0, $totalCount - ($offset + $currentCount));
+$hasMore = ($offset + $currentCount) < $totalCount;
 
 // 디버깅: 데이터 확인
 $debug_mode = isset($_GET['debug']) && $_GET['debug'] == '1';
@@ -151,6 +161,13 @@ include '../includes/components/internet-review-delete-modal.php';
                     </div>
                 <?php endif; ?>
                 
+                <!-- 전체 개수 표시 -->
+                <?php if (!empty($internets)): ?>
+                <div class="plans-results-count">
+                    <span><?php echo number_format($totalCount); ?>개의 결과</span>
+                </div>
+                <?php endif; ?>
+                
                 <!-- 신청한 인터넷 목록 -->
                 <div style="margin-bottom: 32px;">
                     <?php if (empty($internets)): ?>
@@ -162,323 +179,29 @@ include '../includes/components/internet-review-delete-modal.php';
                             <?php endif; ?>
                         </div>
                     <?php else: ?>
-                        <div style="display: flex; flex-direction: column; gap: 16px;">
+                        <div style="display: flex; flex-direction: column; gap: 16px;" id="internet-orders-container">
                             <?php foreach ($internets as $index => $internet): ?>
-                                <div class="internet-item application-card" 
-                                     data-index="<?php echo $index; ?>" 
-                                     data-internet-id="<?php echo $internet['id']; ?>" 
-                                     data-application-id="<?php echo htmlspecialchars($internet['application_id'] ?? ''); ?>"
-                                     style="<?php echo $index >= 10 ? 'display: none;' : ''; ?> padding: 24px; border: 1px solid #e5e7eb; border-radius: 12px; background: white; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.05);"
-                                     onmouseover="this.style.borderColor='#6366f1'; this.style.boxShadow='0 4px 12px rgba(99, 102, 241, 0.15)'"
-                                     onmouseout="this.style.borderColor='#e5e7eb'; this.style.boxShadow='0 1px 3px rgba(0,0,0,0.05)'">
-                                    
-                                    <!-- 상단: 통신사 로고 및 정보 -->
-                                    <div style="margin-bottom: 16px; position: relative;">
-                                        <!-- 주문일자 (상단 오른쪽) -->
-                                        <?php
-                                        $orderDate = $internet['order_date'] ?? '';
-                                        if ($orderDate) {
-                                            try {
-                                                $dateObj = new DateTime($orderDate);
-                                                $formattedDate = $dateObj->format('Y.m.d');
-                                            } catch (Exception $e) {
-                                                $formattedDate = $orderDate;
-                                            }
-                                        } else {
-                                            $formattedDate = '';
-                                        }
-                                        ?>
-                                        <?php if ($formattedDate): ?>
-                                            <div style="position: absolute; top: 0; right: 0; font-size: 13px; color: #6b7280;">
-                                                <?php echo htmlspecialchars($formattedDate); ?>
-                                            </div>
-                                        <?php endif; ?>
-                                        
-                                        <?php
-                                        // 통신사 로고 경로 설정
-                                        $provider = $internet['provider'] ?? '';
-                                        
-                                        // 디버깅: provider 값 확인
-                                        if (isset($_GET['debug']) && $_GET['debug'] == '1') {
-                                            error_log("mypage/internet-order.php - application_id: " . ($internet['application_id'] ?? 'unknown') . ", provider: '" . $provider . "'");
-                                        }
-                                        
-                                        $logoUrl = '';
-                                        // 정확한 매칭: 더 구체적인 값 우선 확인
-                                        // 순서 중요: "SKT"를 "KT"보다 먼저 확인해야 함 (SKT에 KT가 포함되어 있음)
-                                        if (stripos($provider, 'KT skylife') !== false || stripos($provider, 'KTskylife') !== false) {
-                                            // "KT skylife" -> ktskylife.svg
-                                            $logoUrl = '/MVNO/assets/images/internets/ktskylife.svg';
-                                        } elseif (stripos($provider, 'SKT') !== false || stripos($provider, 'SK broadband') !== false || stripos($provider, 'SK') !== false) {
-                                            // "SKT", "SK broadband", "SK" -> broadband.svg (SKT broadband)
-                                            // "SKT"를 "KT"보다 먼저 확인 (SKT에 KT가 포함되어 있으므로)
-                                            $logoUrl = '/MVNO/assets/images/internets/broadband.svg';
-                                        } elseif (stripos($provider, 'KT') !== false) {
-                                            // "KT" (skylife, SKT 제외) -> kt.svg
-                                            $logoUrl = '/MVNO/assets/images/internets/kt.svg';
-                                        } elseif (stripos($provider, 'LG') !== false || stripos($provider, 'LGU') !== false) {
-                                            $logoUrl = '/MVNO/assets/images/internets/lgu.svg';
-                                        }
-                                        
-                                        // provider 텍스트 변환: "SKT" -> "SKT broadband"
-                                        $displayProvider = $provider;
-                                        if (stripos($provider, 'SKT') !== false && stripos($provider, 'broadband') === false) {
-                                            $displayProvider = 'SKT broadband';
-                                        }
-                                        ?>
-                                        <?php if ($logoUrl): ?>
-                                            <div style="margin-bottom: 8px;">
-                                                <img src="<?php echo htmlspecialchars($logoUrl); ?>" alt="<?php echo htmlspecialchars($displayProvider); ?>" style="height: 32px; object-fit: contain;">
-                                                <?php if (isset($_GET['debug']) && $_GET['debug'] == '1'): ?>
-                                                    <div style="font-size: 11px; color: #6b7280; margin-top: 4px;">[디버그: provider="<?php echo htmlspecialchars($provider); ?>"]</div>
-                                                <?php endif; ?>
-                                            </div>
-                                        <?php endif; ?>
-                                        <!-- provider 텍스트는 항상 표시 (신청 시점 정보 명확히 표시) -->
-                                        <div style="font-size: 18px; font-weight: 700; color: #1f2937; margin-bottom: 12px; <?php echo $logoUrl ? 'margin-top: 4px;' : ''; ?>">
-                                            <?php echo htmlspecialchars($displayProvider ?: '인터넷'); ?>
-                                            <?php if (isset($_GET['debug']) && $_GET['debug'] == '1'): ?>
-                                                <div style="font-size: 11px; color: #6b7280; margin-top: 4px; font-weight: normal;">[디버그: provider="<?php echo htmlspecialchars($provider); ?>"]</div>
-                                            <?php endif; ?>
-                                        </div>
-                                        
-                                        <div style="font-size: 16px; color: #374151; margin-bottom: 8px;">
-                                            <?php echo htmlspecialchars($internet['speed'] ?? ''); ?> <?php echo htmlspecialchars($internet['plan_name'] ?? ''); ?>
-                                        </div>
-                                        
-                                        <div style="font-size: 16px; color: #1f2937; font-weight: 600;">
-                                            <?php 
-                                            $displayPrice = $internet['price'] ?? '';
-                                            if (empty($displayPrice) || $displayPrice === '월 0원') {
-                                                $displayPrice = '월 요금 정보 없음';
-                                            }
-                                            echo htmlspecialchars($displayPrice); 
-                                            ?>
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- 하단: 주문번호 및 진행상황 -->
-                                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; padding-top: 12px; border-top: 1px solid #e5e7eb;">
-                                        <div style="display: flex; align-items: center; gap: 8px; font-size: 13px;">
-                                            <?php if (!empty($internet['order_number'])): ?>
-                                                <span style="color: #6b7280;">주문번호</span>
-                                                <span style="color: #374151; font-weight: 600;"><?php echo htmlspecialchars($internet['order_number']); ?></span>
-                                            <?php elseif (!empty($internet['application_id'])): ?>
-                                                <span style="color: #6b7280;">신청번호</span>
-                                                <span style="color: #374151; font-weight: 600;">#<?php echo htmlspecialchars($internet['application_id']); ?></span>
-                                            <?php endif; ?>
-                                        </div>
-                                        <div>
-                                        <?php 
-                                        // 상태별 배지 색상 설정 (함수에서 반환하는 application_status 사용)
-                                        $statusBg = '#eef2ff'; // 기본 파란색
-                                        $statusColor = '#6366f1';
-                                        
-                                        // 상태별 배지 색상 설정 (internet.php의 옵션과 동일한 상태값 사용)
-                                        $appStatus = $internet['application_status'] ?? '';
-                                        if (!empty($appStatus)) {
-                                            switch ($appStatus) {
-                                                case 'received':
-                                                case 'pending':
-                                                    $statusBg = '#fef3c7'; // 노란색
-                                                    $statusColor = '#92400e';
-                                                    break;
-                                                case 'processing':
-                                                case 'activating':
-                                                    $statusBg = '#e0e7ff'; // 보라색
-                                                    $statusColor = '#6366f1';
-                                                    break;
-                                                case 'installation_completed':
-                                                case 'activation_completed':
-                                                case 'completed':
-                                                    $statusBg = '#d1fae5'; // 초록색
-                                                    $statusColor = '#065f46';
-                                                    break;
-                                                case 'on_hold':
-                                                    $statusBg = '#fef3c7'; // 노란색
-                                                    $statusColor = '#92400e';
-                                                    break;
-                                                case 'cancelled':
-                                                case 'rejected':
-                                                    $statusBg = '#fee2e2'; // 빨간색
-                                                    $statusColor = '#991b1b';
-                                                    break;
-                                                case 'closed':
-                                                case 'terminated':
-                                                    $statusBg = '#f3f4f6'; // 회색
-                                                    $statusColor = '#6b7280';
-                                                    break;
-                                            }
-                                        }
-                                        
-                                        if (!empty($internet['status'])): ?>
-                                            <div style="display: inline-flex; align-items: center; padding: 6px 12px; background: <?php echo $statusBg; ?>; border-radius: 6px;">
-                                                <span style="font-size: 13px; color: <?php echo $statusColor; ?>; font-weight: 600;"><?php echo htmlspecialchars($internet['status']); ?></span>
-                                            </div>
-                                        <?php else: ?>
-                                            <div style="display: inline-flex; align-items: center; padding: 6px 12px; background: #f3f4f6; border-radius: 6px;">
-                                                <span style="font-size: 13px; color: #6b7280; font-weight: 600;">상태 없음</span>
-                                            </div>
-                                        <?php endif; ?>
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- 판매자 정보 및 리뷰 작성 영역 -->
-                                    <?php
-                                    $appStatus = $internet['application_status'] ?? '';
-                                    // getUserInternetApplications에서 반환하는 배열의 'id' 키에 product_id 값이 들어있음
-                                    $productId = $internet['id'] ?? ($internet['product_id'] ?? 0);
-                                    $applicationId = $internet['application_id'] ?? '';
-                                    
-                                    // 판매자 정보 가져오기 (모든 상태에서)
-                                    $sellerId = null;
-                                    $seller = null;
-                                    try {
-                                        $pdo = getDBConnection();
-                                        if ($pdo && $productId > 0) {
-                                            // product_id로 seller_id 가져오기
-                                            $sellerStmt = $pdo->prepare("SELECT seller_id FROM products WHERE id = :product_id LIMIT 1");
-                                            $sellerStmt->execute([':product_id' => $productId]);
-                                            $product = $sellerStmt->fetch(PDO::FETCH_ASSOC);
-                                            if ($product && !empty($product['seller_id'])) {
-                                                $sellerId = $product['seller_id'];
-                                                // 판매자 정보 가져오기 (plan-data.php는 이미 상단에서 포함됨)
-                                                $seller = getSellerById($sellerId);
-                                            }
-                                        }
-                                    } catch (Exception $e) {
-                                        error_log("Error fetching seller info: " . $e->getMessage());
-                                    }
-                                    
-                                    $sellerPhone = $seller ? ($seller['phone'] ?? ($seller['mobile'] ?? '')) : '';
-                                    $sellerChatUrl = $seller ? ($seller['chat_consultation_url'] ?? '') : '';
-                                    
-                                    // 판매자명 가져오기 (seller_name > company_name > name 우선순위)
-                                    $sellerName = '';
-                                    if ($seller) {
-                                        if (!empty($seller['seller_name'])) {
-                                            $sellerName = $seller['seller_name'];
-                                        } elseif (!empty($seller['company_name'])) {
-                                            $sellerName = $seller['company_name'];
-                                        } elseif (!empty($seller['name'])) {
-                                            $sellerName = $seller['name'];
-                                        }
-                                    }
-                                    
-                                    // 판매자명과 전화번호 결합 (두 칸 띄고)
-                                    $sellerPhoneDisplay = $sellerPhone;
-                                    if ($sellerName && $sellerPhone) {
-                                        $sellerPhoneDisplay = $sellerName . '  ' . $sellerPhone;
-                                    }
-                                    
-                                    // 설치완료 또는 종료 상태일 때만 리뷰 버튼 표시
-                                    $canWrite = in_array($appStatus, ['installation_completed', 'activation_completed', 'completed', 'closed', 'terminated']);
-                                    $hasReview = false;
-                                    $buttonText = '리뷰 작성';
-                                    $buttonClass = 'internet-review-write-btn';
-                                    $buttonBgColor = '#EF4444';
-                                    $buttonHoverColor = '#dc2626';
-                                    
-                                    if ($canWrite) {
-                                        $hasReview = $internet['has_review'] ?? false;
-                                        $buttonText = $hasReview ? '리뷰 수정' : '리뷰 작성';
-                                        $buttonClass = $hasReview ? 'internet-review-edit-btn' : 'internet-review-write-btn';
-                                        $buttonBgColor = $hasReview ? '#6b7280' : '#EF4444';
-                                        $buttonHoverColor = $hasReview ? '#4b5563' : '#dc2626';
-                                    }
-                                    
-                                    // 판매자 전화번호, 채팅상담, 리뷰 버튼이 필요한 경우에만 섹션 표시
-                                    if ($sellerPhone || $sellerChatUrl || $canWrite):
-                                    ?>
-                                        <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #e5e7eb;">
-                                            <?php
-                                            // 버튼 개수 계산
-                                            $buttonCount = 0;
-                                            if ($sellerPhone) $buttonCount++;
-                                            if ($sellerChatUrl) $buttonCount++;
-                                            if ($canWrite) $buttonCount++;
-                                            
-                                            // 그리드 컬럼 수 결정
-                                            $gridCols = '1fr';
-                                            if ($buttonCount === 2) {
-                                                $gridCols = '1fr 1fr';
-                                            } elseif ($buttonCount === 3) {
-                                                $gridCols = '1fr 1fr 1fr';
-                                            }
-                                            ?>
-                                            <div class="review-section-layout" style="display: grid; grid-template-columns: <?php echo $gridCols; ?>; gap: 12px;">
-                                                <!-- 전화번호 버튼 (모든 상태에서 표시) -->
-                                                <?php if ($sellerPhone): 
-                                                    $phoneNumberOnly = preg_replace('/[^0-9]/', '', $sellerPhone);
-                                                ?>
-                                                    <div style="display: flex; align-items: center; justify-content: center;" onclick="event.stopPropagation();">
-                                                        <!-- PC 버전: 전화번호 버튼 (클릭 불가) -->
-                                                        <button class="phone-inquiry-pc" 
-                                                                disabled
-                                                                style="width: 100%; padding: 12px 16px; background: #f3f4f6; color: #374151; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: not-allowed;">
-                                                            전화: <?php echo htmlspecialchars($sellerPhoneDisplay); ?>
-                                                        </button>
-                                                        <!-- 모바일 버전: 전화번호 버튼 (클릭 시 전화 연결) -->
-                                                        <a href="tel:<?php echo htmlspecialchars($phoneNumberOnly); ?>" 
-                                                           class="phone-inquiry-mobile"
-                                                           onclick="event.stopPropagation();"
-                                                           style="display: none; width: 100%; align-items: center; justify-content: center; padding: 12px 16px; background: #10b981; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; text-decoration: none; cursor: pointer; transition: background 0.2s;"
-                                                           onmouseover="this.style.background='#059669'"
-                                                           onmouseout="this.style.background='#10b981'">
-                                                            전화: <?php echo htmlspecialchars($sellerPhoneDisplay); ?>
-                                                        </a>
-                                                    </div>
-                                                <?php endif; ?>
-                                                
-                                                <!-- 채팅상담 버튼 (채팅상담 URL이 있을 때 표시) -->
-                                                <?php if ($sellerChatUrl): ?>
-                                                <div style="display: flex; align-items: center; justify-content: center;" onclick="event.stopPropagation();">
-                                                    <a href="<?php echo htmlspecialchars($sellerChatUrl); ?>" 
-                                                       target="_blank" 
-                                                       rel="noopener noreferrer"
-                                                       style="width: 100%; display: flex; align-items: center; justify-content: center; padding: 12px 16px; background: #FEE500; color: #000000; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; text-decoration: none; cursor: pointer; transition: background 0.2s;"
-                                                       onmouseover="this.style.background='#FDD835'"
-                                                       onmouseout="this.style.background='#FEE500'">
-                                                        채팅상담
-                                                    </a>
-                                                </div>
-                                                <?php endif; ?>
-                                                
-                                                <!-- 리뷰 작성 버튼 (설치완료/종료 상태일 때만 표시) -->
-                                                <?php if ($canWrite): ?>
-                                                <div style="display: flex; align-items: center; justify-content: center;" onclick="event.stopPropagation();">
-                                                    <button 
-                                                        class="<?php echo $buttonClass; ?>" 
-                                                        data-application-id="<?php echo htmlspecialchars($applicationId); ?>"
-                                                        data-product-id="<?php echo htmlspecialchars($productId); ?>"
-                                                        data-has-review="<?php echo $hasReview ? '1' : '0'; ?>"
-                                                        style="width: 100%; padding: 12px 16px; background: <?php echo $buttonBgColor; ?>; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: background 0.2s;"
-                                                        onmouseover="this.style.background='<?php echo $buttonHoverColor; ?>'"
-                                                        onmouseout="this.style.background='<?php echo $buttonBgColor; ?>'">
-                                                        <?php echo htmlspecialchars($buttonText); ?>
-                                                    </button>
-                                                </div>
-                                                <?php endif; ?>
-                                            </div>
-                                        </div>
-                                    <?php endif; ?>
+                                <div class="order-item-wrapper">
+                                    <?php include __DIR__ . '/../includes/components/internet-order-card.php'; ?>
                                 </div>
                             <?php endforeach; ?>
                         </div>
+                        
+                        <!-- 더보기 버튼 -->
+                        <?php if ($hasMore && $totalCount > 0): ?>
+                        <div class="load-more-container" id="load-more-anchor" style="margin-top: 32px; margin-bottom: 32px;">
+                            <button id="load-more-internet-order-btn" class="load-more-btn" 
+                                    data-type="internet" 
+                                    data-page="2" 
+                                    data-total="<?php echo $totalCount; ?>"
+                                    data-order="true"
+                                    style="width: 100%; padding: 12px; background: #6366f1; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer;">
+                                더보기 (<span id="remaining-count"><?php echo number_format($remainingCount); ?></span>개 남음)
+                            </button>
+                        </div>
+                        <?php endif; ?>
                     <?php endif; ?>
                 </div>
-
-                <!-- 더보기 버튼 -->
-                <?php if (count($internets) > 10): ?>
-                <div style="margin-top: 32px; margin-bottom: 32px;" id="moreButtonContainer">
-                    <button class="plan-review-more-btn" id="moreInternetsBtn" style="width: 100%; padding: 12px; background: #6366f1; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer;">
-                        더보기 (<?php 
-                        $remaining = count($internets) - 10;
-                        echo $remaining > 10 ? 10 : $remaining;
-                        ?>개)
-                    </button>
-                </div>
-                <?php endif; ?>
             </div>
         </div>
     </div>
@@ -989,50 +712,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return parseInt(num).toLocaleString('ko-KR');
     }
     
-    // 더보기 기능
-    const moreBtn = document.getElementById('moreInternetsBtn');
-    const internetItems = document.querySelectorAll('.internet-item');
-    let visibleCount = 10;
-    const totalInternets = internetItems.length;
-    const loadCount = 10;
-
-    function updateButtonText() {
-        if (!moreBtn) return;
-        const remaining = totalInternets - visibleCount;
-        if (remaining > 0) {
-            const showCount = remaining > loadCount ? loadCount : remaining;
-            moreBtn.textContent = `더보기 (${showCount}개)`;
-        }
-    }
-
-    if (moreBtn && totalInternets > 10) {
-        updateButtonText();
-        
-        moreBtn.addEventListener('click', function() {
-            const endCount = Math.min(visibleCount + loadCount, totalInternets);
-            for (let i = visibleCount; i < endCount; i++) {
-                if (internetItems[i]) {
-                    internetItems[i].style.display = 'block';
-                }
-            }
-            
-            visibleCount = endCount;
-            
-            if (visibleCount >= totalInternets) {
-                const moreButtonContainer = document.getElementById('moreButtonContainer');
-                if (moreButtonContainer) {
-                    moreButtonContainer.style.display = 'none';
-                }
-            } else {
-                updateButtonText();
-            }
-        });
-    } else if (moreBtn && totalInternets <= 10) {
-        const moreButtonContainer = document.getElementById('moreButtonContainer');
-        if (moreButtonContainer) {
-            moreButtonContainer.style.display = 'none';
-        }
-    }
+    // 더보기 기능은 load-more-products.js에서 처리
     
     // 인터넷 리뷰 작성/수정 기능
     const reviewWriteButtons = document.querySelectorAll('.internet-review-write-btn, .internet-review-edit-btn');
@@ -1771,6 +1451,31 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 }
 </style>
+
+<script src="/MVNO/assets/js/load-more-products.js?v=2"></script>
+<script>
+// 새로 로드된 카드에 대한 클릭 이벤트를 다시 바인딩하는 함수
+function initApplicationCardClickEvents() {
+    const applicationCards = document.querySelectorAll('.application-card');
+    applicationCards.forEach(card => {
+        // 기존 이벤트 리스너가 중복 등록되지 않도록 확인
+        if (!card.dataset.eventListenerAdded) {
+            card.addEventListener('click', function(e) {
+                const applicationId = this.getAttribute('data-application-id');
+                if (applicationId) {
+                    openModal(applicationId);
+                }
+            });
+            card.dataset.eventListenerAdded = 'true'; // 플래그 설정
+        }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // 초기 페이지 로드 시 이벤트 바인딩
+    initApplicationCardClickEvents();
+});
+</script>
 
 <?php
 // 푸터 포함

@@ -40,12 +40,18 @@ require_once '../includes/data/product-functions.php';
 require_once '../includes/data/db-config.php';
 require_once '../includes/data/plan-data.php';
 
-// DB에서 실제 신청 내역 가져오기
-$phones = getUserMnoApplications($user_id);
-error_log("mno-order.php: Received " . count($phones) . " phones from getUserMnoApplications");
-if (count($phones) > 0) {
-    error_log("mno-order.php: First phone keys: " . implode(', ', array_keys($phones[0])));
-}
+// 페이지 번호 및 제한 설정
+$page = isset($_GET['page']) ? intval($_GET['page']) : 1;
+$limit = 20; // 초기 로드 개수
+$offset = ($page - 1) * $limit;
+
+// DB에서 실제 신청 내역 가져오기 (페이징 적용)
+$phones = getUserMnoApplications($user_id, $limit, $offset);
+$totalPhonesCount = count(getUserMnoApplications($user_id)); // 전체 개수
+
+$currentCount = count($phones);
+$remainingCount = max(0, $totalPhonesCount - ($offset + $currentCount));
+$hasMore = ($offset + $currentCount) < $totalPhonesCount;
 
 // 디버깅: 데이터 확인
 $debug_mode = isset($_GET['debug']) && $_GET['debug'] == '1';
@@ -152,8 +158,15 @@ include '../includes/components/mno-review-modal.php';
                     </div>
                 <?php endif; ?>
 
+                <!-- 전체 개수 표시 -->
+                <?php if (!empty($phones)): ?>
+                <div class="plans-results-count">
+                    <span><?php echo number_format($totalPhonesCount); ?>개의 결과</span>
+                </div>
+                <?php endif; ?>
+
                 <!-- 신청한 통신사폰 목록 -->
-                <div style="margin-bottom: 32px;" id="phonesContainer">
+                <div style="margin-bottom: 32px;">
                     <?php if (empty($phones)): ?>
                         <div style="padding: 40px 20px; text-align: center; color: #6b7280;">
                             신청한 통신사폰이 없습니다.
@@ -163,329 +176,28 @@ include '../includes/components/mno-review-modal.php';
                             <?php endif; ?>
                         </div>
                     <?php else: ?>
-                        <div style="display: flex; flex-direction: column; gap: 16px;">
+                        <div style="display: flex; flex-direction: column; gap: 16px;" id="mno-orders-container">
                             <?php foreach ($phones as $index => $phone): ?>
-                                <div class="phone-item application-card" 
-                                     data-index="<?php echo $index; ?>" 
-                                     data-phone-id="<?php echo $phone['id']; ?>" 
-                                     data-application-id="<?php echo htmlspecialchars($phone['application_id'] ?? ''); ?>"
-                                     style="<?php echo $index >= 10 ? 'display: none;' : ''; ?> padding: 24px; border: 1px solid #e5e7eb; border-radius: 12px; background: white; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.05);"
-                                     onmouseover="this.style.borderColor='#6366f1'; this.style.boxShadow='0 4px 12px rgba(99, 102, 241, 0.15)'"
-                                     onmouseout="this.style.borderColor='#e5e7eb'; this.style.boxShadow='0 1px 3px rgba(0,0,0,0.05)'"
-                                     onclick="openOrderModal(<?php echo htmlspecialchars($phone['application_id'] ?? ''); ?>)">
-                                    
-                                    <!-- 상단: 단말기명 | 신청일 -->
-                                    <div style="position: relative; margin-bottom: 12px;">
-                                        <!-- 주문일자 (상단 오른쪽) -->
-                                        <?php
-                                        $orderDate = $phone['order_date'] ?? '';
-                                        if ($orderDate) {
-                                            try {
-                                                $dateObj = new DateTime($orderDate);
-                                                $formattedDate = $dateObj->format('Y.m.d');
-                                            } catch (Exception $e) {
-                                                $formattedDate = $orderDate;
-                                            }
-                                        } else {
-                                            $formattedDate = '';
-                                        }
-                                        ?>
-                                        <?php if ($formattedDate): ?>
-                                            <div style="position: absolute; top: 0; right: 0; font-size: 13px; color: #6b7280;">
-                                                <?php echo htmlspecialchars($formattedDate); ?>
-                                            </div>
-                                        <?php endif; ?>
-                                        
-                                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                                            <div style="font-size: 18px; font-weight: 600; color: #1f2937;">
-                                                <?php echo htmlspecialchars($phone['device_name'] ?? '단말기'); ?>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- 중간: 출고가, 용량, 색상 -->
-                                    <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; font-size: 14px; color: #6b7280;">
-                                        <?php if (!empty($phone['device_price'])): ?>
-                                            <span><?php echo htmlspecialchars($phone['device_price']); ?></span>
-                                        <?php endif; ?>
-                                        <?php if (!empty($phone['device_storage'])): ?>
-                                            <?php if (!empty($phone['device_price'])): ?><span>,</span><?php endif; ?>
-                                            <span><?php echo htmlspecialchars($phone['device_storage']); ?></span>
-                                        <?php endif; ?>
-                                        <?php if (!empty($phone['device_color'])): ?>
-                                            <?php if (!empty($phone['device_price']) || !empty($phone['device_storage'])): ?><span>,</span><?php endif; ?>
-                                            <span><?php echo htmlspecialchars($phone['device_color']); ?></span>
-                                        <?php endif; ?>
-                                    </div>
-                                    
-                                    <!-- 중간: 할인 정보 -->
-                                    <?php if (!empty($phone['discount_info'])): ?>
-                                        <div style="font-size: 14px; color: #374151; margin-bottom: 12px;">
-                                            <?php echo htmlspecialchars($phone['discount_info']); ?>
-                                        </div>
-                                    <?php endif; ?>
-                                    
-                                    <!-- 하단: 주문번호 및 진행상황 -->
-                                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 12px; padding-top: 12px; border-top: 1px solid #e5e7eb;">
-                                        <div style="font-size: 13px;">
-                                            <?php if (!empty($phone['order_number'])): ?>
-                                                <span style="color: #6b7280;">주문번호 </span>
-                                                <span style="color: #374151; font-weight: 600;"><?php echo htmlspecialchars($phone['order_number']); ?></span>
-                                            <?php elseif (!empty($phone['application_id'])): ?>
-                                                <span style="color: #6b7280;">주문번호 </span>
-                                                <span style="color: #374151; font-weight: 600;">#<?php echo htmlspecialchars($phone['application_id']); ?></span>
-                                            <?php endif; ?>
-                                        </div>
-                                        <?php 
-                                        // 상태별 배지 색상 설정
-                                        $appStatus = $phone['application_status'] ?? '';
-                                        $statusBg = '#eef2ff'; // 기본 파란색
-                                        $statusColor = '#6366f1';
-                                        
-                                        if (!empty($appStatus)) {
-                                            switch ($appStatus) {
-                                                case 'pending':
-                                                    $statusBg = '#fef3c7'; // 노란색
-                                                    $statusColor = '#92400e';
-                                                    break;
-                                                case 'processing':
-                                                    $statusBg = '#e0e7ff'; // 보라색
-                                                    $statusColor = '#6366f1';
-                                                    break;
-                                                case 'completed':
-                                                    $statusBg = '#d1fae5'; // 초록색
-                                                    $statusColor = '#065f46';
-                                                    break;
-                                                case 'cancelled':
-                                                case 'rejected':
-                                                    $statusBg = '#fee2e2'; // 빨간색
-                                                    $statusColor = '#991b1b';
-                                                    break;
-                                                case 'closed':
-                                                    $statusBg = '#f3f4f6'; // 회색
-                                                    $statusColor = '#6b7280';
-                                                    break;
-                                            }
-                                        }
-                                        
-                                        if (!empty($phone['status'])): ?>
-                                            <div style="display: inline-flex; align-items: center; padding: 6px 12px; background: <?php echo $statusBg; ?>; border-radius: 6px;">
-                                                <span style="font-size: 13px; color: <?php echo $statusColor; ?>; font-weight: 600;"><?php echo htmlspecialchars($phone['status']); ?></span>
-                                            </div>
-                                        <?php endif; ?>
-                                    </div>
-                                    
-                                    <!-- 판매자 정보 및 리뷰 작성 영역 -->
-                                    <?php
-                                    $productId = $phone['product_id'] ?? 0;
-                                    $applicationId = $phone['application_id'] ?? '';
-                                    
-                                    // 판매자 정보 가져오기 (모든 상태에서) - MVNO와 동일하게
-                                    // getUserMnoApplications에서 seller_id를 반환 배열에 포함시킴
-                                    $sellerId = isset($phone['seller_id']) && $phone['seller_id'] > 0 ? (int)$phone['seller_id'] : null;
-                                    $seller = null;
-                                    $sellerPhone = '';
-                                    
-                                    // 디버깅: 초기값 확인
-                                    error_log("MNO Order Debug - application_id: {$applicationId}, product_id: {$productId}, seller_id from phone: " . ($sellerId ?: 'NULL'));
-                                    
-                                    if ($sellerId) {
-                                        // 판매자 정보 가져오기
-                                        $seller = getSellerById($sellerId);
-                                        
-                                        // 디버깅: 판매자 정보 조회 결과
-                                        if ($seller) {
-                                            error_log("MNO Order Debug - seller found for seller_id {$sellerId}: name=" . ($seller['seller_name'] ?? '') . ", phone=" . ($seller['phone'] ?? '') . ", mobile=" . ($seller['mobile'] ?? ''));
-                                        } else {
-                                            error_log("MNO Order Debug - seller NOT found for seller_id: {$sellerId}");
-                                        }
-                                    } else {
-                                        error_log("MNO Order Debug - No seller_id in phone data for product_id: {$productId}");
-                                        // seller_id가 없으면 product_id로 다시 시도
-                                        try {
-                                            $pdo = getDBConnection();
-                                            if ($pdo && $productId > 0) {
-                                                $sellerStmt = $pdo->prepare("SELECT seller_id FROM products WHERE id = :product_id LIMIT 1");
-                                                $sellerStmt->execute([':product_id' => $productId]);
-                                                $product = $sellerStmt->fetch(PDO::FETCH_ASSOC);
-                                                if ($product && !empty($product['seller_id'])) {
-                                                    $sellerId = $product['seller_id'];
-                                                    $seller = getSellerById($sellerId);
-                                                    error_log("MNO Order Debug - seller_id found via products table: {$sellerId}");
-                                                }
-                                            }
-                                        } catch (Exception $e) {
-                                            error_log("MNO Order Debug - Exception: " . $e->getMessage());
-                                        }
-                                    }
-                                    
-                                    $sellerPhone = $seller ? ($seller['phone'] ?? ($seller['mobile'] ?? '')) : '';
-                                    $sellerChatUrl = $seller ? ($seller['chat_consultation_url'] ?? '') : '';
-                                    error_log("MNO Order Debug - Final sellerPhone for application {$applicationId}: " . ($sellerPhone ?: 'EMPTY'));
-                                    
-                                    // 판매자명 가져오기 (seller_name > company_name > name 우선순위)
-                                    $sellerName = '';
-                                    if ($seller) {
-                                        if (!empty($seller['seller_name'])) {
-                                            $sellerName = $seller['seller_name'];
-                                        } elseif (!empty($seller['company_name'])) {
-                                            $sellerName = $seller['company_name'];
-                                        } elseif (!empty($seller['name'])) {
-                                            $sellerName = $seller['name'];
-                                        }
-                                    }
-                                    
-                                    // 판매자명과 전화번호 결합 (두 칸 띄고)
-                                    $sellerPhoneDisplay = $sellerPhone;
-                                    if ($sellerName && $sellerPhone) {
-                                        $sellerPhoneDisplay = $sellerName . '  ' . $sellerPhone;
-                                    }
-                                    
-                                    // 개통완료 또는 종료 상태일 때만 리뷰 버튼 표시 (MVNO와 동일하게)
-                                    $canWrite = in_array($appStatus, ['activation_completed', 'completed', 'closed', 'terminated']);
-                                    
-                                    // 리뷰 존재 여부 확인
-                                    $hasReview = false;
-                                    if ($canWrite && $applicationId && $productId) {
-                                        try {
-                                            $pdo = getDBConnection();
-                                            if ($pdo) {
-                                                $reviewStmt = $pdo->prepare("
-                                                    SELECT COUNT(*) as cnt 
-                                                    FROM product_reviews 
-                                                    WHERE application_id = :application_id 
-                                                    AND product_id = :product_id 
-                                                    AND user_id = :user_id 
-                                                    AND product_type = 'mno'
-                                                    AND status != 'deleted'
-                                                ");
-                                                $reviewStmt->execute([
-                                                    ':application_id' => $applicationId,
-                                                    ':product_id' => $productId,
-                                                    ':user_id' => $user_id
-                                                ]);
-                                                $reviewResult = $reviewStmt->fetch(PDO::FETCH_ASSOC);
-                                                $hasReview = ($reviewResult['cnt'] ?? 0) > 0;
-                                            }
-                                        } catch (Exception $e) {
-                                            error_log("Error checking review: " . $e->getMessage());
-                                        }
-                                    }
-                                    
-                                    $buttonText = $hasReview ? '리뷰 수정' : '리뷰 작성';
-                                    $buttonClass = $hasReview ? 'mno-review-edit-btn' : 'mno-review-write-btn';
-                                    $buttonBgColor = $hasReview ? '#6b7280' : '#EF4444';
-                                    $buttonHoverColor = $hasReview ? '#4b5563' : '#dc2626';
-                                    
-                                    // 디버깅: 조건 확인
-                                    error_log("MNO Order Debug - Condition check: sellerPhone=" . ($sellerPhone ?: 'EMPTY') . ", sellerChatUrl=" . ($sellerChatUrl ?: 'EMPTY') . ", canWrite=" . ($canWrite ? 'true' : 'false') . ", will show section=" . (($sellerPhone || $sellerChatUrl || $canWrite) ? 'YES' : 'NO'));
-                                    
-                                    // 판매자 전화번호, 채팅상담, 리뷰 버튼이 필요한 경우에만 섹션 표시
-                                    if ($sellerPhone || $sellerChatUrl || $canWrite):
-                                    ?>
-                                        <!-- 디버깅 정보 (임시) -->
-                                        <?php if (isset($_GET['debug']) && $_GET['debug'] === '1'): ?>
-                                        <div style="margin-top: 8px; padding: 8px; background: #fef3c7; border: 1px solid #f59e0b; border-radius: 4px; font-size: 12px; color: #92400e;">
-                                            <strong>디버그 정보:</strong><br>
-                                            product_id: <?php echo htmlspecialchars($productId); ?><br>
-                                            seller_id (from phone): <?php echo htmlspecialchars($phone['seller_id'] ?? 'NULL'); ?><br>
-                                            seller_id (used): <?php echo htmlspecialchars($sellerId ?: 'NULL'); ?><br>
-                                            seller found: <?php echo $seller ? 'YES' : 'NO'; ?><br>
-                                            seller_phone: <?php echo htmlspecialchars($sellerPhone ?: 'EMPTY'); ?><br>
-                                            seller_chat_url: <?php echo htmlspecialchars($sellerChatUrl ?: 'EMPTY'); ?><br>
-                                            seller_name: <?php echo htmlspecialchars($sellerName ?: 'EMPTY'); ?><br>
-                                            canWrite: <?php echo $canWrite ? 'YES' : 'NO'; ?><br>
-                                            appStatus: <?php echo htmlspecialchars($appStatus ?: 'EMPTY'); ?><br>
-                                            condition: sellerPhone=<?php echo $sellerPhone ? 'YES' : 'NO'; ?> || sellerChatUrl=<?php echo $sellerChatUrl ? 'YES' : 'NO'; ?> || canWrite=<?php echo $canWrite ? 'YES' : 'NO'; ?> = <?php echo ($sellerPhone || $sellerChatUrl || $canWrite) ? 'SHOW' : 'HIDE'; ?>
-                                        </div>
-                                        <?php endif; ?>
-                                        
-                                        <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #e5e7eb;">
-                                            <?php
-                                            // 버튼 개수 계산
-                                            $buttonCount = 0;
-                                            if ($sellerPhone) $buttonCount++;
-                                            if ($sellerChatUrl) $buttonCount++;
-                                            if ($canWrite) $buttonCount++;
-                                            
-                                            // 그리드 컬럼 수 결정
-                                            $gridCols = '1fr';
-                                            if ($buttonCount === 2) {
-                                                $gridCols = '1fr 1fr';
-                                            } elseif ($buttonCount === 3) {
-                                                $gridCols = '1fr 1fr 1fr';
-                                            }
-                                            ?>
-                                            <div class="review-section-layout" style="display: grid; grid-template-columns: <?php echo $gridCols; ?>; gap: 12px;">
-                                                <!-- 전화번호 버튼 (모든 상태에서 표시) -->
-                                                <?php if ($sellerPhone): 
-                                                    $phoneNumberOnly = preg_replace('/[^0-9]/', '', $sellerPhone);
-                                                ?>
-                                                    <div style="display: flex; align-items: center; justify-content: center;" onclick="event.stopPropagation();">
-                                                        <!-- PC 버전: 전화번호 버튼 (클릭 불가) -->
-                                                        <button class="phone-inquiry-pc" 
-                                                                disabled
-                                                                style="width: 100%; padding: 12px 16px; background: #f3f4f6; color: #374151; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: not-allowed;">
-                                                            전화: <?php echo htmlspecialchars($sellerPhoneDisplay); ?>
-                                                        </button>
-                                                        <!-- 모바일 버전: 전화번호 버튼 (클릭 시 전화 연결) -->
-                                                        <a href="tel:<?php echo htmlspecialchars($phoneNumberOnly); ?>" 
-                                                           class="phone-inquiry-mobile"
-                                                           onclick="event.stopPropagation();"
-                                                           style="display: none; width: 100%; align-items: center; justify-content: center; padding: 12px 16px; background: #10b981; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; text-decoration: none; cursor: pointer; transition: background 0.2s;"
-                                                           onmouseover="this.style.background='#059669'"
-                                                           onmouseout="this.style.background='#10b981'">
-                                                            전화: <?php echo htmlspecialchars($sellerPhoneDisplay); ?>
-                                                        </a>
-                                                    </div>
-                                                <?php endif; ?>
-                                                
-                                                <!-- 채팅상담 버튼 (채팅상담 URL이 있을 때 표시) -->
-                                                <?php if ($sellerChatUrl): ?>
-                                                <div style="display: flex; align-items: center; justify-content: center;" onclick="event.stopPropagation();">
-                                                    <a href="<?php echo htmlspecialchars($sellerChatUrl); ?>" 
-                                                       target="_blank" 
-                                                       rel="noopener noreferrer"
-                                                       style="width: 100%; display: flex; align-items: center; justify-content: center; padding: 12px 16px; background: #FEE500; color: #000000; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; text-decoration: none; cursor: pointer; transition: background 0.2s;"
-                                                       onmouseover="this.style.background='#FDD835'"
-                                                       onmouseout="this.style.background='#FEE500'">
-                                                        채팅상담
-                                                    </a>
-                                                </div>
-                                                <?php endif; ?>
-                                                
-                                                <!-- 리뷰 작성 버튼 (개통완료/종료 상태일 때만 표시) -->
-                                                <?php if ($canWrite): ?>
-                                                <div style="display: flex; align-items: center; justify-content: center;" onclick="event.stopPropagation();">
-                                                    <button 
-                                                        class="<?php echo $buttonClass; ?>" 
-                                                        data-application-id="<?php echo htmlspecialchars($applicationId); ?>"
-                                                        data-product-id="<?php echo htmlspecialchars($productId); ?>"
-                                                        data-has-review="<?php echo $hasReview ? '1' : '0'; ?>"
-                                                        style="width: 100%; padding: 12px 16px; background: <?php echo $buttonBgColor; ?>; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: background 0.2s;"
-                                                        onmouseover="this.style.background='<?php echo $buttonHoverColor; ?>'"
-                                                        onmouseout="this.style.background='<?php echo $buttonBgColor; ?>'">
-                                                        <?php echo htmlspecialchars($buttonText); ?>
-                                                    </button>
-                                                </div>
-                                                <?php endif; ?>
-                                            </div>
-                                        </div>
-                                    <?php endif; ?>
-                                </div>
+                                <?php 
+                                // 컴포넌트에 필요한 변수 설정
+                                $phone = $phone;
+                                $user_id = $user_id;
+                                include __DIR__ . '/../includes/components/mno-order-card.php'; 
+                                ?>
                             <?php endforeach; ?>
                         </div>
                     <?php endif; ?>
                 </div>
 
                 <!-- 더보기 버튼 -->
-                <?php if (count($phones) > 10): ?>
-                <div style="margin-top: 32px; margin-bottom: 32px;" id="moreButtonContainer">
-                    <button class="plan-review-more-btn" id="morePhonesBtn" style="width: 100%; padding: 12px; background: #6366f1; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer;">
-                        더보기 (<?php 
-                        $remaining = count($phones) - 10;
-                        echo $remaining > 10 ? 10 : $remaining;
-                        ?>개)
+                <?php if ($hasMore && $totalPhonesCount > 0): ?>
+                <div class="load-more-container" id="load-more-anchor">
+                    <button id="load-more-mno-order-btn" class="load-more-btn" 
+                            data-type="mno" 
+                            data-page="2" 
+                            data-total="<?php echo $totalPhonesCount; ?>"
+                            data-order="true">
+                        더보기 (<span id="remaining-count"><?php echo number_format($remainingCount); ?></span>개 남음)
                     </button>
                 </div>
                 <?php endif; ?>
@@ -788,49 +500,21 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // 더보기 기능
-    const moreBtn = document.getElementById('morePhonesBtn');
-    const phoneItems = document.querySelectorAll('.phone-item');
-    let visibleCount = 10;
-    const totalPhones = phoneItems.length;
-    const loadCount = 10;
-
-    function updateButtonText() {
-        if (!moreBtn) return;
-        const remaining = totalPhones - visibleCount;
-        if (remaining > 0) {
-            const showCount = remaining > loadCount ? loadCount : remaining;
-            moreBtn.textContent = `더보기 (${showCount}개)`;
-        }
-    }
-
-    if (moreBtn && totalPhones > 10) {
-        updateButtonText();
-        
-        moreBtn.addEventListener('click', function() {
-            const endCount = Math.min(visibleCount + loadCount, totalPhones);
-            for (let i = visibleCount; i < endCount; i++) {
-                if (phoneItems[i]) {
-                    phoneItems[i].style.display = 'block';
-                }
-            }
-            
-            visibleCount = endCount;
-            
-            if (visibleCount >= totalPhones) {
-                const moreButtonContainer = document.getElementById('moreButtonContainer');
-                if (moreButtonContainer) {
-                    moreButtonContainer.style.display = 'none';
-                }
-            } else {
-                updateButtonText();
+    // 새로 로드된 카드에 대한 클릭 이벤트를 다시 바인딩하는 함수
+    function initApplicationCardClickEvents() {
+        const applicationCards = document.querySelectorAll('.application-card');
+        applicationCards.forEach(card => {
+            // 기존 이벤트 리스너가 중복 등록되지 않도록 확인
+            if (!card.dataset.eventListenerAdded) {
+                card.addEventListener('click', function(e) {
+                    const applicationId = this.getAttribute('data-application-id');
+                    if (applicationId) {
+                        openOrderModal(applicationId);
+                    }
+                });
+                card.dataset.eventListenerAdded = 'true'; // 플래그 설정
             }
         });
-    } else if (moreBtn && totalPhones <= 10) {
-        const moreButtonContainer = document.getElementById('moreButtonContainer');
-        if (moreButtonContainer) {
-            moreButtonContainer.style.display = 'none';
-        }
     }
     
     // MNO 리뷰 작성/수정 기능
@@ -1197,7 +881,48 @@ document.addEventListener('DOMContentLoaded', function() {
 .mno-review-btn-delete:active {
     transform: translateY(0);
 }
+
+/* 더보기 버튼 스타일 */
+.load-more-container {
+    margin-top: 24px;
+    margin-bottom: 32px;
+    width: 100%;
+}
+
+.load-more-btn {
+    width: 100%;
+    padding: 14px 24px;
+    background: #6366f1;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(99, 102, 241, 0.2);
+}
+
+.load-more-btn:hover:not(:disabled) {
+    background: #4f46e5;
+    box-shadow: 0 4px 8px rgba(99, 102, 241, 0.3);
+    transform: translateY(-1px);
+}
+
+.load-more-btn:disabled {
+    background: #9ca3af;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
 </style>
+
+<script src="/MVNO/assets/js/load-more-products.js?v=2"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 초기 페이지 로드 시 이벤트 바인딩
+    initApplicationCardClickEvents();
+});
+</script>
 
 <?php
 // 푸터 포함

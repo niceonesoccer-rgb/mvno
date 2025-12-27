@@ -39,17 +39,47 @@ $limit = intval($_GET['limit'] ?? 20);
 $filterProvider = $_GET['provider'] ?? '';
 $filterServiceType = $_GET['service_type'] ?? '';
 $format = $_GET['format'] ?? 'json'; // 'json' or 'html'
+$isWishlist = isset($_GET['wishlist']) && $_GET['wishlist'] === 'true';
+$isOrder = isset($_GET['order']) && $_GET['order'] === 'true';
+$userId = null;
+
+// 위시리스트 또는 주문내역인 경우 사용자 ID 가져오기
+if ($isWishlist || $isOrder) {
+    $currentUser = getCurrentUser();
+    if ($currentUser) {
+        $userId = $currentUser['user_id'];
+    } else {
+        http_response_code(401);
+        echo json_encode(['success' => false, 'message' => '로그인이 필요합니다.']);
+        exit;
+    }
+}
 
 // 디버깅: 요청 파라미터 로그
 error_log("=== load-more-products.php 요청 ===");
 error_log("type: {$type}, page: {$page}, limit: {$limit}, offset: " . (($page - 1) * $limit));
+error_log("isWishlist: " . ($isWishlist ? 'true' : 'false') . ", userId: " . ($userId ?? 'null'));
 error_log("GET 파라미터: " . json_encode($_GET, JSON_UNESCAPED_UNICODE));
 
+// 주문내역 타입 확인
+$isOrders = isset($_GET['orders']) && $_GET['orders'] === 'true';
+
 // 유효성 검사
-if (!in_array($type, ['internet', 'mno-sim', 'mvno', 'mno'])) {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Invalid product type']);
-    exit;
+if ($isOrders) {
+    // 주문내역 타입: mvno-orders, mno-orders, mno-sim-orders, internet-orders
+    $validOrderTypes = ['mvno-orders', 'mno-orders', 'mno-sim-orders', 'internet-orders'];
+    if (!in_array($type, $validOrderTypes)) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'Invalid order type']);
+        exit;
+    }
+} else {
+    // 상품 타입: internet, mno-sim, mvno, mno
+    if (!in_array($type, ['internet', 'mno-sim', 'mvno', 'mno'])) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'Invalid product type']);
+        exit;
+    }
 }
 
 if ($page < 1) $page = 1;
@@ -71,8 +101,235 @@ try {
     $products = [];
     $totalCount = 0;
 
+    // 주문내역 타입 처리
+    if ($isOrders) {
+        $currentUser = getCurrentUser();
+        if (!$currentUser) {
+            http_response_code(401);
+            echo json_encode(['success' => false, 'message' => '로그인이 필요합니다.']);
+            exit;
+        }
+        $userId = $currentUser['user_id'];
+        
+        require_once __DIR__ . '/../includes/data/product-functions.php';
+        require_once __DIR__ . '/../includes/data/plan-data.php';
+        
+        $htmlFragments = [];
+        
+        switch ($type) {
+            case 'mvno-orders':
+                $allApplications = getUserMvnoApplications($userId);
+                $totalCount = count($allApplications);
+                $applications = array_slice($allApplications, $offset, $limit);
+                
+                foreach ($applications as $app) {
+                    ob_start();
+                    try {
+                        echo '<div class="order-item-wrapper">';
+                        $user_id = $userId;
+                        include __DIR__ . '/../includes/components/mvno-order-card.php';
+                        echo '</div>';
+                        $html = ob_get_clean();
+                        if (!empty(trim($html))) {
+                            $htmlFragments[] = $html;
+                        }
+                    } catch (Exception $e) {
+                        ob_end_clean();
+                        error_log("mvno-orders API: HTML 생성 오류 - " . $e->getMessage());
+                    }
+                }
+                
+                $hasMore = ($offset + $limit) < $totalCount;
+                $remaining = max(0, $totalCount - ($offset + $limit));
+                
+                echo json_encode([
+                    'success' => true,
+                    'html' => $htmlFragments,
+                    'pagination' => [
+                        'page' => $page,
+                        'limit' => $limit,
+                        'total' => $totalCount,
+                        'hasMore' => $hasMore,
+                        'remaining' => $remaining
+                    ]
+                ], JSON_UNESCAPED_UNICODE);
+                exit;
+                
+            case 'mno-orders':
+                $allApplications = getUserMnoApplications($userId);
+                $totalCount = count($allApplications);
+                $applications = array_slice($allApplications, $offset, $limit);
+                
+                // mno-order-card.php 컴포넌트 생성 필요
+                foreach ($applications as $app) {
+                    ob_start();
+                    try {
+                        echo '<div class="order-item-wrapper">';
+                        // TODO: mno-order-card.php 컴포넌트 생성 후 include
+                        // include __DIR__ . '/../includes/components/mno-order-card.php';
+                        echo '</div>';
+                        $html = ob_get_clean();
+                        if (!empty(trim($html))) {
+                            $htmlFragments[] = $html;
+                        }
+                    } catch (Exception $e) {
+                        ob_end_clean();
+                        error_log("mno-orders API: HTML 생성 오류 - " . $e->getMessage());
+                    }
+                }
+                
+                $hasMore = ($offset + $limit) < $totalCount;
+                $remaining = max(0, $totalCount - ($offset + $limit));
+                
+                echo json_encode([
+                    'success' => true,
+                    'html' => $htmlFragments,
+                    'pagination' => [
+                        'page' => $page,
+                        'limit' => $limit,
+                        'total' => $totalCount,
+                        'hasMore' => $hasMore,
+                        'remaining' => $remaining
+                    ]
+                ], JSON_UNESCAPED_UNICODE);
+                exit;
+                
+            case 'mno-sim-orders':
+                $allApplications = getUserMnoSimApplications($userId);
+                $totalCount = count($allApplications);
+                $applications = array_slice($allApplications, $offset, $limit);
+                
+                // mno-sim-order-card.php 컴포넌트 생성 필요
+                foreach ($applications as $app) {
+                    ob_start();
+                    try {
+                        echo '<div class="order-item-wrapper">';
+                        // TODO: mno-sim-order-card.php 컴포넌트 생성 후 include
+                        // include __DIR__ . '/../includes/components/mno-sim-order-card.php';
+                        echo '</div>';
+                        $html = ob_get_clean();
+                        if (!empty(trim($html))) {
+                            $htmlFragments[] = $html;
+                        }
+                    } catch (Exception $e) {
+                        ob_end_clean();
+                        error_log("mno-sim-orders API: HTML 생성 오류 - " . $e->getMessage());
+                    }
+                }
+                
+                $hasMore = ($offset + $limit) < $totalCount;
+                $remaining = max(0, $totalCount - ($offset + $limit));
+                
+                echo json_encode([
+                    'success' => true,
+                    'html' => $htmlFragments,
+                    'pagination' => [
+                        'page' => $page,
+                        'limit' => $limit,
+                        'total' => $totalCount,
+                        'hasMore' => $hasMore,
+                        'remaining' => $remaining
+                    ]
+                ], JSON_UNESCAPED_UNICODE);
+                exit;
+                
+            case 'internet-orders':
+                $allApplications = getUserInternetApplications($userId);
+                $totalCount = count($allApplications);
+                $applications = array_slice($allApplications, $offset, $limit);
+                
+                // internet-order-card.php 컴포넌트 생성 필요
+                foreach ($applications as $app) {
+                    ob_start();
+                    try {
+                        echo '<div class="order-item-wrapper">';
+                        // TODO: internet-order-card.php 컴포넌트 생성 후 include
+                        // include __DIR__ . '/../includes/components/internet-order-card.php';
+                        echo '</div>';
+                        $html = ob_get_clean();
+                        if (!empty(trim($html))) {
+                            $htmlFragments[] = $html;
+                        }
+                    } catch (Exception $e) {
+                        ob_end_clean();
+                        error_log("internet-orders API: HTML 생성 오류 - " . $e->getMessage());
+                    }
+                }
+                
+                $hasMore = ($offset + $limit) < $totalCount;
+                $remaining = max(0, $totalCount - ($offset + $limit));
+                
+                echo json_encode([
+                    'success' => true,
+                    'html' => $htmlFragments,
+                    'pagination' => [
+                        'page' => $page,
+                        'limit' => $limit,
+                        'total' => $totalCount,
+                        'hasMore' => $hasMore,
+                        'remaining' => $remaining
+                    ]
+                ], JSON_UNESCAPED_UNICODE);
+                exit;
+        }
+    }
+    
+    // 상품 타입 처리
     switch ($type) {
         case 'internet':
+        case 'internet-orders':
+            if ($isOrder || $type === 'internet-orders') {
+                // 주문내역 처리
+                require_once __DIR__ . '/../includes/data/review-settings.php';
+                require_once __DIR__ . '/../includes/data/product-functions.php';
+                require_once __DIR__ . '/../includes/data/db-config.php';
+                require_once __DIR__ . '/../includes/data/plan-data.php'; // getSellerById 함수 포함
+                $applications = getUserInternetApplications($userId, $limit, $offset);
+                $totalCount = count(getUserInternetApplications($userId));
+                
+                // HTML 생성
+                $htmlFragments = [];
+                
+                foreach ($applications as $internet) {
+                    ob_start();
+                    try {
+                        echo '<div class="order-item-wrapper">';
+                        // 컴포넌트에 필요한 변수 설정
+                        $user_id = $userId;
+                        include __DIR__ . '/../includes/components/internet-order-card.php';
+                        echo '</div>';
+                        
+                        $html = ob_get_clean();
+                        if (!empty(trim($html))) {
+                            $htmlFragments[] = $html;
+                        }
+                    } catch (Exception $e) {
+                        ob_end_clean();
+                        error_log("internet-order API: HTML 생성 오류 - " . $e->getMessage());
+                    } catch (Error $e) {
+                        ob_end_clean();
+                        error_log("internet-order API: Fatal Error - " . $e->getMessage());
+                        throw $e;
+                    }
+                }
+                
+                $hasMore = ($offset + count($applications)) < $totalCount;
+                $remaining = max(0, $totalCount - ($offset + count($applications)));
+                
+                echo json_encode([
+                    'success' => true,
+                    'html' => $htmlFragments,
+                    'pagination' => [
+                        'page' => $page,
+                        'limit' => $limit,
+                        'total' => $totalCount,
+                        'hasMore' => $hasMore,
+                        'remaining' => $remaining
+                    ]
+                ], JSON_UNESCAPED_UNICODE);
+                exit;
+            }
+            
             // 인터넷 상품
             $whereConditions = ["p.product_type = 'internet'", $statusCondition];
             $params = [];
@@ -254,9 +511,86 @@ try {
             break;
 
         case 'mno-sim':
-            // 통신사단독유심 상품
-            $whereConditions = ["p.product_type = 'mno-sim'", $statusCondition];
-            $params = [];
+        case 'mno-sim-orders':
+            if ($isOrder || $type === 'mno-sim-orders') {
+                // 주문내역 처리
+                require_once __DIR__ . '/../includes/data/review-settings.php';
+                require_once __DIR__ . '/../includes/data/product-functions.php';
+                require_once __DIR__ . '/../includes/data/db-config.php';
+                $applications = getUserMnoSimApplications($userId, $limit, $offset);
+                $totalCount = count(getUserMnoSimApplications($userId));
+                
+                // HTML 생성
+                $htmlFragments = [];
+                
+                foreach ($applications as $app) {
+                    ob_start();
+                    try {
+                        echo '<div class="order-item-wrapper">';
+                        // 컴포넌트에 필요한 변수 설정
+                        $user_id = $userId;
+                        include __DIR__ . '/../includes/components/mno-sim-order-card.php';
+                        echo '</div>';
+                        
+                        $html = ob_get_clean();
+                        if (!empty(trim($html))) {
+                            $htmlFragments[] = $html;
+                        }
+                    } catch (Exception $e) {
+                        ob_end_clean();
+                        error_log("mno-sim-order API: HTML 생성 오류 - " . $e->getMessage());
+                    } catch (Error $e) {
+                        ob_end_clean();
+                        error_log("mno-sim-order API: Fatal Error - " . $e->getMessage());
+                        throw $e;
+                    }
+                }
+                
+                $hasMore = ($offset + count($applications)) < $totalCount;
+                $remaining = max(0, $totalCount - ($offset + count($applications)));
+                
+                echo json_encode([
+                    'success' => true,
+                    'html' => $htmlFragments,
+                    'pagination' => [
+                        'page' => $page,
+                        'limit' => $limit,
+                        'total' => $totalCount,
+                        'hasMore' => $hasMore,
+                        'remaining' => $remaining
+                    ]
+                ], JSON_UNESCAPED_UNICODE);
+                exit;
+            } else if ($isWishlist && $userId) {
+                // 위시리스트 필터 적용
+                $whereConditions = ["p.product_type = 'mno-sim'", $statusCondition];
+                $params = [];
+                $wishlistStmt = $pdo->prepare("
+                    SELECT product_id 
+                    FROM product_favorites 
+                    WHERE user_id = :user_id AND product_type = 'mno-sim'
+                ");
+                $wishlistStmt->execute([':user_id' => (string)$userId]);
+                $wishlistProductIds = array_map('intval', $wishlistStmt->fetchAll(PDO::FETCH_COLUMN));
+                
+                if (!empty($wishlistProductIds)) {
+                    // 이름이 있는 파라미터로 변경
+                    $placeholders = [];
+                    $wishlistParams = [];
+                    foreach ($wishlistProductIds as $idx => $id) {
+                        $paramName = ':wishlist_id_' . $idx;
+                        $placeholders[] = $paramName;
+                        $wishlistParams[$paramName] = $id;
+                    }
+                    $placeholdersStr = implode(',', $placeholders);
+                    $whereConditions[] = "p.id IN ({$placeholdersStr})";
+                    // 파라미터 병합
+                    $params = array_merge($params, $wishlistParams);
+                } else {
+                    // 찜한 상품이 없으면 빈 결과 반환
+                    $whereConditions[] = '1 = 0'; // 항상 false
+                }
+            }
             
             if (!empty($filterProvider)) {
                 $whereConditions[] = 'mno_sim.provider = :provider';
@@ -276,8 +610,9 @@ try {
                 INNER JOIN product_mno_sim_details mno_sim ON p.id = mno_sim.product_id
                 {$whereClause}
             ");
+            // 모든 파라미터 바인딩
             foreach ($params as $key => $value) {
-                $countStmt->bindValue($key, $value);
+                $countStmt->bindValue($key, $value, is_int($value) ? PDO::PARAM_INT : PDO::PARAM_STR);
             }
             $countStmt->execute();
             $totalCount = $countStmt->fetch(PDO::FETCH_ASSOC)['total'];
@@ -331,8 +666,9 @@ try {
                 LIMIT :limit OFFSET :offset
             ");
             
+            // 모든 파라미터 바인딩
             foreach ($params as $key => $value) {
-                $stmt->bindValue($key, $value);
+                $stmt->bindValue($key, $value, is_int($value) ? PDO::PARAM_INT : PDO::PARAM_STR);
             }
             $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
             $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
@@ -520,7 +856,10 @@ try {
                 
                 // 찜 상태 확인
                 $isFavorited = false;
-                if (function_exists('isLoggedIn') && isLoggedIn()) {
+                // 위시리스트인 경우 항상 true
+                if ($isWishlist && $userId) {
+                    $isFavorited = true;
+                } elseif (function_exists('isLoggedIn') && isLoggedIn()) {
                     $currentUser = getCurrentUser();
                     $currentUserId = $currentUser['user_id'] ?? null;
                     if ($currentUserId) {
@@ -590,6 +929,9 @@ try {
                     'item_type' => 'mno-sim'
                 ];
                 
+                // 래퍼 div로 감싸서 하나의 요소로 만들기
+                echo '<div class="plan-item-wrapper">';
+                
                 // 카드 컴포넌트 사용
                 $card_wrapper_class = '';
                 $layout_type = 'list';
@@ -597,6 +939,8 @@ try {
                 
                 // 구분선 추가
                 echo '<hr class="plan-card-divider">';
+                
+                echo '</div>'; // 래퍼 닫기
                 
                 $html = ob_get_clean();
                 if (!empty(trim($html))) {
@@ -659,9 +1003,83 @@ try {
             break;
 
         case 'mvno':
+        case 'mvno-orders':
+            if ($isOrder || $type === 'mvno-orders') {
+                // 주문내역 처리
+                require_once __DIR__ . '/../includes/data/contract-type-functions.php';
+                require_once __DIR__ . '/../includes/data/review-settings.php';
+                require_once __DIR__ . '/../includes/data/product-functions.php';
+                require_once __DIR__ . '/../includes/data/db-config.php';
+                $applications = getUserMvnoApplications($userId, $limit, $offset);
+                $totalCount = count(getUserMvnoApplications($userId));
+                
+                // HTML 생성
+                $htmlFragments = [];
+                
+                foreach ($applications as $app) {
+                    ob_start();
+                    try {
+                        echo '<div class="order-item-wrapper">';
+                        // 컴포넌트에 필요한 변수 설정
+                        $user_id = $userId;
+                        include __DIR__ . '/../includes/components/mvno-order-card.php';
+                        echo '</div>';
+                        
+                        $html = ob_get_clean();
+                        if (!empty(trim($html))) {
+                            $htmlFragments[] = $html;
+                        }
+                    } catch (Exception $e) {
+                        ob_end_clean();
+                        error_log("mvno-order API: HTML 생성 오류 - " . $e->getMessage());
+                    } catch (Error $e) {
+                        ob_end_clean();
+                        error_log("mvno-order API: Fatal Error - " . $e->getMessage());
+                        throw $e;
+                    }
+                }
+                
+                $hasMore = ($offset + count($applications)) < $totalCount;
+                $remaining = max(0, $totalCount - ($offset + count($applications)));
+                
+                echo json_encode([
+                    'success' => true,
+                    'html' => $htmlFragments,
+                    'pagination' => [
+                        'page' => $page,
+                        'limit' => $limit,
+                        'total' => $totalCount,
+                        'hasMore' => $hasMore,
+                        'remaining' => $remaining
+                    ]
+                ], JSON_UNESCAPED_UNICODE);
+                exit;
+            }
+            
             // 알뜰폰 상품 (plan-data.php 사용)
             require_once __DIR__ . '/../includes/data/plan-data.php';
             $allPlans = getPlansDataFromDB(10000, $isAdmin ? 'all' : 'active');
+            
+            // 위시리스트 필터 적용
+            if ($isWishlist && $userId) {
+                $wishlistStmt = $pdo->prepare("
+                    SELECT product_id 
+                    FROM product_favorites 
+                    WHERE user_id = :user_id AND product_type = 'mvno'
+                ");
+                $wishlistStmt->execute([':user_id' => (string)$userId]);
+                $wishlistProductIds = array_map('intval', $wishlistStmt->fetchAll(PDO::FETCH_COLUMN));
+                
+                if (!empty($wishlistProductIds)) {
+                    $allPlans = array_filter($allPlans, function($plan) use ($wishlistProductIds) {
+                        $planId = isset($plan['id']) ? (int)$plan['id'] : null;
+                        return $planId && in_array($planId, $wishlistProductIds, true);
+                    });
+                    $allPlans = array_values($allPlans);
+                } else {
+                    $allPlans = [];
+                }
+            }
             
             // 필터 적용
             if (!empty($filterProvider)) {
@@ -693,6 +1111,11 @@ try {
             foreach ($products as $plan) {
                 ob_start();
                 try {
+                    // 위시리스트인 경우 is_favorited 설정
+                    if ($isWishlist && $userId) {
+                        $plan['is_favorited'] = true;
+                    }
+                    
                     // 래퍼 div로 감싸서 하나의 요소로 만들기
                     echo '<div class="plan-item-wrapper">';
                     
@@ -771,45 +1194,160 @@ try {
             break;
 
         case 'mno':
-            // 통신사폰 상품 (phone-data.php 사용)
-            require_once __DIR__ . '/../includes/data/phone-data.php';
-            $allPhones = getPhonesData(10000);
-            
-            // 필터 적용
-            if (!empty($filterProvider)) {
-                $allPhones = array_filter($allPhones, function($phone) use ($filterProvider) {
-                    return isset($phone['provider']) && $phone['provider'] === $filterProvider;
-                });
-            }
-            
-            $totalCount = count($allPhones);
-            $phones = array_slice($allPhones, $offset, $limit);
-            
-            // HTML 생성
-            $htmlFragments = [];
-            
-            foreach ($phones as $phone) {
-                ob_start();
-                try {
-                    // 카드 컴포넌트 사용
-                    $card_wrapper_class = '';
-                    $layout_type = 'list';
-                    include __DIR__ . '/../includes/components/phone-card.php';
-                    
-                    // 구분선 추가
-                    echo '<hr class="plan-card-divider">';
-                    
-                    $html = ob_get_clean();
-                    if (!empty(trim($html))) {
-                        $htmlFragments[] = $html;
+        case 'mno-orders':
+            if ($isOrder || $type === 'mno-orders') {
+                // 주문내역 처리
+                require_once __DIR__ . '/../includes/data/review-settings.php';
+                require_once __DIR__ . '/../includes/data/product-functions.php';
+                require_once __DIR__ . '/../includes/data/db-config.php';
+                $phones = getUserMnoApplications($userId, $limit, $offset);
+                $totalCount = count(getUserMnoApplications($userId));
+                
+                // HTML 생성
+                $htmlFragments = [];
+                
+                foreach ($phones as $phone) {
+                    ob_start();
+                    try {
+                        echo '<div class="order-item-wrapper">';
+                        // 컴포넌트에 필요한 변수 설정
+                        $user_id = $userId;
+                        include __DIR__ . '/../includes/components/mno-order-card.php';
+                        echo '</div>';
+                        
+                        $html = ob_get_clean();
+                        if (!empty(trim($html))) {
+                            $htmlFragments[] = $html;
+                        }
+                    } catch (Exception $e) {
+                        ob_end_clean();
+                        error_log("mno-order API: HTML 생성 오류 - " . $e->getMessage());
+                    } catch (Error $e) {
+                        ob_end_clean();
+                        error_log("mno-order API: Fatal Error - " . $e->getMessage());
+                        throw $e;
                     }
-                } catch (Exception $e) {
-                    ob_end_clean();
-                    error_log("mno API: HTML 생성 오류 - " . $e->getMessage());
-                } catch (Error $e) {
-                    ob_end_clean();
-                    error_log("mno API: Fatal Error - " . $e->getMessage());
-                    throw $e;
+                }
+                
+                $hasMore = ($offset + count($phones)) < $totalCount;
+                $remaining = max(0, $totalCount - ($offset + count($phones)));
+                
+                echo json_encode([
+                    'success' => true,
+                    'html' => $htmlFragments,
+                    'pagination' => [
+                        'page' => $page,
+                        'limit' => $limit,
+                        'total' => $totalCount,
+                        'hasMore' => $hasMore,
+                        'remaining' => $remaining
+                    ]
+                ], JSON_UNESCAPED_UNICODE);
+                exit;
+            } else if ($isWishlist && $userId) {
+                // 위시리스트 처리
+                // ... (기존 위시리스트 로직) ...
+                require_once __DIR__ . '/../includes/data/phone-data.php';
+                $allPhones = getPhonesData(10000);
+                
+                // 필터 적용
+                if (!empty($filterProvider)) {
+                    $allPhones = array_filter($allPhones, function($phone) use ($filterProvider) {
+                        return isset($phone['provider']) && $phone['provider'] === $filterProvider;
+                    });
+                }
+                
+                $totalCount = count($allPhones);
+                $phones = array_slice($allPhones, $offset, $limit);
+                
+                // HTML 생성
+                $htmlFragments = [];
+                
+                foreach ($phones as $phone) {
+                    ob_start();
+                    try {
+                        // 위시리스트인 경우 is_favorited 설정
+                        if ($isWishlist && $userId) {
+                            $phone['is_favorited'] = true;
+                        }
+                        
+                        // 래퍼 div로 감싸서 하나의 요소로 만들기
+                        echo '<div class="plan-item-wrapper">';
+                        
+                        // 카드 컴포넌트 사용
+                        $card_wrapper_class = '';
+                        $layout_type = 'list';
+                        include __DIR__ . '/../includes/components/phone-card.php';
+                        
+                        // 구분선 추가
+                        echo '<hr class="plan-card-divider">';
+                        
+                        echo '</div>'; // 래퍼 닫기
+                        
+                        $html = ob_get_clean();
+                        if (!empty(trim($html))) {
+                            $htmlFragments[] = $html;
+                        }
+                    } catch (Exception $e) {
+                        ob_end_clean();
+                        error_log("mno API: HTML 생성 오류 - " . $e->getMessage());
+                    } catch (Error $e) {
+                        ob_end_clean();
+                        error_log("mno API: Fatal Error - " . $e->getMessage());
+                        throw $e;
+                    }
+                }
+            } else {
+                // 통신사폰 상품 (phone-data.php 사용)
+                require_once __DIR__ . '/../includes/data/phone-data.php';
+                $allPhones = getPhonesData(10000);
+                
+                // 필터 적용
+                if (!empty($filterProvider)) {
+                    $allPhones = array_filter($allPhones, function($phone) use ($filterProvider) {
+                        return isset($phone['provider']) && $phone['provider'] === $filterProvider;
+                    });
+                }
+                
+                $totalCount = count($allPhones);
+                $phones = array_slice($allPhones, $offset, $limit);
+                
+                // HTML 생성
+                $htmlFragments = [];
+                
+                foreach ($phones as $phone) {
+                    ob_start();
+                    try {
+                        // 위시리스트인 경우 is_favorited 설정
+                        if ($isWishlist && $userId) {
+                            $phone['is_favorited'] = true;
+                        }
+                        
+                        // 래퍼 div로 감싸서 하나의 요소로 만들기
+                        echo '<div class="plan-item-wrapper">';
+                        
+                        // 카드 컴포넌트 사용
+                        $card_wrapper_class = '';
+                        $layout_type = 'list';
+                        include __DIR__ . '/../includes/components/phone-card.php';
+                        
+                        // 구분선 추가
+                        echo '<hr class="plan-card-divider">';
+                        
+                        echo '</div>'; // 래퍼 닫기
+                        
+                        $html = ob_get_clean();
+                        if (!empty(trim($html))) {
+                            $htmlFragments[] = $html;
+                        }
+                    } catch (Exception $e) {
+                        ob_end_clean();
+                        error_log("mno API: HTML 생성 오류 - " . $e->getMessage());
+                    } catch (Error $e) {
+                        ob_end_clean();
+                        error_log("mno API: Fatal Error - " . $e->getMessage());
+                        throw $e;
+                    }
                 }
             }
             
