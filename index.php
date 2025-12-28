@@ -973,16 +973,31 @@ include 'includes/footer.php';
 <?php
 // 메인페이지 공지사항 새창 표시
 $mainNotice = getMainPageNotice();
+// 디버깅: 메인공지 정보 확인 (개발 환경에서만)
+if (isset($_GET['debug_notice']) && $_GET['debug_notice'] == '1') {
+    echo "<!-- 메인공지 디버깅 정보:\n";
+    echo "getMainPageNotice() 반환값: " . ($mainNotice ? "있음" : "없음") . "\n";
+    if ($mainNotice) {
+        echo "ID: " . htmlspecialchars($mainNotice['id'] ?? 'N/A') . "\n";
+        echo "제목: " . htmlspecialchars($mainNotice['title'] ?? 'N/A') . "\n";
+        echo "show_on_main: " . ($mainNotice['show_on_main'] ?? 'N/A') . "\n";
+        echo "image_url: " . htmlspecialchars($mainNotice['image_url'] ?? '없음') . "\n";
+        echo "start_at: " . htmlspecialchars($mainNotice['start_at'] ?? 'NULL') . "\n";
+        echo "end_at: " . htmlspecialchars($mainNotice['end_at'] ?? 'NULL') . "\n";
+        echo "쿠키 확인: " . (isset($_COOKIE['notice_viewed_' . $mainNotice['id']]) ? "설정됨" : "없음") . "\n";
+    }
+    echo "-->";
+}
 if ($mainNotice && !empty($mainNotice['image_url']) && !isset($_COOKIE['notice_viewed_' . $mainNotice['id']])): ?>
 <div id="mainNoticeModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.4); z-index: 10000; align-items: center; justify-content: center;">
     <div style="position: relative; width: 90%; max-width: 800px; display: flex; flex-direction: column; align-items: center; border-radius: 12px; overflow: hidden;">
         <!-- 이미지 영역 (클릭 시 링크 이동) -->
         <?php if (!empty($mainNotice['link_url'])): ?>
-            <a href="<?php echo htmlspecialchars($mainNotice['link_url']); ?>" target="_blank" style="display: block; width: 100%; cursor: pointer;">
+            <div id="mainNoticeImage" style="display: block; width: 100%; cursor: pointer; position: relative;">
                 <img src="<?php echo htmlspecialchars($mainNotice['image_url']); ?>" 
                      alt="<?php echo htmlspecialchars($mainNotice['title']); ?>" 
                      style="width: 100%; height: auto; display: block; border-radius: 12px 12px 0 0;">
-            </a>
+            </div>
         <?php else: ?>
             <img src="<?php echo htmlspecialchars($mainNotice['image_url']); ?>" 
                  alt="<?php echo htmlspecialchars($mainNotice['title']); ?>" 
@@ -1006,7 +1021,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const modal = document.getElementById('mainNoticeModal');
     const closeBtn = document.getElementById('closeMainNoticeBtn');
     const dontShowAgain = document.getElementById('dontShowAgain');
+    const noticeImage = document.getElementById('mainNoticeImage');
     const noticeId = '<?php echo htmlspecialchars($mainNotice['id']); ?>';
+    const linkUrl = '<?php echo !empty($mainNotice['link_url']) ? htmlspecialchars($mainNotice['link_url'], ENT_QUOTES) : ''; ?>';
     
     // 현재 스크롤 위치 저장
     let scrollPosition = 0;
@@ -1024,7 +1041,7 @@ document.addEventListener('DOMContentLoaded', function() {
         document.body.style.width = '100%';
     }
     
-    function closeModal(saveCookie) {
+    function closeModal(saveCookie, redirectUrl) {
         if (modal) {
             modal.style.display = 'none';
             // body 스크롤 복원
@@ -1042,6 +1059,19 @@ document.addEventListener('DOMContentLoaded', function() {
             expires.setHours(23, 59, 59, 999); // 오늘 자정까지
             document.cookie = 'notice_viewed_' + noticeId + '=1; expires=' + expires.toUTCString() + '; path=/';
         }
+        
+        // 리다이렉트 URL이 있으면 이동
+        if (redirectUrl) {
+            window.location.href = redirectUrl;
+        }
+    }
+    
+    // 이미지 클릭 시 링크로 이동
+    if (noticeImage && linkUrl) {
+        noticeImage.addEventListener('click', function(e) {
+            e.preventDefault();
+            closeModal(true, linkUrl); // 모달 닫고 쿠키 설정 후 리다이렉트
+        });
     }
     
     // 오늘 그만보기 체크박스 클릭 시 즉시 모달 닫기

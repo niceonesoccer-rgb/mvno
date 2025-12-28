@@ -21,6 +21,15 @@ $success = '';
 $editNotice = null;
 $editId = $_GET['edit'] ?? '';
 
+// 탭 설정 (등록 또는 목록)
+$activeTab = $_GET['tab'] ?? 'list';
+if (!empty($editId)) {
+    $activeTab = 'register'; // 수정 모드일 때는 등록 탭으로
+}
+if (!in_array($activeTab, ['register', 'list'])) {
+    $activeTab = 'list';
+}
+
 // 페이지네이션 설정 (초기 설정)
 $page = max(1, intval($_GET['page'] ?? 1));
 $perPage = intval($_GET['per_page'] ?? 10);
@@ -46,8 +55,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         }
     }
     
+    // 메인공지로 설정하려면 이미지가 필수
+    if (!$error && $show_on_main && empty($image_url)) {
+        $error = '메인공지로 설정하려면 이미지가 필요합니다. 이미지를 업로드해주세요.';
+    }
+    
     // 기간 유효성 검사
-    if ($start_at && $end_at && strtotime($start_at) > strtotime($end_at)) {
+    if (!$error && $start_at && $end_at && strtotime($start_at) > strtotime($end_at)) {
         $error = '메인공지 시작일은 종료일보다 이전이어야 합니다.';
     }
     
@@ -58,7 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     if (!$error) {
         $result = createNotice($title, $content, $show_on_main, $image_url, $link_url, $start_at, $end_at);
         if ($result) {
-            header('Location: /MVNO/admin/content/notice-manage.php?success=created&page=' . $page . '&per_page=' . $perPage);
+            header('Location: /MVNO/admin/content/notice-manage.php?success=created&tab=list&page=' . $page . '&per_page=' . $perPage);
             exit;
         } else {
             $error = '공지사항 등록에 실패했습니다.';
@@ -78,47 +92,58 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     
     // 기존 공지사항 정보 가져오기
     $existingNotice = getNoticeById($id);
-    $old_image_url = $existingNotice['image_url'] ?? null;
-    $image_url = $old_image_url;
-    
-    // 새 이미지 업로드 처리
-    if (isset($_FILES['notice_image']) && $_FILES['notice_image']['error'] === UPLOAD_ERR_OK) {
-        $new_image_url = uploadNoticeImage($_FILES['notice_image']);
-        if ($new_image_url) {
-            // 기존 이미지 파일 삭제 (새 이미지와 다를 경우에만)
-            if ($old_image_url && $old_image_url !== $new_image_url && file_exists(__DIR__ . '/../..' . $old_image_url)) {
-                @unlink(__DIR__ . '/../..' . $old_image_url);
-            }
-            $image_url = $new_image_url;
-        } else {
-            $error = '이미지 업로드에 실패했습니다. 지원 형식: JPG, PNG, GIF, WEBP';
-        }
-    }
-    
-    // 기간 유효성 검사
-    if (!$error && $start_at && $end_at && strtotime($start_at) > strtotime($end_at)) {
-        $error = '메인공지 시작일은 종료일보다 이전이어야 합니다.';
-    }
-    
-    if (!$error && empty($id)) {
-        $error = '공지사항 ID가 없습니다.';
-    } elseif (!$error && empty($title)) {
-        $error = '제목을 입력해주세요.';
-    }
-    
-    if (!$error) {
-        // DB 업데이트 전에 삭제할 이미지 URL 저장
-        $image_to_delete = ($old_image_url && $old_image_url !== $image_url) ? $old_image_url : null;
+    if (!$existingNotice) {
+        $error = '공지사항을 찾을 수 없습니다.';
+    } else {
+        $old_image_url = $existingNotice['image_url'] ?? null;
+        $image_url = $old_image_url; // 기본값은 기존 이미지
         
-        if (updateNotice($id, $title, $content, $show_on_main, $image_url, $link_url, $start_at, $end_at)) {
-            // DB 업데이트 성공 후 기존 이미지 파일 삭제
-            if ($image_to_delete && file_exists(__DIR__ . '/../..' . $image_to_delete)) {
-                @unlink(__DIR__ . '/../..' . $image_to_delete);
+        // 새 이미지 업로드 처리
+        if (isset($_FILES['notice_image']) && $_FILES['notice_image']['error'] === UPLOAD_ERR_OK) {
+            $new_image_url = uploadNoticeImage($_FILES['notice_image']);
+            if ($new_image_url) {
+                // 기존 이미지 파일 삭제 (새 이미지와 다를 경우에만)
+                if ($old_image_url && $old_image_url !== $new_image_url && file_exists(__DIR__ . '/../..' . $old_image_url)) {
+                    @unlink(__DIR__ . '/../..' . $old_image_url);
+                }
+                $image_url = $new_image_url;
+            } else {
+                $error = '이미지 업로드에 실패했습니다. 지원 형식: JPG, PNG, GIF, WEBP';
             }
-            header('Location: /MVNO/admin/content/notice-manage.php?success=updated&page=' . $page . '&per_page=' . $perPage);
-            exit;
-        } else {
-            $error = '공지사항 수정에 실패했습니다.';
+        }
+        
+        // 메인공지로 설정하려면 이미지가 필수
+        if (!$error && $show_on_main && empty($image_url)) {
+            $error = '메인공지로 설정하려면 이미지가 필요합니다. 이미지를 업로드해주세요.';
+        }
+        
+        // 기간 유효성 검사
+        if (!$error && $start_at && $end_at && strtotime($start_at) > strtotime($end_at)) {
+            $error = '메인공지 시작일은 종료일보다 이전이어야 합니다.';
+        }
+        
+        if (!$error && empty($id)) {
+            $error = '공지사항 ID가 없습니다.';
+        } elseif (!$error && empty($title)) {
+            $error = '제목을 입력해주세요.';
+        }
+        
+        if (!$error) {
+            // DB 업데이트 전에 삭제할 이미지 URL 저장
+            $image_to_delete = ($old_image_url && $old_image_url !== $image_url) ? $old_image_url : null;
+            
+            // updateNotice 함수 호출 시 image_url이 null이면 기존 값 유지를 위해 null 전달
+            // 하지만 현재는 항상 값이 있으므로 그대로 전달
+            if (updateNotice($id, $title, $content, $show_on_main, $image_url, $link_url, $start_at, $end_at)) {
+                // DB 업데이트 성공 후 기존 이미지 파일 삭제
+                if ($image_to_delete && file_exists(__DIR__ . '/../..' . $image_to_delete)) {
+                    @unlink(__DIR__ . '/../..' . $image_to_delete);
+                }
+                header('Location: /MVNO/admin/content/notice-manage.php?success=updated&tab=list&page=' . $page . '&per_page=' . $perPage);
+                exit;
+            } else {
+                $error = '공지사항 수정에 실패했습니다.';
+            }
         }
     }
 }
@@ -127,7 +152,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete') {
     $id = trim($_POST['id'] ?? '');
     if (!empty($id) && deleteNotice($id)) {
-        header('Location: /MVNO/admin/content/notice-manage.php?success=deleted');
+        header('Location: /MVNO/admin/content/notice-manage.php?success=deleted&tab=list');
         exit;
     } elseif (!empty($id)) {
         $error = '공지사항 삭제에 실패했습니다.';
@@ -212,6 +237,12 @@ include '../includes/admin-header.php';
     .badge-draft { background: #f3f4f6; color: #6b7280; }
     .notice-meta { font-size: 13px; color: #6b7280; }
     .notice-actions { display: flex; gap: 8px; }
+    .tabs { display: flex; gap: 8px; border-bottom: 2px solid #e5e7eb; margin-bottom: 24px; }
+    .tab { padding: 12px 24px; font-size: 15px; font-weight: 600; color: #6b7280; cursor: pointer; border: none; background: none; border-bottom: 3px solid transparent; margin-bottom: -2px; transition: all 0.2s; }
+    .tab:hover { color: #374151; }
+    .tab.active { color: #6366f1; border-bottom-color: #6366f1; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
 </style>
 
 <div class="admin-content">
@@ -219,13 +250,6 @@ include '../includes/admin-header.php';
         <div>
             <h1>공지사항 관리</h1>
         </div>
-        <?php if (empty($editId)): ?>
-            <button type="button" class="btn btn-primary" onclick="document.getElementById('noticeForm').scrollIntoView({ behavior: 'smooth' });">
-                + 공지사항 등록
-            </button>
-        <?php else: ?>
-            <a href="/MVNO/admin/content/notice-manage.php" class="btn btn-secondary">목록으로</a>
-        <?php endif; ?>
     </div>
 
     <?php if ($success): ?>
@@ -236,6 +260,18 @@ include '../includes/admin-header.php';
         <div class="alert alert-error"><?php echo htmlspecialchars($error); ?></div>
     <?php endif; ?>
 
+    <!-- 탭 네비게이션 -->
+    <div class="tabs">
+        <button class="tab <?php echo $activeTab === 'register' ? 'active' : ''; ?>" onclick="switchTab('register')">
+            등록
+        </button>
+        <button class="tab <?php echo $activeTab === 'list' ? 'active' : ''; ?>" onclick="switchTab('list')">
+            목록
+        </button>
+    </div>
+
+    <!-- 등록 탭 -->
+    <div class="tab-content <?php echo $activeTab === 'register' ? 'active' : ''; ?>" id="registerTab">
     <!-- 공지사항 등록/수정 폼 -->
     <div class="card">
         <div class="card-title">
@@ -257,10 +293,11 @@ include '../includes/admin-header.php';
                     placeholder="공지사항 제목을 입력하세요"
                     required
                 >
+                <div class="help">공지사항의 제목을 입력합니다. (필수 항목)</div>
             </div>
             
             <div class="form-group">
-                <label for="notice_image">이미지 (선택사항)</label>
+                <label for="notice_image">이미지</label>
                 
                 <!-- 드래그 앤 드롭 영역 -->
                 <div id="imageUploadArea" style="border: 2px dashed #d1d5db; border-radius: 12px; padding: 40px; text-align: center; background: #f9fafb; cursor: pointer; transition: all 0.3s; position: relative; min-height: 200px;">
@@ -319,7 +356,13 @@ include '../includes/admin-header.php';
                     <?php endif; ?>
                 </div>
                 
-                <div class="help" style="margin-top: 8px;">지원 형식: JPG, PNG, GIF, WEBP (최대 5MB) | 권장 비율: 3:4</div>
+                <div class="help" style="margin-top: 8px;">
+                    <strong>이미지 업로드 안내:</strong><br>
+                    • 지원 형식: JPG, PNG, GIF, WEBP<br>
+                    • 최대 크기: 5MB<br>
+                    • 권장 비율: 3:4 (세로형)<br>
+                    • 메인공지로 사용할 경우 이미지가 필수입니다.
+                </div>
             </div>
             
             <div class="form-group">
@@ -329,19 +372,22 @@ include '../includes/admin-header.php';
                     id="link_url" 
                     name="link_url" 
                     value="<?php echo htmlspecialchars($editNotice['link_url'] ?? ''); ?>" 
-                    placeholder="https://example.com (선택사항)"
+                    placeholder="https://example.com"
                 >
-                <div class="help">이미지 클릭 시 이동할 링크 주소를 입력하세요.</div>
+                <div class="help">이미지 클릭 시 이동할 링크 주소를 입력합니다. (선택사항)</div>
             </div>
             
             <div class="form-group">
-                <label for="content">내용 (선택사항)</label>
+                <label for="content">내용</label>
                 <textarea 
                     id="content" 
                     name="content" 
-                    placeholder="공지사항 내용을 입력하세요 (선택사항)"
+                    placeholder="공지사항 내용을 입력하세요"
                 ><?php echo htmlspecialchars($editNotice['content'] ?? ''); ?></textarea>
-                <div class="help">HTML 태그 사용 가능. 이미지만 사용할 경우 비워두셔도 됩니다.</div>
+                <div class="help">
+                    • HTML 태그 사용 가능합니다.<br>
+                    • 이미지만 사용할 경우 비워두셔도 됩니다. (선택사항)
+                </div>
             </div>
             
             <div class="form-group">
@@ -354,16 +400,22 @@ include '../includes/admin-header.php';
                         <?php echo ($editNotice['show_on_main'] ?? false) ? 'checked' : ''; ?>
                         onchange="toggleMainNoticeDates(this.checked)"
                     >
-                    <label for="show_on_main" style="margin: 0; font-weight: 500;">메인공지</label>
+                    <label for="show_on_main" style="margin: 0; font-weight: 500;">메인공지로 설정</label>
                 </div>
-                <div class="help">체크 시 메인페이지 접속 시 이 공지사항이 새창으로 자동 표시됩니다.</div>
+                <div class="help">
+                    <strong>메인공지란?</strong><br>
+                    • 체크 시 메인페이지 접속 시 이 공지사항이 새창(모달)으로 자동 표시됩니다.<br>
+                    • 메인공지로 표시하려면 <strong>이미지가 반드시 필요</strong>합니다.<br>
+                    • 한 번에 하나의 공지사항만 메인공지로 설정할 수 있습니다.
+                </div>
             </div>
             
             <div id="mainNoticeDates" style="display: <?php echo ($editNotice['show_on_main'] ?? false) ? 'block' : 'none'; ?>;">
                 <div class="form-group">
-                    <label>메인공지 기간 (선택사항)</label>
+                    <label>메인공지 표시 기간</label>
                     <div style="display: flex; align-items: center; gap: 12px;">
                         <div style="position: relative; flex: 1; max-width: 200px;">
+                            <label for="start_at" style="display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 6px;">시작일</label>
                             <input 
                                 type="text" 
                                 id="start_at" 
@@ -374,15 +426,16 @@ include '../includes/admin-header.php';
                                 onclick="openDatePicker('start_at')"
                                 style="width: 100%; padding: 8px 12px; padding-right: 32px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; box-sizing: border-box; cursor: pointer; background: white; position: relative; z-index: 1;"
                             >
-                            <button type="button" onclick="openDatePicker('start_at')" style="position: absolute; right: 6px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; padding: 2px; display: flex; align-items: center; justify-content: center; z-index: 20;">
+                            <button type="button" onclick="openDatePicker('start_at')" style="position: absolute; right: 6px; top: calc(50% + 13px); transform: translateY(-50%); background: none; border: none; cursor: pointer; padding: 2px; display: flex; align-items: center; justify-content: center; z-index: 20;">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="color: #6b7280;">
                                     <path d="M8 2V6M16 2V6M3 10H21M5 4H19C20.1046 4 21 4.89543 21 6V20C21 21.1046 20.1046 22 19 22H5C3.89543 22 3 21.1046 3 20V6C3 4.89543 3.89543 4 5 4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                                 </svg>
                             </button>
                             <input type="date" id="start_at_hidden" style="position: absolute; opacity: 0; width: 100%; height: 100%; top: 0; left: 0; cursor: pointer; z-index: 5; pointer-events: none;">
                         </div>
-                        <span style="font-size: 18px; font-weight: 600; color: #6b7280;">~</span>
+                        <span style="font-size: 18px; font-weight: 600; color: #6b7280; margin-top: 25px;">~</span>
                         <div style="position: relative; flex: 1; max-width: 200px;">
+                            <label for="end_at" style="display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 6px;">종료일</label>
                             <input 
                                 type="text" 
                                 id="end_at" 
@@ -393,15 +446,20 @@ include '../includes/admin-header.php';
                                 onclick="openDatePicker('end_at')"
                                 style="width: 100%; padding: 8px 12px; padding-right: 32px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; box-sizing: border-box; cursor: pointer; background: white; position: relative; z-index: 1;"
                             >
-                            <button type="button" onclick="openDatePicker('end_at')" style="position: absolute; right: 6px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; padding: 2px; display: flex; align-items: center; justify-content: center; z-index: 20;">
-                                <svg width="16" height: 16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="color: #6b7280;">
+                            <button type="button" onclick="openDatePicker('end_at')" style="position: absolute; right: 6px; top: calc(50% + 13px); transform: translateY(-50%); background: none; border: none; cursor: pointer; padding: 2px; display: flex; align-items: center; justify-content: center; z-index: 20;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="color: #6b7280;">
                                     <path d="M8 2V6M16 2V6M3 10H21M5 4H19C20.1046 4 21 4.89543 21 6V20C21 21.1046 20.1046 22 19 22H5C3.89543 22 3 21.1046 3 20V6C3 4.89543 3.89543 4 5 4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                                 </svg>
                             </button>
                             <input type="date" id="end_at_hidden" style="position: absolute; opacity: 0; width: 100%; height: 100%; top: 0; left: 0; cursor: pointer; z-index: 5; pointer-events: none;">
                         </div>
                     </div>
-                    <div class="help">시작일을 지정하지 않으면 즉시 표시됩니다. 종료일을 지정하지 않으면 계속 표시됩니다.</div>
+                    <div class="help">
+                        <strong>표시 기간 설정 안내:</strong><br>
+                        • 시작일을 지정하지 않으면: 즉시 표시됩니다.<br>
+                        • 종료일을 지정하지 않으면: 계속 표시됩니다.<br>
+                        • 기간을 지정하면 해당 기간 동안만 메인공지로 표시됩니다. (선택사항)
+                    </div>
                 </div>
             </div>
             
@@ -410,17 +468,25 @@ include '../includes/admin-header.php';
                     <?php echo $editNotice ? '수정하기' : '등록하기'; ?>
                 </button>
                 <?php if ($editNotice): ?>
-                    <a href="/MVNO/admin/content/notice-manage.php?page=<?php echo $page; ?>&per_page=<?php echo $perPage; ?>" class="btn btn-secondary">취소</a>
+                    <a href="/MVNO/admin/content/notice-manage.php?tab=list&page=<?php echo $page; ?>&per_page=<?php echo $perPage; ?>" class="btn btn-secondary">취소</a>
+                <?php else: ?>
+                    <button type="button" class="btn btn-secondary" onclick="switchTab('list')">목록 보기</button>
                 <?php endif; ?>
             </div>
         </form>
     </div>
+    </div>
 
+    <!-- 목록 탭 -->
+    <div class="tab-content <?php echo $activeTab === 'list' ? 'active' : ''; ?>" id="listTab">
     <!-- 공지사항 목록 -->
     <div class="card notice-list">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
             <div class="card-title" style="margin: 0;">공지사항 목록</div>
             <div style="display: flex; align-items: center; gap: 12px;">
+                <button type="button" class="btn btn-primary btn-sm" onclick="switchTab('register')">
+                    + 공지사항 등록
+                </button>
                 <span style="color: #6b7280; font-size: 14px;">총 <?php echo number_format($totalNotices); ?>개</span>
                 <select id="per_page_select" onchange="changePerPage()" style="padding: 6px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; background: white; cursor: pointer;">
                     <option value="10" <?php echo $perPage == 10 ? 'selected' : ''; ?>>10개씩 보기</option>
@@ -435,13 +501,62 @@ include '../includes/admin-header.php';
                 등록된 공지사항이 없습니다.
             </div>
         <?php else: ?>
-            <?php foreach ($notices as $notice): ?>
+            <?php 
+            // 실제 메인공지 가져오기 (getMainPageNotice와 동일한 로직)
+            $actualMainNotice = getMainPageNotice();
+            $actualMainNoticeId = $actualMainNotice['id'] ?? null;
+            
+            foreach ($notices as $notice): 
+                // 메인공지 표시 가능 여부 확인 (getMainPageNotice와 동일한 로직)
+                $canShowOnMain = false;
+                $showOnMainReason = '';
+                $isActualMainNotice = ($actualMainNoticeId === $notice['id']);
+                
+                // show_on_main 값 확인 (숫자/문자열 모두 체크)
+                $isMainNotice = false;
+                if (isset($notice['show_on_main'])) {
+                    $showOnMainValue = $notice['show_on_main'];
+                    // 숫자 1, 문자열 '1', 불린 true 모두 체크
+                    $isMainNotice = ($showOnMainValue == 1 || $showOnMainValue === '1' || $showOnMainValue === true || $showOnMainValue === 'true');
+                }
+                
+                if ($isMainNotice) {
+                    $currentDate = date('Y-m-d');
+                    $startAt = $notice['start_at'] ?? null;
+                    $endAt = $notice['end_at'] ?? null;
+                    $hasImage = !empty($notice['image_url']);
+                    
+                    // getMainPageNotice와 동일한 조건 체크
+                    $dateConditionMet = true;
+                    if ($startAt && $startAt > $currentDate) {
+                        $dateConditionMet = false;
+                        $showOnMainReason = '시작일 미도래 (' . $startAt . ', 오늘: ' . $currentDate . ')';
+                    } elseif ($endAt && $endAt < $currentDate) {
+                        $dateConditionMet = false;
+                        $showOnMainReason = '종료일 경과 (' . $endAt . ', 오늘: ' . $currentDate . ')';
+                    }
+                    
+                    if ($dateConditionMet) {
+                        if (!$hasImage) {
+                            $showOnMainReason = '이미지 없음 (홈화면 표시 불가)';
+                        } else {
+                            $canShowOnMain = true;
+                        }
+                    }
+                }
+            ?>
                 <div class="notice-item">
                     <div class="notice-info">
                         <div class="notice-title">
                             <?php echo htmlspecialchars($notice['title']); ?>
                             <?php if (!empty($notice['show_on_main'])): ?>
-                                <span class="badge" style="background: #dbeafe; color: #1e40af;">메인공지</span>
+                                <?php if ($isActualMainNotice): ?>
+                                    <span class="badge" style="background: #10b981; color: white;">메인공지</span>
+                                <?php elseif ($canShowOnMain): ?>
+                                    <span class="badge" style="background: #dbeafe; color: #1e40af;">메인공지 (조건 만족, 표시 가능)</span>
+                                <?php else: ?>
+                                    <span class="badge" style="background: #fee2e2; color: #991b1b;">메인공지 (표시 안됨: <?php echo htmlspecialchars($showOnMainReason); ?>)</span>
+                                <?php endif; ?>
                             <?php endif; ?>
                         </div>
                         <div class="notice-meta">
@@ -450,10 +565,19 @@ include '../includes/admin-header.php';
                             <?php if ($notice['updated_at'] !== $notice['created_at']): ?>
                                 | 수정일: <?php echo date('Y-m-d H:i', strtotime($notice['updated_at'])); ?>
                             <?php endif; ?>
+                            <?php if (!empty($notice['start_at'])): ?>
+                                | 시작일: <?php echo htmlspecialchars($notice['start_at']); ?>
+                            <?php endif; ?>
+                            <?php if (!empty($notice['end_at'])): ?>
+                                | 종료일: <?php echo htmlspecialchars($notice['end_at']); ?>
+                            <?php endif; ?>
+                            <?php if (empty($notice['image_url'])): ?>
+                                | <span style="color: #dc2626;">⚠ 이미지 없음</span>
+                            <?php endif; ?>
                         </div>
                     </div>
                     <div class="notice-actions">
-                        <a href="/MVNO/admin/content/notice-manage.php?edit=<?php echo htmlspecialchars($notice['id']); ?>&page=<?php echo $page; ?>&per_page=<?php echo $perPage; ?>" class="btn btn-secondary btn-sm">수정</a>
+                        <a href="/MVNO/admin/content/notice-manage.php?edit=<?php echo htmlspecialchars($notice['id']); ?>&tab=register&page=<?php echo $page; ?>&per_page=<?php echo $perPage; ?>" class="btn btn-secondary btn-sm">수정</a>
                         <form method="POST" style="display: inline;" onsubmit="return confirm('정말 삭제하시겠습니까?');">
                             <input type="hidden" name="action" value="delete">
                             <input type="hidden" name="id" value="<?php echo htmlspecialchars($notice['id']); ?>">
@@ -467,7 +591,7 @@ include '../includes/admin-header.php';
             <?php if ($totalPages > 1): ?>
                 <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid #e5e7eb; display: flex; justify-content: center; align-items: center; gap: 8px;">
                     <!-- 이전 버튼 -->
-                    <a href="?page=<?php echo max(1, $page - 1); ?>&per_page=<?php echo $perPage; ?>" 
+                    <a href="?tab=list&page=<?php echo max(1, $page - 1); ?>&per_page=<?php echo $perPage; ?>" 
                        class="pagination-btn <?php echo $page <= 1 ? 'disabled' : ''; ?>"
                        style="padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; text-decoration: none; color: #374151; background: white; <?php echo $page <= 1 ? 'opacity: 0.5; cursor: not-allowed; pointer-events: none;' : ''; ?>">
                         이전
@@ -478,14 +602,14 @@ include '../includes/admin-header.php';
                     $startPage = max(1, $page - 2);
                     $endPage = min($totalPages, $page + 2);
                     if ($startPage > 1) {
-                        echo '<a href="?page=1&per_page=' . $perPage . '" class="pagination-btn" style="padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; text-decoration: none; color: #374151; background: white;">1</a>';
+                        echo '<a href="?tab=list&page=1&per_page=' . $perPage . '" class="pagination-btn" style="padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; text-decoration: none; color: #374151; background: white;">1</a>';
                         if ($startPage > 2) {
                             echo '<span style="padding: 8px 4px; color: #6b7280;">...</span>';
                         }
                     }
                     for ($i = $startPage; $i <= $endPage; $i++):
                     ?>
-                        <a href="?page=<?php echo $i; ?>&per_page=<?php echo $perPage; ?>" 
+                        <a href="?tab=list&page=<?php echo $i; ?>&per_page=<?php echo $perPage; ?>" 
                            class="pagination-btn <?php echo $i === $page ? 'active' : ''; ?>"
                            style="padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; text-decoration: none; color: #374151; background: <?php echo $i === $page ? '#6366f1' : 'white'; ?>; color: <?php echo $i === $page ? 'white' : '#374151'; ?>; font-weight: <?php echo $i === $page ? '600' : '400'; ?>;">
                             <?php echo $i; ?>
@@ -496,12 +620,12 @@ include '../includes/admin-header.php';
                         if ($endPage < $totalPages - 1) {
                             echo '<span style="padding: 8px 4px; color: #6b7280;">...</span>';
                         }
-                        echo '<a href="?page=' . $totalPages . '&per_page=' . $perPage . '" class="pagination-btn" style="padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; text-decoration: none; color: #374151; background: white;">' . $totalPages . '</a>';
+                        echo '<a href="?tab=list&page=' . $totalPages . '&per_page=' . $perPage . '" class="pagination-btn" style="padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; text-decoration: none; color: #374151; background: white;">' . $totalPages . '</a>';
                     }
                     ?>
                     
                     <!-- 다음 버튼 -->
-                    <a href="?page=<?php echo min($totalPages, $page + 1); ?>&per_page=<?php echo $perPage; ?>" 
+                    <a href="?tab=list&page=<?php echo min($totalPages, $page + 1); ?>&per_page=<?php echo $perPage; ?>" 
                        class="pagination-btn <?php echo $page >= $totalPages ? 'disabled' : ''; ?>"
                        style="padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; text-decoration: none; color: #374151; background: white; <?php echo $page >= $totalPages ? 'opacity: 0.5; cursor: not-allowed; pointer-events: none;' : ''; ?>">
                         다음
@@ -509,6 +633,7 @@ include '../includes/admin-header.php';
                 </div>
             <?php endif; ?>
         <?php endif; ?>
+    </div>
     </div>
 </div>
 
@@ -607,9 +732,23 @@ function changePerPage() {
     
     // edit 파라미터 제거 (페이지네이션 시 편집 모드 해제)
     params.delete('edit');
+    params.set('tab', 'list');
     params.set('per_page', perPage);
     params.set('page', '1'); // 첫 페이지로 이동
     
+    window.location.href = '?' + params.toString();
+}
+
+function switchTab(tab) {
+    const params = new URLSearchParams(window.location.search);
+    params.set('tab', tab);
+    
+    // edit 파라미터 제거 (탭 전환 시 편집 모드 해제)
+    if (tab === 'list') {
+        params.delete('edit');
+    }
+    
+    // 페이지 파라미터 유지
     window.location.href = '?' + params.toString();
 }
 
@@ -718,6 +857,7 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <?php include '../includes/admin-footer.php'; ?>
+
 
 
 

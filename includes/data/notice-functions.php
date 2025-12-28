@@ -232,24 +232,35 @@ function updateNotice($id, $title, $content, $show_on_main = false, $image_url =
             ':show_main' => $show_on_main ? 1 : 0,
         ];
         
-        if ($image_url !== null) {
+        // image_url이 null이 아니고 빈 문자열이 아니면 업데이트
+        if ($image_url !== null && $image_url !== '') {
             $sql .= ", image_url = :img_url";
             $params[':img_url'] = $image_url;
         }
         
-        if ($link_url !== null) {
+        // link_url이 null이 아니고 빈 문자열이 아니면 업데이트
+        if ($link_url !== null && $link_url !== '') {
             $sql .= ", link_url = :link_url";
             $params[':link_url'] = $link_url;
+        } elseif ($link_url === '') {
+            // 빈 문자열이면 NULL로 설정
+            $sql .= ", link_url = NULL";
         }
         
+        // start_at 처리
         if ($start_at !== null) {
             $sql .= ", start_at = :start_at";
             $params[':start_at'] = $start_at ? $start_at : null;
+        } elseif ($start_at === '') {
+            $sql .= ", start_at = NULL";
         }
         
+        // end_at 처리
         if ($end_at !== null) {
             $sql .= ", end_at = :end_at";
             $params[':end_at'] = $end_at ? $end_at : null;
+        } elseif ($end_at === '') {
+            $sql .= ", end_at = NULL";
         }
         
         $sql .= ", updated_at = NOW() WHERE id = :id";
@@ -347,21 +358,97 @@ function getMainPageNotice() {
     ensureShowOnMainColumn(); // 컬럼 확인 및 추가
     
     $pdo = getDBConnection();
-    if (!$pdo) return null;
+    if (!$pdo) {
+        error_log('getMainPageNotice: DB 연결 실패');
+        return null;
+    }
     
     try {
+        // 현재 날짜 가져오기 (한국 시간 기준)
+        $currentDate = date('Y-m-d');
+        
+        // show_on_main이 1인 모든 공지사항 먼저 확인 (디버깅용)
+        $debugStmt = $pdo->query("SELECT id, title, show_on_main, start_at, end_at, image_url FROM notices WHERE show_on_main = 1 OR show_on_main = '1' ORDER BY created_at DESC");
+        $debugNotices = $debugStmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // 단계별로 조건을 확인하여 쿼리 실행
+        // 1단계: show_on_main = 1인 공지사항 가져오기
         $sql = "SELECT * FROM notices 
-                WHERE show_on_main = 1 
-                AND (start_at IS NULL OR start_at <= CURDATE())
-                AND (end_at IS NULL OR end_at >= CURDATE())
-                ORDER BY created_at DESC LIMIT 1";
+                WHERE (show_on_main = 1 OR show_on_main = '1' OR CAST(show_on_main AS UNSIGNED) = 1)
+                ORDER BY created_at DESC";
         $stmt = $pdo->prepare($sql);
         $stmt->execute();
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        $allMainNotices = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // 2단계: PHP에서 날짜와 이미지 조건 필터링
+        $row = null;
+        foreach ($allMainNotices as $notice) {
+            $startAt = $notice['start_at'] ?? null;
+            $endAt = $notice['end_at'] ?? null;
+            $imageUrl = $notice['image_url'] ?? null;
+            
+            // 날짜 조건 체크
+            $dateOk = true;
+            if ($startAt && $startAt > $currentDate) {
+                $dateOk = false;
+            }
+            if ($endAt && $endAt < $currentDate) {
+                $dateOk = false;
+            }
+            
+            // 이미지 조건 체크
+            $imageOk = !empty($imageUrl) && $imageUrl !== null && $imageUrl !== '';
+            
+            // 모든 조건 만족하면 선택
+            if ($dateOk && $imageOk) {
+                $row = $notice;
+                break; // 가장 최근 것 선택
+            }
+        }
+        
+        // 디버깅: 쿼리 결과 로깅
+        if (isset($_GET['debug_notice']) && $_GET['debug_notice'] == '1') {
+            error_log('getMainPageNotice: 현재 날짜 = ' . $currentDate);
+            error_log('getMainPageNotice: show_on_main=1인 공지사항 수 = ' . count($allMainNotices));
+            foreach ($allMainNotices as $debugNotice) {
+                $startAt = $debugNotice['start_at'] ?? null;
+                $endAt = $debugNotice['end_at'] ?? null;
+                $imageUrl = $debugNotice['image_url'] ?? null;
+                
+                $dateOk = true;
+                if ($startAt && $startAt > $currentDate) {
+                    $dateOk = false;
+                }
+                if ($endAt && $endAt < $currentDate) {
+                    $dateOk = false;
+                }
+                $imageOk = !empty($imageUrl) && $imageUrl !== null && $imageUrl !== '';
+                
+                error_log('getMainPageNotice: 공지사항 - ID=' . ($debugNotice['id'] ?? 'N/A') . 
+                         ', 제목=' . ($debugNotice['title'] ?? 'N/A') . 
+                         ', show_on_main=' . ($debugNotice['show_on_main'] ?? 'N/A') . 
+                         ', start_at=' . ($startAt ?: 'NULL') . 
+                         ', end_at=' . ($endAt ?: 'NULL') . 
+                         ', image_url=' . ($imageOk ? '있음' : '없음') .
+                         ', 날짜조건=' . ($dateOk ? 'OK' : 'FAIL') .
+                         ', 이미지조건=' . ($imageOk ? 'OK' : 'FAIL'));
+            }
+            error_log('getMainPageNotice: 최종 결과 = ' . ($row ? '있음 (ID: ' . ($row['id'] ?? 'N/A') . ')' : '없음'));
+            if ($row) {
+                error_log('getMainPageNotice: 선택된 공지사항 - show_on_main=' . ($row['show_on_main'] ?? 'N/A') . 
+                         ', start_at=' . ($row['start_at'] ?? 'NULL') . 
+                         ', end_at=' . ($row['end_at'] ?? 'NULL') . 
+                         ', image_url=' . (!empty($row['image_url']) ? '있음' : '없음'));
+            } else {
+                error_log('getMainPageNotice: 조건을 만족하는 공지사항이 없습니다.');
+            }
+        }
+        
         return $row ?: null;
     } catch (PDOException $e) {
         // 컬럼이 없으면 null 반환
         if (strpos($e->getMessage(), 'show_on_main') !== false || strpos($e->getMessage(), 'start_at') !== false || strpos($e->getMessage(), 'end_at') !== false) {
+            error_log('getMainPageNotice: 컬럼 누락 - ' . $e->getMessage());
             return null;
         }
         error_log('getMainPageNotice error: ' . $e->getMessage());
