@@ -13,6 +13,38 @@ require_once 'includes/data/plan-data.php';
 require_once 'includes/data/phone-data.php';
 require_once 'includes/data/notice-functions.php';
 
+// 이미지 경로 정규화 함수
+function normalizeImagePathForDisplay($path) {
+    if (empty($path)) {
+        return '';
+    }
+    
+    $imagePath = trim($path);
+    
+    // 이미 /MVNO/로 시작하면 그대로 사용
+    if (strpos($imagePath, '/MVNO/') === 0) {
+        return $imagePath;
+    }
+    // /uploads/events/ 또는 /uploads/events/로 시작하는 경우
+    elseif (preg_match('#^/uploads/events/#', $imagePath)) {
+        return '/MVNO' . $imagePath;
+    }
+    // /uploads/ 또는 /images/로 시작하면 /MVNO/ 추가
+    elseif (strpos($imagePath, '/uploads/') === 0 || strpos($imagePath, '/images/') === 0) {
+        return '/MVNO' . $imagePath;
+    }
+    // 파일명만 있는 경우 (확장자가 있고 슬래시가 없음)
+    elseif (strpos($imagePath, '/') === false && preg_match('/\.(webp|jpg|jpeg|png|gif)$/i', $imagePath)) {
+        return '/MVNO/uploads/events/' . $imagePath;
+    }
+    // 상대 경로인데 파일명이 아닌 경우
+    elseif (strpos($imagePath, '/') !== 0) {
+        return '/MVNO/' . $imagePath;
+    }
+    
+    return $imagePath;
+}
+
 // 메인 페이지 설정 가져오기
 $home_settings = getHomeSettings();
 
@@ -22,6 +54,10 @@ if (!empty($home_settings['main_banners']) && is_array($home_settings['main_bann
     foreach ($home_settings['main_banners'] as $event_id) {
         $event = getEventById($event_id);
         if ($event) {
+            // 이미지 경로 정규화
+            if (!empty($event['image'])) {
+                $event['image'] = normalizeImagePathForDisplay($event['image']);
+            }
             $main_banner_events[] = $event;
         }
     }
@@ -37,6 +73,35 @@ if (!empty($home_settings['mvno_plans']) && is_array($home_settings['mvno_plans'
                 $mvno_plans[] = $plan;
                 break;
             }
+        }
+    }
+}
+
+// 사이트 전체 섹션 배너 가져오기
+$site_large_banners = [];
+if (!empty($home_settings['site_large_banners']) && is_array($home_settings['site_large_banners'])) {
+    foreach ($home_settings['site_large_banners'] as $event_id) {
+        $event = getEventById($event_id);
+        if ($event) {
+            // 이미지 경로 정규화
+            if (!empty($event['image'])) {
+                $event['image'] = normalizeImagePathForDisplay($event['image']);
+            }
+            $site_large_banners[] = $event;
+        }
+    }
+}
+
+$site_small_banners = [];
+if (!empty($home_settings['site_small_banners']) && is_array($home_settings['site_small_banners'])) {
+    foreach ($home_settings['site_small_banners'] as $event_id) {
+        $event = getEventById($event_id);
+        if ($event) {
+            // 이미지 경로 정규화
+            if (!empty($event['image'])) {
+                $event['image'] = normalizeImagePathForDisplay($event['image']);
+            }
+            $site_small_banners[] = $event;
         }
     }
 }
@@ -60,16 +125,56 @@ if (!empty($home_settings['mno_phones']) && is_array($home_settings['mno_phones'
     <!-- 첫 번째 섹션: 메인 배너 레이아웃 (왼쪽 큰 배너 1개 + 오른쪽 작은 배너 2개) -->
     <div class="content-layout">
         <section class="main-banner-layout-section" style="margin-bottom: 2rem;">
-            <?php if (!empty($main_banner_events)): ?>
+            <?php if (!empty($site_large_banners) || !empty($site_small_banners)): ?>
                 <div class="main-banner-grid">
-                    <!-- 왼쪽: 큰 배너 1개 (16:9) -->
+                    <!-- 왼쪽: 큰 배너 (롤링) -->
                     <div class="main-banner-left">
-                        <?php if (isset($main_banner_events[0])): ?>
-                            <a href="<?php echo htmlspecialchars($main_banner_events[0]['link']); ?>" class="main-banner-card large">
-                                <img src="<?php echo htmlspecialchars($main_banner_events[0]['image']); ?>" 
-                                     alt="<?php echo htmlspecialchars($main_banner_events[0]['title']); ?>" 
-                                     class="main-banner-image">
-                            </a>
+                        <?php if (!empty($site_large_banners)): ?>
+                            <div class="main-banner-carousel" id="main-banner-carousel">
+                                <?php foreach ($site_large_banners as $index => $banner): 
+                                    $banner_image = $banner['image'] ?? '';
+                                    $banner_title = $banner['title'] ?? '';
+                                    $banner_id = $banner['id'] ?? '';
+                                    
+                                    // 이벤트 상세 페이지 링크 생성
+                                    if (!empty($banner_id)) {
+                                        $banner_link = '/MVNO/event/event-detail.php?id=' . urlencode($banner_id);
+                                    } else {
+                                        $banner_link = $banner['link'] ?? '#';
+                                    }
+                                    
+                                    if (empty($banner_image)) continue;
+                                ?>
+                                    <div class="main-banner-slide <?php echo $index === 0 ? 'active' : ''; ?>">
+                                        <a href="<?php echo htmlspecialchars($banner_link); ?>" class="main-banner-card large">
+                                            <img src="<?php echo htmlspecialchars($banner_image); ?>" 
+                                                 alt="<?php echo htmlspecialchars($banner_title); ?>" 
+                                                 class="main-banner-image">
+                                        </a>
+                                    </div>
+                                <?php endforeach; ?>
+                                
+                                <?php if (count($site_large_banners) > 1): ?>
+                                    <div class="main-banner-controls">
+                                        <button class="main-banner-prev" onclick="changeMainBanner(-1)">
+                                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <path d="M14 20L10 12L14 4" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                                            </svg>
+                                        </button>
+                                        <button class="main-banner-next" onclick="changeMainBanner(1)">
+                                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <path d="M10 20L14 12L10 4" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                    <div class="main-banner-indicators">
+                                        <?php foreach ($site_large_banners as $index => $banner): ?>
+                                            <span class="main-banner-dot <?php echo $index === 0 ? 'active' : ''; ?>" 
+                                                  onclick="goToMainBanner(<?php echo $index; ?>)"></span>
+                                        <?php endforeach; ?>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
                         <?php else: ?>
                             <div class="main-banner-placeholder large">
                                 <div class="placeholder-content">
@@ -83,10 +188,22 @@ if (!empty($home_settings['mno_phones']) && is_array($home_settings['mno_phones'
                     
                     <!-- 오른쪽: 작은 배너 2개 (16:9, 세로 배열) -->
                     <div class="main-banner-right">
-                        <?php if (isset($main_banner_events[1])): ?>
-                            <a href="<?php echo htmlspecialchars($main_banner_events[1]['link']); ?>" class="main-banner-card small">
-                                <img src="<?php echo htmlspecialchars($main_banner_events[1]['image']); ?>" 
-                                     alt="<?php echo htmlspecialchars($main_banner_events[1]['title']); ?>" 
+                        <?php if (isset($site_small_banners[0])): 
+                            $banner = $site_small_banners[0];
+                            $banner_image = $banner['image'] ?? '';
+                            $banner_title = $banner['title'] ?? '';
+                            $banner_id = $banner['id'] ?? '';
+                            
+                            // 이벤트 상세 페이지 링크 생성
+                            if (!empty($banner_id)) {
+                                $banner_link = '/MVNO/event/event-detail.php?id=' . urlencode($banner_id);
+                            } else {
+                                $banner_link = $banner['link'] ?? '#';
+                            }
+                        ?>
+                            <a href="<?php echo htmlspecialchars($banner_link); ?>" class="main-banner-card small">
+                                <img src="<?php echo htmlspecialchars($banner_image); ?>" 
+                                     alt="<?php echo htmlspecialchars($banner_title); ?>" 
                                      class="main-banner-image">
                             </a>
                         <?php else: ?>
@@ -99,10 +216,22 @@ if (!empty($home_settings['mno_phones']) && is_array($home_settings['mno_phones'
                             </div>
                         <?php endif; ?>
                         
-                        <?php if (isset($main_banner_events[2])): ?>
-                            <a href="<?php echo htmlspecialchars($main_banner_events[2]['link']); ?>" class="main-banner-card small">
-                                <img src="<?php echo htmlspecialchars($main_banner_events[2]['image']); ?>" 
-                                     alt="<?php echo htmlspecialchars($main_banner_events[2]['title']); ?>" 
+                        <?php if (isset($site_small_banners[1])): 
+                            $banner = $site_small_banners[1];
+                            $banner_image = $banner['image'] ?? '';
+                            $banner_title = $banner['title'] ?? '';
+                            $banner_id = $banner['id'] ?? '';
+                            
+                            // 이벤트 상세 페이지 링크 생성
+                            if (!empty($banner_id)) {
+                                $banner_link = '/MVNO/event/event-detail.php?id=' . urlencode($banner_id);
+                            } else {
+                                $banner_link = $banner['link'] ?? '#';
+                            }
+                        ?>
+                            <a href="<?php echo htmlspecialchars($banner_link); ?>" class="main-banner-card small">
+                                <img src="<?php echo htmlspecialchars($banner_image); ?>" 
+                                     alt="<?php echo htmlspecialchars($banner_title); ?>" 
                                      class="main-banner-image">
                             </a>
                         <?php else: ?>
@@ -160,6 +289,9 @@ if (!empty($home_settings['mno_phones']) && is_array($home_settings['mno_phones'
                     <h2 class="home-section-title">추천 알뜰폰 요금제</h2>
                     <a href="/MVNO/mvno/mvno.php" class="home-section-more">더보기 &gt;</a>
                 </div>
+                
+                
+                <!-- 상품 목록 -->
                 <?php if (!empty($mvno_plans)): ?>
                     <div class="home-product-grid">
                         <?php foreach (array_slice($mvno_plans, 0, 6) as $plan): ?>
@@ -317,21 +449,133 @@ if (!empty($home_settings['mno_phones']) && is_array($home_settings['mno_phones'
     width: 100%;
 }
 
-.main-banner-card.small {
-    flex: 1;
-    min-height: 0;
+/* 메인 배너 캐러셀 */
+.main-banner-carousel {
+    position: relative;
     width: 100%;
+    aspect-ratio: 16 / 9;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.main-banner-slide {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    transition: opacity 0.5s ease-in-out;
+}
+
+.main-banner-slide.active {
+    opacity: 1;
+    z-index: 1;
+}
+
+.main-banner-controls {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    padding: 0;
+    z-index: 2;
+    pointer-events: none;
+}
+
+.main-banner-prev {
+    margin-left: 1rem;
+}
+
+.main-banner-next {
+    margin-right: 1rem;
+}
+
+.main-banner-prev,
+.main-banner-next {
+    background: rgba(255, 255, 255, 0.5);
+    color: #1a1a1a;
+    border: none;
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: all;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.main-banner-prev svg,
+.main-banner-next svg {
+    width: 28px;
+    height: 28px;
+    transition: transform 0.3s ease;
+}
+
+.main-banner-prev:hover,
+.main-banner-next:hover {
+    background: rgba(255, 255, 255, 0.7);
+    transform: scale(1.1);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+
+.main-banner-prev:hover svg,
+.main-banner-next:hover svg {
+    transform: scale(1.15);
+}
+
+.main-banner-prev:active,
+.main-banner-next:active {
+    transform: scale(0.95);
+}
+
+.main-banner-indicators {
+    position: absolute;
+    bottom: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 0.5rem;
+    z-index: 2;
+}
+
+.main-banner-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.main-banner-dot.active {
+    background: white;
+}
+
+.main-banner-card.small {
+    aspect-ratio: 16 / 9;
+    width: 100%;
+    flex: 0 0 auto;
 }
 
 /* 작은 배너 2개가 큰 배너 높이에 맞추기 */
 .main-banner-right {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
     height: 100%;
 }
 
 .main-banner-right .main-banner-card.small {
-    height: calc((100% - 1.5rem) / 2);
-    flex: 0 0 auto;
-    object-fit: cover;
+    aspect-ratio: 16 / 9;
+    width: 100%;
 }
 
 .main-banner-right .main-banner-image {
@@ -363,14 +607,15 @@ if (!empty($home_settings['mno_phones']) && is_array($home_settings['mno_phones'
 }
 
 .main-banner-placeholder.small {
-    flex: 1;
-    min-height: 0;
+    aspect-ratio: 16 / 9;
     width: 100%;
+    flex: 0 0 auto;
 }
 
 .main-banner-right .main-banner-placeholder.small {
-    height: calc((100% - 1.5rem) / 2);
-    flex: 0 0 auto;
+    aspect-ratio: 16 / 9;
+    width: 100%;
+    height: auto;
 }
 
 .placeholder-content {
@@ -560,8 +805,165 @@ if (!empty($home_settings['mno_phones']) && is_array($home_settings['mno_phones'
         grid-template-columns: repeat(3, 1fr);
     }
 }
+
 </style>
 
+<script>
+// 배너 높이 자동 조정: 작은 배너 2개를 큰 배너 높이에 맞추고 gap 조절
+document.addEventListener('DOMContentLoaded', function() {
+    function adjustBannerHeights() {
+        const bannerGrid = document.querySelector('.main-banner-grid');
+        if (!bannerGrid) return;
+        
+        // 큰 배너 (캐러셀 또는 단일 배너)
+        const largeBannerCarousel = bannerGrid.querySelector('.main-banner-left .main-banner-carousel');
+        const largeBannerPlaceholder = bannerGrid.querySelector('.main-banner-left .main-banner-placeholder.large');
+        const largeBanner = largeBannerCarousel || largeBannerPlaceholder;
+        const rightContainer = bannerGrid.querySelector('.main-banner-right');
+        const smallBanners = rightContainer ? rightContainer.querySelectorAll('.main-banner-card.small, .main-banner-placeholder.small') : [];
+        
+        if (!largeBanner || !rightContainer || smallBanners.length !== 2) return;
+        
+        // 큰 배너의 실제 높이 측정
+        const largeBannerHeight = largeBanner.offsetHeight;
+        
+        // 작은 배너의 폭 (오른쪽 영역의 폭)
+        const smallBannerWidth = rightContainer.offsetWidth;
+        
+        // 작은 배너가 16:9 비율을 유지할 때의 높이 계산
+        const smallBannerHeight16to9 = smallBannerWidth / (16 / 9);
+        
+        // 작은 배너 2개의 총 높이 (16:9 비율 기준)
+        const totalSmallBannerHeight = smallBannerHeight16to9 * 2;
+        
+        // 필요한 gap 계산 (큰 배너 높이에서 작은 배너 2개 높이를 뺀 값)
+        const requiredGap = largeBannerHeight - totalSmallBannerHeight;
+        
+        // gap 설정 (최소 8px 이상)
+        const finalGap = Math.max(requiredGap, 8);
+        rightContainer.style.gap = finalGap + 'px';
+        
+        // 작은 배너는 16:9 비율 유지 (aspect-ratio 사용)
+        smallBanners.forEach(banner => {
+            banner.style.aspectRatio = '16 / 9';
+            banner.style.height = 'auto';
+        });
+    }
+    
+    // 초기 실행 (약간의 지연을 두어 DOM 렌더링 완료 후 실행)
+    setTimeout(adjustBannerHeights, 50);
+    
+    // 리사이즈 시 재조정
+    let resizeTimer;
+    window.addEventListener('resize', function() {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(adjustBannerHeights, 100);
+    });
+    
+    // 이미지 로드 후 재조정
+    const bannerImages = document.querySelectorAll('.main-banner-image');
+    bannerImages.forEach(img => {
+        if (img.complete) {
+            setTimeout(adjustBannerHeights, 50);
+        } else {
+            img.addEventListener('load', function() {
+                setTimeout(adjustBannerHeights, 50);
+            }, { once: true });
+        }
+    });
+});
+
+// 메인 배너 캐러셀
+let mainBannerCurrentIndex = 0;
+let mainBannerInterval = null;
+
+function initMainBannerCarousel() {
+    const carousel = document.getElementById('main-banner-carousel');
+    if (!carousel) return;
+    
+    const slides = carousel.querySelectorAll('.main-banner-slide');
+    if (slides.length <= 1) return;
+    
+    // 자동 롤링 시작
+    mainBannerInterval = setInterval(() => {
+        changeMainBanner(1);
+    }, 2000); // 2초마다 변경
+}
+
+function changeMainBanner(direction) {
+    const carousel = document.getElementById('main-banner-carousel');
+    if (!carousel) return;
+    
+    const slides = carousel.querySelectorAll('.main-banner-slide');
+    const dots = carousel.querySelectorAll('.main-banner-dot');
+    
+    if (slides.length === 0) return;
+    
+    // 현재 슬라이드 숨기기
+    slides[mainBannerCurrentIndex].classList.remove('active');
+    if (dots[mainBannerCurrentIndex]) {
+        dots[mainBannerCurrentIndex].classList.remove('active');
+    }
+    
+    // 다음 인덱스 계산
+    mainBannerCurrentIndex += direction;
+    if (mainBannerCurrentIndex >= slides.length) {
+        mainBannerCurrentIndex = 0;
+    } else if (mainBannerCurrentIndex < 0) {
+        mainBannerCurrentIndex = slides.length - 1;
+    }
+    
+    // 다음 슬라이드 표시
+    slides[mainBannerCurrentIndex].classList.add('active');
+    if (dots[mainBannerCurrentIndex]) {
+        dots[mainBannerCurrentIndex].classList.add('active');
+    }
+    
+    // 자동 롤링 재시작
+    if (mainBannerInterval) {
+        clearInterval(mainBannerInterval);
+    }
+    mainBannerInterval = setInterval(() => {
+        changeMainBanner(1);
+    }, 2000);
+}
+
+function goToMainBanner(index) {
+    const carousel = document.getElementById('main-banner-carousel');
+    if (!carousel) return;
+    
+    const slides = carousel.querySelectorAll('.main-banner-slide');
+    const dots = carousel.querySelectorAll('.main-banner-dot');
+    
+    if (index < 0 || index >= slides.length) return;
+    
+    // 현재 슬라이드 숨기기
+    slides[mainBannerCurrentIndex].classList.remove('active');
+    if (dots[mainBannerCurrentIndex]) {
+        dots[mainBannerCurrentIndex].classList.remove('active');
+    }
+    
+    // 선택한 슬라이드 표시
+    mainBannerCurrentIndex = index;
+    slides[mainBannerCurrentIndex].classList.add('active');
+    if (dots[mainBannerCurrentIndex]) {
+        dots[mainBannerCurrentIndex].classList.add('active');
+    }
+    
+    // 자동 롤링 재시작
+    if (mainBannerInterval) {
+        clearInterval(mainBannerInterval);
+    }
+    mainBannerInterval = setInterval(() => {
+        changeMainBanner(1);
+    }, 2000);
+}
+
+// 페이지 로드 시 초기화
+document.addEventListener('DOMContentLoaded', function() {
+    initMainBannerCarousel();
+});
+</script>
 
 <?php
 // 푸터 포함

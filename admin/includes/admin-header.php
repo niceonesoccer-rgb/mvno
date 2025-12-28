@@ -676,6 +676,15 @@ if ($pdo) {
                     </span>
                     이벤트 관리
                 </a>
+                <a href="/MVNO/admin/content/banner-manage.php" class="menu-item <?php echo $currentPage === 'banner-manage.php' ? 'active' : ''; ?>">
+                    <span class="menu-item-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                            <line x1="9" y1="3" x2="9" y2="21"/>
+                        </svg>
+                    </span>
+                    배너 관리
+                </a>
                 <a href="/MVNO/admin/content/notice-manage.php" class="menu-item <?php echo $currentPage === 'notice-manage.php' ? 'active' : ''; ?>">
                     <span class="menu-item-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

@@ -4,6 +4,147 @@ $current_page = 'event';
 // 메인 페이지 여부 (하단 메뉴 및 푸터 표시용)
 $is_main_page = true;
 
+require_once '../includes/data/db-config.php';
+
+// 이미지 경로 정규화 함수
+function normalizeImagePathForDisplay($path) {
+    if (empty($path)) {
+        return '';
+    }
+    
+    $imagePath = trim($path);
+    
+    // 이미 /MVNO/로 시작하면 그대로 사용
+    if (strpos($imagePath, '/MVNO/') === 0) {
+        return $imagePath;
+    }
+    // /uploads/events/ 또는 /uploads/events/로 시작하는 경우
+    elseif (preg_match('#^/uploads/events/#', $imagePath)) {
+        return '/MVNO' . $imagePath;
+    }
+    // /uploads/ 또는 /images/로 시작하면 /MVNO/ 추가
+    elseif (strpos($imagePath, '/uploads/') === 0 || strpos($imagePath, '/images/') === 0) {
+        return '/MVNO' . $imagePath;
+    }
+    // 파일명만 있는 경우 (확장자가 있고 슬래시가 없음)
+    elseif (strpos($imagePath, '/') === false && preg_match('/\.(webp|jpg|jpeg|png|gif)$/i', $imagePath)) {
+        return '/MVNO/uploads/events/' . $imagePath;
+    }
+    // 상대 경로인데 파일명이 아닌 경우
+    elseif (strpos($imagePath, '/') !== 0) {
+        return '/MVNO/' . $imagePath;
+    }
+    
+    return $imagePath;
+}
+
+// 이벤트 타입 필터 (전체, 요금제, 프로모션, 제휴카드)
+$eventTypeFilter = $_GET['type'] ?? 'all';
+$validTypes = ['all', 'plan', 'promotion', 'card'];
+if (!in_array($eventTypeFilter, $validTypes)) {
+    $eventTypeFilter = 'all';
+}
+
+// 데이터베이스에서 이벤트 가져오기
+$events = [];
+$pdo = getDBConnection();
+if ($pdo) {
+    try {
+        $now = date('Y-m-d');
+        
+        // WHERE 조건 구성
+        $whereConditions = [];
+        $params = [];
+        
+        // is_published 컬럼 존재 여부 확인
+        $stmt = $pdo->query("SHOW COLUMNS FROM events LIKE 'is_published'");
+        $hasIsPublished = $stmt->rowCount() > 0;
+        
+        // is_published가 0이면 기간과 상관없이 비공개
+        if ($hasIsPublished) {
+            $whereConditions[] = "(is_published IS NULL OR is_published != 0)";
+        }
+        
+        // 공개 기간 확인 (조건 완화)
+        // start_at이 NULL이거나 현재 날짜 이전/같으면 시작됨
+        // end_at이 NULL이거나 현재 날짜 이후/같으면 아직 종료 안됨
+        // is_published가 0이 아닌 경우에만 기간 체크
+        $whereConditions[] = "(
+            (start_at IS NULL OR start_at <= :now_datetime) 
+            AND (end_at IS NULL OR end_at >= :now_date)
+        )";
+        $params[':now_datetime'] = date('Y-m-d H:i:s');
+        $params[':now_date'] = $now;
+        
+        // 이벤트 타입 필터
+        if ($eventTypeFilter !== 'all') {
+            // 타입 매핑: plan -> plan, promotion -> promotion, card -> card
+            $typeMap = [
+                'plan' => 'plan',
+                'promotion' => 'promotion',
+                'card' => 'card'
+            ];
+            if (isset($typeMap[$eventTypeFilter])) {
+                $whereConditions[] = "event_type = :event_type";
+                $params[':event_type'] = $typeMap[$eventTypeFilter];
+            }
+        }
+        
+        $whereClause = implode(' AND ', $whereConditions);
+        
+        // main_image 또는 image_url 컬럼 확인
+        $stmt = $pdo->query("SHOW COLUMNS FROM events LIKE 'main_image'");
+        $hasMainImage = $stmt->rowCount() > 0;
+        $imageColumn = $hasMainImage ? 'main_image' : 'image_url';
+        
+        $sql = "
+            SELECT 
+                id,
+                title,
+                event_type,
+                category,
+                {$imageColumn} as main_image,
+                start_at,
+                end_at,
+                created_at
+            FROM events
+            WHERE {$whereClause}
+            ORDER BY created_at DESC
+        ";
+        
+        // 디버깅 로그
+        error_log('Event list SQL: ' . $sql);
+        error_log('Event list Params: ' . json_encode($params, JSON_UNESCAPED_UNICODE));
+        
+        $stmt = $pdo->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value);
+        }
+        $stmt->execute();
+        $events = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // 디버깅: 결과 개수 로그
+        error_log('Event list result count: ' . count($events));
+        
+        // 만약 결과가 없으면 조건 없이 모든 이벤트 확인
+        if (empty($events)) {
+            $stmtAll = $pdo->query("SELECT COUNT(*) as cnt FROM events");
+            $allCount = $stmtAll->fetch(PDO::FETCH_ASSOC)['cnt'];
+            error_log('Total events in DB: ' . $allCount);
+            
+            // 조건 없이 샘플 데이터 확인
+            $stmtSample = $pdo->query("SELECT id, title, event_type, start_at, end_at, created_at FROM events ORDER BY created_at DESC LIMIT 5");
+            $samples = $stmtSample->fetchAll(PDO::FETCH_ASSOC);
+            error_log('Sample events: ' . json_encode($samples, JSON_UNESCAPED_UNICODE));
+        }
+        
+    } catch (PDOException $e) {
+        error_log('Event list error: ' . $e->getMessage());
+        error_log('Event list SQL: ' . ($sql ?? 'N/A'));
+        $events = [];
+    }
+}
+
 // 헤더 포함
 include '../includes/header.php';
 ?>
@@ -18,112 +159,94 @@ include '../includes/header.php';
                 <div class="c-tabmenu-link-wrap">
                     <div class="c-tabmenu-list">
                         <ul class="tab-list">
-                            <li class="tab-item is-active">
-                                <button role="tab" aria-selected="true" tabindex="0" class="tab-button">전체</button>
+                            <li class="tab-item <?php echo $eventTypeFilter === 'all' ? 'is-active' : ''; ?>">
+                                <button role="tab" aria-selected="<?php echo $eventTypeFilter === 'all' ? 'true' : 'false'; ?>" tabindex="<?php echo $eventTypeFilter === 'all' ? '0' : '-1'; ?>" class="tab-button" data-type="all">전체</button>
                             </li>
-                            <li class="tab-item">
-                                <button role="tab" aria-selected="false" tabindex="-1" class="tab-button">요금제</button>
+                            <li class="tab-item <?php echo $eventTypeFilter === 'plan' ? 'is-active' : ''; ?>">
+                                <button role="tab" aria-selected="<?php echo $eventTypeFilter === 'plan' ? 'true' : 'false'; ?>" tabindex="<?php echo $eventTypeFilter === 'plan' ? '0' : '-1'; ?>" class="tab-button" data-type="plan">요금제</button>
                             </li>
-                            <li class="tab-item">
-                                <button role="tab" aria-selected="false" tabindex="-1" class="tab-button">프로모션</button>
+                            <li class="tab-item <?php echo $eventTypeFilter === 'promotion' ? 'is-active' : ''; ?>">
+                                <button role="tab" aria-selected="<?php echo $eventTypeFilter === 'promotion' ? 'true' : 'false'; ?>" tabindex="<?php echo $eventTypeFilter === 'promotion' ? '0' : '-1'; ?>" class="tab-button" data-type="promotion">프로모션</button>
                             </li>
-                            <li class="tab-item">
-                                <button role="tab" aria-selected="false" tabindex="-1" class="tab-button">제휴카드</button>
+                            <li class="tab-item <?php echo $eventTypeFilter === 'card' ? 'is-active' : ''; ?>">
+                                <button role="tab" aria-selected="<?php echo $eventTypeFilter === 'card' ? 'true' : 'false'; ?>" tabindex="<?php echo $eventTypeFilter === 'card' ? '0' : '-1'; ?>" class="tab-button" data-type="card">제휴카드</button>
                             </li>
                         </ul>
                     </div>
                 </div>
                 
                 <div class="c-tabcontent-box">
-                    <ul class="event-grid all-events">
-                        <li class="event-card">
-                            <a href="#none" class="event-link">
-                                <span class="option-flag">
-                                    <small class="c-flag new-flag">최신</small>
-                                </span>
-                                <div class="img-area gradient">
-                                    <img src="https://www.lguplus.com/static-evet/pc-contents/images/event/eh/20251128-050334-247-wV0lgtCf.png" alt="12월 온라인스토어 연말 감사제" loading="lazy" class="event-image">
-                                </div>
-                                <div class="text-area">
-                                    <p class="tit">12월 온라인스토어 연말 감사제</p>
-                                    <p class="date">2025-11-28 ~ 2025-12-30</p>
-                                </div>
-                            </a>
-                        </li>
-                        
-                        <li class="event-card">
-                            <a href="#none" class="event-link">
-                                <span class="option-flag">
-                                    <small class="c-flag new-flag">최신</small>
-                                </span>
-                                <div class="img-area gradient">
-                                    <img src="https://www.lguplus.com/static-evet/pc-contents/images/evet/eh/20251128-110152-523-16CPrJH5.png" alt="소상공인 한정 최대 474만원 혜택" loading="lazy" class="event-image">
-                                </div>
-                                <div class="text-area">
-                                    <p class="tit">소상공인 한정 최대 474만원 혜택</p>
-                                    <p class="date">2025-11-27 ~ 2026-02-26</p>
-                                </div>
-                            </a>
-                        </li>
-                        
-                        <li class="event-card">
-                            <a href="#none" class="event-link">
-                                <span class="option-flag">
-                                    <small class="c-flag new-flag">최신</small>
-                                </span>
-                                <div class="img-area gradient">
-                                    <img src="https://www.lguplus.com/static-evet/pc-contents/images/event/eh/20251124-034110-926-lh1WGxbP.png" alt="원하는 기간만큼 사용하는 선불인터넷" loading="lazy" class="event-image">
-                                </div>
-                                <div class="text-area">
-                                    <p class="tit">원하는 기간만큼 사용하는 선불인터넷</p>
-                                    <p class="date">2025-11-25 ~ 2025-12-31</p>
-                                </div>
-                            </a>
-                        </li>
-                        
-                        <li class="event-card">
-                            <a href="#none" class="event-link">
-                                <span class="option-flag">
-                                    <small class="c-flag dDay-flag">마감임박</small>
-                                </span>
-                                <div class="img-area gradient">
-                                    <img src="https://www.lguplus.com/static-evet/pc-contents/images/evet/eh/20251121-051824-734-JzdBa5S5.jpg" alt="U+모바일tv 누구나 무료 영화" loading="lazy" class="event-image">
-                                </div>
-                                <div class="text-area">
-                                    <p class="tit">U+모바일tv 누구나 무료 영화</p>
-                                    <p class="date">2025-11-24 ~ 2025-11-30</p>
-                                </div>
-                            </a>
-                        </li>
-                        
-                        <li class="event-card">
-                            <a href="#none" class="event-link">
-                                <span class="option-flag"></span>
-                                <div class="img-area gradient">
-                                    <img src="https://www.lguplus.com/static-evet/pc-contents/images/evet/eh/20251119-010451-458-o1jaqW7H.jpg" alt="U+tv모아에서 드리는 선물 받으세요." loading="lazy" class="event-image">
-                                </div>
-                                <div class="text-area">
-                                    <p class="tit">U+tv모아에서 드리는 선물 받으세요.</p>
-                                    <p class="date">2025-11-20 ~ 2025-12-21</p>
-                                </div>
-                            </a>
-                        </li>
-                        
-                        <li class="event-card">
-                            <a href="#none" class="event-link">
-                                <span class="option-flag">
-                                    <small class="c-flag dDay-flag">마감임박</small>
-                                </span>
-                                <div class="img-area gradient">
-                                    <img src="https://www.lguplus.com/static-evet/pc-contents/images/evet/eh/20251119-025033-718-rifwOua9.png" alt="U+one [혜택]에 놀러오세요" loading="lazy" class="event-image">
-                                </div>
-                                <div class="text-area">
-                                    <p class="tit">U+one [혜택]에 놀러오세요</p>
-                                    <p class="date">2025-11-20 ~ 2025-11-30</p>
-                                </div>
-                            </a>
-                        </li>
-                    </ul>
+                    <?php if (empty($events)): ?>
+                        <div class="empty-events">
+                            <p>등록된 이벤트가 없습니다.</p>
+                        </div>
+                    <?php else: ?>
+                        <ul class="event-grid all-events">
+                            <?php 
+                            $now = time();
+                            foreach ($events as $event): 
+                                // 이벤트 상세 페이지 링크
+                                $eventUrl = '/MVNO/event/event-detail.php?id=' . htmlspecialchars($event['id'], ENT_QUOTES, 'UTF-8');
+                                
+                                // 이미지 경로 처리
+                                $imageUrl = '/MVNO/assets/images/no-image.png';
+                                if (!empty($event['main_image'])) {
+                                    $imagePath = normalizeImagePathForDisplay($event['main_image']);
+                                    if (!empty($imagePath)) {
+                                        $imageUrl = htmlspecialchars($imagePath, ENT_QUOTES, 'UTF-8');
+                                    }
+                                }
+                                
+                                // 이벤트 제목
+                                $title = htmlspecialchars($event['title'], ENT_QUOTES, 'UTF-8');
+                                
+                                // 날짜 포맷팅
+                                $startDate = $event['start_at'] ? date('Y-m-d', strtotime($event['start_at'])) : '';
+                                $endDate = $event['end_at'] ? date('Y-m-d', strtotime($event['end_at'])) : '';
+                                $dateRange = $startDate && $endDate ? $startDate . ' ~ ' . $endDate : ($startDate ? $startDate . ' ~' : '');
+                                
+                                // 배지 표시 로직
+                                $badgeHtml = '';
+                                $createdAt = strtotime($event['created_at']);
+                                $daysSinceCreated = ($now - $createdAt) / (60 * 60 * 24);
+                                
+                                // 최신 이벤트 (7일 이내)
+                                if ($daysSinceCreated <= 7) {
+                                    $badgeHtml = '<small class="c-flag new-flag">최신</small>';
+                                }
+                                
+                                // 마감 임박 (종료일이 7일 이내)
+                                if ($event['end_at']) {
+                                    $endAt = strtotime($event['end_at']);
+                                    $daysUntilEnd = ($endAt - $now) / (60 * 60 * 24);
+                                    if ($daysUntilEnd > 0 && $daysUntilEnd <= 7) {
+                                        $badgeHtml = '<small class="c-flag dDay-flag">마감임박</small>';
+                                    }
+                                }
+                            ?>
+                            <li class="event-card">
+                                <a href="<?php echo $eventUrl; ?>" class="event-link">
+                                    <?php if ($badgeHtml): ?>
+                                    <span class="option-flag">
+                                        <?php echo $badgeHtml; ?>
+                                    </span>
+                                    <?php else: ?>
+                                    <span class="option-flag"></span>
+                                    <?php endif; ?>
+                                    <div class="img-area gradient">
+                                        <img src="<?php echo $imageUrl; ?>" alt="<?php echo $title; ?>" loading="lazy" class="event-image">
+                                    </div>
+                                    <div class="text-area">
+                                        <p class="tit"><?php echo $title; ?></p>
+                                        <?php if ($dateRange): ?>
+                                        <p class="date"><?php echo htmlspecialchars($dateRange, ENT_QUOTES, 'UTF-8'); ?></p>
+                                        <?php endif; ?>
+                                    </div>
+                                </a>
+                            </li>
+                            <?php endforeach; ?>
+                        </ul>
+                    <?php endif; ?>
                 </div>
             </div>
         </section>
@@ -309,6 +432,18 @@ include '../includes/header.php';
     margin: 0.5rem 0 0 0;
 }
 
+/* 빈 이벤트 메시지 */
+.empty-events {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: #6b7280;
+}
+
+.empty-events p {
+    font-size: 1.125rem;
+    margin: 0;
+}
+
 /* 탭 메뉴 */
 .c-tabmenu-wrap {
     margin-bottom: 2rem;
@@ -436,19 +571,18 @@ document.addEventListener('DOMContentLoaded', function() {
     
     tabButtons.forEach((button, index) => {
         button.addEventListener('click', function() {
-            // 모든 탭에서 is-active 클래스 제거
-            tabItems.forEach(item => {
-                item.classList.remove('is-active');
-            });
+            const eventType = this.getAttribute('data-type');
             
-            // 클릭한 탭에 is-active 클래스 추가
-            tabItems[index].classList.add('is-active');
+            // URL 파라미터 업데이트
+            const url = new URL(window.location.href);
+            if (eventType === 'all') {
+                url.searchParams.delete('type');
+            } else {
+                url.searchParams.set('type', eventType);
+            }
             
-            // aria-selected 속성 업데이트
-            tabButtons.forEach((btn, i) => {
-                btn.setAttribute('aria-selected', i === index ? 'true' : 'false');
-                btn.setAttribute('tabindex', i === index ? '0' : '-1');
-            });
+            // 페이지 리로드
+            window.location.href = url.toString();
         });
     });
 });

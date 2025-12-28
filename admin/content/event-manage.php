@@ -6,6 +6,7 @@
 
 require_once __DIR__ . '/../../includes/data/auth-functions.php';
 require_once __DIR__ . '/../../includes/data/db-config.php';
+require_once __DIR__ . '/../../includes/data/plan-data.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -13,7 +14,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 $currentUser = getCurrentUser();
 if (!$currentUser || !isAdmin($currentUser['user_id'])) {
-    header('Location: /MVNO/admin/login.php');
+    header('Location: ../login.php');
     exit;
 }
 
@@ -29,6 +30,120 @@ if (isset($_GET['success'])) {
         $success = '이벤트가 수정되었습니다.';
     } elseif ($_GET['success'] === 'deleted') {
         $success = '이벤트가 삭제되었습니다.';
+    } elseif ($_GET['success'] === 'unpublished') {
+        $success = '이벤트가 비공개로 전환되었습니다.';
+    } elseif ($_GET['success'] === 'published') {
+        $success = '이벤트가 공개로 전환되었습니다.';
+    }
+}
+
+// 이벤트 공개 처리
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'publish_event') {
+    $eventId = trim($_POST['event_id'] ?? '');
+    
+    if (!empty($eventId) && $pdo) {
+        $transactionStarted = false;
+        try {
+            // is_published 컬럼 존재 여부 확인
+            $stmt = $pdo->query("
+                SELECT COUNT(*) as cnt 
+                FROM INFORMATION_SCHEMA.COLUMNS 
+                WHERE TABLE_SCHEMA = DATABASE() 
+                AND TABLE_NAME = 'events' 
+                AND COLUMN_NAME = 'is_published'
+            ");
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            $hasIsPublished = $result['cnt'] > 0;
+            
+            if (!$hasIsPublished) {
+                // is_published 컬럼이 없으면 추가
+                try {
+                    $pdo->exec("ALTER TABLE events ADD COLUMN is_published TINYINT(1) DEFAULT 1 COMMENT '공개 여부 (0: 비공개, 1: 공개)'");
+                } catch (PDOException $e) {
+                    // 컬럼이 이미 존재하거나 다른 오류인 경우 무시
+                    error_log('Column add error (may already exist): ' . $e->getMessage());
+                }
+            }
+            
+            // 트랜잭션 시작
+            $pdo->beginTransaction();
+            $transactionStarted = true;
+            
+            // is_published를 1로 설정하여 공개
+            $stmt = $pdo->prepare("UPDATE events SET is_published = 1 WHERE id = :id");
+            $stmt->execute([':id' => $eventId]);
+            
+            $pdo->commit();
+            $transactionStarted = false;
+            header('Location: event-manage.php?success=published');
+            exit;
+        } catch (PDOException $e) {
+            if ($transactionStarted) {
+                try {
+                    $pdo->rollBack();
+                } catch (PDOException $rollbackError) {
+                    error_log('Rollback error: ' . $rollbackError->getMessage());
+                }
+            }
+            $error = '이벤트 공개 처리 중 오류가 발생했습니다: ' . $e->getMessage();
+            error_log('Event publish error: ' . $e->getMessage());
+            error_log('Event publish error trace: ' . $e->getTraceAsString());
+        }
+    }
+}
+
+// 이벤트 비공개 처리
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'unpublish_event') {
+    $eventId = trim($_POST['event_id'] ?? '');
+    
+    if (!empty($eventId) && $pdo) {
+        $transactionStarted = false;
+        try {
+            // is_published 컬럼 존재 여부 확인 (트랜잭션 외부에서)
+            $stmt = $pdo->query("
+                SELECT COUNT(*) as cnt 
+                FROM INFORMATION_SCHEMA.COLUMNS 
+                WHERE TABLE_SCHEMA = DATABASE() 
+                AND TABLE_NAME = 'events' 
+                AND COLUMN_NAME = 'is_published'
+            ");
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            $hasIsPublished = $result['cnt'] > 0;
+            
+            if (!$hasIsPublished) {
+                // is_published 컬럼이 없으면 추가 (DDL은 트랜잭션 내에서 실행 불가능할 수 있음)
+                try {
+                    $pdo->exec("ALTER TABLE events ADD COLUMN is_published TINYINT(1) DEFAULT 1 COMMENT '공개 여부 (0: 비공개, 1: 공개)'");
+                } catch (PDOException $e) {
+                    // 컬럼이 이미 존재하거나 다른 오류인 경우 무시
+                    error_log('Column add error (may already exist): ' . $e->getMessage());
+                }
+            }
+            
+            // 트랜잭션 시작
+            $pdo->beginTransaction();
+            $transactionStarted = true;
+            
+            // is_published를 0으로 설정하여 기간과 상관없이 비공개
+            $stmt = $pdo->prepare("UPDATE events SET is_published = 0 WHERE id = :id");
+            $stmt->execute([':id' => $eventId]);
+            
+            $pdo->commit();
+            $transactionStarted = false;
+            header('Location: event-manage.php?success=unpublished');
+            exit;
+        } catch (PDOException $e) {
+            if ($transactionStarted) {
+                try {
+                    $pdo->rollBack();
+                } catch (PDOException $rollbackError) {
+                    error_log('Rollback error: ' . $rollbackError->getMessage());
+                }
+            }
+            $error = '이벤트 비공개 처리 중 오류가 발생했습니다: ' . $e->getMessage();
+            error_log('Event unpublish error: ' . $e->getMessage());
+            error_log('Event unpublish error trace: ' . $e->getTraceAsString());
+        }
     }
 }
 
@@ -40,15 +155,61 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         try {
             $pdo->beginTransaction();
             
+            // 삭제 전 이미지 경로 가져오기
+            $stmt = $pdo->prepare("SELECT main_image, image_url FROM events WHERE id = :id");
+            $stmt->execute([':id' => $eventId]);
+            $event = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            // 상세 이미지 경로 가져오기
+            $detailStmt = $pdo->prepare("SELECT image_path FROM event_detail_images WHERE event_id = :id");
+            $detailStmt->execute([':id' => $eventId]);
+            $detailImages = $detailStmt->fetchAll(PDO::FETCH_COLUMN);
+            
             // 이벤트 삭제 (CASCADE로 관련 데이터도 삭제됨)
             $stmt = $pdo->prepare("DELETE FROM events WHERE id = :id");
             $stmt->execute([':id' => $eventId]);
             
             $pdo->commit();
-            header('Location: /MVNO/admin/content/event-manage.php?success=deleted');
+            $transactionStarted = false;
+            
+            // 이미지 파일 삭제
+            if ($event) {
+                // 메인 이미지 삭제
+                if (!empty($event['main_image'])) {
+                    $imagePath = __DIR__ . '/../..' . $event['main_image'];
+                    if (file_exists($imagePath)) {
+                        @unlink($imagePath);
+                    }
+                }
+                // image_url 삭제
+                if (!empty($event['image_url'])) {
+                    $imagePath = __DIR__ . '/../..' . $event['image_url'];
+                    if (file_exists($imagePath)) {
+                        @unlink($imagePath);
+                    }
+                }
+            }
+            
+            // 상세 이미지 삭제
+            foreach ($detailImages as $imagePath) {
+                if (!empty($imagePath)) {
+                    $fullPath = __DIR__ . '/../..' . $imagePath;
+                    if (file_exists($fullPath)) {
+                        @unlink($fullPath);
+                    }
+                }
+            }
+            
+            header('Location: event-manage.php?success=deleted');
             exit;
         } catch (PDOException $e) {
-            $pdo->rollBack();
+            if ($transactionStarted) {
+                try {
+                    $pdo->rollBack();
+                } catch (PDOException $rollbackError) {
+                    error_log('Rollback error: ' . $rollbackError->getMessage());
+                }
+            }
             $error = '이벤트 삭제 중 오류가 발생했습니다.';
             error_log('Event delete error: ' . $e->getMessage());
         }
@@ -132,12 +293,13 @@ function getEventTypeName($type) {
     return $types[$type] ?? $type;
 }
 
+
 include __DIR__ . '/../includes/admin-header.php';
 ?>
 
 <div class="admin-page-header">
     <h1>이벤트 관리</h1>
-    <a href="/MVNO/admin/content/event-register.php" class="btn-primary">이벤트 등록</a>
+    <a href="event-register.php" class="btn-primary">이벤트 등록</a>
 </div>
 
 <?php if ($error): ?>
@@ -148,71 +310,121 @@ include __DIR__ . '/../includes/admin-header.php';
     <div class="alert alert-success"><?php echo htmlspecialchars($success); ?></div>
 <?php endif; ?>
 
-<!-- 필터 및 검색 -->
-<div class="filter-section">
-    <form method="GET" class="filter-form">
-        <div class="filter-group">
-            <label for="type">이벤트 타입</label>
-            <select id="type" name="type" class="form-control">
-                <option value="">전체</option>
-                <option value="plan" <?php echo $eventType === 'plan' ? 'selected' : ''; ?>>요금제</option>
-                <option value="promotion" <?php echo $eventType === 'promotion' ? 'selected' : ''; ?>>프로모션</option>
-                <option value="card" <?php echo $eventType === 'card' ? 'selected' : ''; ?>>제휴카드</option>
-            </select>
-        </div>
-        
-        <div class="filter-group">
-            <label for="search">검색</label>
-            <input type="text" id="search" name="search" class="form-control" 
-                   placeholder="이벤트 제목으로 검색..." value="<?php echo htmlspecialchars($searchQuery); ?>">
-        </div>
-        
-        <div class="filter-group">
-            <button type="submit" class="btn-search">검색</button>
-            <a href="/MVNO/admin/content/event-manage.php" class="btn-reset">초기화</a>
-        </div>
-    </form>
-</div>
-
 <!-- 이벤트 목록 -->
 <div class="events-table-container">
+    <h2 style="margin-bottom: 20px; font-size: 20px; font-weight: 600; color: #1f2937;">이벤트 목록</h2>
     <table class="events-table">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>제목</th>
-                <th>타입</th>
-                <th>메인 이미지</th>
-                <th>기간</th>
-                <th>공개 상태</th>
-                <th>등록일</th>
-                <th>관리</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php if (empty($events)): ?>
+            <thead>
                 <tr>
-                    <td colspan="8" class="empty-message">등록된 이벤트가 없습니다.</td>
+                    <th style="width: 60px;">순번</th>
+                    <th>공개 상태</th>
+                    <th>타입</th>
+                    <th>메인 이미지</th>
+                    <th>기간</th>
+                    <th>등록일</th>
+                    <th>관리</th>
                 </tr>
-            <?php else: ?>
-                <?php foreach ($events as $event): ?>
+            </thead>
+            <tbody>
+                <?php if (empty($events)): ?>
                     <tr>
-                        <td><?php echo htmlspecialchars(substr($event['id'], 0, 20)); ?>...</td>
-                        <td>
-                            <a href="/MVNO/event/event-detail.php?id=<?php echo htmlspecialchars($event['id']); ?>" 
-                               target="_blank" class="event-title-link">
-                                <?php echo htmlspecialchars($event['title']); ?>
-                            </a>
-                        </td>
-                        <td><?php echo getEventTypeName($event['event_type']); ?></td>
-                        <td>
-                            <?php if ($event['main_image']): ?>
-                                <img src="<?php echo htmlspecialchars($event['main_image']); ?>" 
-                                     alt="메인 이미지" class="thumbnail-image">
-                            <?php else: ?>
-                                <span class="no-image">이미지 없음</span>
-                            <?php endif; ?>
-                        </td>
+                        <td colspan="7" class="empty-message">등록된 이벤트가 없습니다.</td>
+                    </tr>
+                <?php else: ?>
+                    <?php foreach ($events as $index => $event): 
+                        // 최신 등록이 큰 번호가 되도록 역순 계산
+                        $sequenceNumber = $totalEvents - (($page - 1) * $perPage + $index);
+                    ?>
+                        <tr>
+                            <td><?php echo $sequenceNumber; ?></td>
+                            <td>
+                                <?php
+                                // is_published가 0이면 기간과 상관없이 비공개
+                                $isPublished = false;
+                                if (isset($event['is_published']) && $event['is_published'] == 0) {
+                                    $isPublished = false;
+                                } else {
+                                    // is_published가 1이거나 null이면 기간을 기준으로 판단
+                                    $now = time();
+                                    $startAt = $event['start_at'] ? strtotime($event['start_at']) : null;
+                                    $endAt = $event['end_at'] ? strtotime($event['end_at']) : null;
+                                    
+                                    if ($startAt && $endAt) {
+                                        // 시작일과 종료일이 모두 있으면 현재 날짜가 그 사이에 있는지 확인
+                                        $isPublished = ($now >= $startAt && $now <= $endAt);
+                                    } elseif ($startAt) {
+                                        // 시작일만 있으면 시작일 이후인지 확인
+                                        $isPublished = ($now >= $startAt);
+                                    } elseif ($endAt) {
+                                        // 종료일만 있으면 종료일 이전인지 확인
+                                        $isPublished = ($now <= $endAt);
+                                    } else {
+                                        // 시작일과 종료일이 모두 없으면 비공개
+                                        $isPublished = false;
+                                    }
+                                }
+                                ?>
+                                <span class="status-badge <?php echo $isPublished ? 'published' : 'unpublished'; ?>">
+                                    <?php echo $isPublished ? '공개' : '비공개'; ?>
+                                </span>
+                            </td>
+                            <td><?php echo getEventTypeName($event['event_type']); ?></td>
+                            <td>
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    <?php 
+                                    // 이미지 경로 처리
+                                    $imagePath = '';
+                                    
+                                    // main_image 우선, 없으면 image_url 사용
+                                    $rawImagePath = '';
+                                    if (!empty($event['main_image'])) {
+                                        $rawImagePath = $event['main_image'];
+                                    } elseif (!empty($event['image_url'])) {
+                                        $rawImagePath = $event['image_url'];
+                                    }
+                                    
+                                    if ($rawImagePath) {
+                                        $imagePath = trim($rawImagePath);
+                                        
+                                        // 이미 /MVNO/로 시작하면 그대로 사용
+                                        if (strpos($imagePath, '/MVNO/') === 0) {
+                                            // 그대로 사용
+                                        }
+                                        // /uploads/events/ 또는 /uploads/events로 시작하는 경우
+                                        elseif (preg_match('#^/uploads/events/#', $imagePath)) {
+                                            $imagePath = '/MVNO' . $imagePath;
+                                        }
+                                        // /uploads/ 또는 /images/로 시작하면 /MVNO/ 추가
+                                        elseif (strpos($imagePath, '/uploads/') === 0 || strpos($imagePath, '/images/') === 0) {
+                                            $imagePath = '/MVNO' . $imagePath;
+                                        }
+                                        // 파일명만 있는 경우 (확장자가 있고 슬래시가 없음)
+                                        elseif (strpos($imagePath, '/') === false && preg_match('/\.(webp|jpg|jpeg|png|gif)$/i', $imagePath)) {
+                                            $imagePath = '/MVNO/uploads/events/' . $imagePath;
+                                        }
+                                        // 상대 경로인데 파일명이 아닌 경우
+                                        elseif (strpos($imagePath, '/') !== 0) {
+                                            $imagePath = '/MVNO/' . $imagePath;
+                                        }
+                                    }
+                                    ?>
+                                    <?php if ($imagePath): ?>
+                                        <img src="<?php echo htmlspecialchars($imagePath); ?>" 
+                                             alt="메인 이미지" 
+                                             class="thumbnail-image"
+                                             data-debug-original="<?php echo htmlspecialchars($rawImagePath ?? ''); ?>"
+                                             data-debug-final="<?php echo htmlspecialchars($imagePath); ?>"
+                                             onerror="console.error('Image failed to load. Original:', this.dataset.debugOriginal, 'Final:', this.dataset.debugFinal, 'Requested:', this.src); this.style.display='none'; this.nextElementSibling.style.display='inline';">
+                                        <span class="no-image" style="display: none;">이미지 없음</span>
+                                    <?php else: ?>
+                                        <span class="no-image">이미지 없음</span>
+                                    <?php endif; ?>
+                                    <a href="../event/event-detail.php?id=<?php echo htmlspecialchars($event['id']); ?>" 
+                                       target="_blank" class="event-title-link">
+                                        <?php echo htmlspecialchars($event['title']); ?>
+                                    </a>
+                                </div>
+                            </td>
                         <td>
                             <?php if ($event['start_at'] || $event['end_at']): ?>
                                 <?php echo $event['start_at'] ? date('Y-m-d', strtotime($event['start_at'])) : '-'; ?>
@@ -222,37 +434,24 @@ include __DIR__ . '/../includes/admin-header.php';
                                 -
                             <?php endif; ?>
                         </td>
-                        <td>
-                            <?php
-                            // start_at과 end_at을 기준으로 공개/비공개 판단
-                            $now = time();
-                            $startAt = $event['start_at'] ? strtotime($event['start_at']) : null;
-                            $endAt = $event['end_at'] ? strtotime($event['end_at']) : null;
-                            
-                            $isPublished = false;
-                            if ($startAt && $endAt) {
-                                // 시작일과 종료일이 모두 있으면 현재 날짜가 그 사이에 있는지 확인
-                                $isPublished = ($now >= $startAt && $now <= $endAt);
-                            } elseif ($startAt) {
-                                // 시작일만 있으면 시작일 이후인지 확인
-                                $isPublished = ($now >= $startAt);
-                            } elseif ($endAt) {
-                                // 종료일만 있으면 종료일 이전인지 확인
-                                $isPublished = ($now <= $endAt);
-                            } else {
-                                // 시작일과 종료일이 모두 없으면 비공개
-                                $isPublished = false;
-                            }
-                            ?>
-                            <span class="status-badge <?php echo $isPublished ? 'published' : 'unpublished'; ?>">
-                                <?php echo $isPublished ? '공개' : '비공개'; ?>
-                            </span>
-                        </td>
                         <td><?php echo date('Y-m-d H:i', strtotime($event['created_at'])); ?></td>
                         <td>
                             <div class="action-buttons">
-                                <a href="/MVNO/event/event-detail.php?id=<?php echo htmlspecialchars($event['id']); ?>" 
-                                   target="_blank" class="btn-view">보기</a>
+                                <?php if ($isPublished): ?>
+                                    <form method="POST" style="display: inline;" 
+                                          onsubmit="return confirm('이벤트를 비공개로 전환하시겠습니까?');">
+                                        <input type="hidden" name="action" value="unpublish_event">
+                                        <input type="hidden" name="event_id" value="<?php echo htmlspecialchars($event['id']); ?>">
+                                        <button type="submit" class="btn-unpublish">비공개</button>
+                                    </form>
+                                <?php else: ?>
+                                    <form method="POST" style="display: inline;" 
+                                          onsubmit="return confirm('이벤트를 공개로 전환하시겠습니까?');">
+                                        <input type="hidden" name="action" value="publish_event">
+                                        <input type="hidden" name="event_id" value="<?php echo htmlspecialchars($event['id']); ?>">
+                                        <button type="submit" class="btn-publish">공개</button>
+                                    </form>
+                                <?php endif; ?>
                                 <form method="POST" style="display: inline;" 
                                       onsubmit="return confirm('정말 삭제하시겠습니까?');">
                                     <input type="hidden" name="action" value="delete_event">
@@ -262,10 +461,10 @@ include __DIR__ . '/../includes/admin-header.php';
                             </div>
                         </td>
                     </tr>
-                <?php endforeach; ?>
-            <?php endif; ?>
-        </tbody>
-    </table>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </tbody>
+        </table>
 </div>
 
 <!-- 페이지네이션 -->
@@ -483,7 +682,7 @@ include __DIR__ . '/../includes/admin-header.php';
     gap: 8px;
 }
 
-.btn-view, .btn-delete {
+.btn-publish, .btn-unpublish, .btn-delete {
     padding: 6px 12px;
     border-radius: 4px;
     font-size: 12px;
@@ -494,13 +693,22 @@ include __DIR__ . '/../includes/admin-header.php';
     display: inline-block;
 }
 
-.btn-view {
-    background: #e0e7ff;
-    color: #4338ca;
+.btn-publish {
+    background: #d1fae5;
+    color: #065f46;
 }
 
-.btn-view:hover {
-    background: #c7d2fe;
+.btn-publish:hover {
+    background: #a7f3d0;
+}
+
+.btn-unpublish {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.btn-unpublish:hover {
+    background: #fde68a;
 }
 
 .btn-delete {
@@ -562,6 +770,7 @@ include __DIR__ . '/../includes/admin-header.php';
     }
 }
 </style>
+
 
 <?php include __DIR__ . '/../includes/admin-footer.php'; ?>
 

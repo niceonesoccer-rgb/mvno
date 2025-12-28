@@ -19,6 +19,8 @@ function getHomeSettings() {
         'ranking_banners' => [],
         'data_plans' => [],
         'mvno_plans' => [],
+        'site_large_banners' => [], // 사이트 전체 큰 배너 (롤링 배너)
+        'site_small_banners' => [], // 사이트 전체 작은 배너 2개
         'mno_phones' => [],
         'internet_products' => []
     ];
@@ -29,6 +31,20 @@ function getHomeSettings() {
     if (isset($settings['main_banner']) && !isset($settings['main_banners'])) {
         $settings['main_banners'] = $settings['main_banner'] ? [$settings['main_banner']] : [];
         unset($settings['main_banner']);
+        saveHomeSettings($settings);
+    }
+    
+    // mvno_large_banners -> site_large_banners 마이그레이션 (1회)
+    if (isset($settings['mvno_large_banners']) && !isset($settings['site_large_banners'])) {
+        $settings['site_large_banners'] = $settings['mvno_large_banners'];
+        unset($settings['mvno_large_banners']);
+        saveHomeSettings($settings);
+    }
+    
+    // mvno_small_banners -> site_small_banners 마이그레이션 (1회)
+    if (isset($settings['mvno_small_banners']) && !isset($settings['site_small_banners'])) {
+        $settings['site_small_banners'] = $settings['mvno_small_banners'];
+        unset($settings['mvno_small_banners']);
         saveHomeSettings($settings);
     }
 
@@ -69,6 +85,29 @@ function setMvnoPlans($plan_ids) {
     return saveHomeSettings($settings);
 }
 
+// 사이트 전체 큰 배너 설정 (롤링 배너)
+function setSiteLargeBanners($event_ids) {
+    $settings = getHomeSettings();
+    $settings['site_large_banners'] = is_array($event_ids) ? $event_ids : [];
+    return saveHomeSettings($settings);
+}
+
+// 사이트 전체 작은 배너 설정 (2개)
+function setSiteSmallBanners($event_ids) {
+    $settings = getHomeSettings();
+    $settings['site_small_banners'] = is_array($event_ids) ? array_slice($event_ids, 0, 2) : [];
+    return saveHomeSettings($settings);
+}
+
+// 하위 호환성을 위한 별칭 (deprecated)
+function setMvnoLargeBanners($event_ids) {
+    return setSiteLargeBanners($event_ids);
+}
+
+function setMvnoSmallBanners($event_ids) {
+    return setSiteSmallBanners($event_ids);
+}
+
 // 통신사폰 설정
 function setMnoPhones($phone_ids) {
     $settings = getHomeSettings();
@@ -88,15 +127,69 @@ function getEvents($limit = null) {
     $pdo = getDBConnection();
     if (!$pdo) return [];
 
+    // is_published 컬럼 존재 여부 확인
+    $stmt = $pdo->query("SHOW COLUMNS FROM events LIKE 'is_published'");
+    $hasIsPublished = $stmt->rowCount() > 0;
+    
+    $whereConditions = [];
+    if ($hasIsPublished) {
+        // is_published가 0이면 기간과 상관없이 비공개
+        $whereConditions[] = "(is_published IS NULL OR is_published != 0)";
+    }
+    
+    // 공개 기간 확인
+    $whereConditions[] = "(start_at IS NULL OR start_at <= CURDATE())";
+    $whereConditions[] = "(end_at IS NULL OR end_at >= CURDATE())";
+    
+    $whereClause = !empty($whereConditions) ? 'WHERE ' . implode(' AND ', $whereConditions) : '';
+    
+    // 컬럼 확인
+    $stmt = $pdo->query("SHOW COLUMNS FROM events");
+    $columns = $stmt->fetchAll(PDO::FETCH_COLUMN);
+    
+    // SELECT 절 동적 생성
+    $selectFields = ['id', 'title'];
+    
+    // image 필드 처리
+    if (in_array('main_image', $columns) && in_array('image_url', $columns)) {
+        $selectFields[] = 'COALESCE(main_image, image_url) AS image';
+    } elseif (in_array('main_image', $columns)) {
+        $selectFields[] = 'main_image AS image';
+    } elseif (in_array('image_url', $columns)) {
+        $selectFields[] = 'image_url AS image';
+    }
+    
+    // link 필드 처리
+    if (in_array('link_url', $columns)) {
+        $selectFields[] = 'link_url AS link';
+    } else {
+        $selectFields[] = 'NULL AS link';
+    }
+    
+    // 나머지 필드
+    if (in_array('category', $columns)) {
+        $selectFields[] = 'category';
+    }
+    if (in_array('start_at', $columns)) {
+        $selectFields[] = 'start_at AS start_date';
+    }
+    if (in_array('end_at', $columns)) {
+        $selectFields[] = 'end_at AS end_date';
+    }
+    if (in_array('is_published', $columns)) {
+        $selectFields[] = 'is_published AS is_active';
+    }
+    if (in_array('created_at', $columns)) {
+        $selectFields[] = 'created_at';
+    }
+    if (in_array('updated_at', $columns)) {
+        $selectFields[] = 'updated_at';
+    }
+
     $sql = "
-        SELECT id, title, image_url AS image, link_url AS link, category,
-               start_at AS start_date, end_at AS end_date,
-               is_published AS is_active,
-               created_at, updated_at
+        SELECT " . implode(', ', $selectFields) . "
         FROM events
-        WHERE is_published = 1
-          AND (start_at IS NULL OR start_at <= CURDATE())
-          AND (end_at IS NULL OR end_at >= CURDATE())
+        {$whereClause}
         ORDER BY created_at DESC
     ";
     if ($limit !== null) {
@@ -115,17 +208,61 @@ function getEvents($limit = null) {
 function getEventById($id) {
     $pdo = getDBConnection();
     if (!$pdo) return null;
-    $stmt = $pdo->prepare("
-        SELECT id, title, image_url AS image, link_url AS link, category,
-               start_at AS start_date, end_at AS end_date,
-               is_published AS is_active,
-               created_at, updated_at
-        FROM events
-        WHERE id = :id
-        LIMIT 1
-    ");
+    
+    // 컬럼 확인
+    $stmt = $pdo->query("SHOW COLUMNS FROM events");
+    $columns = $stmt->fetchAll(PDO::FETCH_COLUMN);
+    
+    // SELECT 절 동적 생성
+    $selectFields = ['id', 'title'];
+    
+    // image 필드 처리
+    if (in_array('main_image', $columns) && in_array('image_url', $columns)) {
+        $selectFields[] = 'COALESCE(main_image, image_url) AS image';
+    } elseif (in_array('main_image', $columns)) {
+        $selectFields[] = 'main_image AS image';
+    } elseif (in_array('image_url', $columns)) {
+        $selectFields[] = 'image_url AS image';
+    }
+    
+    // link 필드 처리
+    if (in_array('link_url', $columns)) {
+        $selectFields[] = 'link_url AS link';
+    } else {
+        $selectFields[] = 'NULL AS link';
+    }
+    
+    // 나머지 필드
+    if (in_array('category', $columns)) {
+        $selectFields[] = 'category';
+    }
+    if (in_array('start_at', $columns)) {
+        $selectFields[] = 'start_at AS start_date';
+    }
+    if (in_array('end_at', $columns)) {
+        $selectFields[] = 'end_at AS end_date';
+    }
+    if (in_array('is_published', $columns)) {
+        $selectFields[] = 'is_published AS is_active';
+    }
+    if (in_array('created_at', $columns)) {
+        $selectFields[] = 'created_at';
+    }
+    if (in_array('updated_at', $columns)) {
+        $selectFields[] = 'updated_at';
+    }
+    
+    $sql = "SELECT " . implode(', ', $selectFields) . " FROM events WHERE id = :id LIMIT 1";
+    
+    $stmt = $pdo->prepare($sql);
     $stmt->execute([':id' => (string)$id]);
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    // 비공개 이벤트는 null 반환
+    if ($row && isset($row['is_active']) && $row['is_active'] == 0) {
+        return null;
+    }
+    
     return $row ?: null;
 }
 
@@ -207,14 +344,52 @@ function deleteEvent($id) {
 function getAllEvents() {
     $pdo = getDBConnection();
     if (!$pdo) return [];
-    $stmt = $pdo->query("
-        SELECT id, title, image_url AS image, link_url AS link, category,
-               start_at AS start_date, end_at AS end_date,
-               is_published AS is_active,
-               created_at, updated_at
-        FROM events
-        ORDER BY created_at DESC
-    ");
+    
+    // 컬럼 확인
+    $stmt = $pdo->query("SHOW COLUMNS FROM events");
+    $columns = $stmt->fetchAll(PDO::FETCH_COLUMN);
+    
+    // SELECT 절 동적 생성
+    $selectFields = ['id', 'title'];
+    
+    // image 필드 처리
+    if (in_array('main_image', $columns) && in_array('image_url', $columns)) {
+        $selectFields[] = 'COALESCE(main_image, image_url) AS image';
+    } elseif (in_array('main_image', $columns)) {
+        $selectFields[] = 'main_image AS image';
+    } elseif (in_array('image_url', $columns)) {
+        $selectFields[] = 'image_url AS image';
+    }
+    
+    // link 필드 처리
+    if (in_array('link_url', $columns)) {
+        $selectFields[] = 'link_url AS link';
+    } else {
+        $selectFields[] = 'NULL AS link';
+    }
+    
+    // 나머지 필드
+    if (in_array('category', $columns)) {
+        $selectFields[] = 'category';
+    }
+    if (in_array('start_at', $columns)) {
+        $selectFields[] = 'start_at AS start_date';
+    }
+    if (in_array('end_at', $columns)) {
+        $selectFields[] = 'end_at AS end_date';
+    }
+    if (in_array('is_published', $columns)) {
+        $selectFields[] = 'is_published AS is_active';
+    }
+    if (in_array('created_at', $columns)) {
+        $selectFields[] = 'created_at';
+    }
+    if (in_array('updated_at', $columns)) {
+        $selectFields[] = 'updated_at';
+    }
+    
+    $sql = "SELECT " . implode(', ', $selectFields) . " FROM events ORDER BY created_at DESC";
+    $stmt = $pdo->query($sql);
     return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
 }
 

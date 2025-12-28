@@ -13,7 +13,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 $currentUser = getCurrentUser();
 if (!$currentUser || !isAdmin($currentUser['user_id'])) {
-    header('Location: /MVNO/admin/login.php');
+    header('Location: ../login.php');
     exit;
 }
 
@@ -199,10 +199,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 throw new Exception($errorMsg);
             }
             
-            // 각 플레이스홀더가 파라미터에 존재하는지 확인
+            // 각 플레이스홀더가 파라미터에 존재하는지 확인 (null 값도 허용하므로 array_key_exists 사용)
             $missingParams = [];
             foreach ($placeholdersInSql as $placeholder) {
-                if (!isset($params[$placeholder])) {
+                if (!array_key_exists($placeholder, $params)) {
                     $missingParams[] = $placeholder;
                 }
             }
@@ -227,12 +227,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 }
             }
             
+            // boundParams를 try 블록 밖에서 초기화 (catch 블록에서 접근 가능하도록)
+            $boundParams = [];
+            
             try {
                 // SQL에 있는 플레이스홀더만 포함하는 파라미터 배열 생성 (순서 보장)
-                $boundParams = [];
+                // 빈 문자열은 NULL로 변환 (데이터베이스 호환성)
                 foreach ($placeholdersInSql as $placeholder) {
-                    if (isset($params[$placeholder])) {
-                        $boundParams[$placeholder] = $params[$placeholder];
+                    if (array_key_exists($placeholder, $params)) {
+                        $value = $params[$placeholder];
+                        // 빈 문자열을 NULL로 변환 (description 등)
+                        if ($value === '') {
+                            $boundParams[$placeholder] = null;
+                        } else {
+                            $boundParams[$placeholder] = $value;
+                        }
                     } else {
                         // 플레이스홀더가 있지만 파라미터가 없으면 NULL로 설정
                         $boundParams[$placeholder] = null;
@@ -252,10 +261,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 $bindLog .= "Bound Params Keys (" . count($boundParams) . "): " . implode(', ', array_keys($boundParams)) . "\n";
                 $bindLog .= "Bound Params: " . json_encode($boundParams, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) . "\n";
                 
-                // 각 플레이스홀더가 boundParams에 있는지 확인
+                // 각 플레이스홀더가 boundParams에 있는지 확인 (null 값도 허용)
                 $missingInBound = [];
                 foreach ($placeholdersInSql as $ph) {
-                    if (!isset($boundParams[$ph])) {
+                    if (!array_key_exists($ph, $boundParams)) {
                         $missingInBound[] = $ph;
                     }
                 }
@@ -266,24 +275,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 @file_put_contents($debugLogFile, $bindLog, FILE_APPEND | LOCK_EX);
                 error_log($bindLog);
                 
-                // PDO prepare 및 execute
+                // PDO prepare 및 execute - 배열을 직접 전달
                 $stmt = $pdo->prepare($sql);
-                
-                // 각 파라미터를 명시적으로 bindValue()로 바인딩 (타입 지정)
-                foreach ($boundParams as $key => $value) {
-                    if (is_int($value)) {
-                        $stmt->bindValue($key, $value, PDO::PARAM_INT);
-                    } elseif (is_null($value)) {
-                        $stmt->bindValue($key, $value, PDO::PARAM_NULL);
-                    } elseif (is_bool($value)) {
-                        $stmt->bindValue($key, $value, PDO::PARAM_BOOL);
-                    } else {
-                        $stmt->bindValue($key, (string)$value, PDO::PARAM_STR);
-                    }
-                }
-                
-                // execute() 호출 (파라미터 없이 - 이미 bindValue로 바인딩됨)
-                $stmt->execute();
+                $stmt->execute($boundParams);
             } catch (PDOException $e) {
                 $errorDetails = [
                     'message' => $e->getMessage(),
@@ -308,7 +302,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 $errorLog .= "Message: " . $e->getMessage() . "\n";
                 $errorLog .= "Code: " . $e->getCode() . "\n";
                 $errorLog .= "SQL: " . $sql . "\n";
-                $errorLog .= "Params: " . json_encode($params, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) . "\n";
+                $errorLog .= "Original Params: " . json_encode($params, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) . "\n";
+                if (isset($boundParams)) {
+                    $errorLog .= "Bound Params: " . json_encode($boundParams, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) . "\n";
+                }
                 $errorLog .= "Param Count: " . count($params) . "\n";
                 $errorLog .= "Placeholder Count: " . substr_count($sql, ':') . "\n";
                 $errorLog .= "Columns: " . implode(', ', $insertColumns) . "\n";
@@ -406,23 +403,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 $displayOrder = 0;
                 $currentTimestamp = date('Y-m-d H:i:s');
                 foreach ($productIds as $productId) {
+                    // ON DUPLICATE KEY UPDATE에서 같은 플레이스홀더를 두 번 사용할 수 없으므로 별도 플레이스홀더 사용
                     $stmt = $pdo->prepare("
                         INSERT INTO event_products (event_id, product_id, display_order, created_at)
                         VALUES (:event_id, :product_id, :display_order, :created_at)
-                        ON DUPLICATE KEY UPDATE display_order = :display_order
+                        ON DUPLICATE KEY UPDATE display_order = :display_order_update
                     ");
                     $stmt->execute([
                         ':event_id' => $eventId,
                         ':product_id' => (int)$productId,
-                        ':display_order' => $displayOrder++,
+                        ':display_order' => $displayOrder,
+                        ':display_order_update' => $displayOrder, // UPDATE 절용 별도 플레이스홀더
                         ':created_at' => $currentTimestamp
                     ]);
+                    $displayOrder++;
                 }
             }
             
             $pdo->commit();
             $success = '이벤트가 등록되었습니다.';
-            header('Location: /MVNO/admin/content/event-manage.php?success=created');
+            header('Location: event-manage.php?success=created');
             exit;
             
         } catch (Exception $e) {
@@ -554,6 +554,7 @@ function ensureEventsTableColumns($pdo) {
 
 /**
  * 이벤트 이미지 업로드 함수
+ * 사이트 전체 이미지 관리 폴더: images/upload/event/YYYY/MM/
  */
 function uploadEventImage($file, $eventId, $type = 'main', $force16to9 = false) {
     $allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
@@ -567,13 +568,17 @@ function uploadEventImage($file, $eventId, $type = 'main', $force16to9 = false) 
         return false;
     }
     
-    $uploadDir = __DIR__ . '/../../uploads/events/';
+    // 연도/월별 폴더 구조: images/upload/event/YYYY/MM/
+    $year = date('Y');
+    $month = date('m');
+    $uploadDir = __DIR__ . '/../../images/upload/event/' . $year . '/' . $month . '/';
     if (!is_dir($uploadDir)) {
         mkdir($uploadDir, 0755, true);
     }
     
     $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-    $filename = $eventId . '_' . $type . '_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $extension;
+    // 파일명: 타임스탬프_랜덤문자열.확장자 (기존 images/upload/event 폴더 형식과 유사하게)
+    $filename = date('Ymd') . '_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $extension;
     $filepath = $uploadDir . $filename;
     
     if (move_uploaded_file($file['tmp_name'], $filepath)) {
@@ -582,7 +587,8 @@ function uploadEventImage($file, $eventId, $type = 'main', $force16to9 = false) 
             resizeImageTo16to9($filepath);
         }
         
-        return '/MVNO/uploads/events/' . $filename;
+        // 웹 경로: /images/upload/event/YYYY/MM/filename
+        return '/images/upload/event/' . $year . '/' . $month . '/' . $filename;
     }
     
     return false;
@@ -740,7 +746,7 @@ include __DIR__ . '/../includes/admin-header.php';
 
 <div class="admin-page-header">
     <h1>이벤트 등록</h1>
-    <a href="/MVNO/admin/content/event-manage.php" class="btn-back">목록으로</a>
+    <a href="event-manage.php" class="btn-back">목록으로</a>
 </div>
 
 <?php if ($error): ?>
@@ -921,7 +927,7 @@ include __DIR__ . '/../includes/admin-header.php';
     
     <div class="form-actions">
         <button type="submit" class="btn btn-primary">이벤트 등록</button>
-        <a href="/MVNO/admin/content/event-manage.php" class="btn btn-secondary">취소</a>
+        <a href="event-manage.php" class="btn btn-secondary">취소</a>
     </div>
 </form>
 
@@ -1292,20 +1298,32 @@ label {
 /* 상세 이미지 드래그 앤 드롭 스타일 */
 .images-preview.sortable-images {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 16px;
+    grid-template-columns: 1fr;
+    gap: 0;
     margin-top: 16px;
 }
 
 .detail-image-item {
     position: relative;
     background: #ffffff;
-    border: 2px solid #e5e7eb;
-    border-radius: 12px;
-    padding: 12px;
+    border: none;
+    border-radius: 0;
+    padding: 0;
     cursor: move;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     overflow: hidden;
+}
+
+.detail-image-item:first-child {
+    border-radius: 0.75rem 0.75rem 0 0;
+}
+
+.detail-image-item:last-child {
+    border-radius: 0 0 0.75rem 0.75rem;
+}
+
+.detail-image-item:only-child {
+    border-radius: 0.75rem;
 }
 
 .detail-image-item::before {
@@ -1366,9 +1384,21 @@ label {
     padding-top: 75%; /* 4:3 비율 */
     position: relative;
     overflow: hidden;
-    border-radius: 6px;
+    border-radius: 0;
     background: #f9fafb;
-    margin-bottom: 8px;
+    margin-bottom: 0;
+}
+
+.detail-image-item:first-child .image-wrapper {
+    border-radius: 0.75rem 0.75rem 0 0;
+}
+
+.detail-image-item:last-child .image-wrapper {
+    border-radius: 0 0 0.75rem 0.75rem;
+}
+
+.detail-image-item:only-child .image-wrapper {
+    border-radius: 0.75rem;
 }
 
 .detail-image-item .image-wrapper img {
@@ -1380,7 +1410,7 @@ label {
     object-fit: cover;
     margin: 0;
     border: none;
-    border-radius: 6px;
+    border-radius: 0;
 }
 
 .detail-image-item .remove-image-btn {
@@ -1430,7 +1460,7 @@ label {
     padding: 12px;
     background: white;
     border-radius: 4px;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
     border: 1px solid #e5e7eb;
     cursor: move;
 }
@@ -1630,6 +1660,14 @@ label {
     border-radius: 8px;
     background: #f9fafb;
     min-height: 500px;
+    padding: 16px;
+}
+
+.modal-search-results {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding: 0;
 }
 
 .modal-product-item {
@@ -1655,6 +1693,136 @@ label {
 .modal-product-item.already-added {
     background: #f3f4f6;
     opacity: 0.7;
+}
+
+/* 카드 형태 스타일 */
+.modal-product-card {
+    background: white;
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    overflow: hidden;
+    transition: all 0.2s;
+    cursor: pointer;
+    position: relative;
+}
+
+.modal-product-card:hover {
+    border-color: #6366f1;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+    transform: translateY(-2px);
+}
+
+.modal-product-card.selected {
+    border-color: #6366f1;
+    background: #eef2ff;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
+}
+
+.modal-product-card.already-added {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.modal-product-card-label {
+    display: block;
+    cursor: pointer;
+    margin: 0;
+}
+
+.modal-product-checkbox {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    z-index: 10;
+    margin: 0;
+}
+
+.modal-product-card.already-added .modal-product-checkbox {
+    cursor: not-allowed;
+}
+
+.modal-product-card-content {
+    padding: 16px;
+}
+
+.modal-product-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.modal-product-provider {
+    font-size: 14px;
+    font-weight: 600;
+    color: #6b7280;
+}
+
+.modal-product-card-body {
+    margin-bottom: 16px;
+}
+
+.modal-product-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin-bottom: 8px;
+    line-height: 1.4;
+}
+
+.modal-product-data {
+    font-size: 16px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 8px;
+}
+
+.modal-product-features {
+    font-size: 13px;
+    color: #6b7280;
+    line-height: 1.6;
+}
+
+.modal-product-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 12px;
+    border-top: 1px solid #e5e7eb;
+}
+
+.modal-product-price {
+    font-size: 20px;
+    font-weight: 700;
+    color: #6366f1;
+}
+
+.modal-product-type-badge {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 500;
+    color: #4338ca;
+    background: #e0e7ff;
+    padding: 4px 8px;
+    border-radius: 4px;
+    margin-left: 8px;
+    vertical-align: middle;
+}
+
+.modal-product-info {
+    position: relative;
+}
+
+.modal-product-info .already-added-badge {
+    position: absolute;
+    top: 0;
+    right: 0;
+    margin-top: 0;
+    background: #fee2e2;
+    color: #991b1b;
 }
 
 .modal-product-checkbox-label {
@@ -1686,6 +1854,34 @@ label {
     font-weight: 600;
     color: #1f2937;
     margin-bottom: 8px;
+    display: inline-block;
+    margin-right: 8px;
+}
+
+.modal-product-specs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid #f3f4f6;
+}
+
+.modal-product-spec-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 13px;
+}
+
+.modal-product-spec-item .spec-label {
+    font-weight: 500;
+    color: #6b7280;
+}
+
+.modal-product-spec-item .spec-value {
+    color: #1f2937;
+    font-weight: 600;
 }
 
 .modal-product-details {
@@ -1723,6 +1919,12 @@ label {
     font-size: 12px;
     font-weight: 500;
     margin-top: 8px;
+}
+
+.modal-product-card-header .already-added-badge {
+    margin-top: 0;
+    background: #fee2e2;
+    color: #991b1b;
 }
 
 .selected-product-item .product-details {
@@ -2346,7 +2548,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (serviceTypeInternet) params.append('service_type', serviceTypeInternet);
         }
         
-        fetch(`/MVNO/api/search-products.php?${params.toString()}`)
+        fetch(`../../api/search-products.php?${params.toString()}`)
             .then(response => {
                 if (!response.ok) {
                     throw new Error('Network response was not ok');
@@ -2379,10 +2581,86 @@ document.addEventListener('DOMContentLoaded', function() {
         currentSearchResults = products;
         
         modalSearchResults.innerHTML = '';
+        modalSearchResults.className = 'modal-search-results';
         
         products.forEach(product => {
             const isAlreadyAdded = selectedProducts.some(p => p.id === product.id);
             const isModalSelected = modalSelectedProducts.some(p => p.id === product.id);
+            
+            // 상품 타입별 특성 정보 수집
+            const productSpecs = [];
+            
+            // MVNO / MNO-SIM 상품 특성
+            if (product.product_type === 'mvno' || product.product_type === 'mno-sim') {
+                if (product.provider) {
+                    productSpecs.push({ label: '통신사', value: product.provider });
+                }
+                if (product.data_amount) {
+                    let dataValue = '';
+                    if (product.data_amount === '무제한') {
+                        dataValue = '무제한';
+                    } else if (product.data_amount === '직접입력' && product.data_amount_value) {
+                        dataValue = parseInt(product.data_amount_value).toLocaleString() + (product.data_unit || 'GB');
+                    } else {
+                        dataValue = product.data_amount;
+                    }
+                    if (dataValue) productSpecs.push({ label: '데이터', value: dataValue });
+                }
+                if (product.call_type) {
+                    let callValue = '';
+                    if (product.call_type === '무제한') {
+                        callValue = '무제한';
+                    } else if (product.call_type === '직접입력' && product.call_amount) {
+                        callValue = parseInt(product.call_amount).toLocaleString() + '분';
+                    }
+                    if (callValue) productSpecs.push({ label: '통화', value: callValue });
+                }
+                if (product.sms_type) {
+                    let smsValue = '';
+                    if (product.sms_type === '무제한') {
+                        smsValue = '무제한';
+                    } else if (product.sms_type === '직접입력' && product.sms_amount) {
+                        smsValue = parseInt(product.sms_amount).toLocaleString() + '건';
+                    }
+                    if (smsValue) productSpecs.push({ label: '문자', value: smsValue });
+                }
+                if (product.service_type) {
+                    productSpecs.push({ label: '서비스', value: product.service_type });
+                }
+                if (product.price_after && product.price_after > 0) {
+                    productSpecs.push({ label: '월 요금', value: parseInt(product.price_after).toLocaleString() + '원' });
+                } else if (product.price_main && product.price_main > 0) {
+                    productSpecs.push({ label: '월 요금', value: parseInt(product.price_main).toLocaleString() + '원' });
+                } else {
+                    productSpecs.push({ label: '월 요금', value: '공짜' });
+                }
+            }
+            // MNO 상품 특성
+            else if (product.product_type === 'mno') {
+                if (product.price_main && product.price_main > 0) {
+                    productSpecs.push({ label: '가격', value: parseInt(product.price_main).toLocaleString() + '원' });
+                }
+            }
+            // Internet 상품 특성
+            else if (product.product_type === 'internet') {
+                if (product.registration_place) {
+                    productSpecs.push({ label: '등록지역', value: product.registration_place });
+                }
+                if (product.speed_option) {
+                    productSpecs.push({ label: '속도', value: product.speed_option });
+                }
+                if (product.service_type) {
+                    productSpecs.push({ label: '서비스', value: product.service_type });
+                }
+                if (product.monthly_fee && product.monthly_fee > 0) {
+                    productSpecs.push({ label: '월 요금', value: parseInt(product.monthly_fee).toLocaleString() + '원' });
+                }
+            }
+            
+            // 판매자 정보
+            if (product.seller_name) {
+                productSpecs.push({ label: '판매자', value: product.seller_name });
+            }
             
             const item = document.createElement('div');
             item.className = 'modal-product-item' + (isAlreadyAdded ? ' already-added' : '') + (isModalSelected ? ' selected' : '');
@@ -2396,13 +2674,17 @@ document.addEventListener('DOMContentLoaded', function() {
                            data-product-id="${product.id}">
                     <div class="modal-product-info">
                         <div class="modal-product-name">${escapeHtml(product.name)}</div>
-                        <div class="modal-product-details">
-                            <span class="modal-product-type">${escapeHtml(product.type)}</span>
-                            <span class="modal-product-separator">|</span>
-                            <span class="modal-product-seller">판매자: ${escapeHtml(product.seller_name || '-')}</span>
-                            <span class="modal-product-separator">|</span>
-                            <span class="modal-product-seller-id">ID: ${escapeHtml(product.seller_id || '-')}</span>
-                        </div>
+                        <div class="modal-product-type-badge">${escapeHtml(product.type)}</div>
+                        ${productSpecs.length > 0 ? `
+                            <div class="modal-product-specs">
+                                ${productSpecs.map(spec => `
+                                    <div class="modal-product-spec-item">
+                                        <span class="spec-label">${escapeHtml(spec.label)}:</span>
+                                        <span class="spec-value">${escapeHtml(spec.value)}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        ` : ''}
                         ${isAlreadyAdded ? '<span class="already-added-badge">이미 추가됨</span>' : ''}
                     </div>
                 </label>
