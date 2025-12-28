@@ -172,17 +172,65 @@ $available_events = [];
 $main_banner_events = [];
 $sub_banner_events = [];
 
-// 저장된 순서대로 메인배너 이벤트 구성
+// 유효하지 않은 이벤트 ID 수집 (비공개 또는 공개기간 지난 것)
+$invalid_large_banner_ids = [];
+$invalid_small_banner_ids = [];
+
+// 저장된 순서대로 메인배너 이벤트 구성 (유효한 것만)
 foreach ($current_large_banners as $banner_id) {
     if (isset($events_by_id[$banner_id])) {
         $main_banner_events[] = $events_by_id[$banner_id];
+    } else {
+        // 유효하지 않은 이벤트 ID 수집
+        $invalid_large_banner_ids[] = $banner_id;
     }
 }
 
-// 저장된 순서대로 서브배너 이벤트 구성
+// 저장된 순서대로 서브배너 이벤트 구성 (유효한 것만)
 foreach ($current_small_banners as $banner_id) {
     if (isset($events_by_id[$banner_id])) {
         $sub_banner_events[] = $events_by_id[$banner_id];
+    } else {
+        // 유효하지 않은 이벤트 ID 수집
+        $invalid_small_banner_ids[] = $banner_id;
+    }
+}
+
+// 유효하지 않은 이벤트가 있으면 배너 설정에서 자동 제거
+if (!empty($invalid_large_banner_ids) || !empty($invalid_small_banner_ids)) {
+    $needs_save = false;
+    
+    // 메인배너에서 유효하지 않은 ID 제거
+    if (!empty($invalid_large_banner_ids)) {
+        $home_settings['site_large_banners'] = array_values(array_filter(
+            $home_settings['site_large_banners'],
+            function($id) use ($invalid_large_banner_ids) {
+                return !in_array((string)$id, array_map('strval', $invalid_large_banner_ids), true);
+            }
+        ));
+        $needs_save = true;
+    }
+    
+    // 서브배너에서 유효하지 않은 ID 제거
+    if (!empty($invalid_small_banner_ids)) {
+        $home_settings['site_small_banners'] = array_values(array_filter(
+            $home_settings['site_small_banners'],
+            function($id) use ($invalid_small_banner_ids) {
+                return !in_array((string)$id, array_map('strval', $invalid_small_banner_ids), true);
+            }
+        ));
+        $needs_save = true;
+    }
+    
+    // 설정 저장
+    if ($needs_save) {
+        saveHomeSettings($home_settings);
+        // 현재 설정 다시 가져오기
+        $home_settings = getHomeSettings();
+        $current_large_banners = $home_settings['site_large_banners'] ?? [];
+        $current_small_banners = $home_settings['site_small_banners'] ?? [];
+        $current_large_banners = array_map('strval', $current_large_banners);
+        $current_small_banners = array_map('strval', $current_small_banners);
     }
 }
 

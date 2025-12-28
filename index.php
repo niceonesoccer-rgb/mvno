@@ -79,6 +79,7 @@ if (!empty($home_settings['mvno_plans']) && is_array($home_settings['mvno_plans'
 
 // 사이트 전체 섹션 배너 가져오기
 $site_large_banners = [];
+$valid_large_banner_ids = [];
 if (!empty($home_settings['site_large_banners']) && is_array($home_settings['site_large_banners'])) {
     foreach ($home_settings['site_large_banners'] as $event_id) {
         $event = getEventById($event_id);
@@ -88,11 +89,13 @@ if (!empty($home_settings['site_large_banners']) && is_array($home_settings['sit
                 $event['image'] = normalizeImagePathForDisplay($event['image']);
             }
             $site_large_banners[] = $event;
+            $valid_large_banner_ids[] = (string)$event_id;
         }
     }
 }
 
 $site_small_banners = [];
+$valid_small_banner_ids = [];
 if (!empty($home_settings['site_small_banners']) && is_array($home_settings['site_small_banners'])) {
     foreach ($home_settings['site_small_banners'] as $event_id) {
         $event = getEventById($event_id);
@@ -102,8 +105,45 @@ if (!empty($home_settings['site_small_banners']) && is_array($home_settings['sit
                 $event['image'] = normalizeImagePathForDisplay($event['image']);
             }
             $site_small_banners[] = $event;
+            $valid_small_banner_ids[] = (string)$event_id;
         }
     }
+}
+
+// 유효하지 않은 이벤트가 있으면 배너 설정에서 자동 제거
+$needs_save = false;
+
+// 메인배너에서 유효하지 않은 ID 제거
+if (!empty($home_settings['site_large_banners'])) {
+    $original_count = count($home_settings['site_large_banners']);
+    $home_settings['site_large_banners'] = array_values(array_filter(
+        $home_settings['site_large_banners'],
+        function($id) use ($valid_large_banner_ids) {
+            return in_array((string)$id, $valid_large_banner_ids, true);
+        }
+    ));
+    if (count($home_settings['site_large_banners']) !== $original_count) {
+        $needs_save = true;
+    }
+}
+
+// 서브배너에서 유효하지 않은 ID 제거
+if (!empty($home_settings['site_small_banners'])) {
+    $original_count = count($home_settings['site_small_banners']);
+    $home_settings['site_small_banners'] = array_values(array_filter(
+        $home_settings['site_small_banners'],
+        function($id) use ($valid_small_banner_ids) {
+            return in_array((string)$id, $valid_small_banner_ids, true);
+        }
+    ));
+    if (count($home_settings['site_small_banners']) !== $original_count) {
+        $needs_save = true;
+    }
+}
+
+// 설정 저장
+if ($needs_save) {
+    saveHomeSettings($home_settings);
 }
 
 // 통신사폰 가져오기

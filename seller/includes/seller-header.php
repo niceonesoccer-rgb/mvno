@@ -708,6 +708,20 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         </div>
         
         <div class="menu-section">
+            <div class="menu-section-title">고객 지원</div>
+            <a href="/MVNO/seller/inquiry/inquiry-list.php" class="menu-item <?php echo (strpos($currentPage, 'inquiry') !== false) ? 'active' : ''; ?>">
+                <span class="menu-item-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                        <path d="M13 8H7"/>
+                        <path d="M17 12H7"/>
+                    </svg>
+                </span>
+                1:1 문의
+            </a>
+        </div>
+        
+        <div class="menu-section">
             <div class="menu-section-title">상품 등록</div>
             <a href="/MVNO/seller/products/mno-sim.php" class="menu-item menu-item-sub <?php echo ($currentPage === 'mno-sim.php' && strpos($_SERVER['REQUEST_URI'], '/products/') !== false && strpos($_SERVER['REQUEST_URI'], '/orders/') === false) ? 'active' : ''; ?>">
                 <span class="menu-item-icon">

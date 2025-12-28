@@ -704,6 +704,16 @@ if ($pdo) {
                     </span>
                     Q&A 관리
                 </a>
+                <a href="/MVNO/admin/content/seller-inquiry-manage.php" class="menu-item <?php echo $currentPage === 'seller-inquiry-manage.php' ? 'active' : ''; ?>">
+                    <span class="menu-item-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                            <path d="M13 8H7"/>
+                            <path d="M17 12H7"/>
+                        </svg>
+                    </span>
+                    판매자 1:1 문의 관리
+                </a>
             </div>
             
             <!-- 설정 -->
