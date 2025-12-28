@@ -238,9 +238,11 @@ if (!$isAdmin && isset($phone['status']) && $phone['status'] === 'inactive') {
                                     <?php 
                                     $authorName = htmlspecialchars($review['author_name'] ?? '익명');
                                     $provider = isset($review['provider']) && $review['provider'] ? htmlspecialchars($review['provider']) : '';
-                                    $providerText = $provider ? ' | ' . $provider : '';
                                     ?>
-                                    <span class="plan-review-author"><?php echo $authorName . $providerText; ?></span>
+                                    <span class="plan-review-author"><?php echo $authorName; ?></span>
+                                    <?php if ($provider): ?>
+                                        <span class="plan-review-provider-badge"><?php echo $provider; ?></span>
+                                    <?php endif; ?>
                                 </div>
                                 <div style="display: flex; align-items: center; gap: 12px;">
                                     <div class="plan-review-stars">
@@ -666,7 +668,7 @@ $discountData = [
                         <div class="internet-checkbox-item-wrapper">
                             <div class="internet-checkbox-item">
                                 <label class="internet-checkbox-label-item">
-                                    <input type="checkbox" id="<?php echo $item['id']; ?>" name="<?php echo $item['name']; ?>" class="internet-checkbox-input-item" onchange="checkAllMnoAgreements();<?php echo ($key === 'marketing') ? ' toggleMnoMarketingChannels();' : ''; ?>" <?php echo $requiredAttr; ?>>
+                                    <input type="checkbox" id="<?php echo $item['id']; ?>" name="<?php echo $item['name']; ?>" class="internet-checkbox-input-item" <?php echo $requiredAttr; ?>>
                                     <span class="internet-checkbox-text" style="font-size: 1.0625rem !important;"><?php echo $title; ?> <span style="color: <?php echo $requiredColor; ?>; font-weight: 600;"><?php echo $requiredText; ?></span></span>
                                 </label>
                                 <?php if (isset($item['modal'])): ?>
@@ -799,12 +801,16 @@ $discountData = [
                     <?php foreach ($allReviews as $review): ?>
                         <div class="review-modal-item">
                             <div class="review-modal-item-header">
-                                <?php 
-                                $authorName = htmlspecialchars($review['author_name'] ?? '익명');
-                                $provider = isset($review['provider']) && $review['provider'] ? htmlspecialchars($review['provider']) : '';
-                                $providerText = $provider ? ' | ' . $provider : '';
-                                ?>
-                                <span class="review-modal-author"><?php echo $authorName . $providerText; ?></span>
+                                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                    <?php 
+                                    $authorName = htmlspecialchars($review['author_name'] ?? '익명');
+                                    $provider = isset($review['provider']) && $review['provider'] ? htmlspecialchars($review['provider']) : '';
+                                    ?>
+                                    <span class="review-modal-author"><?php echo $authorName; ?></span>
+                                    <?php if ($provider): ?>
+                                        <span class="plan-review-provider-badge"><?php echo $provider; ?></span>
+                                    <?php endif; ?>
+                                </div>
                                 <div style="display: flex; align-items: center; gap: 12px;">
                                     <div class="review-modal-stars">
                                         <span><?php echo htmlspecialchars($review['stars'] ?? '★★★★☆'); ?></span>
@@ -1591,10 +1597,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (agreementAll) {
         agreementAll.addEventListener('change', function() {
             const isChecked = this.checked;
-            agreementItemCheckboxes.forEach(checkbox => {
-                checkbox.checked = isChecked;
-            });
-            checkAllMnoAgreements();
+            toggleAllMnoAgreements(isChecked);
         });
     }
     
@@ -1602,32 +1605,36 @@ document.addEventListener('DOMContentLoaded', function() {
     agreementItemCheckboxes.forEach(checkbox => {
         checkbox.addEventListener('change', function() {
             checkAllMnoAgreements();
+            // 마케팅 체크박스인 경우 채널 토글
+            if (this.id === 'mnoAgreementMarketing') {
+                toggleMnoMarketingChannels();
+            }
         });
     });
     
     // 전체 동의 토글 함수
     function toggleAllMnoAgreements(checked) {
-        const agreementAll = document.getElementById('mnoAgreementAll');
-        if (!agreementAll) return;
-        
-        // 모든 체크박스 찾기
-        const checkboxes = document.querySelectorAll('.internet-checkbox-input-item');
-        checkboxes.forEach(checkbox => {
-            checkbox.checked = checked;
-        });
-        
-        if (checked) {
-            const agreementServiceNotice = document.getElementById('mnoAgreementServiceNotice');
-            if (agreementServiceNotice && agreementServiceNotice.checked) {
-                toggleMnoServiceNoticeChannels();
+        const agreementPurpose = document.getElementById('mnoAgreementPurpose');
+        const agreementItems = document.getElementById('mnoAgreementItems');
+        const agreementPeriod = document.getElementById('mnoAgreementPeriod');
+        const agreementThirdParty = document.getElementById('mnoAgreementThirdParty');
+        const agreementServiceNotice = document.getElementById('mnoAgreementServiceNotice');
+        const agreementMarketing = document.getElementById('mnoAgreementMarketing');
+
+        if (agreementPurpose && agreementItems && agreementPeriod && agreementThirdParty && agreementServiceNotice) {
+            agreementPurpose.checked = checked;
+            agreementItems.checked = checked;
+            agreementPeriod.checked = checked;
+            agreementThirdParty.checked = checked;
+            agreementServiceNotice.checked = checked;
+            if (agreementMarketing) {
+                agreementMarketing.checked = checked;
+                if (checked) {
+                    toggleMnoMarketingChannels();
+                }
             }
-            const agreementMarketing = document.getElementById('mnoAgreementMarketing');
-            if (agreementMarketing && agreementMarketing.checked) {
-                toggleMnoMarketingChannels();
-            }
+            checkAllMnoAgreements();
         }
-        
-        checkAllMnoAgreements();
     }
     
     // 전체 동의 상태 확인 함수
@@ -1728,7 +1735,11 @@ document.addEventListener('DOMContentLoaded', function() {
             const isEnabled = agreementMarketing.checked;
             marketingChannels.forEach(channel => {
                 channel.disabled = !isEnabled;
-                if (!isEnabled) {
+                if (isEnabled) {
+                    // 활성화 시 모든 체크박스 자동 체크
+                    channel.checked = true;
+                } else {
+                    // 비활성화 시 모든 체크박스 해제
                     channel.checked = false;
                 }
             });
@@ -1738,14 +1749,20 @@ document.addEventListener('DOMContentLoaded', function() {
     // 마케팅 채널 변경 시 상위 체크박스 업데이트
     document.addEventListener('DOMContentLoaded', function() {
         const marketingChannels = document.querySelectorAll('.mno-marketing-channel');
-        const agreementMarketing = document.getElementById('agreementMarketing');
+        const agreementMarketing = document.getElementById('mnoAgreementMarketing');
         
         marketingChannels.forEach(channel => {
             channel.addEventListener('change', function() {
                 if (agreementMarketing) {
                     const anyChecked = Array.from(marketingChannels).some(ch => ch.checked);
                     if (anyChecked && !agreementMarketing.checked) {
+                        // 상위 토글 체크
                         agreementMarketing.checked = true;
+                        // 모든 하위 체크박스 자동 체크
+                        toggleMnoMarketingChannels();
+                    } else if (!anyChecked && agreementMarketing.checked) {
+                        // 모든 하위 체크박스가 해제되면 상위 토글도 해제
+                        agreementMarketing.checked = false;
                         toggleMnoMarketingChannels();
                     }
                 }
@@ -2151,18 +2168,22 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (data.success) {
                     // 신청정보가 판매자에게 저장됨
                     
-                    // redirect_url이 있으면 해당 URL로 이동
+                    // 무조건 마이페이지 통신사폰 주문내역으로 이동
+                    const mypageUrl = '/MVNO/mypage/mno-order.php';
+                    
+                    // redirect_url이 있으면 새 창으로 열기
                     if (data.redirect_url && data.redirect_url.trim() !== '') {
                         let redirectUrl = data.redirect_url.trim();
                         // URL이 프로토콜(http:// 또는 https://)을 포함하지 않으면 https:// 추가
                         if (!/^https?:\/\//i.test(redirectUrl)) {
                             redirectUrl = 'https://' + redirectUrl;
                         }
-                        window.location.href = redirectUrl;
-                    } else {
-                        // redirect_url이 없으면 마이페이지 통신사폰 주문내역으로 이동
-                        window.location.href = '/MVNO/mypage/mno-order.php';
+                        // 새 창으로 열기
+                        window.open(redirectUrl, '_blank');
                     }
+                    
+                    // 마이페이지로 이동
+                    window.location.href = mypageUrl;
                 } else {
                     // 실패 시 모달로 표시
                     if (typeof showAlert === 'function') {

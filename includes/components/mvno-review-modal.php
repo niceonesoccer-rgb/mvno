@@ -90,12 +90,12 @@
                         name="reviewText" 
                         class="mvno-review-textarea" 
                         placeholder="서비스 이용 경험을 자세히 작성해주세요. 다른 고객들에게 도움이 됩니다."
-                        rows="6"
-                        maxlength="1000"
+                        rows="10"
+                        maxlength="300"
                         required
                     ></textarea>
                     <div class="textarea-counter">
-                        <span id="mvnoReviewTextCounter">0</span> / 1000자
+                        <span id="mvnoReviewTextCounter">0</span> / 300자
                     </div>
                 </div>
                 <div class="mvno-review-modal-footer">
@@ -650,16 +650,47 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // 텍스트 카운터
+    // 텍스트 카운터 및 줄 수 제한
     if (reviewTextarea && reviewTextCounter) {
+        // 글자수 카운터
         reviewTextarea.addEventListener('input', function() {
             const length = this.value.length;
             reviewTextCounter.textContent = length;
-            if (length > 1000) {
+            if (length > 300) {
                 reviewTextCounter.style.color = '#ef4444';
             } else {
-                reviewTextCounter.style.color = '#6b7280';
+                reviewTextCounter.style.color = '#6366f1';
             }
+        });
+        
+        // 줄 수 제한 (10줄 이상이면 엔터 입력 방지)
+        reviewTextarea.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                const lines = this.value.split('\n').length;
+                if (lines >= 10) {
+                    e.preventDefault();
+                    return false;
+                }
+            }
+        });
+        
+        // 붙여넣기 시 줄 수 제한
+        reviewTextarea.addEventListener('paste', function(e) {
+            setTimeout(() => {
+                const lines = this.value.split('\n');
+                if (lines.length > 10) {
+                    // 10줄까지만 유지
+                    this.value = lines.slice(0, 10).join('\n');
+                    // 글자수도 다시 확인
+                    if (this.value.length > 300) {
+                        this.value = this.value.substring(0, 300);
+                    }
+                    // 카운터 업데이트
+                    if (reviewTextCounter) {
+                        reviewTextCounter.textContent = this.value.length;
+                    }
+                }
+            }, 0);
         });
     }
     

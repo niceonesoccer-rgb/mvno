@@ -186,6 +186,9 @@ include '../includes/header.php';
                                 (<?php echo $marketingIsRequired ? '필수' : '선택'; ?>)
                             </span>
                         </h3>
+                        <p style="font-size: 14px; color: #6b7280; line-height: 1.65; margin: 8px 0 0 0;">
+                            이메일, SMS·SNS, 앱 푸시를 통해 서비스 및 제휴사의 이벤트·프로모션, 할인·쿠폰, 맞춤형 혜택, 중요 공지 및 서비스 업데이트, 정기 뉴스레터 등 유용한 정보를 받아보실 수 있습니다.
+                        </p>
                     </div>
                 </div>
 
@@ -271,13 +274,14 @@ function handleMarketingToggle(checkbox) {
     if (checkbox.checked) {
         slider.style.backgroundColor = '#6366f1';
         knob.style.transform = 'translateX(20px)';
+        // ON일 때: 하위 체크박스 모두 자동 체크
+        document.getElementById('marketingEmailOptIn').checked = true;
+        document.getElementById('marketingSmsSnsOptIn').checked = true;
+        document.getElementById('marketingPushOptIn').checked = true;
     } else {
         slider.style.backgroundColor = '#d1d5db';
         knob.style.transform = 'translateX(0)';
-    }
-
-    // OFF면 하위 채널 전부 해제
-    if (!checkbox.checked) {
+        // OFF면 하위 채널 전부 해제
         document.getElementById('marketingEmailOptIn').checked = false;
         document.getElementById('marketingSmsSnsOptIn').checked = false;
         document.getElementById('marketingPushOptIn').checked = false;
@@ -299,15 +303,25 @@ function applyMarketingDisabledState() {
 
 // 광고성 정보 수신 동의 체크박스 변경 처리
 function handleAdvertisingChange() {
-    // 채널을 켜면 마케팅 동의도 자동 ON
+    const marketingOptIn = document.getElementById('marketingOptIn');
+    
+    // 채널 체크 상태 확인
     const anyChecked =
         document.getElementById('marketingEmailOptIn').checked ||
         document.getElementById('marketingSmsSnsOptIn').checked ||
         document.getElementById('marketingPushOptIn').checked;
 
-    if (anyChecked && !document.getElementById('marketingOptIn').checked) {
-        document.getElementById('marketingOptIn').checked = true;
-        handleMarketingToggle(document.getElementById('marketingOptIn'));
+    // 체크박스가 하나라도 체크되면 상위 토글 자동 ON
+    if (anyChecked && !marketingOptIn.checked) {
+        marketingOptIn.checked = true;
+        handleMarketingToggle(marketingOptIn);
+        return;
+    }
+
+    // 모든 체크박스가 해제되면 상위 토글도 OFF
+    if (!anyChecked && marketingOptIn.checked) {
+        marketingOptIn.checked = false;
+        handleMarketingToggle(marketingOptIn);
         return;
     }
 

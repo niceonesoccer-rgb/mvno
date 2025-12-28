@@ -492,7 +492,7 @@ if ($serviceType === '인터넷+TV') {
     <section class="plan-review-section" id="internetReviewSection" style="margin-top: 2rem; padding: 2rem 0; background: #f9fafb;">
         <div class="PlanDetail_content_wrapper__0YNeJ">
             <div class="plan-review-header">
-                <span class="plan-review-logo-text"><?php echo htmlspecialchars($internet['company_name'] ?? $internet['registration_place'] ?? '인터넷'); ?></span>
+                <span class="plan-review-logo-text" style="color: #8b5cf6;"><?php echo htmlspecialchars($internet['company_name'] ?? $internet['registration_place'] ?? '인터넷'); ?></span>
                 <h2 class="section-title">리뷰</h2>
             </div>
             
@@ -552,9 +552,11 @@ if ($serviceType === '인터넷+TV') {
                                     <?php 
                                     $authorName = htmlspecialchars($review['author_name'] ?? '익명');
                                     $provider = isset($review['provider']) && $review['provider'] ? htmlspecialchars($review['provider']) : '';
-                                    $providerText = $provider ? ' | ' . $provider : '';
                                     ?>
-                                    <span class="plan-review-author"><?php echo $authorName . $providerText; ?></span>
+                                    <span class="plan-review-author"><?php echo $authorName; ?></span>
+                                    <?php if ($provider): ?>
+                                        <span class="plan-review-provider-badge"><?php echo $provider; ?></span>
+                                    <?php endif; ?>
                                 </div>
                                 <div style="display: flex; align-items: center; gap: 12px;">
                                     <div class="plan-review-stars">
@@ -595,13 +597,13 @@ if ($serviceType === '인터넷+TV') {
 <!-- 인터넷 리뷰 모달 포함 -->
 <?php include '../includes/components/internet-review-modal.php'; ?>
 
-<!-- 인터넷 리뷰 더보기 모달 -->
-<div class="review-modal" id="internetReviewModal">
-    <div class="review-modal-overlay" id="internetReviewModalOverlay"></div>
+<!-- 인터넷 리뷰 목록 모달 -->
+<div class="review-modal" id="internetReviewListModal">
+    <div class="review-modal-overlay" id="internetReviewListModalOverlay"></div>
     <div class="review-modal-content">
         <div class="review-modal-header">
             <h3 class="review-modal-title">리뷰</h3>
-            <button class="review-modal-close" aria-label="닫기" id="internetReviewModalClose">
+            <button class="review-modal-close" aria-label="닫기" id="internetReviewListModalClose">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M18 6L6 18M6 6L18 18" stroke="#868E96" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
@@ -614,7 +616,7 @@ if ($serviceType === '인터넷+TV') {
                         총 <?php echo number_format($reviewCount); ?>개
                     </span>
                     <div class="review-modal-sort-select-wrapper">
-                        <select class="review-modal-sort-select" id="internetReviewModalSortSelect" aria-label="리뷰 정렬 방식 선택">
+                        <select class="review-modal-sort-select" id="internetReviewListModalSortSelect" aria-label="리뷰 정렬 방식 선택">
                             <option value="rating_desc" <?php echo $sort === 'rating_desc' ? 'selected' : ''; ?>>높은 평점순</option>
                             <option value="rating_asc" <?php echo $sort === 'rating_asc' ? 'selected' : ''; ?>>낮은 평점순</option>
                             <option value="created_desc" <?php echo $sort === 'created_desc' ? 'selected' : ''; ?>>최신순</option>
@@ -622,17 +624,21 @@ if ($serviceType === '인터넷+TV') {
                     </div>
                 </div>
             </div>
-            <div class="review-modal-list" id="internetReviewModalList">
+            <div class="review-modal-list" id="internetReviewListModalList">
                 <?php if (!empty($allReviews)): ?>
                     <?php foreach ($allReviews as $review): ?>
                         <div class="review-modal-item">
                             <div class="review-modal-item-header">
-                                <?php 
-                                $authorName = htmlspecialchars($review['author_name'] ?? '익명');
-                                $provider = isset($review['provider']) && $review['provider'] ? htmlspecialchars($review['provider']) : '';
-                                $providerText = $provider ? ' | ' . $provider : '';
-                                ?>
-                                <span class="review-modal-author"><?php echo $authorName . $providerText; ?></span>
+                                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                    <?php 
+                                    $authorName = htmlspecialchars($review['author_name'] ?? '익명');
+                                    $provider = isset($review['provider']) && $review['provider'] ? htmlspecialchars($review['provider']) : '';
+                                    ?>
+                                    <span class="review-modal-author"><?php echo $authorName; ?></span>
+                                    <?php if ($provider): ?>
+                                        <span class="plan-review-provider-badge"><?php echo $provider; ?></span>
+                                    <?php endif; ?>
+                                </div>
                                 <div style="display: flex; align-items: center; gap: 12px;">
                                     <div class="review-modal-stars">
                                         <span><?php echo htmlspecialchars($review['stars'] ?? '★★★★★'); ?></span>
@@ -646,8 +652,6 @@ if ($serviceType === '인터넷+TV') {
                             </div>
                             <p class="review-modal-item-content"><?php 
                                 $content = $review['content'] ?? '';
-                                // 줄바꿈 문자들을 공백 하나로 변환 (기존 공백은 유지)
-                                // \r\n을 먼저 공백으로 변환, 그 다음 \r, \n을 각각 공백으로 변환
                                 $content = str_replace(["\r\n", "\r", "\n"], ' ', $content);
                                 echo htmlspecialchars($content);
                             ?></p>
@@ -659,7 +663,7 @@ if ($serviceType === '인터넷+TV') {
                     </div>
                 <?php endif; ?>
             </div>
-            <button class="review-modal-more-btn" id="internetReviewModalMoreBtn" style="display: none;">리뷰 더보기</button>
+            <button class="review-modal-more-btn" id="internetReviewListModalMoreBtn" style="display: none;">리뷰 더보기</button>
         </div>
     </div>
 </div>
@@ -2181,7 +2185,7 @@ span.internet-checkbox-text {
     width: 100%;
     max-width: 100%;
     padding: 16px;
-    background-color: #f3f4f6;
+    background-color: #ffffff;
     border: 1px solid #e5e7eb;
     border-radius: 8px;
 }
@@ -2205,6 +2209,17 @@ span.internet-checkbox-text {
     color: #6b7280;
 }
 
+.plan-review-provider-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    background-color: #f3f4f6;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #374151;
+    line-height: 1.4;
+}
+
 .plan-review-date {
     font-size: 12px;
     color: #9ca3af;
@@ -2217,6 +2232,9 @@ span.internet-checkbox-text {
     margin: 0;
     white-space: pre-wrap;
     word-wrap: break-word;
+    background-color: #ffffff;
+    padding: 12px;
+    border-radius: 8px;
 }
 
 .review-modal-item-content {
@@ -4011,83 +4029,87 @@ function handleInternetApplyClick(e) {
     }
 })();
 
-    // 인터넷 리뷰 더보기 모달 기능
+    // 인터넷 리뷰 목록 모달 기능
     const internetReviewMoreBtn = document.getElementById('internetReviewMoreBtn');
-    const internetReviewModal = document.getElementById('internetReviewModal');
-    const internetReviewModalOverlay = document.getElementById('internetReviewModalOverlay');
-    const internetReviewModalClose = document.getElementById('internetReviewModalClose');
-    const internetReviewModalList = document.getElementById('internetReviewModalList');
-    const internetReviewModalMoreBtn = document.getElementById('internetReviewModalMoreBtn');
+    const internetReviewListModal = document.getElementById('internetReviewListModal');
+    const internetReviewListModalOverlay = document.getElementById('internetReviewListModalOverlay');
+    const internetReviewListModalClose = document.getElementById('internetReviewListModalClose');
+    const internetReviewListModalList = document.getElementById('internetReviewListModalList');
+    const internetReviewListModalMoreBtn = document.getElementById('internetReviewListModalMoreBtn');
     
-    // 모달 열기 함수
-    function openInternetReviewModal() {
-        if (internetReviewModal) {
-            internetReviewModal.classList.add('review-modal-active');
+    // 리뷰 목록 모달 열기 함수
+    function openInternetReviewListModal() {
+        if (internetReviewListModal) {
+            internetReviewListModal.classList.add('review-modal-active');
             document.body.classList.add('review-modal-open');
+            
+            // 스크롤바 너비 계산
+            const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+            
+            // body 스크롤 숨기기
             document.body.style.overflow = 'hidden';
+            if (scrollbarWidth > 0) {
+                document.body.style.paddingRight = scrollbarWidth + 'px';
+            }
             document.documentElement.style.overflow = 'hidden';
         }
     }
     
-    // 모달 닫기 함수
-    function closeInternetReviewModal() {
-        if (internetReviewModal) {
-            internetReviewModal.classList.remove('review-modal-active');
+    // 리뷰 목록 모달 닫기 함수
+    function closeInternetReviewListModal() {
+        if (internetReviewListModal) {
+            internetReviewListModal.classList.remove('review-modal-active');
             document.body.classList.remove('review-modal-open');
             document.body.style.overflow = '';
+            document.body.style.paddingRight = '';
             document.documentElement.style.overflow = '';
         }
     }
     
-    // 더보기 버튼 클릭 시 모달 열기
+    // 리뷰 더보기 버튼 클릭 시 리뷰 목록 모달 열기
     if (internetReviewMoreBtn) {
         internetReviewMoreBtn.addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
-            openInternetReviewModal();
+            openInternetReviewListModal();
         });
     }
     
     // 모달 닫기 이벤트
-    if (internetReviewModalOverlay) {
-        internetReviewModalOverlay.addEventListener('click', closeInternetReviewModal);
+    if (internetReviewListModalOverlay) {
+        internetReviewListModalOverlay.addEventListener('click', closeInternetReviewListModal);
     }
     
-    if (internetReviewModalClose) {
-        internetReviewModalClose.addEventListener('click', closeInternetReviewModal);
+    if (internetReviewListModalClose) {
+        internetReviewListModalClose.addEventListener('click', closeInternetReviewListModal);
     }
     
     // ESC 키로 모달 닫기
     document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' && internetReviewModal && internetReviewModal.classList.contains('review-modal-active')) {
-            closeInternetReviewModal();
+        if (e.key === 'Escape' && internetReviewListModal && internetReviewListModal.classList.contains('review-modal-active')) {
+            closeInternetReviewListModal();
         }
     });
     
     // 모달 내부 더보기 기능: 처음 10개, 이후 10개씩 표시
-    if (internetReviewModalList && internetReviewModalMoreBtn) {
-        const modalReviewItems = internetReviewModalList.querySelectorAll('.review-modal-item');
+    if (internetReviewListModalList && internetReviewListModalMoreBtn) {
+        const modalReviewItems = internetReviewListModalList.querySelectorAll('.review-modal-item');
         const totalModalReviews = modalReviewItems.length;
-        let visibleModalCount = 10; // 처음 10개만 표시
+        let visibleModalCount = 10;
         
         // 초기 설정: 10개 이후 리뷰 숨기기
         function initializeInternetModalReviews() {
-            visibleModalCount = 10; // 모달 열 때마다 10개로 초기화
+            visibleModalCount = 10;
             modalReviewItems.forEach((item, index) => {
-                if (index >= visibleModalCount) {
-                    item.style.display = 'none';
-                } else {
-                    item.style.display = 'block';
-                }
+                item.style.display = index < visibleModalCount ? 'block' : 'none';
             });
             
-            // 모든 리뷰가 이미 표시되어 있으면 버튼 숨기기
             if (totalModalReviews <= visibleModalCount) {
-                internetReviewModalMoreBtn.style.display = 'none';
+                internetReviewListModalMoreBtn.style.display = 'none';
             } else {
                 const remaining = totalModalReviews - visibleModalCount;
-                internetReviewModalMoreBtn.textContent = `리뷰 더보기 (${remaining}개)`;
-                internetReviewModalMoreBtn.style.display = 'block';
+                internetReviewListModalMoreBtn.textContent = `리뷰 더보기 (${remaining}개)`;
+                internetReviewListModalMoreBtn.style.display = 'block';
             }
         }
         
@@ -4095,46 +4117,42 @@ function handleInternetApplyClick(e) {
         initializeInternetModalReviews();
         
         // 모달이 열릴 때마다 초기화
-        if (internetReviewModal) {
+        if (internetReviewListModal) {
             const observer = new MutationObserver(function(mutations) {
                 mutations.forEach(function(mutation) {
                     if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
-                        if (internetReviewModal.classList.contains('review-modal-active')) {
-                            initializeInternetModalReviews(); // 모달 열 때마다 10개로 초기화
+                        if (internetReviewListModal.classList.contains('review-modal-active')) {
+                            initializeInternetModalReviews();
                         }
                     }
                 });
             });
-            observer.observe(internetReviewModal, { attributes: true });
+            observer.observe(internetReviewListModal, { attributes: true });
         }
         
         // 모달 내부 더보기 버튼 클릭 이벤트
-        internetReviewModalMoreBtn.addEventListener('click', function(e) {
+        internetReviewListModalMoreBtn.addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
-            visibleModalCount += 10; // 10개씩 추가
+            visibleModalCount += 10;
             
-            // 리뷰 표시
             modalReviewItems.forEach((item, index) => {
-                if (index < visibleModalCount) {
-                    item.style.display = 'block';
-                }
+                item.style.display = index < visibleModalCount ? 'block' : 'none';
             });
             
-            // 남은 리뷰 개수 계산 및 버튼 텍스트 업데이트
             const remaining = totalModalReviews - visibleModalCount;
             if (remaining <= 0) {
-                internetReviewModalMoreBtn.style.display = 'none';
+                internetReviewListModalMoreBtn.style.display = 'none';
             } else {
-                internetReviewModalMoreBtn.textContent = `리뷰 더보기 (${remaining}개)`;
+                internetReviewListModalMoreBtn.textContent = `리뷰 더보기 (${remaining}개)`;
             }
         });
     }
     
-    // 리뷰 정렬 선택 기능 (모달)
-    const internetReviewModalSortSelect = document.getElementById('internetReviewModalSortSelect');
-    if (internetReviewModalSortSelect) {
-        internetReviewModalSortSelect.addEventListener('change', function() {
+    // 리뷰 정렬 선택 기능
+    const internetReviewListModalSortSelect = document.getElementById('internetReviewListModalSortSelect');
+    if (internetReviewListModalSortSelect) {
+        internetReviewListModalSortSelect.addEventListener('change', function() {
             const sort = this.value;
             const url = new URL(window.location.href);
             url.searchParams.set('review_sort', sort);

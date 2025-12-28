@@ -805,9 +805,11 @@ function getRelativeTime($datetime) {
                                     <?php 
                                     $authorName = htmlspecialchars($review['author_name'] ?? '익명');
                                     $provider = isset($review['provider']) && $review['provider'] ? htmlspecialchars($review['provider']) : '';
-                                    $providerText = $provider ? ' | ' . $provider : '';
                                     ?>
-                                    <span class="plan-review-author"><?php echo $authorName . $providerText; ?></span>
+                                    <span class="plan-review-author"><?php echo $authorName; ?></span>
+                                    <?php if ($provider): ?>
+                                        <span class="plan-review-provider-badge"><?php echo $provider; ?></span>
+                                    <?php endif; ?>
                                 </div>
                                 <div style="display: flex; align-items: center; gap: 12px;">
                                     <div class="plan-review-stars">
@@ -949,14 +951,17 @@ window.getReviewRelativeTime = function(datetime) {
 
 window.createReviewItemHTML = function(review) {
     const authorName = (review.author_name || '익명').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    const provider = review.provider ? ' | ' + review.provider.replace(/</g, '&lt;').replace(/>/g, '&gt;') : '';
+    const provider = review.provider ? review.provider.replace(/</g, '&lt;').replace(/>/g, '&gt;') : '';
     const stars = (review.stars || '★★★★★').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const content = (review.content || '').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, ' ');
     const timeAgo = window.getReviewRelativeTime(review.created_at);
     return `
         <div class="review-list-modal-item">
             <div class="review-list-modal-item-header">
-                <span class="review-list-modal-item-author">${authorName}${provider}</span>
+                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                    <span class="review-list-modal-item-author">${authorName}</span>
+                    ${provider ? `<span class="plan-review-provider-badge">${provider}</span>` : ''}
+                </div>
                 <div class="review-list-modal-item-right">
                     <div class="review-list-modal-item-stars">${stars}</div>
                     ${timeAgo ? `<span class="review-list-modal-item-time">${timeAgo}</span>` : ''}
@@ -2780,7 +2785,10 @@ if (mnoSimApplicationForm) {
             if (data.success) {
                 // 신청정보가 DB에 저장됨
                 
-                // redirect_url이 있으면 해당 URL로 이동
+                // 무조건 마이페이지 통신사단독유심 주문내역으로 이동
+                const mypageUrl = '/MVNO/mypage/mno-sim-order.php';
+                
+                // redirect_url이 있으면 새 창으로 열기
                 if (data.redirect_url && data.redirect_url.trim() !== '') {
                     // 모든 공백 제거 (앞뒤 + 내부)
                     let redirectUrl = data.redirect_url.replace(/\s+/g, '').trim();
@@ -2788,11 +2796,12 @@ if (mnoSimApplicationForm) {
                     if (!/^https?:\/\//i.test(redirectUrl)) {
                         redirectUrl = 'https://' + redirectUrl;
                     }
-                    window.location.href = redirectUrl;
-                } else {
-                    // redirect_url이 없으면 마이페이지 통신사단독유심 주문내역으로 이동
-                    window.location.href = '/MVNO/mypage/mno-sim-order.php';
+                    // 새 창으로 열기
+                    window.open(redirectUrl, '_blank');
                 }
+                
+                // 마이페이지로 이동
+                window.location.href = mypageUrl;
             } else {
                 // 실패 시 모달로 표시
                 let errorMessage = data.message || '신청정보 저장에 실패했습니다.';
@@ -2847,6 +2856,10 @@ if (mnoSimAgreementAll) {
 mnoSimAgreementItemCheckboxes.forEach(checkbox => {
     checkbox.addEventListener('change', function() {
         checkAllMnoSimAgreements();
+        // 마케팅 체크박스인 경우 채널 토글
+        if (this.id === 'mnoSimAgreementMarketing') {
+            toggleMnoSimMarketingChannels();
+        }
     });
 });
 
@@ -2884,7 +2897,11 @@ function toggleMnoSimMarketingChannels() {
         const isEnabled = mnoSimAgreementMarketing.checked;
         marketingChannels.forEach(channel => {
             channel.disabled = !isEnabled;
-            if (!isEnabled) {
+            if (isEnabled) {
+                // 활성화 시 모든 체크박스 자동 체크
+                channel.checked = true;
+            } else {
+                // 비활성화 시 모든 체크박스 해제
                 channel.checked = false;
             }
         });
@@ -2901,7 +2918,13 @@ document.addEventListener('DOMContentLoaded', function() {
             if (mnoSimAgreementMarketing) {
                 const anyChecked = Array.from(marketingChannels).some(ch => ch.checked);
                 if (anyChecked && !mnoSimAgreementMarketing.checked) {
+                    // 상위 토글 체크
                     mnoSimAgreementMarketing.checked = true;
+                    // 모든 하위 체크박스 자동 체크
+                    toggleMnoSimMarketingChannels();
+                } else if (!anyChecked && mnoSimAgreementMarketing.checked) {
+                    // 모든 하위 체크박스가 해제되면 상위 토글도 해제
+                    mnoSimAgreementMarketing.checked = false;
                     toggleMnoSimMarketingChannels();
                 }
             }

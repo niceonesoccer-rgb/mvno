@@ -70,9 +70,13 @@ $textareaId = $textareaId ?? ($prefix === 'internet' ? $prefix . 'ReviewText' : 
                         name="reviewText" 
                         class="<?php echo htmlspecialchars($prefix); ?>-review-textarea" 
                         placeholder="리뷰를 작성해주세요."
-                        rows="8"
+                        rows="10"
+                        maxlength="300"
                         required
                     ></textarea>
+                    <div class="textarea-counter">
+                        <span id="<?php echo htmlspecialchars($textareaId); ?>Counter">0</span> / 300자
+                    </div>
                 </div>
                 <div class="<?php echo htmlspecialchars($prefix); ?>-review-modal-footer">
                     <button type="button" class="<?php echo htmlspecialchars($prefix); ?>-review-btn-cancel">취소</button>

@@ -1470,24 +1470,43 @@ function removePromotionField(button) {
 }
 
 // 제출 버튼 클릭 시 즉시 포커스 제거 (mousedown 이벤트로 submit보다 먼저 처리)
+// 주의: 이 이벤트는 클릭 이벤트를 방해하지 않도록 stopPropagation을 사용하지 않음
 document.addEventListener('DOMContentLoaded', function() {
     const submitButton = document.getElementById('submitBtn');
     if (submitButton) {
         submitButton.addEventListener('mousedown', function(e) {
+            console.log('제출 버튼 mousedown 이벤트');
             // 모든 입력 필드의 포커스 즉시 제거
             document.querySelectorAll('input, select, textarea').forEach(function(el) {
                 if (document.activeElement === el) {
                     el.blur();
                 }
             });
-        });
+        }, { passive: true }); // passive 옵션으로 성능 개선
     }
 });
 
-// 엔터 키로 폼 제출 방지
-const productForm = document.getElementById('productForm');
-if (productForm) {
-    // 폼 내 모든 input, textarea, select에서 엔터 키 방지
+// 엔터 키로 폼 제출 방지 및 제출 버튼 이벤트 설정
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOMContentLoaded: 폼 이벤트 리스너 설정 시작');
+    
+    const productForm = document.getElementById('productForm');
+    const submitBtn = document.getElementById('submitBtn');
+    
+    // 폼과 버튼 존재 확인
+    if (!productForm) {
+        console.error('오류: productForm을 찾을 수 없습니다!');
+        return;
+    }
+    
+    if (!submitBtn) {
+        console.error('오류: submitBtn을 찾을 수 없습니다!');
+        return;
+    }
+    
+    console.log('폼과 버튼 요소 확인 완료');
+    
+    // 엔터 키로 폼 제출 방지
     const formInputs = productForm.querySelectorAll('input, textarea, select');
     formInputs.forEach(input => {
         input.addEventListener('keydown', function(e) {
@@ -1497,27 +1516,145 @@ if (productForm) {
             }
         });
     });
-}
-
-// 제출 버튼 클릭 이벤트
-const submitBtn = document.getElementById('submitBtn');
-if (submitBtn) {
+    
+    // 제출 버튼 클릭 이벤트
     submitBtn.addEventListener('click', function(e) {
+        console.log('=== 제출 버튼 클릭 이벤트 발생 ===');
+        console.log('버튼 상태:', {
+            disabled: this.disabled,
+            type: this.type,
+            id: this.id
+        });
+        
         e.preventDefault();
-        // 폼 검증 후 제출
-        const form = document.getElementById('productForm');
-        if (form.checkValidity()) {
-            form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+        e.stopPropagation();
+        
+        // 버튼이 비활성화되어 있으면 중단
+        if (this.disabled) {
+            console.warn('버튼이 비활성화되어 있습니다.');
+            return;
+        }
+        
+        // 폼 검증 전에 숫자 필드의 쉼표 제거 (검증을 위해)
+        const numericFields = productForm.querySelectorAll('input[inputmode="numeric"], input[pattern="[0-9]*"]');
+        numericFields.forEach(field => {
+            if (field.value && field.value.includes(',')) {
+                const originalValue = field.value;
+                field.value = field.value.replace(/,/g, '');
+                console.log(`숫자 필드 정리: ${field.name || field.id} - "${originalValue}" → "${field.value}"`);
+            }
+        });
+        
+        // 폼 검증
+        console.log('폼 검증 시작...');
+        
+        // 모든 required 필드 확인
+        const requiredFields = productForm.querySelectorAll('[required]');
+        console.log('Required 필드 개수:', requiredFields.length);
+        
+        // 모든 required 필드의 상태 출력
+        const allFieldsStatus = [];
+        requiredFields.forEach((field, index) => {
+            const fieldStatus = {
+                index: index,
+                name: field.name || field.id,
+                tagName: field.tagName,
+                type: field.type,
+                value: field.value,
+                isValid: field.validity.valid,
+                valueMissing: field.validity.valueMissing,
+                validationMessage: field.validationMessage,
+                willValidate: field.willValidate
+            };
+            allFieldsStatus.push(fieldStatus);
+            console.log(`필드 ${index + 1}:`, fieldStatus);
+        });
+        
+        const invalidFields = [];
+        requiredFields.forEach(field => {
+            if (!field.validity.valid) {
+                invalidFields.push({
+                    name: field.name || field.id,
+                    value: field.value,
+                    validationMessage: field.validationMessage,
+                    validity: {
+                        valueMissing: field.validity.valueMissing,
+                        typeMismatch: field.validity.typeMismatch,
+                        patternMismatch: field.validity.patternMismatch,
+                        tooShort: field.validity.tooShort,
+                        tooLong: field.validity.tooLong,
+                        rangeUnderflow: field.validity.rangeUnderflow,
+                        rangeOverflow: field.validity.rangeOverflow,
+                        stepMismatch: field.validity.stepMismatch,
+                        badInput: field.validity.badInput,
+                        customError: field.validity.customError
+                    }
+                });
+            }
+        });
+        
+        console.log('전체 필드 상태:', allFieldsStatus);
+        
+        if (invalidFields.length > 0) {
+            console.error('✗ 폼 검증 실패 - 유효하지 않은 필드:');
+            invalidFields.forEach(field => {
+                console.error(`  - ${field.name}:`, {
+                    value: field.value,
+                    message: field.validationMessage,
+                    validity: field.validity
+                });
+            });
         } else {
-            form.reportValidity();
+            console.log('모든 required 필드가 유효합니다.');
+        }
+        
+        // checkValidity 결과 확인
+        const formIsValid = productForm.checkValidity();
+        console.log('productForm.checkValidity() 결과:', formIsValid);
+        
+        if (formIsValid) {
+            console.log('✓ 폼 검증 통과, 제출 이벤트 발생');
+            // 직접 submit 이벤트 트리거
+            const submitEvent = new Event('submit', { 
+                cancelable: true, 
+                bubbles: true 
+            });
+            const dispatched = productForm.dispatchEvent(submitEvent);
+            console.log('제출 이벤트 dispatch 결과:', dispatched);
+        } else {
+            console.log('✗ 폼 검증 실패 - reportValidity 호출');
+            // 어떤 필드가 문제인지 더 명확하게 표시
+            const firstInvalidField = productForm.querySelector(':invalid');
+            if (firstInvalidField) {
+                console.error('첫 번째 유효하지 않은 필드:', {
+                    name: firstInvalidField.name || firstInvalidField.id,
+                    value: firstInvalidField.value,
+                    validationMessage: firstInvalidField.validationMessage,
+                    validity: firstInvalidField.validity
+                });
+                // 필드에 포커스 주기
+                firstInvalidField.focus();
+                firstInvalidField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            productForm.reportValidity();
         }
     });
-}
-
-document.getElementById('productForm').addEventListener('submit', function(e) {
-    e.preventDefault();
     
-    console.log('폼 제출 시작');
+    // 버튼이 실제로 존재하고 클릭 가능한지 확인
+    console.log('제출 버튼 설정 완료:', {
+        exists: !!submitBtn,
+        disabled: submitBtn.disabled,
+        type: submitBtn.type,
+        className: submitBtn.className
+    });
+    
+    // 폼 제출 이벤트
+    productForm.addEventListener('submit', function(e) {
+        console.log('=== 폼 제출 이벤트 발생 ===');
+        e.preventDefault();
+        e.stopPropagation();
+        
+        console.log('폼 제출 시작');
     
     const isEditMode = <?php echo $isEditMode ? 'true' : 'false'; ?>;
     
@@ -1617,13 +1754,19 @@ document.getElementById('productForm').addEventListener('submit', function(e) {
         }
     });
     
-    // 버튼에 포커스 주기 (입력 필드로 포커스가 가지 않도록)
+    // 버튼에 포커스 주기 및 비활성화 (중복 제출 방지)
     const submitButton = document.getElementById('submitBtn');
     if (submitButton) {
         submitButton.focus();
         setTimeout(function() {
             submitButton.blur();
         }, 10);
+        
+        // 제출 버튼 비활성화
+        submitButton.disabled = true;
+        submitButton.style.opacity = '0.6';
+        submitButton.style.cursor = 'not-allowed';
+        console.log('제출 버튼 비활성화됨');
     }
     
     // 포커스 제거를 확실히 하기 위해 약간의 지연 후 제출
@@ -1724,21 +1867,29 @@ document.getElementById('productForm').addEventListener('submit', function(e) {
             console.log(pair[0] + ': ' + pair[1]);
         }
         
+        console.log('API 호출 시작: /MVNO/api/product-register-internet.php');
+        console.log('전송할 FormData:', Array.from(cleanFormData.entries()));
+        
         fetch('/MVNO/api/product-register-internet.php', {
             method: 'POST',
             body: cleanFormData
         })
         .then(response => {
+            console.log('API 응답 받음, 상태:', response.status, response.statusText);
             // 응답 상태 확인
             if (!response.ok) {
                 throw new Error('HTTP error! status: ' + response.status);
             }
             // JSON 파싱 시도
             return response.text().then(text => {
+                console.log('응답 텍스트:', text.substring(0, 200));
                 try {
-                    return JSON.parse(text);
+                    const jsonData = JSON.parse(text);
+                    console.log('파싱된 JSON:', jsonData);
+                    return jsonData;
                 } catch (e) {
-                    console.error('JSON 파싱 오류:', text);
+                    console.error('JSON 파싱 오류:', e);
+                    console.error('원본 텍스트:', text);
                     throw new Error('서버 응답을 파싱할 수 없습니다: ' + text.substring(0, 100));
                 }
             });
@@ -1747,6 +1898,7 @@ document.getElementById('productForm').addEventListener('submit', function(e) {
             console.log('API 응답:', data);
             
             if (data && data.success) {
+                console.log('✓ 상품 저장 성공');
                 if (isEditMode) {
                     // 수정 모드: 성공 메시지와 함께 리스트 페이지로 이동
                     if (typeof showAlert === 'function') {
@@ -1767,6 +1919,7 @@ document.getElementById('productForm').addEventListener('submit', function(e) {
                     }, 1500);
                 }
             } else {
+                console.error('✗ API 오류 응답');
                 // 오류 메시지를 상단에 표시
                 let errorMsg = (data && data.message) || (isEditMode ? '상품 수정에 실패했습니다.' : '상품 등록에 실패했습니다.');
                 
@@ -1780,15 +1933,41 @@ document.getElementById('productForm').addEventListener('submit', function(e) {
                     console.error('오류 상세:', data.error_detail);
                 }
                 showMessage(errorMsg, 'error');
+                
+                // 에러 발생 시 버튼 다시 활성화
+                const errorSubmitButton = document.getElementById('submitBtn');
+                if (errorSubmitButton) {
+                    errorSubmitButton.disabled = false;
+                    errorSubmitButton.style.opacity = '1';
+                    errorSubmitButton.style.cursor = 'pointer';
+                }
             }
         })
         .catch(error => {
-            console.error('Fetch 오류:', error);
-            const errorMsg = isEditMode ? '상품 수정 중 오류가 발생했습니다: ' + error.message : '상품 등록 중 오류가 발생했습니다: ' + error.message;
+            console.error('=== Fetch 오류 발생 ===');
+            console.error('에러 객체:', error);
+            console.error('에러 메시지:', error.message);
+            console.error('에러 스택:', error.stack);
+            
+            const errorMsg = isEditMode 
+                ? '상품 수정 중 오류가 발생했습니다: ' + error.message 
+                : '상품 등록 중 오류가 발생했습니다: ' + error.message;
+            
             showMessage(errorMsg, 'error');
+            
+            // 버튼 다시 활성화 (에러 발생 시)
+            const catchSubmitButton = document.getElementById('submitBtn');
+            if (catchSubmitButton) {
+                catchSubmitButton.disabled = false;
+                catchSubmitButton.style.opacity = '1';
+                catchSubmitButton.style.cursor = 'pointer';
+            }
         });
     }, 50); // 50ms 지연으로 포커스 제거 확실히 처리
-});
+    });
+    
+    console.log('폼 이벤트 리스너 설정 완료');
+}); // DOMContentLoaded 종료
 
 // 상단에 메시지를 표시하는 함수
 function showMessage(message, type) {

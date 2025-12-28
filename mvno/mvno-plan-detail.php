@@ -641,7 +641,7 @@ function getRelativeTime($datetime) {
     <section class="plan-review-section" id="planReviewSection" style="padding: 2rem 0; background: #f9fafb;">
         <div class="content-layout">
             <div class="plan-review-header">
-                <span class="plan-review-logo-text"><?php echo htmlspecialchars($sellerName ?: ($plan['provider'] ?? '알뜰폰')); ?></span>
+                <span class="plan-review-logo-text" style="color: #6366f1;"><?php echo htmlspecialchars($sellerName ?: ($plan['provider'] ?? '알뜰폰')); ?></span>
                 <h2 class="section-title">리뷰</h2>
             </div>
             
@@ -700,9 +700,11 @@ function getRelativeTime($datetime) {
                                     <?php 
                                     $authorName = htmlspecialchars($review['author_name'] ?? '익명');
                                     $provider = isset($review['provider']) && $review['provider'] ? htmlspecialchars($review['provider']) : '';
-                                    $providerText = $provider ? ' | ' . $provider : '';
                                     ?>
-                                    <span class="plan-review-author"><?php echo $authorName . $providerText; ?></span>
+                                    <span class="plan-review-author"><?php echo $authorName; ?></span>
+                                    <?php if ($provider): ?>
+                                        <span class="plan-review-provider-badge"><?php echo $provider; ?></span>
+                                    <?php endif; ?>
                                 </div>
                                 <div style="display: flex; align-items: center; gap: 12px;">
                                     <div class="plan-review-stars">
@@ -908,12 +910,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     <?php foreach ($allReviews as $review): ?>
                         <div class="review-modal-item">
                             <div class="review-modal-item-header">
-                                <?php 
-                                $authorName = htmlspecialchars($review['author_name'] ?? '익명');
-                                $provider = isset($review['provider']) && $review['provider'] ? htmlspecialchars($review['provider']) : '';
-                                $providerText = $provider ? ' | ' . $provider : '';
-                                ?>
-                                <span class="review-modal-author"><?php echo $authorName . $providerText; ?></span>
+                                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                    <?php 
+                                    $authorName = htmlspecialchars($review['author_name'] ?? '익명');
+                                    $provider = isset($review['provider']) && $review['provider'] ? htmlspecialchars($review['provider']) : '';
+                                    ?>
+                                    <span class="review-modal-author"><?php echo $authorName; ?></span>
+                                    <?php if ($provider): ?>
+                                        <span class="plan-review-provider-badge"><?php echo $provider; ?></span>
+                                    <?php endif; ?>
+                                </div>
                                 <div style="display: flex; align-items: center; gap: 12px;">
                                     <div class="review-modal-stars">
                                         <span><?php echo htmlspecialchars($review['stars'] ?? '★★★★☆'); ?></span>
@@ -1580,14 +1586,17 @@ window.getReviewRelativeTime = function(datetime) {
 
 window.createReviewItemHTML = function(review) {
     const authorName = (review.author_name || '익명').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    const provider = review.provider ? ' | ' + review.provider.replace(/</g, '&lt;').replace(/>/g, '&gt;') : '';
+    const provider = review.provider ? review.provider.replace(/</g, '&lt;').replace(/>/g, '&gt;') : '';
     const stars = (review.stars || '★★★★★').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const content = (review.content || '').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, ' ');
     const timeAgo = window.getReviewRelativeTime(review.created_at);
     return `
         <div class="review-list-modal-item">
             <div class="review-list-modal-item-header">
-                <span class="review-list-modal-item-author">${authorName}${provider}</span>
+                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                    <span class="review-list-modal-item-author">${authorName}</span>
+                    ${provider ? `<span class="plan-review-provider-badge">${provider}</span>` : ''}
+                </div>
                 <div class="review-list-modal-item-right">
                     <div class="review-list-modal-item-stars">${stars}</div>
                     ${timeAgo ? `<span class="review-list-modal-item-time">${timeAgo}</span>` : ''}
@@ -2887,19 +2896,22 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (data.success) {
                     // 신청정보가 DB에 저장됨
                     
-                    // redirect_url이 있으면 해당 URL로 이동
+                    // 무조건 마이페이지 알뜰폰 주문내역으로 이동
+                    const mypageUrl = '/MVNO/mypage/mvno-order.php';
+                    
+                    // redirect_url이 있으면 새 창으로 열기
                     if (data.redirect_url && data.redirect_url.trim() !== '') {
-                        // 모든 공백 제거 (앞뒤 + 내부)
                         let redirectUrl = data.redirect_url.replace(/\s+/g, '').trim();
                         // URL이 프로토콜(http:// 또는 https://)을 포함하지 않으면 https:// 추가
                         if (!/^https?:\/\//i.test(redirectUrl)) {
                             redirectUrl = 'https://' + redirectUrl;
                         }
-                        window.location.href = redirectUrl;
-                    } else {
-                        // redirect_url이 없으면 마이페이지 알뜰폰 주문내역으로 이동
-                        window.location.href = '/MVNO/mypage/mvno-order.php';
+                        // 새 창으로 열기
+                        window.open(redirectUrl, '_blank');
                     }
+                    
+                    // 마이페이지로 이동
+                    window.location.href = mypageUrl;
                 } else {
                     // 실패 시 모달로 표시
                     let errorMessage = data.message || '신청정보 저장에 실패했습니다.';
@@ -2986,6 +2998,10 @@ document.addEventListener('DOMContentLoaded', function() {
     mvnoAgreementItemCheckboxes.forEach(checkbox => {
         checkbox.addEventListener('change', function() {
             checkAllMvnoAgreements();
+            // 마케팅 체크박스인 경우 채널 토글
+            if (this.id === 'mvnoAgreementMarketing') {
+                toggleMvnoMarketingChannels();
+            }
         });
     });
     
@@ -3023,7 +3039,11 @@ document.addEventListener('DOMContentLoaded', function() {
             const isEnabled = mvnoAgreementMarketing.checked;
             marketingChannels.forEach(channel => {
                 channel.disabled = !isEnabled;
-                if (!isEnabled) {
+                if (isEnabled) {
+                    // 활성화 시 모든 체크박스 자동 체크
+                    channel.checked = true;
+                } else {
+                    // 비활성화 시 모든 체크박스 해제
                     channel.checked = false;
                 }
             });
@@ -3040,7 +3060,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (mvnoAgreementMarketing) {
                     const anyChecked = Array.from(marketingChannels).some(ch => ch.checked);
                     if (anyChecked && !mvnoAgreementMarketing.checked) {
+                        // 상위 토글 체크
                         mvnoAgreementMarketing.checked = true;
+                        // 모든 하위 체크박스 자동 체크
+                        toggleMvnoMarketingChannels();
+                    } else if (!anyChecked && mvnoAgreementMarketing.checked) {
+                        // 모든 하위 체크박스가 해제되면 상위 토글도 해제
+                        mvnoAgreementMarketing.checked = false;
                         toggleMvnoMarketingChannels();
                     }
                 }
@@ -3793,7 +3819,7 @@ span.internet-checkbox-text {
     width: 100%;
     max-width: 100%;
     padding: 16px;
-    background-color: #f3f4f6;
+    background-color: #ffffff;
     border: 1px solid #e5e7eb;
     border-radius: 8px;
 }
@@ -3817,6 +3843,17 @@ span.internet-checkbox-text {
     color: #6b7280;
 }
 
+.plan-review-provider-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    background-color: #f3f4f6;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #374151;
+    line-height: 1.4;
+}
+
 .plan-review-content {
     font-size: 14px;
     line-height: 1.6;
@@ -3824,6 +3861,9 @@ span.internet-checkbox-text {
     margin: 0;
     white-space: pre-wrap;
     word-wrap: break-word;
+    background-color: #ffffff;
+    padding: 12px;
+    border-radius: 8px;
 }
 
 .review-modal-item-content {

@@ -814,7 +814,7 @@ function getInternetIconPath($registrationPlace) {
         <div class="internet-toast-icon" id="internetToastIcon"></div>
         <div class="internet-toast-title" id="internetToastTitle">인터넷 상담을 신청했어요</div>
         <div class="internet-toast-message" id="internetToastMessage">입력한 번호로 상담 전화를 드릴예정이에요</div>
-        <button class="internet-toast-button" onclick="closeInternetToast()">확인</button>
+        <button class="internet-toast-button" id="internetToastButton" onclick="handleInternetToastButton()">확인</button>
     </div>
 </div>
 
@@ -2070,8 +2070,14 @@ function getScrollbarWidth() {
 }
 
 function openInternetModal() {
+    console.log('[DEBUG] ===== openInternetModal 시작 =====');
     const modal = document.getElementById('internetModal');
     const modalContent = modal ? modal.querySelector('.internet-modal-content') : null;
+    
+    console.log('[DEBUG] 모달 요소 확인:', {
+        modal: !!modal,
+        modalContent: !!modalContent
+    });
     
     if (modal && modalContent) {
         // 스크롤바 너비 계산 및 저장
@@ -2087,7 +2093,7 @@ function openInternetModal() {
             document.body.style.paddingRight = scrollbarWidth + 'px';
         }
         
-        // 상태 초기화 (신청 인터넷 회선 정보와 product_id는 유지)
+        // 완전한 상태 초기화 (신청 인터넷 회선 정보와 product_id는 유지)
         const newCompanyData = {
             newCompany: selectedData.newCompany,
             newCompanyIcon: selectedData.newCompanyIcon,
@@ -2095,49 +2101,84 @@ function openInternetModal() {
             product_id: selectedData.product_id // product_id 보존
         };
         selectedData = newCompanyData;
+        
+        console.log('[DEBUG] selectedData 초기화:', selectedData);
+        
+        // 모든 상태 초기화
         resetSteps();
+        
         // 두 번째 단계 활성화 (기존 인터넷 회선 선택)
         showStep(2);
+        
         // 신청 인터넷 회선 정보 표시
         showNewCompanyInfo();
+        
         // 폼 검증 이벤트 리스너 설정
         if (window.setupFormValidation) {
             window.setupFormValidation();
         }
         
-        // 로그인한 사용자 정보 자동 입력 및 검증
+        // 로그인한 사용자 정보 자동 입력 (초기화 후, 알림 설정은 가져오지 않음)
         const nameInput = document.getElementById('internetName');
         const phoneInput = document.getElementById('internetPhone');
         const emailInput = document.getElementById('internetEmail');
         
+        console.log('[DEBUG] 사용자 정보 입력 필드:', {
+            nameInput: !!nameInput,
+            phoneInput: !!phoneInput,
+            emailInput: !!emailInput,
+            currentUser: !!currentUser
+        });
+        
+        // 고객 정보만 가져오기 (이름, 전화번호, 이메일)
+        // 알림 설정(service_notice_opt_in, marketing_opt_in)은 가져오지 않음
         if (currentUser) {
             if (nameInput && currentUser.name) {
                 nameInput.value = currentUser.name;
+                console.log('[DEBUG] 이름 입력:', currentUser.name);
             }
             if (phoneInput && currentUser.phone) {
                 phoneInput.value = currentUser.phone;
+                console.log('[DEBUG] 전화번호 입력:', currentUser.phone);
             }
             if (emailInput && currentUser.email) {
                 emailInput.value = currentUser.email;
+                console.log('[DEBUG] 이메일 입력:', currentUser.email);
             }
         }
         
-        // 사용자 정보 로드 후 검증 수행 (즉시 검증)
+        // 체크박스는 항상 초기화 상태 유지 (알림 설정에서 가져오지 않음)
+        // resetSteps()에서 이미 초기화했지만, 사용자 정보 입력 후에도 다시 확인
         setTimeout(function() {
+            // 체크박스가 다시 확인되지 않도록 강제로 초기화
+            resetAllCheckboxes();
+            
+            // 검증 수행
             validatePhoneOnModal();
             validateEmailOnModal();
             checkAllAgreements();
-        }, 50);
+            console.log('[DEBUG] ===== openInternetModal 완료 =====');
+        }, 150);
+    } else {
+        console.error('[DEBUG] 모달 요소를 찾을 수 없습니다!');
     }
 }
 
 function closeInternetModal() {
+    console.log('[DEBUG] ===== closeInternetModal 시작 =====');
     const modal = document.getElementById('internetModal');
     const modalContent = modal ? modal.querySelector('.internet-modal-content') : null;
+    
+    console.log('[DEBUG] 모달 요소 확인:', {
+        modal: !!modal,
+        modalContent: !!modalContent,
+        isMobile: window.innerWidth <= 767
+    });
     
     if (modal && modalContent) {
         // 모바일에서 닫기 애니메이션 적용
         if (window.innerWidth <= 767) {
+            console.log('[DEBUG] 모바일 모드 - 애니메이션 적용');
             modalContent.classList.add('closing');
             setTimeout(() => {
                 modal.classList.remove('active');
@@ -2149,8 +2190,10 @@ function closeInternetModal() {
                 currentStep = 2;
                 selectedData = {};
                 resetSteps();
+                console.log('[DEBUG] ===== closeInternetModal 완료 (모바일) =====');
             }, 300);
         } else {
+            console.log('[DEBUG] 데스크톱 모드 - 즉시 닫기');
             modal.classList.remove('active');
             // body 스크롤 복원
             document.body.style.overflow = '';
@@ -2159,7 +2202,10 @@ function closeInternetModal() {
             currentStep = 2;
             selectedData = {};
             resetSteps();
+            console.log('[DEBUG] ===== closeInternetModal 완료 (데스크톱) =====');
         }
+    } else {
+        console.warn('[DEBUG] 모달 요소를 찾을 수 없습니다!');
     }
 }
 
@@ -2180,24 +2226,62 @@ function showStep(step) {
         
         // step 3로 이동할 때 로그인한 사용자 정보 자동 입력 및 검증
         if (step === 3) {
+            console.log('[DEBUG] step 3로 이동 - 사용자 정보 입력');
+            // step3가 표시될 때 이벤트 리스너 다시 연결
+            if (window.setupFormValidation) {
+                setTimeout(function() {
+                    console.log('[DEBUG] step3 표시 후 setupFormValidation 재호출');
+                    window.setupFormValidation();
+                    // 마케팅 채널 이벤트도 다시 설정
+                    if (window.setupMarketingChannelEvents) {
+                        console.log('[DEBUG] step3 표시 후 setupMarketingChannelEvents 재호출');
+                        window.setupMarketingChannelEvents();
+                    }
+                }, 100);
+            } else {
+                console.warn('[DEBUG] window.setupFormValidation 함수를 찾을 수 없습니다.');
+            }
+            
+            // agreeMarketing 체크박스에 직접 이벤트 리스너 추가 (즉시 작동 보장)
+            setTimeout(function() {
+                const agreeMarketing = document.getElementById('agreeMarketing');
+                if (agreeMarketing) {
+                    console.log('[DEBUG] agreeMarketing 직접 이벤트 리스너 추가');
+                    const handleMarketingChange = function() {
+                        console.log('[DEBUG] agreeMarketing 직접 변경 감지, checked:', this.checked);
+                        toggleInternetMarketingChannels();
+                    };
+                    // 기존 리스너 제거 후 새로 추가
+                    agreeMarketing.removeEventListener('change', handleMarketingChange);
+                    agreeMarketing.addEventListener('change', handleMarketingChange);
+                } else {
+                    console.warn('[DEBUG] agreeMarketing을 찾을 수 없습니다.');
+                }
+            }, 300);
             const nameInput = document.getElementById('internetName');
             const phoneInput = document.getElementById('internetPhone');
             const emailInput = document.getElementById('internetEmail');
             
+            // 고객 정보만 가져오기 (알림 설정은 가져오지 않음)
             if (currentUser) {
                 if (nameInput && currentUser.name && !nameInput.value) {
                     nameInput.value = currentUser.name;
+                    console.log('[DEBUG] 이름 입력:', currentUser.name);
                 }
                 if (phoneInput && currentUser.phone && !phoneInput.value) {
                     phoneInput.value = currentUser.phone;
+                    console.log('[DEBUG] 전화번호 입력:', currentUser.phone);
                 }
                 if (emailInput && currentUser.email && !emailInput.value) {
                     emailInput.value = currentUser.email;
+                    console.log('[DEBUG] 이메일 입력:', currentUser.email);
                 }
             }
             
+            // 체크박스는 항상 초기화 상태 유지 (알림 설정에서 가져오지 않음)
+            resetAllCheckboxes();
+            
             // step3로 이동할 때 전화번호와 이메일 즉시 검증
-            // DOM 업데이트를 기다리지 않고 즉시 검증
             validatePhoneOnModal();
             validateEmailOnModal();
             setTimeout(function() {
@@ -2210,33 +2294,44 @@ function showStep(step) {
 }
 
 function resetSteps() {
+    console.log('[DEBUG] ===== resetSteps 시작 =====');
+    // 모든 단계 숨기기
     const steps = document.querySelectorAll('.apply-modal-step');
+    console.log('[DEBUG] 단계 개수:', steps.length);
     steps.forEach(s => {
         s.classList.remove('active');
         s.style.display = 'none';
     });
+    
     // 라디오 버튼 초기화
     const radioButtons = document.querySelectorAll('input[name="internetCompany"]');
+    console.log('[DEBUG] 라디오 버튼 개수:', radioButtons.length);
     radioButtons.forEach(radio => {
         radio.checked = false;
     });
+    
     // 선택된 항목의 체크 스타일 제거
     document.querySelectorAll('.plan-order-checkbox-item').forEach(item => {
         item.classList.remove('plan-order-checkbox-checked');
     });
+    
     // 모달 제목 초기화
     updateModalTitle('기존 인터넷 회선 선택');
+    
     // 현재 설치회사 정보 숨기기
     hideCurrentCompanyInfo();
+    
     // 선택한 인터넷 정보 표시
     showNewCompanyInfo();
-    // 체크박스 초기화
-    const agreeAll = document.getElementById('agreeAll');
-    const agreeThirdParty = document.getElementById('agreeThirdParty');
-    const submitBtn = document.getElementById('submitBtn');
-    if (agreeAll) agreeAll.checked = false;
-    if (agreeThirdParty) agreeThirdParty.checked = false;
-    if (submitBtn) submitBtn.disabled = true; // 기본적으로 비활성화
+    
+    // 체크박스 완전 초기화
+    resetAllCheckboxes();
+    
+    // 입력 필드 초기화
+    resetFormFields();
+    
+    // 버튼 상태 초기화
+    resetSubmitButton();
     
     // 초기화 후 버튼 상태 확인
     setTimeout(() => {
@@ -2244,13 +2339,135 @@ function resetSteps() {
             checkAllAgreements();
         }
     }, 100);
-    // 입력 필드 초기화
+    
+    console.log('[DEBUG] ===== resetSteps 완료 =====');
+}
+
+// 모든 체크박스 초기화 함수
+function resetAllCheckboxes() {
+    console.log('[DEBUG] resetAllCheckboxes 시작');
+    const agreeAll = document.getElementById('agreeAll');
+    const allCheckboxes = document.querySelectorAll('#internetApplicationForm .internet-checkbox-input-item');
+    
+    console.log('[DEBUG] 체크박스 개수:', allCheckboxes.length);
+    
+    // 전체 동의 체크박스 해제
+    if (agreeAll) {
+        agreeAll.checked = false;
+        console.log('[DEBUG] 전체 동의 체크박스 해제');
+    } else {
+        console.warn('[DEBUG] agreeAll 요소를 찾을 수 없습니다');
+    }
+    
+    // 모든 개별 체크박스 해제 (필수 + 선택 모두)
+    let checkedCount = 0;
+    allCheckboxes.forEach((checkbox, index) => {
+        if (checkbox.checked) {
+            checkedCount++;
+            console.log(`[DEBUG] 체크박스 ${index} (${checkbox.id})가 체크되어 있음 - 해제`);
+        }
+        checkbox.checked = false;
+    });
+    
+    if (checkedCount > 0) {
+        console.log(`[DEBUG] ${checkedCount}개의 체크박스가 해제되었습니다`);
+    }
+    
+    // 채널 선택도 초기화
+    const serviceNoticeChannels = document.querySelectorAll('input[name="service_notice_channels[]"]');
+    const marketingChannels = document.querySelectorAll('input[name="marketing_channels[]"]');
+    
+    console.log('[DEBUG] 서비스 알림 채널 개수:', serviceNoticeChannels.length);
+    console.log('[DEBUG] 마케팅 채널 개수:', marketingChannels.length);
+    
+    serviceNoticeChannels.forEach(channel => {
+        channel.checked = false;
+        channel.disabled = true;
+    });
+    
+    marketingChannels.forEach(channel => {
+        channel.checked = false;
+        channel.disabled = true;
+    });
+    
+    console.log('[DEBUG] resetAllCheckboxes 완료');
+}
+
+// 입력 필드 초기화 함수
+function resetFormFields() {
+    console.log('[DEBUG] resetFormFields 시작');
     const nameInput = document.getElementById('internetName');
     const phoneInput = document.getElementById('internetPhone');
     const emailInput = document.getElementById('internetEmail');
-    if (nameInput) nameInput.value = '';
-    if (phoneInput) phoneInput.value = '';
-    if (emailInput) emailInput.value = '';
+    const phoneErrorElement = document.getElementById('internetPhoneError');
+    const emailErrorElement = document.getElementById('internetEmailError');
+    
+    // 입력 필드 초기화
+    if (nameInput) {
+        const beforeValue = nameInput.value;
+        nameInput.value = '';
+        nameInput.classList.remove('input-error');
+        if (beforeValue) {
+            console.log(`[DEBUG] 이름 필드 초기화: "${beforeValue}" → ""`);
+        }
+    }
+    
+    if (phoneInput) {
+        const beforeValue = phoneInput.value;
+        phoneInput.value = '';
+        phoneInput.classList.remove('input-error');
+        if (beforeValue) {
+            console.log(`[DEBUG] 전화번호 필드 초기화: "${beforeValue}" → ""`);
+        }
+    }
+    
+    if (emailInput) {
+        const beforeValue = emailInput.value;
+        emailInput.value = '';
+        emailInput.classList.remove('input-error');
+        if (beforeValue) {
+            console.log(`[DEBUG] 이메일 필드 초기화: "${beforeValue}" → ""`);
+        }
+    }
+    
+    // 에러 메시지 숨기기
+    if (phoneErrorElement) {
+        phoneErrorElement.style.display = 'none';
+        phoneErrorElement.textContent = '';
+    }
+    
+    if (emailErrorElement) {
+        emailErrorElement.style.display = 'none';
+        emailErrorElement.textContent = '';
+    }
+    
+    console.log('[DEBUG] resetFormFields 완료');
+}
+
+// 제출 버튼 초기화 함수
+function resetSubmitButton() {
+    console.log('[DEBUG] resetSubmitButton 시작');
+    const submitBtn = document.getElementById('submitBtn');
+    if (submitBtn) {
+        const beforeState = {
+            disabled: submitBtn.disabled,
+            text: submitBtn.textContent
+        };
+        submitBtn.disabled = true;
+        submitBtn.textContent = '신청하기';
+        submitBtn.style.opacity = '';
+        submitBtn.style.cursor = '';
+        console.log('[DEBUG] 버튼 초기화:', {
+            before: beforeState,
+            after: {
+                disabled: submitBtn.disabled,
+                text: submitBtn.textContent
+            }
+        });
+    } else {
+        console.warn('[DEBUG] submitBtn 요소를 찾을 수 없습니다');
+    }
+    console.log('[DEBUG] resetSubmitButton 완료');
 }
 
 // 라디오 버튼 이벤트 핸들러 (기존 인터넷 회선 선택)
@@ -2458,6 +2675,7 @@ function hideCurrentCompanyInfo() {
 }
 
 function toggleAllAgreements(checked) {
+    console.log('[DEBUG] toggleAllAgreements 호출, checked:', checked);
     const agreePurpose = document.getElementById('agreePurpose');
     const agreeItems = document.getElementById('agreeItems');
     const agreePeriod = document.getElementById('agreePeriod');
@@ -2471,16 +2689,17 @@ function toggleAllAgreements(checked) {
         agreePeriod.checked = checked;
         agreeThirdParty.checked = checked;
         agreeServiceNotice.checked = checked;
-        if (checked) {
-            toggleInternetServiceNoticeChannels();
-        }
         if (agreeMarketing) {
+            console.log('[DEBUG] agreeMarketing 체크 설정:', checked);
             agreeMarketing.checked = checked;
             if (checked) {
+                console.log('[DEBUG] toggleInternetMarketingChannels 호출 (전체 동의)');
                 toggleInternetMarketingChannels();
             }
         }
         checkAllAgreements();
+    } else {
+        console.warn('[DEBUG] 필수 체크박스를 찾을 수 없습니다.');
     }
 }
 
@@ -2629,8 +2848,14 @@ function checkAllAgreements() {
             }
         }
     } else {
-        // 기본값: marketing 제외 모두 필수
-        requiredItems.push('agreePurpose', 'agreeItems', 'agreePeriod', 'agreeThirdParty', 'agreeServiceNotice');
+        // 기본값: 필수 항목만 (marketing과 serviceNotice는 선택사항일 수 있음)
+        requiredItems.push('agreePurpose', 'agreeItems', 'agreePeriod', 'agreeThirdParty');
+        
+        // serviceNotice는 기본적으로 필수로 처리 (관리자 설정이 없을 경우)
+        const agreeServiceNotice = document.getElementById('agreeServiceNotice');
+        if (agreeServiceNotice) {
+            requiredItems.push('agreeServiceNotice');
+        }
     }
 
     // 전체 동의 체크박스 상태 업데이트
@@ -2756,14 +2981,28 @@ function toggleInternetMarketingChannels() {
     const agreeMarketing = document.getElementById('agreeMarketing');
     const marketingChannels = document.querySelectorAll('.internet-marketing-channel');
     
+    console.log('[DEBUG] toggleInternetMarketingChannels 호출');
+    console.log('[DEBUG] agreeMarketing:', agreeMarketing);
+    console.log('[DEBUG] marketingChannels 개수:', marketingChannels.length);
+    
     if (agreeMarketing && marketingChannels.length > 0) {
         const isEnabled = agreeMarketing.checked;
-        marketingChannels.forEach(channel => {
+        console.log('[DEBUG] isEnabled:', isEnabled);
+        
+        marketingChannels.forEach((channel, index) => {
             channel.disabled = !isEnabled;
-            if (!isEnabled) {
+            if (isEnabled) {
+                // 활성화 시 모든 체크박스 자동 체크
+                channel.checked = true;
+                console.log(`[DEBUG] 체크박스 ${index + 1} 체크됨:`, channel.id || channel.name);
+            } else {
+                // 비활성화 시 모든 체크박스 해제
                 channel.checked = false;
+                console.log(`[DEBUG] 체크박스 ${index + 1} 해제됨:`, channel.id || channel.name);
             }
         });
+    } else {
+        console.warn('[DEBUG] agreeMarketing 또는 marketingChannels를 찾을 수 없습니다.');
     }
 }
 
@@ -2788,26 +3027,46 @@ document.addEventListener('DOMContentLoaded', function() {
     toggleInternetServiceNoticeChannels();
 });
 
-// 마케팅 채널 변경 시 상위 체크박스 업데이트
-document.addEventListener('DOMContentLoaded', function() {
-    const marketingChannels = document.querySelectorAll('.internet-marketing-channel');
-    const agreeMarketing = document.getElementById('agreeMarketing');
-    
-    marketingChannels.forEach(channel => {
-        channel.addEventListener('change', function() {
-            if (agreeMarketing) {
-                const anyChecked = Array.from(marketingChannels).some(ch => ch.checked);
-                if (anyChecked && !agreeMarketing.checked) {
-                    agreeMarketing.checked = true;
-                    toggleInternetMarketingChannels();
+    // 마케팅 채널 변경 시 상위 체크박스 업데이트 (이벤트 위임 사용)
+    function setupMarketingChannelEvents() {
+        const internetApplicationForm = document.getElementById('internetApplicationForm');
+        if (internetApplicationForm) {
+            console.log('[DEBUG] 마케팅 채널 이벤트 위임 설정');
+            internetApplicationForm.addEventListener('change', function(e) {
+                if (e.target.classList.contains('internet-marketing-channel')) {
+                    const marketingChannels = document.querySelectorAll('.internet-marketing-channel');
+                    const agreeMarketing = document.getElementById('agreeMarketing');
+                    
+                    if (agreeMarketing) {
+                        const anyChecked = Array.from(marketingChannels).some(ch => ch.checked);
+                        console.log('[DEBUG] 하위 체크박스 변경, anyChecked:', anyChecked, 'agreeMarketing.checked:', agreeMarketing.checked);
+                        if (anyChecked && !agreeMarketing.checked) {
+                            // 상위 토글 체크
+                            agreeMarketing.checked = true;
+                            // 모든 하위 체크박스 자동 체크
+                            toggleInternetMarketingChannels();
+                        } else if (!anyChecked && agreeMarketing.checked) {
+                            // 모든 하위 체크박스가 해제되면 상위 토글도 해제
+                            agreeMarketing.checked = false;
+                            toggleInternetMarketingChannels();
+                        }
+                    }
                 }
-            }
-        });
+            });
+        }
+    }
+    
+    // 초기 설정
+    document.addEventListener('DOMContentLoaded', function() {
+        setupMarketingChannelEvents();
+        // 초기 상태 설정 (체크박스가 있을 때만)
+        setTimeout(function() {
+            toggleInternetMarketingChannels();
+        }, 500);
     });
     
-    // 초기 상태 설정
-    toggleInternetMarketingChannels();
-});
+    // 전역으로 노출 (step3 표시 시 재호출 가능)
+    window.setupMarketingChannelEvents = setupMarketingChannelEvents;
 
 // 아코디언 토글 함수
 function toggleInternetAccordion(accordionId, arrowLink) {
@@ -2824,10 +3083,66 @@ function toggleInternetAccordion(accordionId, arrowLink) {
     }
 }
 
+// 버튼 복원 헬퍼 함수
+function restoreSubmitButton(submitBtn, originalText) {
+    console.log('[DEBUG] restoreSubmitButton 호출:', {
+        submitBtn: !!submitBtn,
+        originalText: originalText
+    });
+    if (submitBtn) {
+        const beforeState = {
+            disabled: submitBtn.disabled,
+            text: submitBtn.textContent
+        };
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText || '신청하기';
+        submitBtn.style.opacity = '';
+        submitBtn.style.cursor = '';
+        console.log('[DEBUG] 버튼 복원:', {
+            before: beforeState,
+            after: {
+                disabled: submitBtn.disabled,
+                text: submitBtn.textContent
+            }
+        });
+    } else {
+        console.warn('[DEBUG] submitBtn이 null입니다');
+    }
+}
+
 function submitInternetForm() {
+    console.log('[DEBUG] ===== submitInternetForm 시작 =====');
+    const submitBtn = document.getElementById('submitBtn');
+    const originalButtonText = submitBtn ? submitBtn.textContent : '신청하기';
+    
+    console.log('[DEBUG] 버튼 초기 상태:', {
+        exists: !!submitBtn,
+        disabled: submitBtn ? submitBtn.disabled : 'N/A',
+        text: submitBtn ? submitBtn.textContent : 'N/A',
+        originalText: originalButtonText
+    });
+    
+    // 중복 제출 방지
+    if (submitBtn && submitBtn.disabled && submitBtn.textContent === '처리 중...') {
+        console.warn('[DEBUG] 이미 처리 중입니다. 중복 제출 차단');
+        return;
+    }
+    
+    // 버튼 비활성화 및 텍스트 변경
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = '처리 중...';
+        console.log('[DEBUG] 버튼을 "처리 중..."으로 변경');
+    } else {
+        console.error('[DEBUG] submitBtn을 찾을 수 없습니다!');
+        return;
+    }
+    
     // 로그인 체크
     const isLoggedIn = <?php echo isLoggedIn() ? 'true' : 'false'; ?>;
     if (!isLoggedIn) {
+        // 버튼 복원
+        restoreSubmitButton(submitBtn, originalButtonText);
         // 인터넷 모달 닫기
         closeInternetModal();
         
@@ -2864,6 +3179,7 @@ function submitInternetForm() {
     
     // 이름 검증
     if (!name) {
+        restoreSubmitButton(submitBtn, originalButtonText);
         if (nameInput) nameInput.focus();
         return;
     }
@@ -2872,6 +3188,7 @@ function submitInternetForm() {
     const phoneErrorElement = document.getElementById('internetPhoneError');
     const phoneNumbers = phone.replace(/[^\d]/g, '');
     if (!phone) {
+        restoreSubmitButton(submitBtn, originalButtonText);
         if (phoneInput) {
             phoneInput.classList.add('input-error');
             if (phoneErrorElement) {
@@ -2884,6 +3201,7 @@ function submitInternetForm() {
     }
     
     if (phoneNumbers.length !== 11 || !phoneNumbers.startsWith('010')) {
+        restoreSubmitButton(submitBtn, originalButtonText);
         if (phoneInput) {
             phoneInput.classList.add('input-error');
             if (phoneErrorElement) {
@@ -2899,6 +3217,7 @@ function submitInternetForm() {
     const emailErrorElement = document.getElementById('internetEmailError');
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!email) {
+        restoreSubmitButton(submitBtn, originalButtonText);
         if (emailInput) {
             emailInput.classList.add('input-error');
             if (emailErrorElement) {
@@ -2911,6 +3230,7 @@ function submitInternetForm() {
     }
     
     if (!emailRegex.test(email)) {
+        restoreSubmitButton(submitBtn, originalButtonText);
         if (emailInput) {
             emailInput.classList.add('input-error');
             if (emailErrorElement) {
@@ -2924,6 +3244,7 @@ function submitInternetForm() {
     
     // product_id 확인
     if (!selectedData.product_id) {
+        restoreSubmitButton(submitBtn, originalButtonText);
         showInternetToast('error', '상품 정보 오류', '상품 정보를 찾을 수 없습니다. 다시 시도해주세요.');
         return;
     }
@@ -2964,86 +3285,117 @@ function submitInternetForm() {
         body: formData
     })
     .then(response => {
-        console.log('Internet Application Debug - Response status:', response.status, response.statusText);
+        console.log('[DEBUG] API 응답 상태:', response.status, response.statusText);
         if (!response.ok) {
-            console.error('Internet Application Debug - Response not OK:', response.status, response.statusText);
+            console.error('[DEBUG] API 응답 오류:', response.status, response.statusText);
             throw new Error('Network response was not ok: ' + response.status);
         }
-        return response.json();
+        return response.text().then(text => {
+            console.log('[DEBUG] API 응답 원본 텍스트:', text.substring(0, 200));
+            try {
+                return JSON.parse(text);
+            } catch (e) {
+                console.error('[DEBUG] JSON 파싱 오류:', e);
+                console.error('[DEBUG] 원본 텍스트:', text);
+                throw new Error('서버 응답을 파싱할 수 없습니다.');
+            }
+        });
     })
     .then(data => {
-        console.log('Internet Application Debug - Response data:', data);
-        if (data.success) {
-            console.log('Internet Application Debug - Success! Application ID:', data.application_id);
+        console.log('[DEBUG] ===== API 응답 처리 시작 =====');
+        console.log('[DEBUG] 응답 데이터:', data);
+        console.log('[DEBUG] success 값:', data.success, typeof data.success);
+        
+        if (data && data.success === true) {
+            console.log('[DEBUG] ✓ 신청 성공 확인');
             
-            // redirect_url이 있으면 해당 URL로 이동
-            if (data.redirect_url && data.redirect_url.trim() !== '') {
-                // 모든 공백 제거 (앞뒤 + 내부)
-                let redirectUrl = data.redirect_url.replace(/\s+/g, '').trim();
-                // URL이 프로토콜(http:// 또는 https://)을 포함하지 않으면 https:// 추가
-                if (!/^https?:\/\//i.test(redirectUrl)) {
-                    redirectUrl = 'https://' + redirectUrl;
-                }
-                window.location.href = redirectUrl;
-            } else {
-                // redirect_url이 없으면 마이페이지 인터넷 주문내역으로 이동
-                window.location.href = '/MVNO/mypage/internet-order.php';
-            }
+            // 인터넷 상담 신청 성공 - 마이페이지 URL 저장
+            window.internetApplicationSuccess = {
+                mypageUrl: '/MVNO/mypage/internet-order.php'
+            };
+            
+            console.log('[DEBUG] 마이페이지 URL 저장 완료');
+            
+            // 성공 모달 표시 (모달 닫기 전에 표시)
+            showInternetToast('success', '상담 신청이 완료되었습니다', '입력한 번호로 상담 전화를 드릴 예정이에요');
+            
+            // 성공 시 모달 닫기 및 상태 초기화 (약간의 지연 후)
+            setTimeout(() => {
+                console.log('[DEBUG] 모달 닫기 시작');
+                closeInternetModal();
+                console.log('[DEBUG] 모달 닫기 완료');
+            }, 200);
+            
+            console.log('[DEBUG] ===== submitInternetForm 성공 완료 =====');
         } else {
-            console.error('Internet Application Debug - Failed:', data.message);
-            showInternetToast('error', '신청 실패', data.message || '신청정보 저장에 실패했습니다.');
+            console.error('[DEBUG] ✗ 신청 실패');
+            console.error('[DEBUG] 실패 메시지:', data?.message || '알 수 없는 오류');
+            console.error('[DEBUG] 응답 데이터 전체:', data);
+            
+            // 버튼 복원
+            restoreSubmitButton(submitBtn, originalButtonText);
+            showInternetToast('error', '신청 실패', data?.message || '신청정보 저장에 실패했습니다.');
+            console.log('[DEBUG] ===== submitInternetForm 실패 완료 =====');
         }
     })
     .catch(error => {
-        console.error('Internet Application Debug - Error caught:', error);
-        console.error('Internet Application Debug - Error stack:', error.stack);
+        console.error('[DEBUG] ===== submitInternetForm 에러 발생 =====');
+        console.error('[DEBUG] 에러 상세:', error);
+        console.error('[DEBUG] 에러 메시지:', error.message);
+        console.error('[DEBUG] 에러 스택:', error.stack);
+        // 버튼 복원
+        restoreSubmitButton(submitBtn, originalButtonText);
         showInternetToast('error', '신청 실패', '신청 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+        console.log('[DEBUG] ===== submitInternetForm 에러 처리 완료 =====');
     });
 }
 
 function showInternetToast(type = 'success', title = '인터넷 상담을 신청했어요', message = '입력한 번호로 상담 전화를 드릴예정이에요') {
     const toastModal = document.getElementById('internetToastModal');
+    if (!toastModal) return;
+    
     const toastIcon = document.getElementById('internetToastIcon');
     const toastTitle = document.getElementById('internetToastTitle');
     const toastMessage = document.getElementById('internetToastMessage');
-    
-    if (!toastModal) return;
+    const toastButton = document.getElementById('internetToastButton');
     
     // 아이콘 설정
     if (toastIcon) {
         toastIcon.className = 'internet-toast-icon ' + type;
-        if (type === 'success') {
-            toastIcon.innerHTML = `
-                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-            `;
-        } else {
-            toastIcon.innerHTML = `
-                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-                    <path d="M12 8V12M12 16H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                </svg>
-            `;
-        }
+        toastIcon.innerHTML = type === 'success' 
+            ? '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+            : '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 8V12M12 16H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
     }
     
-    // 제목과 메시지 설정
-    if (toastTitle) {
-        toastTitle.textContent = title;
-    }
-    if (toastMessage) {
-        toastMessage.textContent = message;
-    }
+    // 제목, 메시지, 버튼 설정
+    if (toastTitle) toastTitle.textContent = title;
+    if (toastMessage) toastMessage.textContent = message;
+    if (toastButton) toastButton.textContent = '확인';
     
     // 모달 표시
     toastModal.classList.add('active');
+}
+
+function handleInternetToastButton() {
+    const toastModal = document.getElementById('internetToastModal');
+    if (toastModal) {
+        toastModal.classList.remove('active');
+    }
+    
+    // 성공 모달인 경우 마이페이지로 이동
+    if (window.internetApplicationSuccess) {
+        window.location.href = window.internetApplicationSuccess.mypageUrl;
+        delete window.internetApplicationSuccess;
+    }
 }
 
 function closeInternetToast() {
     const toastModal = document.getElementById('internetToastModal');
     if (toastModal) {
         toastModal.classList.remove('active');
+    }
+    if (window.internetApplicationSuccess) {
+        delete window.internetApplicationSuccess;
     }
 }
 
@@ -3338,6 +3690,7 @@ document.addEventListener('keydown', function(e) {
     
     // 폼 검증 이벤트 리스너 설정
     function setupFormValidation() {
+        console.log('[DEBUG] setupFormValidation 호출');
         const nameInput = document.getElementById('internetName');
         const phoneInput = document.getElementById('internetPhone');
         const emailInput = document.getElementById('internetEmail');
@@ -3346,43 +3699,74 @@ document.addEventListener('keydown', function(e) {
         const agreeAll = document.getElementById('agreeAll');
         const agreeItemCheckboxes = document.querySelectorAll('#internetApplicationForm .internet-checkbox-input-item');
         
+        console.log('[DEBUG] agreeAll:', agreeAll);
+        console.log('[DEBUG] agreeItemCheckboxes 개수:', agreeItemCheckboxes.length);
+        
         // 전체 동의 체크박스 변경 이벤트
         if (agreeAll) {
             agreeAll.addEventListener('change', function() {
                 const isChecked = this.checked;
-                agreeItemCheckboxes.forEach(checkbox => {
-                    checkbox.checked = isChecked;
-                });
-                // 서비스 이용 및 혜택 안내 알림 체크박스가 체크되면 채널 활성화
-                if (isChecked) {
-                    const agreeServiceNotice = document.getElementById('agreeServiceNotice');
-                    if (agreeServiceNotice && agreeServiceNotice.checked) {
-                        toggleInternetServiceNoticeChannels();
-                    }
-                    // 마케팅 체크박스가 체크되면 채널 활성화
-                    const agreeMarketing = document.getElementById('agreeMarketing');
-                    if (agreeMarketing && agreeMarketing.checked) {
-                        toggleInternetMarketingChannels();
-                    }
-                }
-                checkAllAgreements();
+                console.log('[DEBUG] 전체 동의 체크박스 변경:', isChecked);
+                // 필수 항목만 체크/해제 (선택사항은 제외)
+                toggleAllAgreements(isChecked);
             });
         }
         
-        // 개별 체크박스 변경 이벤트 (전체 동의 상태 업데이트)
-        agreeItemCheckboxes.forEach(checkbox => {
-            checkbox.addEventListener('change', function() {
-                checkAllAgreements();
-                // 서비스 이용 및 혜택 안내 알림 체크박스인 경우 채널 토글
-                if (this.id === 'agreeServiceNotice') {
-                    toggleInternetServiceNoticeChannels();
+        // 개별 체크박스 변경 이벤트 (이벤트 위임 사용 - 동적 요소 대응)
+        const internetApplicationForm = document.getElementById('internetApplicationForm');
+        console.log('[DEBUG] internetApplicationForm:', internetApplicationForm);
+        
+        if (internetApplicationForm) {
+            console.log('[DEBUG] 이벤트 위임으로 체크박스 이벤트 리스너 연결');
+            // 기존 이벤트 리스너 제거 후 새로 추가 (중복 방지)
+            const handleCheckboxChange = function(e) {
+                if (e.target.classList.contains('internet-checkbox-input-item')) {
+                    console.log('[DEBUG] 체크박스 변경 이벤트 발생:', e.target.id, 'checked:', e.target.checked);
+                    checkAllAgreements();
+                    // 서비스 이용 및 혜택 안내 알림 체크박스인 경우 채널 토글
+                    if (e.target.id === 'agreeServiceNotice') {
+                        console.log('[DEBUG] agreeServiceNotice 변경 감지');
+                        toggleInternetServiceNoticeChannels();
+                    }
+                    // 마케팅 체크박스인 경우 채널 토글
+                    if (e.target.id === 'agreeMarketing') {
+                        console.log('[DEBUG] agreeMarketing 변경 감지, checked:', e.target.checked);
+                        // 즉시 호출
+                        setTimeout(function() {
+                            toggleInternetMarketingChannels();
+                        }, 10);
+                    }
                 }
-                // 마케팅 체크박스인 경우 채널 토글
-                if (this.id === 'agreeMarketing') {
-                    toggleInternetMarketingChannels();
-                }
+            };
+            
+            // 기존 리스너 제거 (있을 경우)
+            internetApplicationForm.removeEventListener('change', handleCheckboxChange);
+            // 새 리스너 추가
+            internetApplicationForm.addEventListener('change', handleCheckboxChange);
+        } else {
+            console.warn('[DEBUG] internetApplicationForm을 찾을 수 없습니다. 폴백 방식 사용');
+            // 폴백: 기존 방식으로 이벤트 리스너 연결
+            console.log('[DEBUG] 체크박스 이벤트 리스너 연결 시작, 개수:', agreeItemCheckboxes.length);
+            agreeItemCheckboxes.forEach((checkbox, index) => {
+                console.log(`[DEBUG] 체크박스 ${index + 1} ID:`, checkbox.id);
+                checkbox.addEventListener('change', function() {
+                    console.log('[DEBUG] 체크박스 변경 이벤트 발생:', this.id, 'checked:', this.checked);
+                    checkAllAgreements();
+                    // 서비스 이용 및 혜택 안내 알림 체크박스인 경우 채널 토글
+                    if (this.id === 'agreeServiceNotice') {
+                        console.log('[DEBUG] agreeServiceNotice 변경 감지');
+                        toggleInternetServiceNoticeChannels();
+                    }
+                    // 마케팅 체크박스인 경우 채널 토글
+                    if (this.id === 'agreeMarketing') {
+                        console.log('[DEBUG] agreeMarketing 변경 감지, checked:', this.checked);
+                        setTimeout(function() {
+                            toggleInternetMarketingChannels();
+                        }, 10);
+                    }
+                });
             });
-        });
+        }
         
         // 이름 입력 시 검증
         if (nameInput) {
@@ -3522,3 +3906,4 @@ document.addEventListener('keydown', function(e) {
 <script src="/MVNO/assets/js/plan-accordion.js"></script>
 
 <?php include '../includes/footer.php'; ?>
+

@@ -284,6 +284,67 @@
                 }
             });
         },
+        
+        // 텍스트 영역 제한 설정 (글자수 300자, 줄 수 10줄)
+        setupTextareaLimits: function() {
+            const self = this;
+            const textarea = document.getElementById(this.textareaId);
+            const counterId = this.textareaId + 'Counter';
+            const counter = document.getElementById(counterId);
+            
+            if (!textarea) {
+                console.log('Textarea를 찾을 수 없습니다:', this.textareaId);
+                return;
+            }
+            
+            // 글자수 카운터
+            if (counter) {
+                textarea.addEventListener('input', function() {
+                    const length = this.value.length;
+                    counter.textContent = length;
+                    if (length > 300) {
+                        counter.style.color = '#ef4444';
+                    } else {
+                        counter.style.color = '#6366f1';
+                    }
+                });
+            }
+            
+            // 줄 수 제한 (10줄 이상이면 엔터 입력 방지)
+            textarea.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    const lines = this.value.split('\n').length;
+                    if (lines >= 10) {
+                        e.preventDefault();
+                        return false;
+                    }
+                }
+            });
+            
+            // 붙여넣기 시 줄 수 및 글자수 제한
+            textarea.addEventListener('paste', function(e) {
+                setTimeout(function() {
+                    const lines = textarea.value.split('\n');
+                    if (lines.length > 10) {
+                        // 10줄까지만 유지
+                        textarea.value = lines.slice(0, 10).join('\n');
+                    }
+                    // 글자수도 다시 확인
+                    if (textarea.value.length > 300) {
+                        textarea.value = textarea.value.substring(0, 300);
+                    }
+                    // 카운터 업데이트
+                    if (counter) {
+                        counter.textContent = textarea.value.length;
+                        if (textarea.value.length > 300) {
+                            counter.style.color = '#ef4444';
+                        } else {
+                            counter.style.color = '#6366f1';
+                        }
+                    }
+                }, 0);
+            });
+        },
 
         // 리뷰 삭제 확인
         confirmDeleteReview: function(itemId) {
@@ -502,6 +563,7 @@
 
             // 별점 선택 이벤트 (마우스로 별 클릭)
             this.setupStarRating();
+            this.setupTextareaLimits();
             
             // 성공 모달 이벤트
             if (this.showSuccessModal) {

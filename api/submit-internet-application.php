@@ -202,17 +202,32 @@ try {
         $serviceNoticeBenefitOptIn = false;
     }
     
-    // 마케팅 동의가 있으면 마케팅 전체 동의도 true로 설정
-    if ($marketingEmailOptIn || $marketingSmsSnsOptIn || $marketingPushOptIn) {
-        $marketingOptIn = true;
+    // 마케팅 전체 동의가 체크되어 있으면 모든 하위 체크박스도 자동으로 true로 설정
+    if ($marketingOptIn) {
+        $marketingEmailOptIn = true;
+        $marketingSmsSnsOptIn = true;
+        $marketingPushOptIn = true;
+        error_log("Internet Application Debug - marketing_opt_in이 true이므로 모든 하위 체크박스를 true로 설정");
+    } else {
+        // 마케팅 동의가 있으면 마케팅 전체 동의도 true로 설정
+        if ($marketingEmailOptIn || $marketingSmsSnsOptIn || $marketingPushOptIn) {
+            $marketingOptIn = true;
+            error_log("Internet Application Debug - 하위 체크박스가 체크되어 있으므로 marketing_opt_in을 true로 설정");
+        }
+        
+        // 마케팅 동의가 없으면 모든 채널을 false로 설정
+        if (!$marketingOptIn) {
+            $marketingEmailOptIn = false;
+            $marketingSmsSnsOptIn = false;
+            $marketingPushOptIn = false;
+        }
     }
     
-    // 마케팅 동의가 없으면 모든 채널을 false로 설정
-    if (!$marketingOptIn) {
-        $marketingEmailOptIn = false;
-        $marketingSmsSnsOptIn = false;
-        $marketingPushOptIn = false;
-    }
+    error_log("Internet Application Debug - 최종 마케팅 설정:");
+    error_log("  marketing_opt_in: " . ($marketingOptIn ? 'true' : 'false'));
+    error_log("  marketing_email_opt_in: " . ($marketingEmailOptIn ? 'true' : 'false'));
+    error_log("  marketing_sms_sns_opt_in: " . ($marketingSmsSnsOptIn ? 'true' : 'false'));
+    error_log("  marketing_push_opt_in: " . ($marketingPushOptIn ? 'true' : 'false'));
     
     try {
         // 데이터베이스에 필드가 있는지 확인하여 동적으로 쿼리 생성
