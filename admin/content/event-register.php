@@ -21,6 +21,88 @@ $error = '';
 $success = '';
 $pdo = getDBConnection();
 
+// 수정 모드: 기존 이벤트 데이터 불러오기
+$eventId = isset($_GET['id']) ? trim($_GET['id']) : '';
+$eventData = null;
+$isEditMode = false;
+
+if ($eventId && $pdo) {
+    try {
+        $stmt = $pdo->prepare("SELECT * FROM events WHERE id = :id");
+        $stmt->execute([':id' => $eventId]);
+        $eventData = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if ($eventData) {
+            $isEditMode = true;
+            
+            // 기존 상세 이미지 불러오기
+            $eventData['detail_images'] = [];
+            try {
+                $tableCheckStmt = $pdo->query("SHOW TABLES LIKE 'event_detail_images'");
+                if ($tableCheckStmt->rowCount() > 0) {
+                    $detailImagesStmt = $pdo->prepare("
+                        SELECT image_path, display_order 
+                        FROM event_detail_images 
+                        WHERE event_id = :event_id 
+                        ORDER BY display_order ASC
+                    ");
+                    $detailImagesStmt->execute([':event_id' => $eventId]);
+                    $eventData['detail_images'] = $detailImagesStmt->fetchAll(PDO::FETCH_ASSOC);
+                }
+            } catch (PDOException $e) {
+                // event_detail_images 테이블이 없거나 오류가 발생해도 계속 진행
+                error_log('Detail images load error: ' . $e->getMessage());
+                $eventData['detail_images'] = [];
+            }
+            
+            // 연결된 상품 불러오기 (event_products 테이블이 존재하는 경우만)
+            $eventData['linked_products'] = [];
+            try {
+                $tableCheckStmt = $pdo->query("SHOW TABLES LIKE 'event_products'");
+                if ($tableCheckStmt->rowCount() > 0) {
+                    // 상품 타입별로 다른 상세 테이블에서 이름 가져오기
+                    $productsStmt = $pdo->prepare("
+                        SELECT 
+                            ep.product_id, 
+                            ep.display_order, 
+                            p.product_type, 
+                            p.status,
+                            COALESCE(
+                                mvno.plan_name,
+                                mno.device_name,
+                                internet.registration_place,
+                                CONCAT('상품 #', ep.product_id)
+                            ) as name
+                        FROM event_products ep
+                        LEFT JOIN products p ON ep.product_id = p.id
+                        LEFT JOIN product_mvno_details mvno ON p.id = mvno.product_id AND p.product_type = 'mvno'
+                        LEFT JOIN product_mno_details mno ON p.id = mno.product_id AND p.product_type = 'mno'
+                        LEFT JOIN product_internet_details internet ON p.id = internet.product_id AND p.product_type = 'internet'
+                        WHERE ep.event_id = :event_id
+                        ORDER BY ep.display_order ASC
+                    ");
+                    $productsStmt->execute([':event_id' => $eventId]);
+                    $eventData['linked_products'] = $productsStmt->fetchAll(PDO::FETCH_ASSOC);
+                }
+            } catch (PDOException $e) {
+                // event_products 테이블이 없거나 오류가 발생해도 계속 진행
+                error_log('Linked products load error: ' . $e->getMessage());
+                $eventData['linked_products'] = [];
+            }
+        } else {
+            $error = '이벤트를 찾을 수 없습니다.';
+        }
+    } catch (PDOException $e) {
+        error_log('Event load error: ' . $e->getMessage());
+        error_log('Event load error trace: ' . $e->getTraceAsString());
+        $error = '이벤트 정보를 불러오는 중 오류가 발생했습니다: ' . $e->getMessage();
+    } catch (Exception $e) {
+        error_log('Event load error: ' . $e->getMessage());
+        error_log('Event load error trace: ' . $e->getTraceAsString());
+        $error = '이벤트 정보를 불러오는 중 오류가 발생했습니다: ' . $e->getMessage();
+    }
+}
+
 // 이벤트 등록 처리
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'create_event') {
     $title = trim($_POST['title'] ?? '');
@@ -433,6 +515,238 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
 }
 
+// 이벤트 수정 처리
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update_event') {
+    $eventId = trim($_POST['event_id'] ?? '');
+    $title = trim($_POST['title'] ?? '');
+    $event_type = $_POST['event_type'] ?? 'promotion';
+    $start_at = !empty($_POST['start_at']) ? $_POST['start_at'] : null;
+    $end_at = !empty($_POST['end_at']) ? $_POST['end_at'] : null;
+    $description = trim($_POST['description'] ?? '');
+    
+    // 유효성 검사
+    if (empty($eventId)) {
+        $error = '이벤트 ID가 없습니다.';
+    } elseif (empty($title)) {
+        $error = '이벤트 제목을 입력해주세요.';
+    } elseif (!in_array($event_type, ['plan', 'promotion', 'card'])) {
+        $error = '올바른 이벤트 타입을 선택해주세요.';
+    } elseif ($start_at && $end_at && strtotime($start_at) > strtotime($end_at)) {
+        $error = '시작일은 종료일보다 이전이어야 합니다.';
+    }
+    
+    if (!$error && $pdo) {
+        try {
+            // 이벤트 존재 확인
+            $checkStmt = $pdo->prepare("SELECT id FROM events WHERE id = :id");
+            $checkStmt->execute([':id' => $eventId]);
+            if (!$checkStmt->fetch()) {
+                throw new Exception('이벤트를 찾을 수 없습니다.');
+            }
+            
+            $pdo->beginTransaction();
+            
+            // 기존 이미지 경로 가져오기 (삭제용)
+            $oldImagePath = null;
+            $oldImageUrl = null;
+            $getOldImageStmt = $pdo->prepare("SELECT main_image, image_url FROM events WHERE id = :id");
+            $getOldImageStmt->execute([':id' => $eventId]);
+            $oldImageData = $getOldImageStmt->fetch(PDO::FETCH_ASSOC);
+            if ($oldImageData) {
+                $oldImagePath = $oldImageData['main_image'] ?? null;
+                $oldImageUrl = $oldImageData['image_url'] ?? null;
+            }
+            
+            // 메인 이미지 업로드 처리 (새 이미지가 업로드된 경우만)
+            $main_image = null;
+            if (isset($_FILES['main_image']) && $_FILES['main_image']['error'] === UPLOAD_ERR_OK) {
+                $main_image = uploadEventImage($_FILES['main_image'], $eventId, 'main', true);
+                if (!$main_image) {
+                    throw new Exception('메인 이미지 업로드에 실패했습니다.');
+                }
+            }
+            
+            // events 테이블의 실제 컬럼 확인
+            $stmt = $pdo->query("SHOW COLUMNS FROM events");
+            $columns = $stmt->fetchAll(PDO::FETCH_COLUMN);
+            
+            // UPDATE 쿼리 구성
+            $updateFields = [];
+            $params = [':id' => $eventId];
+            
+            $updateFields[] = 'title = :title';
+            $params[':title'] = $title;
+            
+            if (in_array('event_type', $columns)) {
+                $updateFields[] = 'event_type = :event_type';
+                $params[':event_type'] = $event_type;
+            }
+            
+            if (in_array('description', $columns)) {
+                $updateFields[] = 'description = :description';
+                $params[':description'] = $description ?: null;
+            }
+            
+            if (in_array('start_at', $columns)) {
+                $updateFields[] = 'start_at = :start_at';
+                $params[':start_at'] = $start_at ?: null;
+            }
+            
+            if (in_array('end_at', $columns)) {
+                $updateFields[] = 'end_at = :end_at';
+                $params[':end_at'] = $end_at ?: null;
+            }
+            
+            // 메인 이미지 업데이트 (새 이미지가 업로드된 경우만)
+            if ($main_image) {
+                if (in_array('main_image', $columns)) {
+                    $updateFields[] = 'main_image = :main_image';
+                    $params[':main_image'] = $main_image;
+                } elseif (in_array('image_url', $columns)) {
+                    $updateFields[] = 'image_url = :image_url';
+                    $params[':image_url'] = $main_image;
+                }
+                
+                // 기존 이미지 파일 삭제
+                if ($oldImagePath) {
+                    $oldImageFullPath = __DIR__ . '/../..' . $oldImagePath;
+                    if (file_exists($oldImageFullPath)) {
+                        @unlink($oldImageFullPath);
+                    }
+                }
+                if ($oldImageUrl && $oldImageUrl !== $oldImagePath) {
+                    $oldImageUrlFullPath = __DIR__ . '/../..' . $oldImageUrl;
+                    if (file_exists($oldImageUrlFullPath)) {
+                        @unlink($oldImageUrlFullPath);
+                    }
+                }
+            }
+            
+            // updated_at 업데이트
+            if (in_array('updated_at', $columns)) {
+                $updateFields[] = 'updated_at = :updated_at';
+                $params[':updated_at'] = date('Y-m-d H:i:s');
+            }
+            
+            if (!empty($updateFields)) {
+                $sql = "UPDATE events SET " . implode(', ', $updateFields) . " WHERE id = :id";
+                $updateStmt = $pdo->prepare($sql);
+                $updateStmt->execute($params);
+            }
+            
+            // 상세 이미지 업로드 처리 (새 이미지가 업로드된 경우만)
+            if (isset($_FILES['detail_images']) && is_array($_FILES['detail_images']['name'])) {
+                $detailImages = $_FILES['detail_images'];
+                
+                // 순서 정보 가져오기
+                $orderData = [];
+                if (!empty($_POST['detail_images_data'])) {
+                    $orderDataJson = json_decode($_POST['detail_images_data'], true);
+                    if (is_array($orderDataJson)) {
+                        foreach ($orderDataJson as $orderItem) {
+                            $orderData[$orderItem['name'] . '_' . $orderItem['size']] = $orderItem['order'];
+                        }
+                    }
+                }
+                
+                // 파일들을 순서대로 정렬
+                $filesWithOrder = [];
+                for ($i = 0; $i < count($detailImages['name']); $i++) {
+                    if ($detailImages['error'][$i] === UPLOAD_ERR_OK) {
+                        $fileKey = $detailImages['name'][$i] . '_' . $detailImages['size'][$i];
+                        $order = isset($orderData[$fileKey]) ? $orderData[$fileKey] : $i;
+                        
+                        $filesWithOrder[] = [
+                            'order' => $order,
+                            'index' => $i,
+                            'file' => [
+                                'name' => $detailImages['name'][$i],
+                                'type' => $detailImages['type'][$i],
+                                'tmp_name' => $detailImages['tmp_name'][$i],
+                                'error' => $detailImages['error'][$i],
+                                'size' => $detailImages['size'][$i]
+                            ]
+                        ];
+                    }
+                }
+                
+                // 순서대로 정렬
+                usort($filesWithOrder, function($a, $b) {
+                    return $a['order'] - $b['order'];
+                });
+                
+                // 기존 상세 이미지의 최대 display_order 가져오기
+                $maxOrderStmt = $pdo->prepare("SELECT MAX(display_order) as max_order FROM event_detail_images WHERE event_id = :event_id");
+                $maxOrderStmt->execute([':event_id' => $eventId]);
+                $maxOrderResult = $maxOrderStmt->fetch(PDO::FETCH_ASSOC);
+                $displayOrder = ($maxOrderResult['max_order'] ?? 0) + 1;
+                
+                // 순서대로 저장
+                foreach ($filesWithOrder as $fileData) {
+                    $uploadedPath = uploadEventImage($fileData['file'], $eventId, 'detail', false);
+                    if ($uploadedPath) {
+                        $detailStmt = $pdo->prepare("
+                            INSERT INTO event_detail_images (event_id, image_path, display_order) 
+                            VALUES (:event_id, :image_path, :display_order)
+                        ");
+                        $detailStmt->execute([
+                            ':event_id' => $eventId,
+                            ':image_path' => $uploadedPath,
+                            ':display_order' => $displayOrder
+                        ]);
+                        $displayOrder++;
+                    }
+                }
+            }
+            
+            // 연결된 상품 업데이트
+            if (isset($_POST['product_ids']) && is_array($_POST['product_ids'])) {
+                $productIds = array_filter($_POST['product_ids'], function($id) {
+                    return is_numeric($id) && $id > 0;
+                });
+                
+                // 기존 연결된 상품 삭제
+                $deleteStmt = $pdo->prepare("DELETE FROM event_products WHERE event_id = :event_id");
+                $deleteStmt->execute([':event_id' => $eventId]);
+                
+                // 새로운 연결된 상품 저장
+                $displayOrder = 0;
+                $currentTimestamp = date('Y-m-d H:i:s');
+                foreach ($productIds as $productId) {
+                    $stmt = $pdo->prepare("
+                        INSERT INTO event_products (event_id, product_id, display_order, created_at)
+                        VALUES (:event_id, :product_id, :display_order, :created_at)
+                        ON DUPLICATE KEY UPDATE display_order = :display_order_update
+                    ");
+                    $stmt->execute([
+                        ':event_id' => $eventId,
+                        ':product_id' => $productId,
+                        ':display_order' => $displayOrder,
+                        ':created_at' => $currentTimestamp,
+                        ':display_order_update' => $displayOrder
+                    ]);
+                    $displayOrder++;
+                }
+            } else {
+                // product_ids가 없으면 모든 연결된 상품 삭제
+                $deleteStmt = $pdo->prepare("DELETE FROM event_products WHERE event_id = :event_id");
+                $deleteStmt->execute([':event_id' => $eventId]);
+            }
+            
+            $pdo->commit();
+            header('Location: event-manage.php?success=updated');
+            exit;
+            
+        } catch (Exception $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            $error = '이벤트 수정 중 오류가 발생했습니다: ' . $e->getMessage();
+            error_log('Event update error: ' . $e->getMessage());
+        }
+    }
+}
+
 /**
  * events 테이블에 필요한 컬럼이 있는지 확인하고 없으면 추가
  */
@@ -745,7 +1059,7 @@ include __DIR__ . '/../includes/admin-header.php';
 ?>
 
 <div class="admin-page-header">
-    <h1>이벤트 등록</h1>
+    <h1><?php echo $isEditMode ? '이벤트 수정' : '이벤트 등록'; ?></h1>
     <a href="event-manage.php" class="btn-back">목록으로</a>
 </div>
 
@@ -758,7 +1072,10 @@ include __DIR__ . '/../includes/admin-header.php';
 <?php endif; ?>
 
 <form method="POST" enctype="multipart/form-data" id="eventForm" class="event-form">
-    <input type="hidden" name="action" value="create_event">
+    <input type="hidden" name="action" value="<?php echo $isEditMode ? 'update_event' : 'create_event'; ?>">
+    <?php if ($isEditMode): ?>
+        <input type="hidden" name="event_id" value="<?php echo htmlspecialchars($eventId); ?>">
+    <?php endif; ?>
     <input type="hidden" id="detail_images_data" name="detail_images_data" value="">
     
     <div class="form-section">
@@ -766,33 +1083,60 @@ include __DIR__ . '/../includes/admin-header.php';
         
         <div class="form-group">
             <label for="title">이벤트 제목 <span class="required">*</span></label>
-            <input type="text" id="title" name="title" required class="form-control" placeholder="이벤트 제목을 입력하세요" value="<?php echo htmlspecialchars($_POST['title'] ?? ''); ?>">
+            <input type="text" id="title" name="title" required class="form-control" placeholder="이벤트 제목을 입력하세요" value="<?php echo htmlspecialchars($isEditMode && $eventData ? ($eventData['title'] ?? '') : ($_POST['title'] ?? '')); ?>">
         </div>
         
         <div class="form-group">
             <label for="event_type">이벤트 타입 <span class="required">*</span></label>
             <select id="event_type" name="event_type" required class="form-control">
-                <option value="promotion" <?php echo (($_POST['event_type'] ?? 'promotion') === 'promotion') ? 'selected' : ''; ?>>프로모션</option>
-                <option value="plan" <?php echo (($_POST['event_type'] ?? '') === 'plan') ? 'selected' : ''; ?>>요금제</option>
-                <option value="card" <?php echo (($_POST['event_type'] ?? '') === 'card') ? 'selected' : ''; ?>>제휴카드</option>
+                <?php 
+                $currentType = $isEditMode && $eventData ? ($eventData['event_type'] ?? 'promotion') : ($_POST['event_type'] ?? 'promotion');
+                ?>
+                <option value="promotion" <?php echo ($currentType === 'promotion') ? 'selected' : ''; ?>>프로모션</option>
+                <option value="plan" <?php echo ($currentType === 'plan') ? 'selected' : ''; ?>>요금제</option>
+                <option value="card" <?php echo ($currentType === 'card') ? 'selected' : ''; ?>>제휴카드</option>
             </select>
         </div>
         
         <div class="form-row">
             <div class="form-group">
                 <label for="start_at">시작일</label>
-                <input type="date" id="start_at" name="start_at" class="form-control" value="<?php echo htmlspecialchars($_POST['start_at'] ?? ''); ?>">
+                <?php 
+                $startAtValue = '';
+                if ($isEditMode && $eventData && !empty($eventData['start_at'])) {
+                    $startAtValue = date('Y-m-d', strtotime($eventData['start_at']));
+                } else {
+                    $startAtValue = $_POST['start_at'] ?? '';
+                }
+                ?>
+                <input type="date" id="start_at" name="start_at" class="form-control" value="<?php echo htmlspecialchars($startAtValue); ?>">
             </div>
             
             <div class="form-group">
                 <label for="end_at">종료일</label>
-                <input type="date" id="end_at" name="end_at" class="form-control" value="<?php echo htmlspecialchars($_POST['end_at'] ?? ''); ?>">
+                <?php 
+                $endAtValue = '';
+                if ($isEditMode && $eventData && !empty($eventData['end_at'])) {
+                    $endAtValue = date('Y-m-d', strtotime($eventData['end_at']));
+                } else {
+                    $endAtValue = $_POST['end_at'] ?? '';
+                }
+                ?>
+                <input type="date" id="end_at" name="end_at" class="form-control" value="<?php echo htmlspecialchars($endAtValue); ?>">
             </div>
         </div>
         
         <div class="form-group">
             <label for="description">이벤트 설명</label>
-            <textarea id="description" name="description" class="form-control" rows="4" placeholder="이벤트 설명을 입력하세요"><?php echo htmlspecialchars($_POST['description'] ?? ''); ?></textarea>
+            <?php 
+            $descriptionValue = '';
+            if ($isEditMode && $eventData && isset($eventData['description'])) {
+                $descriptionValue = $eventData['description'] ?? '';
+            } else {
+                $descriptionValue = $_POST['description'] ?? '';
+            }
+            ?>
+            <textarea id="description" name="description" class="form-control" rows="4" placeholder="이벤트 설명을 입력하세요"><?php echo htmlspecialchars($descriptionValue); ?></textarea>
         </div>
         
     </div>
@@ -800,9 +1144,42 @@ include __DIR__ . '/../includes/admin-header.php';
     <div class="form-section">
         <h2 class="section-title">메인 이미지 (16:9 비율)</h2>
         <div class="form-group">
-            <label for="main_image">메인 이미지 <span class="required">*</span></label>
+            <label for="main_image">메인 이미지 <?php if (!$isEditMode): ?><span class="required">*</span><?php endif; ?></label>
+            <?php if ($isEditMode && $eventData): ?>
+                <?php
+                // 기존 이미지 경로 가져오기
+                $existingImage = '';
+                if (!empty($eventData['main_image'])) {
+                    $existingImage = $eventData['main_image'];
+                } elseif (!empty($eventData['image_url'])) {
+                    $existingImage = $eventData['image_url'];
+                }
+                
+                // 이미지 경로 정규화
+                if ($existingImage) {
+                    if (strpos($existingImage, '/MVNO/') === 0) {
+                        // 이미 정규화됨
+                    } elseif (preg_match('#^/uploads/events/#', $existingImage)) {
+                        $existingImage = '/MVNO' . $existingImage;
+                    } elseif (strpos($existingImage, '/uploads/') === 0 || strpos($existingImage, '/images/') === 0) {
+                        $existingImage = '/MVNO' . $existingImage;
+                    } elseif (strpos($existingImage, '/') === false && preg_match('/\.(webp|jpg|jpeg|png|gif)$/i', $existingImage)) {
+                        $existingImage = '/MVNO/uploads/events/' . $existingImage;
+                    } elseif (strpos($existingImage, '/') !== 0) {
+                        $existingImage = '/MVNO/' . $existingImage;
+                    }
+                }
+                ?>
+                <?php if ($existingImage): ?>
+                    <div class="existing-image-preview" style="margin-bottom: 16px;">
+                        <p style="margin-bottom: 8px; color: #6b7280; font-size: 14px;">현재 이미지:</p>
+                        <img src="<?php echo htmlspecialchars($existingImage); ?>" alt="현재 메인 이미지" style="max-width: 400px; max-height: 225px; border-radius: 8px; border: 1px solid #e5e7eb;">
+                        <p style="margin-top: 8px; color: #9ca3af; font-size: 12px;">새 이미지를 선택하면 기존 이미지가 교체됩니다.</p>
+                    </div>
+                <?php endif; ?>
+            <?php endif; ?>
             <div class="file-upload-area" id="main_image_upload_area">
-                <input type="file" id="main_image" name="main_image" accept="image/*" required class="file-input-hidden">
+                <input type="file" id="main_image" name="main_image" accept="image/*" <?php if (!$isEditMode): ?>required<?php endif; ?> class="file-input-hidden">
                 <div class="file-upload-content">
                     <div class="file-upload-icon-wrapper">
                         <svg class="file-upload-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -830,6 +1207,36 @@ include __DIR__ . '/../includes/admin-header.php';
         <h2 class="section-title">상세 이미지</h2>
         <div class="form-group">
             <label for="detail_images">상세 이미지 (여러 장 선택 가능)</label>
+            <?php if ($isEditMode && $eventData && !empty($eventData['detail_images'])): ?>
+                <div class="existing-detail-images" style="margin-bottom: 16px;">
+                    <p style="margin-bottom: 8px; color: #6b7280; font-size: 14px;">현재 상세 이미지:</p>
+                    <div style="display: flex; flex-wrap: wrap; gap: 12px;">
+                        <?php foreach ($eventData['detail_images'] as $detailImg): ?>
+                            <?php
+                            $imgPath = $detailImg['image_path'];
+                            // 이미지 경로 정규화
+                            if (strpos($imgPath, '/MVNO/') === 0) {
+                                // 이미 정규화됨
+                            } elseif (preg_match('#^/uploads/events/#', $imgPath)) {
+                                $imgPath = '/MVNO' . $imgPath;
+                            } elseif (strpos($imgPath, '/uploads/') === 0 || strpos($imgPath, '/images/') === 0) {
+                                $imgPath = '/MVNO' . $imgPath;
+                            } elseif (strpos($imgPath, '/') === false && preg_match('/\.(webp|jpg|jpeg|png|gif)$/i', $imgPath)) {
+                                $imgPath = '/MVNO/uploads/events/' . $imgPath;
+                            } elseif (strpos($imgPath, '/') !== 0) {
+                                $imgPath = '/MVNO/' . $imgPath;
+                            }
+                            ?>
+                            <div style="position: relative; display: inline-block;">
+                                <img src="<?php echo htmlspecialchars($imgPath); ?>" 
+                                     alt="상세 이미지" 
+                                     style="width: 150px; height: 150px; object-fit: cover; border-radius: 8px; border: 1px solid #e5e7eb;">
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                    <p style="margin-top: 8px; color: #9ca3af; font-size: 12px;">새 이미지를 추가하면 기존 이미지에 추가됩니다.</p>
+                </div>
+            <?php endif; ?>
             <div class="file-upload-area" id="detail_images_upload_area">
                 <input type="file" id="detail_images" name="detail_images[]" accept="image/*" multiple class="file-input-hidden">
                 <div class="file-upload-content">
@@ -900,6 +1307,11 @@ include __DIR__ . '/../includes/admin-header.php';
                                 </select>
                             </div>
                             
+                            <div class="form-group">
+                                <label for="modal_seller_search">판매자 검색</label>
+                                <input type="text" id="modal_seller_search" class="form-control" placeholder="판매자 ID 또는 판매자명으로 검색 (선택사항)">
+                            </div>
+                            
                             <!-- 카테고리별 필터 영역 -->
                             <div id="category_filters" class="category-filters">
                                 <!-- 동적으로 필터가 표시됩니다 -->
@@ -926,7 +1338,7 @@ include __DIR__ . '/../includes/admin-header.php';
     </div>
     
     <div class="form-actions">
-        <button type="submit" class="btn btn-primary">이벤트 등록</button>
+        <button type="submit" class="btn btn-primary"><?php echo $isEditMode ? '이벤트 수정' : '이벤트 등록'; ?></button>
         <a href="event-manage.php" class="btn btn-secondary">취소</a>
     </div>
 </form>
@@ -1869,17 +2281,68 @@ label {
 
 .modal-product-spec-item {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 4px;
     font-size: 13px;
+    margin-bottom: 4px;
 }
 
 .modal-product-spec-item .spec-label {
     font-weight: 500;
     color: #6b7280;
+    flex-shrink: 0;
 }
 
 .modal-product-spec-item .spec-value {
+    color: #1f2937;
+    font-weight: 600;
+    white-space: pre-line;
+    flex: 1;
+}
+
+.modal-product-spec-item .spec-value.discount-table {
+    font-family: monospace;
+    font-size: 12px;
+    line-height: 1.6;
+    background: #f9fafb;
+    padding: 8px;
+    border-radius: 4px;
+    border: 1px solid #e5e7eb;
+}
+
+.modal-product-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+}
+
+.modal-product-additional-info {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid #e5e7eb;
+    font-size: 12px;
+}
+
+.additional-info-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    background: #f9fafb;
+    border-radius: 4px;
+}
+
+.additional-info-item .info-label {
+    color: #6b7280;
+    font-weight: 500;
+}
+
+.additional-info-item .info-value {
     color: #1f2937;
     font-weight: 600;
 }
@@ -2314,6 +2777,18 @@ document.addEventListener('DOMContentLoaded', function() {
     let modalSelectedProducts = []; // 모달에서 선택한 상품들 (임시)
     let currentSearchResults = []; // 현재 검색 결과 저장
     
+    // 수정 모드일 때 기존 연결된 상품 불러오기
+    <?php if ($isEditMode && $eventData && !empty($eventData['linked_products'])): ?>
+        selectedProducts = <?php echo json_encode(array_map(function($p) {
+            return [
+                'id' => (int)$p['product_id'],
+                'name' => $p['name'] ?? '',
+                'type' => $p['product_type'] ?? '',
+                'seller_name' => '' // 필요시 추가
+            ];
+        }, $eventData['linked_products']), JSON_UNESCAPED_UNICODE); ?>;
+    <?php endif; ?>
+    
     // 모달 열기
     openProductSearchModalBtn.addEventListener('click', function() {
         productSearchModal.style.display = 'flex';
@@ -2342,9 +2817,13 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // 카테고리 변경 시 필터 업데이트
+    // 카테고리 변경 시 필터 업데이트 및 자동 검색
     modalProductCategory.addEventListener('change', function() {
         updateCategoryFilters(modalProductCategory.value);
+        // 카테고리가 변경되면 자동으로 검색 실행
+        if (modalProductCategory.value) {
+            searchProductsInModal();
+        }
     });
     
     // 카테고리별 필터 생성 함수
@@ -2366,29 +2845,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="form-group">
                         <label for="filter_provider">통신사</label>
                         <select id="filter_provider" class="form-control">
-                            <option value="">전체</option>
-                            <option value="SKT">SKT</option>
-                            <option value="KT">KT</option>
-                            <option value="LG U+">LG U+</option>
+                            <option value="">선택하세요</option>
+                            <option value="KT알뜰폰">KT알뜰폰</option>
+                            <option value="SK알뜰폰">SK알뜰폰</option>
+                            <option value="LG알뜰폰">LG알뜰폰</option>
                         </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="filter_contract_period">약정기간</label>
-                        <select id="filter_contract_period" class="form-control">
-                            <option value="">전체</option>
-                            <option value="무약정">무약정</option>
-                            <option value="12개월">12개월</option>
-                            <option value="24개월">24개월</option>
-                            <option value="36개월">36개월</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="filter_price_min">할인 후 요금 (최소)</label>
-                        <input type="number" id="filter_price_min" class="form-control" placeholder="최소 금액" min="0">
-                    </div>
-                    <div class="form-group">
-                        <label for="filter_price_max">할인 후 요금 (최대)</label>
-                        <input type="number" id="filter_price_max" class="form-control" placeholder="최대 금액" min="0">
                     </div>
                     <div class="form-group">
                         <label for="filter_service_type">서비스 타입</label>
@@ -2404,8 +2865,16 @@ document.addEventListener('DOMContentLoaded', function() {
             case 'mno':
                 filterHTML += `
                     <div class="form-group">
+                        <label for="filter_manufacturer_mno">제조사</label>
+                        <select id="filter_manufacturer_mno" class="form-control">
+                            <option value="">선택하세요</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
                         <label for="filter_device_name">단말기명</label>
-                        <input type="text" id="filter_device_name" class="form-control" placeholder="단말기명을 입력하세요">
+                        <select id="filter_device_name" class="form-control" disabled>
+                            <option value="">제조사를 먼저 선택하세요</option>
+                        </select>
                     </div>
                     <div class="form-group">
                         <label for="filter_delivery_method">배송방법</label>
@@ -2415,16 +2884,11 @@ document.addEventListener('DOMContentLoaded', function() {
                             <option value="visit">내방</option>
                         </select>
                     </div>
-                    <div class="form-group">
-                        <label for="filter_provider_mno">통신사</label>
-                        <select id="filter_provider_mno" class="form-control">
-                            <option value="">전체</option>
-                            <option value="SKT">SKT</option>
-                            <option value="KT">KT</option>
-                            <option value="LG U+">LG U+</option>
-                        </select>
-                    </div>
                 `;
+                // 제조사 목록 로드
+                setTimeout(() => {
+                    loadManufacturersForFilter();
+                }, 100);
                 break;
                 
             case 'mno_sim':
@@ -2432,19 +2896,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="form-group">
                         <label for="filter_provider_sim">통신사</label>
                         <select id="filter_provider_sim" class="form-control">
-                            <option value="">전체</option>
-                            <option value="SKT">SKT</option>
-                            <option value="KT">KT</option>
-                            <option value="LG U+">LG U+</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="filter_contract_period_sim">약정기간</label>
-                        <select id="filter_contract_period_sim" class="form-control">
-                            <option value="">전체</option>
-                            <option value="무약정">무약정</option>
-                            <option value="12개월">12개월</option>
-                            <option value="24개월">24개월</option>
+                            <option value="">선택하세요</option>
+                            <option value="kt">KT</option>
+                            <option value="skt">SKT</option>
+                            <option value="lg">LG U+</option>
                         </select>
                     </div>
                 `;
@@ -2453,8 +2908,8 @@ document.addEventListener('DOMContentLoaded', function() {
             case 'internet':
                 filterHTML += `
                     <div class="form-group">
-                        <label for="filter_registration_place">등록지역</label>
-                        <input type="text" id="filter_registration_place" class="form-control" placeholder="등록지역을 입력하세요">
+                        <label for="filter_registration_place">통신사</label>
+                        <input type="text" id="filter_registration_place" class="form-control" placeholder="통신사를 입력하세요">
                     </div>
                     <div class="form-group">
                         <label for="filter_speed_option">속도</label>
@@ -2473,6 +2928,105 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         filtersContainer.innerHTML = filterHTML;
+        
+        // 통신사폰인 경우 제조사 목록 로드
+        if (category === 'mno') {
+            setTimeout(() => {
+                loadManufacturersForFilter();
+            }, 100);
+        }
+    }
+    
+    // 제조사 목록 로드 함수
+    function loadManufacturersForFilter() {
+        const manufacturerSelect = document.getElementById('filter_manufacturer_mno');
+        if (!manufacturerSelect) return;
+        
+        fetch('/MVNO/api/get-manufacturers.php')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.manufacturers) {
+                    manufacturerSelect.innerHTML = '<option value="">선택하세요</option>';
+                    data.manufacturers.forEach(manufacturer => {
+                        const option = document.createElement('option');
+                        option.value = manufacturer.id;
+                        option.textContent = manufacturer.name;
+                        manufacturerSelect.appendChild(option);
+                    });
+                    
+                    // 기존 이벤트 리스너 제거 후 새로 추가
+                    const newSelect = manufacturerSelect.cloneNode(true);
+                    manufacturerSelect.parentNode.replaceChild(newSelect, manufacturerSelect);
+                    
+                    // 제조사 변경 시 단말기 목록 로드
+                    newSelect.addEventListener('change', function() {
+                        const manufacturerId = this.value;
+                        loadDevicesForFilter(manufacturerId);
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('제조사 목록 로드 오류:', error);
+            });
+    }
+    
+    // 단말기 목록 로드 함수
+    function loadDevicesForFilter(manufacturerId) {
+        const deviceSelect = document.getElementById('filter_device_name');
+        if (!deviceSelect || !manufacturerId) {
+            if (deviceSelect) {
+                deviceSelect.innerHTML = '<option value="">제조사를 먼저 선택하세요</option>';
+                deviceSelect.disabled = true;
+            }
+            return;
+        }
+        
+        deviceSelect.innerHTML = '<option value="">로딩 중...</option>';
+        deviceSelect.disabled = true;
+        
+        fetch(`/MVNO/api/get-devices-by-manufacturer.php?manufacturer_id=${manufacturerId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.grouped) {
+                    deviceSelect.innerHTML = '<option value="">전체</option>';
+                    
+                    Object.keys(data.grouped).forEach(deviceName => {
+                        const devices = data.grouped[deviceName];
+                        
+                        if (devices.length === 1) {
+                            const device = devices[0];
+                            const displayText = `${device.name}${device.storage ? ' | ' + device.storage : ''}${device.release_price ? ' | ' + parseInt(device.release_price).toLocaleString() + '원' : ''}`;
+                            const option = document.createElement('option');
+                            option.value = device.name;
+                            option.textContent = displayText;
+                            deviceSelect.appendChild(option);
+                        } else {
+                            const optgroup = document.createElement('optgroup');
+                            optgroup.label = deviceName;
+                            
+                            devices.forEach(device => {
+                                const displayText = `${deviceName}${device.storage ? ' [' + device.storage + ']' : ''}${device.release_price ? ' ' + parseInt(device.release_price).toLocaleString() + '원' : ''}`;
+                                const option = document.createElement('option');
+                                option.value = device.name;
+                                option.textContent = displayText;
+                                optgroup.appendChild(option);
+                            });
+                            
+                            deviceSelect.appendChild(optgroup);
+                        }
+                    });
+                    
+                    deviceSelect.disabled = false;
+                } else {
+                    deviceSelect.innerHTML = '<option value="">단말기가 없습니다</option>';
+                    deviceSelect.disabled = true;
+                }
+            })
+            .catch(error => {
+                console.error('단말기 목록 로드 오류:', error);
+                deviceSelect.innerHTML = '<option value="">로드 오류</option>';
+                deviceSelect.disabled = true;
+            });
     }
     
     // 검색 버튼 클릭
@@ -2511,33 +3065,48 @@ document.addEventListener('DOMContentLoaded', function() {
         const params = new URLSearchParams();
         if (productCategory) params.append('product_type', productCategory);
         
+        // 판매자 통합 검색 추가 (ID 또는 이름)
+        const sellerSearch = document.getElementById('modal_seller_search')?.value?.trim() || '';
+        if (sellerSearch) {
+            // 숫자면 ID로, 아니면 이름으로 검색
+            if (/^\d+$/.test(sellerSearch)) {
+                params.append('seller_id', sellerSearch);
+            } else {
+                params.append('seller_name', sellerSearch);
+            }
+        }
+        
         // 카테고리별 필터 파라미터 수집
         if (productCategory === 'mvno') {
             const provider = document.getElementById('filter_provider')?.value || '';
-            const contractPeriod = document.getElementById('filter_contract_period')?.value || '';
-            const priceMin = document.getElementById('filter_price_min')?.value || '';
-            const priceMax = document.getElementById('filter_price_max')?.value || '';
             const serviceType = document.getElementById('filter_service_type')?.value || '';
             
             if (provider) params.append('provider', provider);
-            if (contractPeriod) params.append('contract_period', contractPeriod);
-            if (priceMin) params.append('price_min', priceMin);
-            if (priceMax) params.append('price_max', priceMax);
             if (serviceType) params.append('service_type', serviceType);
         } else if (productCategory === 'mno') {
             const deviceName = document.getElementById('filter_device_name')?.value || '';
             const deliveryMethod = document.getElementById('filter_delivery_method')?.value || '';
-            const providerMno = document.getElementById('filter_provider_mno')?.value || '';
             
             if (deviceName) params.append('device_name', deviceName);
             if (deliveryMethod) params.append('delivery_method', deliveryMethod);
-            if (providerMno) params.append('provider', providerMno);
         } else if (productCategory === 'mno_sim') {
             const providerSim = document.getElementById('filter_provider_sim')?.value || '';
             const contractPeriodSim = document.getElementById('filter_contract_period_sim')?.value || '';
             
             if (providerSim) params.append('provider', providerSim);
             if (contractPeriodSim) params.append('contract_period', contractPeriodSim);
+        } else if (productCategory === 'internet') {
+            const registrationPlace = document.getElementById('filter_registration_place')?.value || '';
+            const speedOption = document.getElementById('filter_speed_option')?.value || '';
+            const serviceTypeInternet = document.getElementById('filter_service_type_internet')?.value || '';
+            
+            if (registrationPlace) params.append('registration_place', registrationPlace);
+            if (speedOption) params.append('speed_option', speedOption);
+            if (serviceTypeInternet) params.append('service_type', serviceTypeInternet);
+        } else if (productCategory === 'mno_sim') {
+            const providerSim = document.getElementById('filter_provider_sim')?.value || '';
+            
+            if (providerSim) params.append('provider', providerSim);
         } else if (productCategory === 'internet') {
             const registrationPlace = document.getElementById('filter_registration_place')?.value || '';
             const speedOption = document.getElementById('filter_speed_option')?.value || '';
@@ -2595,6 +3164,201 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (product.provider) {
                     productSpecs.push({ label: '통신사', value: product.provider });
                 }
+                if (product.contract_period) {
+                    productSpecs.push({ label: '약정기간', value: product.contract_period });
+                }
+                if (product.data_amount) {
+                    let dataValue = '';
+                    if (product.data_amount === '무제한') {
+                        dataValue = '무제한';
+                    } else if (product.data_amount === '직접입력' && product.data_amount_value) {
+                        dataValue = parseInt(product.data_amount_value).toLocaleString() + (product.data_unit || 'GB');
+                    } else {
+                        dataValue = product.data_amount;
+                    }
+                    if (dataValue) productSpecs.push({ label: '데이터', value: dataValue });
+                }
+                // 통신사단독유심(mno-sim)과 알뜰폰(mvno)의 경우 통화, 문자 제거
+                if (product.product_type !== 'mno-sim' && product.product_type !== 'mvno') {
+                    if (product.call_type) {
+                        let callValue = '';
+                        if (product.call_type === '무제한') {
+                            callValue = '무제한';
+                        } else if (product.call_type === '직접입력' && product.call_amount) {
+                            callValue = parseInt(product.call_amount).toLocaleString() + '분';
+                        }
+                        if (callValue) productSpecs.push({ label: '통화', value: callValue });
+                    }
+                    if (product.sms_type) {
+                        let smsValue = '';
+                        if (product.sms_type === '무제한') {
+                            smsValue = '무제한';
+                        } else if (product.sms_type === '직접입력' && product.sms_amount) {
+                            smsValue = parseInt(product.sms_amount).toLocaleString() + '건';
+                        }
+                        if (smsValue) productSpecs.push({ label: '문자', value: smsValue });
+                    }
+                }
+                // 데이터 추가제공 (통신사단독유심)
+                if (product.product_type === 'mno-sim' && product.data_additional) {
+                    let dataAdditionalValue = '';
+                    if (product.data_additional === '무제한') {
+                        dataAdditionalValue = '무제한';
+                    } else if (product.data_additional === '직접입력' && product.data_additional_value) {
+                        dataAdditionalValue = parseInt(product.data_additional_value).toLocaleString() + (product.data_unit || 'GB');
+                    } else {
+                        dataAdditionalValue = product.data_additional;
+                    }
+                    if (dataAdditionalValue) productSpecs.push({ label: '데이터 추가제공', value: dataAdditionalValue });
+                }
+                if (product.service_type) {
+                    productSpecs.push({ label: '서비스', value: product.service_type });
+                }
+                // 통신사단독유심의 경우 월 요금과 프로모션 정보 표시
+                if (product.product_type === 'mno-sim') {
+                    // 월 요금 (price_main)
+                    if (product.price_main && product.price_main > 0) {
+                        productSpecs.push({ label: '월 요금', value: parseInt(product.price_main).toLocaleString() + '원' });
+                    }
+                    // 프로모션 기간
+                    let promotionPeriod = '';
+                    if (product.discount_period_value && product.discount_period_unit) {
+                        promotionPeriod = product.discount_period_value + product.discount_period_unit;
+                    } else if (product.discount_period) {
+                        if (product.discount_period !== '프로모션 없음' && product.discount_period !== 'none') {
+                            promotionPeriod = product.discount_period;
+                        }
+                    }
+                    if (promotionPeriod) {
+                        productSpecs.push({ label: '프로모션 기간', value: promotionPeriod });
+                    }
+                    // 프로모션 금액 (price_after)
+                    if (product.price_after !== null && product.price_after !== undefined) {
+                        if (product.price_after > 0) {
+                            productSpecs.push({ label: '프로모션 금액', value: parseInt(product.price_after).toLocaleString() + '원' });
+                        } else if (product.price_after === 0) {
+                            productSpecs.push({ label: '프로모션 금액', value: '공짜' });
+                        }
+                    }
+                } else {
+                    // MVNO의 경우 월 요금, 프로모션 기간, 프로모션 금액 표시
+                    // 월 요금 (price_main)
+                    if (product.price_main && product.price_main > 0) {
+                        productSpecs.push({ label: '월 요금', value: parseInt(product.price_main).toLocaleString() + '원' });
+                    }
+                    // 프로모션 기간 (MVNO 테이블에 discount_period 필드가 없을 수 있으므로 조건부 처리)
+                    let promotionPeriod = '';
+                    if (product.discount_period) {
+                        if (product.discount_period !== '프로모션 없음' && product.discount_period !== 'none') {
+                            promotionPeriod = product.discount_period;
+                        }
+                    }
+                    if (promotionPeriod) {
+                        productSpecs.push({ label: '프로모션 기간', value: promotionPeriod });
+                    }
+                    // 프로모션 금액 (price_after)
+                    if (product.price_after !== null && product.price_after !== undefined) {
+                        if (product.price_after > 0) {
+                            productSpecs.push({ label: '프로모션 금액', value: parseInt(product.price_after).toLocaleString() + '원' });
+                        } else if (product.price_after === 0) {
+                            productSpecs.push({ label: '프로모션 금액', value: '공짜' });
+                        }
+                    }
+                }
+            }
+            // MNO 상품 특성
+            else if (product.product_type === 'mno') {
+                // 단말기 정보는 헤더에 표시되므로 productSpecs에는 추가하지 않음
+                
+                // 공통지원할인 정보 (단말기 정보 바로 아래)
+                if (product.common_provider || product.common_discount_new || product.common_discount_port || product.common_discount_change) {
+                    let commonDiscountLines = [];
+                    
+                    try {
+                        const commonProviders = product.common_provider ? JSON.parse(product.common_provider) : [];
+                        const commonNew = product.common_discount_new ? JSON.parse(product.common_discount_new) : [];
+                        const commonPort = product.common_discount_port ? JSON.parse(product.common_discount_port) : [];
+                        const commonChange = product.common_discount_change ? JSON.parse(product.common_discount_change) : [];
+                        
+                        if (commonProviders.length > 0) {
+                            commonProviders.forEach((provider, index) => {
+                                const newVal = commonNew[index] !== undefined && commonNew[index] !== null && commonNew[index] !== '' && commonNew[index] != 9999 ? commonNew[index] : null;
+                                const portVal = commonPort[index] !== undefined && commonPort[index] !== null && commonPort[index] !== '' && commonPort[index] != 9999 ? commonPort[index] : null;
+                                const changeVal = commonChange[index] !== undefined && commonChange[index] !== null && commonChange[index] !== '' && commonChange[index] != 9999 ? commonChange[index] : null;
+                                
+                                if (newVal) {
+                                    commonDiscountLines.push(`${provider} 공통지원할인 신규가입 ${newVal}`);
+                                }
+                                if (portVal) {
+                                    commonDiscountLines.push(`${provider} 공통지원할인 번호이동 ${portVal}`);
+                                }
+                                if (changeVal) {
+                                    commonDiscountLines.push(`${provider} 공통지원할인 기기변경 ${changeVal}`);
+                                }
+                            });
+                        }
+                    } catch (e) {
+                        // JSON 파싱 실패 시 원본 텍스트 표시
+                        if (product.common_provider) commonDiscountLines.push('통신사: ' + product.common_provider);
+                        if (product.common_discount_new) commonDiscountLines.push('신규: ' + product.common_discount_new);
+                        if (product.common_discount_port) commonDiscountLines.push('번이: ' + product.common_discount_port);
+                        if (product.common_discount_change) commonDiscountLines.push('기변: ' + product.common_discount_change);
+                    }
+                    if (commonDiscountLines.length > 0) {
+                        productSpecs.push({ label: '', value: commonDiscountLines.join('\n') });
+                    }
+                }
+                
+                // 선택약정할인 정보
+                if (product.contract_provider || product.contract_discount_new || product.contract_discount_port || product.contract_discount_change) {
+                    let contractDiscountLines = [];
+                    
+                    try {
+                        const contractProviders = product.contract_provider ? JSON.parse(product.contract_provider) : [];
+                        const contractNew = product.contract_discount_new ? JSON.parse(product.contract_discount_new) : [];
+                        const contractPort = product.contract_discount_port ? JSON.parse(product.contract_discount_port) : [];
+                        const contractChange = product.contract_discount_change ? JSON.parse(product.contract_discount_change) : [];
+                        
+                        if (contractProviders.length > 0) {
+                            contractProviders.forEach((provider, index) => {
+                                const newVal = contractNew[index] !== undefined && contractNew[index] !== null && contractNew[index] !== '' && contractNew[index] != 9999 ? contractNew[index] : null;
+                                const portVal = contractPort[index] !== undefined && contractPort[index] !== null && contractPort[index] !== '' && contractPort[index] != 9999 ? contractPort[index] : null;
+                                const changeVal = contractChange[index] !== undefined && contractChange[index] !== null && contractChange[index] !== '' && contractChange[index] != 9999 ? contractChange[index] : null;
+                                
+                                if (newVal) {
+                                    contractDiscountLines.push(`${provider} 선택약정할인 신규가입 ${newVal}`);
+                                }
+                                if (portVal) {
+                                    contractDiscountLines.push(`${provider} 선택약정할인 번호이동 ${portVal}`);
+                                }
+                                if (changeVal) {
+                                    contractDiscountLines.push(`${provider} 선택약정할인 기기변경 ${changeVal}`);
+                                }
+                            });
+                        }
+                    } catch (e) {
+                        // JSON 파싱 실패 시 원본 텍스트 표시
+                        if (product.contract_provider) contractDiscountLines.push('통신사: ' + product.contract_provider);
+                        if (product.contract_discount_new) contractDiscountLines.push('신규: ' + product.contract_discount_new);
+                        if (product.contract_discount_port) contractDiscountLines.push('번이: ' + product.contract_discount_port);
+                        if (product.contract_discount_change) contractDiscountLines.push('기변: ' + product.contract_discount_change);
+                    }
+                    if (contractDiscountLines.length > 0) {
+                        productSpecs.push({ label: '', value: contractDiscountLines.join('\n') });
+                    }
+                }
+                
+                // 기타 정보
+                if (product.service_type) {
+                    productSpecs.push({ label: '서비스', value: product.service_type });
+                }
+                if (product.contract_period) {
+                    let contractPeriodValue = product.contract_period;
+                    if (product.contract_period_value) {
+                        contractPeriodValue += ' ' + product.contract_period_value;
+                    }
+                    productSpecs.push({ label: '약정기간', value: contractPeriodValue });
+                }
                 if (product.data_amount) {
                     let dataValue = '';
                     if (product.data_amount === '무제한') {
@@ -2624,27 +3388,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                     if (smsValue) productSpecs.push({ label: '문자', value: smsValue });
                 }
-                if (product.service_type) {
-                    productSpecs.push({ label: '서비스', value: product.service_type });
-                }
-                if (product.price_after && product.price_after > 0) {
-                    productSpecs.push({ label: '월 요금', value: parseInt(product.price_after).toLocaleString() + '원' });
-                } else if (product.price_main && product.price_main > 0) {
-                    productSpecs.push({ label: '월 요금', value: parseInt(product.price_main).toLocaleString() + '원' });
-                } else {
-                    productSpecs.push({ label: '월 요금', value: '공짜' });
-                }
-            }
-            // MNO 상품 특성
-            else if (product.product_type === 'mno') {
                 if (product.price_main && product.price_main > 0) {
-                    productSpecs.push({ label: '가격', value: parseInt(product.price_main).toLocaleString() + '원' });
+                    productSpecs.push({ label: '기본 요금', value: parseInt(product.price_main).toLocaleString() + '원' });
                 }
             }
             // Internet 상품 특성
             else if (product.product_type === 'internet') {
                 if (product.registration_place) {
-                    productSpecs.push({ label: '등록지역', value: product.registration_place });
+                    productSpecs.push({ label: '통신사', value: product.registration_place });
                 }
                 if (product.speed_option) {
                     productSpecs.push({ label: '속도', value: product.speed_option });
@@ -2657,13 +3408,123 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
             
-            // 판매자 정보
-            if (product.seller_name) {
-                productSpecs.push({ label: '판매자', value: product.seller_name });
+            // 판매자 정보 (판매자명 + 판매자 ID) - 통신사폰은 헤더에 표시되므로 제외
+            if (product.product_type !== 'mno' && (product.seller_name || product.seller_id)) {
+                let sellerValue = product.seller_name || '';
+                if (product.seller_id) {
+                    if (sellerValue) {
+                        sellerValue += ' (' + product.seller_id + ')';
+                    } else {
+                        sellerValue = product.seller_id;
+                    }
+                }
+                productSpecs.push({ label: '판매자명', value: sellerValue });
+            }
+            
+            // 추가 정보 (상태 등)
+            const additionalInfo = [];
+            if (product.status) {
+                const statusText = product.status === 'active' ? '활성' : product.status === 'inactive' ? '비활성' : product.status === 'deleted' ? '삭제됨' : product.status;
+                additionalInfo.push({ label: '상태', value: statusText });
+            }
+            if (product.view_count !== undefined && product.view_count !== null) {
+                additionalInfo.push({ label: '조회수', value: parseInt(product.view_count).toLocaleString() });
+            }
+            if (product.application_count !== undefined && product.application_count !== null) {
+                additionalInfo.push({ label: '신청수', value: parseInt(product.application_count).toLocaleString() });
+            }
+            if (product.favorite_count !== undefined && product.favorite_count !== null) {
+                additionalInfo.push({ label: '찜 수', value: parseInt(product.favorite_count).toLocaleString() });
             }
             
             const item = document.createElement('div');
             item.className = 'modal-product-item' + (isAlreadyAdded ? ' already-added' : '') + (isModalSelected ? ' selected' : '');
+            
+            // 통신사폰 상품의 경우 단말기 정보를 헤더에 표시
+            let headerContent = '';
+            if (product.product_type === 'mno' && product.device_name) {
+                let deviceInfo = product.device_name;
+                if (product.device_capacity) {
+                    deviceInfo += ' | ' + product.device_capacity;
+                }
+                // 판매자명 추가
+                if (product.seller_name || product.seller_id) {
+                    let sellerValue = product.seller_name || '';
+                    if (product.seller_id) {
+                        if (sellerValue) {
+                            sellerValue += ' (' + product.seller_id + ')';
+                        } else {
+                            sellerValue = product.seller_id;
+                        }
+                    }
+                    // 배송방법 추가
+                    if (product.delivery_method) {
+                        let deliveryText = '';
+                        if (product.delivery_method === 'delivery') {
+                            deliveryText = '택배';
+                        } else if (product.delivery_method === 'visit') {
+                            deliveryText = '내방';
+                            // 내방인 경우 내방지역도 표시
+                            if (product.visit_region) {
+                                deliveryText += ' ' + product.visit_region;
+                            }
+                        } else {
+                            deliveryText = product.delivery_method;
+                        }
+                        if (deliveryText) {
+                            sellerValue += ' ' + deliveryText;
+                        }
+                    }
+                    deviceInfo += '  ' + sellerValue;
+                }
+                headerContent = `<div class="modal-product-header">
+                            <span class="spec-value">${escapeHtml(deviceInfo)}</span>
+                        </div>`;
+            } else if (product.product_type === 'mvno') {
+                // 알뜰폰의 경우 요금제명과 통신사 정보를 헤더에 표시
+                let mvnoInfo = product.name || product.plan_name || '상품명 없음';
+                // 통신사 정보 추가
+                if (product.provider) {
+                    let providerText = product.provider;
+                    // 통신사명 매핑 (소문자 -> 대문자)
+                    const providerMap = {
+                        'kt': 'KT',
+                        'skt': 'SKT',
+                        'lg': 'LG U+',
+                        'kt_mvno': 'KT 알뜰폰',
+                        'skt_mvno': 'SKT 알뜰폰',
+                        'lg_mvno': 'LG U+ 알뜰폰'
+                    };
+                    providerText = providerMap[providerText.toLowerCase()] || providerText;
+                    mvnoInfo += '  ' + providerText;
+                }
+                // 판매자명 추가
+                if (product.seller_name || product.seller_id) {
+                    let sellerValue = product.seller_name || '';
+                    if (product.seller_id) {
+                        if (sellerValue) {
+                            sellerValue += ' (' + product.seller_id + ')';
+                        } else {
+                            sellerValue = product.seller_id;
+                        }
+                    }
+                    mvnoInfo += '  ' + sellerValue;
+                }
+                headerContent = `<div class="modal-product-header">
+                            <span class="spec-value">${escapeHtml(mvnoInfo)}</span>
+                        </div>`;
+            } else {
+                // 기타 상품의 경우 타입 배지 제거
+                let typeBadge = '';
+                if (product.product_type !== 'mvno' && (product.type || product.product_type)) {
+                    typeBadge = `<div class="modal-product-type-badge">${escapeHtml(product.type || product.product_type || '')}</div>`;
+                }
+                headerContent = `<div class="modal-product-header">
+                            <div class="modal-product-name">${escapeHtml(product.name || '상품명 없음')}</div>
+                            ${typeBadge}
+                        </div>`;
+            }
+            
             item.innerHTML = `
                 <label class="modal-product-checkbox-label">
                     <input type="checkbox" 
@@ -2673,15 +3534,31 @@ document.addEventListener('DOMContentLoaded', function() {
                            ${isModalSelected ? 'checked' : ''}
                            data-product-id="${product.id}">
                     <div class="modal-product-info">
-                        <div class="modal-product-name">${escapeHtml(product.name)}</div>
-                        <div class="modal-product-type-badge">${escapeHtml(product.type)}</div>
+                        ${headerContent}
                         ${productSpecs.length > 0 ? `
                             <div class="modal-product-specs">
-                                ${productSpecs.map(spec => `
-                                    <div class="modal-product-spec-item">
-                                        <span class="spec-label">${escapeHtml(spec.label)}:</span>
-                                        <span class="spec-value">${escapeHtml(spec.value)}</span>
-                                    </div>
+                                ${productSpecs.map(spec => {
+                                    if (!spec.label) {
+                                        // 레이블이 없으면 값만 표시
+                                        return `<div class="modal-product-spec-item">
+                                            ${spec.isHtml ? `<span class="spec-value">${spec.value}</span>` : `<span class="spec-value">${escapeHtml(spec.value)}</span>`}
+                                        </div>`;
+                                    } else {
+                                        return `<div class="modal-product-spec-item">
+                                            <span class="spec-label">${escapeHtml(spec.label)}</span>
+                                            ${spec.isHtml ? `<span class="spec-value">${spec.value}</span>` : `<span class="spec-value">${escapeHtml(spec.value)}</span>`}
+                                        </div>`;
+                                    }
+                                }).join('')}
+                            </div>
+                        ` : ''}
+                        ${additionalInfo.length > 0 ? `
+                            <div class="modal-product-additional-info">
+                                ${additionalInfo.map(info => `
+                                    <span class="additional-info-item">
+                                        <span class="info-label">${escapeHtml(info.label)}</span>
+                                        <span class="info-value">${escapeHtml(info.value)}</span>
+                                    </span>
                                 `).join('')}
                             </div>
                         ` : ''}
@@ -2868,6 +3745,14 @@ document.addEventListener('DOMContentLoaded', function() {
         div.textContent = text;
         return div.innerHTML;
     }
+    
+    // 수정 모드일 때 기존 연결된 상품 표시 (함수 정의 후 호출)
+    <?php if ($isEditMode && $eventData && !empty($eventData['linked_products'])): ?>
+        if (selectedProducts.length > 0) {
+            updateSelectedProductsList();
+            updateProductIdsInput();
+        }
+    <?php endif; ?>
     
 });
 </script>

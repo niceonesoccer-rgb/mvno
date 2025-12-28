@@ -100,12 +100,36 @@ function normalizeImagePath($path) {
     return $imagePath;
 }
 
-// 모든 이벤트 가져오기 (배너 선택용)
+// 모든 이벤트 가져오기 (배너 선택용) - 공개된 이벤트만
 $all_events = [];
 if ($pdo) {
     try {
+        // is_published 컬럼 존재 여부 확인
+        $stmt = $pdo->query("
+            SELECT COUNT(*) as cnt 
+            FROM INFORMATION_SCHEMA.COLUMNS 
+            WHERE TABLE_SCHEMA = DATABASE() 
+            AND TABLE_NAME = 'events' 
+            AND COLUMN_NAME = 'is_published'
+        ");
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        $hasIsPublished = $result['cnt'] > 0;
+        
+        // 공개 상태 및 기간 조건 추가
+        $whereConditions = [];
+        if ($hasIsPublished) {
+            // is_published가 0이면 기간과 상관없이 비공개
+            $whereConditions[] = "(is_published IS NULL OR is_published != 0)";
+        }
+        
+        // 공개 기간 확인
+        $whereConditions[] = "(start_at IS NULL OR start_at <= CURDATE())";
+        $whereConditions[] = "(end_at IS NULL OR end_at >= CURDATE())";
+        
+        $whereClause = !empty($whereConditions) ? 'WHERE ' . implode(' AND ', $whereConditions) : '';
+        
         // SELECT *를 사용하여 모든 컬럼 가져오기 (안전한 방법)
-        $stmt = $pdo->query("SELECT * FROM events ORDER BY created_at DESC");
+        $stmt = $pdo->query("SELECT * FROM events {$whereClause} ORDER BY created_at DESC");
         $all_events_raw = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
         // image 필드 추가 (main_image 또는 image_url 중 사용 가능한 것 사용)
@@ -137,21 +161,36 @@ if ($pdo) {
     }
 }
 
+// 이벤트를 ID로 매핑 (빠른 검색을 위해)
+$events_by_id = [];
+foreach ($all_events as $event) {
+    $events_by_id[(string)$event['id']] = $event;
+}
+
 // 현재 배너로 설정된 이벤트 제외하고 이벤트 목록 구성
 $available_events = [];
 $main_banner_events = [];
 $sub_banner_events = [];
 
+// 저장된 순서대로 메인배너 이벤트 구성
+foreach ($current_large_banners as $banner_id) {
+    if (isset($events_by_id[$banner_id])) {
+        $main_banner_events[] = $events_by_id[$banner_id];
+    }
+}
+
+// 저장된 순서대로 서브배너 이벤트 구성
+foreach ($current_small_banners as $banner_id) {
+    if (isset($events_by_id[$banner_id])) {
+        $sub_banner_events[] = $events_by_id[$banner_id];
+    }
+}
+
+// 배너에 포함되지 않은 이벤트만 available_events에 추가
+$banner_event_ids = array_merge($current_large_banners, $current_small_banners);
 foreach ($all_events as $event) {
     $event_id_str = (string)$event['id'];
-    $is_main = in_array($event_id_str, $current_large_banners, true);
-    $is_sub = in_array($event_id_str, $current_small_banners, true);
-    
-    if ($is_main) {
-        $main_banner_events[] = $event;
-    } elseif ($is_sub) {
-        $sub_banner_events[] = $event;
-    } else {
+    if (!in_array($event_id_str, $banner_event_ids, true)) {
         $available_events[] = $event;
     }
 }
@@ -604,36 +643,54 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // 배너 아이템 드래그 시작
-    const bannerItems = document.querySelectorAll('.banner-item');
-    bannerItems.forEach(item => {
-        item.addEventListener('dragstart', function(e) {
-            draggedElement = this;
-            draggedEventData = {
-                id: this.getAttribute('data-event-id'),
-                title: this.querySelector('.banner-item-title').textContent,
-                image: this.querySelector('.banner-item-image')?.src || this.querySelector('.banner-item-image-placeholder') ? '' : ''
-            };
-            this.classList.add('dragging');
-            e.dataTransfer.effectAllowed = 'move';
+    // 초기 배너 아이템에 드래그 앤 드롭 설정
+    setupBannerItemDragDrop();
+    
+    // 배너 목록에 dragover 이벤트 추가 (빈 공간 드롭 지원)
+    document.querySelectorAll('.banner-list').forEach(bannerList => {
+        bannerList.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            
+            // 배너 아이템을 드래그하는 경우, 배너 목록 내에서 순서 변경
+            if (draggedElement && draggedElement.classList.contains('banner-item')) {
+                const afterElement = getDragAfterElement(bannerList, e.clientY);
+                const dragging = bannerList.querySelector('.dragging');
+                
+                if (dragging && afterElement == null) {
+                    bannerList.appendChild(dragging);
+                } else if (dragging && afterElement) {
+                    bannerList.insertBefore(dragging, afterElement);
+                }
+            }
         });
-
-        item.addEventListener('dragend', function(e) {
-            this.classList.remove('dragging');
+        
+        bannerList.addEventListener('drop', function(e) {
+            e.preventDefault();
+            // 배너 아이템 간 드롭은 각 아이템의 drop 이벤트에서 처리됨
         });
     });
 
     // 드롭 존 설정
     const dropZones = document.querySelectorAll('.banner-drop-zone');
     dropZones.forEach(zone => {
+        const bannerList = zone.querySelector('.banner-list');
+        
         zone.addEventListener('dragover', function(e) {
             e.preventDefault();
             e.dataTransfer.dropEffect = 'move';
-            this.classList.add('drag-over');
+            
+            // 배너 아이템을 드래그하는 경우는 banner-list의 dragover에서 처리
+            if (!draggedElement || !draggedElement.classList.contains('banner-item')) {
+                this.classList.add('drag-over');
+            }
         });
 
         zone.addEventListener('dragleave', function(e) {
-            this.classList.remove('drag-over');
+            // 배너 아이템을 드래그하는 경우가 아니면 drag-over 제거
+            if (!draggedElement || !draggedElement.classList.contains('banner-item')) {
+                this.classList.remove('drag-over');
+            }
         });
 
         zone.addEventListener('drop', function(e) {
@@ -645,30 +702,68 @@ document.addEventListener('DOMContentLoaded', function() {
             const bannerType = this.getAttribute('data-banner-type');
             const maxItems = parseInt(this.getAttribute('data-max-items') || '999');
 
-            // 서브배너 최대 개수 체크
-            if (bannerType === 'small') {
-                const currentItems = this.querySelectorAll('.banner-item');
-                if (currentItems.length >= maxItems && !draggedElement.classList.contains('banner-item')) {
-                    alert('서브배너는 최대 ' + maxItems + '개까지만 추가할 수 있습니다.');
-                    return;
-                }
-            }
-
-            // 이미 배너 목록에 있는 아이템인 경우 제거
+            // 배너 아이템을 같은 목록 내에서 이동하는 경우
             if (draggedElement.classList.contains('banner-item')) {
-                draggedElement.remove();
+                // 이미 같은 목록에 있으면 순서만 변경됨 (dragover에서 처리됨)
+                // 다른 목록으로 이동하는 경우는 여기서 처리
+                const sourceList = draggedElement.closest('.banner-list');
+                const targetList = bannerList;
+                
+                if (sourceList !== targetList) {
+                    // 서브배너 최대 개수 체크
+                    if (bannerType === 'small') {
+                        const currentItems = targetList.querySelectorAll('.banner-item');
+                        if (currentItems.length >= maxItems) {
+                            alert('서브배너는 최대 ' + maxItems + '개까지만 추가할 수 있습니다.');
+                            return;
+                        }
+                    }
+                    
+                    // 다른 목록으로 이동
+                    const afterElement = getDragAfterElement(targetList, e.clientY);
+                    if (afterElement == null) {
+                        targetList.appendChild(draggedElement);
+                    } else {
+                        targetList.insertBefore(draggedElement, afterElement);
+                    }
+                    
+                    // 원래 목록이 비어있으면 placeholder 추가
+                    if (sourceList && sourceList.querySelectorAll('.banner-item').length === 0) {
+                        const placeholder = document.createElement('div');
+                        placeholder.className = 'drop-zone-placeholder';
+                        placeholder.textContent = '이벤트를 드래그하여 추가하세요';
+                        sourceList.appendChild(placeholder);
+                    }
+                }
+                // 같은 목록 내에서 순서 변경은 dragover에서 이미 처리됨
             } else {
+                // 이벤트 목록에서 배너 목록으로 추가
+                // 서브배너 최대 개수 체크
+                if (bannerType === 'small') {
+                    const currentItems = bannerList.querySelectorAll('.banner-item');
+                    if (currentItems.length >= maxItems) {
+                        alert('서브배너는 최대 ' + maxItems + '개까지만 추가할 수 있습니다.');
+                        return;
+                    }
+                }
+
                 // 이벤트 목록에서 제거
                 draggedElement.remove();
-            }
 
-            // 배너 목록에 추가
-            addBannerItem(this, draggedEventData, bannerType);
+                // 배너 목록에 추가
+                const afterElement = getDragAfterElement(bannerList, e.clientY);
+                const newItem = addBannerItem(this, draggedEventData, bannerType, afterElement);
+                
+                // 새로 추가된 아이템에 드래그 앤 드롭 설정
+                if (newItem) {
+                    setupBannerItemDragDrop();
+                }
 
-            // placeholder 제거
-            const placeholder = this.querySelector('.drop-zone-placeholder');
-            if (placeholder) {
-                placeholder.remove();
+                // placeholder 제거
+                const placeholder = bannerList.querySelector('.drop-zone-placeholder');
+                if (placeholder) {
+                    placeholder.remove();
+                }
             }
         });
     });
@@ -683,9 +778,9 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // 배너 아이템 추가
-function addBannerItem(zone, eventData, bannerType) {
+function addBannerItem(zone, eventData, bannerType, insertBefore = null) {
     const bannerList = zone.querySelector('.banner-list');
-    if (!bannerList) return;
+    if (!bannerList) return null;
 
     const bannerItem = document.createElement('div');
     bannerItem.className = 'banner-item';
@@ -706,23 +801,93 @@ function addBannerItem(zone, eventData, bannerType) {
         <button type="button" class="banner-item-remove" onclick="removeBannerItem(this, '${bannerType}')">×</button>
     `;
 
-    // 드래그 이벤트 추가
-    bannerItem.addEventListener('dragstart', function(e) {
-        draggedElement = this;
-        draggedEventData = {
-            id: this.getAttribute('data-event-id'),
-            title: this.querySelector('.banner-item-title').textContent,
-            image: this.querySelector('.banner-item-image')?.src || ''
-        };
-        this.classList.add('dragging');
-        e.dataTransfer.effectAllowed = 'move';
-    });
+    // 삽입 위치 지정
+    if (insertBefore) {
+        bannerList.insertBefore(bannerItem, insertBefore);
+    } else {
+        bannerList.appendChild(bannerItem);
+    }
+    
+    // 드래그 앤 드롭 이벤트는 setupBannerItemDragDrop에서 설정됨
+    
+    return bannerItem;
+}
 
-    bannerItem.addEventListener('dragend', function(e) {
-        this.classList.remove('dragging');
-    });
+// 드래그 위치 계산 함수 (전역으로 사용)
+function getDragAfterElement(container, y) {
+    const draggableElements = [...container.querySelectorAll('.banner-item:not(.dragging)')];
+    
+    return draggableElements.reduce((closest, child) => {
+        const box = child.getBoundingClientRect();
+        const offset = y - box.top - box.height / 2;
+        
+        if (offset < 0 && offset > closest.offset) {
+            return { offset: offset, element: child };
+        } else {
+            return closest;
+        }
+    }, { offset: Number.NEGATIVE_INFINITY }).element;
+}
 
-    bannerList.appendChild(bannerItem);
+// 배너 아이템 드래그 앤 드롭 설정 함수 (전역으로 사용)
+function setupBannerItemDragDrop() {
+    const bannerItems = document.querySelectorAll('.banner-item');
+    bannerItems.forEach(item => {
+        // 기존 이벤트 리스너 제거 (중복 방지)
+        const newItem = item.cloneNode(true);
+        item.parentNode.replaceChild(newItem, item);
+        
+        newItem.addEventListener('dragstart', function(e) {
+            draggedElement = this;
+            draggedEventData = {
+                id: this.getAttribute('data-event-id'),
+                title: this.querySelector('.banner-item-title').textContent,
+                image: this.querySelector('.banner-item-image')?.src || ''
+            };
+            this.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        });
+
+        newItem.addEventListener('dragend', function(e) {
+            this.classList.remove('dragging');
+            document.querySelectorAll('.banner-item').forEach(i => i.classList.remove('drag-over'));
+        });
+        
+        newItem.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            
+            if (this !== draggedElement && draggedElement) {
+                this.classList.add('drag-over');
+            }
+        });
+        
+        newItem.addEventListener('dragleave', function(e) {
+            this.classList.remove('drag-over');
+        });
+        
+        newItem.addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.classList.remove('drag-over');
+            
+            if (draggedElement && this !== draggedElement) {
+                const bannerList = this.closest('.banner-list');
+                if (!bannerList) return;
+                
+                const allItems = Array.from(bannerList.querySelectorAll('.banner-item'));
+                const draggedIndex = allItems.indexOf(draggedElement);
+                const targetIndex = allItems.indexOf(this);
+                
+                if (draggedIndex !== -1 && targetIndex !== -1) {
+                    if (draggedIndex < targetIndex) {
+                        bannerList.insertBefore(draggedElement, this.nextSibling);
+                    } else {
+                        bannerList.insertBefore(draggedElement, this);
+                    }
+                }
+            }
+        });
+    });
 }
 
 // 배너 아이템 제거

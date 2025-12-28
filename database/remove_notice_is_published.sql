@@ -10,3 +10,4 @@ ALTER TABLE `notices` DROP COLUMN `is_published`;
 
 
 
+

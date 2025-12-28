@@ -252,16 +252,36 @@ function getEventById($id) {
         $selectFields[] = 'updated_at';
     }
     
-    $sql = "SELECT " . implode(', ', $selectFields) . " FROM events WHERE id = :id LIMIT 1";
+    // 공개 상태 및 기간 체크를 위한 WHERE 조건 추가
+    $whereConditions = ['id = :id'];
+    
+    // is_published 컬럼 존재 여부 확인
+    $stmt = $pdo->query("
+        SELECT COUNT(*) as cnt 
+        FROM INFORMATION_SCHEMA.COLUMNS 
+        WHERE TABLE_SCHEMA = DATABASE() 
+        AND TABLE_NAME = 'events' 
+        AND COLUMN_NAME = 'is_published'
+    ");
+    $result = $stmt->fetch(PDO::FETCH_ASSOC);
+    $hasIsPublished = $result['cnt'] > 0;
+    
+    if ($hasIsPublished) {
+        // is_published가 0이면 기간과 상관없이 비공개
+        $whereConditions[] = "(is_published IS NULL OR is_published != 0)";
+    }
+    
+    // 공개 기간 확인
+    $whereConditions[] = "(start_at IS NULL OR start_at <= CURDATE())";
+    $whereConditions[] = "(end_at IS NULL OR end_at >= CURDATE())";
+    
+    $whereClause = implode(' AND ', $whereConditions);
+    
+    $sql = "SELECT " . implode(', ', $selectFields) . " FROM events WHERE {$whereClause} LIMIT 1";
     
     $stmt = $pdo->prepare($sql);
     $stmt->execute([':id' => (string)$id]);
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
-    
-    // 비공개 이벤트는 null 반환
-    if ($row && isset($row['is_active']) && $row['is_active'] == 0) {
-        return null;
-    }
     
     return $row ?: null;
 }

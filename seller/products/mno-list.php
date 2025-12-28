@@ -108,9 +108,11 @@ try {
                 p.*,
                 mno.device_name AS product_name,
                 mno.delivery_method,
-                mno.visit_region
+                mno.visit_region,
+                COALESCE(prs.total_review_count, 0) AS review_count
             FROM products p
             LEFT JOIN product_mno_details mno ON p.id = mno.product_id
+            LEFT JOIN product_review_statistics prs ON p.id = prs.product_id
             WHERE {$whereClause}
             ORDER BY p.id DESC
             LIMIT :limit OFFSET :offset
@@ -132,7 +134,8 @@ try {
 // 페이지별 스타일 (mvno-list.php와 동일)
 $pageStyles = '
     .product-list-container {
-        max-width: 1400px;
+        width: 100%;
+        padding: 0 20px;
         margin: 0 auto;
     }
     

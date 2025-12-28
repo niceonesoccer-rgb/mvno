@@ -8,3 +8,4 @@ ALTER TABLE `product_favorites`
 MODIFY COLUMN `product_type` ENUM('mvno', 'mno', 'internet', 'mno-sim') NOT NULL COMMENT '상품 타입';
 
 
+

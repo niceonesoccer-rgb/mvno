@@ -120,7 +120,7 @@ if (!$isAdmin && isset($phone['status']) && $phone['status'] === 'inactive') {
     // 실제 리뷰 데이터 가져오기 (같은 판매자의 같은 타입의 모든 상품 리뷰 통합)
     // 모달에서 모든 리뷰를 표시하기 위해 충분히 많은 수를 가져옴
     $allReviews = getProductReviews($phone_id, 'mno', 1000, $sort);
-    $reviews = array_slice($allReviews, 0, 5); // 페이지에는 처음 5개만 표시
+    $reviews = array_slice($allReviews, 0, 3); // 페이지에는 처음 3개만 표시
     $averageRating = getProductAverageRating($phone_id, 'mno');
     // 실제 리뷰 배열의 개수를 사용 (통계 테이블 대신 실제 데이터 확인)
     $reviewCount = count($allReviews);
@@ -165,17 +165,17 @@ if (!$isAdmin && isset($phone['status']) && $phone['status'] === 'inactive') {
                 error_log("MNO Phone Detail - Auto-approved {$updatedCount} pending review(s) for product_id: {$phone_id}");
                 // 리뷰 목록 다시 가져오기 (새로고침 효과)
                 $allReviews = getProductReviews($phone_id, 'mno', 1000, $sort);
-                $reviews = array_slice($allReviews, 0, 5);
+                $reviews = array_slice($allReviews, 0, 3);
                 $reviewCount = count($allReviews);
                 $hasReviews = !empty($allReviews) && $reviewCount > 0;
-                $remainingCount = max(0, $reviewCount - 5);
+                $remainingCount = max(0, $reviewCount - 3);
             }
         }
     } catch (Exception $e) {
         error_log("MNO Phone Detail - Exception while auto-approving reviews: " . $e->getMessage());
     }
     ?>
-    <?php if ($hasReviews): ?>
+    <!-- 통신사폰 리뷰 섹션 - 리뷰가 있으면 항상 표시 -->
     <section class="phone-review-section" id="phoneReviewSection">
         <div class="content-layout">
             <div class="plan-review-header">
@@ -466,7 +466,6 @@ if (!$isAdmin && isset($phone['status']) && $phone['status'] === 'inactive') {
             <?php endif; ?>
         </div>
     </section>
-    <?php endif; ?>
 
 </main>
 

@@ -218,12 +218,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
 // 페이지네이션 설정
 $page = max(1, intval($_GET['page'] ?? 1));
-$perPage = 20;
+$perPageOptions = [10, 20, 50, 100];
+$perPage = intval($_GET['per_page'] ?? 20);
+if (!in_array($perPage, $perPageOptions)) {
+    $perPage = 20;
+}
 $offset = ($page - 1) * $perPage;
 
 // 필터 설정
 $eventType = $_GET['type'] ?? '';
 $searchQuery = trim($_GET['search'] ?? '');
+$publishStatus = $_GET['status'] ?? '';
 
 // 이벤트 목록 조회
 $events = [];
@@ -241,7 +246,24 @@ if ($pdo) {
             $params[':event_type'] = $eventType;
         }
         
-        // 검색 필터
+        // 공개상태 필터
+        if ($publishStatus !== '') {
+            if ($publishStatus === 'published') {
+                // 공개: is_published가 1이거나 null이고, 기간 내에 있는 경우
+                $whereConditions[] = "(is_published IS NULL OR is_published != 0)";
+                $whereConditions[] = "(start_at IS NULL OR start_at <= CURDATE())";
+                $whereConditions[] = "(end_at IS NULL OR end_at >= CURDATE())";
+            } elseif ($publishStatus === 'unpublished') {
+                // 비공개: is_published가 0이거나, 기간이 지난 경우
+                $whereConditions[] = "(
+                    is_published = 0 
+                    OR (start_at IS NOT NULL AND start_at > CURDATE())
+                    OR (end_at IS NOT NULL AND end_at < CURDATE())
+                )";
+            }
+        }
+        
+        // 제목 검색 필터
         if ($searchQuery) {
             $whereConditions[] = 'title LIKE :search';
             $params[':search'] = '%' . $searchQuery . '%';
@@ -309,6 +331,49 @@ include __DIR__ . '/../includes/admin-header.php';
 <?php if ($success): ?>
     <div class="alert alert-success"><?php echo htmlspecialchars($success); ?></div>
 <?php endif; ?>
+
+<!-- 검색 필터 -->
+<div class="filter-section">
+    <form method="GET" action="event-manage.php" class="filter-form">
+        <div class="filter-group">
+            <label for="status">공개상태</label>
+            <select name="status" id="status" class="form-control">
+                <option value="">전체</option>
+                <option value="published" <?php echo $publishStatus === 'published' ? 'selected' : ''; ?>>공개</option>
+                <option value="unpublished" <?php echo $publishStatus === 'unpublished' ? 'selected' : ''; ?>>비공개</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label for="type">타입</label>
+            <select name="type" id="type" class="form-control">
+                <option value="">전체</option>
+                <option value="plan" <?php echo $eventType === 'plan' ? 'selected' : ''; ?>>요금제</option>
+                <option value="promotion" <?php echo $eventType === 'promotion' ? 'selected' : ''; ?>>프로모션</option>
+                <option value="card" <?php echo $eventType === 'card' ? 'selected' : ''; ?>>제휴카드</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label for="search">제목</label>
+            <input type="text" name="search" id="search" class="form-control" 
+                   value="<?php echo htmlspecialchars($searchQuery); ?>" 
+                   placeholder="제목 검색">
+        </div>
+        <div class="filter-group">
+            <label for="per_page">표시 개수</label>
+            <select name="per_page" id="per_page" class="form-control">
+                <?php foreach ($perPageOptions as $option): ?>
+                    <option value="<?php echo $option; ?>" <?php echo $perPage === $option ? 'selected' : ''; ?>>
+                        <?php echo $option; ?>개
+                    </option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+        <div class="filter-group">
+            <button type="submit" class="btn-search">검색</button>
+            <a href="event-manage.php" class="btn-reset">초기화</a>
+        </div>
+    </form>
+</div>
 
 <!-- 이벤트 목록 -->
 <div class="events-table-container">
@@ -419,7 +484,7 @@ include __DIR__ . '/../includes/admin-header.php';
                                     <?php else: ?>
                                         <span class="no-image">이미지 없음</span>
                                     <?php endif; ?>
-                                    <a href="../event/event-detail.php?id=<?php echo htmlspecialchars($event['id']); ?>" 
+                                    <a href="/MVNO/event/event-detail.php?id=<?php echo htmlspecialchars($event['id']); ?>" 
                                        target="_blank" class="event-title-link">
                                         <?php echo htmlspecialchars($event['title']); ?>
                                     </a>
@@ -437,6 +502,8 @@ include __DIR__ . '/../includes/admin-header.php';
                         <td><?php echo date('Y-m-d H:i', strtotime($event['created_at'])); ?></td>
                         <td>
                             <div class="action-buttons">
+                                <a href="event-register.php?id=<?php echo htmlspecialchars($event['id']); ?>" 
+                                   class="btn-edit">수정</a>
                                 <?php if ($isPublished): ?>
                                     <form method="POST" style="display: inline;" 
                                           onsubmit="return confirm('이벤트를 비공개로 전환하시겠습니까?');">
@@ -470,20 +537,28 @@ include __DIR__ . '/../includes/admin-header.php';
 <!-- 페이지네이션 -->
 <?php if ($totalPages > 1): ?>
     <div class="pagination">
+        <?php 
+        $queryParams = [];
+        if ($publishStatus) $queryParams['status'] = $publishStatus;
+        if ($eventType) $queryParams['type'] = $eventType;
+        if ($searchQuery) $queryParams['search'] = $searchQuery;
+        if ($perPage != 20) $queryParams['per_page'] = $perPage;
+        $queryString = !empty($queryParams) ? '&' . http_build_query($queryParams) : '';
+        ?>
         <?php if ($page > 1): ?>
-            <a href="?page=<?php echo $page - 1; ?>&type=<?php echo htmlspecialchars($eventType); ?>&search=<?php echo htmlspecialchars($searchQuery); ?>" 
+            <a href="?page=<?php echo $page - 1; ?><?php echo $queryString; ?>" 
                class="page-link">이전</a>
         <?php endif; ?>
         
         <?php for ($i = max(1, $page - 2); $i <= min($totalPages, $page + 2); $i++): ?>
-            <a href="?page=<?php echo $i; ?>&type=<?php echo htmlspecialchars($eventType); ?>&search=<?php echo htmlspecialchars($searchQuery); ?>" 
+            <a href="?page=<?php echo $i; ?><?php echo $queryString; ?>" 
                class="page-link <?php echo $i === $page ? 'active' : ''; ?>">
                 <?php echo $i; ?>
             </a>
         <?php endfor; ?>
         
         <?php if ($page < $totalPages): ?>
-            <a href="?page=<?php echo $page + 1; ?>&type=<?php echo htmlspecialchars($eventType); ?>&search=<?php echo htmlspecialchars($searchQuery); ?>" 
+            <a href="?page=<?php echo $page + 1; ?><?php echo $queryString; ?>" 
                class="page-link">다음</a>
         <?php endif; ?>
     </div>
@@ -682,7 +757,7 @@ include __DIR__ . '/../includes/admin-header.php';
     gap: 8px;
 }
 
-.btn-publish, .btn-unpublish, .btn-delete {
+.btn-publish, .btn-unpublish, .btn-delete, .btn-edit {
     padding: 6px 12px;
     border-radius: 4px;
     font-size: 12px;
@@ -691,6 +766,15 @@ include __DIR__ . '/../includes/admin-header.php';
     border: none;
     text-decoration: none;
     display: inline-block;
+}
+
+.btn-edit {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.btn-edit:hover {
+    background: #bfdbfe;
 }
 
 .btn-publish {

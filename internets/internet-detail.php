@@ -481,14 +481,14 @@ if ($serviceType === '인터넷+TV') {
     // 리뷰 목록 가져오기 (같은 판매자의 같은 타입의 모든 상품 리뷰 통합)
     // 모달에서 모든 리뷰를 표시하기 위해 충분히 많은 수를 가져옴
     $allReviews = getProductReviews($internet_id, 'internet', 1000, $sort);
-    $reviews = array_slice($allReviews, 0, 5); // 페이지에는 처음 5개만 표시
+    $reviews = array_slice($allReviews, 0, 3); // 페이지에는 처음 3개만 표시
     $averageRating = getProductAverageRating($internet_id, 'internet');
-    $reviewCount = getProductReviewCount($internet_id, 'internet');
+    $reviewCount = count($allReviews);
     $categoryAverages = getInternetReviewCategoryAverages($internet_id, 'internet');
     $hasReviews = $reviewCount > 0;
-    $remainingCount = max(0, $reviewCount - 5); // 남은 리뷰 개수
+    $remainingCount = max(0, $reviewCount - 3); // 남은 리뷰 개수
     ?>
-    <?php if ($hasReviews): ?>
+    <!-- 인터넷 리뷰 섹션 - 리뷰가 있으면 항상 표시 -->
     <section class="plan-review-section" id="internetReviewSection" style="margin-top: 2rem; padding: 2rem 0; background: #f9fafb;">
         <div class="PlanDetail_content_wrapper__0YNeJ">
             <div class="plan-review-header">
@@ -585,12 +585,11 @@ if ($serviceType === '인터넷+TV') {
             
             <?php if ($remainingCount > 0): ?>
                 <button class="plan-review-more-btn" id="internetReviewMoreBtn" data-total-reviews="<?php echo $reviewCount; ?>" data-sort="<?php echo htmlspecialchars($sort); ?>">
-                    리뷰 더보기 (<?php echo number_format($remainingCount); ?>개)
+                    리뷰 <?php echo number_format($remainingCount); ?>개 더보기
                 </button>
             <?php endif; ?>
         </div>
     </section>
-    <?php endif; ?>
 </main>
 
 <!-- 인터넷 리뷰 모달 포함 -->

@@ -38,3 +38,4 @@ SHOW COLUMNS FROM `product_favorites` LIKE 'product_type';
 결과에서 `Type` 컬럼에 `'mno-sim'`이 포함되어 있어야 합니다.
 
 
+

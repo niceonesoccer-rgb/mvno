@@ -65,3 +65,4 @@ SELECT COUNT(*) FROM product_reviews WHERE product_type = 'mno-sim';
 3. `application_id`와 `product_id`가 올바른지 확인하세요.
 
 
+

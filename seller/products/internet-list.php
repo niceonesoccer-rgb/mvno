@@ -113,9 +113,11 @@ try {
                 inet.registration_place AS provider,
                 inet.service_type AS service_type,
                 inet.speed_option AS speed_option,
-                inet.monthly_fee AS monthly_fee
+                inet.monthly_fee AS monthly_fee,
+                COALESCE(prs.total_review_count, 0) AS review_count
             FROM products p
             INNER JOIN product_internet_details inet ON p.id = inet.product_id
+            LEFT JOIN product_review_statistics prs ON p.id = prs.product_id
             WHERE {$whereClause}
             ORDER BY p.created_at DESC
             LIMIT :limit OFFSET :offset
@@ -137,7 +139,8 @@ try {
 // 페이지별 스타일 (mvno-list.php와 동일)
 $pageStyles = '
     .product-list-container {
-        max-width: 1400px;
+        width: 100%;
+        padding: 0 20px;
         margin: 0 auto;
     }
     
@@ -639,6 +642,7 @@ include __DIR__ . '/../includes/seller-header.php';
                         <th>월 요금</th>
                         <th>조회수</th>
                         <th>찜</th>
+                        <th>리뷰</th>
                         <th>신청</th>
                         <th>상태</th>
                         <th>등록일</th>
@@ -684,6 +688,7 @@ include __DIR__ . '/../includes/seller-header.php';
                                 echo number_format($monthlyFeeNumeric, 0, '', ''); ?>원</td>
                             <td><?php echo number_format($product['view_count'] ?? 0); ?></td>
                             <td><?php echo number_format($product['favorite_count'] ?? 0); ?></td>
+                            <td><?php echo number_format($product['review_count'] ?? 0); ?></td>
                             <td><?php echo number_format($product['application_count'] ?? 0); ?></td>
                             <td>
                                 <span class="badge <?php echo ($product['status'] ?? 'active') === 'active' ? 'badge-active' : 'badge-inactive'; ?>">

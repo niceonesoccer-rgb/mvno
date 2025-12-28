@@ -111,9 +111,11 @@ try {
                 mno_sim.registration_types,
                 mno_sim.discount_period,
                 mno_sim.discount_period_value,
-                mno_sim.discount_period_unit
+                mno_sim.discount_period_unit,
+                COALESCE(prs.total_review_count, 0) AS review_count
             FROM products p
             INNER JOIN product_mno_sim_details mno_sim ON p.id = mno_sim.product_id
+            LEFT JOIN product_review_statistics prs ON p.id = prs.product_id
             WHERE {$whereClause}
             ORDER BY p.created_at DESC
             LIMIT :limit OFFSET :offset
@@ -153,7 +155,8 @@ try {
 // 페이지별 스타일
 $pageStyles = '
     .product-list-container {
-        max-width: 1400px;
+        width: 100%;
+        padding: 0 20px;
         margin: 0 auto;
     }
     

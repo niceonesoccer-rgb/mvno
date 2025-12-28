@@ -182,9 +182,11 @@ try {
                 p.*,
                 mvno.plan_name AS product_name,
                 mvno.provider,
-                mvno.price_after AS monthly_fee
+                mvno.price_after AS monthly_fee,
+                COALESCE(prs.total_review_count, 0) AS review_count
             FROM products p
             LEFT JOIN product_mvno_details mvno ON p.id = mvno.product_id
+            LEFT JOIN product_review_statistics prs ON p.id = prs.product_id
             WHERE {$whereClause}
             ORDER BY p.id DESC
             LIMIT :limit OFFSET :offset
@@ -206,7 +208,8 @@ try {
 // 페이지별 스타일
 $pageStyles = '
     .product-list-container {
-        max-width: 1400px;
+        width: 100%;
+        padding: 0 20px;
         margin: 0 auto;
     }
     

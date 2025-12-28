@@ -586,9 +586,9 @@ function getRelativeTime($datetime) {
     
     // 리뷰 목록 가져오기 (정렬 변경 시 다시 가져오기)
     $allReviews = getProductReviews($plan_id, 'mvno', 1000, $sort);
-    $reviews = array_slice($allReviews, 0, 5); // 페이지에는 처음 5개만 표시
+    $reviews = array_slice($allReviews, 0, 3); // 페이지에는 처음 3개만 표시
     $reviewCount = count($allReviews);
-    $remainingCount = max(0, $reviewCount - 5);
+    $remainingCount = max(0, $reviewCount - 3);
     
     // 카테고리별 평균 별점 가져오기
     $categoryAverages = getInternetReviewCategoryAverages($plan_id, 'mvno');
@@ -628,9 +628,9 @@ function getRelativeTime($datetime) {
                 error_log("MVNO Plan Detail - Auto-approved {$updatedCount} pending review(s) for product_id: {$plan_id}");
                 // 리뷰 목록 다시 가져오기 (새로고침 효과)
                 $allReviews = getProductReviews($plan_id, 'mvno', 1000, $sort);
-                $reviews = array_slice($allReviews, 0, 5);
+                $reviews = array_slice($allReviews, 0, 3);
                 $reviewCount = count($allReviews);
-                $remainingCount = max(0, $reviewCount - 5);
+                $remainingCount = max(0, $reviewCount - 3);
             }
         }
     } catch (Exception $e) {
@@ -733,7 +733,7 @@ function getRelativeTime($datetime) {
             
             <?php if ($remainingCount > 0): ?>
                 <button class="plan-review-more-btn" id="planReviewMoreBtn" data-total-reviews="<?php echo $reviewCount; ?>" data-sort="<?php echo htmlspecialchars($sort); ?>">
-                    리뷰 더보기 (<?php echo number_format($remainingCount); ?>개)
+                    리뷰 <?php echo number_format($remainingCount); ?>개 더보기
                 </button>
             <?php endif; ?>
         </div>
@@ -838,6 +838,17 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+    
+    // 더보기 버튼 클릭 시 모달 열기
+    const reviewMoreBtn = document.getElementById('planReviewMoreBtn');
+    if (reviewMoreBtn) {
+        reviewMoreBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            if (typeof window.openReviewListModal === 'function') {
+                window.openReviewListModal();
+            }
+        });
+    }
 });
 </script>
 
@@ -1177,7 +1188,316 @@ document.addEventListener('DOMContentLoaded', function() {
     transform: rotate(180deg);
     transition: transform 0.3s ease;
 }
+
+/* 리뷰 목록 모달 스타일 */
+.review-list-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.3s;
+    overflow-y: auto;
+    padding: 20px;
+}
+
+.review-list-modal[style*="display: block"],
+.review-list-modal.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+.review-list-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 10000;
+}
+
+.review-list-modal-content {
+    position: relative;
+    background: #ffffff;
+    border-radius: 24px;
+    width: 100%;
+    max-width: 900px;
+    max-height: calc(100vh - 40px);
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    transform: scale(0.95) translateY(20px);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+    z-index: 10001;
+    margin: auto;
+}
+
+.review-list-modal.show .review-list-modal-content {
+    transform: scale(1) translateY(0);
+}
+
+.review-list-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 28px 32px 24px;
+    border-bottom: 1px solid #f1f5f9;
+    background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+}
+
+.review-list-modal-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0;
+    letter-spacing: -0.02em;
+}
+
+.review-list-modal-close {
+    background: #f1f5f9;
+    border: none;
+    cursor: pointer;
+    padding: 10px;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    width: 40px;
+    height: 40px;
+}
+
+.review-list-modal-close:hover {
+    background: #e2e8f0;
+    color: #1e293b;
+    transform: rotate(90deg);
+}
+
+.review-list-modal-body {
+    padding: 32px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.review-list-modal-sort-wrapper {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.review-list-modal-count {
+    font-size: 16px;
+    font-weight: 600;
+    color: #374151;
+}
+
+.review-list-modal-sort-select-wrapper {
+    position: relative;
+}
+
+.review-list-modal-sort-select {
+    padding: 8px 32px 8px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #374151;
+    background: #ffffff;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L6 6L11 1' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    transition: all 0.2s;
+}
+
+.review-list-modal-sort-select:hover {
+    border-color: #9ca3af;
+}
+
+.review-list-modal-sort-select:focus {
+    outline: none;
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.review-list-modal-list {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.review-list-modal-item {
+    padding: 20px;
+    background: #f9fafb;
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+}
+
+.review-list-modal-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.review-list-modal-item-author {
+    font-size: 15px;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.review-list-modal-item-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.review-list-modal-item-stars {
+    font-size: 16px;
+    color: #EF4444;
+}
+
+.review-list-modal-item-time {
+    font-size: 14px;
+    color: #6b7280;
+}
+
+.review-list-modal-item-content {
+    font-size: 15px;
+    line-height: 1.6;
+    color: #374151;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.review-list-modal-more-wrapper {
+    margin-top: 24px;
+    text-align: center;
+}
+
+.review-list-modal-more-btn {
+    padding: 14px 32px;
+    background: #ffffff;
+    color: #374151;
+    border: 1px solid #d1d5db;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    width: 100%;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    outline: none;
+}
+
+.review-list-modal-more-btn:focus {
+    outline: none;
+    border-color: #d1d5db;
+}
+
+.review-list-modal-more-btn:hover {
+    background: #f9fafb;
+    border-color: #9ca3af;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.review-list-modal-more-btn:active {
+    transform: translateY(0);
+    background: #f3f4f6;
+}
+
+@media (max-width: 640px) {
+    .review-list-modal {
+        padding: 0;
+    }
+    
+    .review-list-modal-content {
+        width: 100%;
+        max-width: 100%;
+        border-radius: 0;
+        max-height: 100vh;
+    }
+    
+    .review-list-modal-header {
+        padding: 24px 20px 20px;
+    }
+    
+    .review-list-modal-body {
+        padding: 24px 20px;
+    }
+    
+    .review-list-modal-title {
+        font-size: 20px;
+    }
+    
+    .review-list-modal-sort-wrapper {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+    
+    .review-list-modal-sort-select-wrapper {
+        width: 100%;
+    }
+    
+    .review-list-modal-sort-select {
+        width: 100%;
+    }
+}
 </style>
+
+<!-- 리뷰 목록 모달 -->
+<div class="review-list-modal" id="reviewListModal" style="display: none;">
+    <div class="review-list-modal-overlay" id="reviewListModalOverlay"></div>
+    <div class="review-list-modal-content">
+        <div class="review-list-modal-header">
+            <h3 class="review-list-modal-title">리뷰 전체보기</h3>
+            <button class="review-list-modal-close" id="reviewListModalClose" aria-label="닫기">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M18 6L6 18M6 6L18 18" stroke="#868E96" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+        </div>
+        <div class="review-list-modal-body">
+            <div class="review-list-modal-sort-wrapper">
+                <span class="review-list-modal-count" id="reviewListModalCount">총 0개</span>
+                <div class="review-list-modal-sort-select-wrapper">
+                    <select class="review-list-modal-sort-select" id="reviewListModalSortSelect" aria-label="리뷰 정렬 방식 선택">
+                        <option value="rating_desc">높은 평점순</option>
+                        <option value="rating_asc">낮은 평점순</option>
+                        <option value="created_desc" selected>최신순</option>
+                    </select>
+                </div>
+            </div>
+            <div class="review-list-modal-list" id="reviewListModalList">
+                <!-- 리뷰 목록이 JavaScript로 동적으로 채워짐 -->
+            </div>
+            <div class="review-list-modal-more-wrapper" id="reviewListModalMoreWrapper" style="display: none; margin-top: 24px; text-align: center;">
+                <button class="review-list-modal-more-btn" id="reviewListModalMoreBtn">리뷰 더보기</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- 개인정보 내용보기 모달 (MVNO용) -->
 <div class="privacy-content-modal" id="mvnoPrivacyContentModal">
@@ -1203,7 +1523,313 @@ document.addEventListener('DOMContentLoaded', function() {
 // 이미 위에서 로드했으므로 재사용 (일관성 유지)
 // $privacySettings는 12줄에서 이미 로드됨
 echo "const mvnoPrivacyContents = " . json_encode($privacySettings, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . ";\n";
+
+// 모든 리뷰 데이터를 JavaScript로 전달 (모달용)
+if ($hasReviews && function_exists('getProductReviews')) {
+    $sortForModal = $_GET['review_sort'] ?? 'created_desc';
+    if (!in_array($sortForModal, ['rating_desc', 'rating_asc', 'created_desc'])) {
+        $sortForModal = 'created_desc';
+    }
+    $allReviewsForModal = getProductReviews($plan_id, 'mvno', 1000, $sortForModal);
+    
+    // 리뷰 데이터 준비 (created_at을 포함하여 상대 시간 계산 가능하도록)
+    $reviewsForJS = [];
+    foreach ($allReviewsForModal as $review) {
+        $reviewsForJS[] = [
+            'author_name' => $review['author_name'] ?? '익명',
+            'provider' => $review['provider'] ?? '',
+            'stars' => $review['stars'] ?? '★★★★★',
+            'created_at' => $review['created_at'] ?? '',
+            'content' => $review['content'] ?? '',
+            'rating' => $review['rating'] ?? 0
+        ];
+    }
+    echo "const allReviewsData = " . json_encode($reviewsForJS, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . ";\n";
+    echo "const reviewCount = " . count($allReviewsForModal) . ";\n";
+} else {
+    echo "const allReviewsData = [];\n";
+    echo "const reviewCount = 0;\n";
+}
 ?>
+
+// 리뷰 모달 관련 공통 함수들 (전역으로 정의)
+window.getReviewRelativeTime = function(datetime) {
+    if (!datetime) return '';
+    try {
+        const reviewTime = new Date(datetime);
+        const now = new Date();
+        const diffMs = now - reviewTime;
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMs / 3600000);
+        const diffDays = Math.floor(diffMs / 86400000);
+        
+        if (diffDays === 0) {
+            if (diffMins === 0) return '방금 전';
+            if (diffHours === 0) return diffMins + '분 전';
+            return diffHours + '시간 전';
+        }
+        if (diffDays === 1) return '어제';
+        if (diffDays < 7) return diffDays + '일 전';
+        if (diffDays < 30) return Math.floor(diffDays / 7) + '주 전';
+        if (diffDays < 365) return Math.floor(diffDays / 30) + '개월 전';
+        return Math.floor(diffDays / 365) + '년 전';
+    } catch (e) {
+        return '';
+    }
+};
+
+window.createReviewItemHTML = function(review) {
+    const authorName = (review.author_name || '익명').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const provider = review.provider ? ' | ' + review.provider.replace(/</g, '&lt;').replace(/>/g, '&gt;') : '';
+    const stars = (review.stars || '★★★★★').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const content = (review.content || '').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, ' ');
+    const timeAgo = window.getReviewRelativeTime(review.created_at);
+    return `
+        <div class="review-list-modal-item">
+            <div class="review-list-modal-item-header">
+                <span class="review-list-modal-item-author">${authorName}${provider}</span>
+                <div class="review-list-modal-item-right">
+                    <div class="review-list-modal-item-stars">${stars}</div>
+                    ${timeAgo ? `<span class="review-list-modal-item-time">${timeAgo}</span>` : ''}
+                </div>
+            </div>
+            <p class="review-list-modal-item-content">${content}</p>
+        </div>
+    `;
+};
+
+window.renderReviewItems = function(reviews, startIndex, count) {
+    if (!reviews || reviews.length === 0) {
+        return '<div class="review-list-modal-item"><p class="review-list-modal-item-content" style="text-align: center; color: #9ca3af; padding: 40px 0;">등록된 리뷰가 없습니다.</p></div>';
+    }
+    const endIndex = Math.min(startIndex + count, reviews.length);
+    return reviews.slice(startIndex, endIndex).map(review => window.createReviewItemHTML(review)).join('');
+};
+
+// 리뷰 목록 모달 열기 함수 (전역으로 먼저 정의)
+window.openReviewListModal = function() {
+    const modal = document.getElementById('reviewListModal');
+    const modalList = document.getElementById('reviewListModalList');
+    const modalCount = document.getElementById('reviewListModalCount');
+    const modalSortSelect = document.getElementById('reviewListModalSortSelect');
+    
+    if (!modal) {
+        console.error('Review modal element not found');
+        return;
+    }
+    
+    if (typeof allReviewsData === 'undefined') {
+        console.error('allReviewsData is undefined');
+        alert('리뷰 데이터를 불러올 수 없습니다.');
+        return;
+    }
+    
+    // 리뷰 정렬 함수
+    function sortReviews(reviews, sortType) {
+        const sorted = [...reviews];
+        switch(sortType) {
+            case 'rating_desc':
+                return sorted.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+            case 'rating_asc':
+                return sorted.sort((a, b) => (a.rating || 0) - (b.rating || 0));
+            case 'created_desc':
+            default:
+                return sorted.sort((a, b) => {
+                    const dateA = new Date(a.created_at || 0);
+                    const dateB = new Date(b.created_at || 0);
+                    return dateB - dateA;
+                });
+        }
+    }
+    
+    // 현재 정렬 방식 가져오기 (기본값: 최신순)
+    const currentSort = modalSortSelect ? modalSortSelect.value : 'created_desc';
+    const sortedReviews = sortReviews(allReviewsData, currentSort);
+    
+    // 전역 변수에 정렬된 리뷰 저장
+    window.reviewModalSortedReviews = sortedReviews;
+    window.reviewModalDisplayedCount = 0;
+    
+    // 처음 10개만 표시
+    modalList.innerHTML = window.renderReviewItems(sortedReviews, 0, 10);
+    window.reviewModalDisplayedCount = Math.min(10, sortedReviews.length);
+    
+    // 더보기 버튼 표시/숨김 및 텍스트 업데이트 처리
+    const modalMoreBtn = document.getElementById('reviewListModalMoreBtn');
+    const modalMoreWrapper = document.getElementById('reviewListModalMoreWrapper');
+    if (modalMoreWrapper) {
+        if (window.reviewModalDisplayedCount < sortedReviews.length) {
+            modalMoreWrapper.style.display = 'block';
+            // 남은 개수 표시
+            const remainingCount = sortedReviews.length - window.reviewModalDisplayedCount;
+            if (modalMoreBtn) {
+                modalMoreBtn.textContent = `리뷰 더보기 (${remainingCount.toLocaleString()}개)`;
+            }
+        } else {
+            modalMoreWrapper.style.display = 'none';
+        }
+    }
+    
+    // 리뷰 개수 업데이트
+    if (modalCount) {
+        const totalCount = typeof reviewCount !== 'undefined' ? reviewCount : (allReviewsData ? allReviewsData.length : 0);
+        modalCount.textContent = `총 ${totalCount.toLocaleString()}개`;
+    }
+    
+    // 정렬 선택 값 설정
+    if (modalSortSelect) {
+        modalSortSelect.value = currentSort;
+    }
+    
+    // 스크롤 위치 저장 (전역 변수에 저장하여 닫을 때 사용)
+    window.reviewModalScrollPosition = window.pageYOffset || document.documentElement.scrollTop;
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+    
+    // 모달 열기
+    document.body.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${window.reviewModalScrollPosition}px`;
+    document.body.style.width = '100%';
+    document.body.style.paddingRight = `${scrollbarWidth}px`;
+    
+    modal.style.display = 'flex';
+    setTimeout(() => {
+        modal.classList.add('show');
+    }, 10);
+};
+
+// 리뷰 목록 모달 닫기 및 이벤트 처리
+document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('reviewListModal');
+    const modalOverlay = document.getElementById('reviewListModalOverlay');
+    const modalClose = document.getElementById('reviewListModalClose');
+    const modalSortSelect = document.getElementById('reviewListModalSortSelect');
+    const modalList = document.getElementById('reviewListModalList');
+    
+    // 모달 닫기 함수
+    function closeReviewListModal() {
+        if (!modal) return;
+        
+        modal.classList.remove('show');
+        setTimeout(() => {
+            modal.style.display = 'none';
+            
+            // 스크롤 위치 복원
+            document.body.style.overflow = '';
+            document.body.style.position = '';
+            document.body.style.top = '';
+            document.body.style.width = '';
+            document.body.style.paddingRight = '';
+            
+            if (window.reviewModalScrollPosition !== undefined) {
+                window.scrollTo(0, window.reviewModalScrollPosition);
+            }
+        }, 300);
+    }
+    
+    // 모달 닫기 이벤트
+    if (modalOverlay) {
+        modalOverlay.addEventListener('click', closeReviewListModal);
+    }
+    
+    if (modalClose) {
+        modalClose.addEventListener('click', closeReviewListModal);
+    }
+    
+    // ESC 키로 모달 닫기
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && modal && modal.classList.contains('show')) {
+            closeReviewListModal();
+        }
+    });
+    
+    // 정렬 함수
+    function sortReviews(reviews, sortType) {
+        const sorted = [...reviews];
+        switch(sortType) {
+            case 'rating_desc':
+                return sorted.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+            case 'rating_asc':
+                return sorted.sort((a, b) => (a.rating || 0) - (b.rating || 0));
+            case 'created_desc':
+            default:
+                return sorted.sort((a, b) => {
+                    const dateA = new Date(a.created_at || 0);
+                    const dateB = new Date(b.created_at || 0);
+                    return dateB - dateA;
+                });
+        }
+    }
+    
+    // 정렬 변경 이벤트
+    if (modalSortSelect && modalList) {
+        modalSortSelect.addEventListener('change', function() {
+            if (typeof allReviewsData === 'undefined') return;
+            
+            const sortedReviews = sortReviews(allReviewsData, this.value);
+            window.reviewModalSortedReviews = sortedReviews;
+            window.reviewModalDisplayedCount = 0;
+            
+            // 처음 10개만 표시
+            modalList.innerHTML = window.renderReviewItems(sortedReviews, 0, 10);
+            window.reviewModalDisplayedCount = Math.min(10, sortedReviews.length);
+            
+            // 더보기 버튼 표시/숨김 및 텍스트 업데이트 처리
+            const modalMoreWrapper = document.getElementById('reviewListModalMoreWrapper');
+            const modalMoreBtn = document.getElementById('reviewListModalMoreBtn');
+            if (modalMoreWrapper) {
+                if (window.reviewModalDisplayedCount < sortedReviews.length) {
+                    modalMoreWrapper.style.display = 'block';
+                    // 남은 개수 표시
+                    const remainingCount = sortedReviews.length - window.reviewModalDisplayedCount;
+                    if (modalMoreBtn) {
+                        modalMoreBtn.textContent = `리뷰 더보기 (${remainingCount.toLocaleString()}개)`;
+                    }
+                } else {
+                    modalMoreWrapper.style.display = 'none';
+                }
+            }
+            
+            // 스크롤을 맨 위로
+            if (modalList) {
+                modalList.scrollTop = 0;
+            }
+        });
+    }
+    
+    // 더보기 버튼 클릭 이벤트
+    const modalMoreBtn = document.getElementById('reviewListModalMoreBtn');
+    const modalMoreWrapper = document.getElementById('reviewListModalMoreWrapper');
+    if (modalMoreBtn && modalList) {
+        modalMoreBtn.addEventListener('click', function() {
+            if (typeof window.reviewModalSortedReviews === 'undefined') return;
+            
+            const sortedReviews = window.reviewModalSortedReviews;
+            const currentCount = window.reviewModalDisplayedCount || 0;
+            
+            // 다음 10개 가져오기
+            const nextReviews = window.renderReviewItems(sortedReviews, currentCount, 10);
+            modalList.insertAdjacentHTML('beforeend', nextReviews);
+            
+            // 표시된 개수 업데이트
+            window.reviewModalDisplayedCount = Math.min(currentCount + 10, sortedReviews.length);
+            
+            // 더보기 버튼 표시/숨김 및 텍스트 업데이트 처리
+            if (modalMoreWrapper) {
+                if (window.reviewModalDisplayedCount < sortedReviews.length) {
+                    modalMoreWrapper.style.display = 'block';
+                    // 남은 개수 표시
+                    const remainingCount = sortedReviews.length - window.reviewModalDisplayedCount;
+                    if (modalMoreBtn) {
+                        modalMoreBtn.textContent = `리뷰 더보기 (${remainingCount.toLocaleString()}개)`;
+                    }
+                } else {
+                    modalMoreWrapper.style.display = 'none';
+                }
+            }
+        });
+    }
+});
 
 // 아코디언 기능
 // 아코디언 토글 함수 (전역으로 노출)

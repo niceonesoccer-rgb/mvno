@@ -20,6 +20,10 @@ if (!$currentUser || !isAdmin($currentUser['user_id'])) {
 // 검색 파라미터
 $productType = trim($_GET['product_type'] ?? '');
 
+// 판매자 검색 파라미터
+$sellerId = trim($_GET['seller_id'] ?? '');
+$sellerName = trim($_GET['seller_name'] ?? '');
+
 // 카테고리별 필터 파라미터
 $provider = trim($_GET['provider'] ?? '');
 $contractPeriod = trim($_GET['contract_period'] ?? '');
@@ -113,9 +117,56 @@ try {
             $params[':delivery_method'] = $deliveryMethod;
         }
         if (!empty($provider)) {
-            // 통신사는 JSON 필드에서 검색
-            $whereConditions[] = "(mno.common_provider LIKE :provider_json OR mno.contract_provider LIKE :provider_json)";
-            $params[':provider_json'] = '%' . $provider . '%';
+            // 통신사는 JSON 배열 필드에서 검색
+            // 다양한 형식 지원: "lg" -> "LG U+", "lgu+" -> "LG U+", "skt" -> "SKT", "kt" -> "KT"
+            $providerLower = strtolower($provider);
+            $providerMap = [
+                'kt' => ['KT'],
+                'skt' => ['SKT'],
+                'lg' => ['LG U+', 'LGU+'],
+                'lgu+' => ['LG U+', 'LGU+'],
+                'lgu' => ['LG U+', 'LGU+']
+            ];
+            
+            // 매핑된 통신사명들 가져오기
+            $providerSearches = $providerMap[$providerLower] ?? [strtoupper($provider)];
+            
+            // 여러 형식으로 검색 (공백 유무 모두 처리)
+            // JSON 배열에서 정확히 통신사가 포함된 경우만 검색
+            $providerConditions = [];
+            $paramIndex = 0;
+            foreach ($providerSearches as $providerSearch) {
+                // JSON 배열 형식: ["SKT", "KT", "LG U+"]
+                // JSON_CONTAINS를 사용하여 정확한 값만 매칭
+                $paramKey1 = ':provider_json_contains_' . $paramIndex;
+                $paramKey2 = ':provider_json_contains2_' . $paramIndex;
+                $paramKey3 = ':provider_json_like_' . $paramIndex;
+                $paramKey4 = ':provider_json_like2_' . $paramIndex;
+                
+                // JSON_CONTAINS 사용 (MySQL 5.7+)
+                // JSON_CONTAINS가 실패할 경우를 대비해 LIKE도 함께 사용
+                $providerConditions[] = "(
+                    (mno.common_provider IS NOT NULL AND mno.common_provider != '' AND (
+                        JSON_CONTAINS(mno.common_provider, {$paramKey1}) = 1
+                        OR mno.common_provider LIKE {$paramKey3}
+                    ))
+                    OR (mno.contract_provider IS NOT NULL AND mno.contract_provider != '' AND (
+                        JSON_CONTAINS(mno.contract_provider, {$paramKey2}) = 1
+                        OR mno.contract_provider LIKE {$paramKey4}
+                    ))
+                )";
+                // JSON_CONTAINS용: JSON 문자열로 변환
+                $params[$paramKey1] = '"' . $providerSearch . '"';
+                $params[$paramKey2] = '"' . $providerSearch . '"';
+                // LIKE용: 큰따옴표로 감싸진 값 검색
+                $params[$paramKey3] = '%"' . $providerSearch . '"%';
+                $params[$paramKey4] = '%"' . $providerSearch . '"%';
+                $paramIndex++;
+            }
+            
+            if (!empty($providerConditions)) {
+                $whereConditions[] = '(' . implode(' OR ', $providerConditions) . ')';
+            }
         }
     } else if ($productType === 'mno_sim' || $isMnoSim) {
         // 통신사단독유심 필터
@@ -143,6 +194,16 @@ try {
         }
     }
     
+    // 판매자 검색 필터 추가
+    if (!empty($sellerId)) {
+        $whereConditions[] = "CAST(p.seller_id AS CHAR) COLLATE utf8mb4_unicode_ci = :seller_id";
+        $params[':seller_id'] = $sellerId;
+    }
+    if (!empty($sellerName)) {
+        $whereConditions[] = "(u.seller_name LIKE :seller_name OR u.name LIKE :seller_name OR u.company_name LIKE :seller_name)";
+        $params[':seller_name'] = '%' . $sellerName . '%';
+    }
+    
     $whereClause = implode(' AND ', $whereConditions);
     
     // 판매자 정보 조인 (항상 조인하여 판매자 정보 가져오기)
@@ -164,11 +225,17 @@ try {
                 COALESCE(mno_sim.plan_name, '알 수 없음') AS product_name,
                 '통신사단독유심' AS product_type_name,
                 mno_sim.provider,
+                mno_sim.contract_period,
                 mno_sim.price_main,
                 mno_sim.price_after,
+                mno_sim.discount_period,
+                mno_sim.discount_period_value,
+                mno_sim.discount_period_unit,
                 mno_sim.data_amount,
                 mno_sim.data_amount_value,
                 mno_sim.data_unit,
+                mno_sim.data_additional,
+                mno_sim.data_additional_value,
                 mno_sim.call_type,
                 mno_sim.call_amount,
                 mno_sim.sms_type,
@@ -202,7 +269,7 @@ try {
                     ELSE '알 수 없음'
                 END AS product_name,
                 CASE 
-                    WHEN p.product_type = 'mvno' THEN '알뜰폰'
+                    WHEN p.product_type = 'mvno' THEN ''
                     WHEN p.product_type = 'mno' THEN '통신사폰'
                     WHEN p.product_type = 'internet' THEN '인터넷'
                     ELSE '기타'
@@ -211,6 +278,7 @@ try {
                 mvno.provider AS mvno_provider,
                 mvno.price_main AS mvno_price_main,
                 mvno.price_after AS mvno_price_after,
+                mvno.discount_period AS mvno_discount_period,
                 mvno.data_amount AS mvno_data_amount,
                 mvno.data_amount_value AS mvno_data_amount_value,
                 mvno.data_unit AS mvno_data_unit,
@@ -220,7 +288,30 @@ try {
                 mvno.sms_amount AS mvno_sms_amount,
                 mvno.service_type AS mvno_service_type,
                 -- MNO 상세 정보
+                mno.device_name AS mno_device_name,
+                mno.device_price AS mno_device_price,
+                mno.device_capacity AS mno_device_capacity,
+                mno.common_provider AS mno_common_provider,
+                mno.common_discount_new AS mno_common_discount_new,
+                mno.common_discount_port AS mno_common_discount_port,
+                mno.common_discount_change AS mno_common_discount_change,
+                mno.contract_provider AS mno_contract_provider,
+                mno.contract_discount_new AS mno_contract_discount_new,
+                mno.contract_discount_port AS mno_contract_discount_port,
+                mno.contract_discount_change AS mno_contract_discount_change,
+                mno.service_type AS mno_service_type,
+                mno.contract_period AS mno_contract_period,
+                mno.contract_period_value AS mno_contract_period_value,
                 mno.price_main AS mno_price_main,
+                mno.data_amount AS mno_data_amount,
+                mno.data_amount_value AS mno_data_amount_value,
+                mno.data_unit AS mno_data_unit,
+                mno.call_type AS mno_call_type,
+                mno.call_amount AS mno_call_amount,
+                mno.sms_type AS mno_sms_type,
+                mno.sms_amount AS mno_sms_amount,
+                mno.delivery_method AS mno_delivery_method,
+                mno.visit_region AS mno_visit_region,
                 -- Internet 상세 정보
                 inet.monthly_fee AS internet_monthly_fee,
                 inet.registration_place AS internet_registration_place,
@@ -332,6 +423,7 @@ try {
             $productData['provider'] = $product['mvno_provider'] ?? '';
             $productData['price_main'] = $product['mvno_price_main'] ?? 0;
             $productData['price_after'] = $product['mvno_price_after'] ?? 0;
+            $productData['discount_period'] = $product['mvno_discount_period'] ?? '';
             $productData['data_amount'] = $product['mvno_data_amount'] ?? '';
             $productData['data_amount_value'] = $product['mvno_data_amount_value'] ?? '';
             $productData['data_unit'] = $product['mvno_data_unit'] ?? '';
@@ -343,7 +435,30 @@ try {
         }
         // MNO 상품 정보
         elseif ($product['product_type'] === 'mno') {
+            $productData['device_name'] = $product['mno_device_name'] ?? '';
+            $productData['device_price'] = $product['mno_device_price'] ?? 0;
+            $productData['device_capacity'] = $product['mno_device_capacity'] ?? '';
+            $productData['common_provider'] = $product['mno_common_provider'] ?? '';
+            $productData['common_discount_new'] = $product['mno_common_discount_new'] ?? '';
+            $productData['common_discount_port'] = $product['mno_common_discount_port'] ?? '';
+            $productData['common_discount_change'] = $product['mno_common_discount_change'] ?? '';
+            $productData['contract_provider'] = $product['mno_contract_provider'] ?? '';
+            $productData['contract_discount_new'] = $product['mno_contract_discount_new'] ?? '';
+            $productData['contract_discount_port'] = $product['mno_contract_discount_port'] ?? '';
+            $productData['contract_discount_change'] = $product['mno_contract_discount_change'] ?? '';
+            $productData['service_type'] = $product['mno_service_type'] ?? '';
+            $productData['contract_period'] = $product['mno_contract_period'] ?? '';
+            $productData['contract_period_value'] = $product['mno_contract_period_value'] ?? '';
             $productData['price_main'] = $product['mno_price_main'] ?? 0;
+            $productData['data_amount'] = $product['mno_data_amount'] ?? '';
+            $productData['data_amount_value'] = $product['mno_data_amount_value'] ?? '';
+            $productData['data_unit'] = $product['mno_data_unit'] ?? '';
+            $productData['call_type'] = $product['mno_call_type'] ?? '';
+            $productData['call_amount'] = $product['mno_call_amount'] ?? '';
+            $productData['sms_type'] = $product['mno_sms_type'] ?? '';
+            $productData['sms_amount'] = $product['mno_sms_amount'] ?? '';
+            $productData['delivery_method'] = $product['mno_delivery_method'] ?? '';
+            $productData['visit_region'] = $product['mno_visit_region'] ?? '';
         }
         // Internet 상품 정보
         elseif ($product['product_type'] === 'internet') {
@@ -355,11 +470,17 @@ try {
         // MNO-SIM 상품 정보 (이미 SQL에서 가져옴)
         elseif ($isMnoSim) {
             $productData['provider'] = $product['provider'] ?? '';
+            $productData['contract_period'] = $product['contract_period'] ?? '';
             $productData['price_main'] = $product['price_main'] ?? 0;
             $productData['price_after'] = $product['price_after'] ?? 0;
+            $productData['discount_period'] = $product['discount_period'] ?? '';
+            $productData['discount_period_value'] = $product['discount_period_value'] ?? null;
+            $productData['discount_period_unit'] = $product['discount_period_unit'] ?? '';
             $productData['data_amount'] = $product['data_amount'] ?? '';
             $productData['data_amount_value'] = $product['data_amount_value'] ?? '';
             $productData['data_unit'] = $product['data_unit'] ?? '';
+            $productData['data_additional'] = $product['data_additional'] ?? '';
+            $productData['data_additional_value'] = $product['data_additional_value'] ?? '';
             $productData['call_type'] = $product['call_type'] ?? '';
             $productData['call_amount'] = $product['call_amount'] ?? '';
             $productData['sms_type'] = $product['sms_type'] ?? '';

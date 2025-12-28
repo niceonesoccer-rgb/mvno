@@ -213,3 +213,4 @@ product_snapshot: {
 - 각 상품 타입(mvno, mno, mno-sim, internet)별로 **분리된 필드**만 저장되어야 함
 
 
+
