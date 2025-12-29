@@ -9,6 +9,146 @@ date_default_timezone_set('Asia/Seoul');
 require_once __DIR__ . '/db-config.php';
 
 /**
+ * 이미지 리사이징 및 압축 함수 (5MB 이하로 자동 축소)
+ */
+function compressImage($sourcePath, $targetPath, $maxSizeMB = 5) {
+    $maxSizeBytes = $maxSizeMB * 1024 * 1024;
+    
+    // 파일 크기 확인
+    $fileSize = filesize($sourcePath);
+    if ($fileSize <= $maxSizeBytes) {
+        // 이미 목표 크기 이하이면 그대로 복사
+        return copy($sourcePath, $targetPath);
+    }
+    
+    // 이미지 정보 가져오기
+    $imageInfo = getimagesize($sourcePath);
+    if ($imageInfo === false) {
+        return false;
+    }
+    
+    $mimeType = $imageInfo['mime'];
+    $width = $imageInfo[0];
+    $height = $imageInfo[1];
+    
+    // 이미지 리소스 생성
+    switch ($mimeType) {
+        case 'image/jpeg':
+        case 'image/jpg':
+            $sourceImage = @imagecreatefromjpeg($sourcePath);
+            break;
+        case 'image/png':
+            $sourceImage = @imagecreatefrompng($sourcePath);
+            break;
+        case 'image/gif':
+            $sourceImage = @imagecreatefromgif($sourcePath);
+            break;
+        case 'image/webp':
+            $sourceImage = @imagecreatefromwebp($sourcePath);
+            break;
+        default:
+            return false;
+    }
+    
+    if ($sourceImage === false) {
+        return false;
+    }
+    
+    // 최대 너비/높이 설정 (큰 이미지 리사이징)
+    $maxDimension = 3000; // 최대 3000px
+    $scale = 1.0;
+    
+    if ($width > $maxDimension || $height > $maxDimension) {
+        $scale = min($maxDimension / $width, $maxDimension / $height);
+    }
+    
+    $newWidth = (int)($width * $scale);
+    $newHeight = (int)($height * $scale);
+    
+    // 새 이미지 생성
+    $newImage = imagecreatetruecolor($newWidth, $newHeight);
+    
+    // PNG/WebP 투명도 유지
+    if ($mimeType === 'image/png' || $mimeType === 'image/webp') {
+        imagealphablending($newImage, false);
+        imagesavealpha($newImage, true);
+        $transparent = imagecolorallocatealpha($newImage, 255, 255, 255, 127);
+        imagefilledrectangle($newImage, 0, 0, $newWidth, $newHeight, $transparent);
+    }
+    
+    // 이미지 리사이징
+    imagecopyresampled($newImage, $sourceImage, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
+    
+    // 품질 조정하여 저장
+    $quality = 85;
+    $attempts = 0;
+    $maxAttempts = 10;
+    
+    do {
+        $tempPath = $targetPath . '.tmp';
+        
+        switch ($mimeType) {
+            case 'image/jpeg':
+            case 'image/jpg':
+                imagejpeg($newImage, $tempPath, $quality);
+                break;
+            case 'image/png':
+                $compression = 9 - (int)(($quality - 50) / 5);
+                $compression = max(0, min(9, $compression));
+                imagepng($newImage, $tempPath, $compression);
+                break;
+            case 'image/gif':
+                imagegif($newImage, $tempPath);
+                break;
+            case 'image/webp':
+                imagewebp($newImage, $tempPath, $quality);
+                break;
+        }
+        
+        $newFileSize = filesize($tempPath);
+        
+        if ($newFileSize <= $maxSizeBytes) {
+            rename($tempPath, $targetPath);
+            imagedestroy($sourceImage);
+            imagedestroy($newImage);
+            return true;
+        }
+        
+        $quality -= 10;
+        $attempts++;
+        
+        // 품질이 너무 낮아지면 리사이징 크기 줄이기
+        if ($quality < 50 && $attempts < $maxAttempts) {
+            $scale *= 0.9;
+            $newWidth = (int)($width * $scale);
+            $newHeight = (int)($height * $scale);
+            imagedestroy($newImage);
+            $newImage = imagecreatetruecolor($newWidth, $newHeight);
+            if ($mimeType === 'image/png' || $mimeType === 'image/webp') {
+                imagealphablending($newImage, false);
+                imagesavealpha($newImage, true);
+                $transparent = imagecolorallocatealpha($newImage, 255, 255, 255, 127);
+                imagefilledrectangle($newImage, 0, 0, $newWidth, $newHeight, $transparent);
+            }
+            imagecopyresampled($newImage, $sourceImage, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
+            $quality = 85; // 품질 다시 초기화
+        }
+    } while ($attempts < $maxAttempts);
+    
+    // 최대 시도 횟수 초과 시 마지막 파일 사용
+    if (file_exists($tempPath)) {
+        rename($tempPath, $targetPath);
+        imagedestroy($sourceImage);
+        imagedestroy($newImage);
+        return true;
+    }
+    
+    imagedestroy($sourceImage);
+    imagedestroy($newImage);
+    return false;
+}
+
+/**
  * 테이블 자동 생성 함수
  */
 function ensureSellerInquiryTables() {
@@ -26,7 +166,7 @@ function ensureSellerInquiryTables() {
                 `seller_id` VARCHAR(50) NOT NULL COMMENT '판매자 user_id',
                 `title` VARCHAR(255) NOT NULL COMMENT '제목',
                 `content` TEXT NOT NULL COMMENT '내용',
-                `status` ENUM('pending', 'answered', 'closed') NOT NULL DEFAULT 'pending' COMMENT '상태: pending=답변대기, answered=답변완료, closed=확인완료',
+                `status` ENUM('pending', 'answered') NOT NULL DEFAULT 'pending' COMMENT '상태: pending=답변대기, answered=답변완료',
                 `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '작성일시',
                 `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정일시',
                 `answered_at` DATETIME DEFAULT NULL COMMENT '답변 작성 시간',
@@ -148,7 +288,7 @@ function createSellerInquiry($sellerId, $title, $content, $attachments = []) {
 /**
  * 판매자 문의 수정 (답변 전이고 관리자가 확인하지 않은 경우만 가능)
  */
-function updateSellerInquiry($inquiryId, $sellerId, $title, $content, $attachments = []) {
+function updateSellerInquiry($inquiryId, $sellerId, $title, $content, $attachments = [], $keepFileIds = []) {
     ensureSellerInquiryTables();
     $pdo = getDBConnection();
     if (!$pdo) return false;
@@ -190,44 +330,99 @@ function updateSellerInquiry($inquiryId, $sellerId, $title, $content, $attachmen
             return false;
         }
         
-        // 기존 첨부파일 삭제
-        $stmt = $pdo->prepare("
-            SELECT file_path FROM seller_inquiry_attachments 
-            WHERE inquiry_id = :inquiry_id AND reply_id IS NULL
-        ");
-        $stmt->execute([':inquiry_id' => $inquiryId]);
-        $oldAttachments = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        // 삭제할 파일 처리
+        // 새 파일을 업로드한 경우에만 keepFileIds에 없는 파일 삭제
+        // 새 파일을 업로드하지 않은 경우: 기존 파일은 모두 유지 (변경 없음)
         
-        foreach ($oldAttachments as $old) {
-            $filePath = __DIR__ . '/../..' . $old['file_path'];
-            if (file_exists($filePath)) {
-                @unlink($filePath);
+        if (!empty($attachments)) {
+            // 새 파일을 업로드한 경우에만 기존 파일 삭제 처리
+            error_log("updateSellerInquiry: New files uploaded, processing file deletion");
+            
+            // 기존 파일 목록 조회
+            $stmt = $pdo->prepare("
+                SELECT id, file_path FROM seller_inquiry_attachments 
+                WHERE inquiry_id = :inquiry_id AND reply_id IS NULL
+            ");
+            $stmt->execute([':inquiry_id' => $inquiryId]);
+            $allExistingFiles = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            // 삭제할 파일 결정
+            $filesToDelete = [];
+            if (!empty($keepFileIds)) {
+                // keepFileIds에 없는 파일 삭제
+                foreach ($allExistingFiles as $existing) {
+                    if (!in_array($existing['id'], $keepFileIds)) {
+                        $filesToDelete[] = $existing;
+                    }
+                }
+                error_log("updateSellerInquiry: Keeping " . count($keepFileIds) . " files, deleting " . count($filesToDelete) . " files");
+            } else {
+                // keepFileIds가 비어있으면 모든 기존 파일 삭제
+                $filesToDelete = $allExistingFiles;
+                error_log("updateSellerInquiry: No keepFileIds, deleting all " . count($filesToDelete) . " existing files");
             }
+            
+            // 파일 삭제 실행
+            if (!empty($filesToDelete)) {
+                foreach ($filesToDelete as $old) {
+                    // DB 경로를 실제 파일 시스템 경로로 변환
+                    $dbPath = $old['file_path'];
+                    $actualPath = str_replace('/MVNO', '', $dbPath);
+                    $filePath = __DIR__ . '/../..' . $actualPath;
+                    if (file_exists($filePath)) {
+                        @unlink($filePath);
+                        error_log("updateSellerInquiry: Deleted file: $filePath");
+                    }
+                }
+                
+                // DB에서 삭제
+                $deleteIds = array_column($filesToDelete, 'id');
+                if (!empty($deleteIds)) {
+                    $placeholders = implode(',', array_fill(0, count($deleteIds), '?'));
+                    $stmt = $pdo->prepare("
+                        DELETE FROM seller_inquiry_attachments 
+                        WHERE id IN ($placeholders) AND inquiry_id = ?
+                    ");
+                    $stmt->execute(array_merge($deleteIds, [$inquiryId]));
+                    error_log("updateSellerInquiry: Deleted " . count($deleteIds) . " files from DB");
+                }
+            }
+        } else {
+            // 새 파일을 업로드하지 않은 경우: 기존 파일 유지 (변경 없음)
+            error_log("updateSellerInquiry: No new files uploaded, keeping all existing files");
         }
-        
-        $stmt = $pdo->prepare("
-            DELETE FROM seller_inquiry_attachments 
-            WHERE inquiry_id = :inquiry_id AND reply_id IS NULL
-        ");
-        $stmt->execute([':inquiry_id' => $inquiryId]);
         
         // 새 첨부파일 등록
         if (!empty($attachments)) {
+            error_log("updateSellerInquiry: Saving " . count($attachments) . " attachments to DB");
             foreach ($attachments as $attachment) {
-                $stmt = $pdo->prepare("
-                    INSERT INTO seller_inquiry_attachments 
-                    (inquiry_id, file_name, file_path, file_size, file_type, uploaded_by, created_at)
-                    VALUES (:inquiry_id, :file_name, :file_path, :file_size, :file_type, :uploaded_by, NOW())
-                ");
-                $stmt->execute([
-                    ':inquiry_id' => $inquiryId,
-                    ':file_name' => $attachment['file_name'],
-                    ':file_path' => $attachment['file_path'],
-                    ':file_size' => $attachment['file_size'],
-                    ':file_type' => $attachment['file_type'],
-                    ':uploaded_by' => $sellerId
-                ]);
+                error_log("updateSellerInquiry: Inserting attachment - " . json_encode($attachment));
+                try {
+                    $stmt = $pdo->prepare("
+                        INSERT INTO seller_inquiry_attachments 
+                        (inquiry_id, file_name, file_path, file_size, file_type, uploaded_by, created_at)
+                        VALUES (:inquiry_id, :file_name, :file_path, :file_size, :file_type, :uploaded_by, NOW())
+                    ");
+                    $result = $stmt->execute([
+                        ':inquiry_id' => $inquiryId,
+                        ':file_name' => $attachment['file_name'],
+                        ':file_path' => $attachment['file_path'],
+                        ':file_size' => $attachment['file_size'],
+                        ':file_type' => $attachment['file_type'],
+                        ':uploaded_by' => $sellerId
+                    ]);
+                    if ($result) {
+                        error_log("updateSellerInquiry: Attachment inserted successfully - ID: " . $pdo->lastInsertId());
+                    } else {
+                        error_log("updateSellerInquiry: Failed to insert attachment");
+                    }
+                } catch (PDOException $e) {
+                    error_log("updateSellerInquiry: DB error inserting attachment - " . $e->getMessage());
+                    throw $e;
+                }
             }
+        } else {
+            error_log("updateSellerInquiry: No attachments to save");
         }
         
         $pdo->commit();
@@ -266,7 +461,7 @@ function deleteSellerInquiry($inquiryId, $sellerId) {
         
         $pdo->beginTransaction();
         
-        // 첨부파일 삭제
+        // 첨부파일 삭제 (문의 첨부파일 + 답변 첨부파일 모두)
         $stmt = $pdo->prepare("
             SELECT file_path FROM seller_inquiry_attachments 
             WHERE inquiry_id = :inquiry_id
@@ -274,10 +469,39 @@ function deleteSellerInquiry($inquiryId, $sellerId) {
         $stmt->execute([':inquiry_id' => $inquiryId]);
         $attachments = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
+        $deletedDirs = [];
         foreach ($attachments as $attachment) {
-            $filePath = __DIR__ . '/../..' . $attachment['file_path'];
+            // DB 경로를 실제 파일 시스템 경로로 변환
+            // DB 경로: /MVNO/uploads/... -> 실제 경로: __DIR__/../../uploads/...
+            $dbPath = $attachment['file_path'];
+            $actualPath = str_replace('/MVNO', '', $dbPath);
+            // __DIR__은 includes/data이므로 ../../로 루트로 이동
+            $filePath = __DIR__ . '/../..' . $actualPath;
             if (file_exists($filePath)) {
                 @unlink($filePath);
+                
+                // 답변 첨부파일인 경우 디렉토리도 삭제 대상에 추가
+                $fileDir = dirname($filePath);
+                if (strpos($actualPath, '/replies/') !== false && !in_array($fileDir, $deletedDirs)) {
+                    $deletedDirs[] = $fileDir;
+                }
+            }
+        }
+        
+        // 답변 첨부파일 디렉토리 삭제
+        foreach ($deletedDirs as $dir) {
+            if (is_dir($dir)) {
+                @rmdir($dir); // 디렉토리가 비어있으면 삭제
+            }
+        }
+        
+        // 문의 첨부파일 디렉토리 삭제 (비어있으면)
+        $inquiryDir = __DIR__ . '/../../uploads/seller-inquiries/' . $inquiryId;
+        if (is_dir($inquiryDir)) {
+            // 디렉토리가 비어있는지 확인
+            $files = array_diff(scandir($inquiryDir), ['.', '..']);
+            if (empty($files)) {
+                @rmdir($inquiryDir);
             }
         }
         
@@ -512,36 +736,8 @@ function createSellerInquiryReply($inquiryId, $adminId, $content, $attachments =
 }
 
 /**
- * 판매자 확인 처리 (answered -> closed)
+ * 판매자 확인 처리 함수 제거됨 - closed 상태 사용 안 함
  */
-function markSellerInquiryAsClosed($inquiryId, $sellerId) {
-    ensureSellerInquiryTables();
-    $pdo = getDBConnection();
-    if (!$pdo) return false;
-    
-    // 권한 확인
-    $inquiry = getSellerInquiryById($inquiryId);
-    if (!$inquiry || $inquiry['seller_id'] !== $sellerId) {
-        return false;
-    }
-    
-    // answered 상태만 closed로 변경 가능
-    if ($inquiry['status'] !== 'answered') {
-        return false;
-    }
-    
-    $stmt = $pdo->prepare("
-        UPDATE seller_inquiries 
-        SET status = 'closed', updated_at = NOW()
-        WHERE id = :id AND seller_id = :seller_id AND status = 'answered'
-    ");
-    $stmt->execute([
-        ':id' => $inquiryId,
-        ':seller_id' => $sellerId
-    ]);
-    
-    return $stmt->rowCount() > 0;
-}
 
 /**
  * 문의 첨부파일 목록 조회
@@ -640,31 +836,52 @@ function uploadSellerInquiryAttachment($file, $inquiryId, $userId) {
     error_log("uploadSellerInquiryAttachment: temp file path - " . $file['tmp_name']);
     error_log("uploadSellerInquiryAttachment: temp file exists - " . (file_exists($file['tmp_name']) ? 'yes' : 'no'));
     
-    // 파일 이동
-    $moveResult = move_uploaded_file($file['tmp_name'], $filePath);
-    error_log("uploadSellerInquiryAttachment: move_uploaded_file result - " . ($moveResult ? 'success' : 'failed'));
+    // 이미지 파일이고 5MB 이상이면 압축
+    $isImage = in_array($mimeType, ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']);
+    $fileSize = $file['size'];
+    $maxSizeForCompression = 5 * 1024 * 1024; // 5MB
     
-    if ($moveResult) {
-        $fileExists = file_exists($filePath);
-        $fileSize = $fileExists ? filesize($filePath) : 0;
-        error_log("uploadSellerInquiryAttachment: file exists after move - " . ($fileExists ? 'yes' : 'no') . ", size: $fileSize");
-        
-        $result = [
-            'file_name' => $file['name'],
-            'file_path' => '/MVNO/uploads/seller-inquiries/' . $inquiryId . '/' . $fileName,
-            'file_size' => $file['size'],
-            'file_type' => $mimeType
-        ];
-        error_log("uploadSellerInquiryAttachment: returning result - " . json_encode($result));
-        return $result;
+    if ($isImage && $fileSize > $maxSizeForCompression) {
+        error_log("uploadSellerInquiryAttachment: Image file is larger than 5MB, compressing...");
+        $compressed = compressImage($file['tmp_name'], $filePath, 5);
+        if ($compressed) {
+            $finalFileSize = filesize($filePath);
+            error_log("uploadSellerInquiryAttachment: Image compressed successfully. Original: {$fileSize} bytes, Compressed: {$finalFileSize} bytes");
+            $fileSize = $finalFileSize;
+        } else {
+            error_log("uploadSellerInquiryAttachment: Image compression failed, using original file");
+            $moveResult = move_uploaded_file($file['tmp_name'], $filePath);
+            if (!$moveResult) {
+                error_log("uploadSellerInquiryAttachment: move_uploaded_file failed");
+                return null;
+            }
+        }
     } else {
-        error_log("uploadSellerInquiryAttachment: move_uploaded_file failed");
-        if (file_exists($file['tmp_name'])) {
-            error_log("uploadSellerInquiryAttachment: temp file still exists");
+        // 이미지가 아니거나 5MB 이하면 그대로 이동
+        $moveResult = move_uploaded_file($file['tmp_name'], $filePath);
+        error_log("uploadSellerInquiryAttachment: move_uploaded_file result - " . ($moveResult ? 'success' : 'failed'));
+        
+        if (!$moveResult) {
+            error_log("uploadSellerInquiryAttachment: move_uploaded_file failed");
+            if (file_exists($file['tmp_name'])) {
+                error_log("uploadSellerInquiryAttachment: temp file still exists");
+            }
+            return null;
         }
     }
     
-    return null;
+    $fileExists = file_exists($filePath);
+    $finalSize = $fileExists ? filesize($filePath) : 0;
+    error_log("uploadSellerInquiryAttachment: file exists after processing - " . ($fileExists ? 'yes' : 'no') . ", size: $finalSize");
+    
+    $result = [
+        'file_name' => $file['name'],
+        'file_path' => '/MVNO/uploads/seller-inquiries/' . $inquiryId . '/' . $fileName,
+        'file_size' => $finalSize,
+        'file_type' => $mimeType
+    ];
+    error_log("uploadSellerInquiryAttachment: returning result - " . json_encode($result));
+    return $result;
 }
 
 /**
@@ -709,12 +926,36 @@ function uploadSellerInquiryReplyAttachment($file, $inquiryId, $replyId, $userId
     $fileName = date('YmdHis') . '_' . uniqid() . '.' . $extension;
     $filePath = $uploadDir . $fileName;
     
+    // 이미지 파일이고 5MB 이상이면 압축
+    $isImage = in_array($mimeType, ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']);
+    $fileSize = $file['size'];
+    $maxSizeForCompression = 5 * 1024 * 1024; // 5MB
+    
+    $moveResult = false;
+    if ($isImage && $fileSize > $maxSizeForCompression) {
+        error_log("uploadSellerInquiryReplyAttachment: Image file is larger than 5MB, compressing...");
+        $compressed = compressImage($file['tmp_name'], $filePath, 5);
+        if ($compressed) {
+            $finalFileSize = filesize($filePath);
+            error_log("uploadSellerInquiryReplyAttachment: Image compressed successfully. Original: {$fileSize} bytes, Compressed: {$finalFileSize} bytes");
+            $fileSize = $finalFileSize;
+            $moveResult = true;
+        } else {
+            error_log("uploadSellerInquiryReplyAttachment: Image compression failed, using original file");
+            $moveResult = move_uploaded_file($file['tmp_name'], $filePath);
+        }
+    } else {
+        // 이미지가 아니거나 5MB 이하면 그대로 이동
+        $moveResult = move_uploaded_file($file['tmp_name'], $filePath);
+    }
+    
     // 파일 이동
-    if (move_uploaded_file($file['tmp_name'], $filePath)) {
+    if ($moveResult) {
+        $finalSize = filesize($filePath);
         return [
             'file_name' => $file['name'],
             'file_path' => '/MVNO/uploads/seller-inquiries/' . $inquiryId . '/replies/' . $replyId . '/' . $fileName,
-            'file_size' => $file['size'],
+            'file_size' => $finalSize,
             'file_type' => $mimeType
         ];
     }

@@ -57,14 +57,20 @@ if ($pdo) {
     error_log("inquiry-detail.php: DB direct query - " . count($dbAttachments) . " attachments found");
     foreach ($dbAttachments as $idx => $att) {
         error_log("inquiry-detail.php: DB attachment[$idx] - " . json_encode($att));
-        $filePath = __DIR__ . '/../..' . $att['file_path'];
+        // DB 경로를 실제 파일 시스템 경로로 변환
+        $dbPath = $att['file_path'];
+        $actualPath = str_replace('/MVNO', '', $dbPath);
+        $filePath = __DIR__ . '/../..' . $actualPath;
         error_log("inquiry-detail.php: file path - $filePath, exists - " . (file_exists($filePath) ? 'yes' : 'no'));
     }
 }
 
 foreach ($attachments as $idx => $att) {
     error_log("inquiry-detail.php: attachment[$idx] - " . json_encode($att));
-    $filePath = __DIR__ . '/../..' . $att['file_path'];
+    // DB 경로를 실제 파일 시스템 경로로 변환
+    $dbPath = $att['file_path'];
+    $actualPath = str_replace('/MVNO', '', $dbPath);
+    $filePath = __DIR__ . '/../..' . $actualPath;
     error_log("inquiry-detail.php: file path - $filePath, exists - " . (file_exists($filePath) ? 'yes' : 'no'));
 }
 
@@ -72,13 +78,6 @@ foreach ($attachments as $idx => $att) {
 $canEdit = ($inquiry['status'] === 'pending' && empty($inquiry['admin_viewed_at']));
 $canDelete = ($inquiry['status'] === 'pending' && empty($inquiry['admin_viewed_at']));
 
-// 확인 완료 처리
-if (isset($_GET['mark_closed']) && $inquiry['status'] === 'answered') {
-    if (markSellerInquiryAsClosed($inquiryId, $sellerId)) {
-        header('Location: /MVNO/seller/inquiry/inquiry-detail.php?id=' . $inquiryId . '&success=closed');
-        exit;
-    }
-}
 
 $currentPage = 'inquiry-detail.php';
 include '../includes/seller-header.php';
@@ -198,10 +197,7 @@ include '../includes/seller-header.php';
         color: #5b21b6;
     }
     
-    .status-badge.closed {
-        background: #d1fae5;
-        color: #065f46;
-    }
+    /* closed 상태 제거됨 */
     
     .inquiry-content {
         font-size: 15px;
@@ -217,24 +213,113 @@ include '../includes/seller-header.php';
         border-top: 1px solid #e5e7eb;
     }
     
-    .attachment-item {
+    .attachment-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        gap: 16px;
+        margin-top: 12px;
+    }
+    
+    .attachment-card {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 12px;
+        transition: all 0.3s;
+        position: relative;
+        overflow: hidden;
+        cursor: pointer;
+    }
+    
+    .attachment-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+        border-color: #6366f1;
+    }
+    
+    .attachment-preview {
+        width: 100%;
+        height: 150px;
+        object-fit: cover;
+        border-radius: 8px;
+        margin-bottom: 10px;
+        background: #f3f4f6;
         display: flex;
         align-items: center;
-        gap: 12px;
-        padding: 12px;
-        background: #f9fafb;
+        justify-content: center;
+        font-size: 48px;
+        color: #9ca3af;
+        cursor: pointer;
+    }
+    
+    .attachment-preview img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
         border-radius: 8px;
-        margin-bottom: 8px;
     }
     
-    .attachment-item a {
-        color: #6366f1;
+    .attachment-name {
+        font-size: 13px;
+        font-weight: 600;
+        color: #374151;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        margin-bottom: 4px;
+    }
+    
+    .attachment-size {
+        font-size: 12px;
+        color: #6b7280;
+    }
+    
+    .attachment-link {
         text-decoration: none;
-        font-weight: 500;
+        color: inherit;
+        display: block;
     }
     
-    .attachment-item a:hover {
-        text-decoration: underline;
+    .attachment-link:hover {
+        text-decoration: none;
+    }
+    
+    /* 이미지 확대 모달 */
+    .image-modal {
+        display: none;
+        position: fixed;
+        z-index: 10000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.9);
+        cursor: pointer;
+    }
+    
+    .image-modal-content {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        max-width: 90%;
+        max-height: 90%;
+        object-fit: contain;
+    }
+    
+    .image-modal-close {
+        position: absolute;
+        top: 20px;
+        right: 35px;
+        color: #f1f1f1;
+        font-size: 40px;
+        font-weight: bold;
+        cursor: pointer;
+        z-index: 10001;
+    }
+    
+    .image-modal-close:hover {
+        color: #fff;
     }
     
     .reply-section {
@@ -330,43 +415,24 @@ include '../includes/seller-header.php';
     <?php if (isset($_GET['success'])): ?>
         <?php if ($_GET['success'] === 'created'): ?>
             <div class="alert alert-success">문의가 등록되었습니다.</div>
-        <?php elseif ($_GET['success'] === 'closed'): ?>
-            <div class="alert alert-success">확인 완료 처리되었습니다.</div>
         <?php endif; ?>
     <?php endif; ?>
     
-    <?php if (!$canEdit && !empty($inquiry['admin_viewed_at'])): ?>
-        <div class="notice-box">
-            <p>⚠️ 관리자가 이 문의를 확인했습니다. 수정할 수 없습니다.</p>
-        </div>
-    <?php elseif (!$canEdit && $inquiry['status'] !== 'pending'): ?>
-        <div class="notice-box">
-            <p>⚠️ 답변이 완료된 문의는 수정할 수 없습니다.</p>
-        </div>
-    <?php endif; ?>
     
     <!-- 문의 내용 -->
     <div class="inquiry-card">
         <div class="inquiry-header">
             <div>
                 <div class="inquiry-title">
-                    <span class="status-badge <?php echo $inquiry['status']; ?>">
-                        <?php
-                        $statusText = [
-                            'pending' => '답변 대기',
-                            'answered' => '답변 완료',
-                            'closed' => '확인 완료'
-                        ];
-                        echo $statusText[$inquiry['status']];
-                        ?>
-                    </span>
+                    <?php if ($inquiry['status'] === 'pending'): ?>
+                        <span class="status-badge <?php echo $inquiry['status']; ?>">
+                            답변 대기
+                        </span>
+                    <?php endif; ?>
                     <?php echo htmlspecialchars($inquiry['title']); ?>
                 </div>
                 <div class="inquiry-meta">
-                    <span>작성일: <?php echo date('Y-m-d H:i', strtotime($inquiry['created_at'])); ?></span>
-                    <?php if (!empty($inquiry['admin_viewed_at'])): ?>
-                        <span>관리자 확인: <?php echo date('Y-m-d H:i', strtotime($inquiry['admin_viewed_at'])); ?></span>
-                    <?php endif; ?>
+                    <span><?php echo date('Y-m-d', strtotime($inquiry['created_at'])); ?></span>
                 </div>
             </div>
         </div>
@@ -375,30 +441,41 @@ include '../includes/seller-header.php';
         
         <?php if (!empty($attachments)): ?>
             <div class="attachment-section">
-                <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 12px; color: #1f2937;">첨부파일</h3>
-                <?php foreach ($attachments as $attachment): ?>
-                    <?php
-                    $filePath = __DIR__ . '/../..' . $attachment['file_path'];
-                    $fileExists = file_exists($filePath);
-                    ?>
-                    <div class="attachment-item">
-                        <span>📎</span>
-                        <?php if ($fileExists): ?>
-                            <a href="/MVNO/seller/inquiry/inquiry-download.php?file_id=<?php echo $attachment['id']; ?>" target="_blank">
+                <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 12px; color: #1f2937;">첨부파일 (<?php echo count($attachments); ?>개)</h3>
+                <div class="attachment-grid">
+                    <?php foreach ($attachments as $attachment): ?>
+                        <?php
+                        // DB 경로를 실제 파일 시스템 경로로 변환
+                        $dbPath = $attachment['file_path'];
+                        $actualPath = str_replace('/MVNO', '', $dbPath);
+                        $filePath = __DIR__ . '/../..' . $actualPath;
+                        $fileExists = file_exists($filePath);
+                        $isImage = strpos($attachment['file_type'], 'image/') === 0;
+                        $fileUrl = '/MVNO/seller/inquiry/inquiry-download.php?file_id=' . $attachment['id'];
+                        ?>
+                        <div class="attachment-card" onclick="<?php echo $isImage ? "openImageModal('$fileUrl', '" . htmlspecialchars($attachment['file_name'], ENT_QUOTES) . "', true)" : "window.open('$fileUrl', '_blank')"; ?>">
+                            <?php if ($isImage && $fileExists): ?>
+                                <div class="attachment-preview">
+                                    <img src="<?php echo $fileUrl; ?>" alt="<?php echo htmlspecialchars($attachment['file_name']); ?>" onerror="this.parentElement.innerHTML='🖼️';">
+                                </div>
+                            <?php else: ?>
+                                <div class="attachment-preview"><?php
+                                    if (strpos($attachment['file_type'], 'pdf') !== false) echo '📄';
+                                    elseif (strpos($attachment['file_type'], 'word') !== false || strpos($attachment['file_type'], 'document') !== false) echo '📝';
+                                    elseif (strpos($attachment['file_type'], 'excel') !== false || strpos($attachment['file_type'], 'spreadsheet') !== false) echo '📊';
+                                    elseif (strpos($attachment['file_type'], 'hwp') !== false) echo '📋';
+                                    else echo '📎';
+                                ?></div>
+                            <?php endif; ?>
+                            <div class="attachment-name" title="<?php echo htmlspecialchars($attachment['file_name']); ?>">
                                 <?php echo htmlspecialchars($attachment['file_name']); ?>
-                            </a>
-                        <?php else: ?>
-                            <span style="color: #ef4444;">
-                                <?php echo htmlspecialchars($attachment['file_name']); ?> (파일 없음)
-                            </span>
-                            <a href="/MVNO/seller/inquiry/inquiry-debug.php?id=<?php echo $inquiryId; ?>" style="margin-left: 8px; font-size: 12px; color: #6366f1;">디버깅</a>
-                            <a href="/MVNO/seller/inquiry/inquiry-check-db.php?id=<?php echo $inquiryId; ?>" style="margin-left: 8px; font-size: 12px; color: #6366f1;">DB확인</a>
-                        <?php endif; ?>
-                        <span style="color: #9ca3af; font-size: 13px;">
-                            (<?php echo number_format($attachment['file_size'] / 1024, 1); ?> KB)
-                        </span>
-                    </div>
-                <?php endforeach; ?>
+                            </div>
+                            <div class="attachment-size">
+                                <?php echo number_format($attachment['file_size'] / 1024, 1); ?> KB
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
             </div>
         <?php endif; ?>
     </div>
@@ -412,14 +489,15 @@ include '../includes/seller-header.php';
                     <div class="reply-header">
                         <div>
                             <span class="reply-author <?php echo $reply['reply_type'] === 'admin' ? 'admin' : ''; ?>">
-                                <?php echo htmlspecialchars($reply['author_name'] ?? '알 수 없음'); ?>
                                 <?php if ($reply['reply_type'] === 'admin'): ?>
-                                    <span style="color: #6366f1; font-size: 12px; margin-left: 8px;">(관리자)</span>
+                                    관리자
+                                <?php else: ?>
+                                    <?php echo htmlspecialchars($reply['author_name'] ?? '알 수 없음'); ?>
                                 <?php endif; ?>
                             </span>
                         </div>
                         <div class="reply-date">
-                            <?php echo date('Y-m-d H:i', strtotime($reply['created_at'])); ?>
+                            <?php echo date('Y-m-d', strtotime($reply['created_at'])); ?>
                         </div>
                     </div>
                     <div class="reply-content"><?php echo nl2br(htmlspecialchars($reply['content'])); ?></div>
@@ -429,18 +507,36 @@ include '../includes/seller-header.php';
                     if (!empty($replyAttachments)):
                     ?>
                         <div class="attachment-section">
-                            <h4 style="font-size: 14px; font-weight: 600; margin-bottom: 8px; color: #1f2937;">첨부파일</h4>
-                            <?php foreach ($replyAttachments as $attachment): ?>
-                                <div class="attachment-item">
-                                    <span>📎</span>
-                                    <a href="/MVNO/seller/inquiry/inquiry-download.php?file_id=<?php echo $attachment['id']; ?>" target="_blank">
-                                        <?php echo htmlspecialchars($attachment['file_name']); ?>
-                                    </a>
-                                    <span style="color: #9ca3af; font-size: 13px;">
-                                        (<?php echo number_format($attachment['file_size'] / 1024, 1); ?> KB)
-                                    </span>
-                                </div>
-                            <?php endforeach; ?>
+                            <h4 style="font-size: 14px; font-weight: 600; margin-bottom: 8px; color: #1f2937;">첨부파일 (<?php echo count($replyAttachments); ?>개)</h4>
+                            <div class="attachment-grid">
+                                <?php foreach ($replyAttachments as $attachment): ?>
+                                    <?php
+                                    $isImage = strpos($attachment['file_type'], 'image/') === 0;
+                                    $fileUrl = '/MVNO/seller/inquiry/inquiry-download.php?file_id=' . $attachment['id'];
+                                    ?>
+                                    <div class="attachment-card" onclick="<?php echo $isImage ? "openImageModal('$fileUrl', '" . htmlspecialchars($attachment['file_name'], ENT_QUOTES) . "', true)" : "window.open('$fileUrl', '_blank')"; ?>">
+                                        <?php if ($isImage): ?>
+                                            <div class="attachment-preview">
+                                                <img src="<?php echo $fileUrl; ?>" alt="<?php echo htmlspecialchars($attachment['file_name']); ?>" onerror="this.parentElement.innerHTML='🖼️';">
+                                            </div>
+                                        <?php else: ?>
+                                            <div class="attachment-preview"><?php
+                                                if (strpos($attachment['file_type'], 'pdf') !== false) echo '📄';
+                                                elseif (strpos($attachment['file_type'], 'word') !== false || strpos($attachment['file_type'], 'document') !== false) echo '📝';
+                                                elseif (strpos($attachment['file_type'], 'excel') !== false || strpos($attachment['file_type'], 'spreadsheet') !== false) echo '📊';
+                                                elseif (strpos($attachment['file_type'], 'hwp') !== false) echo '📋';
+                                                else echo '📎';
+                                            ?></div>
+                                        <?php endif; ?>
+                                        <div class="attachment-name" title="<?php echo htmlspecialchars($attachment['file_name']); ?>">
+                                            <?php echo htmlspecialchars($attachment['file_name']); ?>
+                                        </div>
+                                        <div class="attachment-size">
+                                            <?php echo number_format($attachment['file_size'] / 1024, 1); ?> KB
+                                        </div>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
                         </div>
                     <?php endif; ?>
                 </div>
@@ -448,13 +544,40 @@ include '../includes/seller-header.php';
         </div>
     <?php endif; ?>
     
-    <!-- 확인 완료 버튼 -->
-    <?php if ($inquiry['status'] === 'answered'): ?>
-        <div style="text-align: center; margin-top: 32px;">
-            <a href="?id=<?php echo $inquiryId; ?>&mark_closed=1" class="btn btn-primary">확인 완료</a>
-        </div>
-    <?php endif; ?>
 </div>
+
+<!-- 이미지 확대 모달 -->
+<div id="imageModal" class="image-modal" onclick="closeImageModal()">
+    <span class="image-modal-close" onclick="closeImageModal()">&times;</span>
+    <img class="image-modal-content" id="modalImage" src="" alt="">
+</div>
+
+<script>
+function openImageModal(imageUrl, fileName, isImage) {
+    if (isImage) {
+        const modal = document.getElementById('imageModal');
+        const modalImg = document.getElementById('modalImage');
+        modal.style.display = 'block';
+        modalImg.src = imageUrl;
+        modalImg.alt = fileName;
+    } else {
+        // 이미지가 아닌 경우 다운로드
+        window.open(imageUrl, '_blank');
+    }
+}
+
+function closeImageModal() {
+    const modal = document.getElementById('imageModal');
+    modal.style.display = 'none';
+}
+
+// ESC 키로 모달 닫기
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        closeImageModal();
+    }
+});
+</script>
 
 <?php include '../includes/seller-footer.php'; ?>
 

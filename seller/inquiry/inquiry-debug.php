@@ -82,10 +82,16 @@ header('Content-Type: text/html; charset=utf-8');
         }
         
         foreach ($attachments as $att) {
-            $filePath = __DIR__ . '/../..' . $att['file_path'];
+            // DB 경로를 실제 파일 시스템 경로로 변환
+            // DB 경로: /MVNO/uploads/... -> 실제 경로: __DIR__/../../uploads/...
+            $dbPath = $att['file_path'];
+            $actualPath = str_replace('/MVNO', '', $dbPath);
+            // __DIR__은 seller/inquiry이므로 ../../로 루트로 이동
+            $filePath = __DIR__ . '/../..' . $actualPath;
+            
             echo "<div style='margin: 10px 0; padding: 10px; background: #f9f9f9; border-radius: 4px;'>";
             echo "<strong>파일: " . htmlspecialchars($att['file_name']) . "</strong><br>";
-            echo "DB 경로: " . htmlspecialchars($att['file_path']) . "<br>";
+            echo "DB 경로: " . htmlspecialchars($dbPath) . "<br>";
             echo "실제 경로: " . htmlspecialchars($filePath) . "<br>";
             echo "파일 존재: " . (file_exists($filePath) ? '<span class="success">예</span>' : '<span class="error">아니오</span>') . "<br>";
             if (file_exists($filePath)) {

@@ -83,31 +83,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 }
                 
                 if (empty($error)) {
-                    // 파일 업로드
-                    for ($i = 0; $i < $fileCount; $i++) {
-                        $fileError = is_array($_FILES['attachments']['error']) ? $_FILES['attachments']['error'][$i] : $_FILES['attachments']['error'];
+                    // DB 연결 미리 가져오기
+                    $pdo = getDBConnection();
+                    if (!$pdo) {
+                        error_log("inquiry-write.php: DB connection failed");
+                        $error = '데이터베이스 연결에 실패했습니다.';
+                    } else {
+                        ensureSellerInquiryTables();
                         
-                        if ($fileError === UPLOAD_ERR_OK) {
-                            $file = [
-                                'name' => is_array($_FILES['attachments']['name']) ? $_FILES['attachments']['name'][$i] : $_FILES['attachments']['name'],
-                                'type' => is_array($_FILES['attachments']['type']) ? $_FILES['attachments']['type'][$i] : $_FILES['attachments']['type'],
-                                'tmp_name' => is_array($_FILES['attachments']['tmp_name']) ? $_FILES['attachments']['tmp_name'][$i] : $_FILES['attachments']['tmp_name'],
-                                'size' => is_array($_FILES['attachments']['size']) ? $_FILES['attachments']['size'][$i] : $_FILES['attachments']['size'],
-                                'error' => $fileError
-                            ];
+                        // 파일 업로드 (에러가 발생해도 계속 진행)
+                        $uploadErrors = [];
+                        $successCount = 0;
+                        
+                        for ($i = 0; $i < $fileCount; $i++) {
+                            $fileError = is_array($_FILES['attachments']['error']) ? $_FILES['attachments']['error'][$i] : $_FILES['attachments']['error'];
                             
-                            error_log("inquiry-write.php: uploading file[$i] - " . $file['name'] . ", tmp_name: " . $file['tmp_name']);
-                            
-                            $attachment = uploadSellerInquiryAttachment($file, $inquiryId, $sellerId);
-                            if ($attachment) {
-                                error_log("inquiry-write.php: file uploaded successfully - " . json_encode($attachment));
-                                $attachments[] = $attachment;
+                            if ($fileError === UPLOAD_ERR_OK) {
+                                $file = [
+                                    'name' => is_array($_FILES['attachments']['name']) ? $_FILES['attachments']['name'][$i] : $_FILES['attachments']['name'],
+                                    'type' => is_array($_FILES['attachments']['type']) ? $_FILES['attachments']['type'][$i] : $_FILES['attachments']['type'],
+                                    'tmp_name' => is_array($_FILES['attachments']['tmp_name']) ? $_FILES['attachments']['tmp_name'][$i] : $_FILES['attachments']['tmp_name'],
+                                    'size' => is_array($_FILES['attachments']['size']) ? $_FILES['attachments']['size'][$i] : $_FILES['attachments']['size'],
+                                    'error' => $fileError
+                                ];
                                 
-                                // DB에 첨부파일 정보 저장
-                                $pdo = getDBConnection();
-                                if ($pdo) {
+                                error_log("inquiry-write.php: uploading file[$i] - " . $file['name'] . ", tmp_name: " . $file['tmp_name']);
+                                
+                                $attachment = uploadSellerInquiryAttachment($file, $inquiryId, $sellerId);
+                                if ($attachment) {
+                                    error_log("inquiry-write.php: file uploaded successfully - " . json_encode($attachment));
+                                    
+                                    // DB에 첨부파일 정보 저장
                                     try {
-                                        ensureSellerInquiryTables();
                                         $stmt = $pdo->prepare("
                                             INSERT INTO seller_inquiry_attachments 
                                             (inquiry_id, file_name, file_path, file_size, file_type, uploaded_by, created_at)
@@ -125,28 +132,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                                         if ($result) {
                                             $insertId = $pdo->lastInsertId();
                                             error_log("inquiry-write.php: attachment saved to DB - ID: $insertId");
-                                            
-                                            // DB에서 다시 조회해서 확인
-                                            $checkStmt = $pdo->prepare("SELECT * FROM seller_inquiry_attachments WHERE id = :id");
-                                            $checkStmt->execute([':id' => $insertId]);
-                                            $saved = $checkStmt->fetch(PDO::FETCH_ASSOC);
-                                            error_log("inquiry-write.php: DB verification - " . json_encode($saved));
+                                            $successCount++;
                                         } else {
-                                            error_log("inquiry-write.php: DB insert failed - no rows affected");
+                                            error_log("inquiry-write.php: DB insert failed for file[$i] - no rows affected");
+                                            $uploadErrors[] = $file['name'] . ' (DB 저장 실패)';
                                         }
                                     } catch (PDOException $e) {
-                                        error_log("inquiry-write.php: DB error - " . $e->getMessage());
-                                        error_log("inquiry-write.php: DB error trace - " . $e->getTraceAsString());
-                                        $error = '첨부파일 정보 저장에 실패했습니다: ' . $e->getMessage();
+                                        error_log("inquiry-write.php: DB error for file[$i] - " . $e->getMessage());
+                                        $uploadErrors[] = $file['name'] . ' (DB 저장 실패: ' . $e->getMessage() . ')';
                                     }
                                 } else {
-                                    error_log("inquiry-write.php: DB connection failed");
-                                    $error = '데이터베이스 연결에 실패했습니다.';
+                                    error_log("inquiry-write.php: file upload failed for file[$i]");
+                                    $uploadErrors[] = $file['name'] . ' (업로드 실패)';
                                 }
                             } else {
-                                error_log("inquiry-write.php: file upload failed for file[$i]");
-                                $error = '파일 업로드에 실패했습니다: ' . $file['name'];
+                                error_log("inquiry-write.php: file error[$i] - $fileError");
+                                $uploadErrors[] = (is_array($_FILES['attachments']['name']) ? $_FILES['attachments']['name'][$i] : $_FILES['attachments']['name']) . ' (업로드 오류: ' . $fileError . ')';
                             }
+                        }
+                        
+                        // 업로드 결과 로깅
+                        error_log("inquiry-write.php: upload summary - success: $successCount, errors: " . count($uploadErrors));
+                        if (!empty($uploadErrors)) {
+                            error_log("inquiry-write.php: upload errors - " . implode(', ', $uploadErrors));
                         }
                     }
                 }
@@ -233,49 +241,164 @@ include '../includes/seller-header.php';
     }
     
     .file-upload-area {
-        border: 2px dashed #d1d5db;
-        border-radius: 8px;
-        padding: 24px;
+        border: 3px dashed #d1d5db;
+        border-radius: 12px;
+        padding: 40px 24px;
         text-align: center;
-        background: #f9fafb;
+        background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
         cursor: pointer;
-        transition: all 0.3s;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .file-upload-area::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.1), transparent);
+        transition: left 0.5s;
+    }
+    
+    .file-upload-area:hover::before {
+        left: 100%;
     }
     
     .file-upload-area:hover {
         border-color: #6366f1;
-        background: #f3f4f6;
+        background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(99, 102, 241, 0.15);
     }
     
     .file-upload-area.drag-over {
         border-color: #6366f1;
-        background: #eef2ff;
+        background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+        transform: scale(1.02);
+        box-shadow: 0 12px 32px rgba(99, 102, 241, 0.25);
     }
     
-    .file-list {
-        margin-top: 16px;
+    .file-upload-area.has-files {
+        border-color: #10b981;
+        background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
     }
     
-    .file-item {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 8px 12px;
-        background: #f3f4f6;
-        border-radius: 6px;
+    .file-upload-icon {
+        font-size: 48px;
+        margin-bottom: 16px;
+        display: block;
+        transition: transform 0.3s;
+    }
+    
+    .file-upload-area:hover .file-upload-icon {
+        transform: scale(1.1) rotate(5deg);
+    }
+    
+    .file-upload-text {
+        font-size: 16px;
+        font-weight: 600;
+        color: #374151;
         margin-bottom: 8px;
     }
     
+    .file-upload-hint {
+        font-size: 13px;
+        color: #6b7280;
+        margin: 0;
+    }
+    
+    .file-list {
+        margin-top: 24px;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 16px;
+    }
+    
+    .file-item {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 16px;
+        transition: all 0.3s;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .file-item:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+        border-color: #6366f1;
+    }
+    
+    .file-item-preview {
+        width: 100%;
+        height: 120px;
+        object-fit: cover;
+        border-radius: 8px;
+        margin-bottom: 12px;
+        background: #f3f4f6;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 48px;
+        color: #9ca3af;
+    }
+    
+    .file-item-info {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+    
     .file-item-name {
-        flex: 1;
-        font-size: 14px;
+        font-size: 13px;
+        font-weight: 600;
         color: #374151;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    
+    .file-item-size {
+        font-size: 12px;
+        color: #6b7280;
     }
     
     .file-item-remove {
-        color: #ef4444;
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        width: 28px;
+        height: 28px;
+        background: rgba(239, 68, 68, 0.9);
+        color: white;
+        border: none;
+        border-radius: 50%;
         cursor: pointer;
-        font-weight: 600;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        font-weight: bold;
+        transition: all 0.2s;
+        opacity: 0;
+    }
+    
+    .file-item:hover .file-item-remove {
+        opacity: 1;
+    }
+    
+    .file-item-remove:hover {
+        background: #dc2626;
+        transform: scale(1.1);
+    }
+    
+    .file-type-icon {
+        font-size: 32px;
+        margin-bottom: 8px;
     }
     
     .btn-group {
@@ -360,8 +483,9 @@ include '../includes/seller-header.php';
                 <label for="attachments">첨부파일</label>
                 <div class="file-upload-area" id="fileUploadArea">
                     <input type="file" id="attachments" name="attachments[]" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.hwp" style="display: none;">
-                    <p style="margin: 0; color: #6b7280;">파일을 드래그하거나 클릭하여 업로드</p>
-                    <p style="margin: 8px 0 0 0; font-size: 13px; color: #9ca3af;">이미지, PDF, 문서 파일 (최대 5개, 총 20MB)</p>
+                    <span class="file-upload-icon">📁</span>
+                    <div class="file-upload-text">파일을 드래그하거나 클릭하여 업로드</div>
+                    <div class="file-upload-hint">이미지, PDF, 문서 파일 (최대 5개, 총 20MB)</div>
                 </div>
                 <div class="file-list" id="fileList"></div>
                 <div class="help-text">
@@ -444,12 +568,28 @@ document.addEventListener('DOMContentLoaded', function() {
     function updateFileList() {
         fileList.innerHTML = '';
         
+        if (selectedFiles.length > 0) {
+            fileUploadArea.classList.add('has-files');
+        } else {
+            fileUploadArea.classList.remove('has-files');
+        }
+        
         selectedFiles.forEach((file, index) => {
             const fileItem = document.createElement('div');
             fileItem.className = 'file-item';
+            
+            const isImage = file.type.startsWith('image/');
+            const preview = isImage 
+                ? `<img src="${URL.createObjectURL(file)}" alt="${file.name}" class="file-item-preview">`
+                : `<div class="file-item-preview">${getFileIcon(file.type)}</div>`;
+            
             fileItem.innerHTML = `
-                <span class="file-item-name">${file.name} (${formatFileSize(file.size)})</span>
-                <span class="file-item-remove" onclick="removeFile(${index})">삭제</span>
+                ${preview}
+                <div class="file-item-info">
+                    <div class="file-item-name" title="${file.name}">${file.name}</div>
+                    <div class="file-item-size">${formatFileSize(file.size)}</div>
+                </div>
+                <button type="button" class="file-item-remove" onclick="removeFile(${index})" title="삭제">×</button>
             `;
             fileList.appendChild(fileItem);
         });
@@ -458,6 +598,15 @@ document.addEventListener('DOMContentLoaded', function() {
         const dataTransfer = new DataTransfer();
         selectedFiles.forEach(file => dataTransfer.items.add(file));
         fileInput.files = dataTransfer.files;
+    }
+    
+    function getFileIcon(mimeType) {
+        if (mimeType.startsWith('image/')) return '🖼️';
+        if (mimeType === 'application/pdf') return '📄';
+        if (mimeType.includes('word') || mimeType.includes('document')) return '📝';
+        if (mimeType.includes('excel') || mimeType.includes('spreadsheet')) return '📊';
+        if (mimeType.includes('hwp')) return '📋';
+        return '📎';
     }
     
     window.removeFile = function(index) {

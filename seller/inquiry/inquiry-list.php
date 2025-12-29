@@ -34,19 +34,45 @@ $offset = ($page - 1) * $perPage;
 
 // 문의 목록 가져오기
 $inquiries = getSellerInquiriesBySeller($sellerId, $perPage, $offset);
-$totalInquiries = count(getSellerInquiriesBySeller($sellerId));
-$totalPages = ceil($totalInquiries / $perPage);
 
-// 상태별 통계
+// 상태별 통계 (DB에서 직접 COUNT)
+$pdo = getDBConnection();
 $stats = [
     'pending' => 0,
-    'answered' => 0,
-    'closed' => 0
+    'answered' => 0
 ];
-$allInquiries = getSellerInquiriesBySeller($sellerId);
-foreach ($allInquiries as $inq) {
-    $stats[$inq['status']] = $stats[$inq['status']] + 1;
+
+if ($pdo) {
+    // pending 개수
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM seller_inquiries WHERE seller_id = ? AND status = 'pending'");
+    $stmt->execute([$sellerId]);
+    $stats['pending'] = $stmt->fetchColumn();
+    
+    // answered 개수 (closed도 answered로 카운트)
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM seller_inquiries WHERE seller_id = ? AND (status = 'answered' OR status = 'closed')");
+    $stmt->execute([$sellerId]);
+    $stats['answered'] = $stmt->fetchColumn();
+    
+    // 전체 개수
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM seller_inquiries WHERE seller_id = ?");
+    $stmt->execute([$sellerId]);
+    $totalInquiries = $stmt->fetchColumn();
+} else {
+    // DB 연결 실패 시 기존 방식 사용
+    $allInquiries = getSellerInquiriesBySeller($sellerId);
+    $totalInquiries = count($allInquiries);
+    foreach ($allInquiries as $inq) {
+        $status = $inq['status'];
+        if ($status === 'closed') {
+            $status = 'answered'; // closed는 answered로 카운트
+        }
+        if (isset($stats[$status])) {
+            $stats[$status] = $stats[$status] + 1;
+        }
+    }
 }
+
+$totalPages = ceil($totalInquiries / $perPage);
 
 $currentPage = 'inquiry-list.php';
 include '../includes/seller-header.php';
@@ -122,33 +148,32 @@ include '../includes/seller-header.php';
         color: #6366f1;
     }
     
-    .stat-card.closed .stat-value {
+    /* closed 상태 제거됨 */
         color: #10b981;
     }
     
     .inquiry-list {
-        background: white;
-        border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        border: 1px solid #e5e7eb;
-        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
     }
     
     .inquiry-item {
         padding: 20px;
-        border-bottom: 1px solid #e5e7eb;
         display: flex;
         justify-content: space-between;
         align-items: center;
-        transition: background 0.2s;
-    }
-    
-    .inquiry-item:last-child {
-        border-bottom: none;
+        transition: all 0.2s;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        border: 1px solid #e5e7eb;
     }
     
     .inquiry-item:hover {
         background: #f9fafb;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        transform: translateY(-2px);
     }
     
     .inquiry-info {
@@ -163,6 +188,13 @@ include '../includes/seller-header.php';
         display: flex;
         align-items: center;
         gap: 8px;
+    }
+    
+    .inquiry-number {
+        color: #6366f1;
+        font-weight: 700;
+        font-size: 14px;
+        min-width: 40px;
     }
     
     .inquiry-meta {
@@ -189,7 +221,7 @@ include '../includes/seller-header.php';
         color: #5b21b6;
     }
     
-    .status-badge.closed {
+    /* closed 상태 제거됨 */
         background: #d1fae5;
         color: #065f46;
     }
@@ -208,26 +240,42 @@ include '../includes/seller-header.php';
     .pagination {
         display: flex;
         justify-content: center;
+        align-items: center;
         gap: 8px;
         margin-top: 32px;
+        padding: 20px 0;
     }
     
     .pagination a, .pagination span {
-        padding: 8px 16px;
-        border: 1px solid #d1d5db;
-        border-radius: 6px;
+        padding: 10px 16px;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
         text-decoration: none;
         color: #374151;
+        background: white;
+        font-size: 14px;
+        font-weight: 500;
+        transition: all 0.2s;
+        min-width: 40px;
+        text-align: center;
     }
     
     .pagination a:hover {
         background: #f3f4f6;
+        border-color: #6366f1;
+        color: #6366f1;
     }
     
     .pagination .active {
         background: #6366f1;
         color: white;
         border-color: #6366f1;
+        font-weight: 600;
+    }
+    
+    .pagination span:not(.active) {
+        color: #9ca3af;
+        cursor: default;
     }
 </style>
 
@@ -247,10 +295,6 @@ include '../includes/seller-header.php';
             <div class="stat-label">답변 완료</div>
             <div class="stat-value"><?php echo $stats['answered']; ?></div>
         </div>
-        <div class="stat-card closed">
-            <div class="stat-label">확인 완료</div>
-            <div class="stat-value"><?php echo $stats['closed']; ?></div>
-        </div>
     </div>
     
     <!-- 문의 목록 -->
@@ -261,19 +305,26 @@ include '../includes/seller-header.php';
                 <p style="font-size: 14px; color: #9ca3af;">관리자에게 문의하고 싶은 내용을 작성해주세요.</p>
             </div>
         <?php else: ?>
-            <?php foreach ($inquiries as $inquiry): ?>
-                <a href="/MVNO/seller/inquiry/inquiry-detail.php?id=<?php echo $inquiry['id']; ?>" style="text-decoration: none; color: inherit;">
+            <?php 
+            $index = 0;
+            foreach ($inquiries as $inquiry): 
+                $index++;
+                // 역순 번호: 전체 개수에서 현재 위치를 빼서 계산
+                $inquiryNumber = $totalInquiries - (($page - 1) * $perPage + $index - 1);
+            ?>
+                <a href="/MVNO/seller/inquiry/inquiry-detail.php?id=<?php echo $inquiry['id']; ?>" style="text-decoration: none; color: inherit; display: block;">
                     <div class="inquiry-item">
                         <div class="inquiry-info">
                             <div class="inquiry-title">
+                                <span class="inquiry-number"><?php echo $inquiryNumber; ?></span>
                                 <span class="status-badge <?php echo $inquiry['status']; ?>">
                                     <?php
                                     $statusText = [
                                         'pending' => '답변 대기',
                                         'answered' => '답변 완료',
-                                        'closed' => '확인 완료'
+                                        'closed' => '답변 완료' // 기존 데이터 호환성
                                     ];
-                                    echo $statusText[$inquiry['status']];
+                                    echo isset($statusText[$inquiry['status']]) ? $statusText[$inquiry['status']] : '답변 대기';
                                     ?>
                                 </span>
                                 <?php echo htmlspecialchars($inquiry['title']); ?>
@@ -281,14 +332,8 @@ include '../includes/seller-header.php';
                                     <span class="attachment-icon">📎 <?php echo $inquiry['attachment_count']; ?>개</span>
                                 <?php endif; ?>
                             </div>
-                            <div class="inquiry-meta">
-                                <span>작성일: <?php echo date('Y-m-d H:i', strtotime($inquiry['created_at'])); ?></span>
-                                <?php if ($inquiry['reply_count'] > 0): ?>
-                                    <span>답변: <?php echo $inquiry['reply_count']; ?>개</span>
-                                <?php endif; ?>
-                            </div>
                         </div>
-                        <div style="color: #9ca3af;">→</div>
+                        <div style="color: #6b7280; font-size: 14px;"><?php echo date('Y-m-d', strtotime($inquiry['created_at'])); ?></div>
                     </div>
                 </a>
             <?php endforeach; ?>

@@ -41,7 +41,12 @@ if (!$file) {
     exit('File not found');
 }
 
-$filePath = __DIR__ . '/../..' . $file['file_path'];
+// DB 경로를 실제 파일 시스템 경로로 변환
+// DB 경로: /MVNO/uploads/... -> 실제 경로: __DIR__/../../uploads/...
+$dbPath = $file['file_path'];
+$actualPath = str_replace('/MVNO', '', $dbPath);
+// __DIR__은 admin/content이므로 ../../로 루트로 이동
+$filePath = __DIR__ . '/../..' . $actualPath;
 
 if (!file_exists($filePath)) {
     http_response_code(404);
