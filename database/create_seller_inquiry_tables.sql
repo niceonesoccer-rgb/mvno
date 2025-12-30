@@ -52,3 +52,5 @@ CREATE TABLE IF NOT EXISTS `seller_inquiry_attachments` (
     CONSTRAINT `fk_seller_inquiry_attachment_reply` FOREIGN KEY (`reply_id`) REFERENCES `seller_inquiry_replies` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='판매자 1:1 문의 첨부파일';
 
+
+

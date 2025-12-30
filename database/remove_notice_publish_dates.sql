@@ -14,3 +14,5 @@ ALTER TABLE `notices` DROP COLUMN `publish_end_at`;
 
 
 
+
+

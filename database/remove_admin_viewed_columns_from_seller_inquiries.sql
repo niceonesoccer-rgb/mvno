@@ -6,3 +6,5 @@ ALTER TABLE `seller_inquiries`
 DROP COLUMN IF EXISTS `admin_viewed_at`,
 DROP COLUMN IF EXISTS `admin_viewed_by`;
 
+
+

@@ -66,3 +66,5 @@ SELECT COUNT(*) FROM product_reviews WHERE product_type = 'mno-sim';
 
 
 
+
+

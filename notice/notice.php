@@ -54,8 +54,23 @@ if (!in_array($per_page, [10, 20, 50, 100])) {
 }
 $offset = ($page - 1) * $per_page;
 
-// 공지사항 목록 가져오기
-$all_notices = getNotices();
+// target 파라미터가 seller이면 판매자 페이지로 리다이렉트
+$target = $_GET['target'] ?? 'all';
+if ($target === 'seller') {
+    $userRole = $currentUser['role'] ?? '';
+    if ($userRole === 'seller') {
+        // 판매자는 판매자 페이지로 리다이렉트
+        header('Location: /MVNO/seller/notice/');
+        exit;
+    } else {
+        // 일반회원은 일반 공지사항으로 리다이렉트
+        header('Location: /MVNO/notice/notice.php');
+        exit;
+    }
+}
+
+// 일반 공지사항: 판매자 전용 공지사항 제외
+$all_notices = getNotices(); // 전체 공지사항 (판매자 전용 제외)
 $total = count($all_notices);
 $total_pages = ceil($total / $per_page);
 $notices = array_slice($all_notices, $offset, $per_page);

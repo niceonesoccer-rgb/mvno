@@ -41,3 +41,5 @@ if (deleteSellerInquiry($inquiryId, $sellerId)) {
 }
 exit;
 
+
+

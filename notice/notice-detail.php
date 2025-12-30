@@ -59,6 +59,17 @@ if (!$notice) {
     exit;
 }
 
+// 판매자 전용 공지사항 권한 체크
+$targetAudience = $notice['target_audience'] ?? 'all';
+if ($targetAudience === 'seller') {
+    $userRole = $currentUser['role'] ?? '';
+    if ($userRole !== 'seller') {
+        // 판매자가 아니면 접근 차단
+        header('Location: /MVNO/notice/notice.php');
+        exit;
+    }
+}
+
 // 조회수 증가
 incrementNoticeViews($id);
 $notice = getNoticeById($id); // 업데이트된 조회수 가져오기

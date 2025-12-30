@@ -222,3 +222,5 @@ SELECT * FROM product_review_statistics WHERE product_id = 24;
 
 
 
+
+

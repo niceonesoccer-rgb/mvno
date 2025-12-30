@@ -10,3 +10,5 @@ ALTER TABLE seller_inquiries
 MODIFY COLUMN status ENUM('pending', 'answered') NOT NULL DEFAULT 'pending' 
 COMMENT '상태: pending=답변대기, answered=답변완료';
 
+
+

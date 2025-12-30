@@ -39,3 +39,5 @@ SHOW COLUMNS FROM `product_favorites` LIKE 'product_type';
 
 
 
+
+

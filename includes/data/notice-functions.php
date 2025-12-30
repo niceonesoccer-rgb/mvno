@@ -9,13 +9,16 @@ date_default_timezone_set('Asia/Seoul');
 
 require_once __DIR__ . '/db-config.php';
 
-// 공지사항 목록 가져오기 (발행 기간 내)
+// 공지사항 목록 가져오기 (발행 기간 내, 판매자 전용 제외)
 function getNotices($limit = null, $offset = 0) {
+    ensureShowOnMainColumn();
+    
     $pdo = getDBConnection();
     if (!$pdo) return [];
 
     $sql = "SELECT * FROM notices 
-            WHERE (start_at IS NULL OR start_at <= CURDATE())
+            WHERE (target_audience IS NULL OR target_audience = 'all' OR target_audience = 'user')
+            AND (start_at IS NULL OR start_at <= CURDATE())
             AND (end_at IS NULL OR end_at >= CURDATE())
             ORDER BY created_at DESC";
     if ($limit !== null) {
@@ -74,6 +77,50 @@ function uploadNoticeImage($file) {
     // 파일 이동
     if (move_uploaded_file($file['tmp_name'], $filePath)) {
         return '/MVNO/uploads/notices/' . $year . '/' . $month . '/' . $fileName;
+    }
+    
+    return null;
+}
+
+// 판매자 전용 공지사항 이미지 업로드 함수
+function uploadSellerNoticeImage($file) {
+    if (!isset($file) || $file['error'] !== UPLOAD_ERR_OK) {
+        return null;
+    }
+    
+    // 파일 타입 확인
+    $allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+    $mimeType = finfo_file($finfo, $file['tmp_name']);
+    finfo_close($finfo);
+    
+    if (!in_array($mimeType, $allowedTypes)) {
+        return null;
+    }
+    
+    // 파일 크기 제한 (10MB)
+    if ($file['size'] > 10 * 1024 * 1024) {
+        return null;
+    }
+    
+    // 업로드 디렉토리 생성
+    $uploadDir = __DIR__ . '/../../uploads/notices/seller/';
+    $year = date('Y');
+    $month = date('m');
+    $uploadPath = $uploadDir . $year . '/' . $month . '/';
+    
+    if (!is_dir($uploadPath)) {
+        mkdir($uploadPath, 0755, true);
+    }
+    
+    // 파일명 생성
+    $extension = pathinfo($file['name'], PATHINFO_EXTENSION);
+    $fileName = date('YmdHis') . '_' . uniqid() . '.' . $extension;
+    $filePath = $uploadPath . $fileName;
+    
+    // 파일 이동
+    if (move_uploaded_file($file['tmp_name'], $filePath)) {
+        return '/MVNO/uploads/notices/seller/' . $year . '/' . $month . '/' . $fileName;
     }
     
     return null;
@@ -194,6 +241,16 @@ function ensureShowOnMainColumn() {
         // end_at 컬럼 확인 및 추가
         if (!isset($existingColumns['end_at'])) {
             $pdo->exec("ALTER TABLE notices ADD COLUMN end_at DATE DEFAULT NULL COMMENT '메인공지 종료일' AFTER start_at");
+        }
+        
+        // target_audience 컬럼 확인 및 추가
+        if (!isset($existingColumns['target_audience'])) {
+            $pdo->exec("ALTER TABLE notices ADD COLUMN target_audience ENUM('all', 'seller', 'user') DEFAULT 'all' COMMENT '대상 사용자 (all: 전체, seller: 판매자만, user: 일반 사용자만)' AFTER show_on_main");
+        }
+        
+        // banner_type 컬럼 확인 및 추가
+        if (!isset($existingColumns['banner_type'])) {
+            $pdo->exec("ALTER TABLE notices ADD COLUMN banner_type ENUM('text', 'image', 'both') DEFAULT 'text' COMMENT '배너 타입 (text: 텍스트만, image: 이미지만, both: 둘 다)' AFTER image_url");
         }
         
         
@@ -327,13 +384,35 @@ function updateNotice($id, $title, $content, $show_on_main = false, $image_url =
     }
 }
 
-// 공지사항 삭제 (관리자용)
+// 공지사항 삭제 (관리자용) - 이미지 파일도 함께 삭제
 function deleteNotice($id) {
     $pdo = getDBConnection();
     if (!$pdo) return false;
+    
+    // 삭제 전에 이미지 URL 가져오기
+    $notice = getNoticeById($id);
+    if ($notice && !empty($notice['image_url'])) {
+        deleteNoticeImageFile($notice['image_url']);
+    }
+    
     $stmt = $pdo->prepare("DELETE FROM notices WHERE id = :id");
     $stmt->execute([':id' => (string)$id]);
     return $stmt->rowCount() > 0;
+}
+
+// 이미지 파일 삭제 함수
+function deleteNoticeImageFile($image_url) {
+    if (empty($image_url)) return false;
+    
+    // /MVNO/로 시작하는 경로를 실제 파일 경로로 변환
+    $filePath = str_replace('/MVNO/', __DIR__ . '/../../', $image_url);
+    
+    // 파일이 존재하면 삭제
+    if (file_exists($filePath)) {
+        return unlink($filePath);
+    }
+    
+    return false;
 }
 
 // 조회수 증가
@@ -453,6 +532,265 @@ function getMainPageNotice() {
         }
         error_log('getMainPageNotice error: ' . $e->getMessage());
         return null;
+    }
+}
+
+// 판매자 전용 메인공지 가져오기
+function getSellerMainBanner() {
+    ensureShowOnMainColumn();
+    
+    $pdo = getDBConnection();
+    if (!$pdo) {
+        error_log('getSellerMainBanner: DB 연결 실패');
+        return null;
+    }
+    
+    try {
+        $currentDate = date('Y-m-d');
+        
+        // 디버깅: 쿼리 실행 전 상태 확인
+        $debugMode = isset($_GET['debug_banner']);
+        
+        if ($debugMode) {
+            // 모든 판매자 공지사항 확인
+            $allNotices = $pdo->query("SELECT id, title, target_audience, show_on_main, start_at, end_at, banner_type FROM notices WHERE target_audience = 'seller' ORDER BY created_at DESC")->fetchAll(PDO::FETCH_ASSOC);
+            error_log('getSellerMainBanner: 판매자 공지사항 총 개수 = ' . count($allNotices));
+            foreach ($allNotices as $notice) {
+                $showOnMain = $notice['show_on_main'] ?? 0;
+                $startAt = $notice['start_at'] ?? null;
+                $endAt = $notice['end_at'] ?? null;
+                $dateOk = true;
+                if ($startAt && $startAt > $currentDate) $dateOk = false;
+                if ($endAt && $endAt < $currentDate) $dateOk = false;
+                error_log('  공지사항: ' . ($notice['title'] ?? 'N/A') . 
+                         ' | show_on_main=' . $showOnMain . 
+                         ' | start_at=' . ($startAt ?: 'NULL') . 
+                         ' | end_at=' . ($endAt ?: 'NULL') . 
+                         ' | 날짜조건=' . ($dateOk ? 'OK' : 'FAIL'));
+            }
+        }
+        
+        // 쿼리 수정: 파라미터 바인딩 문제 해결
+        // 쿼리 수정: 파라미터 바인딩 문제 해결을 위해 직접 값 사용
+        $sql = "SELECT * FROM notices 
+                WHERE target_audience = 'seller'
+                AND (show_on_main = 1 OR CAST(show_on_main AS UNSIGNED) = 1)
+                AND (start_at IS NULL OR start_at <= " . $pdo->quote($currentDate) . ")
+                AND (end_at IS NULL OR end_at >= " . $pdo->quote($currentDate) . ")
+                ORDER BY created_at DESC
+                LIMIT 1";
+        
+        $stmt = $pdo->query($sql);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if ($debugMode) {
+            error_log('getSellerMainBanner: 쿼리 결과 = ' . ($row ? '있음 (ID: ' . ($row['id'] ?? 'N/A') . ')' : '없음'));
+            if (!$row) {
+                // 왜 조회되지 않는지 확인
+                $testStmt = $pdo->query("SELECT id, title, target_audience, show_on_main, start_at, end_at FROM notices WHERE target_audience = 'seller' AND (show_on_main = 1 OR CAST(show_on_main AS UNSIGNED) = 1) ORDER BY created_at DESC LIMIT 5");
+                $testResults = $testStmt->fetchAll(PDO::FETCH_ASSOC);
+                error_log('getSellerMainBanner: show_on_main=1인 공지사항 수 = ' . count($testResults));
+                foreach ($testResults as $test) {
+                    $startAt = $test['start_at'] ?? null;
+                    $endAt = $test['end_at'] ?? null;
+                    $dateOk = true;
+                    if ($startAt && $startAt > $currentDate) $dateOk = false;
+                    if ($endAt && $endAt < $currentDate) $dateOk = false;
+                    error_log('  테스트: ' . ($test['title'] ?? 'N/A') . ' | 날짜조건=' . ($dateOk ? 'OK' : 'FAIL'));
+                }
+            }
+        }
+        
+        return $row ?: null;
+    } catch (PDOException $e) {
+        error_log('getSellerMainBanner error: ' . $e->getMessage());
+        if (isset($_GET['debug_banner'])) {
+            error_log('getSellerMainBanner error trace: ' . $e->getTraceAsString());
+        }
+        return null;
+    }
+}
+
+// 판매자 전용 공지사항 목록 가져오기 (관리자용, 페이지네이션 지원)
+function getSellerNoticesForAdmin($limit = null, $offset = 0) {
+    ensureShowOnMainColumn();
+    
+    $pdo = getDBConnection();
+    if (!$pdo) return [];
+    
+    $sql = "SELECT * FROM notices 
+            WHERE target_audience = 'seller'
+            ORDER BY created_at DESC";
+    
+    if ($limit !== null) {
+        $sql .= " LIMIT :limit OFFSET :offset";
+    }
+    
+    $stmt = $pdo->prepare($sql);
+    if ($limit !== null) {
+        $stmt->bindValue(':limit', (int)$limit, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', (int)$offset, PDO::PARAM_INT);
+    }
+    $stmt->execute();
+    return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+}
+
+// 판매자 전용 공지사항 목록 가져오기 (판매자용, 발행 기간 내)
+function getSellerNotices($limit = null, $offset = 0) {
+    ensureShowOnMainColumn();
+    
+    $pdo = getDBConnection();
+    if (!$pdo) return [];
+    
+    $sql = "SELECT * FROM notices 
+            WHERE target_audience = 'seller'
+            AND (start_at IS NULL OR start_at <= CURDATE())
+            AND (end_at IS NULL OR end_at >= CURDATE())
+            ORDER BY created_at DESC";
+    
+    if ($limit !== null) {
+        $sql .= " LIMIT :limit OFFSET :offset";
+    }
+    
+    $stmt = $pdo->prepare($sql);
+    if ($limit !== null) {
+        $stmt->bindValue(':limit', (int)$limit, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', (int)$offset, PDO::PARAM_INT);
+    }
+    $stmt->execute();
+    return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+}
+
+// 판매자 전용 공지사항 총 개수 가져오기
+function getSellerNoticesCount() {
+    ensureShowOnMainColumn();
+    
+    $pdo = getDBConnection();
+    if (!$pdo) return 0;
+    
+    try {
+        $stmt = $pdo->query("SELECT COUNT(*) FROM notices WHERE target_audience = 'seller'");
+        return (int)$stmt->fetchColumn();
+    } catch (PDOException $e) {
+        error_log('getSellerNoticesCount error: ' . $e->getMessage());
+        return 0;
+    }
+}
+
+// 판매자 전용 공지사항 생성
+function createSellerNotice($title, $content, $banner_type = 'text', $image_url = null, $link_url = null, $show_on_main = false, $start_at = null, $end_at = null) {
+    ensureShowOnMainColumn();
+    
+    $pdo = getDBConnection();
+    if (!$pdo) return false;
+    
+    try {
+        // 메인배너로 설정하는 경우, 기존 메인배너 모두 취소
+        if ($show_on_main) {
+            $pdo->exec("UPDATE notices SET show_on_main = 0 WHERE target_audience = 'seller' AND show_on_main = 1");
+        }
+        
+        $id = uniqid('notice_');
+        $created_at = date('Y-m-d H:i:s');
+        $updated_at = date('Y-m-d H:i:s');
+        
+        $stmt = $pdo->prepare("
+            INSERT INTO notices (id, title, content, banner_type, image_url, link_url, target_audience, show_on_main, start_at, end_at, views, created_at, updated_at)
+            VALUES (:id, :title, :content, :banner_type, :img_url, :link_url, 'seller', :show_main, :start_at, :end_at, 0, :ca, :ua)
+        ");
+        
+        $stmt->execute([
+            ':id' => $id,
+            ':title' => $title,
+            ':content' => $content,
+            ':banner_type' => $banner_type,
+            ':img_url' => $image_url,
+            ':link_url' => $link_url,
+            ':show_main' => $show_on_main ? 1 : 0,
+            ':start_at' => $start_at ? $start_at : null,
+            ':end_at' => $end_at ? $end_at : null,
+            ':ca' => $created_at,
+            ':ua' => $updated_at,
+        ]);
+        
+        return ['id' => $id, 'created_at' => $created_at];
+    } catch (PDOException $e) {
+        error_log('createSellerNotice error: ' . $e->getMessage());
+        return false;
+    }
+}
+
+// 판매자 전용 공지사항 수정
+function updateSellerNotice($id, $title, $content, $banner_type = 'text', $image_url = null, $link_url = null, $show_on_main = false, $start_at = null, $end_at = null) {
+    ensureShowOnMainColumn();
+    
+    $pdo = getDBConnection();
+    if (!$pdo) return false;
+    
+    try {
+        // 메인배너로 설정하는 경우, 기존 메인배너 모두 취소 (현재 공지사항 제외)
+        if ($show_on_main) {
+            $pdo->exec("UPDATE notices SET show_on_main = 0 WHERE target_audience = 'seller' AND show_on_main = 1 AND id != " . $pdo->quote((string)$id));
+        }
+        
+        // 기존 이미지 URL 가져오기 (이미지 변경 시 기존 이미지 삭제용)
+        $oldNotice = getNoticeById($id);
+        $oldImageUrl = $oldNotice['image_url'] ?? null;
+        
+        // 새 이미지가 업로드되었고 기존 이미지와 다르면 기존 이미지 삭제
+        if ($image_url && $oldImageUrl && $image_url !== $oldImageUrl) {
+            deleteNoticeImageFile($oldImageUrl);
+        }
+        
+        $sql = "UPDATE notices SET 
+                title = :title,
+                content = :content,
+                banner_type = :banner_type,
+                show_on_main = :show_main";
+        
+        $params = [
+            ':id' => (string)$id,
+            ':title' => $title,
+            ':content' => $content,
+            ':banner_type' => $banner_type,
+            ':show_main' => $show_on_main ? 1 : 0,
+        ];
+        
+        if ($image_url !== null) {
+            $sql .= ", image_url = :img_url";
+            $params[':img_url'] = $image_url;
+        }
+        
+        if ($link_url !== null) {
+            $sql .= ", link_url = :link_url";
+            $params[':link_url'] = $link_url;
+        } elseif ($link_url === '') {
+            $sql .= ", link_url = NULL";
+        }
+        
+        if ($start_at !== null) {
+            $sql .= ", start_at = :start_at";
+            $params[':start_at'] = $start_at ? $start_at : null;
+        } elseif ($start_at === '') {
+            $sql .= ", start_at = NULL";
+        }
+        
+        if ($end_at !== null) {
+            $sql .= ", end_at = :end_at";
+            $params[':end_at'] = $end_at ? $end_at : null;
+        } elseif ($end_at === '') {
+            $sql .= ", end_at = NULL";
+        }
+        
+        $sql .= ", updated_at = NOW() WHERE id = :id";
+        $params[':id'] = (string)$id;
+        
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->rowCount() > 0;
+    } catch (PDOException $e) {
+        error_log('updateSellerNotice error: ' . $e->getMessage());
+        return false;
     }
 }
 

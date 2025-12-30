@@ -9,3 +9,5 @@ MODIFY COLUMN `product_type` ENUM('mvno', 'mno', 'internet', 'mno-sim') NOT NULL
 
 
 
+
+

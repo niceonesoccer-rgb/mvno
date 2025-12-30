@@ -75,3 +75,5 @@ echo "<p><a href='/MVNO/mypage/wishlist.php?type=mno-sim'>마이페이지 찜 �
 
 
 
+
+

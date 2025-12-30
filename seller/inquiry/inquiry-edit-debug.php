@@ -174,3 +174,5 @@ $existingAttachments = getSellerInquiryAttachments($inquiryId);
 </body>
 </html>
 
+
+

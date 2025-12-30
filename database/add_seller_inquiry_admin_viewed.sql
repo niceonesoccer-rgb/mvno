@@ -5,3 +5,5 @@ ALTER TABLE `seller_inquiries`
 ADD COLUMN `admin_viewed_at` DATETIME DEFAULT NULL COMMENT '관리자 확인 시간' AFTER `answered_by`,
 ADD COLUMN `admin_viewed_by` VARCHAR(50) DEFAULT NULL COMMENT '확인한 관리자 user_id' AFTER `admin_viewed_at`;
 
+
+

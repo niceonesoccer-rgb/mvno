@@ -10,3 +10,5 @@ ALTER TABLE `notices` DROP COLUMN `is_important`;
 
 
 
+
+
