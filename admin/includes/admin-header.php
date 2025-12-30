@@ -624,6 +624,40 @@ if ($pdo) {
                 </a>
             </div>
             
+            <!-- 입찰 관리 -->
+            <div class="menu-section">
+                <div class="menu-section-title">입찰 관리</div>
+                <a href="/MVNO/admin/bidding/rounds.php" class="menu-item <?php echo ($currentPage === 'rounds.php' && strpos($_SERVER['REQUEST_URI'], '/bidding/') !== false) ? 'active' : ''; ?>">
+                    <span class="menu-item-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <polyline points="12 6 12 12 16 14"/>
+                        </svg>
+                    </span>
+                    입찰 라운드 관리
+                </a>
+                <a href="/MVNO/admin/bidding/participations.php" class="menu-item <?php echo ($currentPage === 'participations.php' && strpos($_SERVER['REQUEST_URI'], '/bidding/') !== false) ? 'active' : ''; ?>">
+                    <span class="menu-item-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                            <circle cx="9" cy="7" r="4"/>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                        </svg>
+                    </span>
+                    입찰 현황
+                </a>
+                <a href="/MVNO/admin/bidding/deposits.php" class="menu-item <?php echo ($currentPage === 'deposits.php' && strpos($_SERVER['REQUEST_URI'], '/bidding/') !== false) ? 'active' : ''; ?>">
+                    <span class="menu-item-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="1" x2="12" y2="23"/>
+                            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                        </svg>
+                    </span>
+                    예치금 관리
+                </a>
+            </div>
+            
             <!-- 상품 관리 -->
             <div class="menu-section">
                 <div class="menu-section-title">상품 관리</div>
