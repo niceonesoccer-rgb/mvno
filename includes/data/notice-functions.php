@@ -433,6 +433,7 @@ function getAllNoticesForAdmin() {
 }
 
 // 메인페이지에 표시할 공지사항 가져오기 (show_on_main = 1이고 발행된 것만, 기간 내)
+// 일반회원용 공지사항만 가져옴 (판매자 전용 제외)
 function getMainPageNotice() {
     ensureShowOnMainColumn(); // 컬럼 확인 및 추가
     
@@ -446,14 +447,16 @@ function getMainPageNotice() {
         // 현재 날짜 가져오기 (한국 시간 기준)
         $currentDate = date('Y-m-d');
         
-        // show_on_main이 1인 모든 공지사항 먼저 확인 (디버깅용)
-        $debugStmt = $pdo->query("SELECT id, title, show_on_main, start_at, end_at, image_url FROM notices WHERE show_on_main = 1 OR show_on_main = '1' ORDER BY created_at DESC");
+        // show_on_main이 1인 모든 공지사항 먼저 확인 (디버깅용, 판매자 전용 제외)
+        $debugStmt = $pdo->query("SELECT id, title, show_on_main, start_at, end_at, image_url, target_audience FROM notices WHERE (show_on_main = 1 OR show_on_main = '1') AND (target_audience IS NULL OR target_audience = 'all' OR target_audience = 'user') ORDER BY created_at DESC");
         $debugNotices = $debugStmt->fetchAll(PDO::FETCH_ASSOC);
         
         // 단계별로 조건을 확인하여 쿼리 실행
-        // 1단계: show_on_main = 1인 공지사항 가져오기
+        // 1단계: show_on_main = 1인 공지사항 가져오기 (판매자 전용 제외)
+        // 일반회원용 메인공지는 target_audience가 'all', 'user', 또는 NULL인 것만 가져옴
         $sql = "SELECT * FROM notices 
                 WHERE (show_on_main = 1 OR show_on_main = '1' OR CAST(show_on_main AS UNSIGNED) = 1)
+                AND (target_audience IS NULL OR target_audience = 'all' OR target_audience = 'user')
                 ORDER BY created_at DESC";
         $stmt = $pdo->prepare($sql);
         $stmt->execute();
@@ -465,6 +468,12 @@ function getMainPageNotice() {
             $startAt = $notice['start_at'] ?? null;
             $endAt = $notice['end_at'] ?? null;
             $imageUrl = $notice['image_url'] ?? null;
+            $targetAudience = $notice['target_audience'] ?? null;
+            
+            // 판매자 전용 공지 제외 (추가 안전 장치)
+            if ($targetAudience === 'seller') {
+                continue;
+            }
             
             // 날짜 조건 체크
             $dateOk = true;
@@ -488,7 +497,7 @@ function getMainPageNotice() {
         // 디버깅: 쿼리 결과 로깅
         if (isset($_GET['debug_notice']) && $_GET['debug_notice'] == '1') {
             error_log('getMainPageNotice: 현재 날짜 = ' . $currentDate);
-            error_log('getMainPageNotice: show_on_main=1인 공지사항 수 = ' . count($allMainNotices));
+            error_log('getMainPageNotice: show_on_main=1인 공지사항 수 (판매자 제외) = ' . count($allMainNotices));
             foreach ($allMainNotices as $debugNotice) {
                 $startAt = $debugNotice['start_at'] ?? null;
                 $endAt = $debugNotice['end_at'] ?? null;
@@ -503,9 +512,11 @@ function getMainPageNotice() {
                 }
                 $imageOk = !empty($imageUrl) && $imageUrl !== null && $imageUrl !== '';
                 
+                $targetAudience = $debugNotice['target_audience'] ?? 'NULL';
                 error_log('getMainPageNotice: 공지사항 - ID=' . ($debugNotice['id'] ?? 'N/A') . 
                          ', 제목=' . ($debugNotice['title'] ?? 'N/A') . 
                          ', show_on_main=' . ($debugNotice['show_on_main'] ?? 'N/A') . 
+                         ', target_audience=' . $targetAudience .
                          ', start_at=' . ($startAt ?: 'NULL') . 
                          ', end_at=' . ($endAt ?: 'NULL') . 
                          ', image_url=' . ($imageOk ? '있음' : '없음') .
@@ -514,7 +525,8 @@ function getMainPageNotice() {
             }
             error_log('getMainPageNotice: 최종 결과 = ' . ($row ? '있음 (ID: ' . ($row['id'] ?? 'N/A') . ')' : '없음'));
             if ($row) {
-                error_log('getMainPageNotice: 선택된 공지사항 - show_on_main=' . ($row['show_on_main'] ?? 'N/A') . 
+                error_log('getMainPageNotice: 선택된 공지사항 - target_audience=' . ($row['target_audience'] ?? 'NULL') .
+                         ', show_on_main=' . ($row['show_on_main'] ?? 'N/A') . 
                          ', start_at=' . ($row['start_at'] ?? 'NULL') . 
                          ', end_at=' . ($row['end_at'] ?? 'NULL') . 
                          ', image_url=' . (!empty($row['image_url']) ? '있음' : '없음'));
@@ -526,7 +538,7 @@ function getMainPageNotice() {
         return $row ?: null;
     } catch (PDOException $e) {
         // 컬럼이 없으면 null 반환
-        if (strpos($e->getMessage(), 'show_on_main') !== false || strpos($e->getMessage(), 'start_at') !== false || strpos($e->getMessage(), 'end_at') !== false) {
+        if (strpos($e->getMessage(), 'show_on_main') !== false || strpos($e->getMessage(), 'start_at') !== false || strpos($e->getMessage(), 'end_at') !== false || strpos($e->getMessage(), 'target_audience') !== false) {
             error_log('getMainPageNotice: 컬럼 누락 - ' . $e->getMessage());
             return null;
         }
