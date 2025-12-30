@@ -13,15 +13,6 @@ MVNO, MNO, Internet 상품을 관리하기 위한 데이터베이스 스키마�
 
 ## 설치 방법
 
-### 입찰 시스템 테이블 설치
-입찰 시스템을 사용하기 위한 테이블 설치:
-- 웹 브라우저에서 `/database/install_bidding_system_tables.php` 접속
-- 또는 `bidding_system_tables.sql` 파일을 phpMyAdmin에서 실행
-
----
-
-## 기존 설치 방법
-
 ### 방법 1: phpMyAdmin 사용 (권장)
 1. 브라우저에서 `http://localhost/phpmyadmin` 접속
 2. 왼쪽 상단 "새로 만들기" 클릭

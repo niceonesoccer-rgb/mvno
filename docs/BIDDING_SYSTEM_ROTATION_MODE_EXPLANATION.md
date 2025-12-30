@@ -150,3 +150,4 @@
 - 순환 간격마다 순서 변경
 - min_bid_amount = max_bid_amount로 내부 저장
 
+

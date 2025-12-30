@@ -372,3 +372,4 @@ function assignDisplayOrder($biddingRoundId) {
 6. ✅ display_order 자동 계산 로직
 7. ✅ 알림 시스템 (선택 기한 안내)
 
+

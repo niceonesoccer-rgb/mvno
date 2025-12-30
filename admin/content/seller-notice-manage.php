@@ -16,9 +16,9 @@ if (!isAdmin()) {
     exit;
 }
 
-// 페이지네이션 설정
+// 페이지네이션 설정 (10개씩 고정)
 $page = max(1, intval($_GET['page'] ?? 1));
-$perPage = 20;
+$perPage = 10;
 $offset = ($page - 1) * $perPage;
 
 // 공지사항 목록 가져오기
@@ -478,6 +478,66 @@ require_once __DIR__ . '/../includes/admin-header.php';
         color: #991b1b;
         border: 1px solid #ef4444;
     }
+    
+    /* 삭제 확인 모달 스타일 */
+    .delete-modal {
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        max-width: 400px;
+        width: 90%;
+        box-shadow: 0 20px 25px rgba(0, 0, 0, 0.15);
+    }
+    
+    .delete-modal h3 {
+        font-size: 20px;
+        font-weight: 700;
+        color: #1f2937;
+        margin: 0 0 16px 0;
+    }
+    
+    .delete-modal p {
+        font-size: 14px;
+        color: #6b7280;
+        margin: 0 0 24px 0;
+        line-height: 1.6;
+    }
+    
+    .delete-modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+    }
+    
+    .btn-cancel-delete {
+        padding: 10px 20px;
+        background: #f3f4f6;
+        color: #374151;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+    
+    .btn-cancel-delete:hover {
+        background: #e5e7eb;
+    }
+    
+    .btn-confirm-delete {
+        padding: 10px 20px;
+        background: #ef4444;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+    
+    .btn-confirm-delete:hover {
+        background: #dc2626;
+    }
 </style>
 
 <div class="admin-container">
@@ -507,7 +567,7 @@ require_once __DIR__ . '/../includes/admin-header.php';
                 <th>제목</th>
                 <th>배너 타입</th>
                 <th>메인공지</th>
-                <th>표시 기간</th>
+                <th>메인공지 배너 기간</th>
                 <th>작성일</th>
                 <th>관리</th>
             </tr>
@@ -608,6 +668,18 @@ require_once __DIR__ . '/../includes/admin-header.php';
     <?php endif; ?>
 </div>
 
+<!-- 삭제 확인 모달 -->
+<div class="modal-overlay" id="deleteModal">
+    <div class="delete-modal">
+        <h3>공지사항 삭제</h3>
+        <p>정말 삭제하시겠습니까?<br>삭제된 공지사항은 복구할 수 없습니다.</p>
+        <div class="delete-modal-actions">
+            <button type="button" class="btn-cancel-delete" onclick="closeDeleteModal()">취소</button>
+            <button type="button" class="btn-confirm-delete" id="confirmDeleteBtn">삭제</button>
+        </div>
+    </div>
+</div>
+
 <!-- 작성/수정 모달 -->
 <div class="modal-overlay" id="noticeModal">
     <div class="modal">
@@ -679,7 +751,7 @@ require_once __DIR__ . '/../includes/admin-header.php';
                 </div>
                 
                 <div class="form-group">
-                    <label class="form-label">표시 기간</label>
+                    <label class="form-label">메인공지 배너 기간</label>
                     <div class="form-row">
                         <div>
                             <label class="form-label" style="font-size: 12px; font-weight: 400;">시작일</label>
@@ -869,10 +941,20 @@ function editNotice(noticeId) {
     openModal(noticeId);
 }
 
+let deleteNoticeId = null;
+
 function deleteNotice(noticeId) {
-    if (!confirm('정말 삭제하시겠습니까? 삭제된 공지사항은 복구할 수 없습니다.')) {
-        return;
-    }
+    deleteNoticeId = noticeId;
+    document.getElementById('deleteModal').classList.add('active');
+}
+
+function closeDeleteModal() {
+    document.getElementById('deleteModal').classList.remove('active');
+    deleteNoticeId = null;
+}
+
+function confirmDelete() {
+    if (!deleteNoticeId) return;
     
     fetch('/MVNO/admin/api/seller-notice-api.php', {
         method: 'POST',
@@ -881,7 +963,7 @@ function deleteNotice(noticeId) {
         },
         body: new URLSearchParams({
             action: 'delete',
-            id: noticeId
+            id: deleteNoticeId
         })
     })
     .then(response => response.json())
@@ -890,9 +972,25 @@ function deleteNotice(noticeId) {
             location.href = '/MVNO/admin/content/seller-notice-manage.php?success=deleted&page=<?= $page ?>';
         } else {
             alert('삭제에 실패했습니다: ' + (data.message || '알 수 없는 오류'));
+            closeDeleteModal();
         }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('삭제 중 오류가 발생했습니다.');
+        closeDeleteModal();
     });
 }
+
+// 삭제 확인 버튼 클릭 이벤트
+document.getElementById('confirmDeleteBtn').addEventListener('click', confirmDelete);
+
+// 삭제 모달 외부 클릭 시 닫기
+document.getElementById('deleteModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeDeleteModal();
+    }
+});
 
 // 폼 제출
 document.getElementById('noticeForm').addEventListener('submit', function(e) {

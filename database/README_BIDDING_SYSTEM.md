@@ -96,3 +96,4 @@ DESCRIBE seller_deposit_transactions;
 - [입찰 시스템 설계 문서](../docs/BIDDING_SYSTEM_DESIGN.md)
 - [낙찰 후 상품 등록/선택 프로세스](../docs/BIDDING_SYSTEM_PRODUCT_ASSIGNMENT.md)
 
+

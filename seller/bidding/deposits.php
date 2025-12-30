@@ -308,3 +308,4 @@ $transactionTypeLabels = [
 
 <?php require_once __DIR__ . '/../includes/seller-footer.php'; ?>
 
+

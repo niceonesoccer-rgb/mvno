@@ -25,3 +25,4 @@ FROM products
 GROUP BY seller_id
 LIMIT 10;
 
+

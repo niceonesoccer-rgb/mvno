@@ -208,3 +208,4 @@
 
 상세 설계는 [BIDDING_SYSTEM_DESIGN.md](./BIDDING_SYSTEM_DESIGN.md) 참조
 
+

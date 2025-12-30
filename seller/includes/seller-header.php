@@ -708,28 +708,6 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         </div>
         
         <div class="menu-section">
-            <div class="menu-section-title">입찰</div>
-            <a href="/MVNO/seller/bidding/list.php" class="menu-item <?php echo (strpos($currentPage, 'bidding') !== false && strpos($_SERVER['REQUEST_URI'], '/bidding/') !== false) ? 'active' : ''; ?>">
-                <span class="menu-item-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10"/>
-                        <polyline points="12 6 12 12 16 14"/>
-                    </svg>
-                </span>
-                입찰 현황
-            </a>
-            <a href="/MVNO/seller/bidding/deposits.php" class="menu-item <?php echo ($currentPage === 'deposits.php' && strpos($_SERVER['REQUEST_URI'], '/bidding/') !== false) ? 'active' : ''; ?>">
-                <span class="menu-item-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="12" y1="1" x2="12" y2="23"/>
-                        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-                    </svg>
-                </span>
-                예치금 관리
-            </a>
-        </div>
-        
-        <div class="menu-section">
             <div class="menu-section-title">고객 지원</div>
             <a href="/MVNO/seller/inquiry/inquiry-list.php" class="menu-item <?php echo (strpos($currentPage, 'inquiry') !== false) ? 'active' : ''; ?>">
                 <span class="menu-item-icon">

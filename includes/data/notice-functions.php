@@ -635,7 +635,8 @@ function getSellerNoticesForAdmin($limit = null, $offset = 0) {
     return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
 }
 
-// 판매자 전용 공지사항 목록 가져오기 (판매자용, 발행 기간 내)
+// 판매자 전용 공지사항 목록 가져오기 (판매자용, 모든 공지사항 표시)
+// 참고: start_at, end_at은 메인 배너 표시 기간이며, 리스트 표시와는 무관
 function getSellerNotices($limit = null, $offset = 0) {
     ensureShowOnMainColumn();
     
@@ -644,8 +645,6 @@ function getSellerNotices($limit = null, $offset = 0) {
     
     $sql = "SELECT * FROM notices 
             WHERE target_audience = 'seller'
-            AND (start_at IS NULL OR start_at <= CURDATE())
-            AND (end_at IS NULL OR end_at >= CURDATE())
             ORDER BY created_at DESC";
     
     if ($limit !== null) {

@@ -119,3 +119,4 @@ CREATE TABLE IF NOT EXISTS `seller_deposit_transactions` (
     KEY `idx_reference` (`reference_type`, `reference_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='예치금 거래 내역';
 
+

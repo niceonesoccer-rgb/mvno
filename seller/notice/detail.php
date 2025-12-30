@@ -60,7 +60,7 @@ $is_main_page = false;
 // 페이지별 스타일
 $pageStyles = '
     .seller-notice-detail-container {
-        max-width: 1200px;
+        max-width: 720px;
         margin: 0 auto;
         padding: 40px 24px;
     }

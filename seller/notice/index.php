@@ -34,7 +34,7 @@ $is_main_page = false;
 // 페이지별 스타일
 $pageStyles = '
     .seller-notice-container {
-        max-width: 1200px;
+        max-width: 720px;
         margin: 0 auto;
         padding: 40px 24px;
     }
@@ -170,19 +170,15 @@ $pageStyles = '
 
 include '../includes/seller-header.php';
 
-// 페이지네이션
+// 페이지네이션 (10개씩 고정)
 $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
-$per_page = isset($_GET['per_page']) ? (int)$_GET['per_page'] : 10;
-if (!in_array($per_page, [10, 20, 50, 100])) {
-    $per_page = 10;
-}
+$per_page = 10; // 10개씩 고정
 $offset = ($page - 1) * $per_page;
 
-// 판매자 전용 공지사항 목록 가져오기
-$all_notices = getSellerNotices();
-$total = count($all_notices);
+// 판매자 전용 공지사항 목록 가져오기 (DB 레벨 페이지네이션)
+$total = getSellerNoticesCount();
+$notices = getSellerNotices($per_page, $offset);
 $total_pages = ceil($total / $per_page);
-$notices = array_slice($all_notices, $offset, $per_page);
 ?>
 
 <div class="seller-notice-container">
@@ -224,9 +220,6 @@ $notices = array_slice($all_notices, $offset, $per_page);
                         
                         <div class="notice-item-meta">
                             <span><?= date('Y년 m월 d일', strtotime($notice['created_at'])) ?></span>
-                            <?php if ($notice['show_on_main'] ?? 0): ?>
-                                <span style="background: #dbeafe; color: #1e40af; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600;">메인배너</span>
-                            <?php endif; ?>
                         </div>
                     </div>
                 </a>
@@ -236,7 +229,7 @@ $notices = array_slice($all_notices, $offset, $per_page);
         <?php if ($total_pages > 1): ?>
             <div class="pagination">
                 <?php if ($page > 1): ?>
-                    <a href="?page=<?= $page - 1 ?>&per_page=<?= $per_page ?>">이전</a>
+                    <a href="?page=<?= $page - 1 ?>">이전</a>
                 <?php else: ?>
                     <span class="disabled">이전</span>
                 <?php endif; ?>
@@ -246,7 +239,7 @@ $notices = array_slice($all_notices, $offset, $per_page);
                 $endPage = min($total_pages, $page + 2);
                 
                 if ($startPage > 1): ?>
-                    <a href="?page=1&per_page=<?= $per_page ?>">1</a>
+                    <a href="?page=1">1</a>
                     <?php if ($startPage > 2): ?>
                         <span>...</span>
                     <?php endif; ?>
@@ -256,7 +249,7 @@ $notices = array_slice($all_notices, $offset, $per_page);
                     <?php if ($i == $page): ?>
                         <span class="active"><?= $i ?></span>
                     <?php else: ?>
-                        <a href="?page=<?= $i ?>&per_page=<?= $per_page ?>"><?= $i ?></a>
+                        <a href="?page=<?= $i ?>"><?= $i ?></a>
                     <?php endif; ?>
                 <?php endfor; ?>
                 
@@ -264,11 +257,11 @@ $notices = array_slice($all_notices, $offset, $per_page);
                     <?php if ($endPage < $total_pages - 1): ?>
                         <span>...</span>
                     <?php endif; ?>
-                    <a href="?page=<?= $total_pages ?>&per_page=<?= $per_page ?>"><?= $total_pages ?></a>
+                    <a href="?page=<?= $total_pages ?>"><?= $total_pages ?></a>
                 <?php endif; ?>
                 
                 <?php if ($page < $total_pages): ?>
-                    <a href="?page=<?= $page + 1 ?>&per_page=<?= $per_page ?>">다음</a>
+                    <a href="?page=<?= $page + 1 ?>">다음</a>
                 <?php else: ?>
                     <span class="disabled">다음</span>
                 <?php endif; ?>
