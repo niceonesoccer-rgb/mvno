@@ -665,6 +665,68 @@ if ($pdo) {
                 </a>
             </div>
             
+            <!-- 광고 관리 -->
+            <div class="menu-section">
+                <div class="menu-section-title">광고 관리</div>
+                <a href="/MVNO/admin/advertisement/prices.php" class="menu-item <?php echo ($currentPage === 'prices.php' && strpos($_SERVER['REQUEST_URI'], '/advertisement/') !== false) ? 'active' : ''; ?>">
+                    <span class="menu-item-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="2" x2="12" y2="22"/>
+                            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                        </svg>
+                    </span>
+                    광고 가격 설정
+                </a>
+                <a href="/MVNO/admin/advertisement/list.php" class="menu-item <?php echo ($currentPage === 'list.php' && strpos($_SERVER['REQUEST_URI'], '/advertisement/') !== false) ? 'active' : ''; ?>">
+                    <span class="menu-item-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 11l3 3L22 4"/>
+                            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+                        </svg>
+                    </span>
+                    광고 목록
+                </a>
+                <a href="/MVNO/admin/deposit/requests.php" class="menu-item <?php echo ($currentPage === 'requests.php' && strpos($_SERVER['REQUEST_URI'], '/deposit/') !== false) ? 'active' : ''; ?>">
+                    <span class="menu-item-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
+                            <line x1="1" y1="10" x2="23" y2="10"/>
+                        </svg>
+                    </span>
+                    입금 신청 목록
+                </a>
+                <a href="/MVNO/admin/deposit/bank-accounts.php" class="menu-item <?php echo ($currentPage === 'bank-accounts.php' && strpos($_SERVER['REQUEST_URI'], '/deposit/') !== false) ? 'active' : ''; ?>">
+                    <span class="menu-item-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
+                            <line x1="1" y1="10" x2="23" y2="10"/>
+                            <path d="M6 16h.01M10 16h.01M14 16h.01M18 16h.01"/>
+                        </svg>
+                    </span>
+                    무통장 계좌 관리
+                </a>
+                <a href="/MVNO/admin/tax-invoice/issue.php" class="menu-item <?php echo ($currentPage === 'issue.php' && strpos($_SERVER['REQUEST_URI'], '/tax-invoice/') !== false) ? 'active' : ''; ?>">
+                    <span class="menu-item-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                            <line x1="16" y1="13" x2="8" y2="13"/>
+                            <line x1="16" y1="17" x2="8" y2="17"/>
+                            <polyline points="10 9 9 9 8 9"/>
+                        </svg>
+                    </span>
+                    세금계산서 발행
+                </a>
+                <a href="/MVNO/admin/tax-invoice/list.php" class="menu-item <?php echo ($currentPage === 'list.php' && strpos($_SERVER['REQUEST_URI'], '/tax-invoice/') !== false) ? 'active' : ''; ?>">
+                    <span class="menu-item-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2"/>
+                        </svg>
+                    </span>
+                    세금계산서 발행 내역
+                </a>
+            </div>
+            
             <!-- 콘텐츠 관리 -->
             <div class="menu-section">
                 <div class="menu-section-title">콘텐츠 관리</div>

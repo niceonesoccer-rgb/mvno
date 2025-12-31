@@ -114,7 +114,13 @@ try {
                 inet.service_type AS service_type,
                 inet.speed_option AS speed_option,
                 inet.monthly_fee AS monthly_fee,
-                COALESCE(prs.total_review_count, 0) AS review_count
+                COALESCE(prs.total_review_count, 0) AS review_count,
+                CASE WHEN EXISTS (
+                    SELECT 1 FROM rotation_advertisements ra 
+                    WHERE ra.product_id = p.id 
+                    AND ra.status = 'active' 
+                    AND ra.end_datetime > NOW()
+                ) THEN 1 ELSE 0 END AS has_active_ad
             FROM products p
             INNER JOIN product_internet_details inet ON p.id = inet.product_id
             LEFT JOIN product_review_statistics prs ON p.id = prs.product_id
@@ -135,6 +141,21 @@ try {
 } catch (PDOException $e) {
     error_log("Error fetching Internet products: " . $e->getMessage());
 }
+
+// 예치금 잔액 조회 (광고 신청 모달용)
+$balance = 0;
+try {
+    if ($pdo) {
+        $stmt = $pdo->prepare("SELECT balance FROM seller_deposit_accounts WHERE seller_id = :seller_id");
+        $stmt->execute([':seller_id' => (string)$currentUser['user_id']]);
+        $balanceData = $stmt->fetch(PDO::FETCH_ASSOC);
+        $balance = floatval($balanceData['balance'] ?? 0);
+    }
+} catch (PDOException $e) {
+    error_log("Error fetching balance: " . $e->getMessage());
+}
+
+$advertisementDaysOptions = [1, 2, 3, 5, 7, 10, 14, 30];
 
 // 페이지별 스타일 (mvno-list.php와 동일)
 $pageStyles = '
@@ -700,6 +721,14 @@ include __DIR__ . '/../includes/seller-header.php';
                                 <div class="action-buttons">
                                     <button class="btn btn-sm btn-edit" onclick="editProduct(<?php echo $product['id']; ?>)">수정</button>
                                     <button class="btn btn-sm btn-copy" onclick="copyProduct(<?php echo $product['id']; ?>)">복사</button>
+                                    <?php 
+                                    $hasActiveAd = intval($product['has_active_ad'] ?? 0);
+                                    if ($hasActiveAd): 
+                                    ?>
+                                        <span style="color: #64748b; font-size: 12px; margin-left: 8px;">광고중</span>
+                                    <?php else: ?>
+                                        <button type="button" class="btn btn-sm" onclick="openAdModal(<?php echo $product['id']; ?>, 'internet', '<?php echo htmlspecialchars($product['product_name'] ?? '', ENT_QUOTES); ?>')" style="background: #6366f1; color: white; border: none; padding: 4px 12px; border-radius: 4px; margin-left: 4px; font-size: 12px; cursor: pointer;">광고</button>
+                                    <?php endif; ?>
                                 </div>
                             </td>
                         </tr>
@@ -1402,6 +1431,194 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
+</script>
+
+<!-- 광고 신청 모달 -->
+<div id="adModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+    <div style="background: white; border-radius: 12px; padding: 32px; width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+            <h2 style="margin: 0; font-size: 20px; font-weight: 600;">광고 신청</h2>
+            <button type="button" onclick="closeAdModal()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #64748b;">&times;</button>
+        </div>
+        
+        <form id="adForm" onsubmit="submitAdForm(event)">
+            <input type="hidden" name="product_id" id="modalProductId">
+            
+            <div style="margin-bottom: 20px;">
+                <div style="padding: 16px; background: #f8fafc; border-radius: 8px; margin-bottom: 16px;">
+                    <div style="font-size: 14px; color: #64748b; margin-bottom: 4px;">상품</div>
+                    <div style="font-size: 16px; font-weight: 600;" id="modalProductName"></div>
+                </div>
+                
+                <label style="display: block; font-weight: 600; color: #374151; margin-bottom: 8px;">
+                    광고 기간 <span style="color: #ef4444;">*</span>
+                </label>
+                <select name="advertisement_days" id="modalAdvertisementDays" required
+                        style="width: 100%; padding: 12px 16px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 15px; box-sizing: border-box;">
+                    <option value="">광고 기간을 선택하세요</option>
+                    <?php foreach ($advertisementDaysOptions as $days): ?>
+                        <option value="<?= $days ?>"><?= $days ?>일</option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            
+            <div id="modalPricePreview" style="margin-bottom: 24px; padding: 20px; background: #f8fafc; border-radius: 8px; display: none;">
+                <div style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">광고 금액</div>
+                <div id="modalPriceAmount"></div>
+                <div id="modalBalanceCheck" style="margin-top: 12px; font-size: 14px;"></div>
+            </div>
+            
+            <div id="modalMessage" style="margin-bottom: 16px; padding: 12px; border-radius: 8px; display: none;"></div>
+            
+            <div style="display: flex; gap: 12px;">
+                <button type="submit" id="modalSubmitBtn" disabled
+                        style="flex: 1; padding: 12px 24px; background: #cbd5e1; color: #64748b; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: not-allowed;">
+                    광고 신청
+                </button>
+                <button type="button" onclick="closeAdModal()" style="flex: 1; padding: 12px 24px; background: #f3f4f6; color: #374151; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;">
+                    취소
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+const currentBalance = <?= $balance ?>;
+let currentProductType = '';
+
+function openAdModal(productId, productType, productName) {
+    document.getElementById('modalProductId').value = productId;
+    document.getElementById('modalProductName').textContent = productName;
+    document.getElementById('modalAdvertisementDays').value = '';
+    document.getElementById('modalPricePreview').style.display = 'none';
+    document.getElementById('modalSubmitBtn').disabled = true;
+    document.getElementById('modalSubmitBtn').style.background = '#cbd5e1';
+    document.getElementById('modalSubmitBtn').style.color = '#64748b';
+    document.getElementById('modalSubmitBtn').style.cursor = 'not-allowed';
+    document.getElementById('modalMessage').style.display = 'none';
+    
+    currentProductType = productType;
+    document.getElementById('adModal').style.display = 'flex';
+}
+
+function closeAdModal() {
+    document.getElementById('adModal').style.display = 'none';
+}
+
+// 모달 배경 클릭 시 닫기
+document.getElementById('adModal')?.addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeAdModal();
+    }
+});
+
+async function updateModalPrice() {
+    const productId = document.getElementById('modalProductId').value;
+    const days = document.getElementById('modalAdvertisementDays').value;
+    
+    if (!productId || !days || !currentProductType) {
+        document.getElementById('modalPricePreview').style.display = 'none';
+        document.getElementById('modalSubmitBtn').disabled = true;
+        document.getElementById('modalSubmitBtn').style.background = '#cbd5e1';
+        document.getElementById('modalSubmitBtn').style.color = '#64748b';
+        document.getElementById('modalSubmitBtn').style.cursor = 'not-allowed';
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/MVNO/api/advertisement-price.php?product_type=${currentProductType}&advertisement_days=${days}`);
+        const data = await response.json();
+        
+        if (data.success && data.price) {
+            const supplyAmount = parseFloat(data.price);
+            const taxAmount = supplyAmount * 0.1;
+            const totalAmount = supplyAmount + taxAmount;
+            
+            document.getElementById('modalPriceAmount').innerHTML = `
+                <div style="font-size: 24px; margin-bottom: 4px;">공급가액: ${new Intl.NumberFormat('ko-KR').format(Math.round(supplyAmount))}원</div>
+                <div style="font-size: 14px; color: #64748b; margin-bottom: 4px;">부가세 (10%): ${new Intl.NumberFormat('ko-KR').format(Math.round(taxAmount))}원</div>
+                <div style="font-size: 32px; font-weight: 700; color: #6366f1; margin-top: 8px;">입금금액 (부가세 포함): ${new Intl.NumberFormat('ko-KR').format(Math.round(totalAmount))}원</div>
+            `;
+            document.getElementById('modalPricePreview').style.display = 'block';
+            
+            if (currentBalance >= totalAmount) {
+                document.getElementById('modalBalanceCheck').innerHTML = '<span style="color: #10b981;">✓ 예치금 잔액이 충분합니다.</span>';
+                document.getElementById('modalSubmitBtn').disabled = false;
+                document.getElementById('modalSubmitBtn').style.background = '#6366f1';
+                document.getElementById('modalSubmitBtn').style.color = '#fff';
+                document.getElementById('modalSubmitBtn').style.cursor = 'pointer';
+            } else {
+                document.getElementById('modalBalanceCheck').innerHTML = '<span style="color: #ef4444;">✗ 예치금 잔액이 부족합니다. 예치금을 충전해주세요.</span>';
+                document.getElementById('modalSubmitBtn').disabled = true;
+                document.getElementById('modalSubmitBtn').style.background = '#cbd5e1';
+                document.getElementById('modalSubmitBtn').style.color = '#64748b';
+                document.getElementById('modalSubmitBtn').style.cursor = 'not-allowed';
+            }
+        } else {
+            document.getElementById('modalPricePreview').style.display = 'none';
+            document.getElementById('modalSubmitBtn').disabled = true;
+            document.getElementById('modalSubmitBtn').style.background = '#cbd5e1';
+            document.getElementById('modalSubmitBtn').style.color = '#64748b';
+            document.getElementById('modalSubmitBtn').style.cursor = 'not-allowed';
+        }
+    } catch (error) {
+        console.error('Price fetch error:', error);
+        document.getElementById('modalPricePreview').style.display = 'none';
+    }
+}
+
+async function submitAdForm(event) {
+    event.preventDefault();
+    
+    const formData = new FormData(document.getElementById('adForm'));
+    const submitBtn = document.getElementById('modalSubmitBtn');
+    const messageDiv = document.getElementById('modalMessage');
+    
+    submitBtn.disabled = true;
+    submitBtn.textContent = '처리중...';
+    messageDiv.style.display = 'none';
+    
+    try {
+        const response = await fetch('/MVNO/api/advertisement-apply.php', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            messageDiv.style.display = 'block';
+            messageDiv.style.background = '#d1fae5';
+            messageDiv.style.color = '#065f46';
+            messageDiv.textContent = data.message;
+            
+            setTimeout(() => {
+                closeAdModal();
+                location.reload();
+            }, 1500);
+        } else {
+            messageDiv.style.display = 'block';
+            messageDiv.style.background = '#fee2e2';
+            messageDiv.style.color = '#991b1b';
+            messageDiv.textContent = data.message || '광고 신청에 실패했습니다.';
+            
+            submitBtn.disabled = false;
+            submitBtn.textContent = '광고 신청';
+        }
+    } catch (error) {
+        console.error('Submit error:', error);
+        messageDiv.style.display = 'block';
+        messageDiv.style.background = '#fee2e2';
+        messageDiv.style.color = '#991b1b';
+        messageDiv.textContent = '오류가 발생했습니다. 다시 시도해주세요.';
+        
+        submitBtn.disabled = false;
+        submitBtn.textContent = '광고 신청';
+    }
+}
+
+document.getElementById('modalAdvertisementDays')?.addEventListener('change', updateModalPrice);
 </script>
 
 <?php include __DIR__ . '/../includes/seller-footer.php'; ?>

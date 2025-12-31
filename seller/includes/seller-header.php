@@ -625,6 +625,41 @@ $currentPage = basename($_SERVER['PHP_SELF']);
             </a>
         </div>
         
+        <!-- 광고 관리 -->
+        <div class="menu-section">
+            <div class="menu-section-title">광고 관리</div>
+            <a href="/MVNO/seller/advertisement/list.php" class="menu-item <?php echo ($currentPage === 'list.php' && strpos($_SERVER['REQUEST_URI'], '/advertisement/') !== false) ? 'active' : ''; ?>">
+                <span class="menu-item-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                    </svg>
+                </span>
+                광고 내역
+            </a>
+        </div>
+        
+        <!-- 예치금 관리 -->
+        <div class="menu-section">
+            <div class="menu-section-title">예치금 관리</div>
+            <a href="/MVNO/seller/deposit/charge.php" class="menu-item <?php echo ($currentPage === 'charge.php' && strpos($_SERVER['REQUEST_URI'], '/deposit/') !== false) ? 'active' : ''; ?>">
+                <span class="menu-item-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="2" x2="12" y2="22"/>
+                        <path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
+                    </svg>
+                </span>
+                예치금 충전
+            </a>
+            <a href="/MVNO/seller/deposit/history.php" class="menu-item <?php echo ($currentPage === 'history.php' && strpos($_SERVER['REQUEST_URI'], '/deposit/') !== false) ? 'active' : ''; ?>">
+                <span class="menu-item-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                    </svg>
+                </span>
+                예치금 내역
+            </a>
+        </div>
+        
         <div class="menu-section">
             <div class="menu-section-title">주문 관리</div>
             <a href="/MVNO/seller/orders/mno-sim.php" class="menu-item menu-item-sub <?php echo (basename($_SERVER['PHP_SELF']) === 'mno-sim.php' && strpos($_SERVER['REQUEST_URI'], '/orders/') !== false) ? 'active' : ''; ?>">
