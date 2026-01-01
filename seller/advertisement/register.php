@@ -76,6 +76,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             
             // 가격 조회
+            // rotation_advertisement_prices 테이블은 mno_sim (언더스코어)를 사용하므로 변환
+            $priceProductType = $product['product_type'];
+            if ($priceProductType === 'mno-sim') {
+                $priceProductType = 'mno_sim';
+            }
+            
             $stmt = $pdo->prepare("
                 SELECT price FROM rotation_advertisement_prices 
                 WHERE product_type = :product_type 
@@ -83,7 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 AND is_active = 1
             ");
             $stmt->execute([
-                ':product_type' => $product['product_type'],
+                ':product_type' => $priceProductType,
                 ':advertisement_days' => $advertisementDays
             ]);
             $priceData = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -107,6 +113,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             
             // 광고 등록
+            // rotation_advertisements 테이블은 mno_sim (언더스코어)를 사용하므로 변환
+            $adProductType = $product['product_type'];
+            if ($adProductType === 'mno-sim') {
+                $adProductType = 'mno_sim';
+            }
+            
             $startDatetime = date('Y-m-d H:i:s');
             $endDatetime = date('Y-m-d H:i:s', strtotime($startDatetime) + ($advertisementDays * 86400));
             
@@ -118,7 +130,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute([
                 ':product_id' => $productId,
                 ':seller_id' => $sellerId,
-                ':product_type' => $product['product_type'],
+                ':product_type' => $adProductType,
                 ':rotation_duration' => $rotationDuration,
                 ':advertisement_days' => $advertisementDays,
                 ':price' => $supplyAmount, // 광고 테이블에는 공급가액 저장
@@ -163,20 +175,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $selectedProductId = intval($_GET['product_id'] ?? 0);
 
 // 탭 파라미터 (기본값: 통신사단독유심)
-$activeTab = $_GET['tab'] ?? 'mno_sim';
-$validTabs = ['mno_sim', 'mvno', 'mno', 'internet'];
+$activeTab = $_GET['tab'] ?? 'mno-sim';
+$validTabs = ['mno-sim', 'mvno', 'mno', 'internet'];
 if (!in_array($activeTab, $validTabs)) {
-    $activeTab = 'mno_sim';
+    $activeTab = 'mno-sim';
 }
 
 // product_id가 전달된 경우 해당 상품의 타입으로 탭 설정
+// DB의 product_type을 탭 이름으로 변환 (mno-sim -> mno_sim)
+$tabToDbTypeMap = [
+    'mno-sim' => 'mno-sim',
+    'mno_sim' => 'mno-sim', // 하위 호환성
+    'mvno' => 'mvno',
+    'mno' => 'mno',
+    'internet' => 'internet'
+];
+$dbToTabTypeMap = array_flip($tabToDbTypeMap);
+
 if ($selectedProductId > 0) {
     try {
         $stmt = $pdo->prepare("SELECT product_type FROM products WHERE id = :id AND seller_id = :seller_id");
         $stmt->execute([':id' => $selectedProductId, ':seller_id' => $sellerId]);
-        $productType = $stmt->fetchColumn();
-        if ($productType && in_array($productType, $validTabs)) {
-            $activeTab = $productType;
+        $dbProductType = $stmt->fetchColumn();
+        if ($dbProductType && isset($dbToTabTypeMap[$dbProductType])) {
+            $activeTab = $dbToTabTypeMap[$dbProductType];
         }
     } catch (PDOException $e) {
         error_log("Error fetching product type: " . $e->getMessage());
@@ -193,14 +215,14 @@ $balanceResult = $stmt->fetch(PDO::FETCH_ASSOC);
 $balance = floatval($balanceResult['balance'] ?? 0);
 
 $productTypeLabels = [
-    'mno_sim' => '통신사단독유심',
+    'mno-sim' => '통신사단독유심',
     'mvno' => '알뜰폰',
     'mno' => '통신사폰',
     'internet' => '인터넷'
 ];
 
 // 탭별 상품 개수 조회
-$tabCounts = ['mno_sim' => 0, 'mvno' => 0, 'mno' => 0, 'internet' => 0];
+$tabCounts = ['mno-sim' => 0, 'mvno' => 0, 'mno' => 0, 'internet' => 0];
 try {
     $countStmt = $pdo->prepare("
         SELECT product_type, COUNT(*) as count
@@ -211,7 +233,7 @@ try {
     $countStmt->execute([':seller_id' => $sellerId]);
     $typeCounts = $countStmt->fetchAll(PDO::FETCH_KEY_PAIR);
     
-    $tabCounts['mno_sim'] = $typeCounts['mno_sim'] ?? 0;
+    $tabCounts['mno-sim'] = $typeCounts['mno-sim'] ?? 0;
     $tabCounts['mvno'] = $typeCounts['mvno'] ?? 0;
     $tabCounts['mno'] = $typeCounts['mno'] ?? 0;
     $tabCounts['internet'] = $typeCounts['internet'] ?? 0;
@@ -219,9 +241,18 @@ try {
     error_log("Error fetching tab counts: " . $e->getMessage());
 }
 
+// 탭 이름을 DB의 product_type으로 변환 (mno_sim -> mno-sim)
+$productTypeMap = [
+    'mno_sim' => 'mno-sim',
+    'mvno' => 'mvno',
+    'mno' => 'mno',
+    'internet' => 'internet'
+];
+$dbProductType = $productTypeMap[$activeTab] ?? $activeTab;
+
 // WHERE 조건 구성
 $whereConditions = ["p.seller_id = :seller_id", "p.status = 'active'", "p.product_type = :product_type"];
-$params = [':seller_id' => $sellerId, ':product_type' => $activeTab];
+$params = [':seller_id' => $sellerId, ':product_type' => $dbProductType];
 
 $whereClause = implode(' AND ', $whereConditions);
 
@@ -243,43 +274,43 @@ $stmt = $pdo->prepare("
         CASE p.product_type
             WHEN 'mvno' THEN mvno.plan_name
             WHEN 'mno' THEN mno.device_name
-            WHEN 'mno_sim' THEN mno_sim.plan_name
+            WHEN 'mno-sim' THEN mno_sim.plan_name
             WHEN 'internet' THEN CONCAT(inet.registration_place, ' ', inet.speed_option)
         END AS product_name,
         CASE p.product_type
             WHEN 'mvno' THEN mvno.provider
             WHEN 'mno' THEN 'SKT/KT/LG U+'
-            WHEN 'mno_sim' THEN mno_sim.provider
+            WHEN 'mno-sim' THEN mno_sim.provider
             WHEN 'internet' THEN inet.registration_place
         END AS provider,
         CASE p.product_type
             WHEN 'mvno' THEN mvno.service_type
             WHEN 'mno' THEN mno.data_amount
-            WHEN 'mno_sim' THEN mno_sim.service_type
+            WHEN 'mno-sim' THEN mno_sim.service_type
             WHEN 'internet' THEN inet.speed_option
         END AS data_speed,
         CASE p.product_type
             WHEN 'mvno' THEN mvno.registration_types
             WHEN 'mno' THEN mno.contract_period
-            WHEN 'mno_sim' THEN mno_sim.registration_types
+            WHEN 'mno-sim' THEN mno_sim.registration_types
             WHEN 'internet' THEN NULL
         END AS registration_type,
         CASE p.product_type
             WHEN 'mvno' THEN mvno.price_main
             WHEN 'mno' THEN mno.price_main
-            WHEN 'mno_sim' THEN mno_sim.price_main
+            WHEN 'mno-sim' THEN mno_sim.price_main
             WHEN 'internet' THEN inet.monthly_fee
         END AS monthly_fee,
         CASE p.product_type
             WHEN 'mvno' THEN mvno.discount_period
             WHEN 'mno' THEN NULL
-            WHEN 'mno_sim' THEN mno_sim.discount_period
+            WHEN 'mno-sim' THEN mno_sim.discount_period
             WHEN 'internet' THEN NULL
         END AS discount_period,
         CASE p.product_type
             WHEN 'mvno' THEN mvno.price_after
             WHEN 'mno' THEN NULL
-            WHEN 'mno_sim' THEN mno_sim.price_after
+            WHEN 'mno-sim' THEN mno_sim.price_after
             WHEN 'internet' THEN NULL
         END AS discount_price,
         COALESCE(prs.total_review_count, 0) AS review_count,
@@ -292,7 +323,7 @@ $stmt = $pdo->prepare("
     FROM products p
     LEFT JOIN product_mvno_details mvno ON p.id = mvno.product_id AND p.product_type = 'mvno'
     LEFT JOIN product_mno_details mno ON p.id = mno.product_id AND p.product_type = 'mno'
-    LEFT JOIN product_mno_sim_details mno_sim ON p.id = mno_sim.product_id AND p.product_type = 'mno_sim'
+    LEFT JOIN product_mno_sim_details mno_sim ON p.id = mno_sim.product_id AND p.product_type = 'mno-sim'
     LEFT JOIN product_internet_details inet ON p.id = inet.product_id AND p.product_type = 'internet'
     LEFT JOIN product_review_statistics prs ON p.id = prs.product_id
     WHERE $whereClause
@@ -439,7 +470,7 @@ $advertisementDaysOptions = [1, 2, 3, 5, 7, 10, 14, 30];
 
 <?php
 $pageHeaders = [
-    'mno_sim' => '통신사단독유심 광고 신청',
+    'mno-sim' => '통신사단독유심 광고 신청',
     'mvno' => '알뜰폰 광고 신청',
     'mno' => '통신사폰 광고 신청',
     'internet' => '인터넷 광고 신청'
@@ -477,8 +508,8 @@ $currentPageHeader = $pageHeaders[$activeTab] ?? '광고 신청';
     
     <!-- 탭 메뉴 -->
     <div class="product-tabs">
-        <button class="product-tab <?= $activeTab === 'mno_sim' ? 'active' : '' ?>" onclick="switchTab('mno_sim')">
-            통신사단독유심 (<?= $tabCounts['mno_sim'] ?>)
+        <button class="product-tab <?= $activeTab === 'mno-sim' ? 'active' : '' ?>" onclick="switchTab('mno-sim')">
+            통신사단독유심 (<?= $tabCounts['mno-sim'] ?>)
         </button>
         <button class="product-tab <?= $activeTab === 'mvno' ? 'active' : '' ?>" onclick="switchTab('mvno')">
             알뜰폰 (<?= $tabCounts['mvno'] ?>)
@@ -706,8 +737,12 @@ async function updateModalPrice() {
     }
     
     try {
-        const response = await fetch(`/MVNO/api/advertisement-price.php?product_type=${currentProductType}&advertisement_days=${days}`);
+        const url = `/MVNO/api/advertisement-price.php?product_type=${encodeURIComponent(currentProductType)}&advertisement_days=${days}`;
+        console.log('Fetching price from:', url);
+        const response = await fetch(url);
         const data = await response.json();
+        
+        console.log('Price API response:', data);
         
         if (data.success && data.price) {
             const supplyAmount = parseFloat(data.price);
@@ -735,7 +770,14 @@ async function updateModalPrice() {
                 document.getElementById('modalSubmitBtn').style.cursor = 'not-allowed';
             }
         } else {
-            document.getElementById('modalPricePreview').style.display = 'none';
+            console.error('Price API failed:', data.message || 'Unknown error');
+            document.getElementById('modalPricePreview').style.display = 'block';
+            document.getElementById('modalPriceAmount').innerHTML = `
+                <div style="color: #ef4444; font-size: 14px;">
+                    ⚠️ 가격 정보를 가져올 수 없습니다: ${data.message || '알 수 없는 오류'}
+                </div>
+            `;
+            document.getElementById('modalBalanceCheck').innerHTML = '';
             document.getElementById('modalSubmitBtn').disabled = true;
             document.getElementById('modalSubmitBtn').style.background = '#cbd5e1';
             document.getElementById('modalSubmitBtn').style.color = '#64748b';
@@ -743,7 +785,17 @@ async function updateModalPrice() {
         }
     } catch (error) {
         console.error('Price fetch error:', error);
-        document.getElementById('modalPricePreview').style.display = 'none';
+        document.getElementById('modalPricePreview').style.display = 'block';
+        document.getElementById('modalPriceAmount').innerHTML = `
+            <div style="color: #ef4444; font-size: 14px;">
+                ⚠️ 오류가 발생했습니다. 다시 시도해주세요.
+            </div>
+        `;
+        document.getElementById('modalBalanceCheck').innerHTML = '';
+        document.getElementById('modalSubmitBtn').disabled = true;
+        document.getElementById('modalSubmitBtn').style.background = '#cbd5e1';
+        document.getElementById('modalSubmitBtn').style.color = '#64748b';
+        document.getElementById('modalSubmitBtn').style.cursor = 'not-allowed';
     }
 }
 
@@ -756,7 +808,15 @@ document.addEventListener('DOMContentLoaded', function() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
     
     const productId = <?= $selectedProductId ?>;
-    const productType = '<?= $activeTab ?>';
+    // 탭 이름을 DB 타입으로 변환 (mno-sim은 그대로, 하위 호환성을 위해 mno_sim도 지원)
+    const tabToDbType = {
+        'mno-sim': 'mno-sim',
+        'mno_sim': 'mno-sim', // 하위 호환성
+        'mvno': 'mvno',
+        'mno': 'mno',
+        'internet': 'internet'
+    };
+    const productType = tabToDbType['<?= $activeTab ?>'] || '<?= $activeTab ?>';
     
     // 상품명 조회
     fetch(`/MVNO/api/get-product-name.php?product_id=${productId}`)

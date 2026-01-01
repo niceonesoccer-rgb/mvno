@@ -21,7 +21,38 @@ $is_wishlist = $is_wishlist ?? false;
 <?php endif; ?>
 
 <div class="plans-list-container" id="mno-products-container">
-    <?php foreach ($phones as $phone): ?>
+    <!-- 최상단 광고 로테이션 섹션 - 모든 광고 상품 표시 -->
+    <?php 
+    // 광고 상품과 일반 상품 분리
+    $advertisementPhonesForDisplay = [];
+    $regularPhonesForDisplay = [];
+    
+    foreach ($phones as $phone) {
+        if (isset($phone['is_advertising']) && $phone['is_advertising']) {
+            $advertisementPhonesForDisplay[] = $phone;
+        } else {
+            $regularPhonesForDisplay[] = $phone;
+        }
+    }
+    ?>
+    
+    <?php if (!empty($advertisementPhonesForDisplay)): ?>
+        <?php foreach ($advertisementPhonesForDisplay as $index => $phone): ?>
+            <div class="advertisement-card-item" data-ad-index="<?php echo $index; ?>">
+                <?php
+                // 각 카드에 필요한 변수 설정
+                $card_wrapper_class = '';
+                include __DIR__ . '/../components/phone-card.php';
+                ?>
+                
+                <!-- 카드 구분선 (모바일용) -->
+                <hr class="plan-card-divider">
+            </div>
+        <?php endforeach; ?>
+    <?php endif; ?>
+
+    <!-- 일반 상품 목록 -->
+    <?php foreach ($regularPhonesForDisplay as $phone): ?>
         <?php
         // 각 카드에 필요한 변수 설정
         $card_wrapper_class = '';

@@ -32,7 +32,12 @@ $has_reviews = !empty($rating) && $rating !== '';
 <!-- 헤더: 통신사, 찜 -->
 <div class="plan-card-top-header">
     <div class="plan-provider-rating-group">
-        <span class="plan-provider-logo-text"><?php echo htmlspecialchars($company_name); ?></span>
+        <span class="plan-provider-logo-text<?php echo (isset($phone['is_advertising']) && $phone['is_advertising']) ? ' sponsor-text' : ''; ?>">
+            <?php if (isset($phone['is_advertising']) && $phone['is_advertising']): ?>
+                <span class="sponsor-badge">스폰서</span>
+            <?php endif; ?>
+            <span class="provider-name-text"><?php echo htmlspecialchars($company_name); ?></span>
+        </span>
         <?php if ($has_reviews): ?>
         <div class="plan-rating-group">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

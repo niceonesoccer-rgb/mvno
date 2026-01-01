@@ -7,77 +7,28 @@
  * 실제 세금계산서 발행은 외부에서 처리하며, 여기서는 발행 상태만 관리
  */
 
-require_once __DIR__ . '/../includes/admin-header.php';
+// POST 처리는 헤더 출력 전에 처리해야 함 (리다이렉트를 위해)
 require_once __DIR__ . '/../../includes/data/db-config.php';
 require_once __DIR__ . '/../../includes/data/auth-functions.php';
 
-$pdo = getDBConnection();
-
-// 기간별 입금 내역 조회
+// GET 파라미터 읽기 (리다이렉트 URL 구성에 필요)
 $periodStart = $_GET['period_start'] ?? '';
 $periodEnd = $_GET['period_end'] ?? '';
 $depositStatusFilter = $_GET['deposit_status'] ?? ''; // 입금 상태 필터
 $taxInvoiceStatusFilter = $_GET['tax_invoice_status'] ?? ''; // 세금계산서 발행 상태 필터
-
-$deposits = [];
-$summary = [
-    'total_count' => 0,
-    'total_supply_amount' => 0,
-    'total_tax_amount' => 0,
-    'total_amount' => 0
-];
-
-if ($periodStart && $periodEnd) {
-    // 쿼리 조건 구성
-    $whereConditions = [];
-    $params = [];
-    
-    // 기간 조건: 입금 확인일시가 있으면 confirmed_at 기준, 없으면 created_at 기준
-    $whereConditions[] = "(DATE(COALESCE(dr.confirmed_at, dr.created_at)) >= :period_start 
-                          AND DATE(COALESCE(dr.confirmed_at, dr.created_at)) <= :period_end)";
-    $params[':period_start'] = $periodStart;
-    $params[':period_end'] = $periodEnd;
-    
-    // 입금 상태 필터
-    if ($depositStatusFilter && in_array($depositStatusFilter, ['confirmed', 'unpaid'])) {
-        $whereConditions[] = "dr.status = :deposit_status";
-        $params[':deposit_status'] = $depositStatusFilter;
-    }
-    
-    // 세금계산서 발행 상태 필터
-    if ($taxInvoiceStatusFilter && in_array($taxInvoiceStatusFilter, ['issued', 'unissued', 'cancelled'])) {
-        $whereConditions[] = "dr.tax_invoice_status = :tax_invoice_status";
-        $params[':tax_invoice_status'] = $taxInvoiceStatusFilter;
-    }
-    
-    $whereClause = !empty($whereConditions) ? 'WHERE ' . implode(' AND ', $whereConditions) : '';
-    
-    $stmt = $pdo->prepare("
-        SELECT 
-            dr.*,
-            ba.bank_name,
-            ba.account_number,
-            ba.account_holder
-        FROM deposit_requests dr
-        LEFT JOIN bank_accounts ba ON dr.bank_account_id = ba.id
-        $whereClause
-        ORDER BY COALESCE(dr.confirmed_at, dr.created_at) DESC
-    ");
-    $stmt->execute($params);
-    $deposits = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
-    // 합계 계산
-    foreach ($deposits as $deposit) {
-        $summary['total_count']++;
-        $summary['total_supply_amount'] += floatval($deposit['supply_amount']);
-        $summary['total_tax_amount'] += floatval($deposit['tax_amount']);
-        $summary['total_amount'] += floatval($deposit['amount']);
-    }
+$sellerIdFilter = $_GET['seller_id'] ?? ''; // 판매자 아이디 필터
+$page = max(1, intval($_GET['page'] ?? 1)); // 페이지 번호
+$perPage = intval($_GET['per_page'] ?? 10); // 페이지당 항목 수
+// 허용된 per_page 값만 사용 (10, 50, 100)
+if (!in_array($perPage, [10, 50, 100])) {
+    $perPage = 10;
 }
 
-// 세금계산서 상태 일괄 업데이트 처리
+// 세금계산서 상태 일괄 업데이트 처리 (헤더 출력 전에 처리)
+$errorMessage = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     if ($_POST['action'] === 'update_status') {
+        $pdo = getDBConnection();
         $depositIds = $_POST['deposit_ids'] ?? [];
         $newStatus = $_POST['status'] ?? '';
         
@@ -112,6 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $queryParams = ['period_start' => $periodStart, 'period_end' => $periodEnd];
                 if ($depositStatusFilter) $queryParams['deposit_status'] = $depositStatusFilter;
                 if ($taxInvoiceStatusFilter) $queryParams['tax_invoice_status'] = $taxInvoiceStatusFilter;
+                if ($sellerIdFilter) $queryParams['seller_id'] = $sellerIdFilter;
                 $queryParams['success'] = 1;
                 
                 header('Location: ' . $_SERVER['PHP_SELF'] . '?' . http_build_query($queryParams));
@@ -122,6 +74,105 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             }
         }
     }
+}
+
+// 이제 헤더 출력 가능 (리다이렉트가 필요한 경우 이미 처리됨)
+require_once __DIR__ . '/../includes/admin-header.php';
+
+$pdo = getDBConnection();
+
+// 기간별 입금 내역 조회
+$deposits = [];
+$summary = [
+    'total_count' => 0,
+    'total_supply_amount' => 0,
+    'total_tax_amount' => 0,
+    'total_amount' => 0
+];
+
+if ($periodStart && $periodEnd) {
+    // 쿼리 조건 구성
+    $whereConditions = [];
+    $params = [];
+    
+    // 기간 조건: 신청일시(created_at) 기준
+    $whereConditions[] = "(DATE(dr.created_at) >= :period_start 
+                          AND DATE(dr.created_at) <= :period_end)";
+    $params[':period_start'] = $periodStart;
+    $params[':period_end'] = $periodEnd;
+    
+    // 입금 상태 필터
+    if ($depositStatusFilter && in_array($depositStatusFilter, ['pending', 'confirmed', 'unpaid'])) {
+        $whereConditions[] = "dr.status = :deposit_status";
+        $params[':deposit_status'] = $depositStatusFilter;
+    }
+    
+    // 세금계산서 발행 상태 필터
+    if ($taxInvoiceStatusFilter && in_array($taxInvoiceStatusFilter, ['issued', 'unissued', 'cancelled'])) {
+        $whereConditions[] = "dr.tax_invoice_status = :tax_invoice_status";
+        $params[':tax_invoice_status'] = $taxInvoiceStatusFilter;
+    }
+    
+    // 판매자 아이디 필터
+    if ($sellerIdFilter && trim($sellerIdFilter) !== '') {
+        $whereConditions[] = "dr.seller_id LIKE :seller_id";
+        $params[':seller_id'] = '%' . trim($sellerIdFilter) . '%';
+    }
+    
+    $whereClause = !empty($whereConditions) ? 'WHERE ' . implode(' AND ', $whereConditions) : '';
+    
+    // 전체 개수 조회 (합계 계산용)
+    $countStmt = $pdo->prepare("
+        SELECT COUNT(*) 
+        FROM deposit_requests dr
+        $whereClause
+    ");
+    $countStmt->execute($params);
+    $totalCount = $countStmt->fetchColumn();
+    $totalPages = ceil($totalCount / $perPage);
+    $offset = ($page - 1) * $perPage;
+    
+    // 합계 계산 (전체 데이터 기준)
+    $summaryStmt = $pdo->prepare("
+        SELECT 
+            COUNT(*) as total_count,
+            COALESCE(SUM(dr.supply_amount), 0) as total_supply_amount,
+            COALESCE(SUM(dr.tax_amount), 0) as total_tax_amount,
+            COALESCE(SUM(dr.amount), 0) as total_amount
+        FROM deposit_requests dr
+        $whereClause
+    ");
+    $summaryStmt->execute($params);
+    $summaryData = $summaryStmt->fetch(PDO::FETCH_ASSOC);
+    $summary = [
+        'total_count' => intval($summaryData['total_count'] ?? 0),
+        'total_supply_amount' => floatval($summaryData['total_supply_amount'] ?? 0),
+        'total_tax_amount' => floatval($summaryData['total_tax_amount'] ?? 0),
+        'total_amount' => floatval($summaryData['total_amount'] ?? 0)
+    ];
+    
+    // 페이지별 데이터 조회
+    $stmt = $pdo->prepare("
+        SELECT 
+            dr.*,
+            ba.bank_name,
+            ba.account_number,
+            ba.account_holder
+        FROM deposit_requests dr
+        LEFT JOIN bank_accounts ba ON dr.bank_account_id = ba.id
+        $whereClause
+        ORDER BY dr.created_at DESC
+        LIMIT :limit OFFSET :offset
+    ");
+    
+    // 파라미터 바인딩
+    foreach ($params as $key => $value) {
+        $stmt->bindValue($key, $value);
+    }
+    $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
+    $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+    $stmt->execute();
+    $deposits = $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 ?>
 
@@ -156,6 +207,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                                 <select name="deposit_status" 
                                         style="width: 150px; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; background: #fff;">
                                     <option value="">전체</option>
+                                    <option value="pending" <?= $depositStatusFilter === 'pending' ? 'selected' : '' ?>>대기중</option>
                                     <option value="confirmed" <?= $depositStatusFilter === 'confirmed' ? 'selected' : '' ?>>입금</option>
                                     <option value="unpaid" <?= $depositStatusFilter === 'unpaid' ? 'selected' : '' ?>>미입금</option>
                                 </select>
@@ -171,6 +223,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                                     <option value="unissued" <?= $taxInvoiceStatusFilter === 'unissued' ? 'selected' : '' ?>>미발행</option>
                                     <option value="cancelled" <?= $taxInvoiceStatusFilter === 'cancelled' ? 'selected' : '' ?>>취소</option>
                                 </select>
+                            </div>
+                            
+                            <!-- 판매자 아이디 검색 -->
+                            <div style="flex: 0 0 auto;">
+                                <label style="display: block; font-weight: 600; color: #1e293b; margin-bottom: 8px; font-size: 14px;">판매자 아이디</label>
+                                <input type="text" name="seller_id" value="<?= htmlspecialchars($sellerIdFilter) ?>" 
+                                       placeholder="아이디 검색"
+                                       style="width: 150px; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; background: #fff;">
                             </div>
                             
                             <!-- 기간 설정 -->
@@ -190,13 +250,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                                             style="padding: 10px 16px; background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; border-radius: 6px; cursor: pointer; font-weight: 500; font-size: 14px; white-space: nowrap;">
                                         지난달
                                     </button>
-                                    <button type="submit" 
-                                            style="padding: 10px 24px; background: #6366f1; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px; white-space: nowrap;">
-                                        조회
-                                    </button>
                                 </div>
                             </div>
+                            
+                            <!-- 버튼 영역 (가로 배치) -->
+                            <div style="flex: 0 0 auto; display: flex; flex-direction: row; gap: 8px;">
+                                <button type="submit" 
+                                        style="padding: 10px 24px; background: #6366f1; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px; white-space: nowrap;">
+                                    검색
+                                </button>
+                                <a href="<?= $_SERVER['PHP_SELF'] ?>?per_page=<?= $perPage ?>" 
+                                   style="padding: 10px 24px; background: #6b7280; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px; white-space: nowrap; text-decoration: none; display: inline-block; text-align: center;">
+                                    초기화
+                                </a>
+                            </div>
+                            
+                            <!-- 페이지당 표시 개수 -->
+                            <div style="flex: 0 0 auto; margin-left: auto;">
+                                <label style="display: block; font-weight: 600; color: #1e293b; margin-bottom: 8px; font-size: 14px;">표시 개수</label>
+                                <select name="per_page" onchange="this.form.submit()" 
+                                        style="width: 100px; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; background: #fff;">
+                                    <option value="10" <?= $perPage == 10 ? 'selected' : '' ?>>10</option>
+                                    <option value="50" <?= $perPage == 50 ? 'selected' : '' ?>>50</option>
+                                    <option value="100" <?= $perPage == 100 ? 'selected' : '' ?>>100</option>
+                                </select>
+                            </div>
                         </div>
+                        <input type="hidden" name="page" value="1">
                     </form>
                 </div>
                 
@@ -248,6 +328,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                                         <th style="padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #e2e8f0;">
                                             <input type="checkbox" id="selectAll" style="cursor: pointer;">
                                         </th>
+                                        <th style="padding: 12px; text-align: center; font-weight: 600; border-bottom: 2px solid #e2e8f0;">순번</th>
                                         <th style="padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #e2e8f0;">신청일시</th>
                                         <th style="padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #e2e8f0;">판매자</th>
                                         <th style="padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #e2e8f0;">입금자명</th>
@@ -261,22 +342,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                                 <tbody>
                                     <?php if (empty($deposits)): ?>
                                         <tr>
-                                            <td colspan="9" style="padding: 40px; text-align: center; color: #64748b;">
+                                            <td colspan="10" style="padding: 40px; text-align: center; color: #64748b;">
                                                 해당 조건에 맞는 입금 내역이 없습니다.
                                             </td>
                                         </tr>
                                     <?php else: ?>
-                                        <?php foreach ($deposits as $deposit): ?>
+                                        <?php 
+                                        // 순번 계산 준비 (역순) - 전체 개수 기준으로 계산
+                                        // 현재 페이지의 첫 번째 항목 번호 = 전체 개수 - (페이지-1) * 페이지당개수
+                                        $currentPageStartNumber = isset($totalCount) ? $totalCount - (($page - 1) * $perPage) : count($deposits);
+                                        foreach ($deposits as $index => $deposit): 
+                                            // 역순 번호: 가장 최신(첫 번째) 항목이 가장 큰 번호
+                                            $sequenceNumber = $currentPageStartNumber - $index;
+                                        ?>
                                             <tr style="border-bottom: 1px solid #e2e8f0;">
                                                 <td style="padding: 12px;">
                                                     <input type="checkbox" name="deposit_ids[]" value="<?= $deposit['id'] ?>" 
                                                            class="deposit-checkbox" style="cursor: pointer;">
                                                 </td>
+                                                <td style="padding: 12px; text-align: center; color: #64748b;">
+                                                    <?= number_format($sequenceNumber) ?>
+                                                </td>
                                                 <td style="padding: 12px;">
                                                     <?php
-                                                    $displayDate = $deposit['confirmed_at'] ?: $deposit['created_at'];
+                                                    // 신청일시는 created_at (판매자가 예치금 충전을 신청한 시간)
+                                                    $displayDate = $deposit['created_at'];
                                                     if ($displayDate) {
-                                                        echo date('Y-m-d H:i', strtotime($displayDate));
+                                                        // MySQL DATETIME 값을 그대로 표시 (YYYY-MM-DD HH:MM:SS 형식)
+                                                        // 타임존 변환 없이 저장된 값 그대로 사용
+                                                        if (strlen($displayDate) >= 16) {
+                                                            // YYYY-MM-DD HH:MM:SS 형식이면 시간까지 표시
+                                                            echo substr($displayDate, 0, 16);
+                                                        } else {
+                                                            // 다른 형식이면 기존 방식 사용
+                                                            echo date('Y-m-d H:i', strtotime($displayDate));
+                                                        }
                                                     } else {
                                                         echo '-';
                                                     }
@@ -291,8 +391,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                                                     <?php
                                                     $depositStatus = $deposit['status'];
                                                     $depositStatusLabels = [
+                                                        'pending' => ['label' => '대기중', 'color' => '#f59e0b'],
                                                         'confirmed' => ['label' => '입금', 'color' => '#10b981'],
-                                                        'unpaid' => ['label' => '미입금', 'color' => '#f59e0b']
+                                                        'unpaid' => ['label' => '미입금', 'color' => '#6b7280']
                                                     ];
                                                     $currentDepositStatus = $depositStatusLabels[$depositStatus] ?? ['label' => $depositStatus, 'color' => '#64748b'];
                                                     ?>
@@ -320,6 +421,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                                 </tbody>
                             </table>
                         </div>
+                        
+                        <!-- 페이지네이션 -->
+                        <?php if (isset($totalPages) && $totalPages > 1): ?>
+                            <?php
+                            // 페이지네이션 URL 파라미터 구성
+                            $paginationParams = [
+                                'period_start' => $periodStart,
+                                'period_end' => $periodEnd,
+                                'per_page' => $perPage
+                            ];
+                            if ($depositStatusFilter) $paginationParams['deposit_status'] = $depositStatusFilter;
+                            if ($taxInvoiceStatusFilter) $paginationParams['tax_invoice_status'] = $taxInvoiceStatusFilter;
+                            if ($sellerIdFilter) $paginationParams['seller_id'] = $sellerIdFilter;
+                            $paginationBaseUrl = '?' . http_build_query($paginationParams);
+                            ?>
+                            <div style="margin-top: 24px; display: flex; justify-content: center; align-items: center; gap: 8px;">
+                                <?php if ($page > 1): ?>
+                                    <a href="<?= $paginationBaseUrl ?>&page=<?= $page - 1 ?>" 
+                                       style="padding: 8px 16px; background: #fff; border: 1px solid #e2e8f0; border-radius: 6px; color: #374151; text-decoration: none; font-weight: 500;">
+                                        이전
+                                    </a>
+                                <?php endif; ?>
+                                
+                                <?php
+                                $startPage = max(1, $page - 2);
+                                $endPage = min($totalPages, $page + 2);
+                                
+                                for ($i = $startPage; $i <= $endPage; $i++):
+                                ?>
+                                    <a href="<?= $paginationBaseUrl ?>&page=<?= $i ?>" 
+                                       style="padding: 8px 16px; background: <?= $i === $page ? '#6366f1' : '#fff' ?>; border: 1px solid #e2e8f0; border-radius: 6px; color: <?= $i === $page ? '#fff' : '#374151' ?>; text-decoration: none; font-weight: <?= $i === $page ? '600' : '500' ?>;">
+                                        <?= $i ?>
+                                    </a>
+                                <?php endfor; ?>
+                                
+                                <?php if ($page < $totalPages): ?>
+                                    <a href="<?= $paginationBaseUrl ?>&page=<?= $page + 1 ?>" 
+                                       style="padding: 8px 16px; background: #fff; border: 1px solid #e2e8f0; border-radius: 6px; color: #374151; text-decoration: none; font-weight: 500;">
+                                        다음
+                                    </a>
+                                <?php endif; ?>
+                            </div>
+                        <?php endif; ?>
                     </form>
                 <?php else: ?>
                     <div style="text-align: center; padding: 40px; color: #64748b;">
@@ -332,13 +476,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 </div>
 
 <script>
+// 날짜를 YYYY-MM-DD 형식으로 변환 (타임존 변환 없이)
+function formatDate(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
 // 이번달 버튼 클릭 시
 document.getElementById('btnThisMonth')?.addEventListener('click', function() {
     const today = new Date();
     const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
     
-    document.querySelector('input[name="period_start"]').value = firstDay.toISOString().split('T')[0];
-    document.querySelector('input[name="period_end"]').value = today.toISOString().split('T')[0];
+    document.querySelector('input[name="period_start"]').value = formatDate(firstDay);
+    document.querySelector('input[name="period_end"]').value = formatDate(today);
 });
 
 // 지난달 버튼 클릭 시
@@ -347,8 +499,8 @@ document.getElementById('btnLastMonth')?.addEventListener('click', function() {
     const firstDayLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
     const lastDayLastMonth = new Date(today.getFullYear(), today.getMonth(), 0);
     
-    document.querySelector('input[name="period_start"]').value = firstDayLastMonth.toISOString().split('T')[0];
-    document.querySelector('input[name="period_end"]').value = lastDayLastMonth.toISOString().split('T')[0];
+    document.querySelector('input[name="period_start"]').value = formatDate(firstDayLastMonth);
+    document.querySelector('input[name="period_end"]').value = formatDate(lastDayLastMonth);
 });
 
 // 전체 선택 체크박스

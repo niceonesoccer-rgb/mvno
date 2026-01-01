@@ -89,6 +89,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         }
         
         // 가격 조회
+        // rotation_advertisement_prices 테이블은 mno_sim (언더스코어)를 사용하므로 변환
+        $priceProductType = $product['product_type'];
+        if ($priceProductType === 'mno-sim') {
+            $priceProductType = 'mno_sim';
+        }
+        
         $stmt = $pdo->prepare("
             SELECT price FROM rotation_advertisement_prices 
             WHERE product_type = :product_type 
@@ -96,7 +102,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             AND is_active = 1
         ");
         $stmt->execute([
-            ':product_type' => $product['product_type'],
+            ':product_type' => $priceProductType,
             ':advertisement_days' => $advertisementDays
         ]);
         $priceData = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -120,6 +126,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         }
         
         // 광고 등록
+        // rotation_advertisements 테이블도 mno_sim (언더스코어)를 사용하므로 변환
+        $adProductType = $product['product_type'];
+        if ($adProductType === 'mno-sim') {
+            $adProductType = 'mno_sim';
+        }
+        
         $startDatetime = date('Y-m-d H:i:s');
         $endDatetime = date('Y-m-d H:i:s', strtotime($startDatetime) + ($advertisementDays * 86400));
         
@@ -131,7 +143,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $stmt->execute([
             ':product_id' => $productId,
             ':seller_id' => $sellerId,
-            ':product_type' => $product['product_type'],
+            ':product_type' => $adProductType,
             ':rotation_duration' => $rotationDuration,
             ':advertisement_days' => $advertisementDays,
             ':price' => $supplyAmount,
@@ -847,7 +859,7 @@ include __DIR__ . '/../includes/seller-header.php';
                                     $hasActiveAd = intval($product['has_active_ad'] ?? 0);
                                     if ($hasActiveAd): 
                                     ?>
-                                        <span style="color: #64748b; font-size: 12px; margin-left: 8px;">광고중</span>
+                                        <span class="btn-sm" style="background: #f59e0b; color: white; border: none; padding: 4px 12px; border-radius: 4px; margin-left: 4px; font-size: 12px; font-weight: 600; display: inline-block;">광고중</span>
                                     <?php else: ?>
                                         <button type="button" onclick="openAdModal(<?php echo $product['id']; ?>, 'mno-sim', '<?php echo htmlspecialchars($product['product_name'] ?? '', ENT_QUOTES); ?>')" class="btn-sm" style="background: #6366f1; color: white; border: none; padding: 4px 12px; border-radius: 4px; margin-left: 4px; font-size: 12px; cursor: pointer;">광고</button>
                                     <?php endif; ?>
@@ -1937,6 +1949,83 @@ async function updateModalPrice() {
 }
 
 document.getElementById('modalAdvertisementDays')?.addEventListener('change', updateModalPrice);
+
+// 광고 신청 폼 제출 처리
+document.getElementById('adForm')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const productId = document.getElementById('modalProductId').value;
+    const advertisementDays = document.getElementById('modalAdvertisementDays').value;
+    
+    if (!productId || !advertisementDays) {
+        alert('모든 필드를 올바르게 선택해주세요.');
+        return;
+    }
+    
+    // 버튼 비활성화
+    const submitBtn = document.getElementById('modalSubmitBtn');
+    submitBtn.disabled = true;
+    submitBtn.textContent = '신청 중...';
+    submitBtn.style.background = '#cbd5e1';
+    submitBtn.style.cursor = 'not-allowed';
+    
+    try {
+        const formData = new FormData();
+        formData.append('product_id', productId);
+        formData.append('advertisement_days', advertisementDays);
+        
+        const response = await fetch('/MVNO/api/advertisement-apply.php', {
+            method: 'POST',
+            body: formData
+        });
+        
+        // 응답 상태 확인
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        // 응답 본문 가져오기
+        const responseText = await response.text();
+        console.log('API 응답:', responseText);
+        
+        // JSON 파싱 시도
+        let data;
+        try {
+            data = JSON.parse(responseText);
+        } catch (parseError) {
+            console.error('JSON 파싱 오류:', parseError);
+            console.error('응답 내용:', responseText);
+            throw new Error('서버 응답을 처리할 수 없습니다. 서버 오류가 발생한 것 같습니다.');
+        }
+        
+        if (data.success) {
+            // 성공 시 모달 닫고 광고내역 페이지로 이동
+            closeAdModal();
+            window.location.href = '/MVNO/seller/advertisement/list.php';
+        } else {
+            // 실패 시 (이미 광고중인 경우 포함) 모달로 메시지 표시
+            alert(data.message || '광고 신청에 실패했습니다.');
+            
+            // 버튼 다시 활성화
+            submitBtn.disabled = false;
+            submitBtn.textContent = '광고 신청';
+            submitBtn.style.background = '#6366f1';
+            submitBtn.style.color = '#fff';
+            submitBtn.style.cursor = 'pointer';
+        }
+    } catch (error) {
+        console.error('광고 신청 오류:', error);
+        console.error('오류 상세:', error.message, error.stack);
+        alert('광고 신청 중 오류가 발생했습니다.\n' + (error.message || '알 수 없는 오류가 발생했습니다.'));
+        
+        // 버튼 다시 활성화
+        submitBtn.disabled = false;
+        submitBtn.textContent = '광고 신청';
+        submitBtn.style.background = '#6366f1';
+        submitBtn.style.color = '#fff';
+        submitBtn.style.cursor = 'pointer';
+    }
+});
 </script>
 
 <?php include __DIR__ . '/../includes/seller-footer.php'; ?>

@@ -717,14 +717,6 @@ if ($pdo) {
                     </span>
                     세금계산서 발행
                 </a>
-                <a href="/MVNO/admin/tax-invoice/list.php" class="menu-item <?php echo ($currentPage === 'list.php' && strpos($_SERVER['REQUEST_URI'], '/tax-invoice/') !== false) ? 'active' : ''; ?>">
-                    <span class="menu-item-icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2"/>
-                        </svg>
-                    </span>
-                    세금계산서 발행 내역
-                </a>
             </div>
             
             <!-- 콘텐츠 관리 -->

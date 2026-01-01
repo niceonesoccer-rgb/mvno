@@ -15,6 +15,10 @@ include '../includes/header.php';
 // 통신사폰 데이터 가져오기
 require_once '../includes/data/phone-data.php';
 require_once '../includes/data/filter-data.php';
+require_once __DIR__ . '/mno-advertisement-helper.php';
+
+// 광고 상품 ID 조회
+list($advertisementProductIds, $rotationDuration) = getMnoAdvertisementProductIds();
 
 // 페이지 번호 가져오기
 $page = isset($_GET['page']) ? intval($_GET['page']) : 1;
@@ -23,7 +27,49 @@ $limit = 20;
 $offset = ($page - 1) * $limit;
 
 $allPhones = getPhonesData(10000); // 전체 가져온 후 슬라이스
-$totalCount = count($allPhones);
+
+// 광고 상품과 일반 상품 분리
+$advertisementPhones = [];
+$regularPhones = [];
+
+// 광고 상품 ID 목록을 인덱스로 변환하여 순서 보존
+$adProductIdIndex = [];
+foreach ($advertisementProductIds as $index => $productId) {
+    $adProductIdIndex[$productId] = $index;
+}
+
+// 일반 상품 먼저 분리
+foreach ($allPhones as $phone) {
+    $phoneId = (int)($phone['id'] ?? 0);
+    if (isset($adProductIdIndex[$phoneId])) {
+        // 광고 상품은 나중에 순서대로 처리
+        continue;
+    } else {
+        $regularPhones[] = $phone;
+    }
+}
+
+// 광고 상품을 로테이션 순서대로 추가
+$adPhonesById = [];
+foreach ($allPhones as $phone) {
+    $phoneId = (int)($phone['id'] ?? 0);
+    if (isset($adProductIdIndex[$phoneId])) {
+        $phone['is_advertising'] = true;
+        $adPhonesById[$phoneId] = $phone;
+    }
+}
+
+// 로테이션 순서대로 광고 상품 배열 구성
+foreach ($advertisementProductIds as $productId) {
+    if (isset($adPhonesById[$productId])) {
+        $advertisementPhones[] = $adPhonesById[$productId];
+    }
+}
+
+// 광고 상품을 앞에 배치하고 일반 상품과 합치기
+$allPhones = array_merge($advertisementPhones, $regularPhones);
+
+$totalCount = count($regularPhones); // 일반 상품 개수만 카운트 (광고는 별도)
 $phones = array_slice($allPhones, $offset, $limit);
 $mno_filters = getMnoFilters();
 ?>
@@ -140,6 +186,31 @@ include '../includes/footer.php';
 .load-more-btn:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+}
+</style>
+
+<style>
+/* 스폰서 배지 스타일 */
+.sponsor-text {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-sm); /* .plan-provider-rating-group과 동일한 간격 */
+}
+
+.sponsor-badge {
+    display: inline-block;
+    background: #3b82f6;
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+}
+
+.provider-name-text {
+    display: inline-block;
 }
 </style>
 

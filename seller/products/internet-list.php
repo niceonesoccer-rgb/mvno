@@ -725,7 +725,7 @@ include __DIR__ . '/../includes/seller-header.php';
                                     $hasActiveAd = intval($product['has_active_ad'] ?? 0);
                                     if ($hasActiveAd): 
                                     ?>
-                                        <span style="color: #64748b; font-size: 12px; margin-left: 8px;">광고중</span>
+                                        <span class="btn-sm" style="background: #f59e0b; color: white; border: none; padding: 4px 12px; border-radius: 4px; margin-left: 4px; font-size: 12px; font-weight: 600; display: inline-block;">광고중</span>
                                     <?php else: ?>
                                         <button type="button" class="btn btn-sm" onclick="openAdModal(<?php echo $product['id']; ?>, 'internet', '<?php echo htmlspecialchars($product['product_name'] ?? '', ENT_QUOTES); ?>')" style="background: #6366f1; color: white; border: none; padding: 4px 12px; border-radius: 4px; margin-left: 4px; font-size: 12px; cursor: pointer;">광고</button>
                                     <?php endif; ?>

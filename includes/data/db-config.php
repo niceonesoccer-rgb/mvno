@@ -27,6 +27,14 @@ function getDBConnection() {
             ];
             
             $pdo = new PDO($dsn, DB_USER, DB_PASS, $options);
+            
+            // MySQL 타임존을 Asia/Seoul로 설정 (데이터 저장 시 일관성 유지)
+            try {
+                $pdo->exec("SET time_zone = '+09:00'");
+            } catch (PDOException $tzError) {
+                // 타임존 설정 실패해도 계속 진행 (로깅만)
+                error_log("Failed to set MySQL timezone: " . $tzError->getMessage());
+            }
         } catch (PDOException $e) {
             $errorMsg = "Database connection failed: " . $e->getMessage();
             $errorMsg .= "\nHost: " . DB_HOST;

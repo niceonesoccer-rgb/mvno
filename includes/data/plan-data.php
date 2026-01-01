@@ -1593,7 +1593,10 @@ function getPlansDataFromDB($limit = 10, $status = 'active') {
     }
     
     try {
-        $stmt = $pdo->prepare("
+        // status가 'all'이면 deleted 제외한 모든 상태, 아니면 해당 상태만
+        $statusCondition = ($status === 'all') ? "p.status != 'deleted'" : "p.status = :status";
+        
+        $sql = "
             SELECT 
                 p.id,
                 p.seller_id,
@@ -1629,12 +1632,16 @@ function getPlansDataFromDB($limit = 10, $status = 'active') {
             FROM products p
             INNER JOIN product_mvno_details mvno ON p.id = mvno.product_id
             WHERE p.product_type = 'mvno' 
-            AND p.status = :status
+            AND {$statusCondition}
             ORDER BY p.created_at DESC
             LIMIT :limit
-        ");
+        ";
         
-        $stmt->bindValue(':status', $status, PDO::PARAM_STR);
+        $stmt = $pdo->prepare($sql);
+        
+        if ($status !== 'all') {
+            $stmt->bindValue(':status', $status, PDO::PARAM_STR);
+        }
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
         $stmt->execute();
         

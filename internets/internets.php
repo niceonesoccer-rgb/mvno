@@ -34,13 +34,19 @@ try {
 // 특정 상품 ID 파라미터 확인 (관리자가 특정 상품을 볼 때)
 $productId = isset($_GET['id']) ? intval($_GET['id']) : null;
 
+// 광고 헬퍼 함수 포함
+require_once __DIR__ . '/internet-advertisement-helper.php';
+
+// 광고 상품 ID 조회
+list($advertisementProductIds, $rotationDuration) = getInternetAdvertisementProductIds();
+
 // 데이터베이스에서 인터넷 상품 목록 가져오기
 $internetProducts = [];
 try {
     $pdo = getDBConnection();
     if ($pdo) {
-        // 관리자는 inactive 상태도 볼 수 있음
-        $statusCondition = $isAdmin ? "AND p.status != 'deleted'" : "AND p.status = 'active'";
+        // 고객용 페이지이므로 관리자여도 active 상태만 표시
+        $statusCondition = "AND p.status = 'active'";
         
         // 특정 상품 ID가 있으면 해당 상품만 조회
         $whereClause = "WHERE p.product_type = 'internet' {$statusCondition}";
@@ -87,18 +93,8 @@ try {
         $stmt->execute();
         $internetProducts = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
-        // 전체 개수 조회 (더보기 버튼용)
-        $totalCount = count($internetProducts); // 기본값은 현재 로드된 개수
-        if (!$productId) {
-            $countStmt = $pdo->prepare("
-                SELECT COUNT(*) as total
-                FROM products p
-                INNER JOIN product_internet_details inet ON p.id = inet.product_id
-                {$whereClause}
-            ");
-            $countStmt->execute();
-            $totalCount = intval($countStmt->fetch(PDO::FETCH_ASSOC)['total']);
-        }
+        // 전체 개수 조회 (더보기 버튼용) - 초기값 설정
+        $totalCount = 0;
         
         // JSON 필드 디코딩
         foreach ($internetProducts as &$product) {
@@ -126,6 +122,83 @@ try {
             }
         }
         unset($product);
+        
+        // 광고 상품과 일반 상품 분리 및 로테이션 순서 유지
+        if (!$productId && !empty($advertisementProductIds)) {
+            $advertisementProducts = [];
+            $regularProducts = [];
+            
+            // 광고 상품 ID 목록을 인덱스로 변환하여 순서 보존
+            $adProductIdIndex = [];
+            foreach ($advertisementProductIds as $index => $productIdValue) {
+                $adProductIdIndex[$productIdValue] = $index;
+            }
+            
+            // 일반 상품 먼저 분리
+            foreach ($internetProducts as $product) {
+                $prodId = (int)($product['id'] ?? 0);
+                if (!isset($adProductIdIndex[$prodId])) {
+                    $regularProducts[] = $product;
+                }
+            }
+            
+            // 광고 상품을 ID로 매핑
+            $adProductsById = [];
+            foreach ($internetProducts as $product) {
+                $prodId = (int)($product['id'] ?? 0);
+                if (isset($adProductIdIndex[$prodId])) {
+                    $product['is_advertising'] = true;
+                    $adProductsById[$prodId] = $product;
+                }
+            }
+            
+            // 로테이션 순서대로 광고 상품 배열 구성
+            foreach ($advertisementProductIds as $productIdValue) {
+                if (isset($adProductsById[$productIdValue])) {
+                    $advertisementProducts[] = $adProductsById[$productIdValue];
+                }
+            }
+            
+            // 광고 상품을 앞에 배치하고 일반 상품과 합치기
+            $internetProducts = array_merge($advertisementProducts, $regularProducts);
+        }
+        
+        // 전체 개수 조회 (더보기 버튼용) - 광고 상품 제외한 일반 상품 개수
+        if (!$productId) {
+            if (!empty($advertisementProductIds)) {
+                // 광고 상품이 있는 경우: 광고 상품 제외한 개수
+                $countStmt = $pdo->prepare("
+                    SELECT COUNT(*) as total
+                    FROM products p
+                    INNER JOIN product_internet_details inet ON p.id = inet.product_id
+                    WHERE p.product_type = 'internet' 
+                    AND p.status = 'active'
+                    AND NOT EXISTS (
+                        SELECT 1 FROM rotation_advertisements ra 
+                        WHERE ra.product_id = p.id 
+                        AND ra.product_type = 'internet'
+                        AND ra.status = 'active' 
+                        AND ra.end_datetime > NOW()
+                    )
+                ");
+                $countStmt->execute();
+                $totalCount = intval($countStmt->fetch(PDO::FETCH_ASSOC)['total']);
+            } else {
+                // 광고 상품이 없는 경우: 전체 개수
+                $countStmt = $pdo->prepare("
+                    SELECT COUNT(*) as total
+                    FROM products p
+                    INNER JOIN product_internet_details inet ON p.id = inet.product_id
+                    WHERE p.product_type = 'internet' 
+                    AND p.status = 'active'
+                ");
+                $countStmt->execute();
+                $totalCount = intval($countStmt->fetch(PDO::FETCH_ASSOC)['total']);
+            }
+        } else {
+            // 특정 상품 ID가 있는 경우
+            $totalCount = count($internetProducts);
+        }
     }
 } catch (PDOException $e) {
     error_log("Error fetching Internet products: " . $e->getMessage());
@@ -185,7 +258,7 @@ function getInternetIconPath($registrationPlace) {
                         <p>등록된 인터넷 상품이 없습니다.</p>
                     </div>
                 <?php else: ?>
-                    <?php foreach ($internetProducts as $product): ?>
+                    <?php foreach ($internetProducts as $index => $product): ?>
                         <?php
                         $iconPath = getInternetIconPath($product['registration_place']);
                         $speedOption = htmlspecialchars($product['speed_option'] ?? '');
@@ -221,17 +294,28 @@ function getInternetIconPath($registrationPlace) {
                         $installNames = $product['installation_names'] ?? [];
                         $installPrices = $product['installation_prices'] ?? [];
                         ?>
+                        <?php 
+                        $isAd = isset($product['is_advertising']) && $product['is_advertising'];
+                        ?>
+                        <?php if ($isAd): ?>
+                            <div class="advertisement-card-item" data-ad-index="<?php echo $index; ?>">
+                        <?php endif; ?>
                         <div>
-                            <div class="css-58gch7 e82z5mt0" data-product-id="<?php echo $product['id']; ?>">
-                                <div class="css-1kjyj6z e82z5mt1">
-                                    <?php if ($iconPath): ?>
-                                        <img data-testid="internet-company-logo" src="<?php echo htmlspecialchars($iconPath); ?>" 
-                                             alt="<?php echo htmlspecialchars($product['registration_place']); ?>" 
-                                             class="css-1pg8bi e82z5mt15"
-                                             style="<?php echo ($product['registration_place'] === 'KT') ? 'height: 24px;' : (($product['registration_place'] === 'DLIVE') ? 'height: 35px; object-fit: cover;' : 'max-height: 40px; object-fit: contain;'); ?>">
-                                    <?php else: ?>
-                                        <span><?php echo htmlspecialchars($product['registration_place']); ?></span>
-                                    <?php endif; ?>
+                                <div class="css-58gch7 e82z5mt0" data-product-id="<?php echo $product['id']; ?>">
+                                    <div class="css-1kjyj6z e82z5mt1">
+                                        <div style="display: inline-flex; align-items: center; gap: 0.5rem;">
+                                            <?php if ($isAd): ?>
+                                                <span class="sponsor-badge" style="display: inline-block; background: #3b82f6; color: white; font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 4px; letter-spacing: 0.5px; flex-shrink: 0;">스폰서</span>
+                                            <?php endif; ?>
+                                            <?php if ($iconPath): ?>
+                                            <img data-testid="internet-company-logo" src="<?php echo htmlspecialchars($iconPath); ?>" 
+                                                 alt="<?php echo htmlspecialchars($product['registration_place']); ?>" 
+                                                 class="css-1pg8bi e82z5mt15"
+                                                 style="<?php echo ($product['registration_place'] === 'KT') ? 'height: 24px;' : (($product['registration_place'] === 'DLIVE') ? 'height: 35px; object-fit: cover;' : 'max-height: 40px; object-fit: contain;'); ?>">
+                                        <?php else: ?>
+                                            <span><?php echo htmlspecialchars($product['registration_place']); ?></span>
+                                        <?php endif; ?>
+                                    </div>
                                     <?php 
                                     // 서비스 타입 표시
                                     $serviceType = $product['service_type'] ?? '인터넷';
@@ -458,6 +542,14 @@ function getInternetIconPath($registrationPlace) {
                                 <?php endif; ?>
                             </div>
                         </div>
+                        <?php if ($isAd): ?>
+                            <!-- 카드 구분선 -->
+                            <hr class="plan-card-divider">
+                            </div>
+                        <?php else: ?>
+                            <!-- 카드 구분선 (모바일용) -->
+                            <hr class="plan-card-divider">
+                        <?php endif; ?>
                     <?php endforeach; ?>
                 <?php endif; ?>
                 <?php if (!empty($internetProducts) && !$productId && isset($totalCount) && $totalCount > 20): ?>
@@ -819,6 +911,19 @@ function getInternetIconPath($registrationPlace) {
 </div>
 
 <style>
+/* 스폰서 배지 스타일 */
+.sponsor-badge {
+    display: inline-block;
+    background: #3b82f6;
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+}
+
 /* Main content background */
 .main-content {
     background-color: #F8F9FA;
@@ -852,6 +957,16 @@ function getInternetIconPath($registrationPlace) {
 .PlanDetail_content_wrapper__0YNeJ {
     width: 100%;
     max-width: 100%;
+}
+
+/* 검색 결과 개수 스타일 */
+.PlanDetail_content_wrapper__0YNeJ .plans-results-count {
+    margin-bottom: var(--spacing-md);
+    font-size: var(--font-size-sm);
+    color: var(--color-gray-600);
+    font-weight: 500;
+    padding: 0 1.5rem;
+    margin-top: 1rem;
 }
 
 .css-2l6pil.e1ebrc9o0 {
@@ -1024,6 +1139,14 @@ function getInternetIconPath($registrationPlace) {
     max-height: 4rem;
     flex-shrink: 0;
     object-fit: contain;
+}
+
+/* 상품권 아이콘만 정사각형으로 */
+.css-xj5cz0.e82z5mt9[src*="gift-card.svg"] {
+    width: calc(1.0584rem * 1.5 + 1.3125rem * 1.5 + 0.08rem);
+    height: calc(1.0584rem * 1.5 + 1.3125rem * 1.5 + 0.08rem);
+    max-width: calc(1.0584rem * 1.5 + 1.3125rem * 1.5 + 0.08rem);
+    max-height: calc(1.0584rem * 1.5 + 1.3125rem * 1.5 + 0.08rem);
 }
 
 .css-0.e82z5mt10 {

@@ -134,8 +134,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// system_settings에서 로테이션 시간 조회 (단일 값)
-$rotationDuration = 30; // 기본값
+// system_settings에서 로테이션 시간 조회 (DB에 반드시 있어야 함)
+$rotationDuration = null;
 try {
     $stmt = $pdo->prepare("SELECT setting_value FROM system_settings WHERE setting_key = 'advertisement_rotation_duration'");
     $stmt->execute();
@@ -144,7 +144,6 @@ try {
         $rotationDuration = intval($durationValue);
     }
 } catch (PDOException $e) {
-    // 설정이 없으면 기본값 사용
     error_log('Rotation duration 조회 오류: ' . $e->getMessage());
 }
 
@@ -199,23 +198,34 @@ foreach ($prices as $price) {
                     <form method="POST" style="display: flex; gap: 12px; align-items: flex-end;">
                         <div style="flex: 1;">
                             <label style="display: block; font-weight: 600; color: #374151; margin-bottom: 8px; font-size: 14px;">
-                                로테이션 시간 (초)
+                                로테이션 시간 (초) <span style="color: #ef4444;">*</span>
                             </label>
-                            <input type="number" name="rotation_duration" value="<?= htmlspecialchars($rotationDuration) ?>" required min="1" step="1"
+                            <input type="number" name="rotation_duration" value="<?= $rotationDuration !== null ? htmlspecialchars($rotationDuration) : '' ?>" required min="1" step="1"
                                    style="width: 100%; padding: 10px 14px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; box-sizing: border-box;"
                                    placeholder="예: 30 (30초), 60 (1분)">
+                            <?php if ($rotationDuration === null): ?>
+                                <div style="font-size: 12px; color: #f59e0b; margin-top: 4px;">
+                                    ⚠️ 로테이션 시간이 설정되지 않았습니다. 반드시 설정해주세요.
+                                </div>
+                            <?php endif; ?>
                         </div>
                         <button type="submit" name="save_rotation_duration" value="1"
                                 style="padding: 10px 24px; background: #6366f1; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap; height: 42px;">
                             로테이션 시간 저장
                         </button>
                     </form>
+                    <?php if ($rotationDuration !== null): ?>
                     <div style="font-size: 13px; color: #6b7280; margin-top: 8px;">
-                        현재 로테이션 시간: <strong><?= $rotationDuration ?>초</strong>
+                        현재 DB에 저장된 로테이션 시간: <strong style="color: #1e293b; font-size: 14px;"><?= $rotationDuration ?>초</strong>
                         <?php if ($rotationDuration >= 60): ?>
-                            (<?= ($rotationDuration / 60) ?>분)
+                            (<?= number_format($rotationDuration / 60, 1) ?>분)
                         <?php endif; ?>
                     </div>
+                    <?php else: ?>
+                    <div style="font-size: 13px; color: #ef4444; margin-top: 8px;">
+                        ⚠️ DB에 로테이션 시간이 설정되지 않았습니다. 위에서 값을 입력하고 저장해주세요.
+                    </div>
+                    <?php endif; ?>
                 </div>
                 
                 <!-- 탭 -->

@@ -74,30 +74,43 @@
                     currentPage++;
                     loadMoreBtn.setAttribute('data-page', currentPage);
 
-                    // 남은 개수 업데이트
+                    // 남은 개수 업데이트 (알뜰폰과 동일하게 number_format 적용)
                     const remainingCount = data.pagination ? data.pagination.remaining : 0;
                     const remainingSpan = document.getElementById('remaining-count');
                     if (remainingSpan) {
-                        remainingSpan.textContent = remainingCount;
+                        remainingSpan.textContent = remainingCount.toLocaleString();
                     }
 
                     // 더 이상 로드할 상품이 없으면 버튼 숨김
-                    if (!data.pagination || !data.pagination.hasMore) {
+                    // hasMore가 false이거나 remaining이 0 이하이면 더 이상 없음
+                    const hasMore = data.pagination && data.pagination.hasMore === true;
+                    const remaining = data.pagination ? (data.pagination.remaining || 0) : 0;
+                    
+                    if (!hasMore || remaining <= 0) {
                         loadMoreBtn.textContent = '더 이상 불러올 상품이 없습니다.';
                         setTimeout(() => {
                             loadMoreBtn.style.display = 'none';
                         }, 2000);
                     } else {
-                        loadMoreBtn.textContent = `더보기 (${remainingCount}개 남음)`;
+                        loadMoreBtn.textContent = `더보기 (${remainingCount.toLocaleString()}개 남음)`;
                     }
                 } else {
                     console.error('더보기 실패:', { success, data, htmlLength: data?.html?.length });
                     // 실패해도 pagination 정보가 있으면 버튼 유지
-                    if (data && data.pagination && data.pagination.hasMore) {
-                        // 아직 더 있을 수 있으므로 버튼 유지하고 재시도 가능하도록
+                    if (data && data.pagination) {
+                        const hasMore = data.pagination.hasMore === true;
                         const remainingCount = data.pagination.remaining || 0;
-                        loadMoreBtn.textContent = `더보기 (${remainingCount}개 남음)`;
-                        console.warn('HTML이 비어있지만 더 많은 상품이 있을 수 있습니다. 다시 시도해주세요.');
+                        
+                        if (hasMore && remainingCount > 0) {
+                            // 아직 더 있을 수 있으므로 버튼 유지하고 재시도 가능하도록
+                            loadMoreBtn.textContent = `더보기 (${remainingCount.toLocaleString()}개 남음)`;
+                            console.warn('HTML이 비어있지만 더 많은 상품이 있을 수 있습니다. 다시 시도해주세요.');
+                        } else {
+                            loadMoreBtn.textContent = '더 이상 불러올 상품이 없습니다.';
+                            setTimeout(() => {
+                                loadMoreBtn.style.display = 'none';
+                            }, 2000);
+                        }
                     } else {
                         loadMoreBtn.textContent = '더 이상 불러올 상품이 없습니다.';
                         setTimeout(() => {
@@ -156,19 +169,19 @@
                             currentPage++;
                             loadMoreBtn.setAttribute('data-page', currentPage);
 
-                            // 남은 개수 업데이트
+                            // 남은 개수 업데이트 (알뜰폰과 동일하게 number_format 적용)
                             const remainingCount = data.pagination.remaining;
                             const remainingSpan = document.getElementById('remaining-count');
                             if (remainingSpan) {
-                                remainingSpan.textContent = remainingCount;
+                                remainingSpan.textContent = remainingCount.toLocaleString();
                             }
 
-                            // 더 이상 로드할 상품이 없으면 버튼 숨김
+                            // 더 이상 로드할 상품이 없으면 버튼 숨김 (알뜰폰과 동일한 로직)
                             if (!data.pagination.hasMore) {
                                 loadMoreBtn.style.display = 'none';
                                 observer.disconnect();
                             } else {
-                                loadMoreBtn.textContent = `더보기 (${remainingCount}개 남음)`;
+                                loadMoreBtn.textContent = `더보기 (${remainingCount.toLocaleString()}개 남음)`;
                             }
                         } else {
                             loadMoreBtn.style.display = 'none';
@@ -205,6 +218,8 @@
         if (filterServiceType) {
             url += `&service_type=${encodeURIComponent(filterServiceType)}`;
         }
+        
+        // 스폰서 광고는 모두 첫 페이지에 표시되므로 더보기에서는 처리하지 않음
         
         console.log('API 요청 URL:', url);
         console.log('API 요청 파라미터:', {

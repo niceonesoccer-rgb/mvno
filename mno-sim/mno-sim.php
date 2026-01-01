@@ -45,12 +45,331 @@ $offset = ($page - 1) * $limit;
 $mnoSimProducts = [];
 $providers = [];
 $serviceTypes = [];
+$advertisementProducts = []; // 광고중 상품 목록
+$advertisementProductIds = []; // 광고중 상품 ID 목록 (중복 체크용)
+$rotationDuration = null; // DB에서 가져온 값만 사용
 
 try {
     $pdo = getDBConnection();
     if ($pdo) {
-        // 관리자는 inactive 상태도 볼 수 있음
-        $statusCondition = $isAdmin ? "p.status != 'deleted'" : "p.status = 'active'";
+        // system_settings에서 로테이션 시간 가져오기 (DB에 반드시 있어야 함)
+        try {
+            $durationStmt = $pdo->prepare("SELECT setting_value FROM system_settings WHERE setting_key = 'advertisement_rotation_duration'");
+            $durationStmt->execute();
+            $durationValue = $durationStmt->fetchColumn();
+            if ($durationValue) {
+                $rotationDuration = intval($durationValue);
+                // 디버깅: DB에서 가져온 값 확인
+                // error_log('DB에서 가져온 로테이션 시간: ' . $rotationDuration . '초');
+            } else {
+                // DB에 값이 없으면 로그만 남기고 0으로 설정 (로테이션 안 함)
+                error_log('경고: advertisement_rotation_duration 설정이 DB에 없습니다. 관리자 페이지에서 설정해주세요.');
+                $rotationDuration = 0;
+            }
+        } catch (PDOException $e) {
+            error_log('Rotation duration 조회 오류: ' . $e->getMessage());
+            $rotationDuration = 0;
+        }
+        
+        // 광고중인 상품 조회 (최상단 로테이션용)
+        // product_type은 DB에서 'mno_sim' (언더스코어)로 저장됨
+        $adStmt = $pdo->prepare("
+            SELECT 
+                ra.product_id,
+                ra.rotation_duration,
+                ra.created_at,
+                ra.start_datetime,
+                p.id,
+                p.seller_id,
+                p.status,
+                p.view_count,
+                p.favorite_count,
+                p.application_count,
+                mno_sim.provider,
+                mno_sim.service_type,
+                mno_sim.plan_name,
+                mno_sim.contract_period,
+                mno_sim.contract_period_discount_value,
+                mno_sim.contract_period_discount_unit,
+                mno_sim.price_main,
+                mno_sim.price_main_unit,
+                mno_sim.discount_period,
+                mno_sim.discount_period_value,
+                mno_sim.discount_period_unit,
+                mno_sim.price_after_type,
+                mno_sim.price_after,
+                mno_sim.price_after_unit,
+                mno_sim.data_amount,
+                mno_sim.data_amount_value,
+                mno_sim.data_unit,
+                mno_sim.data_additional,
+                mno_sim.data_additional_value,
+                mno_sim.data_exhausted,
+                mno_sim.data_exhausted_value,
+                mno_sim.call_type,
+                mno_sim.call_amount,
+                mno_sim.call_amount_unit,
+                mno_sim.additional_call_type,
+                mno_sim.additional_call,
+                mno_sim.additional_call_unit,
+                mno_sim.sms_type,
+                mno_sim.sms_amount,
+                mno_sim.sms_amount_unit,
+                mno_sim.promotion_title,
+                mno_sim.promotions,
+                mno_sim.benefits
+            FROM rotation_advertisements ra
+            INNER JOIN products p ON ra.product_id = p.id
+            INNER JOIN product_mno_sim_details mno_sim ON p.id = mno_sim.product_id
+            WHERE ra.product_type = 'mno_sim'
+            AND ra.status = 'active'
+            AND p.status = 'active'
+            AND ra.end_datetime > NOW()
+            ORDER BY ra.display_order ASC, ra.created_at ASC
+        ");
+        $adStmt->execute();
+        $advertisementProductsRaw = $adStmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // 서버 사이드 로테이션: 페이지 로드 시점에 순서 계산
+        // 동작 방식: 매 N초마다 첫 번째 상품이 맨 뒤로 이동
+        // 예: [1,2,3] → 6초 후 [2,3,1] → 6초 후 [3,1,2] → 6초 후 [1,2,3]
+        // DB에서 가져온 rotationDuration 값이 있어야만 로테이션 수행
+        if (count($advertisementProductsRaw) > 1 && $rotationDuration !== null && $rotationDuration > 0) {
+            // 한국 시간대 설정
+            date_default_timezone_set('Asia/Seoul');
+            
+            // 오늘 자정(00:00:00)을 기준으로 경과 시간 계산
+            $today = date('Y-m-d');
+            $baseTimestamp = strtotime($today . ' 00:00:00');
+            $currentTimestamp = time();
+            $elapsedSeconds = $currentTimestamp - $baseTimestamp;
+            
+            // 몇 번 회전했는지 계산 (경과 시간 / 로테이션 시간)
+            $rotationCycles = floor($elapsedSeconds / $rotationDuration);
+            
+            // 광고 개수로 나눈 나머지 = 실제 회전 횟수
+            $adCount = count($advertisementProductsRaw);
+            $rotationOffset = $rotationCycles % $adCount;
+            
+            // 회전 횟수만큼 첫 번째 상품을 맨 뒤로 이동
+            if ($rotationOffset > 0) {
+                $advertisementProductsRaw = array_merge(
+                    array_slice($advertisementProductsRaw, $rotationOffset),
+                    array_slice($advertisementProductsRaw, 0, $rotationOffset)
+                );
+            }
+        }
+        
+        // 광고 상품 데이터에 판매자명 추가 및 HTML 렌더링
+        // plan-data.php를 먼저 로드 (getProductAverageRating 함수 필요)
+        require_once __DIR__ . '/../includes/data/plan-data.php';
+        require_once __DIR__ . '/../includes/data/product-functions.php';
+        
+        // 판매자 정보 배치 조회 (성능 최적화: 30개 상품 × 100명 접속 = 3,000개 쿼리 → 1개 쿼리로 감소)
+        $sellerIds = [];
+        foreach ($advertisementProductsRaw as $adProduct) {
+            $sellerId = (string)($adProduct['seller_id'] ?? '');
+            if ($sellerId !== '') {
+                $sellerIds[$sellerId] = true;
+            }
+        }
+        
+        $sellerMap = [];
+        if (!empty($sellerIds)) {
+            $idList = array_keys($sellerIds);
+            $placeholders = implode(',', array_fill(0, count($idList), '?'));
+            $sellerStmt = $pdo->prepare("
+                SELECT
+                    u.user_id,
+                    u.seller_name,
+                    u.company_name,
+                    u.name
+                FROM users u
+                WHERE u.role = 'seller'
+                  AND u.user_id IN ($placeholders)
+            ");
+            $sellerStmt->execute($idList);
+            foreach ($sellerStmt->fetchAll(PDO::FETCH_ASSOC) as $s) {
+                $sellerMap[(string)$s['user_id']] = $s;
+            }
+        }
+        
+        $advertisementProducts = [];
+        foreach ($advertisementProductsRaw as $adProduct) {
+            // 판매자명 가져오기 (배치 조회 결과 사용)
+            $sellerId = (string)($adProduct['seller_id'] ?? '');
+            $sellerName = '';
+            if ($sellerId && isset($sellerMap[$sellerId])) {
+                $seller = $sellerMap[$sellerId];
+                // getSellerDisplayName 로직: seller_name > company_name > name
+                $sellerName = !empty($seller['seller_name']) 
+                    ? $seller['seller_name'] 
+                    : (!empty($seller['company_name']) 
+                        ? $seller['company_name'] 
+                        : (!empty($seller['name']) ? $seller['name'] : $sellerId));
+            }
+            
+            // 광고 상품용 plan 배열 구성 (일반 상품과 동일한 로직 사용)
+            $adProductData = $adProduct;
+            
+            // provider 필드에 판매자명 사용 (통신사명 대신)
+            $displayProvider = !empty($sellerName) ? $sellerName : ($adProduct['provider'] ?? '판매자 정보 없음');
+            
+            // 알뜰폰 카드 형식에 맞게 데이터 변환
+            $provider = htmlspecialchars($adProduct['provider'] ?? '');
+            $serviceType = htmlspecialchars($adProduct['service_type'] ?? '');
+            $planName = htmlspecialchars($adProduct['plan_name'] ?? '');
+            $contractPeriod = htmlspecialchars($adProduct['contract_period'] ?? '');
+            $contractPeriodValue = $adProduct['contract_period_discount_value'] ?? null;
+            $contractPeriodUnit = $adProduct['contract_period_discount_unit'] ?? '';
+            
+            // 제목 구성
+            $title = $provider . ' | ' . $serviceType;
+            if ($contractPeriod) {
+                $discountMethod = $contractPeriod;
+                if ($contractPeriodValue && $contractPeriodUnit) {
+                    $discountMethod .= ' ' . $contractPeriodValue . $contractPeriodUnit;
+                }
+                $title .= ' | ' . $discountMethod;
+            }
+            
+            // 데이터 정보 포맷팅
+            $dataAmount = formatDataAmount(
+                $adProduct['data_amount'] ?? '',
+                $adProduct['data_amount_value'] ?? null,
+                $adProduct['data_unit'] ?? ''
+            );
+            $dataAdditional = !empty($adProduct['data_additional_value']) 
+                ? htmlspecialchars($adProduct['data_additional_value']) 
+                : (!empty($adProduct['data_additional']) && $adProduct['data_additional'] !== '없음' 
+                    ? htmlspecialchars($adProduct['data_additional']) : '');
+            $dataExhausted = !empty($adProduct['data_exhausted_value']) 
+                ? htmlspecialchars($adProduct['data_exhausted_value'])
+                : (!empty($adProduct['data_exhausted']) 
+                    ? htmlspecialchars($adProduct['data_exhausted']) : '');
+            
+            $dataMain = $dataAmount;
+            if (!empty($dataAdditional)) {
+                $dataMain .= ' + ' . $dataAdditional;
+            }
+            if (!empty($dataExhausted)) {
+                $dataMain .= ' +' . $dataExhausted;
+            }
+            
+            // 기능 포맷팅
+            $callAmount = formatCallAmount(
+                $adProduct['call_type'] ?? '',
+                $adProduct['call_amount'] ?? null,
+                $adProduct['call_amount_unit'] ?? ''
+            );
+            $features = [];
+            if ($callAmount !== '-') {
+                $features[] = '통화 ' . $callAmount;
+            }
+            $smsAmount = formatCallAmount(
+                $adProduct['sms_type'] ?? '',
+                $adProduct['sms_amount'] ?? null,
+                $adProduct['sms_amount_unit'] ?? ''
+            );
+            if ($smsAmount !== '-') {
+                $features[] = '문자 ' . $smsAmount;
+            }
+            
+            // 가격 정보
+            $regularPriceValue = (int)$adProduct['price_main'];
+            $promotionPriceValue = (int)$adProduct['price_after'];
+            $discountPeriod = formatDiscountPeriod(
+                $adProduct['discount_period'] ?? '',
+                $adProduct['discount_period_value'] ?? null,
+                $adProduct['discount_period_unit'] ?? ''
+            );
+            
+            $hasPromotion = ($promotionPriceValue > 0);
+            if ($hasPromotion) {
+                $priceMain = '월 ' . number_format($promotionPriceValue) . ($adProduct['price_after_unit'] ?: '원');
+                $priceAfter = '';
+                if ($regularPriceValue > 0 && $discountPeriod !== '-') {
+                    $priceAfter = $discountPeriod . ' 후 월 ' . number_format($regularPriceValue) . ($adProduct['price_main_unit'] ?: '원');
+                } elseif ($regularPriceValue > 0) {
+                    $priceAfter = '월 ' . number_format($regularPriceValue) . ($adProduct['price_main_unit'] ?: '원');
+                }
+            } else {
+                if ($regularPriceValue > 0) {
+                    $priceMain = '월 ' . number_format($regularPriceValue) . ($adProduct['price_main_unit'] ?: '원');
+                } else {
+                    $priceMain = '월 0원';
+                }
+                $priceAfter = '';
+            }
+            
+            // 선택 수
+            $applicationCount = (int)($adProduct['application_count'] ?? 0);
+            $selectionCount = number_format($applicationCount) . '명이 선택';
+            
+            // 평점
+            $productIdForRating = (int)$adProduct['product_id'];
+            $averageRating = getProductAverageRating($productIdForRating, 'mno-sim');
+            $rating = ($averageRating > 0) ? number_format($averageRating, 1) : '';
+            
+            // 혜택
+            $gifts = [];
+            $promotionTitle = $adProduct['promotion_title'] ?? '';
+            if (!empty($adProduct['promotions'])) {
+                $promotions = json_decode($adProduct['promotions'], true);
+                if (is_array($promotions)) {
+                    $gifts = array_filter($promotions, function($p) {
+                        return !empty(trim($p));
+                    });
+                }
+            }
+            if (empty($gifts) && !empty($adProduct['benefits'])) {
+                $benefits = json_decode($adProduct['benefits'], true);
+                if (is_array($benefits)) {
+                    $gifts = array_filter($benefits, function($b) {
+                        return !empty(trim($b));
+                    });
+                }
+            }
+            
+            // plan 배열 구성
+            $plan = [
+                'id' => $adProduct['product_id'],
+                'provider' => $displayProvider,
+                'rating' => $rating,
+                'title' => $title,
+                'plan_name' => $planName,
+                'data_main' => $dataMain,
+                'features' => $features,
+                'price_main' => $priceMain,
+                'price_after' => $priceAfter,
+                'selection_count' => $selectionCount,
+                'is_favorited' => false,
+                'gifts' => $gifts,
+                'promotion_title' => $promotionTitle,
+                'link_url' => '/MVNO/mno-sim/mno-sim-detail.php?id=' . $adProduct['product_id'],
+                'item_type' => 'mno-sim',
+                'is_advertising' => true // 스폰서 배지 표시용
+            ];
+            
+            // HTML 렌더링 (출력 버퍼 사용) - 일반 카드와 동일하게
+            ob_start();
+            $card_wrapper_class = ''; // 일반 카드와 동일하게
+            $layout_type = 'list';
+            include __DIR__ . '/../includes/components/plan-card.php';
+            $adProductHtml = ob_get_clean();
+            
+            // JSON에 HTML 포함
+            $adProduct['html'] = $adProductHtml;
+            $advertisementProducts[] = $adProduct;
+        }
+        
+        // 광고중 상품 ID 목록 생성
+        foreach ($advertisementProducts as $adProduct) {
+            $advertisementProductIds[] = (int)$adProduct['product_id'];
+        }
+        
+        // 고객용 페이지이므로 관리자여도 active 상태만 표시
+        $statusCondition = "p.status = 'active'";
         
         // WHERE 조건 구성
         $whereConditions = ["p.product_type = 'mno-sim'", $statusCondition];
@@ -68,9 +387,18 @@ try {
             $params[':service_type'] = $filterServiceType;
         }
         
+        // 스폰서 상품 제외 (스폰서 상품은 별도 섹션에만 표시되므로 일반 리스트에서는 제외)
+        $whereConditions[] = "NOT EXISTS (
+            SELECT 1 FROM rotation_advertisements ra 
+            WHERE ra.product_id = p.id 
+            AND ra.product_type = 'mno_sim'
+            AND ra.status = 'active' 
+            AND ra.end_datetime > NOW()
+        )";
+        
         $whereClause = 'WHERE ' . implode(' AND ', $whereConditions);
         
-        // 전체 개수 조회
+        // 전체 개수 조회 (스폰서 상품 제외한 일반 상품 개수만 계산)
         $countStmt = $pdo->prepare("
             SELECT COUNT(*) as total
             FROM products p
@@ -84,6 +412,7 @@ try {
         $totalCount = intval($countStmt->fetch(PDO::FETCH_ASSOC)['total']);
         
         // 상품 목록 조회 (LIMIT/OFFSET 추가)
+        // 스폰서 상품은 제외하고 일반 상품만 조회 (스폰서 상품은 별도 섹션에만 표시)
         $stmt = $pdo->prepare("
             SELECT 
                 p.id,
@@ -124,7 +453,8 @@ try {
                 mno_sim.sms_amount_unit,
                 mno_sim.promotion_title,
                 mno_sim.promotions,
-                mno_sim.benefits
+                mno_sim.benefits,
+                0 AS is_advertising
             FROM products p
             INNER JOIN product_mno_sim_details mno_sim ON p.id = mno_sim.product_id
             {$whereClause}
@@ -166,6 +496,9 @@ try {
     error_log("Error fetching MNO-SIM products: " . $e->getMessage());
 }
 
+// plan-data.php는 광고 상품 처리 전에 먼저 로드 (getSellerById 함수 필요)
+require_once __DIR__ . '/../includes/data/plan-data.php';
+
 // 통신사별 아이콘 경로 매핑
 function getProviderIconPath($provider) {
     $iconMap = [
@@ -175,9 +508,6 @@ function getProviderIconPath($provider) {
     ];
     return $iconMap[$provider] ?? '';
 }
-
-// plan-data.php는 한 번만 로드
-require_once __DIR__ . '/../includes/data/plan-data.php';
 
 // 데이터 포맷팅 함수
 function formatDataAmount($dataAmount, $dataAmountValue, $dataUnit) {
@@ -279,7 +609,184 @@ function formatPriceAfter($priceAfterType, $priceAfter, $priceAfterUnit) {
             </div>
         <?php else: ?>
             <div class="plans-list-container" id="mno-sim-products-container">
+                <!-- 최상단 광고 로테이션 섹션 - 모든 광고 상품 표시 -->
+                <?php if (!empty($advertisementProducts)): ?>
+                <?php foreach ($advertisementProducts as $index => $adProduct): ?>
+                    <div class="advertisement-card-item" data-ad-index="<?php echo $index; ?>">
+                            <?php
+                            // 광고 상품용 plan 배열 구성
+                            $sellerId = $adProduct['seller_id'] ?? null;
+                            $sellerName = '';
+                            if ($sellerId) {
+                                $seller = getSellerById($sellerId);
+                                $sellerName = getSellerDisplayName($seller);
+                            }
+                            
+                            $displayProvider = !empty($sellerName) ? $sellerName : ($adProduct['provider'] ?? '판매자 정보 없음');
+                            $provider = htmlspecialchars($adProduct['provider'] ?? '');
+                            $serviceType = htmlspecialchars($adProduct['service_type'] ?? '');
+                            $planName = htmlspecialchars($adProduct['plan_name'] ?? '');
+                            $contractPeriod = htmlspecialchars($adProduct['contract_period'] ?? '');
+                            $contractPeriodValue = $adProduct['contract_period_discount_value'] ?? null;
+                            $contractPeriodUnit = $adProduct['contract_period_discount_unit'] ?? '';
+                            
+                            $title = $provider . ' | ' . $serviceType;
+                            if ($contractPeriod) {
+                                $discountMethod = $contractPeriod;
+                                if ($contractPeriodValue && $contractPeriodUnit) {
+                                    $discountMethod .= ' ' . $contractPeriodValue . $contractPeriodUnit;
+                                }
+                                $title .= ' | ' . $discountMethod;
+                            }
+                            
+                            $dataAmount = formatDataAmount(
+                                $adProduct['data_amount'] ?? '',
+                                $adProduct['data_amount_value'] ?? null,
+                                $adProduct['data_unit'] ?? ''
+                            );
+                            $dataAdditional = !empty($adProduct['data_additional_value']) 
+                                ? htmlspecialchars($adProduct['data_additional_value']) 
+                                : (!empty($adProduct['data_additional']) && $adProduct['data_additional'] !== '없음' 
+                                    ? htmlspecialchars($adProduct['data_additional']) : '');
+                            $dataExhausted = !empty($adProduct['data_exhausted_value']) 
+                                ? htmlspecialchars($adProduct['data_exhausted_value'])
+                                : (!empty($adProduct['data_exhausted']) 
+                                    ? htmlspecialchars($adProduct['data_exhausted']) : '');
+                            
+                            $dataMain = $dataAmount;
+                            if (!empty($dataAdditional)) {
+                                $dataMain .= ' + ' . $dataAdditional;
+                            }
+                            if (!empty($dataExhausted)) {
+                                $dataMain .= ' +' . $dataExhausted;
+                            }
+                            
+                            $callAmount = formatCallAmount(
+                                $adProduct['call_type'] ?? '',
+                                $adProduct['call_amount'] ?? null,
+                                $adProduct['call_amount_unit'] ?? ''
+                            );
+                            $features = [];
+                            if ($callAmount !== '-') {
+                                $features[] = '통화 ' . $callAmount;
+                            }
+                            $smsAmount = formatCallAmount(
+                                $adProduct['sms_type'] ?? '',
+                                $adProduct['sms_amount'] ?? null,
+                                $adProduct['sms_amount_unit'] ?? ''
+                            );
+                            if ($smsAmount !== '-') {
+                                $features[] = '문자 ' . $smsAmount;
+                            }
+                            
+                            $regularPriceValue = (int)$adProduct['price_main'];
+                            $promotionPriceValue = (int)$adProduct['price_after'];
+                            $discountPeriod = formatDiscountPeriod(
+                                $adProduct['discount_period'] ?? '',
+                                $adProduct['discount_period_value'] ?? null,
+                                $adProduct['discount_period_unit'] ?? ''
+                            );
+                            
+                            $hasPromotion = ($promotionPriceValue > 0);
+                            if ($hasPromotion) {
+                                $priceMain = '월 ' . number_format($promotionPriceValue) . ($adProduct['price_after_unit'] ?: '원');
+                                $priceAfter = '';
+                                if ($regularPriceValue > 0 && $discountPeriod !== '-') {
+                                    $priceAfter = $discountPeriod . ' 후 월 ' . number_format($regularPriceValue) . ($adProduct['price_main_unit'] ?: '원');
+                                } elseif ($regularPriceValue > 0) {
+                                    $priceAfter = '월 ' . number_format($regularPriceValue) . ($adProduct['price_main_unit'] ?: '원');
+                                }
+                            } else {
+                                if ($regularPriceValue > 0) {
+                                    $priceMain = '월 ' . number_format($regularPriceValue) . ($adProduct['price_main_unit'] ?: '원');
+                                } else {
+                                    $priceMain = '월 0원';
+                                }
+                                $priceAfter = '';
+                            }
+                            
+                            $applicationCount = (int)($adProduct['application_count'] ?? 0);
+                            $selectionCount = number_format($applicationCount) . '명이 선택';
+                            
+                            $productIdForRating = (int)$adProduct['product_id'];
+                            $averageRating = getProductAverageRating($productIdForRating, 'mno-sim');
+                            $rating = ($averageRating > 0) ? number_format($averageRating, 1) : '';
+                            
+                            $gifts = [];
+                            $promotionTitle = $adProduct['promotion_title'] ?? '';
+                            if (!empty($adProduct['promotions'])) {
+                                $promotions = json_decode($adProduct['promotions'], true);
+                                if (is_array($promotions)) {
+                                    $gifts = array_filter($promotions, function($p) {
+                                        return !empty(trim($p));
+                                    });
+                                }
+                            }
+                            if (empty($gifts) && !empty($adProduct['benefits'])) {
+                                $benefits = json_decode($adProduct['benefits'], true);
+                                if (is_array($benefits)) {
+                                    $gifts = array_filter($benefits, function($b) {
+                                        return !empty(trim($b));
+                                    });
+                                }
+                            }
+                            
+                            // 찜 상태 확인
+                            $isFavorited = false;
+                            if (function_exists('isLoggedIn') && isLoggedIn()) {
+                                $currentUser = getCurrentUser();
+                                $currentUserId = $currentUser['user_id'] ?? null;
+                                if ($currentUserId) {
+                                    try {
+                                        $favStmt = $pdo->prepare("
+                                            SELECT COUNT(*) as count 
+                                            FROM product_favorites 
+                                            WHERE product_id = :product_id 
+                                            AND user_id = :user_id 
+                                            AND product_type = 'mno-sim'
+                                        ");
+                                        $favStmt->execute([
+                                            ':product_id' => $adProduct['product_id'],
+                                            ':user_id' => $currentUserId
+                                        ]);
+                                        $favResult = $favStmt->fetch(PDO::FETCH_ASSOC);
+                                        $isFavorited = ($favResult['count'] ?? 0) > 0;
+                                    } catch (Exception $e) {
+                                        // 에러 무시
+                                    }
+                                }
+                            }
+                            
+                            $plan = [
+                                'id' => $adProduct['product_id'],
+                                'provider' => $displayProvider,
+                                'rating' => $rating,
+                                'title' => $title,
+                                'plan_name' => $planName,
+                                'data_main' => $dataMain,
+                                'features' => $features,
+                                'price_main' => $priceMain,
+                                'price_after' => $priceAfter,
+                                'selection_count' => $selectionCount,
+                                'is_favorited' => $isFavorited,
+                                'gifts' => $gifts,
+                                'promotion_title' => $promotionTitle,
+                                'link_url' => '/MVNO/mno-sim/mno-sim-detail.php?id=' . $adProduct['product_id'],
+                                'item_type' => 'mno-sim',
+                                'is_advertising' => true
+                            ];
+                            
+                            $card_wrapper_class = '';
+                            $layout_type = 'list';
+                            include __DIR__ . '/../includes/components/plan-card.php';
+                            ?>
+                            <!-- 카드 구분선 -->
+                            <hr class="plan-card-divider">
+                        </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
                 <?php foreach ($mnoSimProducts as $product): ?>
+                    <div class="regular-card-item">
                     <?php
                     // 판매자명 가져오기 (알뜰폰 카드와 동일하게)
                     $sellerId = $product['seller_id'] ?? null;
@@ -490,6 +997,9 @@ function formatPriceAfter($priceAfterType, $priceAfter, $priceAfterUnit) {
                         echo "<!-- gifts 내용: " . htmlspecialchars(json_encode($gifts, JSON_UNESCAPED_UNICODE)) . " -->";
                     }
                     
+                    // 광고중 여부 확인
+                    $isAdvertising = isset($product['is_advertising']) && (int)$product['is_advertising'] === 1;
+                    
                     // plan 배열 구성 (알뜰폰 카드 형식)
                     $plan = [
                         'id' => $product['id'],
@@ -506,7 +1016,8 @@ function formatPriceAfter($priceAfterType, $priceAfter, $priceAfterUnit) {
                         'gifts' => $gifts, // 혜택 목록
                         'promotion_title' => $promotionTitle, // 프로모션 제목
                         'link_url' => '/MVNO/mno-sim/mno-sim-detail.php?id=' . $product['id'], // 상세 페이지 링크
-                        'item_type' => 'mno-sim' // 찜 버튼용 타입
+                        'item_type' => 'mno-sim', // 찜 버튼용 타입
+                        'is_advertising' => $isAdvertising // 광고중 여부
                     ];
                     
                     // 알뜰폰 카드 컴포넌트 사용
@@ -517,6 +1028,7 @@ function formatPriceAfter($priceAfterType, $priceAfter, $priceAfterUnit) {
                     
                     <!-- 카드 구분선 (모바일용) -->
                     <hr class="plan-card-divider">
+                    </div>
                 <?php endforeach; ?>
                 <?php 
                 $currentCount = count($mnoSimProducts);
@@ -526,7 +1038,12 @@ function formatPriceAfter($priceAfterType, $priceAfter, $priceAfterUnit) {
                 ?>
                 <?php if ($hasMore && $totalCount > 0): ?>
                 <div class="load-more-container" id="load-more-anchor">
-                    <button id="load-more-mno-sim-btn" class="load-more-btn" data-type="mno-sim" data-page="2" data-total="<?php echo $totalCount; ?>"<?php echo !empty($filterProvider) ? ' data-provider="' . htmlspecialchars($filterProvider) . '"' : ''; ?><?php echo !empty($filterServiceType) ? ' data-service-type="' . htmlspecialchars($filterServiceType) . '"' : ''; ?>>
+                    <button id="load-more-mno-sim-btn" class="load-more-btn" 
+                        data-type="mno-sim" 
+                        data-page="2" 
+                        data-total="<?php echo $totalCount; ?>" 
+                        <?php echo !empty($filterProvider) ? ' data-provider="' . htmlspecialchars($filterProvider) . '"' : ''; ?>
+                        <?php echo !empty($filterServiceType) ? ' data-service-type="' . htmlspecialchars($filterServiceType) . '"' : ''; ?>>
                         더보기 (<span id="remaining-count"><?php echo number_format($remainingCount); ?></span>개 남음)
                     </button>
                 </div>
@@ -702,6 +1219,46 @@ document.addEventListener('DOMContentLoaded', function() {
         min-height: 52px !important;
         padding: 14px 16px !important;
     }
+}
+
+/* 광고 로테이션 섹션 스타일 - plans-list-container의 gap 속성이 간격을 담당 */
+/* 광고 상품 wrapper를 레이아웃에서 제거하여 plans-list-container의 gap이 직접 자식에 적용되도록 */
+#advertisementRotationWrapper {
+    display: contents; /* 레이아웃에서 제거하여 자식 요소들이 부모의 gap을 받도록 */
+}
+
+/* 광고 상품 순서 로테이션용 스타일 */
+.advertisement-card-item {
+    position: relative;
+    transition: transform 0.5s ease-in-out;
+}
+
+/* 광고 상품들 사이 간격 확보 (wrapper가 있을 경우를 대비) */
+#advertisementRotationWrapper > .advertisement-card-item:not(:last-child) {
+    margin-bottom: var(--spacing-md, 16px);
+}
+
+/* 스폰서 배지 스타일 */
+.sponsor-text {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-sm); /* .plan-provider-rating-group과 동일한 간격 */
+}
+
+.sponsor-badge {
+    display: inline-block;
+    background: #3b82f6;
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+}
+
+.provider-name-text {
+    display: inline-block;
 }
 </style>
 

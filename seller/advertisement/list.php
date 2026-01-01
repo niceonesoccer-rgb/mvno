@@ -55,9 +55,20 @@ $offset = ($page - 1) * $perPage;
 $stmt = $pdo->prepare("
     SELECT 
         ra.*,
-        p.status as product_status
+        p.status as product_status,
+        CASE ra.product_type
+            WHEN 'mno_sim' THEN mno_sim.plan_name
+            WHEN 'mvno' THEN mvno.plan_name
+            WHEN 'mno' THEN mno.device_name
+            WHEN 'internet' THEN CONCAT(COALESCE(inet.registration_place, ''), ' ', COALESCE(inet.speed_option, ''))
+            ELSE CONCAT('상품 ID: ', ra.product_id)
+        END AS product_name
     FROM rotation_advertisements ra
     LEFT JOIN products p ON ra.product_id = p.id
+    LEFT JOIN product_mno_sim_details mno_sim ON ra.product_id = mno_sim.product_id AND ra.product_type = 'mno_sim'
+    LEFT JOIN product_mvno_details mvno ON ra.product_id = mvno.product_id AND ra.product_type = 'mvno'
+    LEFT JOIN product_mno_details mno ON ra.product_id = mno.product_id AND ra.product_type = 'mno'
+    LEFT JOIN product_internet_details inet ON ra.product_id = inet.product_id AND ra.product_type = 'internet'
     WHERE $whereClause
     ORDER BY ra.created_at DESC
     LIMIT :limit OFFSET :offset
@@ -126,7 +137,7 @@ $productTypeLabels = [
 ];
 
 $displayStatusLabels = [
-    'active' => ['label' => '광고중', 'color' => '#10b981'],
+    'active' => ['label' => '광고중', 'color' => '#f59e0b'],
     'stopped' => ['label' => '광고중지', 'color' => '#f59e0b'],
     'expired' => ['label' => '광고종료', 'color' => '#64748b']
 ];
@@ -262,7 +273,7 @@ $displayStatusLabels = [
                     <thead>
                         <tr style="background: #f1f5f9;">
                             <th style="padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #e2e8f0;">신청일시</th>
-                            <th style="padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #e2e8f0;">상품ID</th>
+                            <th style="padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #e2e8f0;">상품명</th>
                             <th style="padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #e2e8f0;">카테고리</th>
                             <th style="padding: 12px; text-align: center; font-weight: 600; border-bottom: 2px solid #e2e8f0;">광고기간</th>
                             <th style="padding: 12px; text-align: right; font-weight: 600; border-bottom: 2px solid #e2e8f0;">금액</th>
@@ -282,7 +293,9 @@ $displayStatusLabels = [
                                 <td style="padding: 12px;">
                                     <?= date('Y-m-d H:i', strtotime($ad['created_at'])) ?>
                                 </td>
-                                <td style="padding: 12px; font-weight: 500;"><?= $ad['product_id'] ?></td>
+                                <td style="padding: 12px; font-weight: 500;">
+                                    <?= !empty($ad['product_name']) ? htmlspecialchars($ad['product_name']) : ('상품 ID: ' . $ad['product_id']) ?>
+                                </td>
                                 <td style="padding: 12px;"><?= $productTypeLabels[$ad['product_type']] ?? $ad['product_type'] ?></td>
                                 <td style="padding: 12px; text-align: center;">
                                     <?= $ad['advertisement_days'] ?>일

@@ -55,8 +55,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new Exception('올바른 날짜 형식이 아닙니다.');
             }
             
-            // 입금 확인 처리 (입금 날짜를 confirmed_at에 저장, 시간은 00:00:00)
-            $confirmedDateTime = $depositDate . ' 00:00:00';
+            // 입금 확인 처리 (입금 날짜 + 현재 시간으로 저장)
+            $confirmedDateTime = date('Y-m-d H:i:s');
             $stmt = $pdo->prepare("
                 UPDATE deposit_requests 
                 SET status = 'confirmed',
@@ -146,6 +146,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // 필터 처리
 $statusFilter = $_GET['status'] ?? '';
+$sellerIdFilter = $_GET['seller_id'] ?? ''; // 판매자 아이디 필터
 $page = max(1, intval($_GET['page'] ?? 1));
 $perPage = 10;
 $offset = ($page - 1) * $perPage;
@@ -157,6 +158,11 @@ $params = [];
 if ($statusFilter && in_array($statusFilter, ['pending', 'confirmed', 'unpaid'])) {
     $whereConditions[] = "dr.status = :status";
     $params[':status'] = $statusFilter;
+}
+
+if ($sellerIdFilter && trim($sellerIdFilter) !== '') {
+    $whereConditions[] = "dr.seller_id LIKE :seller_id";
+    $params[':seller_id'] = '%' . trim($sellerIdFilter) . '%';
 }
 
 $whereClause = !empty($whereConditions) ? 'WHERE ' . implode(' AND ', $whereConditions) : '';
@@ -225,6 +231,10 @@ $deposits = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             <option value="confirmed" <?= $statusFilter === 'confirmed' ? 'selected' : '' ?>>입금</option>
                             <option value="unpaid" <?= $statusFilter === 'unpaid' ? 'selected' : '' ?>>미입금</option>
                         </select>
+                        
+                        <input type="text" name="seller_id" value="<?= htmlspecialchars($sellerIdFilter) ?>" 
+                               placeholder="판매자 아이디 검색"
+                               style="padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; background: #fff; width: 200px;">
                         
                         <button type="submit" style="padding: 10px 24px; background: #6366f1; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px;">
                             조회
@@ -319,8 +329,15 @@ $deposits = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     <!-- 페이지네이션 -->
                     <?php if ($totalPages > 1): ?>
                         <div style="margin-top: 24px; display: flex; justify-content: center; align-items: center; gap: 8px;">
+                            <?php
+                            // 페이지네이션 URL 파라미터 구성
+                            $paginationParams = [];
+                            if ($statusFilter) $paginationParams['status'] = $statusFilter;
+                            if ($sellerIdFilter) $paginationParams['seller_id'] = $sellerIdFilter;
+                            $paginationBaseUrl = !empty($paginationParams) ? '?' . http_build_query($paginationParams) : '?';
+                            ?>
                             <?php if ($page > 1): ?>
-                                <a href="?page=<?= $page - 1 ?><?= $statusFilter ? '&status=' . htmlspecialchars($statusFilter) : '' ?>" 
+                                <a href="<?= $paginationBaseUrl ?>&page=<?= $page - 1 ?>" 
                                    style="padding: 8px 16px; background: #fff; border: 1px solid #e2e8f0; border-radius: 6px; color: #374151; text-decoration: none; font-weight: 500;">
                                     이전
                                 </a>
@@ -332,14 +349,14 @@ $deposits = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             
                             for ($i = $startPage; $i <= $endPage; $i++):
                             ?>
-                                <a href="?page=<?= $i ?><?= $statusFilter ? '&status=' . htmlspecialchars($statusFilter) : '' ?>" 
+                                <a href="<?= $paginationBaseUrl ?>&page=<?= $i ?>" 
                                    style="padding: 8px 16px; background: <?= $i === $page ? '#6366f1' : '#fff' ?>; border: 1px solid #e2e8f0; border-radius: 6px; color: <?= $i === $page ? '#fff' : '#374151' ?>; text-decoration: none; font-weight: <?= $i === $page ? '600' : '500' ?>;">
                                     <?= $i ?>
                                 </a>
                             <?php endfor; ?>
                             
                             <?php if ($page < $totalPages): ?>
-                                <a href="?page=<?= $page + 1 ?><?= $statusFilter ? '&status=' . htmlspecialchars($statusFilter) : '' ?>" 
+                                <a href="<?= $paginationBaseUrl ?>&page=<?= $page + 1 ?>" 
                                    style="padding: 8px 16px; background: #fff; border: 1px solid #e2e8f0; border-radius: 6px; color: #374151; text-decoration: none; font-weight: 500;">
                                     다음
                                 </a>

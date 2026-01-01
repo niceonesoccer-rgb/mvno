@@ -84,6 +84,12 @@ $stats = [
     'completed_orders' => 0
 ];
 
+// 예치금 데이터
+$depositData = [
+    'balance' => 0,
+    'recent_history' => []
+];
+
 try {
     $pdo = getDBConnection();
     if ($pdo) {
@@ -132,6 +138,22 @@ try {
         ");
         $stmt->execute([':seller_id' => $sellerId]);
         $stats['completed_orders'] = $stmt->fetch()['total'] ?? 0;
+        
+        // 예치금 잔액 조회
+        $stmt = $pdo->prepare("SELECT balance FROM seller_deposit_accounts WHERE seller_id = :seller_id");
+        $stmt->execute([':seller_id' => $sellerId]);
+        $balanceResult = $stmt->fetch(PDO::FETCH_ASSOC);
+        $depositData['balance'] = floatval($balanceResult['balance'] ?? 0);
+        
+        // 최근 예치금 사용내역 조회 (최근 5건)
+        $stmt = $pdo->prepare("
+            SELECT * FROM seller_deposit_ledger 
+            WHERE seller_id = :seller_id
+            ORDER BY created_at DESC
+            LIMIT 5
+        ");
+        $stmt->execute([':seller_id' => $sellerId]);
+        $depositData['recent_history'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 } catch (PDOException $e) {
     error_log("Error fetching dashboard stats: " . $e->getMessage());
@@ -650,6 +672,97 @@ include 'includes/seller-header.php';
                         <div class="dashboard-card-description">처리 완료된 주문</div>
                     </div>
                 </div>
+            </div>
+            
+            <!-- 예치금 관리 섹션 -->
+            <div class="dashboard-section">
+                <h2 class="dashboard-section-title">예치금 관리</h2>
+                <div class="dashboard-grid">
+                    <div class="dashboard-card primary">
+                        <div class="dashboard-card-header">
+                            <div class="dashboard-card-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 24px; height: 24px;">
+                                    <path d="M21 12c0 1.66-1 3-2.5 3S16 13.66 16 12s1-3 2.5-3 2.5 1.34 2.5 3z"/>
+                                    <path d="M12 21c-1.66 0-3-1-3-2.5s1.34-2.5 3-2.5 3 1 3 2.5-1.34 2.5-3 2.5z"/>
+                                    <path d="M12 3c1.66 0 3 1 3 2.5S13.66 8 12 8 9 7 9 5.5 10.34 3 12 3z"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="dashboard-card-title">예치금 잔액</div>
+                        <div class="dashboard-card-value"><?php echo number_format($depositData['balance'], 0); ?>원</div>
+                        <div class="dashboard-card-description">부가세 포함</div>
+                    </div>
+                </div>
+                
+                <!-- 최근 예치금 사용내역 -->
+                <?php if (!empty($depositData['recent_history'])): ?>
+                <div class="content-box" style="background: #fff; border-radius: 12px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-top: 24px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3 style="margin: 0; font-size: 18px; font-weight: 600; color: #0f172a;">최근 사용내역</h3>
+                        <a href="/MVNO/seller/deposit/history.php" style="color: #6366f1; text-decoration: none; font-size: 14px; font-weight: 600;">
+                            전체보기 →
+                        </a>
+                    </div>
+                    <div style="overflow-x: auto;">
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr style="background: #f8fafc; border-bottom: 2px solid #e2e8f0;">
+                                    <th style="padding: 12px; text-align: left; font-weight: 600; font-size: 13px; color: #64748b;">일시</th>
+                                    <th style="padding: 12px; text-align: center; font-weight: 600; font-size: 13px; color: #64748b;">구분</th>
+                                    <th style="padding: 12px; text-align: right; font-weight: 600; font-size: 13px; color: #64748b;">금액</th>
+                                    <th style="padding: 12px; text-align: right; font-weight: 600; font-size: 13px; color: #64748b;">잔액</th>
+                                    <th style="padding: 12px; text-align: left; font-weight: 600; font-size: 13px; color: #64748b;">내용</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php 
+                                $typeLabels = [
+                                    'deposit' => ['label' => '충전', 'color' => '#10b981'],
+                                    'withdraw' => ['label' => '차감', 'color' => '#ef4444'],
+                                    'refund' => ['label' => '환불', 'color' => '#3b82f6']
+                                ];
+                                foreach ($depositData['recent_history'] as $item): 
+                                    $typeInfo = $typeLabels[$item['transaction_type']] ?? ['label' => $item['transaction_type'], 'color' => '#64748b'];
+                                ?>
+                                <tr style="border-bottom: 1px solid #e2e8f0;">
+                                    <td style="padding: 12px; font-size: 14px; color: #374151;">
+                                        <?= date('Y-m-d H:i', strtotime($item['created_at'])) ?>
+                                    </td>
+                                    <td style="padding: 12px; text-align: center;">
+                                        <span style="padding: 4px 12px; background: <?= $typeInfo['color'] ?>20; color: <?= $typeInfo['color'] ?>; border-radius: 4px; font-size: 13px; font-weight: 500;">
+                                            <?= $typeInfo['label'] ?>
+                                        </span>
+                                    </td>
+                                    <td style="padding: 12px; text-align: right; font-size: 14px; font-weight: 600; color: <?= $item['transaction_type'] === 'deposit' || $item['transaction_type'] === 'refund' ? $typeInfo['color'] : '#374151' ?>;">
+                                        <?= ($item['transaction_type'] === 'deposit' || $item['transaction_type'] === 'refund' ? '+' : '-') ?>
+                                        <?= number_format($item['amount'], 0) ?>원
+                                    </td>
+                                    <td style="padding: 12px; text-align: right; font-size: 14px; color: #64748b;">
+                                        <?= number_format($item['balance_after'], 0) ?>원
+                                    </td>
+                                    <td style="padding: 12px; font-size: 14px; color: #64748b;">
+                                        <?= htmlspecialchars($item['description'] ?? '-') ?>
+                                    </td>
+                                </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div style="margin-top: 20px; text-align: center;">
+                        <a href="/MVNO/seller/deposit/history.php" class="action-button secondary" style="display: inline-flex;">
+                            전체 사용내역 보기
+                        </a>
+                    </div>
+                </div>
+                <?php else: ?>
+                <div class="content-box" style="background: #fff; border-radius: 12px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-top: 24px; text-align: center;">
+                    <div style="font-size: 48px; margin-bottom: 16px; opacity: 0.5;">💳</div>
+                    <div style="font-size: 16px; color: #64748b; margin-bottom: 20px;">사용내역이 없습니다</div>
+                    <a href="/MVNO/seller/deposit/charge.php" class="action-button" style="display: inline-flex;">
+                        예치금 충전하기
+                    </a>
+                </div>
+                <?php endif; ?>
             </div>
             
             <!-- 빠른 작업 -->

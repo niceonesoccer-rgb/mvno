@@ -6,6 +6,25 @@ include '../includes/header.php';
 
 require_once '../includes/data/plan-data.php';
 require_once '../includes/data/filter-data.php';
+require_once __DIR__ . '/mvno-advertisement-helper.php';
+
+// 광고 상품 조회
+list($advertisementProducts, $rotationDuration, $advertisementProductIds) = getMvnoAdvertisementProducts();
+error_log("[MVNO 페이지] getMvnoAdvertisementProducts() 반환값 - 광고 상품 개수: " . count($advertisementProducts) . ", ID 목록: " . implode(', ', $advertisementProductIds));
+
+// 디버깅: 광고 상품 개수 및 데이터 확인 (브라우저 콘솔 또는 HTML 주석으로 확인 가능)
+if (isset($_GET['debug']) && $_GET['debug'] === '1') {
+    error_log("=== MVNO 광고 디버깅 ===");
+    error_log("광고 상품 개수 (raw): " . count($advertisementProducts));
+    if (!empty($advertisementProducts)) {
+        error_log("첫 번째 광고 상품 키: " . implode(', ', array_keys($advertisementProducts[0])));
+        error_log("첫 번째 광고 상품 id: " . ($advertisementProducts[0]['id'] ?? '없음'));
+        error_log("첫 번째 광고 상품 product_id: " . ($advertisementProducts[0]['product_id'] ?? '없음'));
+        error_log("첫 번째 광고 상품 plan_name: " . ($advertisementProducts[0]['plan_name'] ?? '없음'));
+    }
+    error_log("광고 상품 ID 목록: " . implode(', ', $advertisementProductIds));
+    error_log("로테이션 시간: " . ($rotationDuration ?? 'null'));
+}
 
 // 페이지 번호 가져오기
 $page = isset($_GET['page']) ? intval($_GET['page']) : 1;
@@ -13,12 +32,91 @@ if ($page < 1) $page = 1;
 $limit = 20;
 $offset = ($page - 1) * $limit;
 
-$plans = getPlansDataFromDB(10000, 'active'); // 전체 가져온 후 슬라이스
+$allPlans = getPlansDataFromDB(10000, 'active'); // 전체 가져온 후 슬라이스
+
+// 광고 상품 ID를 제외한 일반 상품만 필터링
+if (!empty($advertisementProductIds)) {
+    $allPlans = array_filter($allPlans, function($plan) use ($advertisementProductIds) {
+        return !in_array((int)($plan['id'] ?? 0), $advertisementProductIds, true);
+    });
+    $allPlans = array_values($allPlans); // 인덱스 재정렬
+}
+
 $mvno_filters = getMvnoFilters();
 
 // 전체 개수 조회 (더보기 버튼용)
-$totalCount = count($plans);
-$plans = array_slice($plans, $offset, $limit);
+$totalCount = count($allPlans);
+$plans = array_slice($allPlans, $offset, $limit);
+
+// 광고 상품을 plan 카드 형식으로 변환
+$advertisementPlans = [];
+$debugMode = isset($_GET['debug']) && $_GET['debug'] === '1';
+if ($debugMode) {
+    error_log("광고 상품 변환 시작, 개수: " . count($advertisementProducts));
+}
+if (!empty($advertisementProducts)) {
+    require_once __DIR__ . '/../includes/data/product-functions.php';
+    foreach ($advertisementProducts as $index => $adProduct) {
+        if ($debugMode) {
+            error_log("광고 상품 #{$index} 처리 시작");
+            error_log("광고 상품 키: " . implode(', ', array_keys($adProduct)));
+        }
+        
+        // id 필드가 없으면 product_id를 id로 설정 (convertMvnoProductToPlanCard 함수가 id 필드를 요구)
+        if (!isset($adProduct['id']) && isset($adProduct['product_id'])) {
+            $adProduct['id'] = $adProduct['product_id'];
+        }
+        // product_id가 없으면 id를 product_id로 설정
+        if (!isset($adProduct['product_id']) && isset($adProduct['id'])) {
+            $adProduct['product_id'] = $adProduct['id'];
+        }
+        
+        // convertMvnoProductToPlanCard 함수 사용하여 변환
+        try {
+            $planCard = convertMvnoProductToPlanCard($adProduct);
+            if ($debugMode) {
+                error_log("광고 상품 #{$index} 변환 성공");
+            }
+        } catch (Exception $e) {
+            error_log("광고 상품 #{$index} 변환 실패: " . $e->getMessage());
+            continue;
+        }
+        $productIdForLink = $adProduct['product_id'] ?? $adProduct['id'] ?? 0;
+        $planCard['link_url'] = '/MVNO/mvno/mvno-plan-detail.php?id=' . $productIdForLink;
+        $planCard['item_type'] = 'mvno';
+        $planCard['is_advertising'] = true;
+        // 찜 상태 확인
+        $planCard['is_favorited'] = false;
+        if (function_exists('isLoggedIn') && isLoggedIn()) {
+            try {
+                $currentUser = getCurrentUser();
+                $currentUserId = $currentUser['user_id'] ?? null;
+                if ($currentUserId) {
+                    $pdo = getDBConnection();
+                    if ($pdo) {
+                        $favStmt = $pdo->prepare("
+                            SELECT COUNT(*) as count 
+                            FROM product_favorites 
+                            WHERE product_id = :product_id 
+                            AND user_id = :user_id 
+                            AND product_type = 'mvno'
+                        ");
+                        $productIdForFavorite = $adProduct['product_id'] ?? $adProduct['id'] ?? 0;
+                        $favStmt->execute([
+                            ':product_id' => $productIdForFavorite,
+                            ':user_id' => $currentUserId
+                        ]);
+                        $favResult = $favStmt->fetch(PDO::FETCH_ASSOC);
+                        $planCard['is_favorited'] = ($favResult['count'] ?? 0) > 0;
+                    }
+                }
+            } catch (Exception $e) {
+                // 에러 무시
+            }
+        }
+        $advertisementPlans[] = $planCard;
+    }
+}
 ?>
 
 <main class="main-content">
@@ -54,8 +152,53 @@ $plans = array_slice($plans, $offset, $limit);
                 <section class="theme-plans-list-section">
                     <?php
                     $section_title = number_format($totalCount) . '개의 결과';
-                    include '../includes/layouts/plan-list-layout.php';
                     ?>
+                    <?php if (!empty($section_title)): ?>
+                    <div class="plans-results-count">
+                        <span><?php echo htmlspecialchars($section_title); ?></span>
+                    </div>
+                    <?php endif; ?>
+                    
+                    <div class="plans-list-container" id="mvno-products-container">
+                        <!-- 최상단 광고 로테이션 섹션 - 모든 광고 상품 표시 -->
+                        <?php 
+                        // 디버깅: 페이지에 직접 출력
+                        if (isset($_GET['debug']) && $_GET['debug'] === '1') {
+                            echo '<!-- 디버깅 정보 -->';
+                            echo '<!-- 광고 상품 개수 (raw): ' . count($advertisementProducts) . ' -->';
+                            echo '<!-- 광고 상품 개수 (변환 후): ' . count($advertisementPlans) . ' -->';
+                            if (!empty($advertisementProducts)) {
+                                echo '<!-- 첫 번째 광고 상품 키: ' . implode(', ', array_keys($advertisementProducts[0])) . ' -->';
+                                echo '<!-- 첫 번째 광고 상품 id: ' . ($advertisementProducts[0]['id'] ?? '없음') . ' -->';
+                                echo '<!-- 첫 번째 광고 상품 product_id: ' . ($advertisementProducts[0]['product_id'] ?? '없음') . ' -->';
+                            }
+                        }
+                        if (!empty($advertisementPlans)): ?>
+                            <?php foreach ($advertisementPlans as $index => $adPlan): ?>
+                                <div class="advertisement-card-item" data-ad-index="<?php echo $index; ?>">
+                                    <?php
+                                    $plan = $adPlan;
+                                    $card_wrapper_class = '';
+                                    $layout_type = 'list';
+                                    include __DIR__ . '/../includes/components/plan-card.php';
+                                    ?>
+                                    <!-- 카드 구분선 -->
+                                    <hr class="plan-card-divider">
+                                </div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                        
+                        <!-- 일반 상품 목록 -->
+                        <?php foreach ($plans as $plan): ?>
+                            <?php
+                            $card_wrapper_class = '';
+                            $layout_type = 'list';
+                            include __DIR__ . '/../includes/components/plan-card.php';
+                            ?>
+                            <!-- 카드 구분선 (모바일용) -->
+                            <hr class="plan-card-divider">
+                        <?php endforeach; ?>
+                    </div>
                     <?php 
                     $totalPlansCount = isset($totalCount) ? $totalCount : 0;
                     $currentCount = count($plans);
@@ -171,6 +314,31 @@ $plans = array_slice($plans, $offset, $limit);
 .load-more-btn:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+}
+</style>
+
+<style>
+/* 스폰서 배지 스타일 */
+.sponsor-text {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-sm); /* .plan-provider-rating-group과 동일한 간격 */
+}
+
+.sponsor-badge {
+    display: inline-block;
+    background: #3b82f6;
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+}
+
+.provider-name-text {
+    display: inline-block;
 }
 </style>
 

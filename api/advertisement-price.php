@@ -24,6 +24,12 @@ if (empty($productType) || $advertisementDays <= 0) {
     exit;
 }
 
+// rotation_advertisement_prices 테이블은 mno_sim (언더스코어)를 사용하므로 변환
+// products 테이블은 mno-sim (하이픈)을 사용하지만, 광고 가격 테이블은 mno_sim을 사용
+if ($productType === 'mno-sim') {
+    $productType = 'mno_sim';
+}
+
 try {
     $stmt = $pdo->prepare("
         SELECT price FROM rotation_advertisement_prices 

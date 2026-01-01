@@ -41,6 +41,8 @@ $filterServiceType = $_GET['service_type'] ?? '';
 $format = $_GET['format'] ?? 'json'; // 'json' or 'html'
 $isWishlist = isset($_GET['wishlist']) && $_GET['wishlist'] === 'true';
 $isOrder = isset($_GET['order']) && $_GET['order'] === 'true';
+$adRemaining = intval($_GET['ad_remaining'] ?? 0); // 나머지 스폰서 광고 개수
+$adDisplayed = intval($_GET['ad_displayed'] ?? 0); // 이미 표시된 스폰서 개수
 $userId = null;
 
 // 위시리스트 또는 주문내역인 경우 사용자 ID 가져오기
@@ -97,7 +99,8 @@ try {
         throw new Exception('Database connection failed');
     }
 
-    $statusCondition = $isAdmin ? "p.status != 'deleted'" : "p.status = 'active'";
+    // 고객용 API이므로 관리자여도 active 상태만 표시
+    $statusCondition = "p.status = 'active'";
     $products = [];
     $totalCount = 0;
 
@@ -512,6 +515,10 @@ try {
 
         case 'mno-sim':
         case 'mno-sim-orders':
+            // 일반 상품만 처리 (스폰서 광고는 모두 첫 페이지에 표시되므로 더보기에서는 처리하지 않음)
+            // 광고 상품은 제외하고 일반 상품만 조회
+            $htmlFragments = [];
+            
             if ($isOrder || $type === 'mno-sim-orders') {
                 // 주문내역 처리
                 require_once __DIR__ . '/../includes/data/review-settings.php';
@@ -601,9 +608,18 @@ try {
                 $params[':service_type'] = $filterServiceType;
             }
             
+            // 스폰서 상품 제외 (스폰서 상품은 별도 섹션에만 표시되므로 일반 리스트에서는 제외)
+            $whereConditions[] = "NOT EXISTS (
+                SELECT 1 FROM rotation_advertisements ra 
+                WHERE ra.product_id = p.id 
+                AND ra.product_type = 'mno_sim'
+                AND ra.status = 'active' 
+                AND ra.end_datetime > NOW()
+            )";
+            
             $whereClause = 'WHERE ' . implode(' AND ', $whereConditions);
             
-            // 전체 개수 조회
+            // 전체 개수 조회 (스폰서 상품 제외한 일반 상품 개수만 계산)
             $countStmt = $pdo->prepare("
                 SELECT COUNT(*) as total
                 FROM products p
@@ -656,14 +672,15 @@ try {
                     mno_sim.sms_type,
                     mno_sim.sms_amount,
                     mno_sim.sms_amount_unit,
-                    mno_sim.promotion_title,
-                    mno_sim.promotions,
-                    mno_sim.benefits
-                FROM products p
-                INNER JOIN product_mno_sim_details mno_sim ON p.id = mno_sim.product_id
-                {$whereClause}
-                ORDER BY p.created_at DESC
-                LIMIT :limit OFFSET :offset
+                mno_sim.promotion_title,
+                mno_sim.promotions,
+                mno_sim.benefits,
+                0 AS is_advertising
+            FROM products p
+            INNER JOIN product_mno_sim_details mno_sim ON p.id = mno_sim.product_id
+            {$whereClause}
+            ORDER BY p.updated_at DESC, p.id DESC
+            LIMIT :limit OFFSET :offset
             ");
             
             // 모든 파라미터 바인딩
@@ -730,10 +747,13 @@ try {
                 }
             }
             
-            $htmlFragments = [];
+            // htmlFragments는 이미 스폰서 광고로 초기화되었을 수 있음
+            if (!isset($htmlFragments) || !is_array($htmlFragments)) {
+                $htmlFragments = [];
+            }
             
             // 디버깅: 상품 개수 확인
-            error_log("mno-sim API: 상품 개수 = " . count($products));
+            error_log("mno-sim API: 상품 개수 = " . count($products) . ", 스폰서 추가됨: " . ($adProductsAdded ?? 0));
             
             foreach ($products as $product) {
                 ob_start();
@@ -910,7 +930,7 @@ try {
                     }
                 }
                 
-                // plan 배열 구성
+                // plan 배열 구성 (일반 상품만 조회되므로 is_advertising은 항상 false)
                 $plan = [
                     'id' => $product['id'],
                     'provider' => $displayProvider,
@@ -926,11 +946,12 @@ try {
                     'gifts' => $gifts,
                     'promotion_title' => $promotionTitle,
                     'link_url' => '/MVNO/mno-sim/mno-sim-detail.php?id=' . $product['id'],
-                    'item_type' => 'mno-sim'
+                    'item_type' => 'mno-sim',
+                    'is_advertising' => false // 일반 상품만 조회되므로 항상 false
                 ];
                 
                 // 래퍼 div로 감싸서 하나의 요소로 만들기
-                echo '<div class="plan-item-wrapper">';
+                echo '<div class="regular-card-item">';
                 
                 // 카드 컴포넌트 사용
                 $card_wrapper_class = '';
@@ -964,8 +985,33 @@ try {
                 }
             }
             
-            $hasMore = ($offset + $limit) < $totalCount;
-            $remaining = max(0, $totalCount - ($offset + $limit));
+            // 일반 상품 개수 계산 (실제 반환된 상품 개수 사용)
+            $productsCount = count($products);
+            
+            // pagination 계산: 실제 반환된 상품 개수를 기준으로 계산
+            // 일반 상품만 조회되므로 (스폰서 상품 제외), 일반 상품 개수 기준으로 계산
+            $hasMore = ($offset + $productsCount) < $totalCount;
+            $remaining = max(0, $totalCount - ($offset + $productsCount));
+            
+            // 추가 검증: 실제 반환 개수가 0이면 더 이상 없음
+            if ($productsCount === 0) {
+                $hasMore = false;
+                $remaining = 0;
+            } elseif ($productsCount > 0 && $productsCount < $limit) {
+                // 실제 반환 개수가 limit보다 적고, 더 이상 상품이 없으면 마지막 페이지
+                $currentTotal = $offset + $productsCount;
+                if ($currentTotal >= $totalCount) {
+                    $hasMore = false;
+                    $remaining = 0;
+                }
+            }
+            
+            // 디버깅: pagination 계산 결과 확인
+            error_log("=== mno-sim API pagination 계산 ===");
+            error_log("offset: {$offset}, limit: {$limit}");
+            error_log("productsCount (실제 반환): {$productsCount}, totalCount: {$totalCount}");
+            error_log("hasMore 계산: ({$offset} + {$productsCount}) < {$totalCount} = " . ($hasMore ? 'true' : 'false'));
+            error_log("remaining: {$remaining}");
             
             // HTML이 비어있으면 실패로 처리
             if (empty($htmlFragments)) {
@@ -980,8 +1026,8 @@ try {
                             'page' => $page,
                             'limit' => $limit,
                             'total' => $totalCount,
-                            'hasMore' => ($offset + $limit) < $totalCount,
-                            'remaining' => max(0, $totalCount - ($offset + $limit))
+                            'hasMore' => $hasMore,
+                            'remaining' => $remaining
                         ]
                     ], JSON_UNESCAPED_UNICODE);
                     exit;
@@ -1057,8 +1103,9 @@ try {
             }
             
             // 알뜰폰 상품 (plan-data.php 사용)
+            // 고객용 API이므로 관리자여도 active 상태만 표시
             require_once __DIR__ . '/../includes/data/plan-data.php';
-            $allPlans = getPlansDataFromDB(10000, $isAdmin ? 'all' : 'active');
+            $allPlans = getPlansDataFromDB(10000, 'active');
             
             // 위시리스트 필터 적용
             if ($isWishlist && $userId) {
@@ -1143,8 +1190,10 @@ try {
                 }
             }
             
-            $hasMore = ($offset + $limit) < $totalCount;
-            $remaining = max(0, $totalCount - ($offset + $limit));
+            // pagination 계산: 실제 반환된 상품 개수 사용
+            $productsCount = count($products);
+            $hasMore = ($offset + $productsCount) < $totalCount;
+            $remaining = max(0, $totalCount - ($offset + $productsCount));
             
             // 디버깅: HTML 생성 결과 확인
             error_log("=== mvno API HTML 생성 완료 ===");
