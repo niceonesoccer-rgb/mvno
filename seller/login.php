@@ -32,16 +32,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $user = $result['user'];
             // 판매자만 로그인 허용
             if ($user['role'] === 'seller') {
-                // 승인 상태 확인
-                $isApproved = isset($user['seller_approved']) && $user['seller_approved'] === true;
-                
-                if (!$isApproved) {
-                    // 승인되지 않은 경우 로그인 제한
+                // 탈퇴 완료 상태 확인
+                $isWithdrawalCompleted = isset($user['withdrawal_completed']) && $user['withdrawal_completed'] === true;
+                if ($isWithdrawalCompleted) {
                     logoutUser();
-                    $error = '승인 대기중입니다. 관리자 승인 후 로그인할 수 있습니다.';
+                    $error = '이미 탈퇴된 아이디입니다.';
                 } else {
-                    header('Location: /MVNO/seller/');
-                    exit;
+                    // 승인 상태 확인
+                    $isApproved = isset($user['seller_approved']) && $user['seller_approved'] === true;
+                    
+                    if (!$isApproved) {
+                        // 승인되지 않은 경우 로그인 제한
+                        logoutUser();
+                        $error = '승인 대기중입니다. 관리자 승인 후 로그인할 수 있습니다.';
+                    } else {
+                        header('Location: /MVNO/seller/');
+                        exit;
+                    }
                 }
             } else {
                 $error = '판매자만 로그인할 수 있습니다.';

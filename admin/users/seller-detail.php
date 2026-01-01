@@ -470,6 +470,41 @@ if (!$seller || $seller['role'] !== 'seller') {
                         ?>
                     </div>
                 </div>
+                <?php 
+                $isWithdrawalRequested = isset($seller['withdrawal_requested']) && $seller['withdrawal_requested'] === true;
+                $isWithdrawalCompleted = isset($seller['withdrawal_completed']) && $seller['withdrawal_completed'] === true;
+                if ($isWithdrawalRequested || $isWithdrawalCompleted): 
+                ?>
+                <div class="detail-item">
+                    <div class="detail-label">탈퇴 정보</div>
+                    <div class="detail-value" style="display: flex; flex-direction: column; gap: 8px;">
+                        <?php if ($isWithdrawalRequested && !empty($seller['withdrawal_requested_at'])): ?>
+                            <div>
+                                <span style="font-weight: 600; color: #6b7280;">탈퇴신청일:</span>
+                                <span style="margin-left: 8px;"><?php echo htmlspecialchars($seller['withdrawal_requested_at']); ?></span>
+                            </div>
+                        <?php endif; ?>
+                        <?php if ($isWithdrawalCompleted && !empty($seller['withdrawal_completed_at'])): ?>
+                            <div>
+                                <span style="font-weight: 600; color: #6b7280;">탈퇴일:</span>
+                                <span style="margin-left: 8px; color: #ef4444;"><?php echo htmlspecialchars($seller['withdrawal_completed_at']); ?></span>
+                            </div>
+                        <?php endif; ?>
+                        <?php if (!empty($seller['scheduled_delete_date'])): ?>
+                            <div>
+                                <span style="font-weight: 600; color: #6b7280;">탈퇴예정일:</span>
+                                <span style="margin-left: 8px; color: #f59e0b;"><?php echo htmlspecialchars($seller['scheduled_delete_date']); ?></span>
+                            </div>
+                        <?php endif; ?>
+                        <?php if ($isWithdrawalRequested && !empty($seller['withdrawal_reason'])): ?>
+                            <div style="margin-top: 4px;">
+                                <span style="font-weight: 600; color: #6b7280;">탈퇴 사유:</span>
+                                <span style="margin-left: 8px; color: #374151;"><?php echo htmlspecialchars($seller['withdrawal_reason']); ?></span>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                <?php endif; ?>
             </div>
         </div>
         

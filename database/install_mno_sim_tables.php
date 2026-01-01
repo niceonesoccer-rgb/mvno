@@ -139,7 +139,7 @@ require_once __DIR__ . '/../includes/data/db-config.php';
                         
                         -- 요금제 정보
                         `provider` VARCHAR(50) NOT NULL COMMENT '통신사 (KT, SKT, LG U+)',
-                        `service_type` VARCHAR(50) NOT NULL COMMENT '데이터 속도 (LTE, 5G, 6G)',
+                        `service_type` VARCHAR(50) NOT NULL COMMENT '데이터 속도 (LTE, 5G)',
                         `registration_types` TEXT DEFAULT NULL COMMENT '가입 형태 (JSON: 신규, 번이, 기변)',
                         `plan_name` VARCHAR(100) NOT NULL COMMENT '요금제명',
                         

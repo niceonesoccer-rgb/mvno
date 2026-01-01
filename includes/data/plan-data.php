@@ -1695,6 +1695,134 @@ function getPlansDataFromDB($limit = 10, $status = 'active') {
 }
 
 /**
+ * 관리자가 설정한 요금제 ID 목록으로 상품 가져오기 (status와 관계없이)
+ * @param array $plan_ids 요금제 ID 배열
+ * @return array 요금제 배열
+ */
+function getPlansByIds($plan_ids) {
+    if (empty($plan_ids) || !is_array($plan_ids)) {
+        return [];
+    }
+    
+    $pdo = getDBConnection();
+    if (!$pdo) {
+        return [];
+    }
+    
+    // 현재 로그인한 사용자 ID 가져오기 (에러 발생 시 무시)
+    $currentUserId = null;
+    try {
+        if (function_exists('isLoggedIn') && function_exists('getCurrentUser')) {
+            if (isLoggedIn()) {
+                $currentUser = getCurrentUser();
+                $currentUserId = $currentUser['user_id'] ?? null;
+            }
+        }
+    } catch (Exception $e) {
+        error_log("Warning: Failed to get current user in getPlansByIds: " . $e->getMessage());
+    } catch (Error $e) {
+        error_log("Warning: Fatal error getting current user in getPlansByIds: " . $e->getMessage());
+    }
+    
+    try {
+        // ID 목록을 정수로 변환하고 중복 제거
+        $plan_ids = array_unique(array_map('intval', $plan_ids));
+        if (empty($plan_ids)) {
+            return [];
+        }
+        
+        $placeholders = implode(',', array_fill(0, count($plan_ids), '?'));
+        
+        $sql = "
+            SELECT 
+                p.id,
+                p.seller_id,
+                p.status,
+                p.view_count,
+                p.favorite_count,
+                p.review_count,
+                p.share_count,
+                p.application_count,
+                mvno.provider,
+                mvno.service_type,
+                mvno.plan_name,
+                mvno.contract_period,
+                mvno.contract_period_days,
+                mvno.discount_period,
+                mvno.price_main,
+                mvno.price_after,
+                mvno.data_amount,
+                mvno.data_amount_value,
+                mvno.data_unit,
+                mvno.data_additional,
+                mvno.data_additional_value,
+                mvno.data_exhausted,
+                mvno.data_exhausted_value,
+                mvno.call_type,
+                mvno.call_amount,
+                mvno.additional_call_type,
+                mvno.additional_call,
+                mvno.sms_type,
+                mvno.sms_amount,
+                mvno.promotion_title,
+                mvno.promotions
+            FROM products p
+            INNER JOIN product_mvno_details mvno ON p.id = mvno.product_id
+            WHERE p.product_type = 'mvno' 
+            AND p.id IN ($placeholders)
+            AND p.status != 'deleted'
+            ORDER BY FIELD(p.id, $placeholders)
+        ";
+        
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute(array_merge($plan_ids, $plan_ids));
+        
+        $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // 사용자의 찜 상태 가져오기 (에러 발생 시 무시)
+        $favoriteProductIds = [];
+        if ($currentUserId && !empty($products)) {
+            try {
+                $productIds = array_column($products, 'id');
+                if (!empty($productIds)) {
+                    $favPlaceholders = implode(',', array_fill(0, count($productIds), '?'));
+                    $favStmt = $pdo->prepare("
+                        SELECT product_id 
+                        FROM product_favorites 
+                        WHERE user_id = ? 
+                        AND product_id IN ($favPlaceholders)
+                        AND product_type = 'mvno'
+                    ");
+                    $favStmt->execute(array_merge([$currentUserId], $productIds));
+                    $favoriteProductIdsRaw = $favStmt->fetchAll(PDO::FETCH_COLUMN);
+                    $favoriteProductIds = array_map('intval', $favoriteProductIdsRaw);
+                }
+            } catch (Exception $e) {
+                error_log("Warning: Failed to get favorite status in getPlansByIds: " . $e->getMessage());
+            }
+        }
+        
+        // 카드 형식으로 변환
+        $plans = [];
+        foreach ($products as $product) {
+            try {
+                $plan = convertMvnoProductToPlanCard($product);
+                $productIdInt = (int)$product['id'];
+                $plan['is_favorited'] = ($currentUserId && !empty($favoriteProductIds) && in_array($productIdInt, $favoriteProductIds, true));
+                $plans[] = $plan;
+            } catch (Exception $e) {
+                error_log("Warning: Failed to convert product to plan card (id={$product['id']}): " . $e->getMessage());
+            }
+        }
+        
+        return $plans;
+    } catch (PDOException $e) {
+        error_log("Error fetching MVNO plans by IDs: " . $e->getMessage());
+        return [];
+    }
+}
+
+/**
  * 요금제 목록 데이터 가져오기
  * @param int $limit 가져올 개수
  * @return array 요금제 배열

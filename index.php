@@ -63,18 +63,10 @@ if (!empty($home_settings['main_banners']) && is_array($home_settings['main_bann
     }
 }
 
-// 알뜰폰 요금제 가져오기
+// 알뜰폰 요금제 가져오기 (관리자가 설정한 상품은 status와 관계없이 표시)
 $mvno_plans = [];
 if (!empty($home_settings['mvno_plans']) && is_array($home_settings['mvno_plans'])) {
-    $all_plans = getPlansData(100);
-    foreach ($home_settings['mvno_plans'] as $plan_id) {
-        foreach ($all_plans as $plan) {
-            if (isset($plan['id']) && $plan['id'] == $plan_id) {
-                $mvno_plans[] = $plan;
-                break;
-            }
-        }
-    }
+    $mvno_plans = getPlansByIds($home_settings['mvno_plans']);
 }
 
 // 사이트 전체 섹션 배너 가져오기
@@ -146,18 +138,17 @@ if ($needs_save) {
     saveHomeSettings($home_settings);
 }
 
-// 통신사폰 가져오기
+// 통신사폰 가져오기 (관리자가 설정한 상품은 status와 관계없이 표시)
 $mno_phones = [];
 if (!empty($home_settings['mno_phones']) && is_array($home_settings['mno_phones'])) {
-    $all_phones = getPhonesData(100);
-    foreach ($home_settings['mno_phones'] as $phone_id) {
-        foreach ($all_phones as $phone) {
-            if (isset($phone['id']) && $phone['id'] == $phone_id) {
-                $mno_phones[] = $phone;
-                break;
-            }
-        }
-    }
+    $mno_phones = getPhonesByIds($home_settings['mno_phones']);
+}
+
+// 알짜 통신사단독유심 가져오기 (관리자가 설정한 상품은 status와 관계없이 표시)
+$mno_sim_plans = [];
+if (!empty($home_settings['mno_sim_plans']) && is_array($home_settings['mno_sim_plans'])) {
+    // TODO: getMnoSimPlansByIds() 함수 구현 필요
+    // $mno_sim_plans = getMnoSimPlansByIds($home_settings['mno_sim_plans']);
 }
 ?>
 
@@ -321,7 +312,34 @@ if (!empty($home_settings['mno_phones']) && is_array($home_settings['mno_phones'
         </section>
     </div>
 
-    <!-- 두 번째 섹션: 알뜰폰 요금제 -->
+    <!-- 두 번째 섹션: 알짜 통신사단독유심 -->
+    <div class="home-section bg-white">
+        <div class="content-layout">
+            <section class="home-product-section">
+                <div class="home-section-header">
+                    <h2 class="home-section-title">알짜 통신사단독유심</h2>
+                    <a href="/MVNO/mno-sim/mno-sim.php" class="home-section-more">더보기 &gt;</a>
+                </div>
+                
+                <!-- 상품 목록 -->
+                <?php if (!empty($mno_sim_plans)): ?>
+                    <div class="home-product-grid">
+                        <?php foreach (array_slice($mno_sim_plans, 0, 6) as $plan): ?>
+                            <?php include 'includes/components/plan-card.php'; ?>
+                        <?php endforeach; ?>
+                    </div>
+                <?php else: ?>
+                    <div class="home-empty-state">
+                        <p style="color: #9ca3af; text-align: center; padding: 3rem 1rem;">
+                            관리자 페이지에서 통신사단독유심을 선택해주세요
+                        </p>
+                    </div>
+                <?php endif; ?>
+            </section>
+        </div>
+    </div>
+
+    <!-- 세 번째 섹션: 알뜰폰 요금제 -->
     <div class="home-section bg-white">
         <div class="content-layout">
             <section class="home-product-section">
@@ -349,7 +367,7 @@ if (!empty($home_settings['mno_phones']) && is_array($home_settings['mno_phones'
         </div>
     </div>
 
-    <!-- 세 번째 섹션: 통신사폰 -->
+    <!-- 네 번째 섹션: 통신사폰 -->
     <div class="home-section bg-gray-100">
         <div class="content-layout">
             <section class="home-product-section">
@@ -374,7 +392,7 @@ if (!empty($home_settings['mno_phones']) && is_array($home_settings['mno_phones'
         </div>
     </div>
 
-    <!-- 네 번째 섹션: 인터넷 상품 -->
+    <!-- 다섯 번째 섹션: 인터넷 상품 -->
     <div class="home-section bg-gray-200">
         <div class="content-layout">
             <section class="home-internet-section">

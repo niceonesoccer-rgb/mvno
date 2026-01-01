@@ -22,6 +22,7 @@ function getHomeSettings() {
         'site_large_banners' => [], // 사이트 전체 큰 배너 (롤링 배너)
         'site_small_banners' => [], // 사이트 전체 작은 배너 2개
         'mno_phones' => [],
+        'mno_sim_plans' => [], // 알짜 통신사단독유심
         'internet_products' => []
     ];
 
@@ -112,6 +113,13 @@ function setMvnoSmallBanners($event_ids) {
 function setMnoPhones($phone_ids) {
     $settings = getHomeSettings();
     $settings['mno_phones'] = $phone_ids;
+    return saveHomeSettings($settings);
+}
+
+// 통신사단독유심 설정
+function setMnoSimPlans($plan_ids) {
+    $settings = getHomeSettings();
+    $settings['mno_sim_plans'] = $plan_ids;
     return saveHomeSettings($settings);
 }
 

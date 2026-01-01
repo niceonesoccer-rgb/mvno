@@ -59,6 +59,9 @@ $has_reviews = !empty($rating) && $rating !== '';
         <?php
         if ($phone_id > 0) {
             $button_id = ($layout_type === 'detail') ? 'phoneShareBtn' : '';
+            $product_type = 'mno';
+            $product_id = $phone_id;
+            $seller_id = $phone['seller_id'] ?? '';
             include __DIR__ . '/share-button.php';
         }
         ?>

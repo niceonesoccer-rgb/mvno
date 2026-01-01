@@ -56,6 +56,103 @@ if ($filterType !== 'all') {
     });
     // array_filter는 인덱스를 유지하므로 array_values로 재인덱싱
     $filteredProducts = array_values($filteredProducts);
+    
+    // 카테고리 필터가 선택되면 해당 타입의 통계만 표시
+    $typeStat = $typeStatistics[$filterType] ?? [];
+    $statistics['total_products'] = $typeStat['count'] ?? 0;
+    $statistics['active_products'] = 0; // 활성 상품 수는 별도 계산 필요
+    $statistics['total_favorites'] = $typeStat['favorites'] ?? 0;
+    $statistics['total_applications'] = $typeStat['applications'] ?? 0;
+    $statistics['total_shares'] = $typeStat['shares'] ?? 0;
+    $statistics['total_views'] = $typeStat['views'] ?? 0;
+    $statistics['total_reviews'] = $typeStat['reviews'] ?? 0;
+    $statistics['average_rating'] = $typeStat['average_rating'] ?? 0;
+    
+    // 활성 상품 수 계산
+    $pdo = getDBConnection();
+    if ($pdo) {
+        $stmt = $pdo->prepare("
+            SELECT COUNT(*) as total
+            FROM products
+            WHERE seller_id = :seller_id 
+            AND product_type = :product_type 
+            AND status = 'active'
+        ");
+        $stmt->execute([
+            ':seller_id' => $sellerId,
+            ':product_type' => $filterType
+        ]);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        $statistics['active_products'] = (int)($result['total'] ?? 0);
+    }
+    
+    // 기간별 통계도 해당 타입만 필터링
+    $startDate = date('Y-m-d', strtotime("-{$days} days"));
+    if ($pdo) {
+        // 기간 내 찜 추가 수
+        $stmt = $pdo->prepare("
+            SELECT COUNT(*) as total
+            FROM product_favorites f
+            INNER JOIN products p ON f.product_id = p.id
+            WHERE p.seller_id = :seller_id
+            AND p.product_type = :product_type
+            AND f.created_at >= :start_date
+        ");
+        $stmt->execute([
+            ':seller_id' => $sellerId,
+            ':product_type' => $filterType,
+            ':start_date' => $startDate
+        ]);
+        $statistics['period']['favorites'] = (int)($stmt->fetch()['total'] ?? 0);
+        
+        // 기간 내 신청 수
+        $stmt = $pdo->prepare("
+            SELECT COUNT(*) as total
+            FROM product_applications a
+            WHERE a.seller_id = :seller_id
+            AND a.product_type = :product_type
+            AND a.created_at >= :start_date
+        ");
+        $stmt->execute([
+            ':seller_id' => $sellerId,
+            ':product_type' => $filterType,
+            ':start_date' => $startDate
+        ]);
+        $statistics['period']['applications'] = (int)($stmt->fetch()['total'] ?? 0);
+        
+        // 기간 내 공유 수
+        $stmt = $pdo->prepare("
+            SELECT COUNT(*) as total
+            FROM product_shares s
+            INNER JOIN products p ON s.product_id = p.id
+            WHERE p.seller_id = :seller_id
+            AND p.product_type = :product_type
+            AND s.created_at >= :start_date
+        ");
+        $stmt->execute([
+            ':seller_id' => $sellerId,
+            ':product_type' => $filterType,
+            ':start_date' => $startDate
+        ]);
+        $statistics['period']['shares'] = (int)($stmt->fetch()['total'] ?? 0);
+        
+        // 기간 내 리뷰 수
+        $stmt = $pdo->prepare("
+            SELECT COUNT(*) as total
+            FROM product_reviews r
+            INNER JOIN products p ON r.product_id = p.id
+            WHERE p.seller_id = :seller_id
+            AND p.product_type = :product_type
+            AND r.created_at >= :start_date
+            AND r.status = 'approved'
+        ");
+        $stmt->execute([
+            ':seller_id' => $sellerId,
+            ':product_type' => $filterType,
+            ':start_date' => $startDate
+        ]);
+        $statistics['period']['reviews'] = (int)($stmt->fetch()['total'] ?? 0);
+    }
 }
 
 // 각 카테고리별 순서 계산 (역순)
@@ -470,57 +567,9 @@ include '../includes/seller-header.php';
         
     </div>
     
-    <!-- 전체 통계 -->
-    <div class="stats-section">
-        <h2 class="section-title">전체 통계</h2>
-        <div class="stats-grid">
-            <div class="stat-card primary">
-                <div class="stat-label">등록 상품</div>
-                <div class="stat-value"><?php echo number_format($statistics['total_products'] ?? 0); ?></div>
-                <div class="stat-subvalue">판매 중: <?php echo number_format($statistics['active_products'] ?? 0); ?>개</div>
-            </div>
-            
-            <div class="stat-card success">
-                <div class="stat-label">찜 개수</div>
-                <div class="stat-value"><?php echo number_format($statistics['total_favorites'] ?? 0); ?></div>
-                <div class="stat-subvalue">최근 <?php echo $days; ?>일: <?php echo number_format($statistics['period']['favorites'] ?? 0); ?></div>
-            </div>
-            
-            <div class="stat-card info">
-                <div class="stat-label">신청 수</div>
-                <div class="stat-value"><?php echo number_format($statistics['total_applications'] ?? 0); ?></div>
-                <div class="stat-subvalue">최근 <?php echo $days; ?>일: <?php echo number_format($statistics['period']['applications'] ?? 0); ?></div>
-            </div>
-            
-            <div class="stat-card warning">
-                <div class="stat-label">공유 수</div>
-                <div class="stat-value"><?php echo number_format($statistics['total_shares'] ?? 0); ?></div>
-                <div class="stat-subvalue">최근 <?php echo $days; ?>일: <?php echo number_format($statistics['period']['shares'] ?? 0); ?></div>
-            </div>
-            
-            <div class="stat-card primary">
-                <div class="stat-label">조회 수</div>
-                <div class="stat-value"><?php echo number_format($statistics['total_views'] ?? 0); ?></div>
-                <div class="stat-subvalue">전체 상품 합계</div>
-            </div>
-            
-            <div class="stat-card success">
-                <div class="stat-label">리뷰 수</div>
-                <div class="stat-value"><?php echo number_format($statistics['total_reviews'] ?? 0); ?></div>
-                <div class="stat-subvalue">
-                    <?php if (($statistics['average_rating'] ?? 0) > 0): ?>
-                        평균 별점: ⭐ <?php echo number_format($statistics['average_rating'], 1); ?>
-                    <?php else: ?>
-                        최근 <?php echo $days; ?>일: <?php echo number_format($statistics['period']['reviews'] ?? 0); ?>
-                    <?php endif; ?>
-                </div>
-            </div>
-        </div>
-    </div>
-    
     <!-- 상품 타입별 통계 -->
     <div class="stats-section">
-        <h2 class="section-title">상품 타입별 통계</h2>
+        <h2 class="section-title" style="justify-content: flex-start;">상품 타입별 통계</h2>
         <div class="type-stats-grid">
             <?php
             $typeNames = [
@@ -530,7 +579,7 @@ include '../includes/seller-header.php';
                 'internet' => '인터넷'
             ];
             
-            foreach (['mvno', 'mno', 'mno-sim', 'internet'] as $type):
+            foreach (['mno-sim', 'mvno', 'mno', 'internet'] as $type):
                 $typeStat = $typeStatistics[$type] ?? [];
             ?>
             <div class="type-stat-card">
@@ -663,6 +712,81 @@ include '../includes/seller-header.php';
                 </tbody>
             </table>
         </div>
+        
+        <!-- 페이지네이션 -->
+        <?php if ($totalPages > 1): ?>
+        <div class="pagination">
+            <?php
+            // 페이지네이션 파라미터 유지
+            $queryParams = $_GET;
+            
+            // 이전 페이지
+            if ($page > 1):
+                $queryParams['page'] = $page - 1;
+                $prevUrl = '?' . http_build_query($queryParams);
+            ?>
+                <a href="<?php echo htmlspecialchars($prevUrl); ?>" class="pagination-btn">이전</a>
+            <?php else: ?>
+                <span class="pagination-btn disabled">이전</span>
+            <?php endif; ?>
+            
+            <?php
+            // 페이지 번호 표시 (최대 10개)
+            $startPage = max(1, $page - 4);
+            $endPage = min($totalPages, $page + 5);
+            
+            // 시작 페이지가 1이 아니면 첫 페이지 표시
+            if ($startPage > 1):
+                $queryParams['page'] = 1;
+                $firstUrl = '?' . http_build_query($queryParams);
+            ?>
+                <a href="<?php echo htmlspecialchars($firstUrl); ?>" class="pagination-btn">1</a>
+                <?php if ($startPage > 2): ?>
+                    <span class="pagination-btn disabled">...</span>
+                <?php endif; ?>
+            <?php endif; ?>
+            
+            <?php
+            // 페이지 번호들
+            for ($i = $startPage; $i <= $endPage; $i++):
+                $queryParams['page'] = $i;
+                $pageUrl = '?' . http_build_query($queryParams);
+                
+                if ($i == $page):
+            ?>
+                <span class="pagination-btn active"><?php echo $i; ?></span>
+            <?php else: ?>
+                <a href="<?php echo htmlspecialchars($pageUrl); ?>" class="pagination-btn"><?php echo $i; ?></a>
+            <?php
+                endif;
+            endfor;
+            ?>
+            
+            <?php
+            // 끝 페이지가 마지막이 아니면 마지막 페이지 표시
+            if ($endPage < $totalPages):
+                $queryParams['page'] = $totalPages;
+                $lastUrl = '?' . http_build_query($queryParams);
+            ?>
+                <?php if ($endPage < $totalPages - 1): ?>
+                    <span class="pagination-btn disabled">...</span>
+                <?php endif; ?>
+                <a href="<?php echo htmlspecialchars($lastUrl); ?>" class="pagination-btn"><?php echo $totalPages; ?></a>
+            <?php endif; ?>
+            
+            <?php
+            // 다음 페이지
+            if ($page < $totalPages):
+                $queryParams['page'] = $page + 1;
+                $nextUrl = '?' . http_build_query($queryParams);
+            ?>
+                <a href="<?php echo htmlspecialchars($nextUrl); ?>" class="pagination-btn">다음</a>
+            <?php else: ?>
+                <span class="pagination-btn disabled">다음</span>
+            <?php endif; ?>
+        </div>
+        <?php endif; ?>
+        
         <?php else: ?>
         <div class="no-data">
             <div class="no-data-icon">📊</div>

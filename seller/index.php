@@ -89,31 +89,39 @@ $orderStats = [
     'mvno' => [
         'received' => 0,
         'activating' => 0,
-        'processing' => 0
+        'processing' => 0,
+        'on_hold' => 0,
+        'cancelled' => 0
     ],
     'mno' => [
         'received' => 0,
         'activating' => 0,
-        'processing' => 0
+        'processing' => 0,
+        'on_hold' => 0,
+        'cancelled' => 0
     ],
     'internet' => [
         'received' => 0,
         'activating' => 0,
-        'processing' => 0
+        'processing' => 0,
+        'on_hold' => 0,
+        'cancelled' => 0
     ],
     'mno-sim' => [
         'received' => 0,
         'activating' => 0,
-        'processing' => 0
+        'processing' => 0,
+        'on_hold' => 0,
+        'cancelled' => 0
     ]
 ];
 
 // 광고관리 데이터 (광고종료 5일 이내)
 $advertisementStats = [
+    'mno-sim' => 0,
     'mvno' => 0,
     'mno' => 0,
-    'internet' => 0,
-    'mno-sim' => 0
+    'internet' => 0
 ];
 
 // 예치금 데이터
@@ -126,6 +134,9 @@ try {
     $pdo = getDBConnection();
     if ($pdo) {
         $sellerId = (string)$currentUser['user_id'];
+        
+        // 디버깅: seller_id 확인
+        error_log("Dashboard Stats - seller_id: " . $sellerId . " (type: " . gettype($sellerId) . ")");
         
         // 전체 상품 수
         $stmt = $pdo->prepare("SELECT COUNT(*) as total FROM products WHERE seller_id = :seller_id AND status != 'deleted'");
@@ -171,29 +182,49 @@ try {
         $stmt->execute([':seller_id' => $sellerId]);
         $stats['completed_orders'] = $stmt->fetch()['total'] ?? 0;
         
-        // 주문 카테고리별 진행상황 통계 (해야할 일들만 - 종료/개통완료/설치완료/취소 제외)
+        // 주문 카테고리별 진행상황 통계 (해야할 일들만 - 종료/개통완료/설치완료 제외, 취소는 포함)
         // 포함 카테고리: 알뜰폰(mvno), 통신사폰(mno), 인터넷(internet), 통신사단독유심(mno-sim)
+        // 대시보드는 전체 기간 조회 (놓치는 주문이 없도록)
         $productTypes = ['mvno', 'mno', 'internet', 'mno-sim'];
-        $activeStatuses = ['received', 'activating', 'processing'];
-        // 제외할 상태: closed(종료), activation_completed(개통완료), installation_completed(설치완료), completed(완료), cancelled(취소)
-        // 모든 카테고리(알뜰폰, 통신사폰, 인터넷, 통신사단독유심)에서 취소 상태는 제외됨
+        $activeStatuses = ['received', 'activating', 'processing', 'on_hold', 'cancelled'];
+        // 제외할 상태: closed(종료), activation_completed(개통완료), installation_completed(설치완료), completed(완료)
+        // 취소 상태는 포함하여 표시
         
         foreach ($productTypes as $type) {
             foreach ($activeStatuses as $status) {
                 if ($status === 'received') {
-                    // received는 빈 문자열, null, 'pending'도 포함, 취소/종료/완료 상태 제외
+                    // received는 빈 문자열, null, 'pending'도 포함, 종료/완료 상태 제외
                     $stmt = $pdo->prepare("
                         SELECT COUNT(*) as total 
                         FROM product_applications a
                         WHERE a.seller_id = :seller_id 
                         AND a.product_type = :product_type
                         AND (
-                            a.application_status = :status 
+                            a.application_status = 'received'
                             OR a.application_status = '' 
                             OR a.application_status IS NULL 
                             OR LOWER(TRIM(a.application_status)) = 'pending'
                         )
-                        AND (a.application_status IS NULL OR a.application_status NOT IN ('closed', 'activation_completed', 'installation_completed', 'completed', 'cancelled'))
+                        AND (a.application_status IS NULL OR a.application_status NOT IN ('closed', 'activation_completed', 'installation_completed', 'completed'))
+                    ");
+                } elseif ($status === 'on_hold') {
+                    // on_hold는 'on_hold' 또는 'rejected' 상태 포함
+                    $stmt = $pdo->prepare("
+                        SELECT COUNT(*) as total 
+                        FROM product_applications a
+                        WHERE a.seller_id = :seller_id 
+                        AND a.product_type = :product_type
+                        AND (a.application_status = 'on_hold' OR a.application_status = 'rejected')
+                        AND a.application_status NOT IN ('closed', 'activation_completed', 'installation_completed', 'completed')
+                    ");
+                } elseif ($status === 'cancelled') {
+                    // cancelled 상태만 조회
+                    $stmt = $pdo->prepare("
+                        SELECT COUNT(*) as total 
+                        FROM product_applications a
+                        WHERE a.seller_id = :seller_id 
+                        AND a.product_type = :product_type
+                        AND a.application_status = 'cancelled'
                     ");
                 } else {
                     $stmt = $pdo->prepare("
@@ -202,14 +233,31 @@ try {
                         WHERE a.seller_id = :seller_id 
                         AND a.product_type = :product_type
                         AND a.application_status = :status
-                        AND a.application_status NOT IN ('closed', 'activation_completed', 'installation_completed', 'completed', 'cancelled')
+                        AND a.application_status NOT IN ('closed', 'activation_completed', 'installation_completed', 'completed')
                     ");
                 }
-                $stmt->execute([
-                    ':seller_id' => $sellerId,
-                    ':product_type' => $type,
-                    ':status' => $status
-                ]);
+                if ($status === 'received') {
+                    $stmt->execute([
+                        ':seller_id' => $sellerId,
+                        ':product_type' => $type
+                    ]);
+                } elseif ($status === 'on_hold') {
+                    $stmt->execute([
+                        ':seller_id' => $sellerId,
+                        ':product_type' => $type
+                    ]);
+                } elseif ($status === 'cancelled') {
+                    $stmt->execute([
+                        ':seller_id' => $sellerId,
+                        ':product_type' => $type
+                    ]);
+                } else {
+                    $stmt->execute([
+                        ':seller_id' => $sellerId,
+                        ':product_type' => $type,
+                        ':status' => $status
+                    ]);
+                }
                 $orderStats[$type][$status] = $stmt->fetch()['total'] ?? 0;
             }
         }
@@ -742,17 +790,18 @@ $pageStyles = '
         .seller-notice-dismiss {
             background: none;
             border: none;
-            color: #64748b;
+            color: #dc2626;
             font-size: 13px;
             cursor: pointer;
             padding: 6px 12px;
             border-radius: 6px;
             transition: all 0.2s;
+            font-weight: 500;
         }
         
         .seller-notice-dismiss:hover {
-            background: rgba(100, 116, 139, 0.1);
-            color: #475569;
+            background: rgba(220, 38, 38, 0.1);
+            color: #b91c1c;
         }
         
         .seller-notice-content.collapsed {
@@ -764,11 +813,6 @@ include 'includes/seller-header.php';
 ?>
 
 <div class="seller-center-container">
-            <div class="seller-header">
-                <h1>판매자 센터</h1>
-                <p><?php echo htmlspecialchars($currentUser['name'] ?? ''); ?>님, 환영합니다</p>
-            </div>
-            
             <?php if (isset($_GET['register']) && $_GET['register'] === 'success'): ?>
                 <div style="padding: 16px; background: #d1fae5; color: #065f46; border-radius: 8px; margin-bottom: 24px; border: 1px solid #10b981;">
                     판매자 가입이 완료되었습니다. 관리자 승인 후 상품 등록이 가능합니다.
@@ -818,7 +862,6 @@ include 'includes/seller-header.php';
                         <li>주문, 개통완료, 취소, 설치완료, 종료가 아닌 것은 15일 후 모두 종료처리함</li>
                     </ul>
                     <div class="seller-notice-actions">
-                        <a href="#" class="seller-notice-link" onclick="event.preventDefault(); alert('상세 안내 페이지는 준비 중입니다.');">자세히 보기</a>
                         <button type="button" class="seller-notice-dismiss" onclick="dismissNotice()">더 이상 보지 않기</button>
                     </div>
                 </div>
@@ -875,22 +918,33 @@ include 'includes/seller-header.php';
                 
                 <?php
                 $orderCategories = [
+                    'mno-sim' => ['name' => '통신사단독유심', 'url' => '/MVNO/seller/orders/mno-sim.php'],
                     'mvno' => ['name' => '알뜰폰', 'url' => '/MVNO/seller/orders/mvno.php'],
                     'mno' => ['name' => '통신사폰', 'url' => '/MVNO/seller/orders/mno.php'],
-                    'internet' => ['name' => '인터넷', 'url' => '/MVNO/seller/orders/internet.php'],
-                    'mno-sim' => ['name' => '통신사단독유심', 'url' => '/MVNO/seller/orders/mno-sim.php']
+                    'internet' => ['name' => '인터넷', 'url' => '/MVNO/seller/orders/internet.php']
                 ];
                 $statusLabels = [
                     'received' => '접수',
                     'activating' => '개통중',
-                    'processing' => '처리중'
+                    'processing' => '처리중',
+                    'on_hold' => '보류',
+                    'cancelled' => '취소'
                 ];
                 ?>
                 
                 <?php foreach ($orderCategories as $type => $category): ?>
                     <?php
-                    $totalPending = $orderStats[$type]['received'] + $orderStats[$type]['activating'] + $orderStats[$type]['processing'];
-                    if ($totalPending > 0):
+                    // 접수, 보류, 개통중 중 하나라도 건수가 있으면 표시
+                    $displayStatuses = ['received' => '접수', 'on_hold' => '보류', 'activating' => '개통중'];
+                    $hasAnyOrders = false;
+                    foreach ($displayStatuses as $status => $label) {
+                        $count = $orderStats[$type][$status] ?? 0;
+                        if ($count > 0) {
+                            $hasAnyOrders = true;
+                            break;
+                        }
+                    }
+                    if (!$hasAnyOrders) continue;
                     ?>
                     <div class="content-box" style="background: #fff; border-radius: 12px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 20px;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
@@ -902,41 +956,28 @@ include 'includes/seller-header.php';
                             </a>
                         </div>
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px;">
-                            <?php foreach ($statusLabels as $status => $label): ?>
-                                <?php if ($orderStats[$type][$status] > 0): ?>
-                                    <a href="<?= htmlspecialchars($category['url']) ?>?status=<?= $status === 'received' ? 'received' : $status ?>" style="text-decoration: none; display: block;">
-                                        <div style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-radius: 8px; padding: 16px; border: 1px solid #e2e8f0; transition: all 0.2s;">
-                                            <div style="font-size: 13px; color: #64748b; font-weight: 500; margin-bottom: 8px;">
-                                                <?= htmlspecialchars($label) ?>
-                                            </div>
-                                            <div style="font-size: 28px; font-weight: 800; color: #0f172a; margin-bottom: 4px;">
-                                                <?= number_format($orderStats[$type][$status]) ?>
-                                            </div>
+                            <?php 
+                            // 접수, 보류, 개통중만 표시 (건수가 0보다 큰 것만 표시)
+                            foreach ($displayStatuses as $status => $label): 
+                                $count = $orderStats[$type][$status] ?? 0;
+                                // 건수가 0이면 표시하지 않음
+                                if ($count <= 0) continue;
+                            ?>
+                                <a href="<?= htmlspecialchars($category['url']) ?>?status=<?= $status === 'received' ? 'received' : $status ?>" style="text-decoration: none; display: block;">
+                                    <div style="background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); border-radius: 8px; padding: 16px; border: 1px solid #ef4444; transition: all 0.2s;">
+                                        <div style="font-size: 13px; color: #64748b; font-weight: 500; margin-bottom: 8px;">
+                                            <?= htmlspecialchars($label) ?>
                                         </div>
-                                    </a>
-                                <?php endif; ?>
+                                        <div style="font-size: 28px; font-weight: 800; color: #991b1b; margin-bottom: 4px;">
+                                            <?= number_format($count) ?>
+                                        </div>
+                                    </div>
+                                </a>
                             <?php endforeach; ?>
                         </div>
                     </div>
-                    <?php endif; ?>
                 <?php endforeach; ?>
                 
-                <?php
-                $hasAnyPending = false;
-                foreach ($orderCategories as $type => $category) {
-                    $totalPending = $orderStats[$type]['received'] + $orderStats[$type]['activating'] + $orderStats[$type]['processing'];
-                    if ($totalPending > 0) {
-                        $hasAnyPending = true;
-                        break;
-                    }
-                }
-                if (!$hasAnyPending):
-                ?>
-                <div class="content-box" style="background: #fff; border-radius: 12px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); text-align: center;">
-                    <div style="font-size: 48px; margin-bottom: 16px; opacity: 0.5;">✅</div>
-                    <div style="font-size: 16px; color: #64748b; margin-bottom: 20px;">처리할 주문이 없습니다</div>
-                </div>
-                <?php endif; ?>
             </div>
             
             <!-- 광고관리 섹션 -->
@@ -945,10 +986,10 @@ include 'includes/seller-header.php';
                 
                 <?php
                 $adCategories = [
+                    'mno-sim' => ['name' => '통신사단독유심', 'url' => '/MVNO/seller/products/mno-sim-list.php'],
                     'mvno' => ['name' => '알뜰폰', 'url' => '/MVNO/seller/products/mvno-list.php'],
                     'mno' => ['name' => '통신사폰', 'url' => '/MVNO/seller/products/mno-list.php'],
-                    'internet' => ['name' => '인터넷', 'url' => '/MVNO/seller/products/internet-list.php'],
-                    'mno-sim' => ['name' => '통신사단독유심', 'url' => '/MVNO/seller/products/mno-sim-list.php']
+                    'internet' => ['name' => '인터넷', 'url' => '/MVNO/seller/products/internet-list.php']
                 ];
                 ?>
                 
@@ -1021,11 +1062,8 @@ include 'includes/seller-header.php';
                 <!-- 최근 예치금 사용내역 -->
                 <?php if (!empty($depositData['recent_history'])): ?>
                 <div class="content-box" style="background: #fff; border-radius: 12px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-top: 24px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <div style="margin-bottom: 20px;">
                         <h3 style="margin: 0; font-size: 18px; font-weight: 600; color: #0f172a;">최근 사용내역</h3>
-                        <a href="/MVNO/seller/deposit/history.php" style="color: #6366f1; text-decoration: none; font-size: 14px; font-weight: 600;">
-                            전체보기 →
-                        </a>
                     </div>
                     <div style="overflow-x: auto;">
                         <table style="width: 100%; border-collapse: collapse;">
@@ -1058,8 +1096,15 @@ include 'includes/seller-header.php';
                                         </span>
                                     </td>
                                     <td style="padding: 12px; text-align: right; font-size: 14px; font-weight: 600; color: <?= $item['transaction_type'] === 'deposit' || $item['transaction_type'] === 'refund' ? $typeInfo['color'] : '#374151' ?>;">
-                                        <?= ($item['transaction_type'] === 'deposit' || $item['transaction_type'] === 'refund' ? '+' : '-') ?>
-                                        <?= number_format($item['amount'], 0) ?>원
+                                        <?php 
+                                        $amount = floatval($item['amount']);
+                                        if ($item['transaction_type'] === 'deposit' || $item['transaction_type'] === 'refund') {
+                                            echo '+' . number_format(abs($amount), 0) . '원';
+                                        } else {
+                                            // 차감일 때는 절댓값을 사용하여 중복 마이너스 방지
+                                            echo '-' . number_format(abs($amount), 0) . '원';
+                                        }
+                                        ?>
                                     </td>
                                     <td style="padding: 12px; text-align: right; font-size: 14px; color: #64748b;">
                                         <?= number_format($item['balance_after'], 0) ?>원

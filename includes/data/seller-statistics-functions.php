@@ -50,8 +50,7 @@ function getSellerStatistics($sellerId, $days = 30) {
                 SUM(view_count) as total_views,
                 SUM(favorite_count) as total_favorites,
                 SUM(share_count) as total_shares,
-                SUM(application_count) as total_applications,
-                SUM(review_count) as total_reviews
+                SUM(application_count) as total_applications
             FROM products 
             WHERE seller_id = :seller_id AND status != 'deleted'
         ");
@@ -61,9 +60,8 @@ function getSellerStatistics($sellerId, $days = 30) {
         $stats['total_favorites'] = (int)($sumResult['total_favorites'] ?? 0);
         $stats['total_shares'] = (int)($sumResult['total_shares'] ?? 0);
         $stats['total_applications'] = (int)($sumResult['total_applications'] ?? 0);
-        $stats['total_reviews'] = (int)($sumResult['total_reviews'] ?? 0);
         
-        // 평균 별점 계산 (MVNO, MNO만)
+        // 리뷰 수와 평균 별점 계산 (product_reviews 테이블에서 직접 계산)
         $stmt = $pdo->prepare("
             SELECT 
                 AVG(r.rating) as avg_rating,
@@ -71,14 +69,18 @@ function getSellerStatistics($sellerId, $days = 30) {
             FROM products p
             INNER JOIN product_reviews r ON p.id = r.product_id
             WHERE p.seller_id = :seller_id 
-            AND p.product_type IN ('mvno', 'mno')
+            AND p.product_type IN ('mvno', 'mno', 'mno-sim')
             AND p.status != 'deleted'
             AND r.status = 'approved'
         ");
         $stmt->execute([':seller_id' => $sellerIdStr]);
         $ratingResult = $stmt->fetch(PDO::FETCH_ASSOC);
         if ($ratingResult && $ratingResult['review_count'] > 0) {
+            $stats['total_reviews'] = (int)$ratingResult['review_count'];
             $stats['average_rating'] = round((float)$ratingResult['avg_rating'], 1);
+        } else {
+            $stats['total_reviews'] = 0;
+            $stats['average_rating'] = 0;
         }
         
         // 상품별 상세 통계 (admin 페이지와 동일한 기준: INNER JOIN 사용)
@@ -298,8 +300,7 @@ function getSellerStatisticsByType($sellerId) {
                     SUM(view_count) as total_views,
                     SUM(favorite_count) as total_favorites,
                     SUM(share_count) as total_shares,
-                    SUM(application_count) as total_applications,
-                    SUM(review_count) as total_reviews
+                    SUM(application_count) as total_applications
                 FROM products
                 WHERE seller_id = :seller_id AND product_type = :type AND status != 'deleted'
             ");
@@ -312,12 +313,13 @@ function getSellerStatisticsByType($sellerId) {
             $typeStats[$type]['favorites'] = (int)($sumResult['total_favorites'] ?? 0);
             $typeStats[$type]['shares'] = (int)($sumResult['total_shares'] ?? 0);
             $typeStats[$type]['applications'] = (int)($sumResult['total_applications'] ?? 0);
-            $typeStats[$type]['reviews'] = (int)($sumResult['total_reviews'] ?? 0);
             
-            // 평균 별점 (MVNO, MNO, MNO-SIM만)
+            // 리뷰 수와 평균 별점 (MVNO, MNO, MNO-SIM만, product_reviews 테이블에서 직접 계산)
             if (in_array($type, ['mvno', 'mno', 'mno-sim'])) {
                 $stmt = $pdo->prepare("
-                    SELECT AVG(r.rating) as avg_rating
+                    SELECT 
+                        AVG(r.rating) as avg_rating,
+                        COUNT(r.id) as review_count
                     FROM products p
                     INNER JOIN product_reviews r ON p.id = r.product_id
                     WHERE p.seller_id = :seller_id 
@@ -330,9 +332,16 @@ function getSellerStatisticsByType($sellerId) {
                     ':type' => $type
                 ]);
                 $ratingResult = $stmt->fetch(PDO::FETCH_ASSOC);
-                if ($ratingResult && $ratingResult['avg_rating']) {
+                if ($ratingResult && $ratingResult['review_count'] > 0) {
+                    $typeStats[$type]['reviews'] = (int)$ratingResult['review_count'];
                     $typeStats[$type]['average_rating'] = round((float)$ratingResult['avg_rating'], 1);
+                } else {
+                    $typeStats[$type]['reviews'] = 0;
+                    $typeStats[$type]['average_rating'] = 0;
                 }
+            } else {
+                $typeStats[$type]['reviews'] = 0;
+                $typeStats[$type]['average_rating'] = 0;
             }
         }
         

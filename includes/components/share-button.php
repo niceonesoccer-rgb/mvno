@@ -8,6 +8,9 @@
  * @param string $button_id 버튼 ID (선택사항)
  * @param string $aria_label 접근성 라벨 (기본값: '공유하기')
  * @param bool $show_condition 표시 조건 (기본값: true)
+ * @param string $product_type 상품 타입 ('mvno', 'mno', 'mno-sim', 'internet')
+ * @param int $product_id 상품 ID
+ * @param string $seller_id 판매자 ID (선택사항)
  */
 if (!isset($share_url)) {
     $share_url = '';
@@ -24,6 +27,15 @@ if (!isset($aria_label)) {
 if (!isset($show_condition)) {
     $show_condition = true;
 }
+if (!isset($product_type)) {
+    $product_type = '';
+}
+if (!isset($product_id)) {
+    $product_id = 0;
+}
+if (!isset($seller_id)) {
+    $seller_id = '';
+}
 
 if (!$show_condition || empty($share_url)) {
     return;
@@ -32,6 +44,9 @@ if (!$show_condition || empty($share_url)) {
 <button type="button" class="<?php echo htmlspecialchars($button_class); ?>" 
         aria-label="<?php echo htmlspecialchars($aria_label); ?>" 
         data-share-url="<?php echo htmlspecialchars($share_url); ?>"
+        <?php if (!empty($product_type)): ?>data-product-type="<?php echo htmlspecialchars($product_type); ?>"<?php endif; ?>
+        <?php if (!empty($product_id)): ?>data-product-id="<?php echo htmlspecialchars($product_id); ?>"<?php endif; ?>
+        <?php if (!empty($seller_id)): ?>data-seller-id="<?php echo htmlspecialchars($seller_id); ?>"<?php endif; ?>
         <?php if (!empty($button_id)): ?>id="<?php echo htmlspecialchars($button_id); ?>"<?php endif; ?>>
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path d="M11.2028 3.30311C11.6574 2.89896 12.3426 2.89896 12.7972 3.30311L17.2972 7.30311C17.7926 7.74341 17.8372 8.5019 17.3969 8.99724C16.9566 9.49258 16.1981 9.53719 15.7028 9.09689L13.2 6.8722V13.8C13.2 14.4627 12.6627 15 12 15C11.3372 15 10.8 14.4627 10.8 13.8V6.87222L8.29724 9.09689C7.8019 9.53719 7.04341 9.49258 6.60311 8.99724C6.16281 8.5019 6.20742 7.74341 6.70276 7.30311L11.2028 3.30311Z" fill="#868E96"/>

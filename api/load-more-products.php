@@ -38,6 +38,9 @@ $page = intval($_GET['page'] ?? 1);
 $limit = intval($_GET['limit'] ?? 20);
 $filterProvider = $_GET['provider'] ?? '';
 $filterServiceType = $_GET['service_type'] ?? '';
+$filterSpeed = $_GET['speed'] ?? ''; // 인터넷 속도 필터 (100MB, 500MB, 1G)
+$filterPromotion = isset($_GET['promotion']) && $_GET['promotion'] === '1';
+$filterPriceRange = $_GET['price_range'] ?? '';
 $format = $_GET['format'] ?? 'json'; // 'json' or 'html'
 $isWishlist = isset($_GET['wishlist']) && $_GET['wishlist'] === 'true';
 $isOrder = isset($_GET['order']) && $_GET['order'] === 'true';
@@ -341,9 +344,23 @@ try {
                 $whereConditions[] = 'inet.registration_place = :provider';
                 $params[':provider'] = $filterProvider;
             }
+            
+            // 속도 필터 (100MB, 500MB, 1G)
+            if (!empty($filterSpeed)) {
+                $whereConditions[] = 'inet.speed_option LIKE :speed';
+                $params[':speed'] = '%' . $filterSpeed . '%';
+            }
+            
+            // 서비스 타입 필터 (TV 결합, 핸드폰 결합)
             if (!empty($filterServiceType)) {
-                $whereConditions[] = 'inet.service_type = :service_type';
-                $params[':service_type'] = $filterServiceType;
+                if ($filterServiceType === 'TV 결합' || $filterServiceType === 'TV') {
+                    $whereConditions[] = "(inet.service_type LIKE '%TV%' OR inet.service_type LIKE '%tv%')";
+                } elseif ($filterServiceType === '핸드폰 결합' || $filterServiceType === '핸드폰' || $filterServiceType === '폰') {
+                    $whereConditions[] = "(inet.service_type LIKE '%핸드폰%' OR inet.service_type LIKE '%폰%' OR inet.service_type LIKE '%phone%')";
+                } else {
+                    $whereConditions[] = 'inet.service_type = :service_type';
+                    $params[':service_type'] = $filterServiceType;
+                }
             }
             
             $whereClause = 'WHERE ' . implode(' AND ', $whereConditions);
@@ -606,6 +623,16 @@ try {
             if (!empty($filterServiceType)) {
                 $whereConditions[] = 'mno_sim.service_type = :service_type';
                 $params[':service_type'] = $filterServiceType;
+            }
+            
+            // 프로모션 필터 (프로모션 기간이 있는 상품만 표시)
+            if ($filterPromotion) {
+                $whereConditions[] = "(
+                    (mno_sim.discount_period IS NOT NULL 
+                     AND mno_sim.discount_period != '' 
+                     AND mno_sim.discount_period != '프로모션 없음')
+                    OR mno_sim.price_after > 0
+                )";
             }
             
             // 스폰서 상품 제외 (스폰서 상품은 별도 섹션에만 표시되므로 일반 리스트에서는 제외)
@@ -1102,10 +1129,10 @@ try {
                 exit;
             }
             
-            // 알뜰폰 상품 (plan-data.php 사용)
-            // 고객용 API이므로 관리자여도 active 상태만 표시
-            require_once __DIR__ . '/../includes/data/plan-data.php';
-            $allPlans = getPlansDataFromDB(10000, 'active');
+            // 알뜰폰 상품 (원본 DB 데이터 직접 조회)
+            // WHERE 조건 구성
+            $whereConditions = ["p.product_type = 'mvno'", $statusCondition];
+            $params = [];
             
             // 위시리스트 필터 적용
             if ($isWishlist && $userId) {
@@ -1118,32 +1145,147 @@ try {
                 $wishlistProductIds = array_map('intval', $wishlistStmt->fetchAll(PDO::FETCH_COLUMN));
                 
                 if (!empty($wishlistProductIds)) {
-                    $allPlans = array_filter($allPlans, function($plan) use ($wishlistProductIds) {
-                        $planId = isset($plan['id']) ? (int)$plan['id'] : null;
-                        return $planId && in_array($planId, $wishlistProductIds, true);
-                    });
-                    $allPlans = array_values($allPlans);
+                    $placeholders = implode(',', array_fill(0, count($wishlistProductIds), '?'));
+                    $whereConditions[] = "p.id IN ($placeholders)";
+                    $params = array_merge($params, $wishlistProductIds);
                 } else {
-                    $allPlans = [];
+                    $whereConditions[] = '1 = 0'; // 항상 false
                 }
             }
             
-            // 필터 적용
+            // Provider 필터 (원본 DB 데이터 기준)
             if (!empty($filterProvider)) {
-                $allPlans = array_filter($allPlans, function($plan) use ($filterProvider) {
-                    return isset($plan['provider']) && $plan['provider'] === $filterProvider;
-                });
+                $providerMapping = [
+                    'SK알뜰폰' => ['SK알뜰폰', 'SK 알뜰폰', 'SKT알뜰폰', 'SKT 알뜰폰', 'SK'],
+                    'KT알뜰폰' => ['KT알뜰폰', 'KT 알뜰폰', 'KT'],
+                    'LGU+알뜰폰' => ['LGU+알뜰폰', 'LG U+알뜰폰', 'LG U+ 알뜰폰', 'LGU+ 알뜰폰', 'LG U+', 'LGU+', 'LG알뜰폰']
+                ];
+                
+                $allowedProviders = $providerMapping[$filterProvider] ?? [$filterProvider];
+                $providerPlaceholders = implode(',', array_fill(0, count($allowedProviders), '?'));
+                $whereConditions[] = "mvno.provider IN ($providerPlaceholders)";
+                $params = array_merge($params, $allowedProviders);
             }
             
-            $totalCount = count($allPlans);
+            // 가격 필터 (원본 DB 데이터 기준)
+            if (!empty($filterPriceRange)) {
+                switch ($filterPriceRange) {
+                    case '1천':
+                        $whereConditions[] = "(mvno.price_after IS NULL OR mvno.price_after = 0 OR mvno.price_after <= 1000)";
+                        break;
+                    case '5천':
+                        $whereConditions[] = "mvno.price_after > 1000 AND mvno.price_after <= 5000";
+                        break;
+                    case '1만':
+                        $whereConditions[] = "mvno.price_after > 5000 AND mvno.price_after <= 10000";
+                        break;
+                    case '1.5만':
+                        $whereConditions[] = "mvno.price_after > 10000 AND mvno.price_after <= 15000";
+                        break;
+                    case '3만':
+                        $whereConditions[] = "mvno.price_after > 15000 AND mvno.price_after <= 30000";
+                        break;
+                }
+            }
             
-            // 디버깅: 슬라이스 전 로그
-            error_log("=== mvno API 처리 시작 ===");
-            error_log("전체 상품 개수: {$totalCount}");
-            error_log("요청 파라미터 - page: {$page}, limit: {$limit}, offset: {$offset}");
-            error_log("array_slice 호출: array_slice(\$allPlans, {$offset}, {$limit})");
+            $whereClause = 'WHERE ' . implode(' AND ', $whereConditions);
             
-            $products = array_slice($allPlans, $offset, $limit);
+            // 전체 개수 조회
+            $countStmt = $pdo->prepare("
+                SELECT COUNT(*) as total
+                FROM products p
+                INNER JOIN product_mvno_details mvno ON p.id = mvno.product_id
+                {$whereClause}
+            ");
+            $countStmt->execute($params);
+            $totalCount = (int)$countStmt->fetch(PDO::FETCH_ASSOC)['total'];
+            
+            // 상품 목록 조회 (원본 DB 데이터)
+            $sql = "
+                SELECT 
+                    p.id,
+                    p.seller_id,
+                    p.status,
+                    p.view_count,
+                    p.favorite_count,
+                    p.review_count,
+                    p.share_count,
+                    p.application_count,
+                    mvno.provider,
+                    mvno.service_type,
+                    mvno.plan_name,
+                    mvno.contract_period,
+                    mvno.contract_period_days,
+                    mvno.discount_period,
+                    mvno.price_main,
+                    mvno.price_after,
+                    mvno.data_amount,
+                    mvno.data_amount_value,
+                    mvno.data_unit,
+                    mvno.data_additional,
+                    mvno.data_additional_value,
+                    mvno.data_exhausted,
+                    mvno.data_exhausted_value,
+                    mvno.call_type,
+                    mvno.call_amount,
+                    mvno.additional_call_type,
+                    mvno.additional_call,
+                    mvno.sms_type,
+                    mvno.sms_amount,
+                    mvno.promotion_title,
+                    mvno.promotions
+                FROM products p
+                INNER JOIN product_mvno_details mvno ON p.id = mvno.product_id
+                {$whereClause}
+                ORDER BY p.created_at DESC
+                LIMIT ? OFFSET ?
+            ";
+            
+            $stmt = $pdo->prepare($sql);
+            $allParams = array_merge($params, [$limit, $offset]);
+            $stmt->execute($allParams);
+            $allProducts = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            // 원본 데이터를 plan 카드 형식으로 변환
+            require_once __DIR__ . '/../includes/data/plan-data.php';
+            require_once __DIR__ . '/../includes/data/product-functions.php';
+            
+            $products = [];
+            foreach ($allProducts as $product) {
+                try {
+                    $plan = convertMvnoProductToPlanCard($product);
+                    // 찜 상태 확인
+                    $plan['is_favorited'] = false;
+                    if ($isWishlist && $userId) {
+                        $plan['is_favorited'] = true;
+                    } elseif (function_exists('isLoggedIn') && isLoggedIn()) {
+                        $currentUser = getCurrentUser();
+                        $currentUserId = $currentUser['user_id'] ?? null;
+                        if ($currentUserId) {
+                            try {
+                                $favStmt = $pdo->prepare("
+                                    SELECT COUNT(*) as count 
+                                    FROM product_favorites 
+                                    WHERE product_id = :product_id 
+                                    AND user_id = :user_id 
+                                    AND product_type = 'mvno'
+                                ");
+                                $favStmt->execute([
+                                    ':product_id' => $product['id'],
+                                    ':user_id' => $currentUserId
+                                ]);
+                                $favResult = $favStmt->fetch(PDO::FETCH_ASSOC);
+                                $plan['is_favorited'] = ($favResult['count'] ?? 0) > 0;
+                            } catch (Exception $e) {
+                                // 에러 무시
+                            }
+                        }
+                    }
+                    $products[] = $plan;
+                } catch (Exception $e) {
+                    error_log("상품 변환 실패 (ID: {$product['id']}): " . $e->getMessage());
+                }
+            }
             
             // 디버깅: 슬라이스 후 로그
             error_log("슬라이스 결과 - 반환할 상품 개수: " . count($products));

@@ -67,14 +67,39 @@ try {
         
         $whereClause = implode(' AND ', $whereConditions);
         
+        // 판매자 정보를 항상 가져오기 위해 users 테이블 LEFT JOIN
+        $searchJoin = "LEFT JOIN users u ON p.seller_id = u.user_id AND u.role = 'seller'";
+        
+        // 통합 검색 조건 추가
+        $searchWhere = '';
+        if ($search_query && $search_query !== '') {
+            $searchWhere = " AND (
+                mno_sim.plan_name LIKE :search_query
+                OR mno_sim.provider LIKE :search_query
+                OR p.seller_id LIKE :search_query
+                OR u.user_id LIKE :search_query
+                OR u.seller_name LIKE :search_query
+                OR u.name LIKE :search_query
+                OR u.company_name LIKE :search_query
+            )";
+        }
+        
         // 전체 개수 조회
         $countStmt = $pdo->prepare("
             SELECT COUNT(DISTINCT p.id) as total
             FROM products p
             INNER JOIN product_mno_sim_details mno_sim ON p.id = mno_sim.product_id
-            WHERE {$whereClause}
+            {$searchJoin}
+            WHERE {$whereClause}{$searchWhere}
         ");
-        $countStmt->execute($params);
+        foreach ($params as $key => $value) {
+            $countStmt->bindValue($key, $value);
+        }
+        if ($search_query && $search_query !== '') {
+            $searchParam = '%' . $search_query . '%';
+            $countStmt->bindValue(':search_query', $searchParam);
+        }
+        $countStmt->execute();
         $totalProducts = $countStmt->fetch()['total'];
         $totalPages = ceil($totalProducts / $perPage);
         
@@ -88,10 +113,13 @@ try {
                 mno_sim.price_main AS monthly_fee,
                 mno_sim.service_type,
                 mno_sim.registration_types,
-                p.seller_id AS seller_user_id
+                p.seller_id AS seller_user_id,
+                COALESCE(NULLIF(u.seller_name,''), NULLIF(u.company_name,''), NULLIF(u.name,''), u.user_id) AS seller_name,
+                COALESCE(u.company_name,'') AS company_name
             FROM products p
             INNER JOIN product_mno_sim_details mno_sim ON p.id = mno_sim.product_id
-            WHERE {$whereClause}
+            {$searchJoin}
+            WHERE {$whereClause}{$searchWhere}
             ORDER BY p.created_at DESC
             LIMIT :limit OFFSET :offset
         ");
@@ -99,71 +127,27 @@ try {
         foreach ($params as $key => $value) {
             $stmt->bindValue($key, $value);
         }
+        if ($search_query && $search_query !== '') {
+            $searchParam = '%' . $search_query . '%';
+            $stmt->bindValue(':search_query', $searchParam);
+        }
         $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
         $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
         $stmt->execute();
         
         $products = $stmt->fetchAll();
         
-        // 판매자 정보 매핑
-        $sellerIds = [];
-        foreach ($products as $p) {
-            $sid = (string)($p['seller_user_id'] ?? $p['seller_id'] ?? '');
-            if ($sid !== '') $sellerIds[$sid] = true;
-        }
-
-        $sellerMap = [];
-        if (!empty($sellerIds)) {
-            $idList = array_keys($sellerIds);
-            $placeholders = implode(',', array_fill(0, count($idList), '?'));
-            $sellerStmt = $pdo->prepare("
-                SELECT
-                    u.user_id,
-                    COALESCE(NULLIF(u.seller_name,''), NULLIF(u.name,''), u.user_id) AS display_name,
-                    COALESCE(u.company_name,'') AS company_name
-                FROM users u
-                WHERE u.role = 'seller'
-                  AND u.user_id IN ($placeholders)
-            ");
-            $sellerStmt->execute($idList);
-            foreach ($sellerStmt->fetchAll(PDO::FETCH_ASSOC) as $s) {
-                $sellerMap[(string)$s['user_id']] = $s;
-            }
-        }
-
+        // 판매자 정보 정리 (SQL에서 이미 가져왔지만, 없는 경우 처리)
         foreach ($products as &$product) {
             $sellerId = (string)($product['seller_user_id'] ?? $product['seller_id'] ?? '');
-            if ($sellerId && isset($sellerMap[$sellerId])) {
-                $product['seller_name'] = $sellerMap[$sellerId]['display_name'] ?? '-';
-                $product['company_name'] = $sellerMap[$sellerId]['company_name'] ?? '-';
-            } else {
+            if (empty($product['seller_name']) || $product['seller_name'] === null) {
                 $product['seller_name'] = '-';
+            }
+            if (empty($product['company_name']) || $product['company_name'] === null) {
                 $product['company_name'] = '-';
             }
         }
         unset($product);
-        
-        // 통합 검색 필터링 (상품명, 통신사, 판매자명)
-        if ($search_query && $search_query !== '') {
-            $searchLower = mb_strtolower($search_query, 'UTF-8');
-            $products = array_filter($products, function($product) use ($searchLower) {
-                $productName = mb_strtolower($product['product_name'] ?? '', 'UTF-8');
-                $provider = mb_strtolower($product['provider'] ?? '', 'UTF-8');
-                $sellerName = mb_strtolower($product['seller_name'] ?? '', 'UTF-8');
-                $companyName = mb_strtolower($product['company_name'] ?? '', 'UTF-8');
-                return mb_strpos($productName, $searchLower) !== false || 
-                       mb_strpos($provider, $searchLower) !== false ||
-                       mb_strpos($sellerName, $searchLower) !== false ||
-                       mb_strpos($companyName, $searchLower) !== false;
-            });
-            $products = array_values($products);
-            
-            // 필터링 후 페이지네이션 재계산
-            $totalProducts = count($products);
-            $totalPages = ceil($totalProducts / $perPage);
-            $offset = ($page - 1) * $perPage;
-            $products = array_slice($products, $offset, $perPage);
-        }
     }
 } catch (PDOException $e) {
     error_log("Error fetching mno-sim products: " . $e->getMessage());
@@ -393,6 +377,154 @@ try {
         opacity: 0.5;
         cursor: not-allowed;
     }
+    
+    .checkbox-column {
+        width: 50px;
+        text-align: center;
+    }
+    
+    .product-checkbox {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+    }
+    
+    .bulk-actions {
+        display: none;
+        align-items: center;
+        gap: 12px;
+        padding: 16px 20px;
+        background: #f0f9ff;
+        border: 1px solid #bae6fd;
+        border-radius: 8px;
+        margin-bottom: 16px;
+    }
+    
+    .bulk-actions-info {
+        font-size: 14px;
+        font-weight: 600;
+        color: #0369a1;
+    }
+    
+    .bulk-actions-select {
+        padding: 8px 12px;
+        font-size: 14px;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        background: white;
+        cursor: pointer;
+        min-width: 150px;
+    }
+    
+    .bulk-actions-btn {
+        padding: 8px 20px;
+        font-size: 14px;
+        font-weight: 600;
+        border: none;
+        border-radius: 6px;
+        background: #10b981;
+        color: white;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .bulk-actions-btn:hover:not(:disabled) {
+        background: #059669;
+    }
+    
+    .bulk-actions-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+        overflow: auto;
+    }
+    
+    .modal-overlay.show {
+        display: flex;
+    }
+    
+    body.modal-open {
+        overflow: hidden;
+    }
+    
+    .modal {
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        max-width: 400px;
+        width: 90%;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    }
+    
+    .modal-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: #1f2937;
+        margin-bottom: 16px;
+    }
+    
+    .modal-message {
+        font-size: 14px;
+        color: #4b5563;
+        margin-bottom: 24px;
+        line-height: 1.6;
+        white-space: pre-line;
+    }
+    
+    .modal-buttons {
+        display: flex;
+        gap: 12px;
+        justify-content: flex-end;
+    }
+    
+    .modal-btn {
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        border: none;
+        transition: all 0.2s;
+    }
+    
+    .modal-btn-cancel {
+        background: #f3f4f6;
+        color: #374151;
+    }
+    
+    .modal-btn-cancel:hover {
+        background: #e5e7eb;
+    }
+    
+    .modal-btn-confirm {
+        background: #10b981;
+        color: white;
+    }
+    
+    .modal-btn-confirm:hover {
+        background: #059669;
+    }
+    
+    .modal-btn-ok {
+        background: #3b82f6;
+        color: white;
+    }
+    
+    .modal-btn-ok:hover {
+        background: #2563eb;
+    }
 </style>
 
 <div class="admin-content">
@@ -460,14 +592,24 @@ try {
                     <div class="empty-state-title">등록된 통신사단독유심 상품이 없습니다</div>
                 </div>
             <?php else: ?>
+                <!-- 일괄 변경 UI -->
+                <div class="bulk-actions" id="bulkActions" style="display: none;">
+                    <span class="bulk-actions-info">
+                        <span id="selectedCount">0</span>개 선택됨
+                    </span>
+                    <select id="bulkActionSelect" class="bulk-actions-select">
+                        <option value="">작업 선택</option>
+                        <option value="active">판매중으로 변경</option>
+                        <option value="inactive">판매종료로 변경</option>
+                    </select>
+                    <button type="button" class="bulk-actions-btn" onclick="executeBulkAction()" id="bulkActionBtn" disabled>실행</button>
+                </div>
+                
                 <table class="product-table">
                     <thead>
                         <tr>
-                            <th style="width: 60px;">
-                                <div style="display: flex; flex-direction: column; gap: 8px; align-items: center;">
-                                    <button class="btn-sm btn-danger" onclick="bulkInactive()" style="padding: 4px 8px; font-size: 12px;">판매종료</button>
-                                    <input type="checkbox" id="selectAll" onchange="toggleSelectAll()" style="cursor: pointer;">
-                                </div>
+                            <th class="checkbox-column">
+                                <input type="checkbox" id="selectAll" class="product-checkbox" onchange="toggleSelectAll(this)">
                             </th>
                             <th>번호</th>
                             <th>상품명</th>
@@ -487,8 +629,9 @@ try {
                     <tbody>
                         <?php foreach ($products as $index => $product): ?>
                             <tr>
-                                <td style="text-align: center;">
-                                    <input type="checkbox" class="product-checkbox" value="<?php echo $product['id']; ?>" style="cursor: pointer;">
+                                <td class="checkbox-column">
+                                    <input type="checkbox" class="product-checkbox product-checkbox-item" 
+                                           value="<?php echo $product['id']; ?>">
                                 </td>
                                 <td><?php echo ($page - 1) * $perPage + $index + 1; ?></td>
                                 <td><?php echo htmlspecialchars($product['product_name'] ?? '-'); ?></td>
@@ -592,8 +735,13 @@ function applyFilters() {
     const provider = document.getElementById('filter_provider').value;
     if (provider) params.set('provider', provider);
     
-    const searchQuery = document.getElementById('filter_search_query').value.trim();
-    if (searchQuery) params.set('search_query', searchQuery);
+    const searchInput = document.getElementById('filter_search_query');
+    const searchQuery = searchInput ? searchInput.value.trim() : '';
+    // 플레이스홀더 텍스트와 일치하는 경우 검색하지 않음
+    const placeholder = searchInput ? searchInput.placeholder : '';
+    if (searchQuery && searchQuery !== placeholder) {
+        params.set('search_query', searchQuery);
+    }
     
     const dateFrom = document.getElementById('filter_date_from').value;
     if (dateFrom) params.set('date_from', dateFrom);
@@ -611,53 +759,337 @@ function resetFilters() {
     window.location.href = window.location.pathname + '?per_page=10';
 }
 
-function toggleSelectAll() {
-    const selectAll = document.getElementById('selectAll');
-    const checkboxes = document.querySelectorAll('.product-checkbox');
-    checkboxes.forEach(checkbox => {
-        checkbox.checked = selectAll.checked;
+// 전체 선택/해제
+function toggleSelectAll(checkbox) {
+    const checkboxes = document.querySelectorAll('.product-checkbox-item');
+    checkboxes.forEach(cb => {
+        cb.checked = checkbox.checked;
     });
+    updateBulkActions();
 }
 
-function bulkInactive() {
-    const checkboxes = document.querySelectorAll('.product-checkbox:checked');
-    if (checkboxes.length === 0) {
-        alert('선택된 상품이 없습니다.');
+// 선택된 상품 ID 목록 가져오기
+function getSelectedProductIds() {
+    const checkboxes = document.querySelectorAll('.product-checkbox-item:checked');
+    const ids = Array.from(checkboxes)
+        .map(cb => {
+            const value = cb.value;
+            // 숫자로 변환 가능한지 확인
+            const numValue = parseInt(value, 10);
+            return isNaN(numValue) ? null : numValue;
+        })
+        .filter(id => id !== null && id > 0);
+    return ids;
+}
+
+// 일괄 변경 UI 업데이트
+function updateBulkActions() {
+    const selectedIds = getSelectedProductIds();
+    const selectedCount = selectedIds.length;
+    const bulkActions = document.getElementById('bulkActions');
+    const selectedCountSpan = document.getElementById('selectedCount');
+    const bulkActionBtn = document.getElementById('bulkActionBtn');
+    const bulkActionSelect = document.getElementById('bulkActionSelect');
+    const selectAllCheckbox = document.getElementById('selectAll');
+    
+    if (selectedCountSpan) {
+        selectedCountSpan.textContent = selectedCount;
+    }
+    
+    if (bulkActions) {
+        bulkActions.style.display = selectedCount > 0 ? 'flex' : 'none';
+    }
+    
+    if (bulkActionBtn) {
+        bulkActionBtn.disabled = selectedCount === 0 || !bulkActionSelect || !bulkActionSelect.value;
+    }
+    
+    // 전체 선택 체크박스 상태 업데이트
+    if (selectAllCheckbox) {
+        const allCheckboxes = document.querySelectorAll('.product-checkbox-item');
+        const checkedCount = document.querySelectorAll('.product-checkbox-item:checked').length;
+        selectAllCheckbox.checked = allCheckboxes.length > 0 && checkedCount === allCheckboxes.length;
+        selectAllCheckbox.indeterminate = checkedCount > 0 && checkedCount < allCheckboxes.length;
+    }
+}
+
+// 일괄 상태 변경
+let pendingProductIds = [];
+let pendingStatus = '';
+
+// 일괄 작업 실행
+function executeBulkAction() {
+    const selectedIds = getSelectedProductIds();
+    const actionSelect = document.getElementById('bulkActionSelect');
+    
+    if (selectedIds.length === 0) {
+        showAlertModal('알림', '선택된 상품이 없습니다.');
         return;
     }
     
-    const productCount = checkboxes.length;
-    const message = '선택한 ' + productCount + '개의 상품을 판매종료 처리하시겠습니까?';
+    if (!actionSelect || !actionSelect.value) {
+        showAlertModal('알림', '작업을 선택해주세요.');
+        return;
+    }
     
-    if (confirm(message)) {
-        const productIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
-        
-        fetch('/MVNO/api/admin-product-bulk-update.php', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                product_ids: productIds,
-                status: 'inactive'
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('선택한 상품이 판매종료 처리되었습니다.');
-                location.reload();
-            } else {
-                alert(data.message || '상품 상태 변경에 실패했습니다.');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('상품 상태 변경 중 오류가 발생했습니다.');
-        });
+    const action = String(actionSelect.value).trim().toLowerCase();
+    
+    if (action === 'active' || action === 'inactive') {
+        bulkChangeStatus(action);
+    } else {
+        console.error('Invalid action value:', action);
+        showAlertModal('오류', '유효하지 않은 작업입니다: ' + action);
     }
 }
+
+// 일괄 상태 변경
+function bulkChangeStatus(status) {
+    // 상태 값 검증 및 정규화
+    const normalizedStatus = String(status || '').trim().toLowerCase();
+    
+    if (normalizedStatus !== 'active' && normalizedStatus !== 'inactive') {
+        console.error('Invalid status value:', status);
+        showAlertModal('오류', '유효하지 않은 상태 값입니다: ' + (status || 'undefined'));
+        return;
+    }
+    
+    const selectedIds = getSelectedProductIds();
+    if (selectedIds.length === 0) {
+        showAlertModal('알림', '선택된 상품이 없습니다.');
+        return;
+    }
+    
+    const productCount = selectedIds.length;
+    const statusText = normalizedStatus === 'active' ? '판매중' : '판매종료';
+    const message = '선택한 ' + productCount + '개의 상품을 ' + statusText + ' 처리하시겠습니까?';
+    
+    // 모달에 표시할 제목 설정
+    const title = normalizedStatus === 'active' ? '판매중 변경 확인' : '판매종료 변경 확인';
+    
+    // 대기 중인 데이터 저장 (정규화된 값 사용)
+    pendingProductIds = selectedIds;
+    pendingStatus = normalizedStatus;
+    
+    // 확인 모달 표시
+    showConfirmModal(title, message);
+}
+
+// 확인 모달에서 확인 버튼 클릭 시 실행
+function confirmBulkChange() {
+    if (pendingProductIds.length === 0 || !pendingStatus) {
+        console.error('Missing data for bulk change:', { 
+            productIds: pendingProductIds, 
+            status: pendingStatus 
+        });
+        closeConfirmModal();
+        showAlertModal('오류', '상태 변경에 필요한 데이터가 없습니다.');
+        return;
+    }
+    
+    // 상태 값 재검증
+    const normalizedStatus = String(pendingStatus).trim().toLowerCase();
+    if (normalizedStatus !== 'active' && normalizedStatus !== 'inactive') {
+        closeConfirmModal();
+        console.error('Invalid pending status:', pendingStatus);
+        showAlertModal('오류', '유효하지 않은 상태 값입니다: ' + pendingStatus);
+        return;
+    }
+    
+    closeConfirmModal();
+    processBulkChangeStatus(pendingProductIds, normalizedStatus);
+}
+
+// 일괄 상태 변경 처리
+function processBulkChangeStatus(productIds, status) {
+    // 상품 ID 검증 및 정수 변환
+    if (!Array.isArray(productIds) || productIds.length === 0) {
+        console.error('Invalid productIds:', productIds);
+        showAlertModal('오류', '선택된 상품 ID가 없습니다.');
+        return;
+    }
+    
+    // 문자열 ID를 정수로 변환
+    const validProductIds = productIds
+        .map(id => {
+            const numId = parseInt(id, 10);
+            return isNaN(numId) ? null : numId;
+        })
+        .filter(id => id !== null && id > 0);
+    
+    if (validProductIds.length === 0) {
+        console.error('No valid product IDs:', productIds);
+        showAlertModal('오류', '유효한 상품 ID가 없습니다.');
+        return;
+    }
+    
+    const statusText = status === 'active' ? '판매중' : '판매종료';
+    
+    // 상태 값 검증 및 정규화
+    const normalizedStatus = String(status).trim().toLowerCase();
+    if (normalizedStatus !== 'active' && normalizedStatus !== 'inactive') {
+        showAlertModal('오류', '유효하지 않은 상태 값입니다: ' + status);
+        return;
+    }
+    
+    console.log('Sending bulk update:', {
+        product_ids: validProductIds,
+        status: normalizedStatus
+    });
+    
+    fetch('/MVNO/api/admin-product-bulk-update.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            product_ids: validProductIds,
+            status: normalizedStatus
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlertModal('성공', data.message || productIds.length + '개의 상품이 ' + statusText + ' 처리되었습니다.');
+            setTimeout(() => {
+                location.reload();
+            }, 1500);
+        } else {
+            showAlertModal('오류', data.message || '상품 상태 변경에 실패했습니다.');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlertModal('오류', '상품 상태 변경 중 오류가 발생했습니다.');
+    });
+}
+
+// 모달 함수
+function showConfirmModal(title, message) {
+    const modal = document.getElementById('confirmModal');
+    const titleEl = document.getElementById('confirmTitle');
+    const messageEl = document.getElementById('confirmMessage');
+    
+    if (titleEl) titleEl.textContent = title;
+    if (messageEl) messageEl.textContent = message;
+    if (modal) {
+        modal.classList.add('show');
+        document.body.classList.add('modal-open');
+    }
+}
+
+function closeConfirmModal(cancel = false) {
+    const modal = document.getElementById('confirmModal');
+    if (modal) {
+        modal.classList.remove('show');
+        document.body.classList.remove('modal-open');
+    }
+    // 취소 버튼을 눌렀을 때만 초기화
+    if (cancel) {
+        pendingProductIds = [];
+        pendingStatus = '';
+    }
+}
+
+function showAlertModal(title, message) {
+    const modal = document.getElementById('alertModal');
+    const titleEl = document.getElementById('alertTitle');
+    const messageEl = document.getElementById('alertMessage');
+    
+    if (titleEl) titleEl.textContent = title;
+    if (messageEl) messageEl.textContent = message;
+    if (modal) {
+        modal.classList.add('show');
+        document.body.classList.add('modal-open');
+    }
+}
+
+function closeAlertModal() {
+    const modal = document.getElementById('alertModal');
+    if (modal) {
+        modal.classList.remove('show');
+        document.body.classList.remove('modal-open');
+    }
+}
+
+// 일괄 변경 셀렉트박스 변경 이벤트 및 모달 이벤트
+document.addEventListener('DOMContentLoaded', function() {
+    // 초기 상태 업데이트
+    updateBulkActions();
+    
+    // 체크박스 이벤트 리스너 추가
+    const checkboxes = document.querySelectorAll('.product-checkbox-item');
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            updateBulkActions();
+        });
+    });
+    
+    const bulkActionSelect = document.getElementById('bulkActionSelect');
+    if (bulkActionSelect) {
+        bulkActionSelect.addEventListener('change', function() {
+            const bulkActionBtn = document.getElementById('bulkActionBtn');
+            if (bulkActionBtn) {
+                bulkActionBtn.disabled = !this.value || getSelectedProductIds().length === 0;
+            }
+        });
+    }
+    
+    // 모달 오버레이 클릭 시 닫기
+    const confirmModal = document.getElementById('confirmModal');
+    const alertModal = document.getElementById('alertModal');
+    
+    if (confirmModal) {
+        confirmModal.addEventListener('click', function(e) {
+            if (e.target === confirmModal) {
+                closeConfirmModal();
+            }
+        });
+    }
+    
+    if (alertModal) {
+        alertModal.addEventListener('click', function(e) {
+            if (e.target === alertModal) {
+                closeAlertModal();
+            }
+        });
+    }
+    
+    // ESC 키로 모달 닫기
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            if (confirmModal && confirmModal.classList.contains('show')) {
+                closeConfirmModal();
+            }
+            if (alertModal && alertModal.classList.contains('show')) {
+                closeAlertModal();
+            }
+        }
+    });
+});
 </script>
+
+<!-- 확인 모달 -->
+<div id="confirmModal" class="modal-overlay">
+    <div class="modal">
+        <div class="modal-title" id="confirmTitle">확인</div>
+        <div class="modal-message" id="confirmMessage"></div>
+        <div class="modal-buttons">
+            <button class="modal-btn modal-btn-cancel" onclick="closeConfirmModal(true)">취소</button>
+            <button class="modal-btn modal-btn-confirm" onclick="confirmBulkChange()">확인</button>
+        </div>
+    </div>
+</div>
+
+<!-- 알림 모달 -->
+<div id="alertModal" class="modal-overlay">
+    <div class="modal">
+        <div class="modal-title" id="alertTitle">알림</div>
+        <div class="modal-message" id="alertMessage"></div>
+        <div class="modal-buttons">
+            <button class="modal-btn modal-btn-ok" onclick="closeAlertModal()">확인</button>
+        </div>
+    </div>
+</div>
 
 <?php include __DIR__ . '/../includes/admin-footer.php'; ?>
 

@@ -90,7 +90,8 @@ function getMvnoAdvertisementProducts() {
         // 디버깅: 조회된 광고 상품 개수 확인
         error_log("[MVNO 광고] 조회된 raw 광고 상품 개수: " . count($advertisementProductsRaw));
         if (count($advertisementProductsRaw) > 0) {
-            error_log("[MVNO 광고] 첫 번째 광고 상품 product_id: " . ($advertisementProductsRaw[0]['product_id'] ?? '없음'));
+            error_log("[MVNO 광고] 첫 번째 광고 상품 id: " . ($advertisementProductsRaw[0]['id'] ?? '없음'));
+            error_log("[MVNO 광고] 첫 번째 광고 상품 키: " . implode(', ', array_keys($advertisementProductsRaw[0])));
         }
         
         // 서버 사이드 로테이션

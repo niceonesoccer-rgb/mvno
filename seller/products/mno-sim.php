@@ -710,7 +710,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         <option value="">선택하세요</option>
                         <option value="LTE" <?php echo (isset($productData['service_type']) && $productData['service_type'] === 'LTE') ? 'selected' : ''; ?>>LTE</option>
                         <option value="5G" <?php echo (isset($productData['service_type']) && $productData['service_type'] === '5G') ? 'selected' : ''; ?>>5G</option>
-                        <option value="6G" <?php echo (isset($productData['service_type']) && $productData['service_type'] === '6G') ? 'selected' : ''; ?>>6G</option>
                     </select>
                 </div>
                 

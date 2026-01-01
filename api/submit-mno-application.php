@@ -71,6 +71,25 @@ try {
     $sellerId = $product['seller_id'];
     $redirectUrl = !empty($product['redirect_url']) ? trim($product['redirect_url']) : null;
     
+    // 주문 시점 판매자 정보 가져오기 (스냅샷 저장용)
+    $sellerSnapshot = null;
+    if ($sellerId) {
+        require_once __DIR__ . '/../includes/data/plan-data.php';
+        $sellerSnapshot = getSellerById($sellerId);
+        if ($sellerSnapshot) {
+            // 민감한 정보 제외하고 필요한 정보만 저장
+            $sellerSnapshot = [
+                'user_id' => $sellerSnapshot['user_id'] ?? null,
+                'seller_name' => $sellerSnapshot['seller_name'] ?? null,
+                'company_name' => $sellerSnapshot['company_name'] ?? null,
+                'name' => $sellerSnapshot['name'] ?? null,
+                'phone' => $sellerSnapshot['phone'] ?? null,
+                'mobile' => $sellerSnapshot['mobile'] ?? null,
+                'chat_consultation_url' => $sellerSnapshot['chat_consultation_url'] ?? null
+            ];
+        }
+    }
+    
     // 로그인한 사용자 정보 가져오기 (이미 로그인 체크 완료)
     $currentUser = getCurrentUser();
     $userId = $currentUser['user_id'] ?? null;
@@ -92,6 +111,9 @@ try {
     
     // 신청 당시 상품 정보 전체 저장 (클레임 처리용)
     $additionalInfo['product_snapshot'] = $productSnapshot;
+    
+    // 신청 당시 판매자 정보 저장 (탈퇴 후에도 정보 보존)
+    $additionalInfo['seller_snapshot'] = $sellerSnapshot;
     
     // 할인 정보 (고객이 선택한 정보)
     if (isset($_POST['selected_provider'])) {

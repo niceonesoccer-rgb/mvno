@@ -163,7 +163,7 @@ if (isset($_GET['success'])) {
             $success_message = '판매자 탈퇴가 완료되었습니다. (개인정보 삭제, 상품/리뷰/주문 데이터는 보존)';
             break;
         case 'cancel_withdrawal':
-            $success_message = '탈퇴 요청이 취소되었습니다.';
+            $success_message = '탈퇴 요청이 반려되었습니다. 계정이 정상적으로 복구되었습니다.';
             break;
         case 'request_withdrawal':
             $success_message = '가입탈퇴 처리가 완료되었습니다.';
@@ -1105,11 +1105,15 @@ $paginatedSellers = array_slice($currentSellers, $offset, $perPage);
                                 $approvalStatus = $seller['approval_status'] ?? null;
                                 $isApproved = isset($seller['seller_approved']) && $seller['seller_approved'] === true;
                                 $isWithdrawalRequested = isset($seller['withdrawal_requested']) && $seller['withdrawal_requested'] === true;
+                                $isWithdrawalCompleted = isset($seller['withdrawal_completed']) && $seller['withdrawal_completed'] === true;
                                 
                                 // 상태 결정 (승인, 승인보류만 표시)
                                 $statusBadge = '';
                                 $statusText = '';
-                                if ($isWithdrawalRequested) {
+                                if ($isWithdrawalCompleted) {
+                                    $statusBadge = 'badge-on-hold';
+                                    $statusText = '탈퇴';
+                                } elseif ($isWithdrawalRequested) {
                                     $statusBadge = 'badge-on-hold';
                                     $statusText = '탈퇴 요청';
                                 } elseif ($isApproved && $approvalStatus !== 'on_hold') {
@@ -1744,7 +1748,11 @@ $paginatedSellers = array_slice($currentSellers, $offset, $perPage);
                                     <td><?php echo htmlspecialchars($seller['withdrawal_requested_at'] ?? '-'); ?></td>
                                     <td><?php echo htmlspecialchars($seller['withdrawal_reason'] ?? '사유 없음'); ?></td>
                                     <td>
-                                        <a href="/MVNO/admin/users/seller-detail.php?user_id=<?php echo urlencode($seller['user_id']); ?>" class="btn" style="background: #6366f1; color: white; text-decoration: none; display: inline-block;">상세보기</a>
+                                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                            <a href="/MVNO/admin/users/seller-detail.php?user_id=<?php echo urlencode($seller['user_id']); ?>" class="btn" style="background: #6366f1; color: white; text-decoration: none; display: inline-block; padding: 6px 12px; font-size: 12px;">상세보기</a>
+                                            <button type="button" onclick="showCompleteWithdrawalModal('<?php echo htmlspecialchars($seller['user_id']); ?>', '<?php echo htmlspecialchars($sellerName); ?>')" class="btn" style="background: #10b981; color: white; border: none; padding: 6px 12px; font-size: 12px; cursor: pointer;">탈퇴 완료</button>
+                                            <button type="button" onclick="showCancelWithdrawalAdminModal('<?php echo htmlspecialchars($seller['user_id']); ?>', '<?php echo htmlspecialchars($sellerName); ?>')" class="btn" style="background: #f59e0b; color: white; border: none; padding: 6px 12px; font-size: 12px; cursor: pointer;">반려</button>
+                                        </div>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -1966,19 +1974,19 @@ $paginatedSellers = array_slice($currentSellers, $offset, $perPage);
     </div>
 </div>
 
-<!-- 탈퇴 요청 취소 모달 (관리자) -->
+<!-- 탈퇴 요청 반려 모달 (관리자) -->
 <div class="modal-overlay" id="cancelWithdrawalAdminModal">
     <div class="modal">
-        <div class="modal-title">탈퇴 요청 취소 확인</div>
+        <div class="modal-title">탈퇴 요청 반려 확인</div>
         <div class="modal-message">
-            <strong id="cancelWithdrawalAdminUserName"></strong> 판매자의 탈퇴 요청을 취소하시겠습니까?<br>
-            <small style="color: #10b981; margin-top: 8px; display: block;">취소 시 판매자 계정이 정상적으로 활성화됩니다.</small>
+            <strong id="cancelWithdrawalAdminUserName"></strong> 판매자의 탈퇴 요청을 반려하시겠습니까?<br>
+            <small style="color: #10b981; margin-top: 8px; display: block;">반려 시 판매자 계정이 정상적으로 활성화됩니다. 판매종료된 상품은 그대로 판매종료 상태로 유지됩니다.</small>
         </div>
         <div class="modal-actions">
             <button type="button" class="modal-btn modal-btn-cancel" onclick="closeCancelWithdrawalAdminModal()">취소</button>
             <form method="POST" id="cancelWithdrawalAdminForm" style="display: inline;">
                 <input type="hidden" name="user_id" id="cancelWithdrawalAdminUserId">
-                <button type="submit" name="cancel_withdrawal" class="modal-btn modal-btn-confirm">탈퇴 요청 취소</button>
+                <button type="submit" name="cancel_withdrawal" class="modal-btn modal-btn-confirm" style="background: #f59e0b;">반려</button>
             </form>
         </div>
     </div>

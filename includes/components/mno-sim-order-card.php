@@ -68,26 +68,30 @@ if (!empty($appStatus)) {
 
 // 판매자 정보 및 리뷰 작성 영역
 $productId = $app['product_id'] ?? ($app['id'] ?? 0);
+// 1. additional_info에서 seller_snapshot 확인 (주문 시점 정보)
+$sellerSnapshot = null;
 $sellerId = isset($app['seller_id']) && $app['seller_id'] > 0 ? (int)$app['seller_id'] : null;
 $seller = null;
 $sellerPhone = '';
 $sellerChatUrl = '';
 $sellerName = '';
 
+if (!empty($app['additional_info'])) {
+    try {
+        $additionalInfo = json_decode($app['additional_info'], true);
+        if (is_array($additionalInfo) && isset($additionalInfo['seller_snapshot'])) {
+            $sellerSnapshot = $additionalInfo['seller_snapshot'];
+        }
+    } catch (Exception $e) {
+        error_log("Error parsing additional_info: " . $e->getMessage());
+    }
+}
+
+// 2. 실시간 판매자 정보 조회 시도
 if ($sellerId) {
     require_once __DIR__ . '/../data/product-functions.php';
+    require_once __DIR__ . '/../data/plan-data.php';
     $seller = getSellerById($sellerId);
-    if ($seller) {
-        $sellerPhone = $seller['phone'] ?? ($seller['mobile'] ?? '');
-        $sellerChatUrl = $seller['chat_consultation_url'] ?? '';
-        if (!empty($seller['seller_name'])) {
-            $sellerName = $seller['seller_name'];
-        } elseif (!empty($seller['company_name'])) {
-            $sellerName = $seller['company_name'];
-        } elseif (!empty($seller['name'])) {
-            $sellerName = $seller['name'];
-        }
-    }
 } else {
     // seller_id가 없으면 product_id로 다시 시도
     try {
@@ -100,24 +104,38 @@ if ($sellerId) {
             if ($product && !empty($product['seller_id'])) {
                 $sellerId = $product['seller_id'];
                 require_once __DIR__ . '/../data/product-functions.php';
+                require_once __DIR__ . '/../data/plan-data.php';
                 $seller = getSellerById($sellerId);
-                if ($seller) {
-                    $sellerPhone = $seller['phone'] ?? ($seller['mobile'] ?? '');
-                    $sellerChatUrl = $seller['chat_consultation_url'] ?? '';
-                    if (!empty($seller['seller_name'])) {
-                        $sellerName = $seller['seller_name'];
-                    } elseif (!empty($seller['company_name'])) {
-                        $sellerName = $seller['company_name'];
-                    } elseif (!empty($seller['name'])) {
-                        $sellerName = $seller['name'];
-                    }
-                }
             }
         }
     } catch (Exception $e) {
         error_log("MNO SIM Order Card - Error getting seller info: " . $e->getMessage());
     }
 }
+
+// 3. 판매자 정보 우선순위: 실시간 정보 > 스냅샷 정보
+$finalSeller = $seller ?: $sellerSnapshot;
+
+$sellerPhone = '';
+if ($finalSeller) {
+    $sellerPhone = $finalSeller['phone'] ?? $finalSeller['mobile'] ?? '';
+}
+$sellerChatUrl = $finalSeller ? ($finalSeller['chat_consultation_url'] ?? '') : '';
+
+// 판매자명 가져오기
+$sellerName = '';
+if ($finalSeller) {
+    if (!empty($finalSeller['seller_name'])) {
+        $sellerName = $finalSeller['seller_name'];
+    } elseif (!empty($finalSeller['company_name'])) {
+        $sellerName = $finalSeller['company_name'];
+    } elseif (!empty($finalSeller['name'])) {
+        $sellerName = $finalSeller['name'];
+    }
+}
+
+// 탈퇴한 판매자 표시 (스냅샷만 있고 실시간 정보가 없는 경우)
+$isSellerWithdrawn = ($sellerSnapshot && !$seller);
 
 $sellerPhoneDisplay = $sellerPhone;
 if ($sellerName && $sellerPhone) {

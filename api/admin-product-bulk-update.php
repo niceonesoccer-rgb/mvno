@@ -39,28 +39,55 @@ if (!$currentUser || !isAdmin($currentUser['user_id'])) {
 $input = file_get_contents('php://input');
 $data = json_decode($input, true);
 
-if (!$data || !isset($data['product_ids']) || !isset($data['status'])) {
+// 디버깅을 위한 로그 (개발 환경에서만)
+if (isset($_ENV['DEBUG']) && $_ENV['DEBUG']) {
+    error_log("Bulk update request: " . $input);
+}
+
+if (!$data) {
     http_response_code(400);
     echo json_encode([
         'success' => false,
-        'message' => '잘못된 요청입니다.'
+        'message' => '잘못된 요청입니다. (JSON 파싱 실패)'
+    ]);
+    exit;
+}
+
+if (!isset($data['product_ids'])) {
+    http_response_code(400);
+    echo json_encode([
+        'success' => false,
+        'message' => '상품 ID가 필요합니다. (product_ids 필드 없음)'
+    ]);
+    exit;
+}
+
+if (!isset($data['status'])) {
+    http_response_code(400);
+    echo json_encode([
+        'success' => false,
+        'message' => '상태 값이 필요합니다. (status 필드 없음)'
     ]);
     exit;
 }
 
 $productIds = $data['product_ids'];
-$status = $data['status'];
+$status = trim($data['status'] ?? '');
 
-// 상태 값 검증
+// 상태 값 검증 (대소문자 구분 없이)
 $validStatuses = ['active', 'inactive'];
-if (!in_array($status, $validStatuses)) {
+$statusLower = strtolower($status);
+if (!in_array($statusLower, $validStatuses)) {
     http_response_code(400);
     echo json_encode([
         'success' => false,
-        'message' => '유효하지 않은 상태 값입니다.'
+        'message' => '유효하지 않은 상태 값입니다. (받은 값: ' . htmlspecialchars($status) . ')'
     ]);
     exit;
 }
+
+// 소문자로 정규화
+$status = $statusLower;
 
 // 상품 ID 배열 검증
 if (!is_array($productIds) || empty($productIds)) {
@@ -103,6 +130,39 @@ try {
     
     // 플레이스홀더 생성
     $placeholders = implode(',', array_fill(0, count($validProductIds), '?'));
+    
+    // 판매중으로 변경하려는 경우, 탈퇴 신청/완료 회원의 상품인지 확인
+    if ($status === 'active') {
+        // 탈퇴 신청 또는 탈퇴 완료한 판매자의 상품 조회
+        $checkStmt = $pdo->prepare("
+            SELECT p.id, p.seller_id, u.user_id
+            FROM products p
+            LEFT JOIN users u ON p.seller_id = u.user_id
+            LEFT JOIN seller_profiles sp ON u.user_id = sp.user_id
+            WHERE p.id IN ($placeholders)
+            AND p.status != 'deleted'
+            AND (
+                -- 탈퇴 신청
+                COALESCE(sp.withdrawal_requested, u.withdrawal_requested, 0) = 1
+                OR u.approval_status = 'withdrawal_requested'
+                -- 탈퇴 완료
+                OR COALESCE(sp.withdrawal_completed, u.withdrawal_completed, 0) = 1
+                OR u.approval_status = 'withdrawn'
+            )
+        ");
+        $checkStmt->execute($validProductIds);
+        $withdrawalProducts = $checkStmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        if (!empty($withdrawalProducts)) {
+            $withdrawalCount = count($withdrawalProducts);
+            http_response_code(400);
+            echo json_encode([
+                'success' => false,
+                'message' => "탈퇴 신청/완료 회원의 상품 {$withdrawalCount}개는 판매중으로 변경할 수 없습니다."
+            ]);
+            exit;
+        }
+    }
     
     // 관리자는 모든 상품의 상태를 변경할 수 있음 (seller_id 체크 없음)
     $stmt = $pdo->prepare("

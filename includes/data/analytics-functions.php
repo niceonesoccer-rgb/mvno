@@ -324,12 +324,18 @@ function trackFavorite($productType, $productId, $sellerId = null, $action = 'ad
  * 공유 기록
  */
 function trackShare($productType, $productId, $shareMethod, $sellerId = null) {
+    // analytics 이벤트 기록
     trackEvent('share', [
         'type' => $productType,
         'id' => $productId,
         'method' => $shareMethod, // 'kakao', 'facebook', 'twitter', 'link', etc.
         'seller_id' => $sellerId
     ]);
+    
+    // DB에 공유 기록 저장 (product_shares 테이블)
+    require_once __DIR__ . '/product-functions.php';
+    $userId = getCurrentUserId();
+    addProductShare($productId, $productType, $shareMethod, $userId);
 }
 
 /**

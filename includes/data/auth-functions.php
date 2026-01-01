@@ -173,6 +173,19 @@ function normalizeUserData($user) {
     if (isset($user['seller_approved'])) {
         $user['seller_approved'] = (bool)$user['seller_approved'];
     }
+    // 탈퇴 관련 필드도 boolean으로 변환
+    if (isset($user['withdrawal_requested'])) {
+        $user['withdrawal_requested'] = (bool)$user['withdrawal_requested'];
+    }
+    if (isset($user['withdrawal_completed'])) {
+        $user['withdrawal_completed'] = (bool)$user['withdrawal_completed'];
+    }
+    if (isset($user['info_updated'])) {
+        $user['info_updated'] = (bool)$user['info_updated'];
+    }
+    if (isset($user['info_checked_by_admin'])) {
+        $user['info_checked_by_admin'] = (bool)$user['info_checked_by_admin'];
+    }
     return $user;
 }
 
@@ -952,6 +965,27 @@ function requestSellerWithdrawal($userId, $reason = '') {
                 WHERE user_id = :user_id
             ")->execute([':user_id' => $userId, ':reason' => $reason]);
 
+            // 탈퇴 요청 시 해당 판매자의 모든 상품을 판매종료 처리
+            $pdo->prepare("
+                UPDATE products
+                SET status = 'inactive',
+                    updated_at = NOW()
+                WHERE seller_id = :seller_id 
+                AND status != 'deleted'
+            ")->execute([':seller_id' => $userId]);
+
+            // 탈퇴 요청 시 주문 진행상황 처리
+            // 접수(received/pending), 개통중(activating/processing), 보류(on_hold/rejected) 건만 취소 처리
+            // 나머지(종료, 개통완료, 취소, 설치완료 등)는 진행상태 그대로 유지
+            $pdo->prepare("
+                UPDATE product_applications
+                SET application_status = 'cancelled',
+                    status_changed_at = NOW(),
+                    updated_at = NOW()
+                WHERE seller_id = :seller_id
+                AND application_status IN ('pending', 'received', 'processing', 'activating', 'rejected', 'on_hold')
+            ")->execute([':seller_id' => $userId]);
+
             $pdo->commit();
             return true;
         } catch (PDOException $e) {
@@ -988,6 +1022,11 @@ function completeSellerWithdrawal($userId, $deleteDate = null) {
     try {
         $pdo->beginTransaction();
 
+        // deleteDate가 없으면 자동으로 5년 후 날짜 설정 (개인정보보호법 준수)
+        if (empty($deleteDate)) {
+            $deleteDate = date('Y-m-d', strtotime('+5 years'));
+        }
+
         // seller_profiles 업데이트 (탈퇴 완료 + 스케줄)
         $pdo->prepare("
             UPDATE seller_profiles
@@ -1000,7 +1039,7 @@ function completeSellerWithdrawal($userId, $deleteDate = null) {
             WHERE user_id = :user_id
         ")->execute([
             ':user_id' => $userId,
-            ':scheduled_delete_date' => !empty($deleteDate) ? $deleteDate : null
+            ':scheduled_delete_date' => $deleteDate
         ]);
 
         // 판매자의 모든 상품을 판매종료 처리
@@ -1018,62 +1057,25 @@ function completeSellerWithdrawal($userId, $deleteDate = null) {
             error_log("completeSellerWithdrawal: 판매자 {$userId}의 {$deactivatedProducts}개 상품이 판매종료 처리되었습니다.");
         }
 
-        // users 업데이트 (표시/로그인용 최소 동기화)
-        // deleteDate가 없으면 개인정보 비식별화 일부 적용
-        if (empty($deleteDate)) {
-            $pdo->prepare("
-                UPDATE users
-                SET seller_approved = 0,
-                    approval_status = 'withdrawn',
-                    withdrawal_completed = 1,
-                    withdrawal_completed_at = NOW(),
-                    email = :email,
-                    phone = NULL,
-                    mobile = NULL,
-                    postal_code = NULL,
-                    address = NULL,
-                    address_detail = NULL,
-                    business_number = NULL,
-                    company_name = NULL,
-                    company_representative = NULL,
-                    business_type = NULL,
-                    business_item = NULL,
-                    business_license_image = NULL,
-                    updated_at = NOW()
-                WHERE user_id = :user_id AND role = 'seller'
-            ")->execute([
-                ':user_id' => $userId,
-                ':email' => 'withdrawn_' . $userId . '@withdrawn'
-            ]);
-        } else {
-            $pdo->prepare("
-                UPDATE users
-                SET seller_approved = 0,
-                    approval_status = 'withdrawn',
-                    withdrawal_completed = 1,
-                    withdrawal_completed_at = NOW(),
-                    scheduled_delete_date = :scheduled_delete_date,
-                    updated_at = NOW()
-                WHERE user_id = :user_id AND role = 'seller'
-            ")->execute([
-                ':user_id' => $userId,
-                ':scheduled_delete_date' => $deleteDate
-            ]);
-        }
+        // users 업데이트 (탈퇴 완료 처리, 5년 후 삭제 예정)
+        // 개인정보는 5년 후 삭제 예정이므로 당장은 보존
+        $pdo->prepare("
+            UPDATE users
+            SET seller_approved = 0,
+                approval_status = 'withdrawn',
+                withdrawal_completed = 1,
+                withdrawal_completed_at = NOW(),
+                scheduled_delete_date = :scheduled_delete_date,
+                updated_at = NOW()
+            WHERE user_id = :user_id AND role = 'seller'
+        ")->execute([
+            ':user_id' => $userId,
+            ':scheduled_delete_date' => $deleteDate
+        ]);
 
         $pdo->commit();
-
-        // 파일 삭제(업로드된 사업자등록증) - DB에서 경로 조회 후 삭제
-        if (empty($deleteDate)) {
-            $seller = getUserById($userId);
-            $imageRelPath = $seller['business_license_image'] ?? null;
-            if (!empty($imageRelPath)) {
-                $imagePath = $_SERVER['DOCUMENT_ROOT'] . $imageRelPath;
-                if (file_exists($imagePath)) {
-                    @unlink($imagePath);
-                }
-            }
-        }
+        
+        error_log("completeSellerWithdrawal: 판매자 {$userId} 탈퇴 완료 처리. 개인정보 삭제 예정일: {$deleteDate}");
 
         return true;
     } catch (PDOException $e) {
@@ -1121,12 +1123,127 @@ function cancelSellerWithdrawal($userId) {
             WHERE user_id = :user_id AND role = 'seller'
         ")->execute([':user_id' => $userId]);
 
+        // 탈퇴 요청 반려 시 상품 상태는 그대로 유지 (inactive 상태 유지)
+        // 탈퇴 신청 시 이미 판매종료된 상품은 반려 후에도 판매종료 상태로 유지
+
         $pdo->commit();
         return true;
     } catch (PDOException $e) {
         if ($pdo->inTransaction()) $pdo->rollBack();
         error_log('cancelSellerWithdrawal DB error: ' . $e->getMessage());
         return false;
+    }
+}
+
+/**
+ * 탈퇴 요청 반려 (관리자가 탈퇴 요청을 거부하고 계정 복구)
+ * cancelSellerWithdrawal와 동일하지만 의미적으로 구분
+ */
+function rejectWithdrawalRequest($userId) {
+    return cancelSellerWithdrawal($userId);
+}
+
+/**
+ * 5년 경과한 탈퇴자의 개인정보 삭제 처리
+ * 개인정보보호법에 따라 탈퇴 후 5년 경과 시 개인정보 삭제
+ * 
+ * @return array 처리 결과 ['processed' => 처리된 건수, 'errors' => 오류 건수]
+ */
+function processScheduledDeletions() {
+    $pdo = getDBConnection();
+    if (!$pdo) {
+        return ['processed' => 0, 'errors' => 1];
+    }
+
+    try {
+        $pdo->beginTransaction();
+        
+        // 5년 경과한 탈퇴자 조회 (scheduled_delete_date가 오늘 이전인 경우)
+        $today = date('Y-m-d');
+        $stmt = $pdo->prepare("
+            SELECT user_id
+            FROM users
+            WHERE role = 'seller'
+            AND withdrawal_completed = 1
+            AND scheduled_delete_date IS NOT NULL
+            AND scheduled_delete_date <= :today
+            AND scheduled_delete_processed = 0
+        ");
+        $stmt->execute([':today' => $today]);
+        $usersToDelete = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        $processedCount = 0;
+        foreach ($usersToDelete as $user) {
+            $userId = $user['user_id'];
+            
+            // 개인정보 삭제 (비식별화)
+            $pdo->prepare("
+                UPDATE users
+                SET email = :email,
+                    phone = NULL,
+                    mobile = NULL,
+                    postal_code = NULL,
+                    address = NULL,
+                    address_detail = NULL,
+                    business_number = NULL,
+                    company_name = NULL,
+                    company_representative = NULL,
+                    business_type = NULL,
+                    business_item = NULL,
+                    business_license_image = NULL,
+                    scheduled_delete_processed = 1,
+                    scheduled_delete_processed_at = NOW(),
+                    updated_at = NOW()
+                WHERE user_id = :user_id AND role = 'seller'
+            ")->execute([
+                ':user_id' => $userId,
+                ':email' => 'deleted_' . $userId . '@deleted'
+            ]);
+            
+            // seller_profiles 개인정보 삭제
+            $pdo->prepare("
+                UPDATE seller_profiles
+                SET postal_code = NULL,
+                    address = NULL,
+                    address_detail = NULL,
+                    business_number = NULL,
+                    company_name = NULL,
+                    company_representative = NULL,
+                    business_type = NULL,
+                    business_item = NULL,
+                    business_license_image = NULL,
+                    scheduled_delete_processed = 1,
+                    scheduled_delete_processed_at = NOW(),
+                    updated_at = NOW()
+                WHERE user_id = :user_id
+            ")->execute([':user_id' => $userId]);
+            
+            // 사업자등록증 이미지 파일 삭제
+            $seller = getUserById($userId);
+            $imageRelPath = $seller['business_license_image'] ?? null;
+            if (!empty($imageRelPath)) {
+                $imagePath = $_SERVER['DOCUMENT_ROOT'] . $imageRelPath;
+                if (file_exists($imagePath)) {
+                    @unlink($imagePath);
+                }
+            }
+            
+            $processedCount++;
+        }
+        
+        $pdo->commit();
+        
+        if ($processedCount > 0) {
+            error_log("processScheduledDeletions: {$processedCount}명의 탈퇴자 개인정보가 삭제 처리되었습니다.");
+        }
+        
+        return ['processed' => $processedCount, 'errors' => 0];
+    } catch (PDOException $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        error_log('processScheduledDeletions DB error: ' . $e->getMessage());
+        return ['processed' => 0, 'errors' => 1];
     }
 }
 

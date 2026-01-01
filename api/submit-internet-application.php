@@ -102,6 +102,25 @@ try {
     $redirectUrl = !empty($product['redirect_url']) ? preg_replace('/\s+/', '', trim($product['redirect_url'])) : null;
     error_log("Internet Application Debug - Step 3: Product found, seller_id: {$sellerId}");
     
+    // 주문 시점 판매자 정보 가져오기 (스냅샷 저장용)
+    $sellerSnapshot = null;
+    if ($sellerId) {
+        require_once __DIR__ . '/../includes/data/plan-data.php';
+        $sellerSnapshot = getSellerById($sellerId);
+        if ($sellerSnapshot) {
+            // 민감한 정보 제외하고 필요한 정보만 저장
+            $sellerSnapshot = [
+                'user_id' => $sellerSnapshot['user_id'] ?? null,
+                'seller_name' => $sellerSnapshot['seller_name'] ?? null,
+                'company_name' => $sellerSnapshot['company_name'] ?? null,
+                'name' => $sellerSnapshot['name'] ?? null,
+                'phone' => $sellerSnapshot['phone'] ?? null,
+                'mobile' => $sellerSnapshot['mobile'] ?? null,
+                'chat_consultation_url' => $sellerSnapshot['chat_consultation_url'] ?? null
+            ];
+        }
+    }
+    
     // 로그인한 사용자 정보 가져오기 (이미 로그인 체크 완료)
     $currentUser = getCurrentUser();
     $userId = $currentUser['user_id'] ?? null;
@@ -137,6 +156,7 @@ try {
         'gender' => null,
         'additional_info' => [
             'product_snapshot' => $productSnapshot, // 신청 당시 상품 정보 전체 저장 (클레임 처리용)
+            'seller_snapshot' => $sellerSnapshot, // 신청 당시 판매자 정보 저장 (탈퇴 후에도 정보 보존)
             'currentCompany' => $currentCompany, // 기존 인터넷 회선 정보
             'existing_company' => $currentCompany, // 호환성을 위한 별칭
             'existingCompany' => $currentCompany // 호환성을 위한 별칭

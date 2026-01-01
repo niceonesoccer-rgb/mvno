@@ -243,14 +243,6 @@ $currentPage = basename($_SERVER['PHP_SELF']);
             align-items: center;
         }
         
-        .menu-section-title::before {
-            content: "";
-            width: 3px;
-            height: 12px;
-            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-            border-radius: 2px;
-            margin-right: 10px;
-        }
         
         .menu-item {
             display: flex;

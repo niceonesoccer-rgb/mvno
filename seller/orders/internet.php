@@ -36,7 +36,7 @@ if (isset($currentUser['withdrawal_requested']) && $currentUser['withdrawal_requ
 // 필터 파라미터
 $status = isset($_GET['status']) && trim($_GET['status']) !== '' ? trim($_GET['status']) : null;
 $searchKeyword = trim($_GET['search_keyword'] ?? '');
-$dateRange = $_GET['date_range'] ?? '7';
+$dateRange = $_GET['date_range'] ?? '30'; // 기본값을 30일로 변경
 $page = max(1, intval($_GET['page'] ?? 1));
 $perPageValue = isset($_GET['per_page']) ? intval($_GET['per_page']) : 10;
 $perPage = in_array($perPageValue, [10, 20, 50, 100]) ? $perPageValue : 10;
@@ -45,7 +45,7 @@ $perPage = in_array($perPageValue, [10, 20, 50, 100]) ? $perPageValue : 10;
 $dateFrom = '';
 $dateTo = '';
 if ($dateRange !== 'all') {
-    $days = ['7' => 7, '30' => 30, '365' => 365][$dateRange] ?? 7;
+    $days = ['30' => 30, '365' => 365][$dateRange] ?? 30; // 기본값을 30일로 변경, 7일 옵션 제거
     $dateFrom = date('Y-m-d', strtotime("-{$days} days"));
     $dateTo = date('Y-m-d');
 }
@@ -830,7 +830,6 @@ include __DIR__ . '/../includes/seller-header.php';
                 <div class="filter-group">
                     <label class="filter-label">기간</label>
                     <select name="date_range" class="filter-select" id="date_range">
-                        <option value="7" <?php echo $dateRange === '7' ? 'selected' : ''; ?>>7일</option>
                         <option value="30" <?php echo $dateRange === '30' ? 'selected' : ''; ?>>30일</option>
                         <option value="365" <?php echo $dateRange === '365' ? 'selected' : ''; ?>>1년</option>
                         <option value="all" <?php echo $dateRange === 'all' ? 'selected' : ''; ?>>전체</option>

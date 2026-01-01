@@ -37,9 +37,12 @@
             loadMoreBtn.disabled = true;
             loadMoreBtn.textContent = '로딩 중...';
 
-            // 필터 파라미터 가져오기 (mno-sim용)
+            // 필터 파라미터 가져오기
             const filterProvider = loadMoreBtn.getAttribute('data-provider') || '';
             const filterServiceType = loadMoreBtn.getAttribute('data-service-type') || '';
+            const filterSpeed = loadMoreBtn.getAttribute('data-speed') || ''; // 인터넷 속도 필터
+            const filterPromotion = loadMoreBtn.getAttribute('data-promotion') === '1';
+            const filterPriceRange = loadMoreBtn.getAttribute('data-price-range') || '';
 
             // 디버깅: 요청 전 로그
             console.log('더보기 요청:', {
@@ -48,11 +51,14 @@
                 limit: ITEMS_PER_PAGE,
                 filterProvider: filterProvider,
                 filterServiceType: filterServiceType,
+                filterSpeed: filterSpeed,
+                filterPromotion: filterPromotion,
+                filterPriceRange: filterPriceRange,
                 isWishlist: isWishlist,
                 isOrder: isOrder
             });
 
-            loadMoreProducts(productType, currentPage, filterProvider, filterServiceType, isWishlist, isOrder, function(success, data) {
+            loadMoreProducts(productType, currentPage, filterProvider, filterServiceType, filterSpeed, filterPromotion, filterPriceRange, isWishlist, isOrder, function(success, data) {
                 isLoading = false;
                 loadMoreBtn.disabled = false;
 
@@ -151,13 +157,16 @@
                     loadMoreBtn.disabled = true;
                     loadMoreBtn.textContent = '로딩 중...';
 
-                    // 필터 파라미터 가져오기 (mno-sim용)
+                    // 필터 파라미터 가져오기
                     const filterProvider = loadMoreBtn.getAttribute('data-provider') || '';
                     const filterServiceType = loadMoreBtn.getAttribute('data-service-type') || '';
+                    const filterSpeed = loadMoreBtn.getAttribute('data-speed') || ''; // 인터넷 속도 필터
+                    const filterPromotion = loadMoreBtn.getAttribute('data-promotion') === '1';
+                    const filterPriceRange = loadMoreBtn.getAttribute('data-price-range') || '';
                     const isWishlist = loadMoreBtn.getAttribute('data-wishlist') === 'true';
                     const isOrder = loadMoreBtn.getAttribute('data-order') === 'true';
 
-                    loadMoreProducts(productType, currentPage, filterProvider, filterServiceType, isWishlist, isOrder, function(success, data) {
+                    loadMoreProducts(productType, currentPage, filterProvider, filterServiceType, filterSpeed, filterPromotion, filterPriceRange, isWishlist, isOrder, function(success, data) {
                         isLoading = false;
                         loadMoreBtn.disabled = false;
 
@@ -198,7 +207,7 @@
     }
 
     // API 호출하여 더 많은 상품 로드
-    function loadMoreProducts(type, page, filterProvider, filterServiceType, isWishlist, isOrder, callback) {
+    function loadMoreProducts(type, page, filterProvider, filterServiceType, filterSpeed, filterPromotion, filterPriceRange, isWishlist, isOrder, callback) {
         let url = `/MVNO/api/load-more-products.php?type=${type}&page=${page}&limit=${ITEMS_PER_PAGE}`;
         
         // 주문내역 파라미터 추가
@@ -211,12 +220,21 @@
             url += `&wishlist=true`;
         }
         
-        // 필터 파라미터 추가 (mno-sim용)
+        // 필터 파라미터 추가
         if (filterProvider) {
             url += `&provider=${encodeURIComponent(filterProvider)}`;
         }
         if (filterServiceType) {
             url += `&service_type=${encodeURIComponent(filterServiceType)}`;
+        }
+        if (filterSpeed) {
+            url += `&speed=${encodeURIComponent(filterSpeed)}`;
+        }
+        if (filterPromotion) {
+            url += `&promotion=1`;
+        }
+        if (filterPriceRange) {
+            url += `&price_range=${encodeURIComponent(filterPriceRange)}`;
         }
         
         // 스폰서 광고는 모두 첫 페이지에 표시되므로 더보기에서는 처리하지 않음
@@ -228,6 +246,9 @@
             limit: ITEMS_PER_PAGE,
             filterProvider: filterProvider,
             filterServiceType: filterServiceType,
+            filterSpeed: filterSpeed,
+            filterPromotion: filterPromotion,
+            filterPriceRange: filterPriceRange,
             isWishlist: isWishlist
         });
         

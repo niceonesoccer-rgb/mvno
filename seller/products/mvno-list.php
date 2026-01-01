@@ -699,7 +699,6 @@ include __DIR__ . '/../includes/seller-header.php';
                         <option value="">전체</option>
                         <option value="LTE" <?php echo $service_type === 'LTE' ? 'selected' : ''; ?>>LTE</option>
                         <option value="5G" <?php echo $service_type === '5G' ? 'selected' : ''; ?>>5G</option>
-                        <option value="6G" <?php echo $service_type === '6G' ? 'selected' : ''; ?>>6G</option>
                     </select>
                 </div>
                 

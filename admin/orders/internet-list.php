@@ -746,7 +746,17 @@ $statusMap = [
                         <?php echo htmlspecialchars($app['speed_option'] ?? '-'); ?>
                     <?php endif; ?>
                 </div>
-                <div class="table-cell" style="text-align: right;"><?php echo $app['monthly_fee'] ? number_format($app['monthly_fee']) . '원' : '-'; ?></div>
+                <div class="table-cell" style="text-align: right;">
+                    <?php 
+                    $monthlyFee = $app['monthly_fee'] ?? 0;
+                    // 문자열에서 숫자만 추출 (예: "3000원" -> 3000)
+                    if (is_string($monthlyFee)) {
+                        $monthlyFee = preg_replace('/[^0-9]/', '', $monthlyFee);
+                    }
+                    $monthlyFee = (float)$monthlyFee;
+                    echo $monthlyFee > 0 ? number_format($monthlyFee) . '원' : '-';
+                    ?>
+                </div>
                 <div class="table-cell"><?php echo $app['customer_user_id'] ? htmlspecialchars($app['customer_user_id']) : '-'; ?></div>
                 <div class="table-cell">
                     <?php if (!empty($app['customer_name']) && $app['customer_name'] !== '-'): ?>

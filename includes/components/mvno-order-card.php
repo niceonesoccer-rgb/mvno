@@ -17,10 +17,24 @@ $productId = $app['product_id'] ?? ($app['id'] ?? 0);
 $applicationId = $app['application_id'] ?? '';
 
 // 판매자 정보 가져오기 (모든 상태에서)
+// 1. additional_info에서 seller_snapshot 확인 (주문 시점 정보)
+$sellerSnapshot = null;
 $sellerId = isset($app['seller_id']) && $app['seller_id'] > 0 ? (int)$app['seller_id'] : null;
 $seller = null;
 $sellerPhone = '';
 
+if (!empty($app['additional_info'])) {
+    try {
+        $additionalInfo = json_decode($app['additional_info'], true);
+        if (is_array($additionalInfo) && isset($additionalInfo['seller_snapshot'])) {
+            $sellerSnapshot = $additionalInfo['seller_snapshot'];
+        }
+    } catch (Exception $e) {
+        error_log("Error parsing additional_info: " . $e->getMessage());
+    }
+}
+
+// 2. 실시간 판매자 정보 조회 시도
 if ($sellerId) {
     $seller = getSellerById($sellerId);
 } else {
@@ -41,20 +55,29 @@ if ($sellerId) {
     }
 }
 
-$sellerPhone = $seller ? ($seller['phone'] ?? ($seller['mobile'] ?? '')) : '';
-$sellerChatUrl = $seller ? ($seller['chat_consultation_url'] ?? '') : '';
+// 3. 판매자 정보 우선순위: 실시간 정보 > 스냅샷 정보
+$finalSeller = $seller ?: $sellerSnapshot;
+
+$sellerPhone = '';
+if ($finalSeller) {
+    $sellerPhone = $finalSeller['phone'] ?? $finalSeller['mobile'] ?? '';
+}
+$sellerChatUrl = $finalSeller ? ($finalSeller['chat_consultation_url'] ?? '') : '';
 
 // 판매자명 가져오기 (seller_name > company_name > name 우선순위)
 $sellerName = '';
-if ($seller) {
-    if (!empty($seller['seller_name'])) {
-        $sellerName = $seller['seller_name'];
-    } elseif (!empty($seller['company_name'])) {
-        $sellerName = $seller['company_name'];
-    } elseif (!empty($seller['name'])) {
-        $sellerName = $seller['name'];
+if ($finalSeller) {
+    if (!empty($finalSeller['seller_name'])) {
+        $sellerName = $finalSeller['seller_name'];
+    } elseif (!empty($finalSeller['company_name'])) {
+        $sellerName = $finalSeller['company_name'];
+    } elseif (!empty($finalSeller['name'])) {
+        $sellerName = $finalSeller['name'];
     }
 }
+
+// 탈퇴한 판매자 표시 (스냅샷만 있고 실시간 정보가 없는 경우)
+$isSellerWithdrawn = ($sellerSnapshot && !$seller);
 
 // 판매자명과 전화번호 결합 (두 칸 띄고)
 $sellerPhoneDisplay = $sellerPhone;

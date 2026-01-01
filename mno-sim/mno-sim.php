@@ -34,6 +34,7 @@ try {
 // 필터 파라미터
 $filterProvider = $_GET['provider'] ?? '';
 $filterServiceType = $_GET['service_type'] ?? '';
+$filterPromotion = isset($_GET['promotion']) && $_GET['promotion'] === '1';
 
 // 페이지 번호 가져오기
 $page = isset($_GET['page']) ? intval($_GET['page']) : 1;
@@ -387,6 +388,16 @@ try {
             $params[':service_type'] = $filterServiceType;
         }
         
+        // 프로모션 필터 (프로모션 기간이 있는 상품만 표시)
+        if ($filterPromotion) {
+            $whereConditions[] = "(
+                (mno_sim.discount_period IS NOT NULL 
+                 AND mno_sim.discount_period != '' 
+                 AND mno_sim.discount_period != '프로모션 없음')
+                OR mno_sim.price_after > 0
+            )";
+        }
+        
         // 스폰서 상품 제외 (스폰서 상품은 별도 섹션에만 표시되므로 일반 리스트에서는 제외)
         $whereConditions[] = "NOT EXISTS (
             SELECT 1 FROM rotation_advertisements ra 
@@ -470,14 +481,16 @@ try {
         $stmt->execute();
         $mnoSimProducts = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
-        // 필터 옵션 수집
+        // 필터 옵션 수집 (6G 제외)
         $filterStmt = $pdo->prepare("
             SELECT DISTINCT 
                 mno_sim.provider,
                 mno_sim.service_type
             FROM products p
             INNER JOIN product_mno_sim_details mno_sim ON p.id = mno_sim.product_id
-            WHERE p.product_type = 'mno-sim' AND {$statusCondition}
+            WHERE p.product_type = 'mno-sim' 
+            AND {$statusCondition}
+            AND mno_sim.service_type != '6G'
             ORDER BY mno_sim.provider, mno_sim.service_type
         ");
         $filterStmt->execute();
@@ -487,7 +500,7 @@ try {
             if (!empty($option['provider']) && !in_array($option['provider'], $providers)) {
                 $providers[] = $option['provider'];
             }
-            if (!empty($option['service_type']) && !in_array($option['service_type'], $serviceTypes)) {
+            if (!empty($option['service_type']) && $option['service_type'] !== '6G' && !in_array($option['service_type'], $serviceTypes)) {
                 $serviceTypes[] = $option['service_type'];
             }
         }
@@ -563,7 +576,11 @@ function formatPriceAfter($priceAfterType, $priceAfter, $priceAfterUnit) {
         <div class="plans-filter-inner">
             <div class="plans-filter-group">
                 <div class="plans-filter-row">
-                    <button class="plans-filter-btn" onclick="clearFilters()">
+                    <?php 
+                    // 기본값 상태 확인: 모든 필터가 비어있을 때
+                    $isDefaultState = empty($filterProvider) && empty($filterServiceType) && !$filterPromotion;
+                    ?>
+                    <button class="plans-filter-btn <?php echo $isDefaultState ? 'active' : ''; ?>" onclick="clearFilters()">
                         <span class="plans-filter-text">전체</span>
                     </button>
                     
@@ -584,6 +601,12 @@ function formatPriceAfter($priceAfterType, $priceAfter, $priceAfterUnit) {
                             </button>
                         <?php endforeach; ?>
                     <?php endif; ?>
+                    
+                    <!-- 프로모션 필터 -->
+                    <button class="plans-filter-btn <?php echo $filterPromotion ? 'active' : ''; ?>" 
+                            onclick="filterByPromotion()">
+                        <span class="plans-filter-text">프로모션</span>
+                    </button>
                 </div>
             </div>
         </div>
@@ -598,7 +621,7 @@ function formatPriceAfter($priceAfterType, $priceAfter, $priceAfterUnit) {
         <!-- 결과 개수 표시 -->
         <?php if (!empty($mnoSimProducts) || $totalCount > 0): ?>
             <div class="plans-results-count">
-                <span><?php echo number_format($totalCount); ?>개의 결과</span>
+                <span><?php echo number_format($totalCount); ?>개 검색</span>
             </div>
         <?php endif; ?>
         
@@ -1043,7 +1066,8 @@ function formatPriceAfter($priceAfterType, $priceAfter, $priceAfterUnit) {
                         data-page="2" 
                         data-total="<?php echo $totalCount; ?>" 
                         <?php echo !empty($filterProvider) ? ' data-provider="' . htmlspecialchars($filterProvider) . '"' : ''; ?>
-                        <?php echo !empty($filterServiceType) ? ' data-service-type="' . htmlspecialchars($filterServiceType) . '"' : ''; ?>>
+                        <?php echo !empty($filterServiceType) ? ' data-service-type="' . htmlspecialchars($filterServiceType) . '"' : ''; ?>
+                        <?php echo $filterPromotion ? ' data-promotion="1"' : ''; ?>>
                         더보기 (<span id="remaining-count"><?php echo number_format($remainingCount); ?></span>개 남음)
                     </button>
                 </div>
@@ -1087,10 +1111,21 @@ function filterByServiceType(serviceType) {
     window.location.href = url.toString();
 }
 
+function filterByPromotion() {
+    const url = new URL(window.location.href);
+    if (url.searchParams.get('promotion') === '1') {
+        url.searchParams.delete('promotion');
+    } else {
+        url.searchParams.set('promotion', '1');
+    }
+    window.location.href = url.toString();
+}
+
 function clearFilters() {
     const url = new URL(window.location.href);
     url.searchParams.delete('provider');
     url.searchParams.delete('service_type');
+    url.searchParams.delete('promotion');
     window.location.href = url.toString();
 }
 </script>
@@ -1460,10 +1495,21 @@ function filterByServiceType(serviceType) {
     window.location.href = url.toString();
 }
 
+function filterByPromotion() {
+    const url = new URL(window.location.href);
+    if (url.searchParams.get('promotion') === '1') {
+        url.searchParams.delete('promotion');
+    } else {
+        url.searchParams.set('promotion', '1');
+    }
+    window.location.href = url.toString();
+}
+
 function clearFilters() {
     const url = new URL(window.location.href);
     url.searchParams.delete('provider');
     url.searchParams.delete('service_type');
+    url.searchParams.delete('promotion');
     window.location.href = url.toString();
 }
 </script>

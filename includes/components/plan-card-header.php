@@ -49,6 +49,10 @@ $has_reviews = !empty($rating) && $rating !== '';
         <?php
         if ($plan_id > 0) {
             $button_id = ($layout_type === 'detail') ? 'planShareBtn' : '';
+            // item_type에 따라 product_type 결정 (plan -> mvno, mno-sim -> mno-sim)
+            $product_type = ($item_type === 'mno-sim') ? 'mno-sim' : 'mvno';
+            $product_id = $plan_id;
+            $seller_id = $plan['seller_id'] ?? '';
             include __DIR__ . '/share-button.php';
         }
         ?>
