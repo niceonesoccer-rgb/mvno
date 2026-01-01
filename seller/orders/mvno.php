@@ -1137,20 +1137,27 @@ include __DIR__ . '/../includes/seller-header.php';
             <!-- 페이지네이션 -->
             <?php if ($totalPages > 1): 
                 $paginationParams = array_filter($_GET, fn($v, $k) => $k !== 'status' || $v !== '', ARRAY_FILTER_USE_BOTH);
+                // 페이지 그룹 계산 (10개씩 그룹화)
+                $pageGroupSize = 10;
+                $currentGroup = ceil($page / $pageGroupSize);
+                $startPage = ($currentGroup - 1) * $pageGroupSize + 1;
+                $endPage = min($currentGroup * $pageGroupSize, $totalPages);
+                $prevGroupLastPage = ($currentGroup - 1) * $pageGroupSize;
+                $nextGroupFirstPage = $currentGroup * $pageGroupSize + 1;
             ?>
                 <div class="pagination">
-                    <?php if ($page > 1): ?>
-                        <a href="?<?php echo http_build_query(array_merge($paginationParams, ['page' => $page - 1])); ?>">이전</a>
+                    <?php if ($currentGroup > 1): ?>
+                        <a href="?<?php echo http_build_query(array_merge($paginationParams, ['page' => $prevGroupLastPage])); ?>">이전</a>
                     <?php endif; ?>
-                    <?php for ($i = max(1, $page - 2); $i <= min($totalPages, $page + 2); $i++): ?>
+                    <?php for ($i = $startPage; $i <= $endPage; $i++): ?>
                         <?php if ($i == $page): ?>
                             <span class="current"><?php echo $i; ?></span>
                         <?php else: ?>
                             <a href="?<?php echo http_build_query(array_merge($paginationParams, ['page' => $i])); ?>"><?php echo $i; ?></a>
                         <?php endif; ?>
                     <?php endfor; ?>
-                    <?php if ($page < $totalPages): ?>
-                        <a href="?<?php echo http_build_query(array_merge($paginationParams, ['page' => $page + 1])); ?>">다음</a>
+                    <?php if ($nextGroupFirstPage <= $totalPages): ?>
+                        <a href="?<?php echo http_build_query(array_merge($paginationParams, ['page' => $nextGroupFirstPage])); ?>">다음</a>
                     <?php endif; ?>
                 </div>
             <?php endif; ?>

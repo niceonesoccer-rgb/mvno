@@ -951,19 +951,36 @@ try {
                     $queryString = http_build_query($queryParams);
                     ?>
                     
+                    <?php
+                    // 페이지 그룹 계산 (10개씩 그룹화)
+                    $pageGroupSize = 10;
+                    $currentGroup = ceil($page / $pageGroupSize);
+                    $startPage = ($currentGroup - 1) * $pageGroupSize + 1;
+                    $endPage = min($currentGroup * $pageGroupSize, $totalPages);
+                    $prevGroupLastPage = ($currentGroup - 1) * $pageGroupSize;
+                    $nextGroupFirstPage = $currentGroup * $pageGroupSize + 1;
+                    ?>
                     <!-- 이전 버튼 -->
-                    <a href="?<?php echo $queryString; ?>&page=<?php echo max(1, $page - 1); ?>" 
-                       class="pagination-btn <?php echo $page <= 1 ? 'disabled' : ''; ?>">이전</a>
+                    <?php if ($currentGroup > 1): ?>
+                        <a href="?<?php echo $queryString; ?>&page=<?php echo $prevGroupLastPage; ?>" 
+                           class="pagination-btn">이전</a>
+                    <?php else: ?>
+                        <span class="pagination-btn disabled">이전</span>
+                    <?php endif; ?>
                     
-                    <!-- 모든 페이지 번호 표시 -->
-                    <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+                    <!-- 페이지 번호 표시 (현재 그룹만) -->
+                    <?php for ($i = $startPage; $i <= $endPage; $i++): ?>
                         <a href="?<?php echo $queryString; ?>&page=<?php echo $i; ?>" 
                            class="pagination-btn <?php echo $i === $page ? 'active' : ''; ?>"><?php echo $i; ?></a>
                     <?php endfor; ?>
                     
                     <!-- 다음 버튼 -->
-                    <a href="?<?php echo $queryString; ?>&page=<?php echo min($totalPages, $page + 1); ?>" 
-                       class="pagination-btn <?php echo $page >= $totalPages ? 'disabled' : ''; ?>">다음</a>
+                    <?php if ($nextGroupFirstPage <= $totalPages): ?>
+                        <a href="?<?php echo $queryString; ?>&page=<?php echo $nextGroupFirstPage; ?>" 
+                           class="pagination-btn">다음</a>
+                    <?php else: ?>
+                        <span class="pagination-btn disabled">다음</span>
+                    <?php endif; ?>
                 </div>
             <?php endif; ?>
         </div>

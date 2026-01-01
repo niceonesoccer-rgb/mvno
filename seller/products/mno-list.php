@@ -671,7 +671,7 @@ include __DIR__ . '/../includes/seller-header.php';
                                        onchange="updateBulkActions()">
                             </td>
                             <td><?php 
-                                $productNumber = getProductNumberByType($product['id'], 'mno');
+                                $productNumber = getProductNumberByType($product['id'], 'mno', $sellerId);
                                 echo $productNumber ? htmlspecialchars($productNumber) : htmlspecialchars($product['id'] ?? '-');
                             ?></td>
                             <td>

@@ -84,6 +84,38 @@ $stats = [
     'completed_orders' => 0
 ];
 
+// 주문 카테고리별 진행상황 통계 (해야할 일들만 - 종료/개통완료/설치완료 제외)
+$orderStats = [
+    'mvno' => [
+        'received' => 0,
+        'activating' => 0,
+        'processing' => 0
+    ],
+    'mno' => [
+        'received' => 0,
+        'activating' => 0,
+        'processing' => 0
+    ],
+    'internet' => [
+        'received' => 0,
+        'activating' => 0,
+        'processing' => 0
+    ],
+    'mno-sim' => [
+        'received' => 0,
+        'activating' => 0,
+        'processing' => 0
+    ]
+];
+
+// 광고관리 데이터 (광고종료 5일 이내)
+$advertisementStats = [
+    'mvno' => 0,
+    'mno' => 0,
+    'internet' => 0,
+    'mno-sim' => 0
+];
+
 // 예치금 데이터
 $depositData = [
     'balance' => 0,
@@ -113,7 +145,7 @@ try {
         // 전체 주문 수
         $stmt = $pdo->prepare("
             SELECT COUNT(*) as total 
-            FROM applications a
+            FROM product_applications a
             WHERE a.seller_id = :seller_id
         ");
         $stmt->execute([':seller_id' => $sellerId]);
@@ -122,7 +154,7 @@ try {
         // 대기 중인 주문 수
         $stmt = $pdo->prepare("
             SELECT COUNT(*) as total 
-            FROM applications a
+            FROM product_applications a
             WHERE a.seller_id = :seller_id 
             AND (a.application_status = 'received' OR a.application_status = '' OR a.application_status IS NULL OR LOWER(TRIM(a.application_status)) = 'pending')
         ");
@@ -132,12 +164,80 @@ try {
         // 완료된 주문 수
         $stmt = $pdo->prepare("
             SELECT COUNT(*) as total 
-            FROM applications a
+            FROM product_applications a
             WHERE a.seller_id = :seller_id 
             AND a.application_status = 'completed'
         ");
         $stmt->execute([':seller_id' => $sellerId]);
         $stats['completed_orders'] = $stmt->fetch()['total'] ?? 0;
+        
+        // 주문 카테고리별 진행상황 통계 (해야할 일들만 - 종료/개통완료/설치완료/취소 제외)
+        // 포함 카테고리: 알뜰폰(mvno), 통신사폰(mno), 인터넷(internet), 통신사단독유심(mno-sim)
+        $productTypes = ['mvno', 'mno', 'internet', 'mno-sim'];
+        $activeStatuses = ['received', 'activating', 'processing'];
+        // 제외할 상태: closed(종료), activation_completed(개통완료), installation_completed(설치완료), completed(완료), cancelled(취소)
+        // 모든 카테고리(알뜰폰, 통신사폰, 인터넷, 통신사단독유심)에서 취소 상태는 제외됨
+        
+        foreach ($productTypes as $type) {
+            foreach ($activeStatuses as $status) {
+                if ($status === 'received') {
+                    // received는 빈 문자열, null, 'pending'도 포함, 취소/종료/완료 상태 제외
+                    $stmt = $pdo->prepare("
+                        SELECT COUNT(*) as total 
+                        FROM product_applications a
+                        WHERE a.seller_id = :seller_id 
+                        AND a.product_type = :product_type
+                        AND (
+                            a.application_status = :status 
+                            OR a.application_status = '' 
+                            OR a.application_status IS NULL 
+                            OR LOWER(TRIM(a.application_status)) = 'pending'
+                        )
+                        AND (a.application_status IS NULL OR a.application_status NOT IN ('closed', 'activation_completed', 'installation_completed', 'completed', 'cancelled'))
+                    ");
+                } else {
+                    $stmt = $pdo->prepare("
+                        SELECT COUNT(*) as total 
+                        FROM product_applications a
+                        WHERE a.seller_id = :seller_id 
+                        AND a.product_type = :product_type
+                        AND a.application_status = :status
+                        AND a.application_status NOT IN ('closed', 'activation_completed', 'installation_completed', 'completed', 'cancelled')
+                    ");
+                }
+                $stmt->execute([
+                    ':seller_id' => $sellerId,
+                    ':product_type' => $type,
+                    ':status' => $status
+                ]);
+                $orderStats[$type][$status] = $stmt->fetch()['total'] ?? 0;
+            }
+        }
+        
+        // 광고종료 5일 이내 상품 수 (카테고리별)
+        $fiveDaysLater = date('Y-m-d H:i:s', strtotime('+5 days'));
+        foreach ($productTypes as $type) {
+            // product_type 변환 (mno-sim -> mno_sim)
+            $dbType = ($type === 'mno-sim') ? 'mno_sim' : $type;
+            
+            $stmt = $pdo->prepare("
+                SELECT COUNT(DISTINCT ra.product_id) as total
+                FROM rotation_advertisements ra
+                INNER JOIN products p ON ra.product_id = p.id
+                WHERE ra.seller_id = :seller_id
+                AND ra.product_type = :product_type
+                AND ra.status = 'active'
+                AND ra.end_datetime <= :end_datetime
+                AND ra.end_datetime > NOW()
+                AND p.status = 'active'
+            ");
+            $stmt->execute([
+                ':seller_id' => $sellerId,
+                ':product_type' => $dbType,
+                ':end_datetime' => $fiveDaysLater
+            ]);
+            $advertisementStats[$type] = $stmt->fetch()['total'] ?? 0;
+        }
         
         // 예치금 잔액 조회
         $stmt = $pdo->prepare("SELECT balance FROM seller_deposit_accounts WHERE seller_id = :seller_id");
@@ -539,6 +639,125 @@ $pageStyles = '
             color: rgba(255, 255, 255, 0.9);
             line-height: 1.6;
         }
+        
+        /* 판매자 필수 확인사항 안내 카드 */
+        .seller-notice-card {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border: 2px solid #f59e0b;
+            border-radius: 12px;
+            padding: 20px 24px;
+            margin-bottom: 32px;
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
+            position: relative;
+        }
+        
+        .seller-notice-card.hidden {
+            display: none;
+        }
+        
+        .seller-notice-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+        
+        .seller-notice-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 18px;
+            font-weight: 700;
+            color: #92400e;
+        }
+        
+        .seller-notice-title-icon {
+            font-size: 24px;
+        }
+        
+        .seller-notice-toggle {
+            background: none;
+            border: none;
+            color: #92400e;
+            font-size: 14px;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+        
+        .seller-notice-toggle:hover {
+            background: rgba(146, 64, 14, 0.1);
+        }
+        
+        .seller-notice-content {
+            font-size: 15px;
+            color: #78350f;
+            line-height: 1.8;
+        }
+        
+        .seller-notice-list {
+            list-style: none;
+            padding: 0;
+            margin: 12px 0;
+        }
+        
+        .seller-notice-list li {
+            padding: 8px 0;
+            padding-left: 24px;
+            position: relative;
+        }
+        
+        .seller-notice-list li::before {
+            content: "•";
+            position: absolute;
+            left: 8px;
+            color: #f59e0b;
+            font-weight: bold;
+            font-size: 18px;
+        }
+        
+        .seller-notice-actions {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid rgba(146, 64, 14, 0.2);
+        }
+        
+        .seller-notice-link {
+            color: #6366f1;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 14px;
+            transition: color 0.2s;
+        }
+        
+        .seller-notice-link:hover {
+            color: #4f46e5;
+            text-decoration: underline;
+        }
+        
+        .seller-notice-dismiss {
+            background: none;
+            border: none;
+            color: #64748b;
+            font-size: 13px;
+            cursor: pointer;
+            padding: 6px 12px;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        
+        .seller-notice-dismiss:hover {
+            background: rgba(100, 116, 139, 0.1);
+            color: #475569;
+        }
+        
+        .seller-notice-content.collapsed {
+            display: none;
+        }
 ';
 
 include 'includes/seller-header.php';
@@ -580,6 +799,30 @@ include 'includes/seller-header.php';
                     </div>
                 <?php endif; ?>
             <?php endif; ?>
+            
+            <!-- 판매자 필수 확인사항 안내 카드 -->
+            <div class="seller-notice-card" id="sellerNoticeCard">
+                <div class="seller-notice-header">
+                    <div class="seller-notice-title">
+                        <span class="seller-notice-title-icon">⚠️</span>
+                        <span>판매자 필수 확인사항</span>
+                    </div>
+                    <button type="button" class="seller-notice-toggle" onclick="toggleNoticeContent()" id="noticeToggleBtn">
+                        접기
+                    </button>
+                </div>
+                <div class="seller-notice-content" id="noticeContent">
+                    <ul class="seller-notice-list">
+                        <li>계정 탈퇴 시 모든 상품 판매종료 처리</li>
+                        <li>3일 이상 미접속 시 모든 상품 판매종료 처리</li>
+                        <li>주문, 개통완료, 취소, 설치완료, 종료가 아닌 것은 15일 후 모두 종료처리함</li>
+                    </ul>
+                    <div class="seller-notice-actions">
+                        <a href="#" class="seller-notice-link" onclick="event.preventDefault(); alert('상세 안내 페이지는 준비 중입니다.');">자세히 보기</a>
+                        <button type="button" class="seller-notice-dismiss" onclick="dismissNotice()">더 이상 보지 않기</button>
+                    </div>
+                </div>
+            </div>
             
             <!-- 등록 상품 섹션 -->
             <div class="dashboard-section">
@@ -629,49 +872,130 @@ include 'includes/seller-header.php';
             <!-- 주문 관리 섹션 -->
             <div class="dashboard-section">
                 <h2 class="dashboard-section-title">주문 관리</h2>
-                <div class="dashboard-grid">
-                    <div class="dashboard-card info">
-                        <div class="dashboard-card-header">
-                            <div class="dashboard-card-icon">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 24px; height: 24px;">
-                                    <path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/>
-                                    <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
-                                </svg>
-                            </div>
+                
+                <?php
+                $orderCategories = [
+                    'mvno' => ['name' => '알뜰폰', 'url' => '/MVNO/seller/orders/mvno.php'],
+                    'mno' => ['name' => '통신사폰', 'url' => '/MVNO/seller/orders/mno.php'],
+                    'internet' => ['name' => '인터넷', 'url' => '/MVNO/seller/orders/internet.php'],
+                    'mno-sim' => ['name' => '통신사단독유심', 'url' => '/MVNO/seller/orders/mno-sim.php']
+                ];
+                $statusLabels = [
+                    'received' => '접수',
+                    'activating' => '개통중',
+                    'processing' => '처리중'
+                ];
+                ?>
+                
+                <?php foreach ($orderCategories as $type => $category): ?>
+                    <?php
+                    $totalPending = $orderStats[$type]['received'] + $orderStats[$type]['activating'] + $orderStats[$type]['processing'];
+                    if ($totalPending > 0):
+                    ?>
+                    <div class="content-box" style="background: #fff; border-radius: 12px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                            <h3 style="margin: 0; font-size: 18px; font-weight: 600; color: #0f172a;">
+                                <?= htmlspecialchars($category['name']) ?>
+                            </h3>
+                            <a href="<?= htmlspecialchars($category['url']) ?>" style="color: #6366f1; text-decoration: none; font-size: 14px; font-weight: 600;">
+                                전체보기 →
+                            </a>
                         </div>
-                        <div class="dashboard-card-title">전체 주문</div>
-                        <div class="dashboard-card-value"><?php echo number_format($stats['total_orders']); ?></div>
-                        <div class="dashboard-card-description">전체 주문 건수</div>
-                    </div>
-                    
-                    <div class="dashboard-card warning">
-                        <div class="dashboard-card-header">
-                            <div class="dashboard-card-icon">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 24px; height: 24px;">
-                                    <circle cx="12" cy="12" r="10"/>
-                                    <polyline points="12 6 12 12 16 14"/>
-                                </svg>
-                            </div>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px;">
+                            <?php foreach ($statusLabels as $status => $label): ?>
+                                <?php if ($orderStats[$type][$status] > 0): ?>
+                                    <a href="<?= htmlspecialchars($category['url']) ?>?status=<?= $status === 'received' ? 'received' : $status ?>" style="text-decoration: none; display: block;">
+                                        <div style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-radius: 8px; padding: 16px; border: 1px solid #e2e8f0; transition: all 0.2s;">
+                                            <div style="font-size: 13px; color: #64748b; font-weight: 500; margin-bottom: 8px;">
+                                                <?= htmlspecialchars($label) ?>
+                                            </div>
+                                            <div style="font-size: 28px; font-weight: 800; color: #0f172a; margin-bottom: 4px;">
+                                                <?= number_format($orderStats[$type][$status]) ?>
+                                            </div>
+                                        </div>
+                                    </a>
+                                <?php endif; ?>
+                            <?php endforeach; ?>
                         </div>
-                        <div class="dashboard-card-title">대기 중</div>
-                        <div class="dashboard-card-value"><?php echo number_format($stats['pending_orders']); ?></div>
-                        <div class="dashboard-card-description">처리 대기 중인 주문</div>
                     </div>
-                    
-                    <div class="dashboard-card success">
-                        <div class="dashboard-card-header">
-                            <div class="dashboard-card-icon">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 24px; height: 24px;">
-                                    <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
-                                    <polyline points="22 4 12 14.01 9 11.01"/>
-                                </svg>
-                            </div>
-                        </div>
-                        <div class="dashboard-card-title">완료</div>
-                        <div class="dashboard-card-value"><?php echo number_format($stats['completed_orders']); ?></div>
-                        <div class="dashboard-card-description">처리 완료된 주문</div>
-                    </div>
+                    <?php endif; ?>
+                <?php endforeach; ?>
+                
+                <?php
+                $hasAnyPending = false;
+                foreach ($orderCategories as $type => $category) {
+                    $totalPending = $orderStats[$type]['received'] + $orderStats[$type]['activating'] + $orderStats[$type]['processing'];
+                    if ($totalPending > 0) {
+                        $hasAnyPending = true;
+                        break;
+                    }
+                }
+                if (!$hasAnyPending):
+                ?>
+                <div class="content-box" style="background: #fff; border-radius: 12px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); text-align: center;">
+                    <div style="font-size: 48px; margin-bottom: 16px; opacity: 0.5;">✅</div>
+                    <div style="font-size: 16px; color: #64748b; margin-bottom: 20px;">처리할 주문이 없습니다</div>
                 </div>
+                <?php endif; ?>
+            </div>
+            
+            <!-- 광고관리 섹션 -->
+            <div class="dashboard-section">
+                <h2 class="dashboard-section-title">광고관리</h2>
+                
+                <?php
+                $adCategories = [
+                    'mvno' => ['name' => '알뜰폰', 'url' => '/MVNO/seller/products/mvno-list.php'],
+                    'mno' => ['name' => '통신사폰', 'url' => '/MVNO/seller/products/mno-list.php'],
+                    'internet' => ['name' => '인터넷', 'url' => '/MVNO/seller/products/internet-list.php'],
+                    'mno-sim' => ['name' => '통신사단독유심', 'url' => '/MVNO/seller/products/mno-sim-list.php']
+                ];
+                ?>
+                
+                <?php
+                $hasExpiringAds = false;
+                foreach ($adCategories as $type => $category) {
+                    if ($advertisementStats[$type] > 0) {
+                        $hasExpiringAds = true;
+                        break;
+                    }
+                }
+                ?>
+                
+                <?php if ($hasExpiringAds): ?>
+                    <div class="content-box" style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border: 2px solid #f59e0b; border-radius: 12px; padding: 24px; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2); margin-bottom: 20px;">
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+                            <span style="font-size: 24px;">⚠️</span>
+                            <h3 style="margin: 0; font-size: 18px; font-weight: 700; color: #92400e;">
+                                광고종료 5일 이내 마감 상품
+                            </h3>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+                            <?php foreach ($adCategories as $type => $category): ?>
+                                <?php if ($advertisementStats[$type] > 0): ?>
+                                    <a href="<?= htmlspecialchars($category['url']) ?>" style="text-decoration: none; display: block;">
+                                        <div style="background: white; border-radius: 8px; padding: 20px; border: 2px solid #f59e0b; transition: all 0.2s; box-shadow: 0 2px 8px rgba(245, 158, 11, 0.15);">
+                                            <div style="font-size: 14px; color: #78350f; font-weight: 600; margin-bottom: 8px;">
+                                                <?= htmlspecialchars($category['name']) ?>
+                                            </div>
+                                            <div style="font-size: 32px; font-weight: 800; color: #92400e; margin-bottom: 4px;">
+                                                <?= number_format($advertisementStats[$type]) ?>
+                                            </div>
+                                            <div style="font-size: 12px; color: #a16207;">
+                                                개 상품
+                                            </div>
+                                        </div>
+                                    </a>
+                                <?php endif; ?>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                <?php else: ?>
+                    <div class="content-box" style="background: #fff; border-radius: 12px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); text-align: center;">
+                        <div style="font-size: 48px; margin-bottom: 16px; opacity: 0.5;">📢</div>
+                        <div style="font-size: 16px; color: #64748b; margin-bottom: 20px;">광고종료 예정인 상품이 없습니다</div>
+                    </div>
+                <?php endif; ?>
             </div>
             
             <!-- 예치금 관리 섹션 -->
@@ -1018,6 +1342,56 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <?php endif; ?>
+
+<!-- 판매자 필수 확인사항 안내 카드 스크립트 -->
+<script>
+(function() {
+    // localStorage에서 "더 이상 보지 않기" 상태 확인
+    const noticeDismissed = localStorage.getItem('seller_notice_dismissed');
+    if (noticeDismissed === 'true') {
+        const noticeCard = document.getElementById('sellerNoticeCard');
+        if (noticeCard) {
+            noticeCard.classList.add('hidden');
+        }
+        return;
+    }
+    
+    // 접기/펼치기 상태 관리
+    let isExpanded = true;
+    
+    // 접기/펼치기 함수
+    window.toggleNoticeContent = function() {
+        const content = document.getElementById('noticeContent');
+        const toggleBtn = document.getElementById('noticeToggleBtn');
+        
+        if (!content || !toggleBtn) return;
+        
+        isExpanded = !isExpanded;
+        if (isExpanded) {
+            content.classList.remove('collapsed');
+            toggleBtn.textContent = '접기';
+        } else {
+            content.classList.add('collapsed');
+            toggleBtn.textContent = '펼치기';
+        }
+    };
+    
+    // 더 이상 보지 않기 함수
+    window.dismissNotice = function() {
+        if (confirm('이 안내를 더 이상 표시하지 않으시겠습니까?')) {
+            localStorage.setItem('seller_notice_dismissed', 'true');
+            const noticeCard = document.getElementById('sellerNoticeCard');
+            if (noticeCard) {
+                noticeCard.style.transition = 'opacity 0.3s ease';
+                noticeCard.style.opacity = '0';
+                setTimeout(function() {
+                    noticeCard.classList.add('hidden');
+                }, 300);
+            }
+        }
+    };
+})();
+</script>
 
 <?php include 'includes/seller-footer.php'; ?>
 

@@ -91,7 +91,7 @@ $balance = floatval($balanceResult['balance'] ?? 0);
         <p style="font-size: 16px; color: #64748b;">무통장 입금을 통해 예치금을 충전할 수 있습니다.</p>
     </div>
     
-    <div class="content-box" style="background: #fff; border-radius: 12px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+    <div class="content-box" style="background: #fff; border-radius: 12px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); max-width: 60%; margin: 0 auto;">
         <?php if ($error): ?>
             <div style="padding: 12px; background: #fee2e2; color: #991b1b; border-radius: 6px; margin-bottom: 20px;">
                 <?= htmlspecialchars($error) ?>
@@ -146,9 +146,22 @@ $balance = floatval($balanceResult['balance'] ?? 0);
                     <label style="display: block; font-weight: 600; color: #374151; margin-bottom: 8px;">
                         충전 금액 (공급가액) <span style="color: #ef4444;">*</span>
                     </label>
-                    <input type="number" name="supply_amount" required min="1000" step="1000"
-                           style="width: 100%; padding: 12px 16px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 15px; box-sizing: border-box;"
-                           placeholder="공급가액을 입력하세요 (최소 1,000원)">
+                    <select name="supply_amount" id="supply_amount" required
+                            style="width: 100%; padding: 12px 16px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 15px; box-sizing: border-box;">
+                        <option value="">금액을 선택하세요</option>
+                        <?php
+                        // 10만원부터 90만원까지 10만원 단위
+                        for ($i = 10; $i <= 90; $i += 10) {
+                            $amount = $i * 10000;
+                            echo '<option value="' . $amount . '">' . number_format($amount, 0) . '원</option>';
+                        }
+                        // 100만원부터 1000만원까지 100만원 단위
+                        for ($i = 100; $i <= 1000; $i += 100) {
+                            $amount = $i * 10000;
+                            echo '<option value="' . $amount . '">' . number_format($amount, 0) . '원</option>';
+                        }
+                        ?>
+                    </select>
                     <div style="font-size: 13px; color: #6b7280; margin-top: 6px;">
                         부가세 10%가 자동으로 추가되어 입금 금액이 계산됩니다.
                     </div>
@@ -168,15 +181,17 @@ $balance = floatval($balanceResult['balance'] ?? 0);
 </div>
 
 <script>
-document.querySelector('input[name="supply_amount"]')?.addEventListener('input', function() {
+document.getElementById('supply_amount')?.addEventListener('change', function() {
     const supplyAmount = parseFloat(this.value) || 0;
+    const previewDiv = document.getElementById('amountPreview');
+    
     if (supplyAmount > 0) {
         const taxAmount = supplyAmount * 0.1;
         const totalAmount = supplyAmount + taxAmount;
         document.getElementById('totalAmount').textContent = new Intl.NumberFormat('ko-KR').format(Math.round(totalAmount)) + '원';
-        document.getElementById('amountPreview').style.display = 'block';
+        previewDiv.style.display = 'block';
     } else {
-        document.getElementById('amountPreview').style.display = 'none';
+        previewDiv.style.display = 'none';
     }
 });
 </script>

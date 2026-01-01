@@ -116,7 +116,7 @@ try {
             LEFT JOIN product_mno_details mno ON p.id = mno.product_id AND p.product_type = 'mno'
             LEFT JOIN product_internet_details inet ON p.id = inet.product_id AND p.product_type = 'internet'
             WHERE {$whereClause}
-            ORDER BY p.created_at DESC
+            ORDER BY p.id DESC
             LIMIT :limit OFFSET :offset
         ");
         
@@ -581,6 +581,7 @@ try {
                             </div>
                         </th>
                         <th>번호</th>
+                        <th>순서</th>
                         <th>타입</th>
                         <th>상품명</th>
                         <th>통신사/업체</th>
@@ -601,6 +602,7 @@ try {
                                 <input type="checkbox" class="product-checkbox" value="<?php echo $product['id']; ?>" style="cursor: pointer;">
                             </td>
                             <td><?php echo ($page - 1) * $perPage + $index + 1; ?></td>
+                            <td><?php echo $product['id']; ?></td>
                             <td>
                                 <?php
                                 $boardTypeLabels = [
@@ -654,17 +656,43 @@ try {
             
             <!-- 페이지네이션 -->
             <?php if ($totalPages > 1): ?>
+                <?php
+                // 페이지 그룹 계산 (10개씩 그룹화)
+                $pageGroupSize = 10;
+                if ($totalPages <= $pageGroupSize) {
+                    // 10개 이하면 모두 표시
+                    $startPage = 1;
+                    $endPage = $totalPages;
+                    $prevGroupLastPage = 0;
+                    $nextGroupFirstPage = $totalPages + 1;
+                } else {
+                    // 10개 넘으면 그룹화
+                    $currentGroup = ceil($page / $pageGroupSize);
+                    $startPage = ($currentGroup - 1) * $pageGroupSize + 1;
+                    $endPage = min($currentGroup * $pageGroupSize, $totalPages);
+                    $prevGroupLastPage = ($currentGroup - 1) * $pageGroupSize;
+                    $nextGroupFirstPage = $currentGroup * $pageGroupSize + 1;
+                }
+                ?>
                 <div class="pagination">
-                    <a href="?tab=<?php echo $activeTab; ?>&status=<?php echo htmlspecialchars($status); ?>&page=<?php echo max(1, $page - 1); ?>" 
-                       class="pagination-btn <?php echo $page <= 1 ? 'disabled' : ''; ?>">이전</a>
+                    <?php if ($prevGroupLastPage > 0): ?>
+                        <a href="?tab=<?php echo $activeTab; ?>&status=<?php echo htmlspecialchars($status); ?>&page=<?php echo $prevGroupLastPage; ?>" 
+                           class="pagination-btn">이전</a>
+                    <?php else: ?>
+                        <span class="pagination-btn disabled">이전</span>
+                    <?php endif; ?>
                     
-                    <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+                    <?php for ($i = $startPage; $i <= $endPage; $i++): ?>
                         <a href="?tab=<?php echo $activeTab; ?>&status=<?php echo htmlspecialchars($status); ?>&page=<?php echo $i; ?>" 
                            class="pagination-btn <?php echo $i === $page ? 'active' : ''; ?>"><?php echo $i; ?></a>
                     <?php endfor; ?>
                     
-                    <a href="?tab=<?php echo $activeTab; ?>&status=<?php echo htmlspecialchars($status); ?>&page=<?php echo min($totalPages, $page + 1); ?>" 
-                       class="pagination-btn <?php echo $page >= $totalPages ? 'disabled' : ''; ?>">다음</a>
+                    <?php if ($nextGroupFirstPage <= $totalPages): ?>
+                        <a href="?tab=<?php echo $activeTab; ?>&status=<?php echo htmlspecialchars($status); ?>&page=<?php echo $nextGroupFirstPage; ?>" 
+                           class="pagination-btn">다음</a>
+                    <?php else: ?>
+                        <span class="pagination-btn disabled">다음</span>
+                    <?php endif; ?>
                 </div>
             <?php endif; ?>
         <?php endif; ?>

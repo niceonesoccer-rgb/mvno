@@ -33,7 +33,7 @@ if (!in_array($activeTab, $validTabs)) {
 $statusFilter = $_GET['status'] ?? '';
 
 $page = max(1, intval($_GET['page'] ?? 1));
-$perPage = 20;
+$perPage = 10;
 
 // WHERE 조건 구성
 $whereConditions = ["ra.seller_id = :seller_id", "ra.product_type = :product_type"];
@@ -294,7 +294,39 @@ $displayStatusLabels = [
                                     <?= date('Y-m-d H:i', strtotime($ad['created_at'])) ?>
                                 </td>
                                 <td style="padding: 12px; font-weight: 500;">
-                                    <?= !empty($ad['product_name']) ? htmlspecialchars($ad['product_name']) : ('상품 ID: ' . $ad['product_id']) ?>
+                                    <?php
+                                    $productId = $ad['product_id'];
+                                    $productType = $ad['product_type'];
+                                    $displayStatus = $ad['display_status'];
+                                    
+                                    // 광고 상태에 따라 링크 결정
+                                    if ($displayStatus === 'active') {
+                                        // 광고중인 경우: 고객용 상세 페이지
+                                        $urls = [
+                                            'mvno' => '/MVNO/mvno/mvno-plan-detail.php?id=' . $productId,
+                                            'mno_sim' => '/MVNO/mno-sim/mno-sim-detail.php?id=' . $productId,
+                                            'mno' => '/MVNO/mno/mno-phone-detail.php?id=' . $productId,
+                                            'internet' => '/MVNO/internets/internet-detail.php?id=' . $productId
+                                        ];
+                                        $linkUrl = $urls[$productType] ?? '#';
+                                        $target = 'target="_blank"';
+                                    } else {
+                                        // 광고중지 또는 광고종료인 경우: 판매자용 수정 페이지
+                                        $urls = [
+                                            'mvno' => '/MVNO/seller/products/mvno.php?id=' . $productId,
+                                            'mno_sim' => '/MVNO/seller/products/mno-sim.php?id=' . $productId,
+                                            'mno' => '/MVNO/seller/products/mno.php?id=' . $productId,
+                                            'internet' => '/MVNO/seller/products/internet.php?id=' . $productId
+                                        ];
+                                        $linkUrl = $urls[$productType] ?? '#';
+                                        $target = '';
+                                    }
+                                    
+                                    $productName = !empty($ad['product_name']) ? htmlspecialchars($ad['product_name']) : ('상품 ID: ' . $productId);
+                                    ?>
+                                    <a href="<?= $linkUrl ?>" <?= $target ?> style="color: #6366f1; text-decoration: none; font-weight: 500;" onmouseover="this.style.textDecoration='underline';" onmouseout="this.style.textDecoration='none';">
+                                        <?= $productName ?>
+                                    </a>
                                 </td>
                                 <td style="padding: 12px;"><?= $productTypeLabels[$ad['product_type']] ?? $ad['product_type'] ?></td>
                                 <td style="padding: 12px; text-align: center;">
@@ -328,23 +360,32 @@ $displayStatusLabels = [
             
             <!-- 페이지네이션 -->
             <?php if ($totalPages > 1): ?>
+                <?php
+                // 페이지 그룹 계산 (10개씩 그룹화)
+                $pageGroupSize = 10;
+                $currentGroup = ceil($page / $pageGroupSize);
+                $startPage = ($currentGroup - 1) * $pageGroupSize + 1;
+                $endPage = min($currentGroup * $pageGroupSize, $totalPages);
+                $prevGroupLastPage = ($currentGroup - 1) * $pageGroupSize;
+                $nextGroupFirstPage = $currentGroup * $pageGroupSize + 1;
+                ?>
                 <div class="pagination">
-                    <?php if ($page > 1): ?>
-                        <a href="?tab=<?= $activeTab ?>&status=<?= htmlspecialchars($statusFilter) ?>&page=<?= $page - 1 ?>" class="pagination-btn">이전</a>
+                    <?php if ($currentGroup > 1): ?>
+                        <a href="?tab=<?= $activeTab ?>&status=<?= htmlspecialchars($statusFilter) ?>&page=<?= $prevGroupLastPage ?>" class="pagination-btn">이전</a>
+                    <?php else: ?>
+                        <span class="pagination-btn disabled">이전</span>
                     <?php endif; ?>
                     
-                    <?php
-                    $startPage = max(1, $page - 2);
-                    $endPage = min($totalPages, $page + 2);
-                    for ($i = $startPage; $i <= $endPage; $i++):
-                    ?>
+                    <?php for ($i = $startPage; $i <= $endPage; $i++): ?>
                         <a href="?tab=<?= $activeTab ?>&status=<?= htmlspecialchars($statusFilter) ?>&page=<?= $i ?>" class="pagination-btn <?= $i === $page ? 'active' : '' ?>">
                             <?= $i ?>
                         </a>
                     <?php endfor; ?>
                     
-                    <?php if ($page < $totalPages): ?>
-                        <a href="?tab=<?= $activeTab ?>&status=<?= htmlspecialchars($statusFilter) ?>&page=<?= $page + 1 ?>" class="pagination-btn">다음</a>
+                    <?php if ($nextGroupFirstPage <= $totalPages): ?>
+                        <a href="?tab=<?= $activeTab ?>&status=<?= htmlspecialchars($statusFilter) ?>&page=<?= $nextGroupFirstPage ?>" class="pagination-btn">다음</a>
+                    <?php else: ?>
+                        <span class="pagination-btn disabled">다음</span>
                     <?php endif; ?>
                 </div>
             <?php endif; ?>

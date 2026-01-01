@@ -2507,7 +2507,7 @@ function addProductApplication($productId, $sellerId, $productType, $customerDat
  * @param string $productType ìƒí’ˆ íƒ€ì… ('mvno', 'mno', 'internet')
  * @return int|false ìˆœë²ˆ ë˜ëŠ” false
  */
-function getProductNumberByType($productId, $productType) {
+function getProductNumberByType($productId, $productType, $sellerId = null) {
     $pdo = getDBConnection();
     if (!$pdo || empty($productId) || empty($productType)) {
         return false;
@@ -2515,17 +2515,67 @@ function getProductNumberByType($productId, $productType) {
     
     try {
         // í•´ë‹¹ íƒ€ì…ì˜ ìƒí’ˆ ì¤‘ì—ì„œ idê°€ ì‘ì€ ìˆœì„œëŒ€ë¡œ ìˆœë²ˆ ê³„ì‚° (ê°€ì¥ ì˜¤ë˜ëœ ìƒí’ˆì´ 1ë²ˆ)
-        $stmt = $pdo->prepare("
+        // ìƒì„¸ ì •ë³´ê°€ ìˆëŠ” ìƒí’ˆë§Œ ì¹´ìš´íŠ¸ (statisticsì™€ ë™ì¼í•œ ê¸°ì¤€)
+        // seller_idê°€ ì œê³µë˜ë©´ í•´ë‹¹ íŒë§¤ìì˜ ìƒí’ˆë§Œ ê¸°ì¤€ìœ¼ë¡œ ê³„ì‚°
+        $query = "
             SELECT COUNT(*) + 1 as product_number
-            FROM products
-            WHERE product_type = :product_type 
-            AND id < :product_id 
-            AND status != 'deleted'
-        ");
-        $stmt->execute([
+            FROM products p
+            WHERE p.product_type = :product_type 
+            AND p.id < :product_id 
+            AND p.status != 'deleted'
+        ";
+        $params = [
             ':product_type' => $productType,
             ':product_id' => $productId
-        ]);
+        ];
+        
+        // íƒ€ì…ë³„ë¡œ ìƒì„¸ ì •ë³´ í…Œì´ë¸”ê³¼ JOINí•˜ì—¬ ìƒì„¸ ì •ë³´ê°€ ìˆëŠ” ìƒí’ˆë§Œ ì¹´ìš´íŠ¸
+        if ($productType === 'mvno') {
+            $query = "
+                SELECT COUNT(*) + 1 as product_number
+                FROM products p
+                INNER JOIN product_mvno_details mvno ON p.id = mvno.product_id
+                WHERE p.product_type = :product_type 
+                AND p.id < :product_id 
+                AND p.status != 'deleted'
+            ";
+        } elseif ($productType === 'mno') {
+            $query = "
+                SELECT COUNT(*) + 1 as product_number
+                FROM products p
+                INNER JOIN product_mno_details mno ON p.id = mno.product_id
+                WHERE p.product_type = :product_type 
+                AND p.id < :product_id 
+                AND p.status != 'deleted'
+            ";
+        } elseif ($productType === 'mno-sim') {
+            $query = "
+                SELECT COUNT(*) + 1 as product_number
+                FROM products p
+                INNER JOIN product_mno_sim_details mno_sim ON p.id = mno_sim.product_id
+                WHERE p.product_type = :product_type 
+                AND p.id < :product_id 
+                AND p.status != 'deleted'
+            ";
+        } elseif ($productType === 'internet') {
+            $query = "
+                SELECT COUNT(*) + 1 as product_number
+                FROM products p
+                INNER JOIN product_internet_details i ON p.id = i.product_id
+                WHERE p.product_type = :product_type 
+                AND p.id < :product_id 
+                AND p.status != 'deleted'
+            ";
+        }
+        
+        // seller_idê°€ ì œê³µë˜ë©´ í•´ë‹¹ íŒë§¤ìì˜ ìƒí’ˆë§Œ ê¸°ì¤€ìœ¼ë¡œ ê³„ì‚°
+        if ($sellerId !== null) {
+            $query .= " AND p.seller_id = :seller_id";
+            $params[':seller_id'] = (string)$sellerId;
+        }
+        
+        $stmt = $pdo->prepare($query);
+        $stmt->execute($params);
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
         
         return $result ? (int)$result['product_number'] : 1;
@@ -4784,3 +4834,215 @@ function getAllAdminInternetApplications($filters = [], $page = 1, $perPage = 20
     }
 }
 
+/**
+ * 15ì¼ ì´ìƒ ë¯¸ì²˜ë¦¬ ì£¼ë¬¸ ìë™ ì¢…ë£Œ ì²˜ë¦¬
+ * ì£¼ë¬¸, ê°œí†µì™„ë£Œ, ì·¨ì†Œ, ì„¤ì¹˜ì™„ë£Œ, ì¢…ë£Œê°€ ì•„ë‹Œ ìƒíƒœë¥¼ 15ì¼ í›„ ëª¨ë‘ ì¢…ë£Œ ì²˜ë¦¬
+ * 
+ * @return array ì²˜ë¦¬ ê²°ê³¼ ['processed' => ì²˜ë¦¬ëœ ê±´ìˆ˜, 'errors' => ì˜¤ë¥˜ ê°œìˆ˜]
+ */
+function autoCloseOldApplications() {
+    $pdo = getDBConnection();
+    if (!$pdo) {
+        error_log("autoCloseOldApplications: ë°ì´í„°ë² ì´ìŠ¤ ì—°ê²° ì‹¤íŒ¨");
+        return ['processed' => 0, 'errors' => 1];
+    }
+    
+    try {
+        // ì œì™¸í•  ìƒíƒœ ëª©ë¡ (ì´ ìƒíƒœë“¤ì€ ì¢…ë£Œ ì²˜ë¦¬í•˜ì§€ ì•ŠìŒ)
+        // ì£¼ë¬¸(pending, received), ê°œí†µì™„ë£Œ(activation_completed), ì·¨ì†Œ(cancelled), ì„¤ì¹˜ì™„ë£Œ(installation_completed), ì¢…ë£Œ(closed)
+        $excludedStatuses = ['pending', 'received', 'activation_completed', 'cancelled', 'installation_completed', 'closed'];
+        $placeholders = implode(',', array_fill(0, count($excludedStatuses), '?'));
+        
+        // 15ì¼ ì´ìƒ ì§€ë‚œ ì£¼ë¬¸ ì¤‘ ì œì™¸ ìƒíƒœê°€ ì•„ë‹Œ ê²ƒë“¤ì„ ì¢…ë£Œ ì²˜ë¦¬
+        $sql = "
+            UPDATE product_applications
+            SET application_status = 'closed',
+                status_changed_at = NOW(),
+                updated_at = NOW()
+            WHERE application_status NOT IN ({$placeholders})
+            AND created_at <= DATE_SUB(NOW(), INTERVAL 15 DAY)
+            AND application_status != 'closed'
+        ";
+        
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($excludedStatuses);
+        
+        $processedCount = $stmt->rowCount();
+        
+        if ($processedCount > 0) {
+            error_log("autoCloseOldApplications: {$processedCount}ê±´ì˜ ì£¼ë¬¸ì´ ìë™ìœ¼ë¡œ ì¢…ë£Œ ì²˜ë¦¬ë˜ì—ˆìŠµë‹ˆë‹¤.");
+        }
+        
+        return ['processed' => $processedCount, 'errors' => 0];
+        
+    } catch (PDOException $e) {
+        error_log("autoCloseOldApplications ì˜¤ë¥˜: " . $e->getMessage());
+        return ['processed' => 0, 'errors' => 1];
+    }
+}
+
+ 
+ / * *  
+   *   3 ? ? ? ³=®  ˜Š„ºÈ? ? ? .º!? /ºıÄ  Ïùd$z¼  ? ù¬y»  ? .º!«‘…°ºÉ  ãùÁ% 
+   *    
+   *   @ r e t u r n   a r r a y   ãùÁ%  Ã[Ì¬µ°  [ ' p r o c e s s e d '   = >   ãùÁ%? ? ? .º!? ? ? ?   ' d e a c t i v a t e d _ p r o d u c t s '   = >   ? .º!«‘…°ºÉ? ? ? ù¬y»  ? ?   ' e r r o r s '   = >   ? {1ŸÊ  ›Z–ÄÔ²]  
+   * /  
+ f u n c t i o n   a u t o D e a c t i v a t e I n a c t i v e S e l l e r P r o d u c t s ( )   {  
+         $ p d o   =   g e t D B C o n n e c t i o n ( ) ;  
+         i f   ( ! $ p d o )   {  
+                 e r r o r _ l o g ( " a u t o D e a c t i v a t e I n a c t i v e S e l l e r P r o d u c t s :   ? ×¬ Å? Õ¬ËÏ? ³ª´  ? Ì¬Ğ®  ? }1c¶" ) ;  
+                 r e t u r n   [ ' p r o c e s s e d '   = >   0 ,   ' d e a c t i v a t e d _ p r o d u c t s '   = >   0 ,   ' e r r o r s '   = >   1 ] ;  
+         }  
+          
+         t r y   {  
+                 / /   l a s t _ l o g i n   €IFÇ  p‹³1Æ  ? I?   ? ¤¾$Å 
+                 $ s t m t   =   $ p d o - > q u e r y ( " S H O W   C O L U M N S   F R O M   u s e r s   L I K E   ' l a s t _ l o g i n ' " ) ;  
+                 i f   ( $ s t m t - > r o w C o u n t ( )   = = =   0 )   {  
+                         e r r o r _ l o g ( " a u t o D e a c t i v a t e I n a c t i v e S e l l e r P r o d u c t s :   l a s t _ l o g i n   €IFÇ? ? p‹³1Æ? Á?   ? µ¿´? H³µ.   a d d _ l a s t _ l o g i n _ c o l u m n . s q l ? ? ? }1ş¾? ³ÿ? „º‚Â. " ) ;  
+                         r e t u r n   [ ' p r o c e s s e d '   = >   0 ,   ' d e a c t i v a t e d _ p r o d u c t s '   = >   0 ,   ' e r r o r s '   = >   1 ] ;  
+                 }  
+                  
+                 / /   3 ? ? ? ³=®  ˜Š„ºÈ? ·3¾  ? .º!? ? p‹à¬vÂ  ( r o l e = ' s e l l e r ' ? ÿ²,Ğ  l a s t _ l o g i n ? ? N U L L ? ÿ²E­? ? 3 ? ? ? ³=®  Şù€ ? ? Ã[ŒÃ¦Â)  
+                 / /   N U L L ? ? Ã[ŒÃ¦Â? ? ›Z€ ? ? ? ? ? ? 0H³Ä¸  áo“Ä¸? …º/¾Şù€   ? µ?   Ã[ŒÃ¦Â?  ³? áo? c r e a t e d _ a t   rn×¬? ? ğÁÉ  3 ? ? ? ³=®  Şù€ ? ? Ã[ŒÃ¦Â  ? K?¾ 
+                 $ s t m t   =   $ p d o - > p r e p a r e ( "  
+                         S E L E C T   D I S T I N C T   u . u s e r _ i d  
+                         F R O M   u s e r s   u  
+                         W H E R E   u . r o l e   =   ' s e l l e r '  
+                         A N D   u . s e l l e r _ a p p r o v e d   =   1  
+                         A N D   u . a p p r o v a l _ s t a t u s   =   ' a p p r o v e d '  
+                         A N D   (  
+                                 ( u . l a s t _ l o g i n   I S   N O T   N U L L   A N D   u . l a s t _ l o g i n   < =   D A T E _ S U B ( N O W ( ) ,   I N T E R V A L   3   D A Y ) )  
+                                 O R   ( u . l a s t _ l o g i n   I S   N U L L   A N D   u . c r e a t e d _ a t   < =   D A T E _ S U B ( N O W ( ) ,   I N T E R V A L   3   D A Y ) )  
+                         )  
+                 " ) ;  
+                 $ s t m t - > e x e c u t e ( ) ;  
+                 $ i n a c t i v e S e l l e r s   =   $ s t m t - > f e t c h A l l ( P D O : : F E T C H _ C O L U M N ) ;  
+                  
+                 i f   ( e m p t y ( $ i n a c t i v e S e l l e r s ) )   {  
+                         r e t u r n   [ ' p r o c e s s e d '   = >   0 ,   ' d e a c t i v a t e d _ p r o d u c t s '   = >   0 ,   ' e r r o r s '   = >   0 ] ;  
+                 }  
+                  
+                 $ t o t a l D e a c t i v a t e d   =   0 ;  
+                 $ s e l l e r I d s   =   [ ] ;  
+                  
+                 f o r e a c h   ( $ i n a c t i v e S e l l e r s   a s   $ s e l l e r I d )   {  
+                         t r y   {  
+                                 / /   ?  ³¦µ  ? .º!? /ºıÄ  Ïùd$z¼  ? –Äf¯  ? ù¬y»? ? ? .º!«‘…°ºÉ  ãùÁ% 
+                                 / /   s e l l e r _ i d   ? € ? ? ? ¤¾$Å:   p r o d u c t s . s e l l e r _ i d ›Z€   I N T ? „º?   V A R C H A R ? „º? ? ? ? Õ¬*Å  ? .ºŞ¸  B€ ? ÁÖ¹ 
+                                 $ u p d a t e S t m t   =   $ p d o - > p r e p a r e ( "  
+                                         U P D A T E   p r o d u c t s  
+                                         S E T   s t a t u s   =   ' i n a c t i v e ' ,  
+                                                 u p d a t e d _ a t   =   N O W ( )  
+                                         W H E R E   s e l l e r _ i d   =   : s e l l e r _ i d  
+                                         A N D   s t a t u s   =   ' a c t i v e '  
+                                 " ) ;  
+                                 $ u p d a t e S t m t - > e x e c u t e ( [ ' : s e l l e r _ i d '   = >   $ s e l l e r I d ] ) ;  
+                                 $ d e a c t i v a t e d C o u n t   =   $ u p d a t e S t m t - > r o w C o u n t ( ) ;  
+                                  
+                                 i f   ( $ d e a c t i v a t e d C o u n t   >   0 )   {  
+                                         $ t o t a l D e a c t i v a t e d   + =   $ d e a c t i v a t e d C o u n t ;  
+                                         $ s e l l e r I d s [ ]   =   $ s e l l e r I d ;  
+                                         e r r o r _ l o g ( " a u t o D e a c t i v a t e I n a c t i v e S e l l e r P r o d u c t s :   ? .º!? ? { $ s e l l e r I d } ? ? { $ d e a c t i v a t e d C o u n t } ›Z? ? ù¬y»? ? ? .º!«‘…°ºÉ  ãùÁ%? ÁÀ¿? ì´rµ? ? " ) ;  
+                                 }  
+                         }   c a t c h   ( P D O E x c e p t i o n   $ e )   {  
+                                 e r r o r _ l o g ( " a u t o D e a c t i v a t e I n a c t i v e S e l l e r P r o d u c t s :   ? .º!? ? { $ s e l l e r I d }   ãùÁ%  åN? ? {1ŸÊ  -   "   .   $ e - > g e t M e s s a g e ( ) ) ;  
+                         }  
+                 }  
+                  
+                 i f   ( $ t o t a l D e a c t i v a t e d   >   0 )   {  
+                         e r r o r _ l o g ( " a u t o D e a c t i v a t e I n a c t i v e S e l l e r P r o d u c t s :   ås? "   .   c o u n t ( $ s e l l e r I d s )   .   " Ïù†°ıÄ  ? .º!? ?   { $ t o t a l D e a c t i v a t e d } ›Z? ? ù¬y»? ? ? .º!«‘…°ºÉ  ãùÁ%? ÁÀ¿? ì´rµ? ? " ) ;  
+                 }  
+                  
+                 r e t u r n   [  
+                         ' p r o c e s s e d '   = >   c o u n t ( $ s e l l e r I d s ) ,  
+                         ' d e a c t i v a t e d _ p r o d u c t s '   = >   $ t o t a l D e a c t i v a t e d ,  
+                         ' e r r o r s '   = >   0  
+                 ] ;  
+                  
+         }   c a t c h   ( P D O E x c e p t i o n   $ e )   {  
+                 e r r o r _ l o g ( " a u t o D e a c t i v a t e I n a c t i v e S e l l e r P r o d u c t s   ? {1ŸÊ:   "   .   $ e - > g e t M e s s a g e ( ) ) ;  
+                 r e t u r n   [ ' p r o c e s s e d '   = >   0 ,   ' d e a c t i v a t e d _ p r o d u c t s '   = >   0 ,   ' e r r o r s '   = >   1 ] ;  
+         }  
+ }  
+ 
+/**
+ * 3???´ìƒ ë¯¸ì ‘???ë§¤?ì˜ ëª¨ë“  ?í’ˆ ?ë§¤ì¢…ë£Œ ì²˜ë¦¬
+ * 
+ * @return array ì²˜ë¦¬ ê²°ê³¼ ['processed' => ì²˜ë¦¬???ë§¤???? 'deactivated_products' => ?ë§¤ì¢…ë£Œ???í’ˆ ?? 'errors' => ?¤ë¥˜ ê°œìˆ˜]
+ */
+function autoDeactivateInactiveSellerProducts() {
+    $pdo = getDBConnection();
+    if (!$pdo) {
+        error_log("autoDeactivateInactiveSellerProducts: ?°ì´?°ë² ?´ìŠ¤ ?°ê²° ?¤íŒ¨");
+        return ['processed' => 0, 'deactivated_products' => 0, 'errors' => 1];
+    }
+    
+    try {
+        // last_login ì»¬ëŸ¼ ì¡´ì¬ ?¬ë? ?•ì¸
+        $stmt = $pdo->query("SHOW COLUMNS FROM users LIKE 'last_login'");
+        if ($stmt->rowCount() === 0) {
+            error_log("autoDeactivateInactiveSellerProducts: last_login ì»¬ëŸ¼??ì¡´ì¬?˜ì? ?ŠìŠµ?ˆë‹¤. add_last_login_column.sql???¤í–‰?´ì£¼?¸ìš”.");
+            return ['processed' => 0, 'deactivated_products' => 0, 'errors' => 1];
+        }
+        
+        // 3???´ìƒ ë¯¸ì ‘?í•œ ?ë§¤??ì¡°íšŒ (role='seller'?´ê³  last_login??NULL?´ê±°??3???´ìƒ ì§€??ê²½ìš°)
+        // NULL??ê²½ìš°??ê°€??????ë²ˆë„ ë¡œê·¸?¸í•˜ì§€ ?Šì? ê²½ìš°?´ë?ë¡?created_at ê¸°ì??¼ë¡œ 3???´ìƒ ì§€??ê²½ìš° ?¬í•¨
+        $stmt = $pdo->prepare("
+            SELECT DISTINCT u.user_id
+            FROM users u
+            WHERE u.role = 'seller'
+            AND u.seller_approved = 1
+            AND u.approval_status = 'approved'
+            AND (
+                (u.last_login IS NOT NULL AND u.last_login <= DATE_SUB(NOW(), INTERVAL 3 DAY))
+                OR (u.last_login IS NULL AND u.created_at <= DATE_SUB(NOW(), INTERVAL 3 DAY))
+            )
+        ");
+        $stmt->execute();
+        $inactiveSellers = $stmt->fetchAll(PDO::FETCH_COLUMN);
+        
+        if (empty($inactiveSellers)) {
+            return ['processed' => 0, 'deactivated_products' => 0, 'errors' => 0];
+        }
+        
+        $totalDeactivated = 0;
+        $sellerIds = [];
+        
+        foreach ($inactiveSellers as $sellerId) {
+            try {
+                // ?´ë‹¹ ?ë§¤?ì˜ ëª¨ë“  ?œì„± ?í’ˆ???ë§¤ì¢…ë£Œ ì²˜ë¦¬
+                $updateStmt = $pdo->prepare("
+                    UPDATE products
+                    SET status = 'inactive',
+                        updated_at = NOW()
+                    WHERE seller_id = :seller_id
+                    AND status = 'active'
+                ");
+                $updateStmt->execute([':seller_id' => $sellerId]);
+                $deactivatedCount = $updateStmt->rowCount();
+                
+                if ($deactivatedCount > 0) {
+                    $totalDeactivated += $deactivatedCount;
+                    $sellerIds[] = $sellerId;
+                    error_log("autoDeactivateInactiveSellerProducts: ?ë§¤??{$sellerId}??{$deactivatedCount}ê°??í’ˆ???ë§¤ì¢…ë£Œ ì²˜ë¦¬?˜ì—ˆ?µë‹ˆ??");
+                }
+            } catch (PDOException $e) {
+                error_log("autoDeactivateInactiveSellerProducts: ?ë§¤??{$sellerId} ì²˜ë¦¬ ì¤??¤ë¥˜ - " . $e->getMessage());
+            }
+        }
+        
+        if ($totalDeactivated > 0) {
+            error_log("autoDeactivateInactiveSellerProducts: ì´?" . count($sellerIds) . "ëª…ì˜ ?ë§¤?? {$totalDeactivated}ê°??í’ˆ???ë§¤ì¢…ë£Œ ì²˜ë¦¬?˜ì—ˆ?µë‹ˆ??");
+        }
+        
+        return [
+            'processed' => count($sellerIds),
+            'deactivated_products' => $totalDeactivated,
+            'errors' => 0
+        ];
+        
+    } catch (PDOException $e) {
+        error_log("autoDeactivateInactiveSellerProducts ?¤ë¥˜: " . $e->getMessage());
+        return ['processed' => 0, 'deactivated_products' => 0, 'errors' => 1];
+    }
+}

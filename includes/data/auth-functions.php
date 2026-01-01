@@ -356,6 +356,25 @@ function getUsersData() {
 function loginUser($userId) {
     $_SESSION['user_id'] = $userId;
     $_SESSION['logged_in'] = true;
+    
+    // last_login 업데이트 (DB에 컬럼이 있는 경우)
+    $pdo = getDBConnection();
+    if ($pdo) {
+        try {
+            // last_login 컬럼 존재 여부 확인
+            $stmt = $pdo->query("SHOW COLUMNS FROM users LIKE 'last_login'");
+            if ($stmt->rowCount() > 0) {
+                $pdo->prepare("
+                    UPDATE users
+                    SET last_login = NOW()
+                    WHERE user_id = :user_id
+                ")->execute([':user_id' => $userId]);
+            }
+        } catch (PDOException $e) {
+            // 컬럼이 없거나 오류가 발생해도 로그인은 정상 진행
+            error_log("loginUser: last_login 업데이트 실패 - " . $e->getMessage());
+        }
+    }
 }
 
 /**
@@ -983,6 +1002,21 @@ function completeSellerWithdrawal($userId, $deleteDate = null) {
             ':user_id' => $userId,
             ':scheduled_delete_date' => !empty($deleteDate) ? $deleteDate : null
         ]);
+
+        // 판매자의 모든 상품을 판매종료 처리
+        $productStmt = $pdo->prepare("
+            UPDATE products
+            SET status = 'inactive',
+                updated_at = NOW()
+            WHERE seller_id = :user_id
+            AND status = 'active'
+        ");
+        $productStmt->execute([':user_id' => $userId]);
+        $deactivatedProducts = $productStmt->rowCount();
+        
+        if ($deactivatedProducts > 0) {
+            error_log("completeSellerWithdrawal: 판매자 {$userId}의 {$deactivatedProducts}개 상품이 판매종료 처리되었습니다.");
+        }
 
         // users 업데이트 (표시/로그인용 최소 동기화)
         // deleteDate가 없으면 개인정보 비식별화 일부 적용

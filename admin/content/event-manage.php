@@ -545,20 +545,30 @@ include __DIR__ . '/../includes/admin-header.php';
         if ($perPage != 20) $queryParams['per_page'] = $perPage;
         $queryString = !empty($queryParams) ? '&' . http_build_query($queryParams) : '';
         ?>
-        <?php if ($page > 1): ?>
-            <a href="?page=<?php echo $page - 1; ?><?php echo $queryString; ?>" 
+        <?php
+        // 페이지 그룹 계산 (10개씩 그룹화)
+        $pageGroupSize = 10;
+        $currentGroup = ceil($page / $pageGroupSize);
+        $startPage = ($currentGroup - 1) * $pageGroupSize + 1;
+        $endPage = min($currentGroup * $pageGroupSize, $totalPages);
+        $prevGroupLastPage = ($currentGroup - 1) * $pageGroupSize;
+        $nextGroupFirstPage = $currentGroup * $pageGroupSize + 1;
+        ?>
+        
+        <?php if ($currentGroup > 1): ?>
+            <a href="?page=<?php echo $prevGroupLastPage; ?><?php echo $queryString; ?>" 
                class="page-link">이전</a>
         <?php endif; ?>
         
-        <?php for ($i = max(1, $page - 2); $i <= min($totalPages, $page + 2); $i++): ?>
+        <?php for ($i = $startPage; $i <= $endPage; $i++): ?>
             <a href="?page=<?php echo $i; ?><?php echo $queryString; ?>" 
                class="page-link <?php echo $i === $page ? 'active' : ''; ?>">
                 <?php echo $i; ?>
             </a>
         <?php endfor; ?>
         
-        <?php if ($page < $totalPages): ?>
-            <a href="?page=<?php echo $page + 1; ?><?php echo $queryString; ?>" 
+        <?php if ($nextGroupFirstPage <= $totalPages): ?>
+            <a href="?page=<?php echo $nextGroupFirstPage; ?><?php echo $queryString; ?>" 
                class="page-link">다음</a>
         <?php endif; ?>
     </div>

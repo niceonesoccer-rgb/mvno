@@ -533,16 +533,40 @@ try {
                 <!-- 페이지네이션 -->
                 <?php if ($totalPages > 1): ?>
                     <div class="pagination">
-                        <a href="?status=<?php echo htmlspecialchars($status ?? ''); ?>&search_query=<?php echo htmlspecialchars($search_query); ?>&provider=<?php echo htmlspecialchars($provider); ?>&seller_id=<?php echo htmlspecialchars($seller_id); ?>&date_from=<?php echo htmlspecialchars($date_from); ?>&date_to=<?php echo htmlspecialchars($date_to); ?>&per_page=<?php echo $perPage; ?>&page=<?php echo max(1, $page - 1); ?>" 
-                           class="pagination-btn <?php echo $page <= 1 ? 'disabled' : ''; ?>">이전</a>
+                        <?php
+                        // 페이지 그룹 계산 (10개씩 그룹화)
+                        $pageGroupSize = 10;
+                        $currentGroup = ceil($page / $pageGroupSize);
+                        $startPage = ($currentGroup - 1) * $pageGroupSize + 1;
+                        $endPage = min($currentGroup * $pageGroupSize, $totalPages);
+                        $prevGroupLastPage = ($currentGroup - 1) * $pageGroupSize;
+                        $nextGroupFirstPage = $currentGroup * $pageGroupSize + 1;
+                        $baseQuery = '?status=' . htmlspecialchars($status ?? '') . 
+                                    '&search_query=' . htmlspecialchars($search_query) . 
+                                    '&provider=' . htmlspecialchars($provider) . 
+                                    '&seller_id=' . htmlspecialchars($seller_id) . 
+                                    '&date_from=' . htmlspecialchars($date_from) . 
+                                    '&date_to=' . htmlspecialchars($date_to) . 
+                                    '&per_page=' . $perPage;
+                        ?>
+                        <?php if ($currentGroup > 1): ?>
+                            <a href="<?php echo $baseQuery; ?>&page=<?php echo $prevGroupLastPage; ?>" 
+                               class="pagination-btn">이전</a>
+                        <?php else: ?>
+                            <span class="pagination-btn disabled">이전</span>
+                        <?php endif; ?>
                         
-                        <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-                            <a href="?status=<?php echo htmlspecialchars($status ?? ''); ?>&search_query=<?php echo htmlspecialchars($search_query); ?>&provider=<?php echo htmlspecialchars($provider); ?>&seller_id=<?php echo htmlspecialchars($seller_id); ?>&date_from=<?php echo htmlspecialchars($date_from); ?>&date_to=<?php echo htmlspecialchars($date_to); ?>&per_page=<?php echo $perPage; ?>&page=<?php echo $i; ?>" 
+                        <?php for ($i = $startPage; $i <= $endPage; $i++): ?>
+                            <a href="<?php echo $baseQuery; ?>&page=<?php echo $i; ?>" 
                                class="pagination-btn <?php echo $i === $page ? 'active' : ''; ?>"><?php echo $i; ?></a>
                         <?php endfor; ?>
                         
-                        <a href="?status=<?php echo htmlspecialchars($status ?? ''); ?>&search_query=<?php echo htmlspecialchars($search_query); ?>&provider=<?php echo htmlspecialchars($provider); ?>&seller_id=<?php echo htmlspecialchars($seller_id); ?>&date_from=<?php echo htmlspecialchars($date_from); ?>&date_to=<?php echo htmlspecialchars($date_to); ?>&per_page=<?php echo $perPage; ?>&page=<?php echo min($totalPages, $page + 1); ?>" 
-                           class="pagination-btn <?php echo $page >= $totalPages ? 'disabled' : ''; ?>">다음</a>
+                        <?php if ($nextGroupFirstPage <= $totalPages): ?>
+                            <a href="<?php echo $baseQuery; ?>&page=<?php echo $nextGroupFirstPage; ?>" 
+                               class="pagination-btn">다음</a>
+                        <?php else: ?>
+                            <span class="pagination-btn disabled">다음</span>
+                        <?php endif; ?>
                     </div>
                 <?php endif; ?>
             <?php endif; ?>

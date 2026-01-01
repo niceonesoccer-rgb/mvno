@@ -808,7 +808,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         
         <div class="menu-section">
             <div class="menu-section-title">통계</div>
-            <a href="/MVNO/seller/statistics/" class="menu-item">
+            <a href="/MVNO/seller/statistics/" class="menu-item <?php echo ($currentPage === 'statistics' || strpos($_SERVER['REQUEST_URI'] ?? '', '/seller/statistics/') !== false) ? 'active' : ''; ?>">
                 <span class="menu-item-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <line x1="18" y1="20" x2="18" y2="10"/>

@@ -618,23 +618,32 @@ $currentPageHeader = $pageHeaders[$activeTab] ?? '광고 신청';
             
             <!-- 페이지네이션 -->
             <?php if ($totalPages > 1): ?>
+                <?php
+                // 페이지 그룹 계산 (10개씩 그룹화)
+                $pageGroupSize = 10;
+                $currentGroup = ceil($page / $pageGroupSize);
+                $startPage = ($currentGroup - 1) * $pageGroupSize + 1;
+                $endPage = min($currentGroup * $pageGroupSize, $totalPages);
+                $prevGroupLastPage = ($currentGroup - 1) * $pageGroupSize;
+                $nextGroupFirstPage = $currentGroup * $pageGroupSize + 1;
+                ?>
                 <div class="pagination">
-                    <?php if ($page > 1): ?>
-                        <a href="?tab=<?= $activeTab ?>&page=<?= $page - 1 ?>" class="pagination-btn">이전</a>
+                    <?php if ($currentGroup > 1): ?>
+                        <a href="?tab=<?= $activeTab ?>&page=<?= $prevGroupLastPage ?>" class="pagination-btn">이전</a>
+                    <?php else: ?>
+                        <span class="pagination-btn disabled">이전</span>
                     <?php endif; ?>
                     
-                    <?php
-                    $startPage = max(1, $page - 2);
-                    $endPage = min($totalPages, $page + 2);
-                    for ($i = $startPage; $i <= $endPage; $i++):
-                    ?>
+                    <?php for ($i = $startPage; $i <= $endPage; $i++): ?>
                         <a href="?tab=<?= $activeTab ?>&page=<?= $i ?>" class="pagination-btn <?= $i === $page ? 'active' : '' ?>">
                             <?= $i ?>
                         </a>
                     <?php endfor; ?>
                     
-                    <?php if ($page < $totalPages): ?>
-                        <a href="?tab=<?= $activeTab ?>&page=<?= $page + 1 ?>" class="pagination-btn">다음</a>
+                    <?php if ($nextGroupFirstPage <= $totalPages): ?>
+                        <a href="?tab=<?= $activeTab ?>&page=<?= $nextGroupFirstPage ?>" class="pagination-btn">다음</a>
+                    <?php else: ?>
+                        <span class="pagination-btn disabled">다음</span>
                     <?php endif; ?>
                 </div>
             <?php endif; ?>

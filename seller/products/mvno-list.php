@@ -156,21 +156,14 @@ try {
         $hasMvnoFilters = !empty($provider) || !empty($plan_name) || !empty($contract_period) || 
                           !empty($price_after_type) || !empty($service_type);
         
-        // 전체 개수 조회
-        if ($hasMvnoFilters) {
-            $countStmt = $pdo->prepare("
-                SELECT COUNT(DISTINCT p.id) as total
-                FROM products p
-                LEFT JOIN product_mvno_details mvno ON p.id = mvno.product_id
-                WHERE {$whereClause}
-            ");
-        } else {
-            $countStmt = $pdo->prepare("
-                SELECT COUNT(*) as total
-                FROM products p
-                WHERE {$whereClause}
-            ");
-        }
+        // 전체 개수 조회 (상세 정보가 있는 상품만 - statistics와 동일한 기준)
+        $countStmt = $pdo->prepare("
+            SELECT COUNT(DISTINCT p.id) as total
+            FROM products p
+            LEFT JOIN product_mvno_details mvno ON p.id = mvno.product_id
+            WHERE {$whereClause}
+            AND mvno.product_id IS NOT NULL
+        ");
         $countStmt->execute($params);
         $totalProducts = $countStmt->fetch()['total'];
         $totalPages = ceil($totalProducts / $perPage);
@@ -191,7 +184,7 @@ try {
                     AND ra.end_datetime > NOW()
                 ) THEN 1 ELSE 0 END AS has_active_ad
             FROM products p
-            LEFT JOIN product_mvno_details mvno ON p.id = mvno.product_id
+            INNER JOIN product_mvno_details mvno ON p.id = mvno.product_id
             LEFT JOIN product_review_statistics prs ON p.id = prs.product_id
             WHERE {$whereClause}
             ORDER BY p.id DESC
@@ -802,7 +795,7 @@ include __DIR__ . '/../includes/seller-header.php';
                                        onchange="updateBulkActions()">
                             </td>
                             <td style="text-align: center;"><?php 
-                                $productNumber = getProductNumberByType($product['id'], 'mvno');
+                                $productNumber = getProductNumberByType($product['id'], 'mvno', $sellerId);
                                 echo $productNumber ? htmlspecialchars($productNumber) : htmlspecialchars($product['id'] ?? '-');
                             ?></td>
                             <td style="text-align: left;">
@@ -852,34 +845,59 @@ include __DIR__ . '/../includes/seller-header.php';
             
             <!-- 페이지네이션 -->
             <?php if ($totalPages > 1): ?>
+                <?php
+                // 페이지 그룹 계산 (10개씩 그룹화)
+                $pageGroupSize = 10;
+                if ($totalPages <= $pageGroupSize) {
+                    // 10개 이하면 모두 표시
+                    $startPage = 1;
+                    $endPage = $totalPages;
+                    $prevGroupLastPage = 0;
+                    $nextGroupFirstPage = $totalPages + 1;
+                } else {
+                    // 10개 넘으면 그룹화
+                    $currentGroup = ceil($page / $pageGroupSize);
+                    $startPage = ($currentGroup - 1) * $pageGroupSize + 1;
+                    $endPage = min($currentGroup * $pageGroupSize, $totalPages);
+                    $prevGroupLastPage = ($currentGroup - 1) * $pageGroupSize;
+                    $nextGroupFirstPage = $currentGroup * $pageGroupSize + 1;
+                }
+                
+                $queryParams = [];
+                if ($status) $queryParams['status'] = $status;
+                if ($provider) $queryParams['provider'] = $provider;
+                if ($plan_name) $queryParams['plan_name'] = $plan_name;
+                if ($contract_period) $queryParams['contract_period'] = $contract_period;
+                if ($contract_period_days_min) $queryParams['contract_period_days_min'] = $contract_period_days_min;
+                if ($contract_period_days_max) $queryParams['contract_period_days_max'] = $contract_period_days_max;
+                if ($price_after_type) $queryParams['price_after_type'] = $price_after_type;
+                if ($price_after_min) $queryParams['price_after_min'] = $price_after_min;
+                if ($price_after_max) $queryParams['price_after_max'] = $price_after_max;
+                if ($service_type) $queryParams['service_type'] = $service_type;
+                if ($date_from) $queryParams['date_from'] = $date_from;
+                if ($date_to) $queryParams['date_to'] = $date_to;
+                $queryParams['per_page'] = $perPage;
+                $queryString = http_build_query($queryParams);
+                ?>
                 <div class="pagination" style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 20px;">
-                    <?php
-                    $queryParams = [];
-                    if ($status) $queryParams['status'] = $status;
-                    if ($provider) $queryParams['provider'] = $provider;
-                    if ($plan_name) $queryParams['plan_name'] = $plan_name;
-                    if ($contract_period) $queryParams['contract_period'] = $contract_period;
-                    if ($contract_period_days_min) $queryParams['contract_period_days_min'] = $contract_period_days_min;
-                    if ($contract_period_days_max) $queryParams['contract_period_days_max'] = $contract_period_days_max;
-                    if ($price_after_type) $queryParams['price_after_type'] = $price_after_type;
-                    if ($price_after_min) $queryParams['price_after_min'] = $price_after_min;
-                    if ($price_after_max) $queryParams['price_after_max'] = $price_after_max;
-                    if ($service_type) $queryParams['service_type'] = $service_type;
-                    if ($date_from) $queryParams['date_from'] = $date_from;
-                    if ($date_to) $queryParams['date_to'] = $date_to;
-                    $queryParams['per_page'] = $perPage;
-                    $queryString = http_build_query($queryParams);
-                    ?>
-                    <a href="?<?php echo $queryString; ?>&page=<?php echo max(1, $page - 1); ?>" 
-                       class="pagination-btn <?php echo $page <= 1 ? 'disabled' : ''; ?>">이전</a>
+                    <?php if ($prevGroupLastPage > 0): ?>
+                        <a href="?<?php echo $queryString; ?>&page=<?php echo $prevGroupLastPage; ?>" 
+                           class="pagination-btn">이전</a>
+                    <?php else: ?>
+                        <span class="pagination-btn disabled">이전</span>
+                    <?php endif; ?>
                     
-                    <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+                    <?php for ($i = $startPage; $i <= $endPage; $i++): ?>
                         <a href="?<?php echo $queryString; ?>&page=<?php echo $i; ?>" 
                            class="pagination-btn <?php echo $i === $page ? 'active' : ''; ?>"><?php echo $i; ?></a>
                     <?php endfor; ?>
                     
-                    <a href="?<?php echo $queryString; ?>&page=<?php echo min($totalPages, $page + 1); ?>" 
-                       class="pagination-btn <?php echo $page >= $totalPages ? 'disabled' : ''; ?>">다음</a>
+                    <?php if ($nextGroupFirstPage <= $totalPages): ?>
+                        <a href="?<?php echo $queryString; ?>&page=<?php echo $nextGroupFirstPage; ?>" 
+                           class="pagination-btn">다음</a>
+                    <?php else: ?>
+                        <span class="pagination-btn disabled">다음</span>
+                    <?php endif; ?>
                 </div>
             <?php endif; ?>
         <?php endif; ?>

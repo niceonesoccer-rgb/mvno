@@ -216,8 +216,6 @@ require_once __DIR__ . '/../includes/seller-header.php';
                             <th style="padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #e2e8f0;">신청일시</th>
                             <th style="padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #e2e8f0;">입금자명</th>
                             <th style="padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #e2e8f0;">입금계좌</th>
-                            <th style="padding: 12px; text-align: right; font-weight: 600; border-bottom: 2px solid #e2e8f0;">공급가액</th>
-                            <th style="padding: 12px; text-align: right; font-weight: 600; border-bottom: 2px solid #e2e8f0;">부가세</th>
                             <th style="padding: 12px; text-align: right; font-weight: 600; border-bottom: 2px solid #e2e8f0;">입금금액<br><span style="font-size: 11px; font-weight: 400; color: #64748b;">(부가세 포함)</span></th>
                             <th style="padding: 12px; text-align: center; font-weight: 600; border-bottom: 2px solid #e2e8f0;">입금상태</th>
                             <th style="padding: 12px; text-align: center; font-weight: 600; border-bottom: 2px solid #e2e8f0;">계산서발행</th>
@@ -241,8 +239,6 @@ require_once __DIR__ . '/../includes/seller-header.php';
                                     <?= htmlspecialchars($request['account_number'] ?? '-') ?><br>
                                     <?= htmlspecialchars($request['account_holder'] ?? '-') ?>
                                 </td>
-                                <td style="padding: 12px; text-align: right;"><?= number_format(floatval($request['supply_amount'] ?? 0), 0) ?>원</td>
-                                <td style="padding: 12px; text-align: right;"><?= number_format(floatval($request['tax_amount'] ?? 0), 0) ?>원</td>
                                 <td style="padding: 12px; text-align: right; font-weight: 600;"><?= number_format(floatval($request['amount'] ?? 0), 0) ?>원</td>
                                 <td style="padding: 12px; text-align: center;">
                                     <?php

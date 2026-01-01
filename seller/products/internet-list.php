@@ -679,7 +679,7 @@ include __DIR__ . '/../includes/seller-header.php';
                                        onchange="updateBulkActions()">
                             </td>
                             <td><?php 
-                                $productNumber = getProductNumberByType($product['id'], 'internet');
+                                $productNumber = getProductNumberByType($product['id'], 'internet', $sellerId);
                                 echo $productNumber ? htmlspecialchars($productNumber) : htmlspecialchars($product['id'] ?? '-');
                             ?></td>
                             <td>
@@ -749,16 +749,42 @@ include __DIR__ . '/../includes/seller-header.php';
                     $paginationParams['per_page'] = $perPage;
                     $paginationQuery = http_build_query($paginationParams);
                     ?>
-                    <a href="?<?php echo $paginationQuery; ?>&page=<?php echo max(1, $page - 1); ?>" 
-                       class="pagination-btn <?php echo $page <= 1 ? 'disabled' : ''; ?>">이전</a>
+                    <?php
+                    // 페이지 그룹 계산 (10개씩 그룹화)
+                    $pageGroupSize = 10;
+                    if ($totalPages <= $pageGroupSize) {
+                        // 10개 이하면 모두 표시
+                        $startPage = 1;
+                        $endPage = $totalPages;
+                        $prevGroupLastPage = 0;
+                        $nextGroupFirstPage = $totalPages + 1;
+                    } else {
+                        // 10개 넘으면 그룹화
+                        $currentGroup = ceil($page / $pageGroupSize);
+                        $startPage = ($currentGroup - 1) * $pageGroupSize + 1;
+                        $endPage = min($currentGroup * $pageGroupSize, $totalPages);
+                        $prevGroupLastPage = ($currentGroup - 1) * $pageGroupSize;
+                        $nextGroupFirstPage = $currentGroup * $pageGroupSize + 1;
+                    }
+                    ?>
+                    <?php if ($prevGroupLastPage > 0): ?>
+                        <a href="?<?php echo $paginationQuery; ?>&page=<?php echo $prevGroupLastPage; ?>" 
+                           class="pagination-btn">이전</a>
+                    <?php else: ?>
+                        <span class="pagination-btn disabled">이전</span>
+                    <?php endif; ?>
                     
-                    <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+                    <?php for ($i = $startPage; $i <= $endPage; $i++): ?>
                         <a href="?<?php echo $paginationQuery; ?>&page=<?php echo $i; ?>" 
                            class="pagination-btn <?php echo $i === $page ? 'active' : ''; ?>"><?php echo $i; ?></a>
                     <?php endfor; ?>
                     
-                    <a href="?<?php echo $paginationQuery; ?>&page=<?php echo min($totalPages, $page + 1); ?>" 
-                       class="pagination-btn <?php echo $page >= $totalPages ? 'disabled' : ''; ?>">다음</a>
+                    <?php if ($nextGroupFirstPage <= $totalPages): ?>
+                        <a href="?<?php echo $paginationQuery; ?>&page=<?php echo $nextGroupFirstPage; ?>" 
+                           class="pagination-btn">다음</a>
+                    <?php else: ?>
+                        <span class="pagination-btn disabled">다음</span>
+                    <?php endif; ?>
                 </div>
             <?php endif; ?>
         <?php endif; ?>

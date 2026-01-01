@@ -791,19 +791,385 @@ try {
                     $queryString = http_build_query($queryParams);
                     ?>
                     
-                    <!-- 이전 버튼 -->
-                    <a href="?<?php echo $queryString; ?>&page=<?php echo max(1, $page - 1); ?>" 
-                       class="pagination-btn <?php echo $page <= 1 ? 'disabled' : ''; ?>">이전</a>
+                    <?php
+                    // 페이지 그룹 계산 (10개씩 그룹화)
+                    $pageGroupSize = 10;
+                    $currentGroup = ceil($page / $pageGroupSize);
+                    $startPage = ($currentGroup - 1) * $pageGroupSize + 1;
+                    $endPage = min($currentGroup * $pageGroupSize, $totalPages);
+                    $prevGroupLastPage = ($currentGroup - 1) * $pageGroupSize;
+                    $nextGroupFirstPage = $currentGroup * $pageGroupSize + 1;
+                    ?>
                     
-                    <!-- 모든 페이지 번호 표시 -->
-                    <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+                    <!-- 이전 버튼 -->
+                    <?php if ($currentGroup > 1): ?>
+                        <a href="?<?php echo $queryString; ?>&page=<?php echo $prevGroupLastPage; ?>" 
+                           class="pagination-btn">이전</a>
+                    <?php else: ?>
+                        <span class="pagination-btn disabled">이전</span>
+                    <?php endif; ?>
+                    
+                    <!-- 페이지 번호 표시 (현재 그룹만) -->
+                    <?php for ($i = $startPage; $i <= $endPage; $i++): ?>
                         <a href="?<?php echo $queryString; ?>&page=<?php echo $i; ?>" 
                            class="pagination-btn <?php echo $i === $page ? 'active' : ''; ?>"><?php echo $i; ?></a>
                     <?php endfor; ?>
                     
                     <!-- 다음 버튼 -->
-                    <a href="?<?php echo $queryString; ?>&page=<?php echo min($totalPages, $page + 1); ?>" 
-                       class="pagination-btn <?php echo $page >= $totalPages ? 'disabled' : ''; ?>">다음</a>
+                    <?php if ($nextGroupFirstPage <= $totalPages): ?>
+                        <a href="?<?php echo $queryString; ?>&page=<?php echo $nextGroupFirstPage; ?>" 
+                           class="pagination-btn">다음</a>
+                    <?php else: ?>
+                        <span class="pagination-btn disabled">다음</span>
+                    <?php endif; ?>
+                </div>
+            <?php endif; ?>
+        <?php endif; ?>
+    </div>
+</div>
+
+<script>
+function applyFilters() {
+    const params = new URLSearchParams();
+    
+    // 상태
+    const status = document.getElementById('filter_status').value;
+    if (status && status !== '') {
+        params.set('status', status);
+    }
+    
+    // 가입처
+    const registrationPlace = document.getElementById('filter_registration_place').value;
+    if (registrationPlace && registrationPlace !== '') {
+        params.set('registration_place', registrationPlace);
+    }
+    
+    // 속도 옵션
+    const speedOption = document.getElementById('filter_speed_option').value;
+    if (speedOption && speedOption !== '') {
+        params.set('speed_option', speedOption);
+    }
+    
+    // 통합 검색
+    const searchQuery = document.getElementById('filter_search_query').value.trim();
+    if (searchQuery) {
+        params.set('search_query', searchQuery);
+    }
+    
+    // 등록일
+    const dateFrom = document.getElementById('filter_date_from').value;
+    if (dateFrom) {
+        params.set('date_from', dateFrom);
+    }
+    
+    const dateTo = document.getElementById('filter_date_to').value;
+    if (dateTo) {
+        params.set('date_to', dateTo);
+    }
+    
+    // per_page 유지
+    const perPage = new URLSearchParams(window.location.search).get('per_page');
+    if (perPage) {
+        params.set('per_page', perPage);
+    }
+    
+    // 필터 변경 시 첫 페이지로
+    params.delete('page');
+    
+    window.location.href = '?' + params.toString();
+}
+
+function changePerPage() {
+    const perPage = document.getElementById('per_page_select').value;
+    const params = new URLSearchParams(window.location.search);
+    
+    // 모든 필터 파라미터 유지
+    params.set('per_page', perPage);
+    params.set('page', '1'); // 첫 페이지로 이동
+    
+    window.location.href = '?' + params.toString();
+}
+
+function resetFilters() {
+    document.getElementById('filter_status').value = '';
+    document.getElementById('filter_registration_place').value = '';
+    document.getElementById('filter_speed_option').value = '';
+    document.getElementById('filter_search_query').value = '';
+    document.getElementById('filter_date_from').value = '';
+    document.getElementById('filter_date_to').value = '';
+    
+    window.location.href = window.location.pathname;
+}
+
+// Enter 키로 검색
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('filter_search_query');
+    if (searchInput) {
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                applyFilters();
+            }
+        });
+    }
+    
+    // 리뷰 모달 기능
+    function showProductReviews(productId, productType) {
+        const modal = document.getElementById('productReviewModal');
+        const modalContent = document.getElementById('productReviewContent');
+        const modalTitle = document.getElementById('productReviewTitle');
+        
+        if (!modal || !modalContent) return;
+        
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        modalContent.innerHTML = '<div style="text-align: center; padding: 40px;"><div class="spinner"></div><p>리뷰를 불러오는 중...</p></div>';
+        
+        fetch(`/MVNO/api/get-product-reviews.php?product_id=${productId}&product_type=${productType}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    displayReviews(data.data, productId, productType);
+                } else {
+                    modalContent.innerHTML = `<div style="text-align: center; padding: 40px; color: #dc2626;"><p>${data.message || '리뷰를 불러오는 중 오류가 발생했습니다.'}</p></div>`;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                modalContent.innerHTML = '<div style="text-align: center; padding: 40px; color: #dc2626;"><p>리뷰를 불러오는 중 오류가 발생했습니다.</p></div>';
+            });
+    }
+    
+    function displayReviews(data, productId, productType) {
+        const modalContent = document.getElementById('productReviewContent');
+        if (!modalContent) return;
+        
+        const reviews = data.reviews || [];
+        const averageRating = data.average_rating || 0;
+        const reviewCount = data.review_count || 0;
+        
+        // 디버깅: 리뷰 데이터 확인
+        if (reviews.length > 0) {
+            console.log('First review data:', reviews[0]);
+        }
+        
+        let html = '<div style="padding: 20px;">';
+        html += '<div style="background: #f9fafb; padding: 16px; border-radius: 8px; margin-bottom: 20px;">';
+        html += `<div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">`;
+        html += `<div><strong>평균 별점:</strong> <span style="color: #f59e0b; font-weight: 600;">⭐ ${averageRating.toFixed(1)}</span></div>`;
+        html += `<div><strong>리뷰 수:</strong> ${reviewCount}개</div>`;
+        html += `</div></div>`;
+        
+        if (reviews.length > 0) {
+            html += '<div style="max-height: 500px; overflow-y: auto;">';
+            reviews.forEach(review => {
+                const stars = '⭐'.repeat(review.rating) + '☆'.repeat(5 - review.rating);
+                html += '<div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin-bottom: 12px; background: white;">';
+                html += `<div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">`;
+                // 통신사 이름 처리 (provider 필드 확인)
+                const provider = (review.provider && review.provider.trim()) ? review.provider.trim() : '';
+                const providerText = provider ? ` | ${provider}` : '';
+                html += `<div><strong>${review.author_name || '익명'}</strong>${providerText}</div>`;
+                html += `<div style="color: #f59e0b;">${stars}</div>`;
+                html += `</div>`;
+                if (review.title) {
+                    html += `<div style="font-weight: 600; margin-bottom: 8px;">${escapeHtml(review.title)}</div>`;
+                }
+                html += `<div style="color: #374151; line-height: 1.6;">${escapeHtml(review.content || '')}</div>`;
+                html += `</div>`;
+            });
+            html += '</div>';
+        } else {
+            html += '<div style="text-align: center; padding: 40px; color: #6b7280;">등록된 리뷰가 없습니다.</div>';
+        }
+        html += '</div>';
+        modalContent.innerHTML = html;
+    }
+    
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+    
+    const reviewModal = document.getElementById('productReviewModal');
+    const reviewModalClose = document.getElementById('productReviewModalClose');
+    const reviewModalOverlay = document.getElementById('productReviewModalOverlay');
+    
+    if (reviewModalClose) {
+        reviewModalClose.addEventListener('click', function() {
+            if (reviewModal) {
+                reviewModal.style.display = 'none';
+                document.body.style.overflow = '';
+            }
+        });
+    }
+    
+    if (reviewModalOverlay) {
+        reviewModalOverlay.addEventListener('click', function() {
+            if (reviewModal) {
+                reviewModal.style.display = 'none';
+                document.body.style.overflow = '';
+            }
+        });
+    }
+    
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && reviewModal && reviewModal.style.display === 'flex') {
+            reviewModal.style.display = 'none';
+            document.body.style.overflow = '';
+        }
+    });
+});
+</script>
+
+<!-- 리뷰 모달 -->
+<div id="productReviewModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.5); z-index: 10000; align-items: center; justify-content: center;">
+    <div id="productReviewModalOverlay" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0;"></div>
+    <div style="position: relative; background: white; border-radius: 12px; width: 90%; max-width: 800px; max-height: 90vh; display: flex; flex-direction: column; z-index: 10001;">
+        <div style="padding: 24px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center;">
+            <h2 id="productReviewTitle" style="font-size: 24px; font-weight: bold; margin: 0; color: #1f2937;">상품 리뷰</h2>
+            <button id="productReviewModalClose" style="background: none; border: none; cursor: pointer; padding: 8px; display: flex; align-items: center; justify-content: center; border-radius: 6px; transition: background 0.2s;" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='transparent'">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M18 6L6 18M6 6L18 18" stroke="#374151" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+        </div>
+        <div id="productReviewContent" style="padding: 24px; overflow-y: auto; flex: 1;">
+            <div style="text-align: center; padding: 40px;">
+                <div class="spinner" style="border: 3px solid #f3f4f6; border-top: 3px solid #6366f1; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 16px;"></div>
+                <p>리뷰를 불러오는 중...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.spinner {
+    border: 3px solid #f3f4f6;
+    border-top: 3px solid #6366f1;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 16px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.review-link:hover {
+    text-decoration: underline;
+}
+</style>
+
+<?php require_once __DIR__ . '/../includes/admin-footer.php'; ?>
+
+
+                        <tr>
+                            <td style="text-align: center;"><?php 
+                                $productNumber = getProductNumberByType($product['id'], 'internet');
+                                echo $productNumber ? htmlspecialchars($productNumber) : htmlspecialchars($product['id'] ?? '-');
+                            ?></td>
+                            <td style="text-align: center;">
+                                <?php 
+                                $sellerId = $product['seller_user_id'] ?? $product['seller_id'] ?? '-';
+                                if ($sellerId && $sellerId !== '-') {
+                                    echo '<a href="/MVNO/admin/users/seller-detail.php?user_id=' . urlencode($sellerId) . '" style="color: #3b82f6; text-decoration: none; font-weight: 600;">' . htmlspecialchars($sellerId) . '</a>';
+                                } else {
+                                    echo '-';
+                                }
+                                ?>
+                            </td>
+                            <td style="text-align: center;"><?php echo htmlspecialchars($product['seller_name'] ?? '-'); ?></td>
+                            <td style="text-align: center;"><?php echo htmlspecialchars($product['company_name'] ?? '-'); ?></td>
+                            <td><?php echo htmlspecialchars($product['provider'] ?? '-'); ?></td>
+                            <td><?php echo htmlspecialchars($product['speed_option'] ?? '-'); ?></td>
+                            <td style="text-align: right;"><?php echo number_format($product['monthly_fee'] ?? 0); ?>원</td>
+                            <td style="text-align: right;"><?php echo number_format($product['view_count'] ?? 0); ?></td>
+                            <td style="text-align: right;"><?php echo number_format($product['favorite_count'] ?? 0); ?></td>
+                            <td style="text-align: right;">
+                                <a href="#" 
+                                   class="review-link" 
+                                   onclick="showProductReviews(<?php echo $product['id']; ?>, 'internet'); return false;"
+                                   style="color: #3b82f6; text-decoration: none; font-weight: 600; cursor: pointer;">
+                                    <?php echo number_format($product['review_count'] ?? 0); ?>
+                                    <?php if (($product['review_count'] ?? 0) > 0): ?>
+                                        <?php
+                                        require_once __DIR__ . '/../../../includes/data/plan-data.php';
+                                        $avgRating = getSingleProductAverageRating($product['id'], 'internet');
+                                        if ($avgRating > 0):
+                                        ?>
+                                            <span style="color: #f59e0b; margin-left: 4px;">⭐ <?php echo number_format($avgRating, 1); ?></span>
+                                        <?php endif; ?>
+                                    <?php endif; ?>
+                                </a>
+                            </td>
+                            <td style="text-align: right;"><?php echo number_format($product['application_count'] ?? 0); ?></td>
+                            <td style="text-align: center;">
+                                <span class="badge <?php echo ($product['status'] ?? 'active') === 'active' ? 'badge-active' : 'badge-inactive'; ?>">
+                                    <?php echo ($product['status'] ?? 'active') === 'active' ? '판매중' : '판매종료'; ?>
+                                </span>
+                            </td>
+                            <td style="text-align: center;"><?php echo isset($product['created_at']) ? date('Y-m-d', strtotime($product['created_at'])) : '-'; ?></td>
+                            <td style="text-align: center;">
+                                <div class="action-buttons">
+                                    <a href="/MVNO/internets/internet-detail.php?id=<?php echo $product['id']; ?>" target="_blank" class="btn btn-sm btn-edit">보기</a>
+                                </div>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+            
+            <!-- 페이지네이션 -->
+            <?php if ($totalPages > 1): ?>
+                <div class="pagination" style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 20px;">
+                    <?php
+                    $queryParams = [];
+                    if ($status) $queryParams['status'] = $status;
+                    if ($registration_place) $queryParams['registration_place'] = $registration_place;
+                    if ($speed_option) $queryParams['speed_option'] = $speed_option;
+                    if ($search_query) $queryParams['search_query'] = $search_query;
+                    if ($date_from) $queryParams['date_from'] = $date_from;
+                    if ($date_to) $queryParams['date_to'] = $date_to;
+                    $queryParams['per_page'] = $perPage;
+                    $queryString = http_build_query($queryParams);
+                    ?>
+                    
+                    <?php
+                    // 페이지 그룹 계산 (10개씩 그룹화)
+                    $pageGroupSize = 10;
+                    $currentGroup = ceil($page / $pageGroupSize);
+                    $startPage = ($currentGroup - 1) * $pageGroupSize + 1;
+                    $endPage = min($currentGroup * $pageGroupSize, $totalPages);
+                    $prevGroupLastPage = ($currentGroup - 1) * $pageGroupSize;
+                    $nextGroupFirstPage = $currentGroup * $pageGroupSize + 1;
+                    ?>
+                    <!-- 이전 버튼 -->
+                    <?php if ($currentGroup > 1): ?>
+                        <a href="?<?php echo $queryString; ?>&page=<?php echo $prevGroupLastPage; ?>" 
+                           class="pagination-btn">이전</a>
+                    <?php else: ?>
+                        <span class="pagination-btn disabled">이전</span>
+                    <?php endif; ?>
+                    
+                    <!-- 페이지 번호 표시 (현재 그룹만) -->
+                    <?php for ($i = $startPage; $i <= $endPage; $i++): ?>
+                        <a href="?<?php echo $queryString; ?>&page=<?php echo $i; ?>" 
+                           class="pagination-btn <?php echo $i === $page ? 'active' : ''; ?>"><?php echo $i; ?></a>
+                    <?php endfor; ?>
+                    
+                    <!-- 다음 버튼 -->
+                    <?php if ($nextGroupFirstPage <= $totalPages): ?>
+                        <a href="?<?php echo $queryString; ?>&page=<?php echo $nextGroupFirstPage; ?>" 
+                           class="pagination-btn">다음</a>
+                    <?php else: ?>
+                        <span class="pagination-btn disabled">다음</span>
+                    <?php endif; ?>
                 </div>
             <?php endif; ?>
         <?php endif; ?>
