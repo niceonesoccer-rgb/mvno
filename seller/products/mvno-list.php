@@ -48,8 +48,6 @@ $price_after_type = $_GET['price_after_type'] ?? ''; // 'free' or 'amount'
 $price_after_min = $_GET['price_after_min'] ?? '';
 $price_after_max = $_GET['price_after_max'] ?? '';
 $service_type = $_GET['service_type'] ?? '';
-$date_from = $_GET['date_from'] ?? '';
-$date_to = $_GET['date_to'] ?? '';
 $page = max(1, intval($_GET['page'] ?? 1));
 $perPage = intval($_GET['per_page'] ?? 10);
 // 허용된 per_page 값만 사용 (10, 20, 50, 100, 500)
@@ -138,16 +136,6 @@ try {
         if ($service_type && $service_type !== '') {
             $whereConditions[] = 'mvno.service_type = :service_type';
             $params[':service_type'] = $service_type;
-        }
-        
-        // 등록일 구간 필터
-        if ($date_from && $date_from !== '') {
-            $whereConditions[] = 'DATE(p.created_at) >= :date_from';
-            $params[':date_from'] = $date_from;
-        }
-        if ($date_to && $date_to !== '') {
-            $whereConditions[] = 'DATE(p.created_at) <= :date_to';
-            $params[':date_to'] = $date_to;
         }
         
         $whereClause = implode(' AND ', $whereConditions);
@@ -702,15 +690,6 @@ include __DIR__ . '/../includes/seller-header.php';
                     </select>
                 </div>
                 
-                <div class="filter-group">
-                    <label class="filter-label">등록일:</label>
-                    <div class="filter-input-group">
-                        <input type="date" class="filter-input" id="filter_date_from" value="<?php echo htmlspecialchars($date_from); ?>">
-                        <span style="color: #6b7280;">~</span>
-                        <input type="date" class="filter-input" id="filter_date_to" value="<?php echo htmlspecialchars($date_to); ?>">
-                    </div>
-                </div>
-                
                 <div class="filter-group" style="display: flex; align-items: center; gap: 8px;">
                     <div>
                         <label class="filter-label">할인 후 요금:</label>
@@ -873,8 +852,6 @@ include __DIR__ . '/../includes/seller-header.php';
                 if ($price_after_min) $queryParams['price_after_min'] = $price_after_min;
                 if ($price_after_max) $queryParams['price_after_max'] = $price_after_max;
                 if ($service_type) $queryParams['service_type'] = $service_type;
-                if ($date_from) $queryParams['date_from'] = $date_from;
-                if ($date_to) $queryParams['date_to'] = $date_to;
                 $queryParams['per_page'] = $perPage;
                 $queryString = http_build_query($queryParams);
                 ?>
@@ -969,17 +946,6 @@ function applyFilters() {
         params.set('service_type', serviceType);
     }
     
-    // 등록일
-    const dateFrom = document.getElementById('filter_date_from').value;
-    if (dateFrom) {
-        params.set('date_from', dateFrom);
-    }
-    
-    const dateTo = document.getElementById('filter_date_to').value;
-    if (dateTo) {
-        params.set('date_to', dateTo);
-    }
-    
     // per_page 유지
     const perPage = new URLSearchParams(window.location.search).get('per_page');
     if (perPage) {
@@ -1043,8 +1009,6 @@ function resetFilters() {
     document.getElementById('filter_price_after_max').value = '';
     
     document.getElementById('filter_service_type').value = '';
-    document.getElementById('filter_date_from').value = '';
-    document.getElementById('filter_date_to').value = '';
     
     // 필드 숨기기
     document.getElementById('contract_period_days_wrapper').style.display = 'none';

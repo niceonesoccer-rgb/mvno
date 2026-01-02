@@ -109,26 +109,29 @@ try {
         
         $whereClause = implode(' AND ', $whereConditions);
         
+        // 판매자 정보를 항상 가져오기 위해 users 테이블 LEFT JOIN
+        $searchJoin = "LEFT JOIN users u ON p.seller_id = u.user_id AND u.role = 'seller'";
+        
         // 통합 검색 조건 추가
         $searchWhere = '';
-        $searchJoin = '';
-        
         if ($search_query && trim($search_query) !== '') {
-            // 검색할 때만 users 테이블 JOIN
-            $searchJoin = "LEFT JOIN users u ON CAST(p.seller_id AS CHAR) = u.user_id";
+            $searchParam = '%' . $search_query . '%';
             $searchWhere = " AND (
-                inet.speed_option LIKE :search_query
-                OR inet.registration_place LIKE :search_query
-                OR CAST(p.seller_id AS CHAR) LIKE :search_query
-                OR u.user_id LIKE :search_query
-                OR COALESCE(u.seller_name, '') LIKE :search_query
-                OR u.name LIKE :search_query
-                OR COALESCE(u.company_name, '') LIKE :search_query
+                inet.speed_option LIKE :search_query1
+                OR inet.registration_place LIKE :search_query2
+                OR CAST(p.seller_id AS CHAR) LIKE :search_query3
+                OR u.user_id LIKE :search_query4
+                OR COALESCE(u.seller_name, '') LIKE :search_query5
+                OR u.name LIKE :search_query6
+                OR COALESCE(u.company_name, '') LIKE :search_query7
             )";
-        } else {
-            // 검색이 없을 때는 JOIN 없이 상품만 가져오기
-            // 판매자 정보는 나중에 별도로 가져옴
-            $searchJoin = "";
+            $params[':search_query1'] = $searchParam;
+            $params[':search_query2'] = $searchParam;
+            $params[':search_query3'] = $searchParam;
+            $params[':search_query4'] = $searchParam;
+            $params[':search_query5'] = $searchParam;
+            $params[':search_query6'] = $searchParam;
+            $params[':search_query7'] = $searchParam;
         }
         
         // 전체 개수 조회
@@ -144,11 +147,6 @@ try {
         $countStmt = $pdo->prepare($countSql);
         foreach ($params as $key => $value) {
             $countStmt->bindValue($key, $value);
-        }
-        if ($search_query && $search_query !== '') {
-            $searchParam = '%' . $search_query . '%';
-            $countStmt->bindValue(':search_query', $searchParam);
-            error_log("인터넷 상품 검색 실행: search_query = " . $search_query . ", searchParam = " . $searchParam);
         }
         $countStmt->execute();
         $totalProducts = $countStmt->fetch()['total'];
@@ -181,11 +179,6 @@ try {
             
             foreach ($params as $key => $value) {
                 $stmt->bindValue($key, $value);
-            }
-            if ($search_query && $search_query !== '') {
-                $searchParam = '%' . $search_query . '%';
-                $stmt->bindValue(':search_query', $searchParam);
-                error_log("인터넷 상품 LIST 검색 파라미터: search_query = " . $search_query . ", searchParam = " . $searchParam);
             }
             $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
             $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);

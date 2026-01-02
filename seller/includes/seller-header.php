@@ -735,29 +735,6 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         </div>
         
         <div class="menu-section">
-            <div class="menu-section-title">고객 지원</div>
-            <a href="/MVNO/seller/inquiry/inquiry-list.php" class="menu-item <?php echo (strpos($currentPage, 'inquiry') !== false) ? 'active' : ''; ?>">
-                <span class="menu-item-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                        <path d="M13 8H7"/>
-                        <path d="M17 12H7"/>
-                    </svg>
-                </span>
-                1:1 문의
-            </a>
-            <a href="/MVNO/seller/notice/" class="menu-item <?php echo (strpos($_SERVER['REQUEST_URI'], '/seller/notice/') !== false) ? 'active' : ''; ?>">
-                <span class="menu-item-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-                    </svg>
-                </span>
-                공지사항
-            </a>
-        </div>
-        
-        <div class="menu-section">
             <div class="menu-section-title">상품 등록</div>
             <a href="/MVNO/seller/products/mno-sim.php" class="menu-item menu-item-sub <?php echo ($currentPage === 'mno-sim.php' && strpos($_SERVER['REQUEST_URI'], '/products/') !== false && strpos($_SERVER['REQUEST_URI'], '/orders/') === false) ? 'active' : ''; ?>">
                 <span class="menu-item-icon">
@@ -795,6 +772,29 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                     </svg>
                 </span>
                 인터넷
+            </a>
+        </div>
+        
+        <div class="menu-section">
+            <div class="menu-section-title">고객 지원</div>
+            <a href="/MVNO/seller/inquiry/inquiry-list.php" class="menu-item <?php echo (strpos($currentPage, 'inquiry') !== false) ? 'active' : ''; ?>">
+                <span class="menu-item-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                        <path d="M13 8H7"/>
+                        <path d="M17 12H7"/>
+                    </svg>
+                </span>
+                1:1 문의
+            </a>
+            <a href="/MVNO/seller/notice/" class="menu-item <?php echo (strpos($_SERVER['REQUEST_URI'], '/seller/notice/') !== false) ? 'active' : ''; ?>">
+                <span class="menu-item-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                    </svg>
+                </span>
+                공지사항
             </a>
         </div>
         

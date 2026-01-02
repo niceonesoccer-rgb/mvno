@@ -196,8 +196,6 @@ if ($status === '') {
 
 $search_query = $_GET['search_query'] ?? '';
 $provider = $_GET['provider'] ?? '';
-$date_from = $_GET['date_from'] ?? '';
-$date_to = $_GET['date_to'] ?? '';
 $page = max(1, intval($_GET['page'] ?? 1));
 $perPage = intval($_GET['per_page'] ?? 10);
 if (!in_array($perPage, [10, 20, 50, 100, 500])) {
@@ -228,16 +226,6 @@ try {
         if ($provider && $provider !== '') {
             $whereConditions[] = 'mno_sim.provider = :provider';
             $params[':provider'] = $provider;
-        }
-        
-        // 등록일 구간 필터
-        if ($date_from && $date_from !== '') {
-            $whereConditions[] = 'DATE(p.created_at) >= :date_from';
-            $params[':date_from'] = $date_from;
-        }
-        if ($date_to && $date_to !== '') {
-            $whereConditions[] = 'DATE(p.created_at) <= :date_to';
-            $params[':date_to'] = $date_to;
         }
         
         $whereClause = implode(' AND ', $whereConditions);
@@ -698,13 +686,6 @@ include __DIR__ . '/../includes/seller-header.php';
                     <label class="filter-label">검색:</label>
                     <input type="text" class="filter-input" id="filter_search_query" placeholder="상품명, 통신사" value="<?php echo htmlspecialchars($search_query); ?>" style="width: 250px;" onkeypress="if(event.key==='Enter') applyFilters()">
                 </div>
-                
-                <div class="filter-group">
-                    <label class="filter-label">등록일:</label>
-                    <input type="date" class="filter-input" id="filter_date_from" value="<?php echo htmlspecialchars($date_from); ?>">
-                    <span style="color: #6b7280;">~</span>
-                    <input type="date" class="filter-input" id="filter_date_to" value="<?php echo htmlspecialchars($date_to); ?>">
-                </div>
             </div>
         </div>
         
@@ -890,21 +871,29 @@ include __DIR__ . '/../includes/seller-header.php';
                     $nextGroupFirstPage = $currentGroup * $pageGroupSize + 1;
                 }
                 ?>
+                <?php
+                $paginationParams = [];
+                if ($status) $paginationParams['status'] = $status;
+                if ($search_query) $paginationParams['search_query'] = $search_query;
+                if ($provider) $paginationParams['provider'] = $provider;
+                $paginationParams['per_page'] = $perPage;
+                $paginationQuery = http_build_query($paginationParams);
+                ?>
                 <div class="pagination">
                     <?php if ($prevGroupLastPage > 0): ?>
-                        <a href="?status=<?php echo htmlspecialchars($status ?? ''); ?>&search_query=<?php echo htmlspecialchars($search_query); ?>&provider=<?php echo htmlspecialchars($provider); ?>&date_from=<?php echo htmlspecialchars($date_from); ?>&date_to=<?php echo htmlspecialchars($date_to); ?>&per_page=<?php echo $perPage; ?>&page=<?php echo $prevGroupLastPage; ?>" 
+                        <a href="?<?php echo $paginationQuery; ?>&page=<?php echo $prevGroupLastPage; ?>" 
                            class="pagination-btn">이전</a>
                     <?php else: ?>
                         <span class="pagination-btn disabled">이전</span>
                     <?php endif; ?>
                     
                     <?php for ($i = $startPage; $i <= $endPage; $i++): ?>
-                        <a href="?status=<?php echo htmlspecialchars($status ?? ''); ?>&search_query=<?php echo htmlspecialchars($search_query); ?>&provider=<?php echo htmlspecialchars($provider); ?>&date_from=<?php echo htmlspecialchars($date_from); ?>&date_to=<?php echo htmlspecialchars($date_to); ?>&per_page=<?php echo $perPage; ?>&page=<?php echo $i; ?>" 
+                        <a href="?<?php echo $paginationQuery; ?>&page=<?php echo $i; ?>" 
                            class="pagination-btn <?php echo $i === $page ? 'active' : ''; ?>"><?php echo $i; ?></a>
                     <?php endfor; ?>
                     
                     <?php if ($nextGroupFirstPage <= $totalPages): ?>
-                        <a href="?status=<?php echo htmlspecialchars($status ?? ''); ?>&search_query=<?php echo htmlspecialchars($search_query); ?>&provider=<?php echo htmlspecialchars($provider); ?>&date_from=<?php echo htmlspecialchars($date_from); ?>&date_to=<?php echo htmlspecialchars($date_to); ?>&per_page=<?php echo $perPage; ?>&page=<?php echo $nextGroupFirstPage; ?>" 
+                        <a href="?<?php echo $paginationQuery; ?>&page=<?php echo $nextGroupFirstPage; ?>" 
                            class="pagination-btn">다음</a>
                     <?php else: ?>
                         <span class="pagination-btn disabled">다음</span>
@@ -935,12 +924,6 @@ function applyFilters() {
     
     const searchQuery = document.getElementById('filter_search_query').value.trim();
     if (searchQuery) params.set('search_query', searchQuery);
-    
-    const dateFrom = document.getElementById('filter_date_from').value;
-    if (dateFrom) params.set('date_from', dateFrom);
-    
-    const dateTo = document.getElementById('filter_date_to').value;
-    if (dateTo) params.set('date_to', dateTo);
     
     const perPage = document.getElementById('per_page_select').value;
     params.set('per_page', perPage);

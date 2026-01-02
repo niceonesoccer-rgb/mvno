@@ -37,19 +37,9 @@ if (isset($currentUser['withdrawal_requested']) && $currentUser['withdrawal_requ
 // 필터 파라미터
 $status = isset($_GET['status']) && trim($_GET['status']) !== '' ? trim($_GET['status']) : null;
 $searchKeyword = trim($_GET['search_keyword'] ?? '');
-$dateRange = $_GET['date_range'] ?? '30'; // 기본값 30일
 $page = max(1, intval($_GET['page'] ?? 1));
 $perPageValue = isset($_GET['per_page']) ? intval($_GET['per_page']) : 10;
 $perPage = in_array($perPageValue, [10, 20, 50, 100]) ? $perPageValue : 10;
-
-// 날짜 설정
-$dateFrom = '';
-$dateTo = '';
-if ($dateRange !== 'all') {
-    $days = ['7' => 7, '30' => 30, '365' => 365][$dateRange] ?? 30;
-    $dateFrom = date('Y-m-d', strtotime("-{$days} days"));
-    $dateTo = date('Y-m-d');
-}
 
 // DB에서 주문 목록 가져오기
 $orders = [];
@@ -64,7 +54,8 @@ try {
         // WHERE 조건 구성
         $whereConditions = [
             'a.seller_id = :seller_id',
-            "a.product_type = 'mvno'"
+            "a.product_type = 'mvno'",
+            "p.product_type = 'mvno'"
         ];
         $params = [':seller_id' => $sellerId];
         
@@ -104,29 +95,21 @@ try {
             // 주문번호 검색
             $cleanOrder = preg_replace('/[^0-9]/', '', $searchKeyword);
             if (strlen($cleanOrder) >= 2) {
+                // 하이픈 제거한 숫자 검색
                 $searchConditions[] = "REPLACE(a.order_number, '-', '') LIKE :search_order";
                 $params[':search_order'] = '%' . $cleanOrder . '%';
                 
-                if (strlen($cleanOrder) >= 6) {
-                    $dateStr = '20' . substr($cleanOrder, 0, 2) . substr($cleanOrder, 2, 2) . substr($cleanOrder, 4, 2);
-                    $searchConditions[] = "DATE_FORMAT(a.created_at, '%Y%m%d') LIKE :search_date";
-                    $params[':search_date'] = '%' . $dateStr . '%';
-                }
+                // 원본 주문번호 검색 (하이픈 포함)
+                $searchConditions[] = 'a.order_number LIKE :search_order_original';
+                $params[':search_order_original'] = '%' . $searchKeyword . '%';
+                
+                // 주문번호 검색 시에는 날짜 검색을 제거 (너무 많은 결과를 반환함)
+                // 날짜 검색은 주문번호가 아닌 다른 검색에서만 사용
             }
             
             if (!empty($searchConditions)) {
                 $whereConditions[] = '(' . implode(' OR ', $searchConditions) . ')';
             }
-        }
-        
-        // 날짜 필터
-        if ($dateFrom && $dateFrom !== '') {
-            $whereConditions[] = 'DATE(a.created_at) >= :date_from';
-            $params[':date_from'] = $dateFrom;
-        }
-        if ($dateTo && $dateTo !== '') {
-            $whereConditions[] = 'DATE(a.created_at) <= :date_to';
-            $params[':date_to'] = $dateTo;
         }
         
         $whereClause = implode(' AND ', $whereConditions);
@@ -136,6 +119,8 @@ try {
             SELECT COUNT(DISTINCT a.id) as total
             FROM product_applications a
             INNER JOIN application_customers c ON a.id = c.application_id
+            INNER JOIN products p ON a.product_id = p.id AND p.product_type = 'mvno'
+            INNER JOIN product_mvno_details mvno ON p.id = mvno.product_id
             WHERE $whereClause
         ";
         $countStmt = $pdo->prepare($countSql);
@@ -198,8 +183,8 @@ try {
                 mvno.benefits
             FROM product_applications a
             INNER JOIN application_customers c ON a.id = c.application_id
-            INNER JOIN products p ON a.product_id = p.id
-            LEFT JOIN product_mvno_details mvno ON p.id = mvno.product_id
+            INNER JOIN products p ON a.product_id = p.id AND p.product_type = 'mvno'
+            INNER JOIN product_mvno_details mvno ON p.id = mvno.product_id
             WHERE $whereClause
             ORDER BY a.created_at DESC, a.id DESC
             LIMIT :limit OFFSET :offset
@@ -982,15 +967,6 @@ include __DIR__ . '/../includes/seller-header.php';
         <form method="GET" action="">
             <div class="filter-row">
                 <div class="filter-group">
-                    <label class="filter-label">기간</label>
-                    <select name="date_range" class="filter-select" id="date_range">
-                        <option value="30" <?php echo ($dateRange === '30' || empty($dateRange)) ? 'selected' : ''; ?>>30일</option>
-                        <option value="365" <?php echo $dateRange === '365' ? 'selected' : ''; ?>>1년</option>
-                        <option value="all" <?php echo $dateRange === 'all' ? 'selected' : ''; ?>>전체</option>
-                    </select>
-                </div>
-                
-                <div class="filter-group">
                     <label class="filter-label">진행상황</label>
                     <select name="status" id="status_select" class="filter-select">
                         <option value="" <?php echo (empty($status) || $status === null) ? 'selected' : ''; ?>>전체</option>
@@ -1005,12 +981,8 @@ include __DIR__ . '/../includes/seller-header.php';
                 
                 <div class="filter-group" style="flex: 2;">
                     <label class="filter-label">통합검색</label>
-                    <input type="text" name="search_keyword" class="filter-input" placeholder="주문번호, 고객명, 전화번호 검색" value="<?php echo htmlspecialchars($searchKeyword); ?>">
+                    <input type="text" name="search_keyword" class="filter-input" placeholder="주문번호, 고객명, 전화번호 검색" value="<?php echo htmlspecialchars($searchKeyword); ?>" onkeypress="if(event.key === 'Enter') { event.preventDefault(); this.form.submit(); }">
                 </div>
-                
-                <!-- 날짜 입력 필드는 숨김 처리 (기간 선택 시 자동 설정) -->
-                <input type="hidden" name="date_from" id="date_from" value="<?php echo htmlspecialchars($dateFrom); ?>">
-                <input type="hidden" name="date_to" id="date_to" value="<?php echo htmlspecialchars($dateTo); ?>">
                 
                 <div class="filter-actions" style="display: flex; align-items: flex-end; gap: 8px; margin-top: 0;">
                     <button type="submit" class="btn-filter btn-filter-primary">검색</button>
@@ -1169,31 +1141,8 @@ include __DIR__ . '/../includes/seller-header.php';
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const dateRangeSelect = document.getElementById('date_range');
-    const dateFromInput = document.getElementById('date_from');
-    const dateToInput = document.getElementById('date_to');
     const statusSelect = document.getElementById('status_select');
     const filterForm = document.querySelector('.orders-filters form');
-    
-    if (dateRangeSelect && dateFromInput && dateToInput) {
-        const updateDates = () => {
-            const days = {7: 7, 30: 30, 365: 365}[dateRangeSelect.value];
-            if (days) {
-                const date = new Date();
-                date.setDate(date.getDate() - days);
-                dateFromInput.value = date.toISOString().split('T')[0];
-                dateToInput.value = new Date().toISOString().split('T')[0];
-            } else {
-                dateFromInput.value = dateToInput.value = '';
-            }
-        };
-        dateRangeSelect.addEventListener('change', updateDates);
-        [dateFromInput, dateToInput].forEach(input => {
-            input.addEventListener('change', () => {
-                if (input.value) dateRangeSelect.value = 'all';
-            });
-        });
-    }
     
     if (statusSelect) {
         const urlParams = new URLSearchParams(window.location.search);

@@ -36,19 +36,9 @@ if (isset($currentUser['withdrawal_requested']) && $currentUser['withdrawal_requ
 // 필터 파라미터
 $status = isset($_GET['status']) && trim($_GET['status']) !== '' ? trim($_GET['status']) : null;
 $searchKeyword = trim($_GET['search_keyword'] ?? '');
-$dateRange = $_GET['date_range'] ?? '30'; // 기본값을 30일로 변경
 $page = max(1, intval($_GET['page'] ?? 1));
 $perPageValue = isset($_GET['per_page']) ? intval($_GET['per_page']) : 10;
 $perPage = in_array($perPageValue, [10, 20, 50, 100]) ? $perPageValue : 10;
-
-// 날짜 설정
-$dateFrom = '';
-$dateTo = '';
-if ($dateRange !== 'all') {
-    $days = ['30' => 30, '365' => 365][$dateRange] ?? 30; // 기본값을 30일로 변경, 7일 옵션 제거
-    $dateFrom = date('Y-m-d', strtotime("-{$days} days"));
-    $dateTo = date('Y-m-d');
-}
 
 // DB에서 주문 목록 가져오기
 $orders = [];
@@ -63,7 +53,8 @@ try {
         // WHERE 조건 구성
         $whereConditions = [
             'a.seller_id = :seller_id',
-            "a.product_type = 'internet'"
+            "a.product_type = 'internet'",
+            "p.product_type = 'internet'"
         ];
         $params = [':seller_id' => $sellerId];
         
@@ -99,30 +90,31 @@ try {
             
             // 주문번호 검색
             $cleanOrder = preg_replace('/[^0-9]/', '', $searchKeyword);
+            error_log("Internet Orders - Search Debug: searchKeyword='$searchKeyword', cleanOrder='$cleanOrder', strlen(cleanOrder)=" . strlen($cleanOrder));
+            
             if (strlen($cleanOrder) >= 2) {
+                // 하이픈 제거한 숫자 검색
                 $searchConditions[] = "REPLACE(a.order_number, '-', '') LIKE :search_order";
                 $params[':search_order'] = '%' . $cleanOrder . '%';
                 
-                if (strlen($cleanOrder) >= 6) {
-                    $dateStr = '20' . substr($cleanOrder, 0, 2) . substr($cleanOrder, 2, 2) . substr($cleanOrder, 4, 2);
-                    $searchConditions[] = "DATE_FORMAT(a.created_at, '%Y%m%d') LIKE :search_date";
-                    $params[':search_date'] = '%' . $dateStr . '%';
-                }
+                // 원본 주문번호 검색 (하이픈 포함)
+                $searchConditions[] = 'a.order_number LIKE :search_order_original';
+                $params[':search_order_original'] = '%' . $searchKeyword . '%';
+                
+                error_log("Internet Orders - Search Debug: Added order search conditions. search_order='%$cleanOrder%', search_order_original='%$searchKeyword%'");
+                
+                // 주문번호 검색 시에는 날짜 검색을 제거 (너무 많은 결과를 반환함)
+                // 날짜 검색은 주문번호가 아닌 다른 검색에서만 사용
+            } else {
+                error_log("Internet Orders - Search Debug: cleanOrder length < 2, skipping order number search");
             }
             
             if (!empty($searchConditions)) {
                 $whereConditions[] = '(' . implode(' OR ', $searchConditions) . ')';
+                error_log("Internet Orders - Search Debug: Final searchConditions count=" . count($searchConditions));
+            } else {
+                error_log("Internet Orders - Search Debug: searchConditions is empty!");
             }
-        }
-        
-        // 날짜 필터
-        if ($dateFrom && $dateFrom !== '') {
-            $whereConditions[] = 'DATE(a.created_at) >= :date_from';
-            $params[':date_from'] = $dateFrom;
-        }
-        if ($dateTo && $dateTo !== '') {
-            $whereConditions[] = 'DATE(a.created_at) <= :date_to';
-            $params[':date_to'] = $dateTo;
         }
         
         $whereClause = implode(' AND ', $whereConditions);
@@ -132,11 +124,29 @@ try {
             SELECT COUNT(DISTINCT a.id) as total
             FROM product_applications a
             INNER JOIN application_customers c ON a.id = c.application_id
+            INNER JOIN products p ON a.product_id = p.id AND p.product_type = 'internet'
+            INNER JOIN product_internet_details internet ON p.id = internet.product_id
             WHERE $whereClause
         ";
+        
+        // 디버깅 로그
+        error_log("Internet Orders - Search Keyword: " . ($searchKeyword ?? 'empty'));
+        error_log("Internet Orders - WHERE Clause: " . $whereClause);
+        error_log("Internet Orders - COUNT SQL: " . $countSql);
+        error_log("Internet Orders - Params: " . json_encode($params));
+        
         $countStmt = $pdo->prepare($countSql);
-        $countStmt->execute($params);
-        $totalOrders = $countStmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
+        try {
+            $countStmt->execute($params);
+            $totalOrders = $countStmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
+            error_log("Internet Orders - COUNT Query Success. Total Orders: " . $totalOrders);
+        } catch (PDOException $e) {
+            error_log("Internet Orders - COUNT Query Error: " . $e->getMessage());
+            error_log("Internet Orders - COUNT SQL: " . $countSql);
+            error_log("Internet Orders - COUNT Params: " . json_encode($params));
+            $totalOrders = 0;
+        }
+        
         $totalPages = $perPage > 0 ? max(1, ceil($totalOrders / $perPage)) : 1;
         
         // 주문 목록 조회 (중복 방지를 위해 DISTINCT 사용)
@@ -168,20 +178,43 @@ try {
                 internet.installation_prices
             FROM product_applications a
             INNER JOIN application_customers c ON a.id = c.application_id
-            INNER JOIN products p ON a.product_id = p.id
-            LEFT JOIN product_internet_details internet ON p.id = internet.product_id
+            INNER JOIN products p ON a.product_id = p.id AND p.product_type = 'internet'
+            INNER JOIN product_internet_details internet ON p.id = internet.product_id
             WHERE $whereClause
             ORDER BY a.created_at DESC, a.id DESC
             LIMIT :limit OFFSET :offset
         ";
+        
+        error_log("Internet Orders - SELECT SQL: " . $sql);
+        error_log("Internet Orders - SELECT Params: " . json_encode($params));
+        error_log("Internet Orders - Limit: $perPage, Offset: $offset");
+        
         $stmt = $pdo->prepare($sql);
         foreach ($params as $key => $value) {
             $stmt->bindValue($key, $value);
         }
         $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
         $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-        $stmt->execute();
-        $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        try {
+            $stmt->execute();
+            $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            error_log("Internet Orders - SELECT Query Success. Fetched " . count($orders) . " orders");
+            
+            // 검색 결과의 주문번호 확인
+            if (!empty($orders) && !empty($searchKeyword)) {
+                $orderNumbers = array_column($orders, 'order_number');
+                error_log("Internet Orders - Search Result Order Numbers (first 10): " . implode(', ', array_slice($orderNumbers, 0, 10)));
+                if (count($orderNumbers) > 10) {
+                    error_log("Internet Orders - Total order numbers in result: " . count($orderNumbers));
+                }
+            }
+        } catch (PDOException $e) {
+            error_log("Internet Orders - SELECT Query Error: " . $e->getMessage());
+            error_log("Internet Orders - SELECT SQL: " . $sql);
+            error_log("Internet Orders - SELECT Params: " . json_encode($params));
+            $orders = [];
+        }
         
         // 주문 데이터 정규화
         foreach ($orders as &$order) {
@@ -828,15 +861,6 @@ include __DIR__ . '/../includes/seller-header.php';
         <form method="GET" action="">
             <div class="filter-row">
                 <div class="filter-group">
-                    <label class="filter-label">기간</label>
-                    <select name="date_range" class="filter-select" id="date_range">
-                        <option value="30" <?php echo $dateRange === '30' ? 'selected' : ''; ?>>30일</option>
-                        <option value="365" <?php echo $dateRange === '365' ? 'selected' : ''; ?>>1년</option>
-                        <option value="all" <?php echo $dateRange === 'all' ? 'selected' : ''; ?>>전체</option>
-                    </select>
-                </div>
-                
-                <div class="filter-group">
                     <label class="filter-label">진행상황</label>
                     <select name="status" class="filter-select">
                         <option value="" <?php echo (empty($status) || $status === null) ? 'selected' : ''; ?>>전체</option>
@@ -850,12 +874,8 @@ include __DIR__ . '/../includes/seller-header.php';
                 
                 <div class="filter-group" style="flex: 2;">
                     <label class="filter-label">통합검색</label>
-                    <input type="text" name="search_keyword" class="filter-input" placeholder="주문번호, 고객명, 전화번호 검색" value="<?php echo htmlspecialchars($searchKeyword); ?>">
+                    <input type="text" name="search_keyword" class="filter-input" placeholder="주문번호, 고객명, 전화번호 검색" value="<?php echo htmlspecialchars($searchKeyword); ?>" onkeypress="if(event.key === 'Enter') { event.preventDefault(); this.form.submit(); }">
                 </div>
-                
-                <!-- 날짜 입력 필드는 숨김 처리 (기간 선택 시 자동 설정) -->
-                <input type="hidden" name="date_from" id="date_from" value="<?php echo htmlspecialchars($dateFrom); ?>">
-                <input type="hidden" name="date_to" id="date_to" value="<?php echo htmlspecialchars($dateTo); ?>">
                 
                 <div class="filter-actions" style="display: flex; align-items: flex-end; gap: 8px; margin-top: 0;">
                     <button type="submit" class="btn-filter btn-filter-primary">검색</button>
@@ -999,26 +1019,29 @@ include __DIR__ . '/../includes/seller-header.php';
             </table>
             
             <!-- 페이지네이션 -->
-            <?php if ($totalPages > 1): ?>
+            <?php if ($totalPages > 1): 
+                $paginationParams = array_filter($_GET, fn($v, $k) => $k !== 'status' || $v !== '', ARRAY_FILTER_USE_BOTH);
+                // 페이지 그룹 계산 (10개씩 그룹화)
+                $pageGroupSize = 10;
+                $currentGroup = ceil($page / $pageGroupSize);
+                $startPage = ($currentGroup - 1) * $pageGroupSize + 1;
+                $endPage = min($currentGroup * $pageGroupSize, $totalPages);
+                $prevGroupLastPage = ($currentGroup - 1) * $pageGroupSize;
+                $nextGroupFirstPage = $currentGroup * $pageGroupSize + 1;
+            ?>
                 <div class="pagination">
-                    <?php if ($page > 1): ?>
-                        <a href="?<?php echo http_build_query(array_merge($_GET, ['page' => $page - 1])); ?>">이전</a>
+                    <?php if ($currentGroup > 1): ?>
+                        <a href="?<?php echo http_build_query(array_merge($paginationParams, ['page' => $prevGroupLastPage])); ?>">이전</a>
                     <?php endif; ?>
-                    
-                    <?php
-                    $startPage = max(1, $page - 2);
-                    $endPage = min($totalPages, $page + 2);
-                    for ($i = $startPage; $i <= $endPage; $i++):
-                    ?>
+                    <?php for ($i = $startPage; $i <= $endPage; $i++): ?>
                         <?php if ($i == $page): ?>
                             <span class="current"><?php echo $i; ?></span>
                         <?php else: ?>
-                            <a href="?<?php echo http_build_query(array_merge($_GET, ['page' => $i])); ?>"><?php echo $i; ?></a>
+                            <a href="?<?php echo http_build_query(array_merge($paginationParams, ['page' => $i])); ?>"><?php echo $i; ?></a>
                         <?php endif; ?>
                     <?php endfor; ?>
-                    
-                    <?php if ($page < $totalPages): ?>
-                        <a href="?<?php echo http_build_query(array_merge($_GET, ['page' => $page + 1])); ?>">다음</a>
+                    <?php if ($nextGroupFirstPage <= $totalPages): ?>
+                        <a href="?<?php echo http_build_query(array_merge($paginationParams, ['page' => $nextGroupFirstPage])); ?>">다음</a>
                     <?php endif; ?>
                 </div>
             <?php endif; ?>
@@ -1027,31 +1050,6 @@ include __DIR__ . '/../includes/seller-header.php';
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const dateRangeSelect = document.getElementById('date_range');
-    const dateFromInput = document.getElementById('date_from');
-    const dateToInput = document.getElementById('date_to');
-    
-    if (dateRangeSelect && dateFromInput && dateToInput) {
-        const updateDates = () => {
-            const days = {7: 7, 30: 30, 365: 365}[dateRangeSelect.value];
-            if (days) {
-                const date = new Date();
-                date.setDate(date.getDate() - days);
-                dateFromInput.value = date.toISOString().split('T')[0];
-                dateToInput.value = new Date().toISOString().split('T')[0];
-            } else {
-                dateFromInput.value = dateToInput.value = '';
-            }
-        };
-        dateRangeSelect.addEventListener('change', updateDates);
-        [dateFromInput, dateToInput].forEach(input => {
-            input.addEventListener('change', () => {
-                if (input.value) dateRangeSelect.value = 'all';
-            });
-        });
-    }
-});
 
 // 상품 정보 모달 표시
 function showProductInfo(order, productType) {

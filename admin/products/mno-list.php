@@ -63,14 +63,21 @@ try {
         // 통합 검색 조건 추가
         $searchWhere = '';
         if ($search_query && $search_query !== '') {
+            $searchParam = '%' . $search_query . '%';
             $searchWhere = " AND (
-                mno.device_name LIKE :search_query
-                OR p.seller_id LIKE :search_query
-                OR u.user_id LIKE :search_query
-                OR u.seller_name LIKE :search_query
-                OR u.name LIKE :search_query
-                OR u.company_name LIKE :search_query
+                mno.device_name LIKE :search_query1
+                OR CAST(p.seller_id AS CHAR) LIKE :search_query2
+                OR u.user_id LIKE :search_query3
+                OR COALESCE(u.seller_name, '') LIKE :search_query4
+                OR u.name LIKE :search_query5
+                OR COALESCE(u.company_name, '') LIKE :search_query6
             )";
+            $params[':search_query1'] = $searchParam;
+            $params[':search_query2'] = $searchParam;
+            $params[':search_query3'] = $searchParam;
+            $params[':search_query4'] = $searchParam;
+            $params[':search_query5'] = $searchParam;
+            $params[':search_query6'] = $searchParam;
         }
         
         // 전체 개수 조회
@@ -84,10 +91,6 @@ try {
             ");
             foreach ($params as $key => $value) {
                 $countStmt->bindValue($key, $value);
-            }
-            if ($search_query && $search_query !== '') {
-                $searchParam = '%' . $search_query . '%';
-                $countStmt->bindValue(':search_query', $searchParam);
             }
             $countStmt->execute();
             $totalProducts = $countStmt->fetch()['total'];
@@ -130,10 +133,6 @@ try {
             
             foreach ($params as $key => $value) {
                 $stmt->bindValue($key, $value);
-            }
-            if ($search_query && $search_query !== '') {
-                $searchParam = '%' . $search_query . '%';
-                $stmt->bindValue(':search_query', $searchParam);
             }
             $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
             $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
@@ -921,7 +920,7 @@ try {
                 
                 <div class="filter-group" style="flex: 1; margin-left: -8px;">
                     <label class="filter-label" style="text-align: right;">통합 검색:</label>
-                    <input type="text" class="filter-input" id="filter_search_query" placeholder="판매자 ID / 판매자명 / 회사명 / 단말기명 검색" value="<?php echo htmlspecialchars($search_query); ?>" style="width: 100%;">
+                    <input type="text" class="filter-input" id="filter_search_query" placeholder="판매자 ID / 판매자명 / 회사명 / 단말기명 검색" value="<?php echo htmlspecialchars($search_query); ?>" style="width: 100%;" onkeypress="if(event.key === 'Enter') { event.preventDefault(); applyFilters(); }">
                 </div>
             </div>
         </div>
@@ -1174,9 +1173,7 @@ function applyFilters() {
     // 통합 검색
     const searchInput = document.getElementById('filter_search_query');
     const searchQuery = searchInput ? searchInput.value.trim() : '';
-    // 플레이스홀더 텍스트와 일치하는 경우 검색하지 않음
-    const placeholder = searchInput ? searchInput.placeholder : '';
-    if (searchQuery && searchQuery !== placeholder && searchQuery !== placeholder.replace(' 검색', '')) {
+    if (searchQuery) {
         params.set('search_query', searchQuery);
     }
     

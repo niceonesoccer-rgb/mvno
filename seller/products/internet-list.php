@@ -41,8 +41,6 @@ if ($status === '') {
 }
 $registrationPlace = $_GET['registration_place'] ?? '';
 $speedOption = $_GET['speed_option'] ?? '';
-$dateFrom = $_GET['date_from'] ?? '';
-$dateTo = $_GET['date_to'] ?? '';
 $page = max(1, intval($_GET['page'] ?? 1));
 $perPage = isset($_GET['per_page']) ? intval($_GET['per_page']) : 10;
 if (!in_array($perPage, [10, 20, 50, 100, 500])) {
@@ -80,16 +78,6 @@ try {
         if ($speedOption && $speedOption !== '') {
             $whereConditions[] = 'inet.speed_option = :speed_option';
             $params[':speed_option'] = $speedOption;
-        }
-        
-        // 등록일 구간 필터
-        if ($dateFrom && $dateFrom !== '') {
-            $whereConditions[] = 'DATE(p.created_at) >= :date_from';
-            $params[':date_from'] = $dateFrom;
-        }
-        if ($dateTo && $dateTo !== '') {
-            $whereConditions[] = 'DATE(p.created_at) <= :date_to';
-            $params[':date_to'] = $dateTo;
         }
         
         $whereClause = implode(' AND ', $whereConditions);
@@ -604,13 +592,6 @@ include __DIR__ . '/../includes/seller-header.php';
                         <option value="10G" <?php echo $speedOption === '10G' ? 'selected' : ''; ?>>10G</option>
                     </select>
                 </div>
-                
-                <div class="filter-group">
-                    <label class="filter-label">등록일:</label>
-                    <input type="date" class="filter-input" id="filter_date_from" value="<?php echo htmlspecialchars($dateFrom); ?>">
-                    <span style="color: #6b7280;">~</span>
-                    <input type="date" class="filter-input" id="filter_date_to" value="<?php echo htmlspecialchars($dateTo); ?>">
-                </div>
             </div>
         </div>
         
@@ -744,8 +725,6 @@ include __DIR__ . '/../includes/seller-header.php';
                     if ($status) $paginationParams['status'] = $status;
                     if ($registrationPlace) $paginationParams['registration_place'] = $registrationPlace;
                     if ($speedOption) $paginationParams['speed_option'] = $speedOption;
-                    if ($dateFrom) $paginationParams['date_from'] = $dateFrom;
-                    if ($dateTo) $paginationParams['date_to'] = $dateTo;
                     $paginationParams['per_page'] = $perPage;
                     $paginationQuery = http_build_query($paginationParams);
                     ?>
@@ -803,9 +782,6 @@ function applyFilters() {
     const status = document.getElementById('filter_status').value;
     const registrationPlace = document.getElementById('filter_registration_place').value;
     const speedOption = document.getElementById('filter_speed_option').value;
-    const dateFrom = document.getElementById('filter_date_from').value;
-    const dateTo = document.getElementById('filter_date_to').value;
-    const perPage = document.getElementById('filter_per_page').value;
     const params = new URLSearchParams();
     
     if (status && status !== '') {
@@ -816,15 +792,6 @@ function applyFilters() {
     }
     if (speedOption && speedOption !== '') {
         params.set('speed_option', speedOption);
-    }
-    if (dateFrom && dateFrom !== '') {
-        params.set('date_from', dateFrom);
-    }
-    if (dateTo && dateTo !== '') {
-        params.set('date_to', dateTo);
-    }
-    if (perPage && perPage !== '10') {
-        params.set('per_page', perPage);
     }
     params.delete('page');
     

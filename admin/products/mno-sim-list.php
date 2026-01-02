@@ -73,15 +73,21 @@ try {
         // 통합 검색 조건 추가
         $searchWhere = '';
         if ($search_query && $search_query !== '') {
+            $searchParam = '%' . $search_query . '%';
             $searchWhere = " AND (
-                mno_sim.plan_name LIKE :search_query
-                OR mno_sim.provider LIKE :search_query
-                OR p.seller_id LIKE :search_query
-                OR u.user_id LIKE :search_query
-                OR u.seller_name LIKE :search_query
-                OR u.name LIKE :search_query
-                OR u.company_name LIKE :search_query
+                mno_sim.plan_name LIKE :search_query1
+                OR CAST(p.seller_id AS CHAR) LIKE :search_query2
+                OR u.user_id LIKE :search_query3
+                OR COALESCE(u.seller_name, '') LIKE :search_query4
+                OR u.name LIKE :search_query5
+                OR COALESCE(u.company_name, '') LIKE :search_query6
             )";
+            $params[':search_query1'] = $searchParam;
+            $params[':search_query2'] = $searchParam;
+            $params[':search_query3'] = $searchParam;
+            $params[':search_query4'] = $searchParam;
+            $params[':search_query5'] = $searchParam;
+            $params[':search_query6'] = $searchParam;
         }
         
         // 전체 개수 조회
@@ -94,10 +100,6 @@ try {
         ");
         foreach ($params as $key => $value) {
             $countStmt->bindValue($key, $value);
-        }
-        if ($search_query && $search_query !== '') {
-            $searchParam = '%' . $search_query . '%';
-            $countStmt->bindValue(':search_query', $searchParam);
         }
         $countStmt->execute();
         $totalProducts = $countStmt->fetch()['total'];
@@ -114,6 +116,7 @@ try {
                 mno_sim.service_type,
                 mno_sim.registration_types,
                 p.seller_id AS seller_user_id,
+                u.user_id AS seller_user_id_display,
                 COALESCE(NULLIF(u.seller_name,''), NULLIF(u.company_name,''), NULLIF(u.name,''), u.user_id) AS seller_name,
                 COALESCE(u.company_name,'') AS company_name
             FROM products p
@@ -127,10 +130,6 @@ try {
         foreach ($params as $key => $value) {
             $stmt->bindValue($key, $value);
         }
-        if ($search_query && $search_query !== '') {
-            $searchParam = '%' . $search_query . '%';
-            $stmt->bindValue(':search_query', $searchParam);
-        }
         $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
         $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
         $stmt->execute();
@@ -140,6 +139,10 @@ try {
         // 판매자 정보 정리 (SQL에서 이미 가져왔지만, 없는 경우 처리)
         foreach ($products as &$product) {
             $sellerId = (string)($product['seller_user_id'] ?? $product['seller_id'] ?? '');
+            // seller_user_id_display가 없으면 seller_user_id나 seller_id 사용
+            if (empty($product['seller_user_id_display'])) {
+                $product['seller_user_id_display'] = $sellerId;
+            }
             if (empty($product['seller_name']) || $product['seller_name'] === null) {
                 $product['seller_name'] = '-';
             }
@@ -567,7 +570,7 @@ try {
                     
                     <div class="filter-group">
                         <label class="filter-label">검색:</label>
-                        <input type="text" class="filter-input" id="filter_search_query" placeholder="상품명, 통신사, 판매자명" value="<?php echo htmlspecialchars($search_query); ?>" style="width: 250px;" onkeypress="if(event.key==='Enter') applyFilters()">
+                        <input type="text" class="filter-input" id="filter_search_query" placeholder="아이디, 상품명, 판매자명" value="<?php echo htmlspecialchars($search_query); ?>" style="width: 250px;" onkeypress="if(event.key==='Enter') applyFilters()">
                     </div>
                     
                     <div class="filter-group">
@@ -612,11 +615,12 @@ try {
                                 <input type="checkbox" id="selectAll" class="product-checkbox" onchange="toggleSelectAll(this)">
                             </th>
                             <th>번호</th>
-                            <th>상품명</th>
+                            <th>판매자 아이디</th>
+                            <th>판매자</th>
                             <th>통신사</th>
+                            <th>상품명</th>
                             <th>데이터 속도</th>
                             <th>가입 형태</th>
-                            <th>판매자</th>
                             <th>월 요금</th>
                             <th>조회수</th>
                             <th>찜</th>
@@ -634,8 +638,19 @@ try {
                                            value="<?php echo $product['id']; ?>">
                                 </td>
                                 <td><?php echo ($page - 1) * $perPage + $index + 1; ?></td>
-                                <td><?php echo htmlspecialchars($product['product_name'] ?? '-'); ?></td>
+                                <td style="text-align: center;">
+                                    <?php 
+                                    $sellerId = $product['seller_user_id_display'] ?? $product['seller_user_id'] ?? $product['seller_id'] ?? '-';
+                                    if ($sellerId && $sellerId !== '-') {
+                                        echo '<a href="/MVNO/admin/users/seller-detail.php?user_id=' . urlencode($sellerId) . '" style="color: #3b82f6; text-decoration: none; font-weight: 600;">' . htmlspecialchars($sellerId) . '</a>';
+                                    } else {
+                                        echo '-';
+                                    }
+                                    ?>
+                                </td>
+                                <td><?php echo htmlspecialchars($product['seller_name'] ?? '-'); ?></td>
                                 <td><?php echo htmlspecialchars($product['provider'] ?? '-'); ?></td>
+                                <td><?php echo htmlspecialchars($product['product_name'] ?? '-'); ?></td>
                                 <td><?php echo htmlspecialchars($product['service_type'] ?? '-'); ?></td>
                                 <td>
                                     <?php
@@ -646,7 +661,6 @@ try {
                                     echo !empty($registrationTypes) ? htmlspecialchars(implode(', ', $registrationTypes)) : '-';
                                     ?>
                                 </td>
-                                <td><?php echo htmlspecialchars($product['seller_name'] ?? '-'); ?></td>
                                 <td>
                                     <?php
                                     $monthlyFee = $product['monthly_fee'] ?? 0;
@@ -737,9 +751,7 @@ function applyFilters() {
     
     const searchInput = document.getElementById('filter_search_query');
     const searchQuery = searchInput ? searchInput.value.trim() : '';
-    // 플레이스홀더 텍스트와 일치하는 경우 검색하지 않음
-    const placeholder = searchInput ? searchInput.placeholder : '';
-    if (searchQuery && searchQuery !== placeholder) {
+    if (searchQuery) {
         params.set('search_query', searchQuery);
     }
     
