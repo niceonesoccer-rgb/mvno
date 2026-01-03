@@ -1557,12 +1557,16 @@ button {
     display: flex;
     flex-wrap: wrap;
     gap: var(--spacing-md);
-    padding-top: var(--spacing-lg);
+    padding-bottom: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+    width: 100%;
+    justify-content: space-between;
 }
 
 .footer-terms-link,
 .footer-terms-link-bold {
-    font-size: var(--font-size-sm);
+    font-size: var(--font-size-base);
+    font-weight: 700;
     color: var(--color-gray-600);
     transition: color 0.2s;
 }
@@ -1723,6 +1727,11 @@ button {
         flex-direction: row;
         flex: 1;
         gap: var(--spacing-2xl);
+    }
+    
+    .footer-terms {
+        flex-basis: 100%;
+        order: -1;
     }
 }
 

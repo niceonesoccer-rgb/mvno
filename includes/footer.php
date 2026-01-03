@@ -8,6 +8,27 @@ $site = $siteSettings['site'] ?? [];
 <?php if (isset($is_main_page) && $is_main_page): ?>
     <footer class="footer">
         <div class="footer-body">
+            <!-- 약관 링크 및 기타 링크 (상단) -->
+            <?php 
+            $terms = $footer['terms'] ?? [];
+            $hasTerms = false;
+            if (!empty($terms['terms_of_service']['text']) || !empty($terms['privacy_policy']['text'])) {
+                $hasTerms = true;
+            }
+            ?>
+            <?php if ($hasTerms): ?>
+            <div class="footer-terms">
+                <?php if (!empty($terms['terms_of_service']['text'])): ?>
+                    <a href="<?php echo htmlspecialchars($terms['terms_of_service']['url'] ?? '/MVNO/terms/view.php?type=terms_of_service'); ?>" target="_blank" rel="noopener noreferrer" class="footer-terms-link"><?php echo htmlspecialchars($terms['terms_of_service']['text']); ?></a>
+                <?php endif; ?>
+                <?php if (!empty($terms['privacy_policy']['text'])): ?>
+                    <a href="<?php echo htmlspecialchars($terms['privacy_policy']['url'] ?? '/MVNO/terms/view.php?type=privacy_policy'); ?>" target="_blank" rel="noopener noreferrer" class="footer-terms-link-bold"><?php echo htmlspecialchars($terms['privacy_policy']['text']); ?></a>
+                <?php endif; ?>
+                <a href="https://spam.kisa.or.kr/spam/main.do" target="_blank" rel="noopener noreferrer" class="footer-terms-link">불법스팸대응센터</a>
+                <a href="https://www.msafer.or.kr/index.do" target="_blank" rel="noopener noreferrer" class="footer-terms-link">명의도용방지서비스</a>
+            </div>
+            <?php endif; ?>
+            
             <!-- 브랜드 로고 -->
             <a href="/MVNO/" aria-label="<?php echo htmlspecialchars($site['name_ko'] ?? '유심킹'); ?>" class="footer-brand"></a>
             
@@ -50,28 +71,6 @@ $site = $siteSettings['site'] ?? [];
                     <?php endif; ?>
                 </div>
             </div>
-            
-            <!-- 약관 링크 -->
-            <?php 
-            $terms = $footer['terms'] ?? [];
-            $hasTerms = false;
-            if (!empty($terms['terms_of_service']['text']) || !empty($terms['privacy_policy']['text']) || !empty($terms['information_security']['text'])) {
-                $hasTerms = true;
-            }
-            ?>
-            <?php if ($hasTerms): ?>
-            <div class="footer-terms">
-                <?php if (!empty($terms['terms_of_service']['text'])): ?>
-                    <a href="<?php echo htmlspecialchars($terms['terms_of_service']['url'] ?? '/MVNO/terms/view.php?type=terms_of_service'); ?>" target="_blank" rel="noopener noreferrer" class="footer-terms-link"><?php echo htmlspecialchars($terms['terms_of_service']['text']); ?></a>
-                <?php endif; ?>
-                <?php if (!empty($terms['privacy_policy']['text'])): ?>
-                    <a href="<?php echo htmlspecialchars($terms['privacy_policy']['url'] ?? '/MVNO/terms/view.php?type=privacy_policy'); ?>" target="_blank" rel="noopener noreferrer" class="footer-terms-link-bold"><?php echo htmlspecialchars($terms['privacy_policy']['text']); ?></a>
-                <?php endif; ?>
-                <?php if (!empty($terms['information_security']['text'])): ?>
-                    <a href="<?php echo htmlspecialchars($terms['information_security']['url'] ?? '/MVNO/terms/view.php?type=information_security'); ?>" target="_blank" rel="noopener noreferrer" class="footer-terms-link"><?php echo htmlspecialchars($terms['information_security']['text']); ?></a>
-                <?php endif; ?>
-            </div>
-            <?php endif; ?>
         </div>
     </footer>
 <?php endif; ?>
