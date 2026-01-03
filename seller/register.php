@@ -241,7 +241,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         // 판매 상품 선택 (permissions)
         $permissions = $_POST['permissions'] ?? [];
-        $allowedPermissions = ['mno', 'mvno', 'internet'];
+        $allowedPermissions = ['mno', 'mvno', 'internet', 'mno-sim'];
         $validPermissions = [];
         foreach ($permissions as $perm) {
             if (in_array($perm, $allowedPermissions)) {
@@ -1205,7 +1205,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 $permNames = [
                                     'mno' => 'MNO (통신사폰)',
                                     'mvno' => 'MVNO (알뜰폰)',
-                                    'internet' => 'INTERNET (인터넷)'
+                                    'internet' => 'INTERNET (인터넷)',
+                                    'mno-sim' => 'MNO-SIM (통신사단독유심)'
                                 ];
                                 foreach ($registeredData['permissions'] as $perm): 
                                     $permName = $permNames[$perm] ?? $perm;
@@ -1388,6 +1389,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     <div style="flex: 1;">
                                         <div style="font-size: 18px; font-weight: 700; color: #1f2937; margin-bottom: 4px;">INTERNET (인터넷)</div>
                                         <div style="font-size: 14px; color: #6b7280;">인터넷 상품을 판매합니다</div>
+                                    </div>
+                                </label>
+                                
+                                <label style="display: flex; align-items: center; padding: 20px; border: 2px solid #e5e7eb; border-radius: 12px; cursor: pointer; transition: all 0.3s; background: #ffffff;" onmouseover="this.style.borderColor='#667eea'; this.style.background='#f9fafb';" onmouseout="this.style.borderColor='#e5e7eb'; this.style.background='#ffffff';">
+                                    <input type="checkbox" name="permissions[]" value="mno-sim" style="width: 24px; height: 24px; margin-right: 16px; cursor: pointer; accent-color: #667eea;" <?php echo ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['permissions']) && in_array('mno-sim', $_POST['permissions'])) ? 'checked' : ''; ?>>
+                                    <div style="flex: 1;">
+                                        <div style="font-size: 18px; font-weight: 700; color: #1f2937; margin-bottom: 4px;">MNO-SIM (통신사단독유심)</div>
+                                        <div style="font-size: 14px; color: #6b7280;">통신사단독유심 상품을 판매합니다</div>
                                     </div>
                                 </label>
                             </div>

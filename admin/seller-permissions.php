@@ -227,6 +227,11 @@ if ($targetUserId) {
             color: #166534;
         }
         
+        .permission-badge.mno-sim {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
         .btn {
             padding: 8px 16px;
             border-radius: 6px;
@@ -458,6 +463,23 @@ if ($targetUserId) {
                                         <?php endif; ?>
                                     </label>
                                 </div>
+                                
+                                <div class="permission-item">
+                                    <input 
+                                        type="checkbox" 
+                                        id="mno-sim_<?php echo htmlspecialchars($seller['user_id']); ?>" 
+                                        name="permissions[]" 
+                                        value="mno-sim"
+                                        class="permission-checkbox"
+                                        <?php echo (isset($seller['permissions']) && in_array('mno-sim', $seller['permissions'])) ? 'checked' : ''; ?>
+                                    >
+                                    <label for="mno-sim_<?php echo htmlspecialchars($seller['user_id']); ?>">
+                                        통신사단독유심
+                                        <?php if (isset($seller['permissions']) && in_array('mno-sim', $seller['permissions'])): ?>
+                                            <span class="permission-badge mno-sim">권한 있음</span>
+                                        <?php endif; ?>
+                                    </label>
+                                </div>
                             </div>
                             
                             <div style="margin-top: 16px; display: flex; justify-content: space-between; align-items: center;">
@@ -507,7 +529,8 @@ if ($targetUserId) {
         const permissionNames = {
             'mvno': '알뜰폰',
             'mno': '통신사폰',
-            'internet': '인터넷'
+            'internet': '인터넷',
+            'mno-sim': '통신사단독유심'
         };
         
         // 권한 변경 감지 및 저장 처리

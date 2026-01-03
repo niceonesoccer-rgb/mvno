@@ -441,7 +441,8 @@ if (!$seller || $seller['role'] !== 'seller') {
                         $permNames = [
                             'mvno' => '알뜰폰',
                             'mno' => '통신사폰',
-                            'internet' => '인터넷'
+                            'internet' => '인터넷',
+                            'mno-sim' => '통신사단독유심'
                         ];
                         if (empty($permissions)) {
                             echo '<span class="no-permission">권한 없음</span>';
@@ -727,6 +728,21 @@ if (!$seller || $seller['role'] !== 'seller') {
                         >
                         <label for="modal_internet_<?php echo htmlspecialchars($seller['user_id']); ?>" style="font-size: 14px; color: #374151; cursor: pointer; user-select: none;">
                             인터넷
+                        </label>
+                    </div>
+                    
+                    <div class="permission-item" style="display: flex; align-items: center; gap: 8px;">
+                        <input 
+                            type="checkbox" 
+                            id="modal_mno-sim_<?php echo htmlspecialchars($seller['user_id']); ?>" 
+                            name="permissions[]" 
+                            value="mno-sim"
+                            class="permission-checkbox"
+                            style="width: 18px; height: 18px; cursor: pointer; accent-color: #6366f1;"
+                            <?php echo (isset($seller['permissions']) && in_array('mno-sim', $seller['permissions'])) ? 'checked' : ''; ?>
+                        >
+                        <label for="modal_mno-sim_<?php echo htmlspecialchars($seller['user_id']); ?>" style="font-size: 14px; color: #374151; cursor: pointer; user-select: none;">
+                            통신사단독유심
                         </label>
                     </div>
                 </div>

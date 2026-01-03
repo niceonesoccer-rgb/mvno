@@ -637,7 +637,7 @@ try {
                                     <input type="checkbox" class="product-checkbox product-checkbox-item" 
                                            value="<?php echo $product['id']; ?>">
                                 </td>
-                                <td><?php echo ($page - 1) * $perPage + $index + 1; ?></td>
+                                <td><?php echo $totalProducts - ($page - 1) * $perPage - $index; ?></td>
                                 <td style="text-align: center;">
                                     <?php 
                                     $sellerId = $product['seller_user_id_display'] ?? $product['seller_user_id'] ?? $product['seller_id'] ?? '-';

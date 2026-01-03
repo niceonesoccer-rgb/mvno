@@ -28,7 +28,7 @@ if (!isSellerApproved()) {
 
 // 게시판 타입 확인
 $boardType = $_POST['board_type'] ?? '';
-$allowedTypes = ['mvno', 'mno', 'internet'];
+$allowedTypes = ['mvno', 'mno', 'internet', 'mno-sim'];
 
 if (!in_array($boardType, $allowedTypes)) {
     echo json_encode(['success' => false, 'message' => '유효하지 않은 게시판 타입입니다.']);

@@ -141,6 +141,15 @@ $displayStatusLabels = [
     'stopped' => ['label' => '광고중지', 'color' => '#f59e0b'],
     'expired' => ['label' => '광고종료', 'color' => '#64748b']
 ];
+
+// 예치금 잔액 조회
+$stmt = $pdo->prepare("SELECT balance FROM seller_deposit_accounts WHERE seller_id = :seller_id");
+$stmt->execute([':seller_id' => $sellerId]);
+$balanceResult = $stmt->fetch(PDO::FETCH_ASSOC);
+$balance = floatval($balanceResult['balance'] ?? 0);
+
+// 광고 기간 옵션
+$advertisementDaysOptions = [1, 2, 3, 5, 7, 10, 14, 30];
 ?>
 
 <style>
@@ -345,10 +354,11 @@ $displayStatusLabels = [
                                     </span>
                                     <?php if ($displayStatus === 'expired'): ?>
                                         <div style="margin-top: 8px;">
-                                            <a href="register.php?tab=<?= $ad['product_type'] ?>" 
-                                               style="display: inline-block; padding: 4px 12px; background: #6366f1; color: #fff; text-decoration: none; border-radius: 4px; font-size: 12px; font-weight: 500;">
+                                            <button type="button" 
+                                                    onclick="openAdModal(<?= $ad['product_id'] ?>, '<?= $ad['product_type'] ?>', '<?= htmlspecialchars($ad['product_name'] ?? '', ENT_QUOTES) ?>')"
+                                                    style="padding: 4px 12px; background: #6366f1; color: #fff; border: none; border-radius: 4px; font-size: 12px; font-weight: 500; cursor: pointer;">
                                                 다시 광고신청
-                                            </a>
+                                            </button>
                                         </div>
                                     <?php endif; ?>
                                 </td>
@@ -393,7 +403,60 @@ $displayStatusLabels = [
     </div>
 </div>
 
+<!-- 광고 신청 모달 -->
+<div id="adModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+    <div style="background: white; border-radius: 12px; padding: 32px; width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+            <h2 style="margin: 0; font-size: 20px; font-weight: 600;">광고 신청</h2>
+            <button type="button" onclick="closeAdModal()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #64748b;">&times;</button>
+        </div>
+        
+        <form id="adForm">
+            <input type="hidden" name="product_id" id="modalProductId">
+            
+            <div style="margin-bottom: 20px;">
+                <div style="padding: 16px; background: #f8fafc; border-radius: 8px; margin-bottom: 16px;">
+                    <div style="font-size: 14px; color: #64748b; margin-bottom: 4px;">상품</div>
+                    <div style="font-size: 16px; font-weight: 600;" id="modalProductName"></div>
+                </div>
+                
+                <label style="display: block; font-weight: 600; color: #374151; margin-bottom: 8px;">
+                    광고 기간 <span style="color: #ef4444;">*</span>
+                </label>
+                <select name="advertisement_days" id="modalAdvertisementDays" required
+                        style="width: 100%; padding: 12px 16px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 15px; box-sizing: border-box;">
+                    <option value="">광고 기간을 선택하세요</option>
+                    <?php foreach ($advertisementDaysOptions as $days): ?>
+                        <option value="<?= $days ?>"><?= $days ?>일</option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            
+            <div id="modalPricePreview" style="margin-bottom: 24px; padding: 20px; background: #f8fafc; border-radius: 8px; display: none;">
+                <div style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">광고 금액</div>
+                <div id="modalPriceAmount"></div>
+                <div id="modalBalanceCheck" style="margin-top: 12px; font-size: 14px;"></div>
+            </div>
+            
+            <div id="modalErrorMessage" style="display: none; padding: 12px; background: #fee2e2; color: #991b1b; border-radius: 6px; margin-bottom: 16px; font-size: 14px;"></div>
+            
+            <div style="display: flex; gap: 12px;">
+                <button type="submit" id="modalSubmitBtn" disabled
+                        style="flex: 1; padding: 12px 24px; background: #cbd5e1; color: #64748b; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: not-allowed;">
+                    광고 신청
+                </button>
+                <button type="button" onclick="closeAdModal()" style="flex: 1; padding: 12px 24px; background: #f3f4f6; color: #374151; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;">
+                    취소
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
+const currentBalance = <?= $balance ?>;
+let currentProductType = '';
+
 function switchTab(tab) {
     const params = new URLSearchParams(window.location.search);
     params.set('tab', tab);
@@ -401,6 +464,182 @@ function switchTab(tab) {
     params.delete('status'); // 탭 변경 시 상태 필터 초기화
     window.location.href = '?' + params.toString();
 }
+
+function openAdModal(productId, productType, productName) {
+    document.getElementById('modalProductId').value = productId;
+    document.getElementById('modalProductName').textContent = productName;
+    document.getElementById('modalAdvertisementDays').value = '';
+    document.getElementById('modalPricePreview').style.display = 'none';
+    document.getElementById('modalSubmitBtn').disabled = true;
+    document.getElementById('modalSubmitBtn').style.background = '#cbd5e1';
+    document.getElementById('modalSubmitBtn').style.color = '#64748b';
+    document.getElementById('modalSubmitBtn').style.cursor = 'not-allowed';
+    
+    // product_type 변환 (mno_sim -> mno-sim)
+    if (productType === 'mno_sim') {
+        productType = 'mno-sim';
+    }
+    
+    currentProductType = productType;
+    document.getElementById('adModal').style.display = 'flex';
+}
+
+function closeAdModal() {
+    document.getElementById('adModal').style.display = 'none';
+}
+
+// 모달 배경 클릭 시 닫기
+document.getElementById('adModal')?.addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeAdModal();
+    }
+});
+
+async function updateModalPrice() {
+    const productId = document.getElementById('modalProductId').value;
+    const days = document.getElementById('modalAdvertisementDays').value;
+    
+    if (!productId || !days || !currentProductType) {
+        document.getElementById('modalPricePreview').style.display = 'none';
+        document.getElementById('modalSubmitBtn').disabled = true;
+        document.getElementById('modalSubmitBtn').style.background = '#cbd5e1';
+        document.getElementById('modalSubmitBtn').style.color = '#64748b';
+        document.getElementById('modalSubmitBtn').style.cursor = 'not-allowed';
+        return;
+    }
+    
+    try {
+        // API에서 사용하는 product_type 형식으로 변환 (mno-sim -> mno_sim)
+        let apiProductType = currentProductType;
+        if (apiProductType === 'mno-sim') {
+            apiProductType = 'mno_sim';
+        }
+        
+        const url = `/MVNO/api/advertisement-price.php?product_type=${encodeURIComponent(apiProductType)}&advertisement_days=${days}`;
+        console.log('Fetching price from:', url);
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        console.log('Price API response:', data);
+        
+        if (data.success && data.price) {
+            const supplyAmount = parseFloat(data.price);
+            const taxAmount = supplyAmount * 0.1;
+            const totalAmount = supplyAmount + taxAmount;
+            
+            document.getElementById('modalPriceAmount').innerHTML = `
+                <div style="font-size: 32px; font-weight: 700; color: #6366f1;">${new Intl.NumberFormat('ko-KR').format(Math.round(totalAmount))}원</div>
+            `;
+            document.getElementById('modalPricePreview').style.display = 'block';
+            
+            if (currentBalance >= totalAmount) {
+                document.getElementById('modalBalanceCheck').innerHTML = '<span style="color: #10b981;">✓ 예치금 잔액이 충분합니다.</span>';
+                document.getElementById('modalSubmitBtn').disabled = false;
+                document.getElementById('modalSubmitBtn').style.background = '#6366f1';
+                document.getElementById('modalSubmitBtn').style.color = '#fff';
+                document.getElementById('modalSubmitBtn').style.cursor = 'pointer';
+            } else {
+                document.getElementById('modalBalanceCheck').innerHTML = '<span style="color: #ef4444;">✗ 예치금 잔액이 부족합니다. 예치금을 충전해주세요.</span>';
+                document.getElementById('modalSubmitBtn').disabled = true;
+                document.getElementById('modalSubmitBtn').style.background = '#cbd5e1';
+                document.getElementById('modalSubmitBtn').style.color = '#64748b';
+                document.getElementById('modalSubmitBtn').style.cursor = 'not-allowed';
+            }
+        } else {
+            console.error('Price API failed:', data.message || 'Unknown error');
+            document.getElementById('modalPricePreview').style.display = 'block';
+            document.getElementById('modalPriceAmount').innerHTML = `
+                <div style="color: #ef4444; font-size: 14px;">
+                    ⚠️ 가격 정보를 가져올 수 없습니다: ${data.message || '알 수 없는 오류'}
+                </div>
+            `;
+            document.getElementById('modalBalanceCheck').innerHTML = '';
+            document.getElementById('modalSubmitBtn').disabled = true;
+            document.getElementById('modalSubmitBtn').style.background = '#cbd5e1';
+            document.getElementById('modalSubmitBtn').style.color = '#64748b';
+            document.getElementById('modalSubmitBtn').style.cursor = 'not-allowed';
+        }
+    } catch (error) {
+        console.error('Price fetch error:', error);
+        document.getElementById('modalPricePreview').style.display = 'block';
+        document.getElementById('modalPriceAmount').innerHTML = `
+            <div style="color: #ef4444; font-size: 14px;">
+                ⚠️ 오류가 발생했습니다. 다시 시도해주세요.
+            </div>
+        `;
+        document.getElementById('modalBalanceCheck').innerHTML = '';
+        document.getElementById('modalSubmitBtn').disabled = true;
+        document.getElementById('modalSubmitBtn').style.background = '#cbd5e1';
+        document.getElementById('modalSubmitBtn').style.color = '#64748b';
+        document.getElementById('modalSubmitBtn').style.cursor = 'not-allowed';
+    }
+}
+
+document.getElementById('modalAdvertisementDays')?.addEventListener('change', updateModalPrice);
+
+// 모달 폼 제출 처리 (AJAX)
+document.getElementById('adForm')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const productId = document.getElementById('modalProductId').value;
+    const days = document.getElementById('modalAdvertisementDays').value;
+    const errorDiv = document.getElementById('modalErrorMessage');
+    const submitBtn = document.getElementById('modalSubmitBtn');
+    
+    if (!productId || !days) {
+        errorDiv.textContent = '모든 필드를 올바르게 선택해주세요.';
+        errorDiv.style.display = 'block';
+        return;
+    }
+    
+    // 버튼 비활성화
+    submitBtn.disabled = true;
+    submitBtn.textContent = '처리 중...';
+    errorDiv.style.display = 'none';
+    
+    try {
+        const formData = new FormData();
+        formData.append('product_id', productId);
+        formData.append('advertisement_days', days);
+        
+        const response = await fetch('/MVNO/seller/advertisement/register.php', {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // 성공 시 모달 닫고 해당 탭으로 리다이렉트
+            closeAdModal();
+            
+            // product_type에 따라 탭 이름 변환
+            // register.php에서 반환하는 product_type은 DB 형식 (mno-sim)
+            // list.php의 탭은 mno_sim 형식 사용
+            let tabName = data.product_type || currentProductType;
+            if (tabName === 'mno-sim') {
+                tabName = 'mno_sim';
+            }
+            
+            // 해당 탭으로 리다이렉트
+            window.location.href = `/MVNO/seller/advertisement/list.php?tab=${tabName}`;
+        } else {
+            errorDiv.textContent = data.message || '광고 신청 중 오류가 발생했습니다.';
+            errorDiv.style.display = 'block';
+            submitBtn.disabled = false;
+            submitBtn.textContent = '광고 신청';
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        errorDiv.textContent = '오류가 발생했습니다. 다시 시도해주세요.';
+        errorDiv.style.display = 'block';
+        submitBtn.disabled = false;
+        submitBtn.textContent = '광고 신청';
+    }
+});
 </script>
 
 <?php include __DIR__ . '/../includes/seller-footer.php'; ?>

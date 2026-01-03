@@ -1,40 +1,61 @@
 <?php
 /**
  * 주문 상태 변경 API
- * 판매자가 주문의 진행상황을 변경할 때 사용
+ * 판매자와 관리자가 주문의 진행상황을 변경할 때 사용
+ * - 판매자: 자신의 주문만 변경 가능
+ * - 관리자: 모든 주문 변경 가능
  */
+
+// Output buffering 시작 (에러 출력 방지)
+ob_start();
+
+// 에러 출력 비활성화 (JSON 응답 보호)
+ini_set('display_errors', 0);
+error_reporting(E_ALL);
 
 require_once __DIR__ . '/../includes/data/db-config.php';
 require_once __DIR__ . '/../includes/data/auth-functions.php';
+
+// 이전 출력 버퍼 정리
+ob_clean();
 
 header('Content-Type: application/json; charset=utf-8');
 
 // 로그인 체크
 if (!isLoggedIn()) {
+    ob_clean();
     echo json_encode([
         'success' => false,
         'message' => '로그인이 필요합니다.'
     ]);
+    ob_end_flush();
     exit;
 }
 
 $currentUser = getCurrentUser();
 
-// 판매자 로그인 체크
-if (!$currentUser || $currentUser['role'] !== 'seller') {
+// 판매자 또는 관리자 로그인 체크
+$isAdmin = $currentUser && isAdmin($currentUser['user_id']);
+$isSeller = $currentUser && $currentUser['role'] === 'seller';
+
+if (!$currentUser || (!$isAdmin && !$isSeller)) {
+    ob_clean();
     echo json_encode([
         'success' => false,
-        'message' => '판매자만 접근 가능합니다.'
+        'message' => '판매자 또는 관리자만 접근 가능합니다.'
     ]);
+    ob_end_flush();
     exit;
 }
 
 // POST 데이터 확인
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    ob_clean();
     echo json_encode([
         'success' => false,
         'message' => 'POST 요청만 허용됩니다.'
     ]);
+    ob_end_flush();
     exit;
 }
 
@@ -50,6 +71,7 @@ $validStatuses = ['received', 'activating', 'on_hold', 'cancelled', 'activation_
 
 if (empty($applicationId) || empty($newStatus)) {
     error_log("Missing required fields - applicationId: " . var_export($applicationId, true) . ", newStatus: " . var_export($newStatus, true));
+    ob_clean();
     echo json_encode([
         'success' => false,
         'message' => '필수 정보가 누락되었습니다.',
@@ -59,14 +81,17 @@ if (empty($applicationId) || empty($newStatus)) {
             'post_data' => $_POST
         ]
     ]);
+    ob_end_flush();
     exit;
 }
 
 if (!in_array($newStatus, $validStatuses)) {
+    ob_clean();
     echo json_encode([
         'success' => false,
         'message' => '유효하지 않은 상태 값입니다.'
     ]);
+    ob_end_flush();
     exit;
 }
 
@@ -97,6 +122,7 @@ try {
     // 요청한 상태 값이 ENUM에 있는지 확인
     if (!empty($enumValues) && !in_array($newStatus, $enumValues)) {
         error_log("Status '$newStatus' not in ENUM. Available values: " . implode(', ', $enumValues));
+        ob_clean();
         echo json_encode([
             'success' => false,
             'message' => "상태 값 '$newStatus'이(가) 데이터베이스에 없습니다. ENUM 업데이트가 필요합니다.",
@@ -107,64 +133,105 @@ try {
                 'update_url' => '/MVNO/database/update_application_status_enum.php'
             ]
         ]);
+        ob_end_flush();
         exit;
     }
     
-    $sellerId = (string)$currentUser['user_id'];
-    error_log("Seller ID: " . $sellerId . ", Application ID: " . $applicationId);
+    $userId = (string)$currentUser['user_id'];
+    error_log("User ID: " . $userId . ", Application ID: " . $applicationId . ", Is Admin: " . ($isAdmin ? 'Yes' : 'No'));
     
-    // 주문 정보 확인 (판매자의 주문인지 확인 및 현재 상태 확인)
-    $stmt = $pdo->prepare("
-        SELECT a.id, a.seller_id, a.application_status
-        FROM product_applications a
-        WHERE a.id = ? AND a.seller_id = ?
-        LIMIT 1
-    ");
-    $stmt->execute([$applicationId, $sellerId]);
+    // 주문 정보 확인
+    // 관리자는 모든 주문 접근 가능, 판매자는 자신의 주문만 접근 가능
+    if ($isAdmin) {
+        $stmt = $pdo->prepare("
+            SELECT a.id, a.seller_id, a.application_status
+            FROM product_applications a
+            WHERE a.id = ?
+            LIMIT 1
+        ");
+        $stmt->execute([$applicationId]);
+    } else {
+        $stmt = $pdo->prepare("
+            SELECT a.id, a.seller_id, a.application_status
+            FROM product_applications a
+            WHERE a.id = ? AND a.seller_id = ?
+            LIMIT 1
+        ");
+        $stmt->execute([$applicationId, $userId]);
+    }
+    
     $application = $stmt->fetch(PDO::FETCH_ASSOC);
     
     error_log("Application query result: " . var_export($application, true));
     
     if (!$application) {
-        // 더 자세한 정보를 위해 seller_id만으로 조회해보기
-        $stmt2 = $pdo->prepare("SELECT id, seller_id, application_status FROM product_applications WHERE id = ? LIMIT 1");
-        $stmt2->execute([$applicationId]);
-        $appWithoutSeller = $stmt2->fetch(PDO::FETCH_ASSOC);
-        error_log("Application without seller check: " . var_export($appWithoutSeller, true));
-        
-        throw new Exception('주문을 찾을 수 없거나 접근 권한이 없습니다. (ID: ' . $applicationId . ', Seller: ' . $sellerId . ')');
+        throw new Exception('주문을 찾을 수 없거나 접근 권한이 없습니다. (ID: ' . $applicationId . ')');
     }
     
     $currentStatus = $application['application_status'];
     $statusChanged = ($currentStatus !== $newStatus);
     
     // 상태 업데이트 (상태가 실제로 변경될 때만 status_changed_at 업데이트)
+    // 관리자는 모든 주문 수정 가능, 판매자는 자신의 주문만 수정 가능
     if ($statusChanged) {
-        $stmt = $pdo->prepare("
-            UPDATE product_applications
-            SET application_status = :status, 
-                updated_at = NOW(),
-                status_changed_at = NOW()
-            WHERE id = :application_id AND seller_id = :seller_id
-        ");
+        if ($isAdmin) {
+            $stmt = $pdo->prepare("
+                UPDATE product_applications
+                SET application_status = :status, 
+                    updated_at = NOW(),
+                    status_changed_at = NOW()
+                WHERE id = :application_id
+            ");
+            $updateParams = [
+                ':status' => $newStatus,
+                ':application_id' => $applicationId
+            ];
+        } else {
+            $stmt = $pdo->prepare("
+                UPDATE product_applications
+                SET application_status = :status, 
+                    updated_at = NOW(),
+                    status_changed_at = NOW()
+                WHERE id = :application_id AND seller_id = :seller_id
+            ");
+            $updateParams = [
+                ':status' => $newStatus,
+                ':application_id' => $applicationId,
+                ':seller_id' => $userId
+            ];
+        }
     } else {
-        $stmt = $pdo->prepare("
-            UPDATE product_applications
-            SET application_status = :status, 
-                updated_at = NOW()
-            WHERE id = :application_id AND seller_id = :seller_id
-        ");
+        if ($isAdmin) {
+            $stmt = $pdo->prepare("
+                UPDATE product_applications
+                SET application_status = :status, 
+                    updated_at = NOW()
+                WHERE id = :application_id
+            ");
+            $updateParams = [
+                ':status' => $newStatus,
+                ':application_id' => $applicationId
+            ];
+        } else {
+            $stmt = $pdo->prepare("
+                UPDATE product_applications
+                SET application_status = :status, 
+                    updated_at = NOW()
+                WHERE id = :application_id AND seller_id = :seller_id
+            ");
+            $updateParams = [
+                ':status' => $newStatus,
+                ':application_id' => $applicationId,
+                ':seller_id' => $userId
+            ];
+        }
     }
     
     // PDO 에러 모드 설정 (에러 발생 시 예외 발생)
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     
     try {
-        $result = $stmt->execute([
-            ':status' => $newStatus,
-            ':application_id' => $applicationId,
-            ':seller_id' => $sellerId
-        ]);
+        $result = $stmt->execute($updateParams);
     } catch (PDOException $e) {
         error_log("PDO Execute Error: " . $e->getMessage());
         error_log("PDO Error Code: " . $e->getCode());
@@ -179,10 +246,10 @@ try {
     
     $affectedRows = $stmt->rowCount();
     error_log("Update executed - affected rows: " . $affectedRows);
-    error_log("Update params - status: $newStatus, application_id: $applicationId, seller_id: $sellerId");
+    error_log("Update params - status: $newStatus, application_id: $applicationId, user_id: $userId, is_admin: " . ($isAdmin ? 'Yes' : 'No'));
     
     if ($affectedRows === 0) {
-        error_log("No rows affected - applicationId: $applicationId, sellerId: $sellerId");
+        error_log("No rows affected - applicationId: $applicationId, userId: $userId");
         // PDO 에러 정보 확인
         $errorInfo = $stmt->errorInfo();
         if ($errorInfo[0] !== '00000') {
@@ -193,13 +260,23 @@ try {
     }
     
     // 업데이트 후 실제 저장된 값 확인
-    $verifyStmt = $pdo->prepare("
-        SELECT application_status 
-        FROM product_applications 
-        WHERE id = ? AND seller_id = ?
-        LIMIT 1
-    ");
-    $verifyStmt->execute([$applicationId, $sellerId]);
+    if ($isAdmin) {
+        $verifyStmt = $pdo->prepare("
+            SELECT application_status 
+            FROM product_applications 
+            WHERE id = ?
+            LIMIT 1
+        ");
+        $verifyStmt->execute([$applicationId]);
+    } else {
+        $verifyStmt = $pdo->prepare("
+            SELECT application_status 
+            FROM product_applications 
+            WHERE id = ? AND seller_id = ?
+            LIMIT 1
+        ");
+        $verifyStmt->execute([$applicationId, $userId]);
+    }
     $verified = $verifyStmt->fetch(PDO::FETCH_ASSOC);
     
     error_log("Verified status after update: " . var_export($verified, true));
@@ -217,18 +294,32 @@ try {
         'affected_rows' => $affectedRows
     ]);
     
+    // Output buffer 종료 및 출력
+    ob_end_flush();
+    exit;
+    
 } catch (PDOException $e) {
     error_log("Update Order Status PDO Error: " . $e->getMessage());
     error_log("PDO Error Info: " . var_export(isset($pdo) ? $pdo->errorInfo() : [], true));
+    
+    // Output buffer 정리 후 JSON 출력
+    ob_clean();
     echo json_encode([
         'success' => false,
         'message' => '데이터베이스 오류: ' . $e->getMessage(),
         'debug' => isset($pdo) ? $pdo->errorInfo() : []
     ]);
+    ob_end_flush();
+    exit;
 } catch (Exception $e) {
     error_log("Update Order Status Error: " . $e->getMessage());
+    
+    // Output buffer 정리 후 JSON 출력
+    ob_clean();
     echo json_encode([
         'success' => false,
         'message' => $e->getMessage()
     ]);
+    ob_end_flush();
+    exit;
 }

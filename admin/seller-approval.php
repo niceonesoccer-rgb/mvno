@@ -1135,6 +1135,7 @@ $paginatedSellers = array_slice($currentSellers, $offset, $perPage);
                                 if (in_array('mvno', $permissions)) $permissionLabels[] = '알뜰폰';
                                 if (in_array('mno', $permissions)) $permissionLabels[] = '통신사폰';
                                 if (in_array('internet', $permissions)) $permissionLabels[] = '인터넷';
+                                if (in_array('mno-sim', $permissions)) $permissionLabels[] = '통신사단독유심';
                                 
                                 // 판매자명
                                 $sellerName = $seller['seller_name'] ?? $seller['company_name'] ?? $seller['name'] ?? '-';
@@ -1442,6 +1443,7 @@ $paginatedSellers = array_slice($currentSellers, $offset, $perPage);
                                 if (in_array('mvno', $permissions)) $permissionLabels[] = '알뜰폰';
                                 if (in_array('mno', $permissions)) $permissionLabels[] = '통신사폰';
                                 if (in_array('internet', $permissions)) $permissionLabels[] = '인터넷';
+                                if (in_array('mno-sim', $permissions)) $permissionLabels[] = '통신사단독유심';
                                 ?>
                                 <tr>
                                     <td><?php echo $rowNumber; ?></td>

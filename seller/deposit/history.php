@@ -48,13 +48,13 @@ $requestOffset = ($requestPage - 1) * $requestPerPage;
 $historyOffset = ($historyPage - 1) * $historyPerPage;
 
 // 예치금 거래 내역 조회 (필터 없음 - 전체 조회)
-$whereConditions = ["seller_id = :seller_id"];
+$whereConditions = ["sdl.seller_id = :seller_id"];
 $params = [':seller_id' => $sellerId];
 $whereClause = implode(' AND ', $whereConditions);
 
 // 전체 개수 조회 (예치금 거래 내역)
 $countStmt = $pdo->prepare("
-    SELECT COUNT(*) FROM seller_deposit_ledger 
+    SELECT COUNT(*) FROM seller_deposit_ledger sdl
     WHERE $whereClause
 ");
 $countStmt->execute($params);
@@ -97,11 +97,27 @@ $depositRequestStmt->bindValue(':offset', $requestOffset, PDO::PARAM_INT);
 $depositRequestStmt->execute();
 $depositRequests = $depositRequestStmt->fetchAll(PDO::FETCH_ASSOC);
 
-// 예치금 거래 내역 조회 (페이지네이션 적용)
+// 예치금 거래 내역 조회 (페이지네이션 적용, 상품명 및 카테고리 포함)
 $stmt = $pdo->prepare("
-    SELECT * FROM seller_deposit_ledger 
+    SELECT 
+        sdl.*,
+        ra.product_type,
+        ra.product_id,
+        CASE ra.product_type
+            WHEN 'mno_sim' THEN mno_sim.plan_name
+            WHEN 'mvno' THEN mvno.plan_name
+            WHEN 'mno' THEN mno.device_name
+            WHEN 'internet' THEN CONCAT(COALESCE(inet.registration_place, ''), ' ', COALESCE(inet.speed_option, ''))
+            ELSE NULL
+        END AS product_name
+    FROM seller_deposit_ledger sdl
+    LEFT JOIN rotation_advertisements ra ON sdl.advertisement_id = ra.id
+    LEFT JOIN product_mno_sim_details mno_sim ON ra.product_id = mno_sim.product_id AND ra.product_type = 'mno_sim'
+    LEFT JOIN product_mvno_details mvno ON ra.product_id = mvno.product_id AND ra.product_type = 'mvno'
+    LEFT JOIN product_mno_details mno ON ra.product_id = mno.product_id AND ra.product_type = 'mno'
+    LEFT JOIN product_internet_details inet ON ra.product_id = inet.product_id AND ra.product_type = 'internet'
     WHERE $whereClause
-    ORDER BY created_at DESC
+    ORDER BY sdl.created_at DESC
     LIMIT :limit OFFSET :offset
 ");
 
@@ -118,6 +134,17 @@ $typeLabels = [
     'withdraw' => ['label' => '차감', 'color' => '#ef4444'],
     'refund' => ['label' => '환불', 'color' => '#3b82f6']
 ];
+
+// product_type을 카테고리 라벨로 변환하는 함수
+function getCategoryLabel($productType) {
+    $labels = [
+        'mno_sim' => '통신사단독유심',
+        'mvno' => '알뜰폰',
+        'mno' => '통신사폰',
+        'internet' => '인터넷'
+    ];
+    return $labels[$productType] ?? $productType;
+}
 
 $depositStatusLabels = [
     'pending' => ['label' => '대기중', 'color' => '#f59e0b'],
@@ -328,6 +355,8 @@ require_once __DIR__ . '/../includes/seller-header.php';
                             <th style="padding: 12px; text-align: center; font-weight: 600; border-bottom: 2px solid #e2e8f0;">순서</th>
                             <th style="padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #e2e8f0;">일시</th>
                             <th style="padding: 12px; text-align: center; font-weight: 600; border-bottom: 2px solid #e2e8f0;">구분</th>
+                            <th style="padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #e2e8f0;">카테고리</th>
+                            <th style="padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #e2e8f0;">상품명</th>
                             <th style="padding: 12px; text-align: right; font-weight: 600; border-bottom: 2px solid #e2e8f0;">금액</th>
                             <th style="padding: 12px; text-align: right; font-weight: 600; border-bottom: 2px solid #e2e8f0;">거래 전 잔액</th>
                             <th style="padding: 12px; text-align: right; font-weight: 600; border-bottom: 2px solid #e2e8f0;">거래 후 잔액</th>
@@ -339,7 +368,12 @@ require_once __DIR__ . '/../includes/seller-header.php';
                         // 역순 번호 계산 (최신 항목이 큰 번호)
                         $orderNumber = $totalCount - ($historyPage - 1) * $historyPerPage;
                         foreach ($history as $item): 
-                            $typeInfo = $typeLabels[$item['transaction_type']] ?? ['label' => $item['transaction_type'], 'color' => '#64748b'];
+                            // description이 "광고 취소 환불"인 경우 refund로 처리
+                            $transactionType = $item['transaction_type'];
+                            if ($transactionType === 'deposit' && strpos($item['description'] ?? '', '광고 취소 환불') !== false) {
+                                $transactionType = 'refund';
+                            }
+                            $typeInfo = $typeLabels[$transactionType] ?? ['label' => $item['transaction_type'], 'color' => '#64748b'];
                         ?>
                             <tr style="border-bottom: 1px solid #e2e8f0;">
                                 <td style="padding: 12px; text-align: center;">
@@ -353,11 +387,25 @@ require_once __DIR__ . '/../includes/seller-header.php';
                                         <?= $typeInfo['label'] ?>
                                     </span>
                                 </td>
-                                <td style="padding: 12px; text-align: right; font-size: 14px; font-weight: 600; color: <?= $item['transaction_type'] === 'deposit' || $item['transaction_type'] === 'refund' ? $typeInfo['color'] : '#374151' ?>;">
+                                <td style="padding: 12px; font-size: 14px; color: #64748b;">
+                                    <?php if (!empty($item['product_type'])): ?>
+                                        <?= htmlspecialchars(getCategoryLabel($item['product_type'])) ?>
+                                    <?php else: ?>
+                                        -
+                                    <?php endif; ?>
+                                </td>
+                                <td style="padding: 12px; font-size: 14px; color: #374151; font-weight: 500;">
+                                    <?php if (!empty($item['product_name'])): ?>
+                                        <?= htmlspecialchars($item['product_name']) ?>
+                                    <?php else: ?>
+                                        -
+                                    <?php endif; ?>
+                                </td>
+                                <td style="padding: 12px; text-align: right; font-size: 14px; font-weight: 600; color: <?= $transactionType === 'deposit' || $transactionType === 'refund' ? $typeInfo['color'] : '#374151' ?>;">
                                     <?php 
                                     // amount의 절댓값 사용 (이미 음수로 저장되어 있을 수 있음)
                                     $amountValue = abs(floatval($item['amount']));
-                                    $sign = ($item['transaction_type'] === 'deposit' || $item['transaction_type'] === 'refund' ? '+' : '-');
+                                    $sign = ($transactionType === 'deposit' || $transactionType === 'refund' ? '+' : '-');
                                     ?>
                                     <?= $sign ?><?= number_format($amountValue, 0) ?>원
                                 </td>

@@ -415,7 +415,8 @@ include 'includes/seller-header.php';
                         $permNames = [
                             'mvno' => '알뜰폰',
                             'mno' => '통신사폰',
-                            'internet' => '인터넷'
+                            'internet' => '인터넷',
+                            'mno-sim' => '통신사단독유심'
                         ];
                         foreach ($permissions as $perm) {
                             $permName = $permNames[$perm] ?? $perm;

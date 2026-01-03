@@ -34,11 +34,11 @@ if (isset($currentUser['withdrawal_requested']) && $currentUser['withdrawal_requ
     exit;
 }
 
-// 통신사단독유심 권한 확인 (일단 주석 처리 - DB 설계 후 활성화)
-// $hasPermission = hasSellerPermission($currentUser['user_id'], 'mno-sim');
-// if (!$hasPermission) {
-//     $noPermission = true;
-// }
+// 통신사단독유심 권한 확인
+$hasPermission = hasSellerPermission($currentUser['user_id'], 'mno-sim');
+if (!$hasPermission) {
+    $noPermission = true;
+}
 
 // 정수 필드 포맷팅 함수: 소수점 제거하고 정수로만 표시
 function formatIntegerForInput($value) {

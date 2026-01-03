@@ -200,6 +200,27 @@ function getUserById($userId) {
     $pdo = getDBConnection();
     if ($pdo) {
         try {
+            // info_updated 관련 컬럼 존재 여부 확인
+            $checkInfoUpdated = $pdo->query("
+                SELECT COUNT(*) 
+                FROM INFORMATION_SCHEMA.COLUMNS 
+                WHERE TABLE_SCHEMA = DATABASE() 
+                AND TABLE_NAME = 'seller_profiles' 
+                AND COLUMN_NAME = 'info_updated'
+            ");
+            $infoUpdatedExists = $checkInfoUpdated->fetchColumn() > 0;
+            
+            // 컬럼이 있으면 포함, 없으면 제외
+            $infoUpdatedFields = $infoUpdatedExists 
+                ? "sp.info_updated AS info_updated,
+                   sp.info_updated_at AS info_updated_at,
+                   sp.info_checked_by_admin AS info_checked_by_admin,
+                   sp.info_checked_at AS info_checked_at,"
+                : "NULL AS info_updated,
+                   NULL AS info_updated_at,
+                   NULL AS info_checked_by_admin,
+                   NULL AS info_checked_at,";
+            
             // A안: users(공통) + 역할별 프로필(seller_profiles/admin_profiles)
             // 기존 코드 호환을 위해 seller 관련 필드는 COALESCE로 내려준다.
             $stmt = $pdo->prepare("
@@ -228,8 +249,7 @@ function getUserById($userId) {
                     COALESCE(sp.business_license_image, u.business_license_image) AS business_license_image,
                     COALESCE(sp.permissions, u.permissions) AS permissions,
                     COALESCE(sp.permissions_updated_at, u.permissions_updated_at) AS permissions_updated_at,
-                    sp.info_checked_by_admin AS info_checked_by_admin,
-                    sp.info_checked_at AS info_checked_at,
+                    " . $infoUpdatedFields . "
                     ap.created_by AS admin_created_by,
                     ap.memo AS admin_memo
                 FROM users u
@@ -310,6 +330,27 @@ function getUsersData() {
     $pdo = getDBConnection();
     if ($pdo) {
         try {
+            // info_updated 관련 컬럼 존재 여부 확인
+            $checkInfoUpdated = $pdo->query("
+                SELECT COUNT(*) 
+                FROM INFORMATION_SCHEMA.COLUMNS 
+                WHERE TABLE_SCHEMA = DATABASE() 
+                AND TABLE_NAME = 'seller_profiles' 
+                AND COLUMN_NAME = 'info_updated'
+            ");
+            $infoUpdatedExists = $checkInfoUpdated->fetchColumn() > 0;
+            
+            // 컬럼이 있으면 포함, 없으면 제외
+            $infoUpdatedFields = $infoUpdatedExists 
+                ? "sp.info_updated AS info_updated,
+                   sp.info_updated_at AS info_updated_at,
+                   sp.info_checked_by_admin AS info_checked_by_admin,
+                   sp.info_checked_at AS info_checked_at,"
+                : "NULL AS info_updated,
+                   NULL AS info_updated_at,
+                   NULL AS info_checked_by_admin,
+                   NULL AS info_checked_at,";
+            
             $stmt = $pdo->query("
                 SELECT
                     u.*,
@@ -336,8 +377,7 @@ function getUsersData() {
                     COALESCE(sp.business_license_image, u.business_license_image) AS business_license_image,
                     COALESCE(sp.permissions, u.permissions) AS permissions,
                     COALESCE(sp.permissions_updated_at, u.permissions_updated_at) AS permissions_updated_at,
-                    sp.info_checked_by_admin AS info_checked_by_admin,
-                    sp.info_checked_at AS info_checked_at,
+                    " . $infoUpdatedFields . "
                     ap.created_by AS admin_created_by,
                     ap.memo AS admin_memo
                 FROM users u
@@ -1256,7 +1296,7 @@ function setSellerPermissions($userId, $permissions) {
         return false;
     }
 
-    $allowedPermissions = ['mvno', 'mno', 'internet'];
+    $allowedPermissions = ['mvno', 'mno', 'internet', 'mno-sim'];
     $validPermissions = [];
     foreach ((array)$permissions as $perm) {
         if (in_array($perm, $allowedPermissions, true)) {

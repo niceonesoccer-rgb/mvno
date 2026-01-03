@@ -841,6 +841,11 @@ include 'includes/seller-header.php';
                         <div style="font-size: 16px; font-weight: 600; color: #92400e; margin-bottom: 8px;">권한이 없습니다</div>
                         <div style="font-size: 14px; color: #78350f;">인터넷 게시판에 상품을 등록할 권한이 없습니다. 관리자에게 권한을 요청하세요.</div>
                     </div>
+                <?php elseif ($_GET['error'] === 'no_permission_mno_sim'): ?>
+                    <div style="padding: 16px; background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; margin-bottom: 24px;">
+                        <div style="font-size: 16px; font-weight: 600; color: #92400e; margin-bottom: 8px;">권한이 없습니다</div>
+                        <div style="font-size: 14px; color: #78350f;">통신사단독유심 게시판에 상품을 등록할 권한이 없습니다. 관리자에게 권한을 요청하세요.</div>
+                    </div>
                 <?php endif; ?>
             <?php endif; ?>
             

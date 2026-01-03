@@ -518,6 +518,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_seller'])) {
                     $error_message = 'DB 연결에 실패했습니다.';
                 } else {
                     try {
+                        // info_updated 관련 컬럼 존재 여부 개별 확인 (트랜잭션 시작 전)
+                        $checkColumn = function($columnName) use ($pdo) {
+                            $stmt = $pdo->query("
+                                SELECT COUNT(*) 
+                                FROM INFORMATION_SCHEMA.COLUMNS 
+                                WHERE TABLE_SCHEMA = DATABASE() 
+                                AND TABLE_NAME = 'seller_profiles' 
+                                AND COLUMN_NAME = '$columnName'
+                            ");
+                            return $stmt->fetchColumn() > 0;
+                        };
+                        
+                        // 각 컬럼 존재 여부 확인
+                        $hasInfoUpdated = $checkColumn('info_updated');
+                        $hasInfoUpdatedAt = $checkColumn('info_updated_at');
+                        $hasInfoCheckedByAdmin = $checkColumn('info_checked_by_admin');
+                        $hasInfoCheckedAt = $checkColumn('info_checked_at');
+                        
+                        // 없는 컬럼만 개별적으로 추가 (ALTER TABLE은 DDL이므로 트랜잭션 외부에서 실행)
+                        $columnsToAdd = [];
+                        if (!$hasInfoUpdated) {
+                            $columnsToAdd[] = "ADD COLUMN `info_updated` TINYINT(1) DEFAULT 0 COMMENT '정보 업데이트 여부'";
+                        }
+                        if (!$hasInfoUpdatedAt) {
+                            $columnsToAdd[] = "ADD COLUMN `info_updated_at` DATETIME NULL COMMENT '정보 업데이트 일시'";
+                        }
+                        if (!$hasInfoCheckedByAdmin) {
+                            $columnsToAdd[] = "ADD COLUMN `info_checked_by_admin` TINYINT(1) DEFAULT 0 COMMENT '관리자 확인 여부'";
+                        }
+                        if (!$hasInfoCheckedAt) {
+                            $columnsToAdd[] = "ADD COLUMN `info_checked_at` DATETIME NULL COMMENT '관리자 확인 일시'";
+                        }
+                        
+                        // 컬럼 추가 (트랜잭션 시작 전)
+                        if (!empty($columnsToAdd)) {
+                            try {
+                                $alterSql = "ALTER TABLE `seller_profiles` " . implode(', ', $columnsToAdd);
+                                $pdo->exec($alterSql);
+                                // ALTER TABLE 후 다시 확인
+                                $hasInfoUpdated = $checkColumn('info_updated');
+                            } catch (PDOException $e) {
+                                error_log('Failed to add info_updated columns: ' . $e->getMessage());
+                            }
+                        }
+                        
+                        // 트랜잭션 시작
                         $pdo->beginTransaction();
 
                         $passwordHashed = null;
@@ -581,7 +627,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_seller'])) {
                         }
                         
                         $u->execute($executeParams);
-
+                        
+                        // 컬럼이 있으면 포함, 없으면 제외
+                        $infoUpdatedSql = $hasInfoUpdated ? "info_updated = 1, info_updated_at = NOW(), info_checked_by_admin = 0," : "";
+                        
                         $sp = $pdo->prepare("
                             UPDATE seller_profiles
                             SET address = :address,
@@ -591,6 +640,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_seller'])) {
                                 business_type = :business_type,
                                 business_item = :business_item,
                                 business_license_image = :business_license_image,
+                                " . $infoUpdatedSql . "
                                 updated_at = NOW()
                             WHERE user_id = :user_id
                             LIMIT 1

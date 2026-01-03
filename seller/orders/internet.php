@@ -1135,24 +1135,6 @@ function showProductInfo(order, productType) {
         // 월 요금제 검증 및 정리
         const validateMonthlyFee = (fee) => {
             if (!fee) return '-';
-            
-            // 숫자 추출
-            const numericValue = parseInt(String(fee).replace(/[^0-9]/g, ''));
-            
-            // 비정상적으로 큰 값 검증 (월 요금제는 보통 20만원 이하)
-            if (numericValue > 200000) {
-                // 100만원 이상은 심각한 오류로 표시
-                if (numericValue >= 1000000) {
-                    // 가능한 보정값 제안 (100으로 나눈 값)
-                    const suggestedValue = Math.floor(numericValue / 100);
-                    return formatPrice(fee) + 
-                        ' <span style="color: #ef4444; font-size: 0.85em; display: block; margin-top: 4px;">⚠ 데이터 오류 의심 (예상값: ' + 
-                        formatPrice(suggestedValue + '원') + ')</span>';
-                }
-                // 20만원 초과 100만원 미만은 경고만 표시
-                return formatPrice(fee) + ' <span style="color: #f59e0b; font-size: 0.85em;">⚠ 비정상적으로 높은 값 (확인 권장)</span>';
-            }
-            
             return formatPrice(fee);
         };
         

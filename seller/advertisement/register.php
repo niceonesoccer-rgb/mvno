@@ -25,6 +25,7 @@ if (empty($sellerId)) {
 
 $error = '';
 $success = '';
+$isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
 
 // 광고 신청 처리
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -161,12 +162,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             $pdo->commit();
             $success = '광고 신청이 완료되었습니다. 광고가 즉시 시작됩니다.';
+            
+            // AJAX 요청인 경우 JSON 응답 반환
+            if ($isAjax) {
+                header('Content-Type: application/json');
+                echo json_encode([
+                    'success' => true,
+                    'message' => $success,
+                    'product_type' => $product['product_type']
+                ]);
+                exit;
+            }
         } catch (Exception $e) {
             if ($pdo->inTransaction()) {
                 $pdo->rollBack();
             }
             error_log('Advertisement register error: ' . $e->getMessage());
             $error = $e->getMessage();
+            
+            // AJAX 요청인 경우 JSON 응답 반환
+            if ($isAjax) {
+                header('Content-Type: application/json');
+                echo json_encode([
+                    'success' => false,
+                    'message' => $error
+                ]);
+                exit;
+            }
+        }
+    } else {
+        // AJAX 요청인 경우 JSON 응답 반환
+        if ($isAjax) {
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => false,
+                'message' => $error
+            ]);
+            exit;
         }
     }
 }
@@ -759,9 +791,7 @@ async function updateModalPrice() {
             const totalAmount = supplyAmount + taxAmount;
             
             document.getElementById('modalPriceAmount').innerHTML = `
-                <div style="font-size: 24px; margin-bottom: 4px;">공급가액: ${new Intl.NumberFormat('ko-KR').format(Math.round(supplyAmount))}원</div>
-                <div style="font-size: 14px; color: #64748b; margin-bottom: 4px;">부가세 (10%): ${new Intl.NumberFormat('ko-KR').format(Math.round(taxAmount))}원</div>
-                <div style="font-size: 32px; font-weight: 700; color: #6366f1; margin-top: 8px;">입금금액 (부가세 포함): ${new Intl.NumberFormat('ko-KR').format(Math.round(totalAmount))}원</div>
+                <div style="font-size: 32px; font-weight: 700; color: #6366f1;">${new Intl.NumberFormat('ko-KR').format(Math.round(totalAmount))}원</div>
             `;
             document.getElementById('modalPricePreview').style.display = 'block';
             
