@@ -39,6 +39,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_settings'])) {
     $settings['footer']['hours']['weekday'] = trim($_POST['footer_hours_weekday'] ?? '');
     $settings['footer']['hours']['hours'] = trim($_POST['footer_hours_hours'] ?? '');
     $settings['footer']['hours']['lunch'] = trim($_POST['footer_hours_lunch'] ?? '');
+    
+    // 약관 링크 설정
+    $settings['footer']['terms']['terms_of_service']['text'] = trim($_POST['footer_terms_of_service_text'] ?? '');
+    $settings['footer']['terms']['terms_of_service']['url'] = trim($_POST['footer_terms_of_service_url'] ?? '/MVNO/terms/view.php?type=terms_of_service');
+    $settings['footer']['terms']['terms_of_service']['content'] = trim($_POST['footer_terms_of_service_content'] ?? '');
+    $settings['footer']['terms']['privacy_policy']['text'] = trim($_POST['footer_privacy_policy_text'] ?? '');
+    $settings['footer']['terms']['privacy_policy']['url'] = trim($_POST['footer_privacy_policy_url'] ?? '/MVNO/terms/view.php?type=privacy_policy');
+    $settings['footer']['terms']['privacy_policy']['content'] = trim($_POST['footer_privacy_policy_content'] ?? '');
+    $settings['footer']['terms']['information_security']['text'] = trim($_POST['footer_information_security_text'] ?? '');
+    $settings['footer']['terms']['information_security']['url'] = trim($_POST['footer_information_security_url'] ?? '/MVNO/terms/view.php?type=information_security');
+    $settings['footer']['terms']['information_security']['content'] = trim($_POST['footer_information_security_content'] ?? '');
 
     // 최소 필드 검증
     if (empty($settings['site']['name_ko'])) {
@@ -164,6 +175,56 @@ include '../includes/admin-header.php';
             <div class="form-group">
                 <label for="footer_hours_lunch">점심시간</label>
                 <input type="text" id="footer_hours_lunch" name="footer_hours_lunch" value="<?php echo htmlspecialchars($settings['footer']['hours']['lunch'] ?? ''); ?>">
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">약관 링크</div>
+            
+            <!-- 이용약관 -->
+            <div class="form-group">
+                <label for="footer_terms_of_service_text">이용약관 - 텍스트</label>
+                <input type="text" id="footer_terms_of_service_text" name="footer_terms_of_service_text" value="<?php echo htmlspecialchars($settings['footer']['terms']['terms_of_service']['text'] ?? '이용약관'); ?>">
+            </div>
+            <div class="form-group">
+                <label for="footer_terms_of_service_url">이용약관 - 링크 URL</label>
+                <input type="text" id="footer_terms_of_service_url" name="footer_terms_of_service_url" value="<?php echo htmlspecialchars($settings['footer']['terms']['terms_of_service']['url'] ?? '/MVNO/terms/view.php?type=terms_of_service'); ?>">
+                <div class="help">예: /MVNO/terms/view.php?type=terms_of_service</div>
+            </div>
+            <div class="form-group">
+                <label for="footer_terms_of_service_content">이용약관 - 내용 (HTML)</label>
+                <textarea id="footer_terms_of_service_content" name="footer_terms_of_service_content" rows="10" style="font-family: monospace; font-size: 13px;"><?php echo htmlspecialchars($settings['footer']['terms']['terms_of_service']['content'] ?? ''); ?></textarea>
+                <div class="help">HTML 형식으로 내용을 입력하세요.</div>
+            </div>
+            
+            <div class="form-group" style="margin-top: 24px; padding-top: 24px; border-top: 1px solid #e5e7eb;">
+                <label for="footer_privacy_policy_text">개인정보처리방침 - 텍스트</label>
+                <input type="text" id="footer_privacy_policy_text" name="footer_privacy_policy_text" value="<?php echo htmlspecialchars($settings['footer']['terms']['privacy_policy']['text'] ?? '개인정보처리방침'); ?>">
+            </div>
+            <div class="form-group">
+                <label for="footer_privacy_policy_url">개인정보처리방침 - 링크 URL</label>
+                <input type="text" id="footer_privacy_policy_url" name="footer_privacy_policy_url" value="<?php echo htmlspecialchars($settings['footer']['terms']['privacy_policy']['url'] ?? '/MVNO/terms/view.php?type=privacy_policy'); ?>">
+                <div class="help">예: /MVNO/terms/view.php?type=privacy_policy</div>
+            </div>
+            <div class="form-group">
+                <label for="footer_privacy_policy_content">개인정보처리방침 - 내용 (HTML)</label>
+                <textarea id="footer_privacy_policy_content" name="footer_privacy_policy_content" rows="10" style="font-family: monospace; font-size: 13px;"><?php echo htmlspecialchars($settings['footer']['terms']['privacy_policy']['content'] ?? ''); ?></textarea>
+                <div class="help">HTML 형식으로 내용을 입력하세요.</div>
+            </div>
+            
+            <div class="form-group" style="margin-top: 24px; padding-top: 24px; border-top: 1px solid #e5e7eb;">
+                <label for="footer_information_security_text">정보보호현황 - 텍스트</label>
+                <input type="text" id="footer_information_security_text" name="footer_information_security_text" value="<?php echo htmlspecialchars($settings['footer']['terms']['information_security']['text'] ?? '정보보호현황'); ?>">
+            </div>
+            <div class="form-group">
+                <label for="footer_information_security_url">정보보호현황 - 링크 URL</label>
+                <input type="text" id="footer_information_security_url" name="footer_information_security_url" value="<?php echo htmlspecialchars($settings['footer']['terms']['information_security']['url'] ?? '/MVNO/terms/view.php?type=information_security'); ?>">
+                <div class="help">예: /MVNO/terms/view.php?type=information_security</div>
+            </div>
+            <div class="form-group">
+                <label for="footer_information_security_content">정보보호현황 - 내용 (HTML)</label>
+                <textarea id="footer_information_security_content" name="footer_information_security_content" rows="10" style="font-family: monospace; font-size: 13px;"><?php echo htmlspecialchars($settings['footer']['terms']['information_security']['content'] ?? ''); ?></textarea>
+                <div class="help">HTML 형식으로 내용을 입력하세요.</div>
             </div>
         </div>
 

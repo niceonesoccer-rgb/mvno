@@ -63,10 +63,124 @@ if (!empty($home_settings['main_banners']) && is_array($home_settings['main_bann
     }
 }
 
-// 알뜰폰 요금제 가져오기 (관리자가 설정한 상품은 status와 관계없이 표시)
+// 알뜰폰 요금제 가져오기 (판매종료 제외) - 원본 데이터 사용
 $mvno_plans = [];
 if (!empty($home_settings['mvno_plans']) && is_array($home_settings['mvno_plans'])) {
-    $mvno_plans = getPlansByIds($home_settings['mvno_plans']);
+    require_once __DIR__ . '/includes/data/db-config.php';
+    $pdo = getDBConnection();
+    if ($pdo) {
+        try {
+            $plan_ids = array_unique(array_map('intval', $home_settings['mvno_plans']));
+            if (!empty($plan_ids)) {
+                $placeholders = implode(',', array_fill(0, count($plan_ids), '?'));
+                $stmt = $pdo->prepare("
+                    SELECT 
+                        p.id,
+                        p.seller_id,
+                        p.status,
+                        p.view_count,
+                        p.favorite_count,
+                        p.review_count,
+                        p.share_count,
+                        p.application_count,
+                        mvno.provider,
+                        mvno.service_type,
+                        mvno.plan_name,
+                        mvno.contract_period,
+                        mvno.contract_period_days,
+                        mvno.discount_period,
+                        mvno.price_main,
+                        mvno.price_after,
+                        mvno.data_amount,
+                        mvno.data_amount_value,
+                        mvno.data_unit,
+                        mvno.data_additional,
+                        mvno.data_additional_value,
+                        mvno.data_exhausted,
+                        mvno.data_exhausted_value,
+                        mvno.call_type,
+                        mvno.call_amount,
+                        mvno.additional_call_type,
+                        mvno.additional_call,
+                        mvno.sms_type,
+                        mvno.sms_amount,
+                        mvno.promotion_title,
+                        mvno.promotions
+                    FROM products p
+                    INNER JOIN product_mvno_details mvno ON p.id = mvno.product_id
+                    WHERE p.product_type = 'mvno' 
+                    AND p.id IN ($placeholders)
+                    AND p.status = 'active'
+                    ORDER BY FIELD(p.id, $placeholders)
+                ");
+                $stmt->execute(array_merge($plan_ids, $plan_ids));
+                $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                if (!empty($products)) {
+                    // 메인페이지 전용 카드 컴포넌트를 사용하므로 원본 데이터 그대로 저장
+                    $mvno_plans = $products;
+                }
+            }
+        } catch (PDOException $e) {
+            error_log("Error fetching MVNO plans: " . $e->getMessage());
+        }
+    }
+}
+// 메인에 추가된 상품이 없거나 모두 판매종료인 경우 주문수가 높은 상품으로 자동 채우기
+if (empty($mvno_plans)) {
+    require_once __DIR__ . '/includes/data/db-config.php';
+    $pdo = getDBConnection();
+    if ($pdo) {
+        try {
+            $stmt = $pdo->prepare("
+                SELECT 
+                    p.id,
+                    p.seller_id,
+                    p.status,
+                    p.view_count,
+                    p.favorite_count,
+                    p.review_count,
+                    p.share_count,
+                    p.application_count,
+                    mvno.provider,
+                    mvno.service_type,
+                    mvno.plan_name,
+                    mvno.contract_period,
+                    mvno.contract_period_days,
+                    mvno.discount_period,
+                    mvno.price_main,
+                    mvno.price_after,
+                    mvno.data_amount,
+                    mvno.data_amount_value,
+                    mvno.data_unit,
+                    mvno.data_additional,
+                    mvno.data_additional_value,
+                    mvno.data_exhausted,
+                    mvno.data_exhausted_value,
+                    mvno.call_type,
+                    mvno.call_amount,
+                    mvno.additional_call_type,
+                    mvno.additional_call,
+                    mvno.sms_type,
+                    mvno.sms_amount,
+                    mvno.promotion_title,
+                    mvno.promotions
+                FROM products p
+                INNER JOIN product_mvno_details mvno ON p.id = mvno.product_id
+                WHERE p.product_type = 'mvno' 
+                AND p.status = 'active'
+                ORDER BY p.application_count DESC, p.id DESC
+                LIMIT 3
+            ");
+            $stmt->execute();
+            $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            if (!empty($products)) {
+                // 메인페이지 전용 카드 컴포넌트를 사용하므로 원본 데이터 그대로 저장
+                $mvno_plans = $products;
+            }
+        } catch (PDOException $e) {
+            error_log("Error fetching top MVNO plans: " . $e->getMessage());
+        }
+    }
 }
 
 // 사이트 전체 섹션 배너 가져오기
@@ -138,17 +252,280 @@ if ($needs_save) {
     saveHomeSettings($home_settings);
 }
 
-// 통신사폰 가져오기 (관리자가 설정한 상품은 status와 관계없이 표시)
+// 통신사폰 가져오기 (판매종료 제외)
 $mno_phones = [];
 if (!empty($home_settings['mno_phones']) && is_array($home_settings['mno_phones'])) {
     $mno_phones = getPhonesByIds($home_settings['mno_phones']);
 }
+// 메인에 추가된 상품이 없거나 모두 판매종료인 경우 주문수가 높은 상품으로 자동 채우기
+if (empty($mno_phones)) {
+    require_once __DIR__ . '/includes/data/db-config.php';
+    $pdo = getDBConnection();
+    if ($pdo) {
+        try {
+            $stmt = $pdo->prepare("
+                SELECT 
+                    p.id,
+                    p.seller_id,
+                    p.status,
+                    p.application_count,
+                    p.favorite_count,
+                    p.view_count,
+                    mno.device_name,
+                    mno.device_price,
+                    mno.device_capacity,
+                    mno.common_provider,
+                    mno.common_discount_new,
+                    mno.common_discount_port,
+                    mno.common_discount_change,
+                    mno.contract_provider,
+                    mno.contract_discount_new,
+                    mno.contract_discount_port,
+                    mno.contract_discount_change,
+                    mno.price_main,
+                    mno.contract_period_value,
+                    mno.promotion_title,
+                    mno.promotions,
+                    mno.delivery_method,
+                    mno.visit_region
+                FROM products p
+                INNER JOIN product_mno_details mno ON p.id = mno.product_id
+                WHERE p.product_type = 'mno' 
+                AND p.status = 'active'
+                ORDER BY p.application_count DESC, p.id DESC
+                LIMIT 3
+            ");
+            $stmt->execute();
+            $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            if (!empty($products)) {
+                // getPhonesByIds와 동일한 변환 로직 적용
+                require_once __DIR__ . '/includes/data/phone-data.php';
+                $productIds = array_column($products, 'id');
+                // getPhonesByIds를 사용하여 변환된 형태로 가져오기
+                $mno_phones = getPhonesByIds($productIds);
+            }
+        } catch (PDOException $e) {
+            error_log("Error fetching top MNO phones: " . $e->getMessage());
+        }
+    }
+}
 
-// 알짜 통신사단독유심 가져오기 (관리자가 설정한 상품은 status와 관계없이 표시)
+// 알짜 통신사단독유심 가져오기 (판매종료 제외)
 $mno_sim_plans = [];
 if (!empty($home_settings['mno_sim_plans']) && is_array($home_settings['mno_sim_plans'])) {
-    // TODO: getMnoSimPlansByIds() 함수 구현 필요
-    // $mno_sim_plans = getMnoSimPlansByIds($home_settings['mno_sim_plans']);
+    require_once __DIR__ . '/includes/data/db-config.php';
+    $pdo = getDBConnection();
+    if ($pdo) {
+        try {
+            $plan_ids = array_unique(array_map('intval', $home_settings['mno_sim_plans']));
+            if (!empty($plan_ids)) {
+                $placeholders = implode(',', array_fill(0, count($plan_ids), '?'));
+                $stmt = $pdo->prepare("
+                    SELECT 
+                        p.id,
+                        p.seller_id,
+                        p.status,
+                        p.view_count,
+                        p.favorite_count,
+                        p.review_count,
+                        p.share_count,
+                        p.application_count,
+                        mno_sim.provider,
+                        mno_sim.service_type,
+                        mno_sim.plan_name,
+                        mno_sim.contract_period,
+                        mno_sim.contract_period_discount_value,
+                        mno_sim.contract_period_discount_unit,
+                        mno_sim.discount_period,
+                        mno_sim.discount_period_value,
+                        mno_sim.discount_period_unit,
+                        mno_sim.price_main,
+                        mno_sim.price_main_unit,
+                        mno_sim.price_after,
+                        mno_sim.price_after_unit,
+                        mno_sim.data_amount,
+                        mno_sim.data_amount_value,
+                        mno_sim.data_unit,
+                        mno_sim.data_additional,
+                        mno_sim.data_additional_value,
+                        mno_sim.data_exhausted,
+                        mno_sim.data_exhausted_value,
+                        mno_sim.call_type,
+                        mno_sim.call_amount,
+                        mno_sim.call_amount_unit,
+                        mno_sim.additional_call_type,
+                        mno_sim.additional_call,
+                        mno_sim.additional_call_unit,
+                        mno_sim.sms_type,
+                        mno_sim.sms_amount,
+                        mno_sim.sms_amount_unit,
+                        mno_sim.promotion_title,
+                        mno_sim.promotions
+                    FROM products p
+                    INNER JOIN product_mno_sim_details mno_sim ON p.id = mno_sim.product_id
+                    WHERE p.product_type = 'mno-sim' 
+                    AND p.id IN ($placeholders)
+                    AND p.status = 'active'
+                    ORDER BY FIELD(p.id, $placeholders)
+                ");
+                $stmt->execute(array_merge($plan_ids, $plan_ids));
+                $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                if (!empty($products)) {
+                    // 메인페이지 전용 카드 컴포넌트를 사용하므로 원본 데이터 그대로 저장
+                    $mno_sim_plans = $products;
+                }
+            }
+        } catch (PDOException $e) {
+            error_log("Error fetching MNO-SIM plans: " . $e->getMessage());
+        }
+    }
+}
+// 메인에 추가된 상품이 없거나 모두 판매종료인 경우 주문수가 높은 상품으로 자동 채우기
+if (empty($mno_sim_plans)) {
+    require_once __DIR__ . '/includes/data/db-config.php';
+    $pdo = getDBConnection();
+    if ($pdo) {
+        try {
+            $stmt = $pdo->prepare("
+                SELECT 
+                    p.id,
+                    p.seller_id,
+                    p.status,
+                    p.view_count,
+                    p.favorite_count,
+                    p.review_count,
+                    p.share_count,
+                    p.application_count,
+                    mno_sim.provider,
+                    mno_sim.service_type,
+                    mno_sim.plan_name,
+                    mno_sim.contract_period,
+                    mno_sim.contract_period_discount_value,
+                    mno_sim.contract_period_discount_unit,
+                    mno_sim.discount_period,
+                    mno_sim.discount_period_value,
+                    mno_sim.discount_period_unit,
+                    mno_sim.price_main,
+                    mno_sim.price_main_unit,
+                    mno_sim.price_after,
+                    mno_sim.price_after_unit,
+                    mno_sim.data_amount,
+                    mno_sim.data_amount_value,
+                    mno_sim.data_unit,
+                    mno_sim.data_additional,
+                    mno_sim.data_additional_value,
+                    mno_sim.data_exhausted,
+                    mno_sim.data_exhausted_value,
+                    mno_sim.call_type,
+                    mno_sim.call_amount,
+                    mno_sim.call_amount_unit,
+                    mno_sim.additional_call_type,
+                    mno_sim.additional_call,
+                    mno_sim.additional_call_unit,
+                    mno_sim.sms_type,
+                    mno_sim.sms_amount,
+                    mno_sim.sms_amount_unit,
+                    mno_sim.promotion_title,
+                    mno_sim.promotions
+                FROM products p
+                INNER JOIN product_mno_sim_details mno_sim ON p.id = mno_sim.product_id
+                WHERE p.product_type = 'mno-sim' 
+                AND p.status = 'active'
+                ORDER BY p.application_count DESC, p.id DESC
+                LIMIT 3
+            ");
+            $stmt->execute();
+            $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            if (!empty($products)) {
+                // 메인페이지 전용 카드 컴포넌트를 사용하므로 원본 데이터 그대로 저장
+                $mno_sim_plans = $products;
+            }
+        } catch (PDOException $e) {
+            error_log("Error fetching top MNO-SIM plans: " . $e->getMessage());
+        }
+    }
+}
+
+// 인터넷 상품 가져오기 (판매종료 제외)
+$internet_products = [];
+if (!empty($home_settings['internet_products']) && is_array($home_settings['internet_products'])) {
+    require_once __DIR__ . '/includes/data/db-config.php';
+    $pdo = getDBConnection();
+    if ($pdo) {
+        try {
+            $product_ids = array_unique(array_map('intval', $home_settings['internet_products']));
+            if (!empty($product_ids)) {
+                $placeholders = implode(',', array_fill(0, count($product_ids), '?'));
+                $stmt = $pdo->prepare("
+                    SELECT 
+                        p.id,
+                        p.seller_id,
+                        p.status,
+                        p.application_count,
+                        inet.registration_place,
+                        inet.service_type,
+                        inet.speed_option,
+                        inet.monthly_fee,
+                        inet.cash_payment_names,
+                        inet.cash_payment_prices,
+                        inet.gift_card_names,
+                        inet.gift_card_prices,
+                        inet.equipment_names,
+                        inet.equipment_prices,
+                        inet.installation_names,
+                        inet.installation_prices
+                    FROM products p
+                    INNER JOIN product_internet_details inet ON p.id = inet.product_id
+                    WHERE p.product_type = 'internet' 
+                    AND p.id IN ($placeholders)
+                    AND p.status = 'active'
+                    ORDER BY FIELD(p.id, $placeholders)
+                ");
+                $stmt->execute(array_merge($product_ids, $product_ids));
+                $internet_products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            }
+        } catch (PDOException $e) {
+            error_log("Error fetching Internet products: " . $e->getMessage());
+        }
+    }
+}
+// 메인에 추가된 상품이 없거나 모두 판매종료인 경우 주문수가 높은 상품으로 자동 채우기
+if (empty($internet_products)) {
+    require_once __DIR__ . '/includes/data/db-config.php';
+    $pdo = getDBConnection();
+    if ($pdo) {
+        try {
+            $stmt = $pdo->prepare("
+                SELECT 
+                    p.id,
+                    p.seller_id,
+                    p.status,
+                    p.application_count,
+                    inet.registration_place,
+                    inet.service_type,
+                    inet.speed_option,
+                    inet.monthly_fee,
+                    inet.cash_payment_names,
+                    inet.cash_payment_prices,
+                    inet.gift_card_names,
+                    inet.gift_card_prices,
+                    inet.equipment_names,
+                    inet.equipment_prices,
+                    inet.installation_names,
+                    inet.installation_prices
+                FROM products p
+                INNER JOIN product_internet_details inet ON p.id = inet.product_id
+                WHERE p.product_type = 'internet' 
+                AND p.status = 'active'
+                ORDER BY p.application_count DESC, p.id DESC
+                LIMIT 3
+            ");
+            $stmt->execute();
+            $internet_products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Error fetching top Internet products: " . $e->getMessage());
+        }
+    }
 }
 ?>
 
@@ -313,7 +690,7 @@ if (!empty($home_settings['mno_sim_plans']) && is_array($home_settings['mno_sim_
     </div>
 
     <!-- 두 번째 섹션: 알짜 통신사단독유심 -->
-    <div class="home-section bg-white">
+    <div class="home-section bg-section-1">
         <div class="content-layout">
             <section class="home-product-section">
                 <div class="home-section-header">
@@ -323,9 +700,9 @@ if (!empty($home_settings['mno_sim_plans']) && is_array($home_settings['mno_sim_
                 
                 <!-- 상품 목록 -->
                 <?php if (!empty($mno_sim_plans)): ?>
-                    <div class="home-product-grid">
-                        <?php foreach (array_slice($mno_sim_plans, 0, 6) as $plan): ?>
-                            <?php include 'includes/components/plan-card.php'; ?>
+                    <div class="home-product-grid home-product-grid-single-row mno-sim-home-grid">
+                        <?php foreach (array_slice($mno_sim_plans, 0, 3) as $product): ?>
+                            <?php include 'includes/components/mno-sim-home-card.php'; ?>
                         <?php endforeach; ?>
                     </div>
                 <?php else: ?>
@@ -340,20 +717,20 @@ if (!empty($home_settings['mno_sim_plans']) && is_array($home_settings['mno_sim_
     </div>
 
     <!-- 세 번째 섹션: 알뜰폰 요금제 -->
-    <div class="home-section bg-white">
+    <div class="home-section bg-section-2">
         <div class="content-layout">
             <section class="home-product-section">
                 <div class="home-section-header">
-                    <h2 class="home-section-title">추천 알뜰폰 요금제</h2>
+                    <h2 class="home-section-title">추천 알뜰폰</h2>
                     <a href="/MVNO/mvno/mvno.php" class="home-section-more">더보기 &gt;</a>
                 </div>
                 
                 
                 <!-- 상품 목록 -->
                 <?php if (!empty($mvno_plans)): ?>
-                    <div class="home-product-grid">
-                        <?php foreach (array_slice($mvno_plans, 0, 6) as $plan): ?>
-                            <?php include 'includes/components/plan-card.php'; ?>
+                    <div class="home-product-grid home-product-grid-single-row mvno-home-grid">
+                        <?php foreach (array_slice($mvno_plans, 0, 3) as $product): ?>
+                            <?php include 'includes/components/mvno-home-card.php'; ?>
                         <?php endforeach; ?>
                     </div>
                 <?php else: ?>
@@ -368,7 +745,7 @@ if (!empty($home_settings['mno_sim_plans']) && is_array($home_settings['mno_sim_
     </div>
 
     <!-- 네 번째 섹션: 통신사폰 -->
-    <div class="home-section bg-gray-100">
+    <div class="home-section bg-section-3">
         <div class="content-layout">
             <section class="home-product-section">
                 <div class="home-section-header">
@@ -376,9 +753,9 @@ if (!empty($home_settings['mno_sim_plans']) && is_array($home_settings['mno_sim_
                     <a href="/MVNO/mno/mno.php" class="home-section-more">더보기 &gt;</a>
                 </div>
                 <?php if (!empty($mno_phones)): ?>
-                    <div class="home-product-grid">
-                        <?php foreach (array_slice($mno_phones, 0, 6) as $phone): ?>
-                            <?php include 'includes/components/phone-card.php'; ?>
+                    <div class="home-product-grid home-product-grid-single-row mno-home-grid">
+                        <?php foreach (array_slice($mno_phones, 0, 3) as $phone): ?>
+                            <?php include 'includes/components/mno-home-card.php'; ?>
                         <?php endforeach; ?>
                     </div>
                 <?php else: ?>
@@ -393,60 +770,21 @@ if (!empty($home_settings['mno_sim_plans']) && is_array($home_settings['mno_sim_
     </div>
 
     <!-- 다섯 번째 섹션: 인터넷 상품 -->
-    <div class="home-section bg-gray-200">
+    <div class="home-section bg-section-4">
         <div class="content-layout">
             <section class="home-internet-section">
                 <div class="home-section-header">
-                    <h2 class="home-section-title">최대할인 인터넷 상품</h2>
-                    <p class="home-section-subtitle">현금성 상품받고, 최대혜택 누리기</p>
-                </div>
-                <?php if (!empty($home_settings['internet_products'])): ?>
-                    <div class="home-internet-carousel">
-                        <div class="home-internet-swiper" id="homeInternetSwiper">
-                            <?php foreach ($home_settings['internet_products'] as $product): ?>
-                                <div class="home-internet-slide">
-                                    <a href="/plans/<?php echo htmlspecialchars($product); ?>" class="plan-card">
-                                        <div class="plan-card-content internet-card">
-                                            <div class="internet-card-header">
-                                                <div class="internet-company">
-                                                    <img src="/MVNO/assets/images/internets/ktskylife.svg" alt="KT skylife" class="internet-company-logo">
-                                                </div>
-                                                <div class="internet-specs">
-                                                    <div class="internet-spec">
-                                                        <img src="/MVNO/assets/images/icons/cash.svg" alt="인터넷 속도" class="internet-spec-icon">
-                                                        <span>500MB</span>
-                                                    </div>
-                                                    <div class="internet-spec">
-                                                        <img src="/MVNO/assets/images/icons/installation.svg" alt="TV 채널" class="internet-spec-icon">
-                                                        <span>194개</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div class="internet-benefits">
-                                                <div class="internet-benefit">
-                                                    <img src="/MVNO/assets/images/icons/gift-card.svg" alt="혜택" class="internet-benefit-icon">
-                                                    <div class="internet-benefit-text">
-                                                        <p class="internet-benefit-title">인터넷,TV 설치비 무료</p>
-                                                        <p class="internet-benefit-sub">무료(36,300원 상당)</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div class="internet-price">
-                                                <p class="internet-price-text">월 26,400원</p>
-                                            </div>
-                                        </div>
-                                    </a>
-                                </div>
-                            <?php endforeach; ?>
-                        </div>
+                    <div>
+                        <h2 class="home-section-title">최대할인 인터넷</h2>
+                        <p class="home-section-subtitle">현금성 상품받고, 최대혜택 누리기</p>
                     </div>
-                    <div class="home-section-footer">
-                        <a href="/MVNO/internets/internets.php" class="home-section-more-btn">
-                            <span>인터넷 상품 더보기</span>
-                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path fill-rule="evenodd" clip-rule="evenodd" d="M8.15146 20.8485C7.68283 20.3799 7.68283 19.6201 8.15146 19.1515L15.3029 12L8.15146 4.84852C7.68283 4.37989 7.68283 3.6201 8.15146 3.15147C8.62009 2.68284 9.37989 2.68284 9.84852 3.15147L17.8485 11.1515C18.3171 11.6201 18.3171 12.3799 17.8485 12.8485L9.84852 20.8485C9.37989 21.3172 8.62009 21.3172 8.15146 20.8485Z" fill="#868E96"></path>
-                            </svg>
-                        </a>
+                    <a href="/MVNO/internets/internets.php" class="home-section-more">더보기 &gt;</a>
+                </div>
+                <?php if (!empty($internet_products)): ?>
+                    <div class="home-product-grid home-product-grid-single-row internet-home-grid">
+                        <?php foreach (array_slice($internet_products, 0, 3) as $product): ?>
+                            <?php include 'includes/components/internet-home-card.php'; ?>
+                        <?php endforeach; ?>
                     </div>
                 <?php else: ?>
                     <div class="home-empty-state">
@@ -700,12 +1038,35 @@ if (!empty($home_settings['mno_sim_plans']) && is_array($home_settings['mno_sim_
     background-color: #f3f4f6;
 }
 
+/* 섹션별 배경색 */
+.bg-section-1 {
+    background-color: #ffffff; /* 알짜 통신사단독유심 - 흰색 */
+}
+
+.bg-section-2 {
+    background-color: #f8fafc; /* 추천 알뜰폰 - 연한 회색 */
+}
+
+.bg-section-3 {
+    background-color: #f1f5f9; /* 인기 통신사폰 - 회색 */
+}
+
+.bg-section-4 {
+    background-color: #eef2ff; /* 최대할인 인터넷 - 연한 보라색 */
+}
+
 .home-section-header {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
     margin-bottom: 1.5rem;
     padding: 0 1rem;
+    gap: 1rem;
+}
+
+/* 인터넷 섹션 헤더는 subtitle이 있으므로 제목과 subtitle을 감싸는 div 추가 */
+.home-internet-section .home-section-header {
+    align-items: flex-start;
 }
 
 .home-section-title {
@@ -713,6 +1074,8 @@ if (!empty($home_settings['mno_sim_plans']) && is_array($home_settings['mno_sim_
     font-weight: 700;
     color: #111827;
     margin: 0;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .home-section-subtitle {
@@ -742,6 +1105,12 @@ if (!empty($home_settings['mno_sim_plans']) && is_array($home_settings['mno_sim_
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 1.5rem;
     padding: 0 1rem;
+}
+
+/* 한 줄로 3개만 표시 */
+.home-product-grid-single-row {
+    grid-template-columns: repeat(3, 1fr);
+    max-width: 100%;
 }
 
 /* 빈 상태 스타일 */
@@ -830,9 +1199,42 @@ if (!empty($home_settings['mno_sim_plans']) && is_array($home_settings['mno_sim_
         font-size: 1.25rem;
     }
     
-    .home-product-grid {
+    .home-product-grid:not(.home-product-grid-single-row) {
         grid-template-columns: 1fr;
         gap: 1rem;
+    }
+    .home-product-grid-single-row {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
+        overflow-x: auto;
+    }
+    
+    /* 통신사단독유심 카드는 모바일에서 하나씩 */
+    .mno-sim-home-grid {
+        grid-template-columns: 1fr !important;
+        gap: 1rem;
+        overflow-x: visible;
+    }
+    
+    /* 알뜰폰 요금제 카드는 모바일에서 하나씩 */
+    .mvno-home-grid {
+        grid-template-columns: 1fr !important;
+        gap: 1rem;
+        overflow-x: visible;
+    }
+    
+    /* 통신사폰 카드는 모바일에서 하나씩 */
+    .mno-home-grid {
+        grid-template-columns: 1fr !important;
+        gap: 1rem;
+        overflow-x: visible;
+    }
+    
+    /* 인터넷 카드는 모바일에서 하나씩 */
+    .internet-home-grid {
+        grid-template-columns: 1fr !important;
+        gap: 1rem;
+        overflow-x: visible;
     }
     
     .home-internet-slide {
@@ -853,14 +1255,696 @@ if (!empty($home_settings['mno_sim_plans']) && is_array($home_settings['mno_sim_
 }
 
 @media (min-width: 768px) and (max-width: 1023px) {
-    .home-product-grid {
+    .home-product-grid:not(.home-product-grid-single-row) {
         grid-template-columns: repeat(2, 1fr);
+    }
+    .home-product-grid-single-row {
+        grid-template-columns: repeat(3, 1fr);
     }
 }
 
 @media (min-width: 1024px) {
-    .home-product-grid {
+    .home-product-grid:not(.home-product-grid-single-row) {
         grid-template-columns: repeat(3, 1fr);
+    }
+    .home-product-grid-single-row {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+/* 메인페이지 전용 통신사단독유심 카드 스타일 */
+.mno-sim-home-grid {
+    /* 모바일에서 카드 하나씩 표시 */
+}
+
+.mno-sim-home-card {
+    display: block;
+    background-color: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.06);
+    transition: all 0.2s;
+    height: 100%;
+}
+
+.mno-sim-home-card:hover {
+    box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.12);
+    transform: translateY(-2px);
+}
+
+.mno-sim-home-card-link {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    height: 100%;
+}
+
+.mno-sim-home-card-content {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.875rem;
+}
+
+.mno-sim-home-provider {
+    font-size: 0.9375rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin-bottom: 0.125rem;
+    letter-spacing: -0.01em;
+}
+
+.mno-sim-home-discount-method {
+    font-size: 0.8125rem;
+    color: #6366f1;
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+    background-color: #eef2ff;
+    padding: 0.25rem 0.625rem;
+    border-radius: 6px;
+    display: inline-block;
+    width: fit-content;
+}
+
+.mno-sim-home-plan-name {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 0.5rem;
+    line-height: 1.4;
+    letter-spacing: -0.02em;
+}
+
+.mno-sim-home-data {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    font-size: 0.9375rem;
+    margin-bottom: 0.75rem;
+    padding: 0.75rem;
+    background-color: #f9fafb;
+    border-radius: 8px;
+}
+
+.mno-sim-home-data-label {
+    font-weight: 700;
+    color: #6366f1;
+    font-size: 0.875rem;
+}
+
+.mno-sim-home-data-value {
+    color: #1f2937;
+    font-weight: 600;
+}
+
+.mno-sim-home-promotion-price-row {
+    display: flex;
+    align-items: baseline;
+    gap: 0.875rem;
+    margin-top: 0.5rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid #e5e7eb;
+}
+
+.mno-sim-home-promotion-period {
+    font-size: 0.8125rem;
+    color: #6b7280;
+    font-weight: 500;
+    background-color: #f3f4f6;
+    padding: 0.375rem 0.75rem;
+    border-radius: 6px;
+}
+
+.mno-sim-home-price {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #111827;
+    letter-spacing: -0.02em;
+}
+
+/* 모바일 반응형 */
+@media (max-width: 767px) {
+    .mno-sim-home-card-content {
+        padding: 1.5rem;
+        gap: 1rem;
+    }
+    
+    .mno-sim-home-provider {
+        font-size: 1rem;
+        font-weight: 700;
+    }
+    
+    .mno-sim-home-discount-method {
+        font-size: 0.875rem;
+        padding: 0.375rem 0.75rem;
+    }
+    
+    .mno-sim-home-plan-name {
+        font-size: 1.25rem;
+        font-weight: 700;
+    }
+    
+    .mno-sim-home-data {
+        font-size: 1rem;
+        gap: 0.75rem;
+        padding: 1rem;
+    }
+    
+    .mno-sim-home-data-label {
+        font-size: 0.9375rem;
+    }
+    
+    .mno-sim-home-data-value {
+        font-size: 1rem;
+    }
+    
+    .mno-sim-home-promotion-price-row {
+        gap: 1rem;
+        flex-wrap: nowrap;
+        padding-top: 1rem;
+        margin-top: 0.75rem;
+    }
+    
+    .mno-sim-home-price {
+        font-size: 1.5rem;
+        font-weight: 800;
+    }
+    
+    .mno-sim-home-promotion-period {
+        font-size: 0.875rem;
+        padding: 0.5rem 0.875rem;
+    }
+}
+
+/* 메인페이지 전용 알뜰폰 요금제 카드 스타일 */
+.mvno-home-grid {
+    /* 모바일에서 카드 하나씩 표시 */
+}
+
+.mvno-home-card {
+    display: block;
+    background-color: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.06);
+    transition: all 0.2s;
+    height: 100%;
+}
+
+.mvno-home-card:hover {
+    box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.12);
+    transform: translateY(-2px);
+}
+
+.mvno-home-card-link {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    height: 100%;
+}
+
+.mvno-home-card-content {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.mvno-home-provider {
+    font-size: 0.9375rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin-bottom: 0.125rem;
+    letter-spacing: -0.01em;
+}
+
+.mvno-home-plan-name {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 0.25rem;
+    line-height: 1.4;
+    letter-spacing: -0.02em;
+}
+
+.mvno-home-data {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    font-size: 0.9375rem;
+    padding: 0.75rem;
+    background-color: #f9fafb;
+    border-radius: 8px;
+}
+
+.mvno-home-data-label {
+    font-weight: 700;
+    color: #6366f1;
+    font-size: 0.875rem;
+}
+
+.mvno-home-data-value {
+    color: #1f2937;
+    font-weight: 600;
+}
+
+.mvno-home-data-additional {
+    color: #6366f1;
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+.mvno-home-call-sms {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: #374151;
+    font-weight: 500;
+    padding: 0.5rem 0;
+}
+
+.mvno-home-call,
+.mvno-home-sms {
+    color: #374151;
+}
+
+.mvno-home-separator {
+    color: #d1d5db;
+    font-weight: 300;
+}
+
+.mvno-home-promotion-price-row {
+    display: flex;
+    align-items: baseline;
+    gap: 0.875rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid #e5e7eb;
+    margin-top: 0.5rem;
+}
+
+.mvno-home-promotion-period {
+    font-size: 0.8125rem;
+    color: #6b7280;
+    font-weight: 500;
+    background-color: #f3f4f6;
+    padding: 0.375rem 0.75rem;
+    border-radius: 6px;
+}
+
+.mvno-home-promotion-price {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #111827;
+    letter-spacing: -0.02em;
+}
+
+/* 모바일 반응형 */
+@media (max-width: 767px) {
+    .mvno-home-grid {
+        grid-template-columns: 1fr !important;
+        gap: 1rem;
+        overflow-x: visible;
+    }
+    
+    .mvno-home-card-content {
+        padding: 1.5rem;
+        gap: 1.125rem;
+    }
+    
+    .mvno-home-provider {
+        font-size: 1rem;
+        font-weight: 700;
+    }
+    
+    .mvno-home-plan-name {
+        font-size: 1.25rem;
+        font-weight: 700;
+    }
+    
+    .mvno-home-data {
+        font-size: 1rem;
+        gap: 0.75rem;
+        padding: 1rem;
+    }
+    
+    .mvno-home-data-label {
+        font-size: 0.9375rem;
+    }
+    
+    .mvno-home-data-value {
+        font-size: 1rem;
+    }
+    
+    .mvno-home-data-additional {
+        font-size: 0.9375rem;
+    }
+    
+    .mvno-home-call-sms {
+        font-size: 0.9375rem;
+    }
+    
+    .mvno-home-promotion-price-row {
+        gap: 1rem;
+        flex-wrap: nowrap;
+        padding-top: 1rem;
+        margin-top: 0.75rem;
+    }
+    
+    .mvno-home-promotion-period {
+        font-size: 0.875rem;
+        padding: 0.5rem 0.875rem;
+    }
+    
+    .mvno-home-promotion-price {
+        font-size: 1.5rem;
+        font-weight: 800;
+    }
+}
+
+/* 메인페이지 전용 통신사폰 카드 스타일 */
+.mno-home-grid {
+    /* 모바일에서 카드 하나씩 표시 */
+}
+
+.mno-home-card {
+    display: block;
+    background-color: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.06);
+    transition: all 0.2s;
+    height: 100%;
+}
+
+.mno-home-card:hover {
+    box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.12);
+    transform: translateY(-2px);
+}
+
+.mno-home-card-link {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    height: 100%;
+}
+
+.mno-home-card-content {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.mno-home-device-name {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 0.25rem;
+    line-height: 1.4;
+    letter-spacing: -0.02em;
+}
+
+.mno-home-device-storage {
+    font-size: 0.9375rem;
+    color: #374151;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+}
+
+.mno-home-discount-section {
+    margin-top: 0.5rem;
+}
+
+.mno-home-discount-section .mno-support-card {
+    background-color: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 0.75rem;
+    margin: 0;
+}
+
+.mno-home-discount-section .mno-support-card-title {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 0.5rem;
+    text-align: left;
+}
+
+.mno-home-discount-section .mno-support-card-content {
+    padding: 0;
+}
+
+.mno-home-discount-section .mno-support-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+}
+
+.mno-home-discount-section .mno-support-table thead th {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #6b7280;
+    padding: 0.375rem 0.5rem;
+    text-align: left;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.mno-home-discount-section .mno-support-table tbody td {
+    padding: 0.5rem;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.mno-home-discount-section .mno-support-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.mno-home-discount-section .mno-support-provider-text {
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.mno-home-discount-section .mno-support-text {
+    color: #374151;
+}
+
+.mno-home-discount-section .mno-support-text-positive {
+    color: #3b82f6;
+}
+
+.mno-home-discount-section .mno-support-text-negative {
+    color: #ef4444;
+}
+
+.mno-home-discount-section .mno-support-text-empty {
+    color: #9ca3af;
+}
+
+/* 메인페이지 전용 인터넷 카드 스타일 */
+.internet-home-grid {
+    /* 모바일에서 카드 하나씩 표시 */
+}
+
+.internet-home-card {
+    display: block;
+    background-color: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.06);
+    transition: all 0.2s;
+    height: 100%;
+}
+
+.internet-home-card:hover {
+    box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.12);
+    transform: translateY(-2px);
+}
+
+.internet-home-card-link {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    height: 100%;
+}
+
+.internet-home-card-content {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.internet-home-provider-speed {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.internet-home-provider {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: #1f2937;
+    letter-spacing: -0.01em;
+}
+
+.internet-home-speed {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #374151;
+}
+
+.internet-home-combined {
+    font-size: 0.8125rem;
+    color: #6366f1;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    background-color: #eef2ff;
+    padding: 0.25rem 0.625rem;
+    border-radius: 6px;
+    display: inline-block;
+    width: fit-content;
+}
+
+.internet-home-section-label {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #6b7280;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.internet-home-section-items {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.internet-home-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background-color: #f9fafb;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    white-space: nowrap;
+}
+
+.internet-home-item-name {
+    color: #374151;
+    font-weight: 500;
+}
+
+.internet-home-item-price {
+    color: #1f2937;
+    font-weight: 600;
+}
+
+.internet-home-cash-payment,
+.internet-home-gift-card,
+.internet-home-equipment {
+    margin-top: 0.5rem;
+}
+
+.internet-home-price {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #111827;
+    letter-spacing: -0.02em;
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid #e5e7eb;
+}
+
+/* 모바일 반응형 */
+@media (max-width: 767px) {
+    .mno-home-grid {
+        grid-template-columns: 1fr !important;
+        gap: 1rem;
+        overflow-x: visible;
+    }
+    
+    .mno-home-card-content {
+        padding: 1.5rem;
+        gap: 1.125rem;
+    }
+    
+    .mno-home-device-name {
+        font-size: 1.25rem;
+        font-weight: 700;
+    }
+    
+    .mno-home-device-storage {
+        font-size: 1rem;
+    }
+    
+    .mno-home-discount-section .mno-support-card {
+        padding: 0.625rem;
+    }
+    
+    .mno-home-discount-section .mno-support-card-title {
+        font-size: 0.875rem;
+        margin-bottom: 0.625rem;
+    }
+    
+    .mno-home-discount-section .mno-support-table {
+        font-size: 0.9375rem;
+    }
+    
+    .mno-home-discount-section .mno-support-table thead th {
+        font-size: 0.8125rem;
+        padding: 0.5rem;
+    }
+    
+    .mno-home-discount-section .mno-support-table tbody td {
+        padding: 0.625rem;
+    }
+    
+    /* 인터넷 홈 카드 모바일 스타일 */
+    .internet-home-grid {
+        grid-template-columns: 1fr !important;
+        gap: 1rem;
+        overflow-x: visible;
+    }
+    
+    .internet-home-card-content {
+        padding: 1.5rem;
+        gap: 1.125rem;
+    }
+    
+    .internet-home-provider-speed {
+        gap: 1rem;
+        margin-bottom: 0.75rem;
+    }
+    
+    .internet-home-provider {
+        font-size: 1rem;
+        font-weight: 700;
+    }
+    
+    .internet-home-speed {
+        font-size: 1.125rem;
+    }
+    
+    .internet-home-combined {
+        font-size: 0.875rem;
+        padding: 0.375rem 0.75rem;
+        margin-bottom: 0.75rem;
+    }
+    
+    .internet-home-item {
+        font-size: 0.9375rem;
+        padding: 0.625rem 0.875rem;
+    }
+    
+    .internet-home-price {
+        font-size: 1.375rem;
+        margin-top: 1rem;
+        padding-top: 1rem;
     }
 }
 

@@ -13,7 +13,23 @@ $layout_type = $layout_type ?? 'list';
 $card_wrapper_class = $card_wrapper_class ?? '';
 $plan_id = $plan['id'] ?? 0;
 $is_link = ($layout_type === 'list' && $plan_id > 0);
-$link_url = $plan['link_url'] ?? '/MVNO/mvno/mvno-plan-detail.php?id=' . $plan_id;
+
+// 상품 타입에 따라 올바른 상세 페이지 링크 설정
+if (isset($plan['link_url']) && !empty($plan['link_url'])) {
+    $link_url = $plan['link_url'];
+} else {
+    // item_type 또는 plan_name으로 통신사단독유심 여부 확인
+    $item_type = $plan['item_type'] ?? '';
+    $plan_name = $plan['plan_name'] ?? '';
+    $is_mno_sim = ($item_type === 'mno-sim' || !empty($plan_name));
+    
+    if ($is_mno_sim) {
+        $link_url = '/MVNO/mno-sim/mno-sim-detail.php?id=' . $plan_id;
+    } else {
+        $link_url = '/MVNO/mvno/mvno-plan-detail.php?id=' . $plan_id;
+    }
+}
+
 // 푸터에서 공유 링크로 사용할 수 있도록 link_url을 plan 배열에 추가
 $plan['link_url'] = $link_url;
 ?>

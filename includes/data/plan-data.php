@@ -292,20 +292,20 @@ function convertMnoSimProductToPlanCard($product) {
     if ($hasPromotion) {
         // 프로모션 금액이 있는 경우:
         // 1. 프로모션 금액 (위) - price_main에 표시 - 프로모션기간 동안 부과되는 금액
-        $priceMain = '월 ' . number_format($promotionPriceValue) . ($product['price_after_unit'] ?: '원');
+        $priceMain = '월 ' . number_format($promotionPriceValue) . ($product['price_after_unit'] ?? '원');
         
         // 2. 프로모션기간 후 원래 요금 (아래) - price_after에 표시 - "프로모션기간 후 월 원래요금" 형식
         $priceAfter = '';
         if ($regularPriceValue > 0 && $discountPeriod !== '') {
-            $priceAfter = $discountPeriod . ' 후 월 ' . number_format($regularPriceValue) . ($product['price_main_unit'] ?: '원');
+            $priceAfter = $discountPeriod . ' 후 월 ' . number_format($regularPriceValue) . ($product['price_main_unit'] ?? '원');
         } elseif ($regularPriceValue > 0) {
-            $priceAfter = '월 ' . number_format($regularPriceValue) . ($product['price_main_unit'] ?: '원');
+            $priceAfter = '월 ' . number_format($regularPriceValue) . ($product['price_main_unit'] ?? '원');
         }
     } else {
         // 프로모션 금액이 없는 경우:
         // 원래 요금만 표시 (위) - "월" 붙임
         if ($regularPriceValue > 0) {
-            $priceMain = '월 ' . number_format($regularPriceValue) . ($product['price_main_unit'] ?: '원');
+            $priceMain = '월 ' . number_format($regularPriceValue) . ($product['price_main_unit'] ?? '원');
             $priceAfter = ''; // 아래는 표시하지 않음
         } else {
             $priceMain = '월 0원';
@@ -1770,7 +1770,7 @@ function getPlansByIds($plan_ids) {
             INNER JOIN product_mvno_details mvno ON p.id = mvno.product_id
             WHERE p.product_type = 'mvno' 
             AND p.id IN ($placeholders)
-            AND p.status != 'deleted'
+            AND p.status = 'active'
             ORDER BY FIELD(p.id, $placeholders)
         ";
         

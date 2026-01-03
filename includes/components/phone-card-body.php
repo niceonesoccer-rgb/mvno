@@ -41,6 +41,16 @@ $common_support = $phone['common_support'] ?? [];
 // 선택약정할인 데이터 (여러 행 가능)
 $contract_support = $phone['contract_support'] ?? [];
 
+// 디버깅: Galaxy S23 (id=33)의 경우 데이터 로그 출력
+$phone_id = $phone['id'] ?? 0;
+if ($phone_id == 33) {
+    error_log("=== Galaxy S23 (id=33) 할인방법 데이터 디버깅 ===");
+    error_log("common_support: " . json_encode($common_support, JSON_UNESCAPED_UNICODE));
+    error_log("contract_support: " . json_encode($contract_support, JSON_UNESCAPED_UNICODE));
+    error_log("common_support count: " . count($common_support));
+    error_log("contract_support count: " . count($contract_support));
+}
+
 // 공통지원할인: 표시될 행들에서 신규가입 열 표시 여부 확인
 $common_display_rows = [];
 foreach ($common_support as $row) {

@@ -1558,7 +1558,6 @@ button {
     flex-wrap: wrap;
     gap: var(--spacing-md);
     padding-top: var(--spacing-lg);
-    border-top: 1px solid var(--color-gray-200);
 }
 
 .footer-terms-link,
@@ -1814,13 +1813,20 @@ button {
 /* 포커스 스타일 */
 a:focus,
 button:focus {
-    outline: 2px solid var(--color-primary);
-    outline-offset: 2px;
+    outline: none;
 }
 
 /* 네비게이션 링크는 포커스 아웃라인 제거 */
 .nav-link:focus,
 .nav-link:focus-visible {
+    outline: none !important;
+    border: none !important;
+}
+
+/* 로고 링크 포커스 아웃라인 제거 */
+.nav-logo:focus,
+.nav-logo:focus-visible,
+.nav-logo:active {
     outline: none !important;
     border: none !important;
 }

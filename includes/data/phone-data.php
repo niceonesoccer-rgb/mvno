@@ -457,7 +457,7 @@ function getPhonesByIds($phone_ids) {
             INNER JOIN product_mno_details mno ON p.id = mno.product_id
             WHERE p.product_type = 'mno' 
             AND p.id IN ($placeholders)
-            AND p.status != 'deleted'
+            AND p.status = 'active'
             ORDER BY FIELD(p.id, $placeholders)
         ");
         

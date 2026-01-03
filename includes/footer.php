@@ -11,16 +11,10 @@ $site = $siteSettings['site'] ?? [];
             <!-- 브랜드 로고 -->
             <a href="/MVNO/" aria-label="<?php echo htmlspecialchars($site['name_ko'] ?? '유심킹'); ?>" class="footer-brand"></a>
             
-            <!-- 사이트맵 -->
-            <nav class="footer-sitemap">
-                <a href="/MVNO/qna/qna.php" class="footer-sitemap-link">자주 묻는 질문</a>
-                <a href="/MVNO/notice/notice.php" class="footer-sitemap-link">공지사항</a>
-            </nav>
-            
             <!-- 회사 정보 및 고객센터 -->
             <div class="footer-info-wrapper">
                 <address class="footer-contact">
-                    <strong class="font-bold"><?php echo htmlspecialchars($footer['company_name'] ?? '(주)유심킹'); ?></strong>
+                    <strong class="font-bold"><?php echo htmlspecialchars($footer['company_name'] ?? '(주)유심킹'); ?></strong><br>
                     <?php if (!empty($footer['business_number'])): ?>
                         사업자등록번호 : <?php echo htmlspecialchars($footer['business_number']); ?><br>
                     <?php endif; ?>
@@ -58,11 +52,26 @@ $site = $siteSettings['site'] ?? [];
             </div>
             
             <!-- 약관 링크 -->
+            <?php 
+            $terms = $footer['terms'] ?? [];
+            $hasTerms = false;
+            if (!empty($terms['terms_of_service']['text']) || !empty($terms['privacy_policy']['text']) || !empty($terms['information_security']['text'])) {
+                $hasTerms = true;
+            }
+            ?>
+            <?php if ($hasTerms): ?>
             <div class="footer-terms">
-                <a href="/terms/terms-of-service" target="_blank" rel="noopener noreferrer" class="footer-terms-link">이용약관</a>
-                <a href="/terms/privacy-policy" target="_blank" rel="noopener noreferrer" class="footer-terms-link-bold">개인정보처리방침</a>
-                <a href="/information-security" target="_blank" rel="noopener noreferrer" class="footer-terms-link">정보보호현황</a>
+                <?php if (!empty($terms['terms_of_service']['text'])): ?>
+                    <a href="<?php echo htmlspecialchars($terms['terms_of_service']['url'] ?? '/MVNO/terms/view.php?type=terms_of_service'); ?>" target="_blank" rel="noopener noreferrer" class="footer-terms-link"><?php echo htmlspecialchars($terms['terms_of_service']['text']); ?></a>
+                <?php endif; ?>
+                <?php if (!empty($terms['privacy_policy']['text'])): ?>
+                    <a href="<?php echo htmlspecialchars($terms['privacy_policy']['url'] ?? '/MVNO/terms/view.php?type=privacy_policy'); ?>" target="_blank" rel="noopener noreferrer" class="footer-terms-link-bold"><?php echo htmlspecialchars($terms['privacy_policy']['text']); ?></a>
+                <?php endif; ?>
+                <?php if (!empty($terms['information_security']['text'])): ?>
+                    <a href="<?php echo htmlspecialchars($terms['information_security']['url'] ?? '/MVNO/terms/view.php?type=information_security'); ?>" target="_blank" rel="noopener noreferrer" class="footer-terms-link"><?php echo htmlspecialchars($terms['information_security']['text']); ?></a>
+                <?php endif; ?>
             </div>
+            <?php endif; ?>
         </div>
     </footer>
 <?php endif; ?>
