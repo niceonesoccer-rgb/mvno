@@ -51,6 +51,10 @@ require_once '../includes/data/plan-data.php';
 $internet = getInternetDetailData($internet_id);
 $rawData = $internet['_raw_data'] ?? []; // 원본 DB 데이터 (null 대신 빈 배열로 초기화)
 
+// 상품번호 가져오기
+require_once '../includes/data/product-functions.php';
+$productNumber = getProductNumberByType($internet_id, 'internet', $rawData['seller_id'] ?? null);
+
 // 관리자 여부 확인
 $isAdmin = false;
 try {
@@ -232,6 +236,10 @@ if ($serviceType === '인터넷+TV') {
                             <?php endif; ?>
                             <span style="margin-left: 0.5em; margin-right: 0.5em; font-size: 1.0584rem; color: #9ca3af;">|</span>
                             <span style="font-size: 1.0584rem; color: #6b7280; text-align: left; display: inline-block; white-space: nowrap;"><?php echo htmlspecialchars($serviceTypeDisplay); ?></span>
+                            <?php if ($productNumber): ?>
+                                <span style="margin-left: 0.5em; margin-right: 0.5em; font-size: 1.0584rem; color: #9ca3af;">|</span>
+                                <span style="font-size: 1.0584rem; color: #6b7280; text-align: left; display: inline-block; white-space: nowrap;">상품번호 #<?php echo htmlspecialchars($productNumber); ?></span>
+                            <?php endif; ?>
                             <div class="css-huskxe e82z5mt13" style="margin-left: auto;">
                                 <div class="css-1fd5u73 e82z5mt14">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

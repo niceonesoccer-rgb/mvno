@@ -2601,6 +2601,64 @@ function incrementProductView($productId) {
             UPDATE products SET view_count = view_count + 1 WHERE id = :product_id
         ");
         $stmt->execute([':product_id' => $productId]);
+        
+        // 로그인한 일반 회원에게 상품 조회 포인트 지급
+        try {
+            // point-settings.php 파일 로드 (getPointSetting, addPoint 함수 포함)
+            require_once __DIR__ . '/point-settings.php';
+            
+            if (function_exists('getPointSetting') && function_exists('addPoint')) {
+                if (session_status() === PHP_SESSION_NONE) {
+                    session_start();
+                }
+                
+                if (isset($_SESSION['user_id']) && isset($_SESSION['logged_in']) && $_SESSION['logged_in']) {
+                    require_once __DIR__ . '/auth-functions.php';
+                    $currentUser = getCurrentUser();
+                    
+                    // 일반 회원만 포인트 지급
+                    if ($currentUser && ($currentUser['role'] ?? '') === 'user') {
+                        $viewPointEnabled = getPointSetting('point_view_enabled', 0);
+                        
+                        if ($viewPointEnabled) {
+                            $viewPoint = getPointSetting('point_view_amount', 0);
+                            if ($viewPoint > 0) {
+                                // 중복 지급 방지: 오늘 이미 이 상품을 조회했는지 확인
+                                $userId = $currentUser['user_id'];
+                                $today = date('Y-m-d');
+                                $checkStmt = $pdo->prepare("
+                                    SELECT COUNT(*) FROM user_point_ledger 
+                                    WHERE user_id = :user_id 
+                                    AND type = 'view_product' 
+                                    AND item_id = :product_id 
+                                    AND DATE(created_at) = :today
+                                    LIMIT 1
+                                ");
+                                $checkStmt->execute([
+                                    ':user_id' => $userId,
+                                    ':product_id' => (string)$productId,
+                                    ':today' => $today
+                                ]);
+                                
+                                $alreadyViewed = $checkStmt->fetchColumn() > 0;
+                                
+                                if (!$alreadyViewed) {
+                                    $result = addPoint($userId, $viewPoint, '상품 조회 포인트', (string)$productId);
+                                    if ($result['success'] ?? false) {
+                                        error_log("상품 조회 포인트 지급 성공: user_id={$userId}, product_id={$productId}, amount={$viewPoint}");
+                                    } else {
+                                        error_log("상품 조회 포인트 지급 실패: user_id={$userId}, product_id={$productId}, " . ($result['message'] ?? '알 수 없는 오류'));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Exception $e) {
+            error_log("상품 조회 포인트 지급 오류: " . $e->getMessage());
+        }
+        
         return true;
     } catch (PDOException $e) {
         error_log("Error incrementing view: " . $e->getMessage());

@@ -730,6 +730,15 @@ if ($pdo) {
                     </span>
                     무통장 계좌 관리
                 </a>
+                <a href="/MVNO/admin/deposit/adjust.php" class="menu-item <?php echo ($currentPage === 'adjust.php' && strpos($_SERVER['REQUEST_URI'], '/deposit/') !== false) ? 'active' : ''; ?>">
+                    <span class="menu-item-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="2" x2="12" y2="22"/>
+                            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                        </svg>
+                    </span>
+                    예치금 조정
+                </a>
                 <a href="/MVNO/admin/tax-invoice/issue.php" class="menu-item <?php echo ($currentPage === 'issue.php' && strpos($_SERVER['REQUEST_URI'], '/tax-invoice/') !== false) ? 'active' : ''; ?>">
                     <span class="menu-item-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

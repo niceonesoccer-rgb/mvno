@@ -33,14 +33,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $newStatus = $_POST['status'] ?? '';
         
         if (!empty($depositIds) && in_array($newStatus, ['issued', 'unissued', 'cancelled'])) {
+            // tax_invoice_cancelled_at, tax_invoice_cancelled_by 필드 존재 여부 확인
+            $hasCancelledFields = false;
+            try {
+                $checkStmt = $pdo->query("SHOW COLUMNS FROM deposit_requests LIKE 'tax_invoice_cancelled_at'");
+                $hasCancelledFields = $checkStmt->rowCount() > 0;
+            } catch (PDOException $e) {
+                // 필드가 없으면 false로 유지
+            }
+            
             $placeholders = implode(',', array_fill(0, count($depositIds), '?'));
-            $stmt = $pdo->prepare("
-                UPDATE deposit_requests 
-                SET tax_invoice_status = ?,
-                    tax_invoice_issued_at = CASE WHEN ? = 'issued' THEN NOW() ELSE tax_invoice_issued_at END,
-                    tax_invoice_issued_by = CASE WHEN ? = 'issued' THEN ? ELSE tax_invoice_issued_by END
-                WHERE id IN ($placeholders)
-            ");
+            
+            // 필드 존재 여부에 따라 쿼리 분기
+            if ($hasCancelledFields) {
+                $stmt = $pdo->prepare("
+                    UPDATE deposit_requests 
+                    SET tax_invoice_status = ?,
+                        tax_invoice_issued_at = CASE WHEN ? = 'issued' THEN NOW() ELSE tax_invoice_issued_at END,
+                        tax_invoice_issued_by = CASE WHEN ? = 'issued' THEN ? ELSE tax_invoice_issued_by END,
+                        tax_invoice_cancelled_at = CASE WHEN ? = 'cancelled' THEN NOW() ELSE tax_invoice_cancelled_at END,
+                        tax_invoice_cancelled_by = CASE WHEN ? = 'cancelled' THEN ? ELSE tax_invoice_cancelled_by END
+                    WHERE id IN ($placeholders)
+                ");
+            } else {
+                $stmt = $pdo->prepare("
+                    UPDATE deposit_requests 
+                    SET tax_invoice_status = ?,
+                        tax_invoice_issued_at = CASE WHEN ? = 'issued' THEN NOW() ELSE tax_invoice_issued_at END,
+                        tax_invoice_issued_by = CASE WHEN ? = 'issued' THEN ? ELSE tax_invoice_issued_by END
+                    WHERE id IN ($placeholders)
+                ");
+            }
             
             // 관리자 ID 가져오기
             $adminId = 'system';
@@ -53,7 +76,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $adminId = $currentUser['user_id'] ?? 'system';
             }
             
-            $params = [$newStatus, $newStatus, $newStatus, $adminId];
+            if ($hasCancelledFields) {
+                $params = [$newStatus, $newStatus, $newStatus, $adminId, $newStatus, $newStatus, $adminId];
+            } else {
+                $params = [$newStatus, $newStatus, $newStatus, $adminId];
+            }
             $params = array_merge($params, $depositIds);
             
             try {
@@ -102,7 +129,7 @@ if ($periodStart && $periodEnd) {
     $params[':period_end'] = $periodEnd;
     
     // 입금 상태 필터
-    if ($depositStatusFilter && in_array($depositStatusFilter, ['pending', 'confirmed', 'unpaid'])) {
+    if ($depositStatusFilter && in_array($depositStatusFilter, ['pending', 'confirmed', 'unpaid', 'refunded'])) {
         $whereConditions[] = "dr.status = :deposit_status";
         $params[':deposit_status'] = $depositStatusFilter;
     }
@@ -165,6 +192,15 @@ if ($periodStart && $periodEnd) {
         LIMIT :limit OFFSET :offset
     ");
     
+    // tax_invoice_cancelled_at, tax_invoice_cancelled_by 필드 존재 여부 확인
+    $hasCancelledFields = false;
+    try {
+        $checkStmt = $pdo->query("SHOW COLUMNS FROM deposit_requests LIKE 'tax_invoice_cancelled_at'");
+        $hasCancelledFields = $checkStmt->rowCount() > 0;
+    } catch (PDOException $e) {
+        // 필드가 없으면 false로 유지
+    }
+    
     // 파라미터 바인딩
     foreach ($params as $key => $value) {
         $stmt->bindValue($key, $value);
@@ -210,6 +246,7 @@ if ($periodStart && $periodEnd) {
                                     <option value="pending" <?= $depositStatusFilter === 'pending' ? 'selected' : '' ?>>대기중</option>
                                     <option value="confirmed" <?= $depositStatusFilter === 'confirmed' ? 'selected' : '' ?>>입금</option>
                                     <option value="unpaid" <?= $depositStatusFilter === 'unpaid' ? 'selected' : '' ?>>미입금</option>
+                                    <option value="refunded" <?= $depositStatusFilter === 'refunded' ? 'selected' : '' ?>>환불</option>
                                 </select>
                             </div>
                             
@@ -331,7 +368,6 @@ if ($periodStart && $periodEnd) {
                                         <th style="padding: 12px; text-align: center; font-weight: 600; border-bottom: 2px solid #e2e8f0;">순번</th>
                                         <th style="padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #e2e8f0;">신청일시</th>
                                         <th style="padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #e2e8f0;">판매자</th>
-                                        <th style="padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #e2e8f0;">입금자명</th>
                                         <th style="padding: 12px; text-align: right; font-weight: 600; border-bottom: 2px solid #e2e8f0;">공급가액</th>
                                         <th style="padding: 12px; text-align: right; font-weight: 600; border-bottom: 2px solid #e2e8f0;">부가세</th>
                                         <th style="padding: 12px; text-align: right; font-weight: 600; border-bottom: 2px solid #e2e8f0;">합계금액</th>
@@ -342,7 +378,7 @@ if ($periodStart && $periodEnd) {
                                 <tbody>
                                     <?php if (empty($deposits)): ?>
                                         <tr>
-                                            <td colspan="10" style="padding: 40px; text-align: center; color: #64748b;">
+                                            <td colspan="9" style="padding: 40px; text-align: center; color: #64748b;">
                                                 해당 조건에 맞는 입금 내역이 없습니다.
                                             </td>
                                         </tr>
@@ -383,19 +419,38 @@ if ($periodStart && $periodEnd) {
                                                     ?>
                                                 </td>
                                                 <td style="padding: 12px;"><?= htmlspecialchars($deposit['seller_id']) ?></td>
-                                                <td style="padding: 12px;"><?= htmlspecialchars($deposit['depositor_name']) ?></td>
-                                                <td style="padding: 12px; text-align: right;"><?= number_format(floatval($deposit['supply_amount'] ?? 0), 0) ?>원</td>
-                                                <td style="padding: 12px; text-align: right;"><?= number_format(floatval($deposit['tax_amount'] ?? 0), 0) ?>원</td>
-                                                <td style="padding: 12px; text-align: right; font-weight: 600;"><?= number_format(floatval($deposit['amount'] ?? 0), 0) ?>원</td>
+                                                <?php
+                                                // 환불 여부 확인
+                                                $isRefunded = !empty($deposit['refunded_at']) && $deposit['status'] === 'confirmed';
+                                                $amountSign = $isRefunded ? '-' : '';
+                                                ?>
+                                                <td style="padding: 12px; text-align: right; color: <?= $isRefunded ? '#ef4444' : '#374151' ?>;">
+                                                    <?= $amountSign ?><?= number_format(floatval($deposit['supply_amount'] ?? 0), 0) ?>원
+                                                </td>
+                                                <td style="padding: 12px; text-align: right; color: <?= $isRefunded ? '#ef4444' : '#374151' ?>;">
+                                                    <?= $amountSign ?><?= number_format(floatval($deposit['tax_amount'] ?? 0), 0) ?>원
+                                                </td>
+                                                <td style="padding: 12px; text-align: right; font-weight: 600; color: <?= $isRefunded ? '#ef4444' : '#374151' ?>;">
+                                                    <?= $amountSign ?><?= number_format(floatval($deposit['amount'] ?? 0), 0) ?>원
+                                                </td>
                                                 <td style="padding: 12px; text-align: center;">
                                                     <?php
                                                     $depositStatus = $deposit['status'];
+                                                    // 환불 여부 확인 (confirmed 상태이고 refunded_at이 있으면 환불로 표시)
+                                                    $isRefunded = !empty($deposit['refunded_at']) && $depositStatus === 'confirmed';
+                                                    if ($isRefunded) {
+                                                        $displayStatus = 'refunded';
+                                                    } else {
+                                                        $displayStatus = $depositStatus;
+                                                    }
+                                                    
                                                     $depositStatusLabels = [
                                                         'pending' => ['label' => '대기중', 'color' => '#f59e0b'],
                                                         'confirmed' => ['label' => '입금', 'color' => '#10b981'],
-                                                        'unpaid' => ['label' => '미입금', 'color' => '#6b7280']
+                                                        'unpaid' => ['label' => '미입금', 'color' => '#6b7280'],
+                                                        'refunded' => ['label' => '환불', 'color' => '#ef4444']
                                                     ];
-                                                    $currentDepositStatus = $depositStatusLabels[$depositStatus] ?? ['label' => $depositStatus, 'color' => '#64748b'];
+                                                    $currentDepositStatus = $depositStatusLabels[$displayStatus] ?? ['label' => $displayStatus, 'color' => '#64748b'];
                                                     ?>
                                                     <span style="padding: 4px 12px; background: <?= $currentDepositStatus['color'] ?>20; color: <?= $currentDepositStatus['color'] ?>; border-radius: 4px; font-size: 14px; font-weight: 500;">
                                                         <?= $currentDepositStatus['label'] ?>

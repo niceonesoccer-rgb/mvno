@@ -613,6 +613,25 @@ function registerSnsUser($provider, $snsId, $email, $name) {
                 ':sns_id' => $snsId
             ]);
             
+            // 회원가입 축하 포인트 지급
+            try {
+                require_once __DIR__ . '/point-settings.php';
+                if (function_exists('getPointSetting') && function_exists('addPoint')) {
+                    $signupPointEnabled = getPointSetting('point_signup_enabled', 0);
+                    if ($signupPointEnabled) {
+                        $signupPoint = getPointSetting('point_signup_amount', 0);
+                        if ($signupPoint > 0) {
+                            $result = addPoint($userId, $signupPoint, '회원가입 축하 포인트');
+                            if (!($result['success'] ?? false)) {
+                                error_log("회원가입 포인트 지급 실패 (SNS): " . ($result['message'] ?? '알 수 없는 오류'));
+                            }
+                        }
+                    }
+                }
+            } catch (Exception $e) {
+                error_log("회원가입 포인트 지급 오류 (SNS): " . $e->getMessage());
+            }
+            
             return getUserById($userId);
         } catch (PDOException $e) {
             error_log("registerSnsUser DB error: " . $e->getMessage());
@@ -768,6 +787,27 @@ function registerDirectUser($userId, $password, $email, $name, $role, $additiona
         }
 
         $pdo->commit();
+
+        // 일반 회원 가입 시 축하 포인트 지급
+        if ($role === 'user') {
+            try {
+                require_once __DIR__ . '/point-settings.php';
+                if (function_exists('getPointSetting') && function_exists('addPoint')) {
+                    $signupPointEnabled = getPointSetting('point_signup_enabled', 0);
+                    if ($signupPointEnabled) {
+                        $signupPoint = getPointSetting('point_signup_amount', 0);
+                        if ($signupPoint > 0) {
+                            $result = addPoint($userId, $signupPoint, '회원가입 축하 포인트');
+                            if (!($result['success'] ?? false)) {
+                                error_log("회원가입 포인트 지급 실패 (직접가입): " . ($result['message'] ?? '알 수 없는 오류'));
+                            }
+                        }
+                    }
+                }
+            } catch (Exception $e) {
+                error_log("회원가입 포인트 지급 오류 (직접가입): " . $e->getMessage());
+            }
+        }
 
         $savedUser = getUserById($userId);
         return ['success' => true, 'user' => $savedUser];

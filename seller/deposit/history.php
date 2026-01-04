@@ -65,7 +65,7 @@ $totalPages = ceil($totalCount / $historyPerPage);
 $depositRequestWhereConditions = ["seller_id = :seller_id"];
 $depositRequestParams = [':seller_id' => $sellerId];
 
-if ($statusFilter && in_array($statusFilter, ['pending', 'confirmed', 'unpaid'])) {
+if ($statusFilter && in_array($statusFilter, ['pending', 'confirmed', 'unpaid', 'refunded'])) {
     $depositRequestWhereConditions[] = "status = :status";
     $depositRequestParams[':status'] = $statusFilter;
 }
@@ -132,7 +132,7 @@ $history = $stmt->fetchAll(PDO::FETCH_ASSOC);
 $typeLabels = [
     'deposit' => ['label' => '충전', 'color' => '#10b981'],
     'withdraw' => ['label' => '차감', 'color' => '#ef4444'],
-    'refund' => ['label' => '환불', 'color' => '#3b82f6']
+    'refund' => ['label' => '환불', 'color' => '#ef4444']
 ];
 
 // product_type을 카테고리 라벨로 변환하는 함수
@@ -149,7 +149,8 @@ function getCategoryLabel($productType) {
 $depositStatusLabels = [
     'pending' => ['label' => '대기중', 'color' => '#f59e0b'],
     'confirmed' => ['label' => '입금', 'color' => '#10b981'],
-    'unpaid' => ['label' => '미입금', 'color' => '#6b7280']
+    'unpaid' => ['label' => '미입금', 'color' => '#6b7280'],
+    'refunded' => ['label' => '환불', 'color' => '#ef4444']
 ];
 
 $taxInvoiceStatusLabels = [
@@ -208,6 +209,7 @@ require_once __DIR__ . '/../includes/seller-header.php';
                         <option value="pending" <?= $statusFilter === 'pending' ? 'selected' : '' ?>>대기중</option>
                         <option value="confirmed" <?= $statusFilter === 'confirmed' ? 'selected' : '' ?>>입금</option>
                         <option value="unpaid" <?= $statusFilter === 'unpaid' ? 'selected' : '' ?>>미입금</option>
+                        <option value="refunded" <?= $statusFilter === 'refunded' ? 'selected' : '' ?>>환불</option>
                     </select>
                     
                     <button type="submit" style="padding: 10px 20px; background: #6366f1; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
@@ -260,25 +262,42 @@ require_once __DIR__ . '/../includes/seller-header.php';
                                 <td style="padding: 12px;">
                                     <?= date('Y-m-d H:i', strtotime($request['created_at'])) ?>
                                 </td>
-                                <td style="padding: 12px;"><?= htmlspecialchars($request['depositor_name']) ?></td>
+                                <td style="padding: 12px;"><?= htmlspecialchars($request['depositor_name'] ?? '-') ?></td>
                                 <td style="padding: 12px; font-size: 13px; color: #64748b;">
-                                    <?= htmlspecialchars($request['bank_name'] ?? '-') ?><br>
-                                    <?= htmlspecialchars($request['account_number'] ?? '-') ?><br>
-                                    <?= htmlspecialchars($request['account_holder'] ?? '-') ?>
+                                    <?php if (!empty($request['bank_name']) || !empty($request['account_number'])): ?>
+                                        <?= htmlspecialchars($request['bank_name'] ?? '-') ?><br>
+                                        <?= htmlspecialchars($request['account_number'] ?? '-') ?><br>
+                                        <?= htmlspecialchars($request['account_holder'] ?? '-') ?>
+                                    <?php else: ?>
+                                        -
+                                    <?php endif; ?>
                                 </td>
-                                <td style="padding: 12px; text-align: right; font-weight: 600;"><?= number_format(floatval($request['amount'] ?? 0), 0) ?>원</td>
+                                <?php
+                                // 환불 여부 확인
+                                $isRefunded = !empty($request['refunded_at']) && $request['status'] === 'confirmed';
+                                $amountSign = $isRefunded ? '-' : '';
+                                ?>
+                                <td style="padding: 12px; text-align: right; font-weight: 600; color: <?= $isRefunded ? '#ef4444' : '#374151' ?>;">
+                                    <?= $amountSign ?><?= number_format(floatval($request['amount'] ?? 0), 0) ?>원
+                                </td>
                                 <td style="padding: 12px; text-align: center;">
                                     <?php
-                                    $statusInfo = $depositStatusLabels[$request['status']] ?? ['label' => $request['status'], 'color' => '#64748b'];
+                                    $depositStatus = $request['status'];
+                                    // 환불 여부 확인 (confirmed 상태이고 refunded_at이 있으면 환불로 표시)
+                                    $isRefunded = !empty($request['refunded_at']) && $depositStatus === 'confirmed';
+                                    if ($isRefunded) {
+                                        $displayStatus = 'refunded';
+                                    } else {
+                                        $displayStatus = $depositStatus;
+                                    }
+                                    
+                                    $statusInfo = $depositStatusLabels[$displayStatus] ?? ['label' => $displayStatus, 'color' => '#64748b'];
                                     ?>
-                                    <span style="padding: 4px 12px; background: <?= $statusInfo['color'] ?>20; color: <?= $statusInfo['color'] ?>; border-radius: 4px; font-size: 14px; font-weight: 500;">
-                                        <?= $statusInfo['label'] ?>
-                                    </span>
-                                    <?php if ($request['confirmed_at']): ?>
-                                        <div style="font-size: 12px; color: #64748b; margin-top: 4px;">
-                                            <?= date('Y-m-d', strtotime($request['confirmed_at'])) ?>
-                                        </div>
-                                    <?php endif; ?>
+                                    <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+                                        <span style="padding: 4px 12px; background: <?= $statusInfo['color'] ?>20; color: <?= $statusInfo['color'] ?>; border-radius: 4px; font-size: 14px; font-weight: 500;">
+                                            <?= $statusInfo['label'] ?>
+                                        </span>
+                                    </div>
                                 </td>
                                 <td style="padding: 12px; text-align: center;">
                                     <?php
@@ -401,11 +420,12 @@ require_once __DIR__ . '/../includes/seller-header.php';
                                         -
                                     <?php endif; ?>
                                 </td>
-                                <td style="padding: 12px; text-align: right; font-size: 14px; font-weight: 600; color: <?= $transactionType === 'deposit' || $transactionType === 'refund' ? $typeInfo['color'] : '#374151' ?>;">
+                                <td style="padding: 12px; text-align: right; font-size: 14px; font-weight: 600; color: <?= $transactionType === 'deposit' ? $typeInfo['color'] : '#ef4444' ?>;">
                                     <?php 
                                     // amount의 절댓값 사용 (이미 음수로 저장되어 있을 수 있음)
                                     $amountValue = abs(floatval($item['amount']));
-                                    $sign = ($transactionType === 'deposit' || $transactionType === 'refund' ? '+' : '-');
+                                    // deposit만 +, refund와 withdraw는 -
+                                    $sign = ($transactionType === 'deposit' ? '+' : '-');
                                     ?>
                                     <?= $sign ?><?= number_format($amountValue, 0) ?>원
                                 </td>

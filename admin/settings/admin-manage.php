@@ -21,6 +21,58 @@ $currentUser = getCurrentUser();
 $error = '';
 $success = '';
 
+// 관리자 삭제 처리
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete_admin') {
+    $deleteUserId = $_POST['user_id'] ?? '';
+    
+    if (empty($deleteUserId)) {
+        $error = '삭제할 관리자 정보가 없습니다.';
+    } else if ($deleteUserId === 'admin') {
+        $error = 'admin 계정은 삭제할 수 없습니다.';
+    } else {
+        $pdo = getDBConnection();
+        if (!$pdo) {
+            $error = 'DB 연결에 실패했습니다.';
+        } else {
+            try {
+                // 삭제할 관리자 확인
+                $checkStmt = $pdo->prepare("SELECT role FROM users WHERE user_id = :user_id AND role IN ('admin','sub_admin') LIMIT 1");
+                $checkStmt->execute([':user_id' => $deleteUserId]);
+                $targetAdmin = $checkStmt->fetch(PDO::FETCH_ASSOC);
+                
+                if (!$targetAdmin) {
+                    $error = '관리자 정보를 찾을 수 없습니다.';
+                } else if ($targetAdmin['role'] === 'admin') {
+                    $error = 'admin 계정은 삭제할 수 없습니다.';
+                } else {
+                    $pdo->beginTransaction();
+                    
+                    // admin_profiles 삭제
+                    $pdo->prepare("DELETE FROM admin_profiles WHERE user_id = :user_id")
+                        ->execute([':user_id' => $deleteUserId]);
+                    
+                    // users 테이블에서 삭제
+                    $deleteStmt = $pdo->prepare("DELETE FROM users WHERE user_id = :user_id AND role = 'sub_admin' LIMIT 1");
+                    $deleteStmt->execute([':user_id' => $deleteUserId]);
+                    
+                    if ($deleteStmt->rowCount() < 1) {
+                        $pdo->rollBack();
+                        $error = '관리자 삭제에 실패했습니다.';
+                    } else {
+                        $pdo->commit();
+                        header('Location: /MVNO/admin/users/member-list.php?tab=admins&success=delete');
+                        exit;
+                    }
+                }
+            } catch (PDOException $e) {
+                if ($pdo->inTransaction()) $pdo->rollBack();
+                error_log('admin-manage delete DB error: ' . $e->getMessage());
+                $error = '관리자 삭제에 실패했습니다.';
+            }
+        }
+    }
+}
+
 // 관리자 정보 수정 처리
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update_admin') {
     $editUserId = $_POST['user_id'] ?? '';
@@ -230,10 +282,61 @@ include '../includes/admin-header.php';
     
 </style>
 
+<script>
+function showDeleteModal() {
+    document.getElementById('deleteModal').style.display = 'flex';
+}
+
+function hideDeleteModal() {
+    document.getElementById('deleteModal').style.display = 'none';
+}
+
+// 모달 외부 클릭 시 닫기
+document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('deleteModal');
+    if (modal) {
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                hideDeleteModal();
+            }
+        });
+    }
+});
+
+function copyPageLink() {
+    const pageLinkInput = document.getElementById('pageLink');
+    if (pageLinkInput) {
+        pageLinkInput.select();
+        pageLinkInput.setSelectionRange(0, 99999); // 모바일 지원
+        try {
+            document.execCommand('copy');
+            alert('페이지 링크가 클립보드에 복사되었습니다.');
+        } catch (err) {
+            // 클립보드 API 사용 (최신 브라우저)
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(pageLinkInput.value).then(function() {
+                    alert('페이지 링크가 클립보드에 복사되었습니다.');
+                });
+            } else {
+                alert('링크 복사에 실패했습니다. 수동으로 복사해주세요.');
+            }
+        }
+    }
+}
+</script>
+
 <div class="admin-content">
     <div class="page-header" style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px;">
         <div style="flex: 1;">
             <h1>관리자 정보 수정</h1>
+            <?php if ($editAdmin): ?>
+                <div style="margin-top: 8px; font-size: 13px; color: #6b7280;">
+                    <span style="font-weight: 500;">페이지 링크:</span>
+                    <input type="text" id="pageLink" readonly value="<?= htmlspecialchars((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI']) ?>" 
+                           style="margin-left: 8px; padding: 4px 8px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 12px; width: 400px; background: #f9fafb; color: #374151;">
+                    <button type="button" onclick="copyPageLink()" style="margin-left: 4px; padding: 4px 12px; background: #6366f1; color: white; border: none; border-radius: 4px; font-size: 12px; cursor: pointer;">복사</button>
+                </div>
+            <?php endif; ?>
         </div>
         <div>
             <a href="/MVNO/admin/users/member-list.php?tab=admins" class="btn" style="background: #f3f4f6; color: #374151; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px;">
@@ -302,12 +405,40 @@ include '../includes/admin-header.php';
                     <?php endif; ?>
                 </div>
                 
-                <div style="display: flex; gap: 12px;">
-                    <button type="submit" class="btn btn-primary">수정 완료</button>
-                    <a href="/MVNO/admin/users/member-list.php?tab=admins" class="btn" style="background: #f3f4f6; color: #374151; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">취소</a>
+                <div style="display: flex; gap: 12px; justify-content: space-between;">
+                    <div style="display: flex; gap: 12px;">
+                        <button type="submit" class="btn btn-primary">수정 완료</button>
+                        <a href="/MVNO/admin/users/member-list.php?tab=admins" class="btn" style="background: #f3f4f6; color: #374151; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">취소</a>
+                    </div>
+                    <?php if (($editAdmin['user_id'] ?? '') !== 'admin'): ?>
+                        <button type="button" onclick="showDeleteModal()" class="btn" style="background: #ef4444; color: white;">
+                            삭제
+                        </button>
+                    <?php endif; ?>
                 </div>
             </form>
         </div>
+        
+        <!-- 삭제 확인 모달 -->
+        <?php if (($editAdmin['user_id'] ?? '') !== 'admin'): ?>
+        <div id="deleteModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+            <div style="background: white; border-radius: 12px; padding: 24px; max-width: 500px; width: 90%; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+                <h2 style="margin: 0 0 16px 0; font-size: 20px; font-weight: 600; color: #1f2937;">관리자 삭제</h2>
+                <p style="margin: 0 0 20px 0; color: #6b7280; line-height: 1.6;">
+                    정말로 <strong><?= htmlspecialchars($editAdmin['name'] ?? $editAdmin['user_id'] ?? '') ?></strong> 관리자를 삭제하시겠습니까?<br>
+                    이 작업은 되돌릴 수 없습니다.
+                </p>
+                <form method="POST" style="margin: 0;">
+                    <input type="hidden" name="action" value="delete_admin">
+                    <input type="hidden" name="user_id" value="<?= htmlspecialchars($editAdmin['user_id'] ?? '') ?>">
+                    <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                        <button type="button" onclick="hideDeleteModal()" class="btn" style="background: #f3f4f6; color: #374151;">취소</button>
+                        <button type="submit" class="btn" style="background: #ef4444; color: white;">삭제</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <?php endif; ?>
     <?php endif; ?>
 </div>
 

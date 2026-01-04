@@ -105,10 +105,29 @@ function deductPoint($user_id, $amount, $type, $item_id, $description = '') {
     }
 }
 
-// 포인트 추가 (관리자용)
-function addPoint($user_id, $amount, $description = '') {
+// 포인트 설정 가져오기 함수
+function getPointSetting($key, $default = 0) {
     $pdo = getDBConnection();
-    if (!$pdo) return ['success' => false, 'message' => 'DB 연결 실패'];
+    if (!$pdo) return $default;
+    
+    try {
+        $stmt = $pdo->prepare("SELECT setting_value FROM system_settings WHERE setting_key = :key LIMIT 1");
+        $stmt->execute([':key' => $key]);
+        $result = $stmt->fetchColumn();
+        return $result !== false ? intval($result) : $default;
+    } catch (PDOException $e) {
+        error_log("getPointSetting error: " . $e->getMessage());
+        return $default;
+    }
+}
+
+// 포인트 추가 (관리자용)
+function addPoint($user_id, $amount, $description = '', $item_id = null) {
+    $pdo = getDBConnection();
+    if (!$pdo) {
+        error_log('addPoint: DB 연결 실패');
+        return ['success' => false, 'message' => 'DB 연결 실패'];
+    }
 
     try {
         $pdo->beginTransaction();
@@ -132,23 +151,28 @@ function addPoint($user_id, $amount, $description = '') {
             'balance_after' => $new_balance
         ];
 
+        $ledgerType = $item_id ? 'view_product' : 'add';
         $pdo->prepare("
             INSERT INTO user_point_ledger (user_id, delta, type, item_id, description, balance_after, created_at)
-            VALUES (:user, :delta, 'add', NULL, :desc, :bal_after, NOW())
+            VALUES (:user, :delta, :type, :item_id, :desc, :bal_after, NOW())
         ")->execute([
             ':user' => (string)$user_id,
             ':delta' => abs((int)$amount),
+            ':type' => $ledgerType,
+            ':item_id' => $item_id ? (string)$item_id : null,
             ':desc' => (string)$history_item['description'],
             ':bal_after' => $new_balance
         ]);
 
         $pdo->commit();
+        
+        error_log("포인트 지급 성공: user_id={$user_id}, amount={$amount}, description={$description}, new_balance={$new_balance}");
 
         return ['success' => true, 'balance' => $new_balance, 'history_item' => $history_item];
     } catch (PDOException $e) {
         if ($pdo->inTransaction()) $pdo->rollBack();
         error_log('addPoint DB error: ' . $e->getMessage());
-        return ['success' => false, 'message' => '포인트 적립 처리 중 오류'];
+        return ['success' => false, 'message' => '포인트 적립 처리 중 오류: ' . $e->getMessage()];
     }
 }
 

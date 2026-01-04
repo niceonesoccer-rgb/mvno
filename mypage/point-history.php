@@ -80,8 +80,8 @@ include '../includes/header.php';
                     <p style="font-size: 16px; margin: 0;">포인트 사용 내역이 없습니다.</p>
                 </div>
             <?php else: 
-                // 최신순으로 정렬
-                $sorted_history = array_reverse($history);
+                // 이미 최신순으로 정렬되어 있음 (getUserPoint에서 ORDER BY created_at DESC)
+                $sorted_history = $history;
                 $display_count = 10;
                 $total_count = count($sorted_history);
                 $display_items = array_slice($sorted_history, 0, $display_count);

@@ -27,6 +27,12 @@ require_once '../includes/data/plan-data.php';
 $phone = getPhoneDetailData($phone_id);
 $rawData = $phone['_raw_data'] ?? []; // 원본 DB 데이터 (null 대신 빈 배열로 초기화)
 
+// 상품번호 가져오기
+require_once '../includes/data/product-functions.php';
+$productNumber = getProductNumberByType($phone_id, 'mno', $rawData['seller_id'] ?? null);
+// phone-card-body.php에서 사용할 수 있도록 phone 배열에 추가
+$phone['product_number'] = $productNumber;
+
 // 관리자 여부 확인
 $isAdmin = false;
 try {

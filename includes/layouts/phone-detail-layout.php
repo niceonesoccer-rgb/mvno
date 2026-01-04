@@ -10,6 +10,8 @@ if (!isset($phone)) {
 }
 $layout_type = 'detail';
 $card_wrapper_class = '';
+// phone-card-body.php에서 사용할 상품번호 변수 설정
+$productNumber = $phone['product_number'] ?? null;
 ?>
 
 <div class="content-layout plan-detail-header-section">

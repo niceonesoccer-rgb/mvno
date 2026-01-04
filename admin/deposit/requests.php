@@ -155,7 +155,7 @@ $offset = ($page - 1) * $perPage;
 $whereConditions = [];
 $params = [];
 
-if ($statusFilter && in_array($statusFilter, ['pending', 'confirmed', 'unpaid'])) {
+if ($statusFilter && in_array($statusFilter, ['pending', 'confirmed', 'unpaid', 'refunded'])) {
     $whereConditions[] = "dr.status = :status";
     $params[':status'] = $statusFilter;
 }
@@ -183,9 +183,11 @@ $stmt = $pdo->prepare("
         dr.*,
         ba.bank_name,
         ba.account_number,
-        ba.account_holder
+        ba.account_holder,
+        COALESCE(sda.balance, 0) as seller_balance
     FROM deposit_requests dr
     LEFT JOIN bank_accounts ba ON dr.bank_account_id = ba.id
+    LEFT JOIN seller_deposit_accounts sda ON dr.seller_id = sda.seller_id
     $whereClause
     ORDER BY dr.created_at DESC
     LIMIT :limit OFFSET :offset
@@ -230,6 +232,7 @@ $deposits = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             <option value="pending" <?= $statusFilter === 'pending' ? 'selected' : '' ?>>대기중</option>
                             <option value="confirmed" <?= $statusFilter === 'confirmed' ? 'selected' : '' ?>>입금</option>
                             <option value="unpaid" <?= $statusFilter === 'unpaid' ? 'selected' : '' ?>>미입금</option>
+                            <option value="refunded" <?= $statusFilter === 'refunded' ? 'selected' : '' ?>>환불</option>
                         </select>
                         
                         <input type="text" name="seller_id" value="<?= htmlspecialchars($sellerIdFilter) ?>" 
@@ -291,16 +294,25 @@ $deposits = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                             $statusLabels = [
                                                 'pending' => ['label' => '대기중', 'color' => '#f59e0b'],
                                                 'confirmed' => ['label' => '입금', 'color' => '#10b981'],
-                                                'unpaid' => ['label' => '미입금', 'color' => '#6b7280']
+                                                'unpaid' => ['label' => '미입금', 'color' => '#6b7280'],
+                                                'refunded' => ['label' => '환불', 'color' => '#ef4444']
                                             ];
                                             $statusInfo = $statusLabels[$deposit['status']] ?? ['label' => $deposit['status'], 'color' => '#64748b'];
                                             ?>
                                             <span style="padding: 4px 12px; background: <?= $statusInfo['color'] ?>20; color: <?= $statusInfo['color'] ?>; border-radius: 4px; font-size: 14px; font-weight: 500;">
                                                 <?= $statusInfo['label'] ?>
                                             </span>
-                                            <?php if ($deposit['confirmed_at']): ?>
+                                            <?php if ($deposit['confirmed_at'] && $deposit['status'] === 'confirmed'): ?>
                                                 <div style="font-size: 12px; color: #64748b; margin-top: 4px;">
                                                     <?= date('Y-m-d', strtotime($deposit['confirmed_at'])) ?>
+                                                </div>
+                                            <?php endif; ?>
+                                            <?php if ($deposit['refunded_at'] && $deposit['status'] === 'confirmed'): ?>
+                                                <div style="font-size: 12px; color: #ef4444; margin-top: 4px; font-weight: 500;">
+                                                    환불: <?= date('Y-m-d', strtotime($deposit['refunded_at'])) ?>
+                                                    <?php if ($deposit['refunded_amount']): ?>
+                                                        (<?= number_format(floatval($deposit['refunded_amount']), 0) ?>원)
+                                                    <?php endif; ?>
                                                 </div>
                                             <?php endif; ?>
                                         </td>
