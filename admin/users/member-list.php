@@ -407,7 +407,7 @@ $adminCount = count(array_filter($users, fn($u) => ($u['role'] ?? 'user') === 'a
             </div>
             <?php if ($activeTab === 'admins'): ?>
                 <div class="filter-right">
-                    <button type="button" class="btn-sm btn-primary" onclick="showAddSubAdminModal()">관리자 추가</button>
+                    <a href="/MVNO/admin/users/sub-admin-manage.php?tab=add" class="btn-sm btn-primary" style="text-decoration: none; display: inline-block;">부관리자 추가</a>
                 </div>
             <?php endif; ?>
         </form>

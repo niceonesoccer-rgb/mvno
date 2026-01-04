@@ -464,7 +464,17 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         if (productSnapshot.speed_option) {
-            html += `<tr><th>가입 속도</th><td>${escapeHtml(productSnapshot.speed_option)}</td></tr>`;
+            // 속도 단위 변환 (DB 값 -> 표시용)
+            const speedMap = {
+                '100M': '100MB',
+                '500M': '500MB',
+                '1G': '1GB',
+                '2.5G': '2.5GB',
+                '5G': '5GB',
+                '10G': '10GB'
+            };
+            const speedDisplay = speedMap[productSnapshot.speed_option] || productSnapshot.speed_option;
+            html += `<tr><th>가입 속도</th><td>${escapeHtml(speedDisplay)}</td></tr>`;
         }
         
         if (productSnapshot.monthly_fee !== undefined && productSnapshot.monthly_fee !== null) {

@@ -951,7 +951,7 @@ include '../includes/header.php';
 
 <style>
 .event-detail-container {
-    max-width: 60%;
+    max-width: 40%;
     margin: 0 auto;
     padding: 2rem 1rem;
 }
@@ -1222,7 +1222,10 @@ include '../includes/header.php';
 
 @media (max-width: 768px) {
     .event-detail-container {
-        padding: 1rem 0.75rem;
+        max-width: 100%;
+        padding: 1rem 0;
+        margin: 0;
+        width: 100%;
     }
 }
 </style>

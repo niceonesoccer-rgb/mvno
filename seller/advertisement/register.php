@@ -4,7 +4,6 @@
  * 경로: /seller/advertisement/register.php
  */
 
-require_once __DIR__ . '/../includes/seller-header.php';
 require_once __DIR__ . '/../../includes/data/db-config.php';
 require_once __DIR__ . '/../../includes/data/auth-functions.php';
 require_once __DIR__ . '/../../includes/data/product-functions.php';
@@ -27,7 +26,7 @@ $error = '';
 $success = '';
 $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
 
-// 광고 신청 처리
+// 광고 신청 처리 (POST 요청은 헤더 출력 전에 처리)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $productId = intval($_POST['product_id'] ?? 0);
     $advertisementDays = intval($_POST['advertisement_days'] ?? 0);
@@ -190,17 +189,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 exit;
             }
         }
-    } else {
-        // AJAX 요청인 경우 JSON 응답 반환
-        if ($isAjax) {
-            header('Content-Type: application/json');
-            echo json_encode([
-                'success' => false,
-                'message' => $error
-            ]);
-            exit;
-        }
     }
+    
+    // AJAX 요청인 경우 JSON 응답 반환 (파라미터 검증 실패 시)
+    if ($isAjax && !empty($error)) {
+        header('Content-Type: application/json');
+        echo json_encode([
+            'success' => false,
+            'message' => $error
+        ]);
+        exit;
+    }
+}
+
+// POST 요청이 아니거나 일반 요청인 경우에만 헤더 포함
+if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !$isAjax) {
+    require_once __DIR__ . '/../includes/seller-header.php';
 }
 
 // product_id 파라미터 확인

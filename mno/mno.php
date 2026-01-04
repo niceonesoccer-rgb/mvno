@@ -17,10 +17,7 @@ require_once '../includes/data/phone-data.php';
 require_once '../includes/data/filter-data.php';
 require_once __DIR__ . '/mno-advertisement-helper.php';
 
-// 광고 상품 ID 조회
-list($advertisementProductIds, $rotationDuration) = getMnoAdvertisementProductIds();
-
-// 필터 파라미터 (조합 필터링 지원)
+// 필터 파라미터 (스폰서 상품 필터링 전에 먼저 설정)
 // 기기 타입: 전체/갤럭시/아이폰 중 하나만 선택 가능
 $filterDeviceType = $_GET['device_type'] ?? ''; // 갤럭시, 아이폰 (단일 값)
 
@@ -28,6 +25,98 @@ $filterDeviceType = $_GET['device_type'] ?? ''; // 갤럭시, 아이폰 (단일 
 $filterStorage = $_GET['storage'] ?? ''; // 256GB, 512GB, 1TB (단일 값)
 
 $filterFree = isset($_GET['free']) && $_GET['free'] === '1'; // 공짜
+
+// 광고 상품 ID 조회
+list($advertisementProductIds, $rotationDuration) = getMnoAdvertisementProductIds();
+
+// 필터 적용: 스폰서 상품도 필터 조건에 맞는 것만 표시
+if (!empty($filterDeviceType) || !empty($filterStorage) || $filterFree) {
+    require_once __DIR__ . '/../includes/data/db-config.php';
+    $pdo = getDBConnection();
+    
+    if ($pdo && !empty($advertisementProductIds)) {
+        $placeholders = implode(',', array_fill(0, count($advertisementProductIds), '?'));
+        $adFilterStmt = $pdo->prepare("
+            SELECT 
+                p.id,
+                mno.device_name,
+                mno.device_capacity,
+                mno.common_discount_new,
+                mno.common_discount_port,
+                mno.common_discount_change,
+                mno.contract_discount_new,
+                mno.contract_discount_port,
+                mno.contract_discount_change
+            FROM products p
+            INNER JOIN product_mno_details mno ON p.id = mno.product_id
+            WHERE p.id IN ($placeholders)
+            AND p.status = 'active'
+        ");
+        $adFilterStmt->execute($advertisementProductIds);
+        $adProductsData = $adFilterStmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        $filteredAdvertisementProductIds = [];
+        foreach ($adProductsData as $adProduct) {
+            $matches = true;
+            
+            // device_type 필터
+            if ($matches && !empty($filterDeviceType)) {
+                $deviceName = $adProduct['device_name'] ?? '';
+                if ($filterDeviceType === '갤럭시' || $filterDeviceType === 'galaxy') {
+                    if (stripos($deviceName, '갤럭시') === false && stripos($deviceName, 'Galaxy') === false && stripos($deviceName, 'galaxy') === false) {
+                        $matches = false;
+                    }
+                } elseif ($filterDeviceType === '아이폰' || $filterDeviceType === 'iphone') {
+                    if (stripos($deviceName, '아이폰') === false && stripos($deviceName, 'iPhone') === false && stripos($deviceName, 'iphone') === false) {
+                        $matches = false;
+                    }
+                }
+            }
+            
+            // storage 필터
+            if ($matches && !empty($filterStorage)) {
+                $deviceCapacity = $adProduct['device_capacity'] ?? '';
+                if ($deviceCapacity !== $filterStorage) {
+                    $matches = false;
+                }
+            }
+            
+            // free 필터
+            if ($matches && $filterFree) {
+                $hasFree = false;
+                $discountFields = [
+                    $adProduct['common_discount_new'] ?? '',
+                    $adProduct['common_discount_port'] ?? '',
+                    $adProduct['common_discount_change'] ?? '',
+                    $adProduct['contract_discount_new'] ?? '',
+                    $adProduct['contract_discount_port'] ?? '',
+                    $adProduct['contract_discount_change'] ?? ''
+                ];
+                foreach ($discountFields as $discountField) {
+                    if (strpos($discountField, '-') !== false || strpos($discountField, '택배') !== false) {
+                        $hasFree = true;
+                        break;
+                    }
+                }
+                if (!$hasFree) {
+                    $matches = false;
+                }
+            }
+            
+            if ($matches) {
+                $filteredAdvertisementProductIds[] = (int)$adProduct['id'];
+            }
+        }
+        
+        // 로테이션 순서 유지: 원본 ID 목록 순서대로 필터링된 ID만 남기기
+        $filteredIdsSet = array_flip($filteredAdvertisementProductIds);
+        $advertisementProductIds = array_values(array_filter($advertisementProductIds, function($id) use ($filteredIdsSet) {
+            return isset($filteredIdsSet[$id]);
+        }));
+        
+        error_log("[MNO 페이지] 필터 적용 후 스폰서 상품 ID 개수: " . count($advertisementProductIds) . ", ID 목록: " . implode(', ', $advertisementProductIds));
+    }
+}
 
 // 페이지 번호 가져오기
 $page = isset($_GET['page']) ? intval($_GET['page']) : 1;

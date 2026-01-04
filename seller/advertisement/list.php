@@ -518,6 +518,15 @@ async function updateModalPrice() {
         const url = `/MVNO/api/advertisement-price.php?product_type=${encodeURIComponent(apiProductType)}&advertisement_days=${days}`;
         console.log('Fetching price from:', url);
         const response = await fetch(url);
+        
+        // 응답이 JSON인지 확인
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            const text = await response.text();
+            console.error('Invalid response (not JSON):', text);
+            throw new Error('서버 응답이 올바르지 않습니다.');
+        }
+        
         const data = await response.json();
         
         console.log('Price API response:', data);

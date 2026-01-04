@@ -4,25 +4,19 @@
  * 경로: /admin/advertisement/tagline.php
  */
 
-// 태그라인 저장 처리 (헤더 전송 전에 처리)
+// POST 처리는 출력 전에 수행 (헤더 리다이렉트를 위해)
+require_once __DIR__ . '/../../includes/data/auth-functions.php';
 require_once __DIR__ . '/../../includes/data/site-settings.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-$saveSuccess = false;
-$saveError = false;
-
-// 세션에서 성공/에러 메시지 확인
-if (isset($_SESSION['tagline_save_success'])) {
-    $saveSuccess = true;
-    unset($_SESSION['tagline_save_success']);
-}
-
-if (isset($_SESSION['tagline_save_error'])) {
-    $saveError = true;
-    unset($_SESSION['tagline_save_error']);
+// 관리자 권한 체크
+$currentUser = getCurrentUser();
+if (!$currentUser || !isAdmin($currentUser['user_id'])) {
+    header('Location: /MVNO/admin/login.php');
+    exit;
 }
 
 // POST 요청 처리
@@ -66,7 +60,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_taglines'])) {
     exit;
 }
 
+// 헤더 포함 (출력 시작)
 require_once __DIR__ . '/../includes/admin-header.php';
+
+// 세션에서 성공/에러 메시지 확인
+$saveSuccess = false;
+$saveError = false;
+
+if (isset($_SESSION['tagline_save_success'])) {
+    $saveSuccess = true;
+    unset($_SESSION['tagline_save_success']);
+}
+
+if (isset($_SESSION['tagline_save_error'])) {
+    $saveError = true;
+    unset($_SESSION['tagline_save_error']);
+}
 
 // 태그라인 로드
 $categoryTaglines = getCategoryTaglines();
@@ -117,7 +126,7 @@ $categoryTaglines = getCategoryTaglines();
 
 .input-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 2fr 2fr 1fr;
     gap: 16px;
 }
 
@@ -246,7 +255,13 @@ $categoryTaglines = getCategoryTaglines();
                         'pulse' => '펄스',
                         'gradient' => '그라데이션',
                         'slide' => '슬라이드',
-                        'glow' => '발광'
+                        'underline' => '언더라인',
+                        'bounce' => '바운스',
+                        'slide-right-bounce' => '오른쪽에서 날아와서 바운스',
+                        'slide-left-bounce' => '왼쪽에서 날아와서 바운스',
+                        'slide-right-char' => '한글자씩 오른쪽에서',
+                        'slide-left-char' => '한글자씩 왼쪽에서',
+                        'typing' => '타이핑'
                     ];
                     
                     foreach ($categories as $key => $label):
@@ -275,19 +290,19 @@ $categoryTaglines = getCategoryTaglines();
                                            placeholder="예: /MVNO/event/event.php">
                                     <div class="help-text">태그라인 클릭 시 이동할 링크입니다. 비워두면 텍스트만 표시됩니다.</div>
                                 </div>
-                            </div>
-                            <div class="form-group" style="margin-top: 16px;">
-                                <label for="effect_<?= htmlspecialchars($key) ?>">효과</label>
-                                <select id="effect_<?= htmlspecialchars($key) ?>" 
-                                        name="effect_<?= htmlspecialchars($key) ?>" 
-                                        style="width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; box-sizing: border-box;">
-                                    <?php foreach ($effectOptions as $effectKey => $effectLabel): ?>
-                                        <option value="<?= htmlspecialchars($effectKey) ?>" <?= $effect === $effectKey ? 'selected' : '' ?>>
-                                            <?= htmlspecialchars($effectLabel) ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                                <div class="help-text">태그라인에 적용할 시각적 효과를 선택하세요.</div>
+                                <div class="form-group">
+                                    <label for="effect_<?= htmlspecialchars($key) ?>">효과</label>
+                                    <select id="effect_<?= htmlspecialchars($key) ?>" 
+                                            name="effect_<?= htmlspecialchars($key) ?>" 
+                                            style="width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; box-sizing: border-box;">
+                                        <?php foreach ($effectOptions as $effectKey => $effectLabel): ?>
+                                            <option value="<?= htmlspecialchars($effectKey) ?>" <?= $effect === $effectKey ? 'selected' : '' ?>>
+                                                <?= htmlspecialchars($effectLabel) ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <div class="help-text">태그라인에 적용할 시각적 효과를 선택하세요.</div>
+                                </div>
                             </div>
                         </div>
                     <?php endforeach; ?>

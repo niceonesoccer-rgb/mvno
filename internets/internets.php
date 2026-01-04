@@ -35,8 +35,46 @@ try {
 $productId = isset($_GET['id']) ? intval($_GET['id']) : null;
 
 // 필터 파라미터
-$filterSpeed = $_GET['speed'] ?? ''; // 100MB, 500MB, 1G
+$filterSpeed = $_GET['speed'] ?? ''; // 100MB, 500MB, 1GB
 $filterServiceType = $_GET['service_type'] ?? ''; // TV 결합, 핸드폰 결합
+
+// 속도 단위 변환 함수 (표시용: DB 값 -> 표시용)
+function formatSpeedOption($speedOption) {
+    if (empty($speedOption)) return '';
+    
+    // DB에 저장된 값 (100M, 500M, 1G, 2.5G, 5G, 10G)을 표시용으로 변환
+    $speedMap = [
+        '100M' => '100MB',
+        '500M' => '500MB',
+        '1G' => '1GB',
+        '2.5G' => '2.5GB',
+        '5G' => '5GB',
+        '10G' => '10GB'
+    ];
+    
+    return $speedMap[$speedOption] ?? $speedOption;
+}
+
+// 속도 필터 값 변환 함수 (검색용: 표시값 -> DB 값)
+function convertSpeedFilterToDbValue($filterSpeed) {
+    if (empty($filterSpeed)) return '';
+    
+    // 필터에서 받은 값 (100MB, 500MB, 1GB)을 DB 값으로 변환
+    $filterMap = [
+        '100MB' => '100M',
+        '500MB' => '500M',
+        '1GB' => '1G',
+        '1G' => '1G', // 기존 호환성
+        '2.5GB' => '2.5G',
+        '2.5G' => '2.5G', // 기존 호환성
+        '5GB' => '5G',
+        '5G' => '5G', // 기존 호환성
+        '10GB' => '10G',
+        '10G' => '10G' // 기존 호환성
+    ];
+    
+    return $filterMap[$filterSpeed] ?? $filterSpeed;
+}
 
 // 데이터베이스에서 인터넷 상품 목록 가져오기
 $internetProducts = [];
@@ -54,10 +92,11 @@ try {
             $params[':product_id'] = $productId;
         }
         
-        // 속도 필터 (100MB, 500MB, 1G)
+        // 속도 필터 (100MB, 500MB, 1GB -> DB 값으로 변환)
         if (!empty($filterSpeed)) {
+            $dbSpeedValue = convertSpeedFilterToDbValue($filterSpeed);
             $whereConditions[] = "inet.speed_option = :speed";
-            $params[':speed'] = $filterSpeed;
+            $params[':speed'] = $dbSpeedValue;
         }
         
         // 서비스 타입 필터 (TV 결합, 핸드폰 결합)
@@ -199,9 +238,9 @@ function getInternetIconPath($registrationPlace) {
                         <span class="plans-filter-text">500MB</span>
                     </button>
                     
-                    <button class="plans-filter-btn <?php echo ($filterSpeed === '1G') ? 'active' : ''; ?>" 
-                            data-filter-group="speed" data-filter-value="1G" onclick="toggleFilter(this)">
-                        <span class="plans-filter-text">1G</span>
+                    <button class="plans-filter-btn <?php echo ($filterSpeed === '1GB' || $filterSpeed === '1G') ? 'active' : ''; ?>" 
+                            data-filter-group="speed" data-filter-value="1GB" onclick="toggleFilter(this)">
+                        <span class="plans-filter-text">1GB</span>
                     </button>
                     
                     <button class="plans-filter-btn <?php echo ($filterServiceType === 'TV 결합' || $filterServiceType === 'TV') ? 'active' : ''; ?>" 
@@ -237,7 +276,8 @@ function getInternetIconPath($registrationPlace) {
                     <?php foreach ($internetProducts as $product): ?>
                         <?php
                         $iconPath = getInternetIconPath($product['registration_place']);
-                        $speedOption = htmlspecialchars($product['speed_option'] ?? '');
+                        $speedOptionRaw = $product['speed_option'] ?? '';
+                        $speedOption = htmlspecialchars(formatSpeedOption($speedOptionRaw));
                         $applicationCount = number_format($product['application_count'] ?? 0);
                         // 월 요금 처리: DB에 저장된 값이 "17000원" 형식이면 그대로 표시
                         $monthlyFeeRaw = $product['monthly_fee'] ?? '';

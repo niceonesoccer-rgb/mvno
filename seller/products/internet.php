@@ -860,12 +860,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="form-group">
                     <select name="speed_option" id="speed_option" class="form-select">
                         <option value="">선택하세요</option>
-                        <option value="100M" <?php echo (isset($productData['speed_option']) && $productData['speed_option'] === '100M') ? 'selected' : ''; ?>>100M</option>
-                        <option value="500M" <?php echo (isset($productData['speed_option']) && $productData['speed_option'] === '500M') ? 'selected' : ''; ?>>500M</option>
-                        <option value="1G" <?php echo (isset($productData['speed_option']) && $productData['speed_option'] === '1G') ? 'selected' : ''; ?>>1G</option>
-                        <option value="2.5G" <?php echo (isset($productData['speed_option']) && $productData['speed_option'] === '2.5G') ? 'selected' : ''; ?>>2.5G</option>
-                        <option value="5G" <?php echo (isset($productData['speed_option']) && $productData['speed_option'] === '5G') ? 'selected' : ''; ?>>5G</option>
-                        <option value="10G" <?php echo (isset($productData['speed_option']) && $productData['speed_option'] === '10G') ? 'selected' : ''; ?>>10G</option>
+                        <option value="100M" <?php echo (isset($productData['speed_option']) && $productData['speed_option'] === '100M') ? 'selected' : ''; ?>>100MB</option>
+                        <option value="500M" <?php echo (isset($productData['speed_option']) && $productData['speed_option'] === '500M') ? 'selected' : ''; ?>>500MB</option>
+                        <option value="1G" <?php echo (isset($productData['speed_option']) && $productData['speed_option'] === '1G') ? 'selected' : ''; ?>>1GB</option>
+                        <option value="2.5G" <?php echo (isset($productData['speed_option']) && $productData['speed_option'] === '2.5G') ? 'selected' : ''; ?>>2.5GB</option>
+                        <option value="5G" <?php echo (isset($productData['speed_option']) && $productData['speed_option'] === '5G') ? 'selected' : ''; ?>>5GB</option>
+                        <option value="10G" <?php echo (isset($productData['speed_option']) && $productData['speed_option'] === '10G') ? 'selected' : ''; ?>>10GB</option>
                     </select>
                     <div class="form-help">인터넷 속도를 선택하세요</div>
                 </div>

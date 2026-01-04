@@ -74,6 +74,39 @@ try {
         
         // 광고중인 상품 조회 (최상단 로테이션용)
         // product_type은 DB에서 'mno_sim' (언더스코어)로 저장됨
+        // 필터 조건 추가: 필터가 설정되었을 때만 스폰서 상품도 필터링
+        $adWhereConditions = [
+            "ra.product_type = 'mno_sim'",
+            "ra.status = 'active'",
+            "p.status = 'active'",
+            "ra.end_datetime > NOW()"
+        ];
+        $adParams = [];
+        
+        // 통신사 필터
+        if (!empty($filterProvider)) {
+            $adWhereConditions[] = 'mno_sim.provider = :ad_provider';
+            $adParams[':ad_provider'] = $filterProvider;
+        }
+        
+        // 데이터 속도 필터
+        if (!empty($filterServiceType)) {
+            $adWhereConditions[] = 'mno_sim.service_type = :ad_service_type';
+            $adParams[':ad_service_type'] = $filterServiceType;
+        }
+        
+        // 프로모션 필터 (프로모션 기간이 있는 상품만 표시)
+        if ($filterPromotion) {
+            $adWhereConditions[] = "(
+                (mno_sim.discount_period IS NOT NULL 
+                 AND mno_sim.discount_period != '' 
+                 AND mno_sim.discount_period != '프로모션 없음')
+                OR mno_sim.price_after > 0
+            )";
+        }
+        
+        $adWhereClause = 'WHERE ' . implode(' AND ', $adWhereConditions);
+        
         $adStmt = $pdo->prepare("
             SELECT 
                 ra.product_id,
@@ -122,12 +155,12 @@ try {
             FROM rotation_advertisements ra
             INNER JOIN products p ON ra.product_id = p.id
             INNER JOIN product_mno_sim_details mno_sim ON p.id = mno_sim.product_id
-            WHERE ra.product_type = 'mno_sim'
-            AND ra.status = 'active'
-            AND p.status = 'active'
-            AND ra.end_datetime > NOW()
+            {$adWhereClause}
             ORDER BY ra.display_order ASC, ra.created_at ASC
         ");
+        foreach ($adParams as $key => $value) {
+            $adStmt->bindValue($key, $value);
+        }
         $adStmt->execute();
         $advertisementProductsRaw = $adStmt->fetchAll(PDO::FETCH_ASSOC);
         

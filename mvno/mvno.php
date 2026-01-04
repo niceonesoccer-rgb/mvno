@@ -8,9 +8,84 @@ require_once '../includes/data/plan-data.php';
 require_once '../includes/data/filter-data.php';
 require_once __DIR__ . '/mvno-advertisement-helper.php';
 
+// 필터 파라미터 (스폰서 상품 필터링 전에 먼저 설정)
+$filterProvider = $_GET['provider'] ?? '';
+$filterPriceRange = $_GET['price_range'] ?? '';
+
 // 광고 상품 조회
 list($advertisementProducts, $rotationDuration, $advertisementProductIds) = getMvnoAdvertisementProducts();
 error_log("[MVNO 페이지] getMvnoAdvertisementProducts() 반환값 - 광고 상품 개수: " . count($advertisementProducts) . ", ID 목록: " . implode(', ', $advertisementProductIds));
+
+// 필터 적용: 스폰서 상품도 필터 조건에 맞는 것만 표시
+if (!empty($filterProvider) || !empty($filterPriceRange)) {
+    $filteredAdvertisementProducts = [];
+    $filteredAdvertisementProductIds = [];
+    
+    // provider 필터 매핑 (일반 필터와 동일)
+    $providerMapping = [
+        'SK알뜰폰' => ['SK알뜰폰', 'SK 알뜰폰', 'SKT알뜰폰', 'SKT 알뜰폰', 'SK'],
+        'KT알뜰폰' => ['KT알뜰폰', 'KT 알뜰폰', 'KT'],
+        'LGU+알뜰폰' => ['LGU+알뜰폰', 'LG U+알뜰폰', 'LG U+ 알뜰폰', 'LGU+ 알뜰폰', 'LG U+', 'LGU+', 'LG알뜰폰']
+    ];
+    $allowedProviders = !empty($filterProvider) ? ($providerMapping[$filterProvider] ?? [$filterProvider]) : null;
+    
+    foreach ($advertisementProducts as $adProduct) {
+        $matches = true;
+        
+        // provider 필터
+        if (!empty($filterProvider) && $allowedProviders) {
+            $productProvider = $adProduct['provider'] ?? '';
+            $providerMatch = false;
+            foreach ($allowedProviders as $allowedProvider) {
+                if ($productProvider === $allowedProvider || strpos($productProvider, $allowedProvider) !== false) {
+                    $providerMatch = true;
+                    break;
+                }
+            }
+            if (!$providerMatch) {
+                $matches = false;
+            }
+        }
+        
+        // price_range 필터
+        if ($matches && !empty($filterPriceRange)) {
+            $priceAfter = isset($adProduct['price_after']) ? (float)$adProduct['price_after'] : 0;
+            $priceMatch = false;
+            switch ($filterPriceRange) {
+                case '1천':
+                    $priceMatch = ($priceAfter <= 1000 || $priceAfter == 0);
+                    break;
+                case '5천':
+                    $priceMatch = ($priceAfter > 1000 && $priceAfter <= 5000);
+                    break;
+                case '1만':
+                    $priceMatch = ($priceAfter > 5000 && $priceAfter <= 10000);
+                    break;
+                case '1.5만':
+                    $priceMatch = ($priceAfter > 10000 && $priceAfter <= 15000);
+                    break;
+                case '3만':
+                    $priceMatch = ($priceAfter > 15000 && $priceAfter <= 30000);
+                    break;
+            }
+            if (!$priceMatch) {
+                $matches = false;
+            }
+        }
+        
+        if ($matches) {
+            $filteredAdvertisementProducts[] = $adProduct;
+            $productId = $adProduct['id'] ?? $adProduct['product_id'] ?? null;
+            if ($productId) {
+                $filteredAdvertisementProductIds[] = (int)$productId;
+            }
+        }
+    }
+    
+    $advertisementProducts = $filteredAdvertisementProducts;
+    $advertisementProductIds = $filteredAdvertisementProductIds;
+    error_log("[MVNO 페이지] 필터 적용 후 스폰서 상품 개수: " . count($advertisementProducts) . ", ID 목록: " . implode(', ', $advertisementProductIds));
+}
 
 // 디버깅: 광고 상품 개수 및 데이터 확인 (브라우저 콘솔 또는 HTML 주석으로 확인 가능)
 if (isset($_GET['debug']) && $_GET['debug'] === '1') {
@@ -25,10 +100,6 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
     error_log("광고 상품 ID 목록: " . implode(', ', $advertisementProductIds));
     error_log("로테이션 시간: " . ($rotationDuration ?? 'null'));
 }
-
-// 필터 파라미터
-$filterProvider = $_GET['provider'] ?? '';
-$filterPriceRange = $_GET['price_range'] ?? '';
 
 // 디버깅 모드 (필터 파라미터가 있으면 항상 디버깅)
 $debugMode = isset($_GET['debug']) && $_GET['debug'] === '1';

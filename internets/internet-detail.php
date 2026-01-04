@@ -242,7 +242,20 @@ if ($serviceType === '인터넷+TV') {
                                             <path d="M0 0L-2 5H0L-1 10L2 5H0L0 0Z" fill="#6366F1" stroke="#4F46E5" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
                                         </g>
                                     </svg>
-                                    <?php echo htmlspecialchars($internet['speed_option']); ?>
+                                    <?php 
+                                    // 속도 단위 변환 함수
+                                    $speedOptionRaw = $internet['speed_option'] ?? '';
+                                    $speedMap = [
+                                        '100M' => '100MB',
+                                        '500M' => '500MB',
+                                        '1G' => '1GB',
+                                        '2.5G' => '2.5GB',
+                                        '5G' => '5GB',
+                                        '10G' => '10GB'
+                                    ];
+                                    $speedOptionDisplay = $speedMap[$speedOptionRaw] ?? $speedOptionRaw;
+                                    echo htmlspecialchars($speedOptionDisplay); 
+                                    ?>
                                 </div>
                                 <div class="css-1fd5u73 e82z5mt14">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

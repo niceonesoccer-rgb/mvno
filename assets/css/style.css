@@ -155,6 +155,17 @@ button {
 .header-center-text a {
     pointer-events: auto;
     cursor: pointer;
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+    text-decoration: none;
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 6px;
+    background: transparent;
+}
+
+.header-center-text a:hover {
+    box-shadow: 0 2px 8px rgba(255, 255, 255, 0.8), 0 4px 12px rgba(255, 255, 255, 0.6);
+    transform: translateY(-1px);
 }
 
 /* 모바일: 메뉴를 하단에 고정 */
@@ -548,21 +559,198 @@ button {
     75% { transform: translateX(-50%) translateX(5px); }
 }
 
-/* 발광 효과 */
-.tagline-effect-glow {
-    animation: taglineGlow 2s ease-in-out infinite;
-    text-shadow: 0 0 10px currentColor, 0 0 20px currentColor, 0 0 30px currentColor;
+/* 언더라인 효과 */
+.header-center-text.tagline-effect-underline span,
+.header-center-text.tagline-effect-underline a {
+    position: relative;
+    text-decoration: none;
+    display: inline-block;
 }
 
-@keyframes taglineGlow {
-    0%, 100% { 
-        text-shadow: 0 0 10px currentColor, 0 0 20px currentColor, 0 0 30px currentColor;
+.header-center-text.tagline-effect-underline span::after,
+.header-center-text.tagline-effect-underline a::after {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: 0;
+    width: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #6366f1, #8b5cf6);
+    animation: taglineUnderline 3s ease-in-out infinite;
+}
+
+@keyframes taglineUnderline {
+    0%, 100% { width: 0; }
+    50% { width: 100%; }
+}
+
+/* 바운스 효과 */
+.tagline-effect-bounce {
+    animation: taglineBounce 2s ease-in-out infinite;
+}
+
+@keyframes taglineBounce {
+    0%, 100% { transform: translateX(-50%) translateY(0); }
+    25% { transform: translateX(-50%) translateY(-5px); }
+    50% { transform: translateX(-50%) translateY(0); }
+    75% { transform: translateX(-50%) translateY(-3px); }
+}
+
+/* 오른쪽에서 날아와서 바운스 */
+.tagline-effect-slide-right-bounce {
+    animation: taglineSlideRightBounce 1s ease-out;
+}
+
+@keyframes taglineSlideRightBounce {
+    0% { 
+        transform: translateX(calc(-50% + 200px));
+        opacity: 0;
+    }
+    60% {
+        transform: translateX(-50%);
         opacity: 1;
     }
-    50% { 
-        text-shadow: 0 0 20px currentColor, 0 0 30px currentColor, 0 0 40px currentColor;
-        opacity: 0.9;
+    70% {
+        transform: translateX(-50%) translateY(-10px);
     }
+    80% {
+        transform: translateX(-50%) translateY(0);
+    }
+    90% {
+        transform: translateX(-50%) translateY(-5px);
+    }
+    100% {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+    }
+}
+
+/* 왼쪽에서 날아와서 바운스 */
+.tagline-effect-slide-left-bounce {
+    animation: taglineSlideLeftBounce 1s ease-out;
+}
+
+@keyframes taglineSlideLeftBounce {
+    0% { 
+        transform: translateX(calc(-50% - 200px));
+        opacity: 0;
+    }
+    60% {
+        transform: translateX(-50%);
+        opacity: 1;
+    }
+    70% {
+        transform: translateX(-50%) translateY(-10px);
+    }
+    80% {
+        transform: translateX(-50%) translateY(0);
+    }
+    90% {
+        transform: translateX(-50%) translateY(-5px);
+    }
+    100% {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+    }
+}
+
+/* 한글자씩 오른쪽에서 날아오기 */
+.header-center-text.tagline-effect-slide-right-char span,
+.header-center-text.tagline-effect-slide-right-char a {
+    display: inline-block;
+}
+
+.header-center-text.tagline-effect-slide-right-char span span,
+.header-center-text.tagline-effect-slide-right-char a span {
+    display: inline-block;
+    animation: taglineSlideRightChar 0.5s ease-out both;
+    opacity: 0;
+}
+
+.header-center-text.tagline-effect-slide-right-char span span:nth-child(1) { animation-delay: 0.1s; }
+.header-center-text.tagline-effect-slide-right-char span span:nth-child(2) { animation-delay: 0.2s; }
+.header-center-text.tagline-effect-slide-right-char span span:nth-child(3) { animation-delay: 0.3s; }
+.header-center-text.tagline-effect-slide-right-char span span:nth-child(4) { animation-delay: 0.4s; }
+.header-center-text.tagline-effect-slide-right-char span span:nth-child(5) { animation-delay: 0.5s; }
+.header-center-text.tagline-effect-slide-right-char span span:nth-child(6) { animation-delay: 0.6s; }
+.header-center-text.tagline-effect-slide-right-char span span:nth-child(7) { animation-delay: 0.7s; }
+.header-center-text.tagline-effect-slide-right-char span span:nth-child(8) { animation-delay: 0.8s; }
+.header-center-text.tagline-effect-slide-right-char span span:nth-child(9) { animation-delay: 0.9s; }
+.header-center-text.tagline-effect-slide-right-char span span:nth-child(10) { animation-delay: 1.0s; }
+
+.header-center-text.tagline-effect-slide-right-char a span:nth-child(1) { animation-delay: 0.1s; }
+.header-center-text.tagline-effect-slide-right-char a span:nth-child(2) { animation-delay: 0.2s; }
+.header-center-text.tagline-effect-slide-right-char a span:nth-child(3) { animation-delay: 0.3s; }
+.header-center-text.tagline-effect-slide-right-char a span:nth-child(4) { animation-delay: 0.4s; }
+.header-center-text.tagline-effect-slide-right-char a span:nth-child(5) { animation-delay: 0.5s; }
+.header-center-text.tagline-effect-slide-right-char a span:nth-child(6) { animation-delay: 0.6s; }
+.header-center-text.tagline-effect-slide-right-char a span:nth-child(7) { animation-delay: 0.7s; }
+.header-center-text.tagline-effect-slide-right-char a span:nth-child(8) { animation-delay: 0.8s; }
+.header-center-text.tagline-effect-slide-right-char a span:nth-child(9) { animation-delay: 0.9s; }
+.header-center-text.tagline-effect-slide-right-char a span:nth-child(10) { animation-delay: 1.0s; }
+
+@keyframes taglineSlideRightChar {
+    from {
+        transform: translateX(50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* 한글자씩 왼쪽에서 날아오기 */
+.header-center-text.tagline-effect-slide-left-char span,
+.header-center-text.tagline-effect-slide-left-char a {
+    display: inline-block;
+}
+
+.header-center-text.tagline-effect-slide-left-char span span,
+.header-center-text.tagline-effect-slide-left-char a span {
+    display: inline-block;
+    animation: taglineSlideLeftChar 0.5s ease-out both;
+    opacity: 0;
+}
+
+.header-center-text.tagline-effect-slide-left-char span span:nth-child(1) { animation-delay: 0.1s; }
+.header-center-text.tagline-effect-slide-left-char span span:nth-child(2) { animation-delay: 0.2s; }
+.header-center-text.tagline-effect-slide-left-char span span:nth-child(3) { animation-delay: 0.3s; }
+.header-center-text.tagline-effect-slide-left-char span span:nth-child(4) { animation-delay: 0.4s; }
+.header-center-text.tagline-effect-slide-left-char span span:nth-child(5) { animation-delay: 0.5s; }
+.header-center-text.tagline-effect-slide-left-char span span:nth-child(6) { animation-delay: 0.6s; }
+.header-center-text.tagline-effect-slide-left-char span span:nth-child(7) { animation-delay: 0.7s; }
+.header-center-text.tagline-effect-slide-left-char span span:nth-child(8) { animation-delay: 0.8s; }
+.header-center-text.tagline-effect-slide-left-char span span:nth-child(9) { animation-delay: 0.9s; }
+.header-center-text.tagline-effect-slide-left-char span span:nth-child(10) { animation-delay: 1.0s; }
+
+.header-center-text.tagline-effect-slide-left-char a span:nth-child(1) { animation-delay: 0.1s; }
+.header-center-text.tagline-effect-slide-left-char a span:nth-child(2) { animation-delay: 0.2s; }
+.header-center-text.tagline-effect-slide-left-char a span:nth-child(3) { animation-delay: 0.3s; }
+.header-center-text.tagline-effect-slide-left-char a span:nth-child(4) { animation-delay: 0.4s; }
+.header-center-text.tagline-effect-slide-left-char a span:nth-child(5) { animation-delay: 0.5s; }
+.header-center-text.tagline-effect-slide-left-char a span:nth-child(6) { animation-delay: 0.6s; }
+.header-center-text.tagline-effect-slide-left-char a span:nth-child(7) { animation-delay: 0.7s; }
+.header-center-text.tagline-effect-slide-left-char a span:nth-child(8) { animation-delay: 0.8s; }
+.header-center-text.tagline-effect-slide-left-char a span:nth-child(9) { animation-delay: 0.9s; }
+.header-center-text.tagline-effect-slide-left-char a span:nth-child(10) { animation-delay: 1.0s; }
+
+@keyframes taglineSlideLeftChar {
+    from {
+        transform: translateX(-50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* 타이핑 효과 */
+.header-center-text.tagline-effect-typing span,
+.header-center-text.tagline-effect-typing a {
+    display: inline-block;
+    white-space: nowrap;
 }
 
 /* 펄스와 슬라이드 효과는 transform을 사용하므로 기본 transform 유지 */
