@@ -11,18 +11,25 @@ $site = $siteSettings['site'] ?? [];
             <!-- 약관 링크 및 기타 링크 (상단) -->
             <?php 
             $terms = $footer['terms'] ?? [];
-            $hasTerms = false;
-            if (!empty($terms['terms_of_service']['text']) || !empty($terms['privacy_policy']['text'])) {
-                $hasTerms = true;
-            }
+            $termsOfServiceText = !empty($terms['terms_of_service']['text']) ? $terms['terms_of_service']['text'] : '이용약관';
+            $privacyPolicyText = !empty($terms['privacy_policy']['text']) ? $terms['privacy_policy']['text'] : '개인정보처리방침';
+            $hasTerms = !empty($termsOfServiceText) || !empty($privacyPolicyText);
             ?>
             <?php if ($hasTerms): ?>
             <div class="footer-terms">
-                <?php if (!empty($terms['terms_of_service']['text'])): ?>
-                    <a href="<?php echo htmlspecialchars($terms['terms_of_service']['url'] ?? '/MVNO/terms/view.php?type=terms_of_service'); ?>" target="_blank" rel="noopener noreferrer" class="footer-terms-link"><?php echo htmlspecialchars($terms['terms_of_service']['text']); ?></a>
+                <?php 
+                $termsOfServiceText = !empty($terms['terms_of_service']['text']) ? $terms['terms_of_service']['text'] : '이용약관';
+                $termsOfServiceUrl = !empty($terms['terms_of_service']['url']) ? $terms['terms_of_service']['url'] : '/MVNO/terms/view.php?type=terms_of_service';
+                ?>
+                <?php if (!empty($termsOfServiceText)): ?>
+                    <a href="<?php echo htmlspecialchars($termsOfServiceUrl); ?>" target="_blank" rel="noopener noreferrer" class="footer-terms-link"><?php echo htmlspecialchars($termsOfServiceText); ?></a>
                 <?php endif; ?>
-                <?php if (!empty($terms['privacy_policy']['text'])): ?>
-                    <a href="<?php echo htmlspecialchars($terms['privacy_policy']['url'] ?? '/MVNO/terms/view.php?type=privacy_policy'); ?>" target="_blank" rel="noopener noreferrer" class="footer-terms-link-bold"><?php echo htmlspecialchars($terms['privacy_policy']['text']); ?></a>
+                <?php 
+                $privacyPolicyText = !empty($terms['privacy_policy']['text']) ? $terms['privacy_policy']['text'] : '개인정보처리방침';
+                $privacyPolicyUrl = !empty($terms['privacy_policy']['url']) ? $terms['privacy_policy']['url'] : '/MVNO/terms/view.php?type=privacy_policy';
+                ?>
+                <?php if (!empty($privacyPolicyText)): ?>
+                    <a href="<?php echo htmlspecialchars($privacyPolicyUrl); ?>" target="_blank" rel="noopener noreferrer" class="footer-terms-link-bold"><?php echo htmlspecialchars($privacyPolicyText); ?></a>
                 <?php endif; ?>
                 <a href="https://spam.kisa.or.kr/spam/main.do" target="_blank" rel="noopener noreferrer" class="footer-terms-link">불법스팸대응센터</a>
                 <a href="https://www.msafer.or.kr/index.do" target="_blank" rel="noopener noreferrer" class="footer-terms-link">명의도용방지서비스</a>

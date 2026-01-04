@@ -144,11 +144,17 @@ button {
     position: absolute;
     left: 50%;
     transform: translateX(-50%);
-    font-size: var(--font-size-sm);
-    font-weight: 600;
+    font-size: 18px;
+    font-weight: 700;
     color: var(--color-gray-700);
     white-space: nowrap;
-    z-index: 1;
+    z-index: 10;
+    pointer-events: auto;
+}
+
+.header-center-text a {
+    pointer-events: auto;
+    cursor: pointer;
 }
 
 /* 모바일: 메뉴를 하단에 고정 */
@@ -478,6 +484,91 @@ button {
     .header-center-text {
         display: block;
     }
+}
+
+/* ============================================
+   태그라인 효과 애니메이션
+   ============================================ */
+
+/* 깜빡거림 효과 */
+.tagline-effect-blink {
+    animation: taglineBlink 1.5s ease-in-out infinite;
+}
+
+@keyframes taglineBlink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+
+/* 페이드 효과 */
+.tagline-effect-fade {
+    animation: taglineFade 3s ease-in-out infinite;
+}
+
+@keyframes taglineFade {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+/* 펄스 효과 */
+.tagline-effect-pulse {
+    animation: taglinePulse 2s ease-in-out infinite;
+}
+
+@keyframes taglinePulse {
+    0%, 100% { transform: translateX(-50%) scale(1); }
+    50% { transform: translateX(-50%) scale(1.08); }
+}
+
+/* 그라데이션 효과 */
+.header-center-text.tagline-effect-gradient span,
+.header-center-text.tagline-effect-gradient a {
+    background: linear-gradient(90deg, #6366f1, #8b5cf6, #ec4899, #f59e0b, #6366f1);
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: taglineGradient 3s linear infinite;
+    display: inline-block;
+}
+
+@keyframes taglineGradient {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 200% 50%; }
+}
+
+/* 슬라이드 효과 */
+.tagline-effect-slide {
+    animation: taglineSlide 4s ease-in-out infinite;
+}
+
+@keyframes taglineSlide {
+    0%, 100% { transform: translateX(-50%) translateX(0); }
+    25% { transform: translateX(-50%) translateX(-5px); }
+    75% { transform: translateX(-50%) translateX(5px); }
+}
+
+/* 발광 효과 */
+.tagline-effect-glow {
+    animation: taglineGlow 2s ease-in-out infinite;
+    text-shadow: 0 0 10px currentColor, 0 0 20px currentColor, 0 0 30px currentColor;
+}
+
+@keyframes taglineGlow {
+    0%, 100% { 
+        text-shadow: 0 0 10px currentColor, 0 0 20px currentColor, 0 0 30px currentColor;
+        opacity: 1;
+    }
+    50% { 
+        text-shadow: 0 0 20px currentColor, 0 0 30px currentColor, 0 0 40px currentColor;
+        opacity: 0.9;
+    }
+}
+
+/* 펄스와 슬라이드 효과는 transform을 사용하므로 기본 transform 유지 */
+.header-center-text.tagline-effect-pulse,
+.header-center-text.tagline-effect-slide {
+    transform: translateX(-50%);
 }
 
 /* ============================================
@@ -1569,11 +1660,6 @@ button {
     font-weight: 700;
     color: var(--color-gray-600);
     transition: color 0.2s;
-}
-
-.footer-terms-link-bold {
-    font-weight: 700;
-    color: var(--color-black);
 }
 
 .footer-terms-link:hover,

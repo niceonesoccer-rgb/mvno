@@ -38,7 +38,7 @@ function getDefaultSiteSettings() {
         'site' => [
             'name_ko' => '유심킹',
             'name_en' => 'usimking',
-            'tagline' => '알뜰요금의 리더',
+            // tagline 필드 제거됨 (카테고리별 태그라인으로 이동)
         ],
         'footer' => [
             'company_name' => '(주)유심킹',
@@ -95,6 +95,56 @@ function saveSiteSettings($settings) {
     require_once __DIR__ . '/app-settings.php';
     $updatedBy = function_exists('getCurrentUserId') ? getCurrentUserId() : null;
     return saveAppSettings('site', $settings, $updatedBy);
+}
+
+/**
+ * 카테고리별 태그라인 설정 가져오기
+ * @return array
+ */
+function getCategoryTaglines() {
+    require_once __DIR__ . '/app-settings.php';
+    $defaults = [
+        'home' => ['tagline' => '', 'link' => '', 'effect' => 'none'],
+        'mno-sim' => ['tagline' => '', 'link' => '', 'effect' => 'none'],
+        'mvno' => ['tagline' => '', 'link' => '', 'effect' => 'none'],
+        'mno' => ['tagline' => '', 'link' => '', 'effect' => 'none'],
+        'internets' => ['tagline' => '', 'link' => '', 'effect' => 'none'],
+    ];
+    return getAppSettings('category_taglines', $defaults);
+}
+
+/**
+ * 카테고리별 태그라인 설정 저장
+ * @param array $taglines
+ * @return bool
+ */
+function saveCategoryTaglines($taglines) {
+    require_once __DIR__ . '/app-settings.php';
+    $updatedBy = function_exists('getCurrentUserId') ? getCurrentUserId() : null;
+    return saveAppSettings('category_taglines', $taglines, $updatedBy);
+}
+
+/**
+ * 현재 페이지의 카테고리 태그라인 가져오기
+ * @param string $current_page 현재 페이지 식별자
+ * @return array ['tagline' => string, 'link' => string]
+ */
+function getCurrentPageTagline($current_page = '') {
+    $taglines = getCategoryTaglines();
+    
+    // 페이지 식별자에 따른 카테고리 매핑
+    $categoryMap = [
+        'home' => 'home',
+        'mno-sim' => 'mno-sim',
+        'mvno' => 'mvno',
+        'plans' => 'mvno',
+        'mno' => 'mno',
+        'internets' => 'internets',
+        'internet' => 'internets',
+    ];
+    
+    $category = $categoryMap[$current_page] ?? 'home';
+    return $taglines[$category] ?? ['tagline' => '', 'link' => '', 'effect' => 'none'];
 }
 
 

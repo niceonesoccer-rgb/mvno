@@ -40,6 +40,34 @@ require_once '../includes/data/point-settings.php';
 $user_point = getUserPoint($user_id);
 $current_balance = $user_point['balance'] ?? 0;
 
+// 찜한 개수 가져오기
+require_once '../includes/data/db-config.php';
+$pdo = getDBConnection();
+$mno_sim_count = 0;
+$mvno_count = 0;
+$mno_count = 0;
+
+if ($pdo) {
+    try {
+        // 찜한 통신사단독유심 개수
+        $stmt = $pdo->prepare("SELECT COUNT(*) as count FROM product_favorites WHERE user_id = :user_id AND product_type = 'mno-sim'");
+        $stmt->execute([':user_id' => (string)$user_id]);
+        $mno_sim_count = intval($stmt->fetch(PDO::FETCH_ASSOC)['count']);
+        
+        // 찜한 알뜰폰 개수
+        $stmt = $pdo->prepare("SELECT COUNT(*) as count FROM product_favorites WHERE user_id = :user_id AND product_type = 'mvno'");
+        $stmt->execute([':user_id' => (string)$user_id]);
+        $mvno_count = intval($stmt->fetch(PDO::FETCH_ASSOC)['count']);
+        
+        // 찜한 통신사폰 개수
+        $stmt = $pdo->prepare("SELECT COUNT(*) as count FROM product_favorites WHERE user_id = :user_id AND product_type = 'mno'");
+        $stmt->execute([':user_id' => (string)$user_id]);
+        $mno_count = intval($stmt->fetch(PDO::FETCH_ASSOC)['count']);
+    } catch (PDOException $e) {
+        error_log("Error fetching favorite counts: " . $e->getMessage());
+    }
+}
+
 // 헤더 포함
 include '../includes/header.php';
 ?>
@@ -72,9 +100,9 @@ include '../includes/header.php';
                     <a href="/MVNO/mypage/wishlist.php?type=mno-sim" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; text-decoration: none; color: inherit;">
                         <div style="display: flex; align-items: center; gap: 12px;">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink: 0;">
-                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#ef4444"/>
                             </svg>
-                            <span style="font-size: 16px;">찜한 통신사단독유심 내역</span>
+                            <span style="font-size: 16px;">찜한 통신사단독유심 (<?php echo number_format($mno_sim_count); ?>개)</span>
                         </div>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width: 16px; height: 16px;">
                             <path d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -87,9 +115,9 @@ include '../includes/header.php';
                     <a href="/MVNO/mypage/wishlist.php?type=mvno" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; text-decoration: none; color: inherit;">
                         <div style="display: flex; align-items: center; gap: 12px;">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink: 0;">
-                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#ef4444"/>
                             </svg>
-                            <span style="font-size: 16px;">찜한 알뜰폰 내역</span>
+                            <span style="font-size: 16px;">찜한 알뜰폰 (<?php echo number_format($mvno_count); ?>개)</span>
                         </div>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width: 16px; height: 16px;">
                             <path d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -102,9 +130,9 @@ include '../includes/header.php';
                     <a href="/MVNO/mypage/wishlist.php?type=mno" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; text-decoration: none; color: inherit;">
                         <div style="display: flex; align-items: center; gap: 12px;">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink: 0;">
-                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#ef4444"/>
                             </svg>
-                            <span style="font-size: 16px;">찜한 통신사폰 내역</span>
+                            <span style="font-size: 16px;">찜한 통신사폰 (<?php echo number_format($mno_count); ?>개)</span>
                         </div>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width: 16px; height: 16px;">
                             <path d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>

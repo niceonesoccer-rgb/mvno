@@ -230,6 +230,7 @@ if ($pdo) {
             width: 3px;
             background: transparent;
             transition: all 0.3s;
+            pointer-events: none;
         }
         
         .menu-item::after {
@@ -242,6 +243,7 @@ if ($pdo) {
             background: linear-gradient(90deg, rgba(59, 130, 246, 0.1) 0%, transparent 100%);
             opacity: 0;
             transition: opacity 0.3s;
+            pointer-events: none;
         }
         
         .menu-item:hover {
@@ -685,6 +687,16 @@ if ($pdo) {
                         </svg>
                     </span>
                     광고 목록
+                </a>
+                <a href="/MVNO/admin/advertisement/tagline.php" class="menu-item <?php echo ($currentPage === 'tagline.php' && strpos($_SERVER['REQUEST_URI'], '/advertisement/') !== false) ? 'active' : ''; ?>">
+                    <span class="menu-item-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                            <path d="M13 8H7"/>
+                            <path d="M17 12H7"/>
+                        </svg>
+                    </span>
+                    태그라인
                 </a>
                 <a href="/MVNO/admin/deposit/requests.php" class="menu-item <?php echo ($currentPage === 'requests.php' && strpos($_SERVER['REQUEST_URI'], '/deposit/') !== false) ? 'active' : ''; ?>">
                     <span class="menu-item-icon">

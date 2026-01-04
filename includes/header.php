@@ -184,8 +184,30 @@ else if (!isset($is_main_page)) {
             </div>
             
             <!-- 헤더 가운데 텍스트 -->
-            <div class="header-center-text">
-                <span><?php echo htmlspecialchars($site['tagline'] ?? '알뜰요금의 리더'); ?></span>
+            <div class="header-center-text<?php 
+                $currentPageTagline = getCurrentPageTagline($current_page ?? 'home');
+                $taglineEffect = $currentPageTagline['effect'] ?? 'none';
+                if ($taglineEffect && $taglineEffect !== 'none') {
+                    echo ' tagline-effect-' . htmlspecialchars($taglineEffect);
+                }
+            ?>">
+                <?php
+                // 현재 페이지의 태그라인 가져오기
+                $taglineText = $currentPageTagline['tagline'] ?? '';
+                $taglineLink = $currentPageTagline['link'] ?? '';
+                
+                if (!empty($taglineText)):
+                    if (!empty($taglineLink)):
+                        // 링크가 있으면 링크로 표시
+                        echo '<a href="' . htmlspecialchars($taglineLink) . '" style="text-decoration: none; color: inherit; display: inline-block;">';
+                        echo htmlspecialchars($taglineText);
+                        echo '</a>';
+                    else:
+                        // 링크가 없으면 텍스트만 표시
+                        echo '<span>' . htmlspecialchars($taglineText) . '</span>';
+                    endif;
+                endif;
+                ?>
             </div>
             
             <!-- 데스크톱 로그인 버튼 -->
@@ -276,7 +298,7 @@ else if (!isset($is_main_page)) {
                     <li class="nav-item nav-item-mobile-only">
                         <a class="nav-link <?php echo (isset($current_page) && $current_page == 'wishlist') ? 'active' : ''; ?>" href="/MVNO/mypage/wishlist.php">
                             <svg class="nav-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M20.84 4.61C20.3292 4.099 19.7228 3.69364 19.0554 3.41708C18.3879 3.14052 17.6725 2.99817 16.95 2.99817C16.2275 2.99817 15.5121 3.14052 14.8446 3.41708C14.1772 3.69364 13.5708 4.099 13.06 4.61L12 5.67L10.94 4.61C9.9083 3.57831 8.50903 2.99871 7.05 2.99871C5.59096 2.99871 4.19169 3.57831 3.16 4.61C2.1283 5.64169 1.54871 7.04097 1.54871 8.5C1.54871 9.95903 2.1283 11.3583 3.16 12.39L4.22 13.45L12 21.23L19.78 13.45L20.84 12.39C21.351 11.8792 21.7564 11.2728 22.0329 10.6054C22.3095 9.93789 22.4518 9.22248 22.4518 8.5C22.4518 7.77752 22.3095 7.0621 22.0329 6.39464C21.7564 5.72718 21.351 5.12075 20.84 4.61Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#ef4444"/>
                             </svg>
                             <span>찜</span>
                         </a>
