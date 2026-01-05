@@ -5,6 +5,7 @@
 
 require_once __DIR__ . '/includes/admin-header.php';
 require_once __DIR__ . '/../includes/data/db-config.php';
+require_once __DIR__ . '/../includes/monitor.php';
 
 $pdo = getDBConnection();
 
@@ -53,6 +54,40 @@ $inquiryStats = [
 
 // 고객 적립포인트 (전체 고객 포인트 합계)
 $totalCustomerPoints = 0;
+
+// 접속모니터링 통계
+$connectionStats = [
+    'current' => 0,          // 현재 동시 접속 수
+    'recent_5min' => 0,      // 최근 5분 접속 수
+    'recent_1hour' => 0,     // 최근 1시간 접속 수
+    'today' => 0             // 오늘 총 접속 수
+];
+
+try {
+    $monitor = new ConnectionMonitor();
+    $connectionStats['current'] = $monitor->getCurrentConnections();
+    $recent5min = $monitor->getRecentStats(5);
+    $connectionStats['recent_5min'] = $recent5min['total'];
+    $recent1hour = $monitor->getRecentStats(60);
+    $connectionStats['recent_1hour'] = $recent1hour['total'];
+    
+    // 오늘 총 접속 수 계산
+    $todayStart = strtotime('today');
+    $logFile = __DIR__ . '/../logs/connections.log';
+    if (file_exists($logFile)) {
+        $lines = file($logFile);
+        $todayCount = 0;
+        foreach ($lines as $line) {
+            $data = json_decode(trim($line), true);
+            if ($data && isset($data['time']) && $data['time'] >= $todayStart) {
+                $todayCount++;
+            }
+        }
+        $connectionStats['today'] = $todayCount;
+    }
+} catch (Exception $e) {
+    error_log('접속모니터링 통계 조회 오류: ' . $e->getMessage());
+}
 
 if ($pdo) {
     try {
@@ -565,6 +600,72 @@ $categoryLabels = [
         </div>
     </div>
     
+    <!-- 접속모니터링 -->
+    <div class="dashboard-section">
+        <h2 style="font-size: 18px; font-weight: 700; color: #1e293b; margin-bottom: 16px;">접속모니터링</h2>
+        <div class="dashboard-grid">
+            <a href="/MVNO/admin/monitor.php" class="dashboard-card">
+                <div class="dashboard-card-header">
+                    <span class="dashboard-card-title">현재 동시 접속</span>
+                    <div class="dashboard-card-icon" style="background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                            <circle cx="9" cy="7" r="4"/>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="dashboard-card-value"><?php echo number_format($connectionStats['current']); ?></div>
+                <div class="dashboard-card-description">현재 활성 접속자 수</div>
+            </a>
+            
+            <a href="/MVNO/admin/monitor.php" class="dashboard-card">
+                <div class="dashboard-card-header">
+                    <span class="dashboard-card-title">최근 5분 접속</span>
+                    <div class="dashboard-card-icon" style="background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);">
+                        <svg viewBox="0 0 24 24">
+                            <circle cx="12" cy="12" r="10"/>
+                            <polyline points="12 6 12 12 16 14"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="dashboard-card-value"><?php echo number_format($connectionStats['recent_5min']); ?></div>
+                <div class="dashboard-card-description">최근 5분간 접속 수</div>
+            </a>
+            
+            <a href="/MVNO/admin/monitor.php" class="dashboard-card">
+                <div class="dashboard-card-header">
+                    <span class="dashboard-card-title">최근 1시간 접속</span>
+                    <div class="dashboard-card-icon" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+                        <svg viewBox="0 0 24 24">
+                            <circle cx="12" cy="12" r="10"/>
+                            <polyline points="12 6 12 12 16 14"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="dashboard-card-value"><?php echo number_format($connectionStats['recent_1hour']); ?></div>
+                <div class="dashboard-card-description">최근 1시간간 접속 수</div>
+            </a>
+            
+            <a href="/MVNO/admin/monitor.php" class="dashboard-card">
+                <div class="dashboard-card-header">
+                    <span class="dashboard-card-title">오늘 총 접속</span>
+                    <div class="dashboard-card-icon" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);">
+                        <svg viewBox="0 0 24 24">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                            <line x1="16" y1="2" x2="16" y2="6"/>
+                            <line x1="8" y1="2" x2="8" y2="6"/>
+                            <line x1="3" y1="10" x2="21" y2="10"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="dashboard-card-value"><?php echo number_format($connectionStats['today']); ?></div>
+                <div class="dashboard-card-description">오늘 총 접속 수</div>
+            </a>
+        </div>
+    </div>
+    
     <!-- 카테고리별 주문수 -->
     <div class="dashboard-section">
         <h2 style="font-size: 18px; font-weight: 700; color: #1e293b; margin-bottom: 16px;">카테고리별 주문수</h2>
@@ -592,40 +693,6 @@ $categoryLabels = [
                     <div class="dashboard-card-stat">
                         <div class="dashboard-card-stat-label">한달</div>
                         <div class="dashboard-card-stat-value"><?php echo number_format($orderStats[$category]['month']); ?></div>
-                    </div>
-                </div>
-            </a>
-            <?php endforeach; ?>
-        </div>
-    </div>
-    
-    <!-- 카테고리별 상품등록수 -->
-    <div class="dashboard-section">
-        <h2 style="font-size: 18px; font-weight: 700; color: #1e293b; margin-bottom: 16px;">카테고리별 상품등록수</h2>
-        <div class="dashboard-grid">
-            <?php foreach ($categoryLabels as $category => $label): ?>
-            <a href="/MVNO/admin/products/<?php echo $category === 'mno_sim' ? 'mno-sim-list.php' : ($category . '-list.php'); ?>" class="dashboard-card">
-                <div class="dashboard-card-header">
-                    <span class="dashboard-card-title"><?php echo htmlspecialchars($label); ?></span>
-                    <div class="dashboard-card-icon" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);">
-                        <svg viewBox="0 0 24 24">
-                            <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
-                            <line x1="12" y1="18" x2="12.01" y2="18"/>
-                        </svg>
-                    </div>
-                </div>
-                <div class="dashboard-card-stats">
-                    <div class="dashboard-card-stat">
-                        <div class="dashboard-card-stat-label">오늘</div>
-                        <div class="dashboard-card-stat-value"><?php echo number_format($productStats[$category]['today']); ?></div>
-                    </div>
-                    <div class="dashboard-card-stat">
-                        <div class="dashboard-card-stat-label">일주일</div>
-                        <div class="dashboard-card-stat-value"><?php echo number_format($productStats[$category]['week']); ?></div>
-                    </div>
-                    <div class="dashboard-card-stat">
-                        <div class="dashboard-card-stat-label">한달</div>
-                        <div class="dashboard-card-stat-value"><?php echo number_format($productStats[$category]['month']); ?></div>
                     </div>
                 </div>
             </a>

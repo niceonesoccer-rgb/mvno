@@ -13,7 +13,7 @@ $review_settings = [
     // 리뷰 작성 가능한 진행상황 목록
     // 가능한 값: 'received', 'activating', 'on_hold', 'cancelled', 'activation_completed', 'installation_completed', 'closed'
     // 인터넷의 경우: 'activating'(개통중), 'installation_completed'/'completed'(설치완료), 'closed'/'terminated'(종료)
-    'allowed_statuses' => ['activating', 'processing', 'installation_completed', 'completed', 'closed', 'terminated'], // 개통중, 설치완료, 종료 상태에서 리뷰 작성 가능
+    'allowed_statuses' => ['activation_completed', 'installation_completed', 'closed'], // 개통중, 설치완료, 종료 상태에서 리뷰 작성 가능
 ];
 
 /**

@@ -711,6 +711,16 @@ if ($pdo) {
                     </span>
                     태그라인
                 </a>
+                <a href="/MVNO/admin/advertisement/analytics.php" class="menu-item <?php echo ($currentPage === 'analytics.php' && strpos($_SERVER['REQUEST_URI'], '/advertisement/') !== false) ? 'active' : ''; ?>">
+                    <span class="menu-item-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="20" x2="18" y2="10"/>
+                            <line x1="12" y1="20" x2="12" y2="4"/>
+                            <line x1="6" y1="20" x2="6" y2="14"/>
+                        </svg>
+                    </span>
+                    광고 분석
+                </a>
                 <a href="/MVNO/admin/deposit/requests.php" class="menu-item <?php echo ($currentPage === 'requests.php' && strpos($_SERVER['REQUEST_URI'], '/deposit/') !== false) ? 'active' : ''; ?>">
                     <span class="menu-item-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
