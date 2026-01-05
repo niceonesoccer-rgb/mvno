@@ -53,80 +53,6 @@ $currentCount = count($phones);
 $remainingCount = max(0, $totalPhonesCount - ($offset + $currentCount));
 $hasMore = ($offset + $currentCount) < $totalPhonesCount;
 
-// 디버깅: 데이터 확인
-$debug_mode = isset($_GET['debug']) && $_GET['debug'] == '1';
-if ($debug_mode) {
-    $pdo = getDBConnection();
-    if ($pdo) {
-        // 1. user_id 확인
-        $debug_info = [
-            'user_id' => $user_id,
-            'current_user' => $currentUser,
-            'phones_count' => count($phones),
-            'phones_data' => $phones
-        ];
-        
-        // 2. 데이터베이스에서 직접 확인
-        try {
-            // application_customers에서 user_id로 검색
-            $stmt1 = $pdo->prepare("SELECT COUNT(*) as cnt FROM application_customers WHERE user_id = ?");
-            $stmt1->execute([$user_id]);
-            $result1 = $stmt1->fetch(PDO::FETCH_ASSOC);
-            $debug_info['application_customers_count'] = $result1['cnt'] ?? 0;
-            
-            // product_applications에서 mno 타입 검색
-            $stmt2 = $pdo->prepare("
-                SELECT COUNT(*) as cnt 
-                FROM product_applications a
-                INNER JOIN application_customers c ON a.id = c.application_id
-                WHERE c.user_id = ? AND a.product_type = 'mno'
-            ");
-            $stmt2->execute([$user_id]);
-            $result2 = $stmt2->fetch(PDO::FETCH_ASSOC);
-            $debug_info['mno_applications_count'] = $result2['cnt'] ?? 0;
-            
-            // 전체 신청 내역 확인 (user_id NULL 포함)
-            $stmt3 = $pdo->prepare("
-                SELECT a.id, a.product_id, a.product_type, a.application_status, a.created_at, c.user_id, c.name, c.phone
-                FROM product_applications a
-                LEFT JOIN application_customers c ON a.id = c.application_id
-                WHERE a.product_type = 'mno'
-                ORDER BY a.created_at DESC
-                LIMIT 10
-            ");
-            $stmt3->execute();
-            $debug_info['all_mno_applications'] = $stmt3->fetchAll(PDO::FETCH_ASSOC);
-            
-            // 실제 쿼리 실행 테스트
-            $stmt4 = $pdo->prepare("
-                SELECT 
-                    a.id as application_id,
-                    a.product_id,
-                    a.application_status,
-                    a.created_at as order_date,
-                    c.name,
-                    c.phone,
-                    c.email,
-                    c.user_id,
-                    c.additional_info,
-                    p.status as product_status
-                FROM product_applications a
-                INNER JOIN application_customers c ON a.id = c.application_id
-                INNER JOIN products p ON a.product_id = p.id
-                WHERE c.user_id = ? 
-                AND a.product_type = 'mno'
-                ORDER BY a.created_at DESC
-            ");
-            $stmt4->execute([$user_id]);
-            $debug_info['direct_query_result'] = $stmt4->fetchAll(PDO::FETCH_ASSOC);
-            $debug_info['direct_query_count'] = count($debug_info['direct_query_result']);
-            
-        } catch (PDOException $e) {
-            $debug_info['error'] = $e->getMessage();
-        }
-    }
-}
-
 // 헤더 포함
 include '../includes/header.php';
 // 리뷰 모달 포함
@@ -150,14 +76,6 @@ include '../includes/components/mno-review-modal.php';
                     <p style="font-size: 14px; color: #6b7280; margin: 0; margin-left: 36px;">카드를 클릭하면 상품 상세 정보를 확인할 수 있습니다.</p>
                 </div>
 
-                <!-- 디버깅 정보 (debug=1 파라미터가 있을 때만 표시) -->
-                <?php if ($debug_mode && isset($debug_info)): ?>
-                    <div style="padding: 20px; background: #f3f4f6; border-radius: 8px; margin-bottom: 20px; font-family: monospace; font-size: 12px;">
-                        <h3 style="margin-top: 0; color: #6366f1;">디버깅 정보</h3>
-                        <pre style="background: white; padding: 15px; border-radius: 4px; overflow-x: auto;"><?php echo htmlspecialchars(json_encode($debug_info, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)); ?></pre>
-                    </div>
-                <?php endif; ?>
-
                 <!-- 전체 개수 표시 -->
                 <?php if (!empty($phones)): ?>
                 <div class="plans-results-count">
@@ -170,10 +88,6 @@ include '../includes/components/mno-review-modal.php';
                     <?php if (empty($phones)): ?>
                         <div style="padding: 40px 20px; text-align: center; color: #6b7280;">
                             신청한 통신사폰이 없습니다.
-                            <?php if (!$debug_mode): ?>
-                                <br><br>
-                                <a href="?debug=1" style="color: #6366f1; text-decoration: underline; font-size: 12px;">디버깅 정보 보기</a>
-                            <?php endif; ?>
                         </div>
                     <?php else: ?>
                         <div style="display: flex; flex-direction: column; gap: 16px;" id="mno-orders-container">

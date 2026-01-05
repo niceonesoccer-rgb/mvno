@@ -593,8 +593,9 @@ include '../includes/admin-header.php';
         <div class="alert alert-error"><?php echo htmlspecialchars($error); ?></div>
     <?php endif; ?>
 
-    <form method="POST" enctype="multipart/form-data">
+    <form method="POST" enctype="multipart/form-data" id="siteSettingsForm">
         <input type="hidden" name="save_settings" value="1">
+        <input type="hidden" name="current_tab" id="current_tab_input" value="<?php echo htmlspecialchars($initialTab); ?>">
 
         <div class="tabs">
             <button type="button" class="tab <?php echo $initialTab === 'basic' ? 'active' : ''; ?>" onclick="switchTab('basic')">사이트 기본</button>
@@ -649,7 +650,6 @@ include '../includes/admin-header.php';
                     </div>
                 </div>
                 <div style="margin-top: 24px;">
-                    <input type="hidden" name="current_tab" value="basic">
                     <button type="submit" class="btn btn-primary">저장</button>
                 </div>
             </div>
@@ -693,7 +693,6 @@ include '../includes/admin-header.php';
                     <textarea id="footer_cs_notice" name="footer_cs_notice"><?php echo htmlspecialchars($settings['footer']['cs_notice'] ?? ''); ?></textarea>
                 </div>
                 <div style="margin-top: 24px;">
-                    <input type="hidden" name="current_tab" value="footer">
                     <button type="submit" class="btn btn-primary">저장</button>
                 </div>
             </div>
@@ -716,7 +715,6 @@ include '../includes/admin-header.php';
                     <input type="text" id="footer_hours_lunch" name="footer_hours_lunch" value="<?php echo htmlspecialchars($settings['footer']['hours']['lunch'] ?? ''); ?>">
                 </div>
                 <div style="margin-top: 24px;">
-                    <input type="hidden" name="current_tab" value="hours">
                     <button type="submit" class="btn btn-primary">저장</button>
                 </div>
             </div>
@@ -1091,6 +1089,12 @@ function switchTab(tabName) {
         tabContent.classList.add('active');
     } else {
         console.error('탭 컨텐츠를 찾을 수 없습니다: tab-' + tabName);
+    }
+    
+    // current_tab hidden input 업데이트
+    const currentTabInput = document.getElementById('current_tab_input');
+    if (currentTabInput) {
+        currentTabInput.value = tabName;
     }
     
     // URL 업데이트 (새로고침 시 탭 유지)
