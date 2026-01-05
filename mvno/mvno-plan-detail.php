@@ -3125,6 +3125,31 @@ document.addEventListener('DOMContentLoaded', function() {
         mvnoPrivacyModalTitle.textContent = mvnoPrivacyContents[type].title;
         mvnoPrivacyModalBody.innerHTML = mvnoPrivacyContents[type].content;
         
+        // 모달 내 배지 제거 (필수/선택 표시 제거)
+        if (type === 'serviceNotice' || type === 'marketing') {
+            // serviceNotice의 경우
+            if (type === 'serviceNotice') {
+                const header = mvnoPrivacyModalBody.querySelector('.privacy-service-notice-header');
+                if (header) {
+                    const badge = header.querySelector('.required-badge, .optional-badge');
+                    if (badge) {
+                        badge.remove();
+                    }
+                }
+            }
+            
+            // marketing의 경우
+            if (type === 'marketing') {
+                const header = mvnoPrivacyModalBody.querySelector('.privacy-marketing-header');
+                if (header) {
+                    const badge = header.querySelector('.required-badge, .optional-badge');
+                    if (badge) {
+                        badge.remove();
+                    }
+                }
+            }
+        }
+        
         mvnoPrivacyModal.style.display = 'flex';
         mvnoPrivacyModal.classList.add('privacy-content-modal-active');
         document.body.style.overflow = 'hidden';

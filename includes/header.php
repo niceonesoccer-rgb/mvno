@@ -316,6 +316,9 @@ else if (!isset($is_main_page)) {
                             <a class="nav-link" href="#" onclick="if (typeof openLoginModal === 'function') { openLoginModal(false); } else { setTimeout(function() { if (typeof openLoginModal === 'function') { openLoginModal(false); } }, 100); } return false;">
                                 <span>로그인</span>
                             </a>
+                            <a class="nav-link" href="#" onclick="if (typeof openLoginModal === 'function') { openLoginModal(true); } else { setTimeout(function() { if (typeof openLoginModal === 'function') { openLoginModal(true); } }, 100); } return false;">
+                                <span>회원가입</span>
+                            </a>
                         <?php endif; ?>
                     </li>
                     <li class="nav-item nav-item-mobile-only">

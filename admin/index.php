@@ -4,35 +4,289 @@
  */
 
 require_once __DIR__ . '/includes/admin-header.php';
+require_once __DIR__ . '/../includes/data/db-config.php';
+
+$pdo = getDBConnection();
+
+// 오늘, 일주일, 한달 날짜 계산
+$today = date('Y-m-d 00:00:00');
+$weekAgo = date('Y-m-d 00:00:00', strtotime('-7 days'));
+$monthAgo = date('Y-m-d 00:00:00', strtotime('-30 days'));
+
+// 카테고리별 주문수 통계
+$orderStats = [
+    'mno' => ['today' => 0, 'week' => 0, 'month' => 0],
+    'mvno' => ['today' => 0, 'week' => 0, 'month' => 0],
+    'internet' => ['today' => 0, 'week' => 0, 'month' => 0],
+    'mno_sim' => ['today' => 0, 'week' => 0, 'month' => 0]
+];
+
+// 카테고리별 상품등록수 통계
+$productStats = [
+    'mno' => ['today' => 0, 'week' => 0, 'month' => 0],
+    'mvno' => ['today' => 0, 'week' => 0, 'month' => 0],
+    'internet' => ['today' => 0, 'week' => 0, 'month' => 0],
+    'mno_sim' => ['today' => 0, 'week' => 0, 'month' => 0]
+];
+
+// 판매자 통계
+$sellerStats = [
+    'pending' => 0,      // 신청자
+    'updated' => 0,      // 업데이트
+    'withdrawal' => 0    // 탈퇴요청
+];
+
+// 광고 통계
+$adStats = [
+    'today_count' => 0,
+    'today_amount' => 0,
+    'week_amount' => 0,
+    'month_amount' => 0,
+    'deposit_pending' => 0
+];
+
+// 문의 통계
+$inquiryStats = [
+    'member_qna' => 0,      // 회원 1:1 문의 답변대기
+    'seller_inquiry' => 0   // 판매자 1:1 문의 답변대기
+];
+
+// 고객 적립포인트 (전체 고객 포인트 합계)
+$totalCustomerPoints = 0;
+
+if ($pdo) {
+    try {
+        // 카테고리별 주문수 통계
+        $categories = ['mno', 'mvno', 'internet', 'mno_sim'];
+        foreach ($categories as $category) {
+            // 오늘
+            $stmt = $pdo->prepare("
+                SELECT COUNT(*) 
+                FROM product_applications a
+                INNER JOIN products p ON a.product_id = p.id
+                WHERE p.product_type = :type 
+                AND DATE(a.created_at) = CURDATE()
+            ");
+            $stmt->execute([':type' => $category === 'mno_sim' ? 'mno-sim' : $category]);
+            $orderStats[$category]['today'] = (int)$stmt->fetchColumn();
+            
+            // 일주일
+            $stmt = $pdo->prepare("
+                SELECT COUNT(*) 
+                FROM product_applications a
+                INNER JOIN products p ON a.product_id = p.id
+                WHERE p.product_type = :type 
+                AND a.created_at >= :week_ago
+            ");
+            $stmt->execute([':type' => $category === 'mno_sim' ? 'mno-sim' : $category, ':week_ago' => $weekAgo]);
+            $orderStats[$category]['week'] = (int)$stmt->fetchColumn();
+            
+            // 한달
+            $stmt = $pdo->prepare("
+                SELECT COUNT(*) 
+                FROM product_applications a
+                INNER JOIN products p ON a.product_id = p.id
+                WHERE p.product_type = :type 
+                AND a.created_at >= :month_ago
+            ");
+            $stmt->execute([':type' => $category === 'mno_sim' ? 'mno-sim' : $category, ':month_ago' => $monthAgo]);
+            $orderStats[$category]['month'] = (int)$stmt->fetchColumn();
+        }
+        
+        // 카테고리별 상품등록수 통계
+        foreach ($categories as $category) {
+            // 오늘
+            $stmt = $pdo->prepare("
+                SELECT COUNT(*) 
+                FROM products 
+                WHERE product_type = :type 
+                AND DATE(created_at) = CURDATE()
+                AND status != 'deleted'
+            ");
+            $stmt->execute([':type' => $category === 'mno_sim' ? 'mno-sim' : $category]);
+            $productStats[$category]['today'] = (int)$stmt->fetchColumn();
+            
+            // 일주일
+            $stmt = $pdo->prepare("
+                SELECT COUNT(*) 
+                FROM products 
+                WHERE product_type = :type 
+                AND created_at >= :week_ago
+                AND status != 'deleted'
+            ");
+            $stmt->execute([':type' => $category === 'mno_sim' ? 'mno-sim' : $category, ':week_ago' => $weekAgo]);
+            $productStats[$category]['week'] = (int)$stmt->fetchColumn();
+            
+            // 한달
+            $stmt = $pdo->prepare("
+                SELECT COUNT(*) 
+                FROM products 
+                WHERE product_type = :type 
+                AND created_at >= :month_ago
+                AND status != 'deleted'
+            ");
+            $stmt->execute([':type' => $category === 'mno_sim' ? 'mno-sim' : $category, ':month_ago' => $monthAgo]);
+            $productStats[$category]['month'] = (int)$stmt->fetchColumn();
+        }
+        
+        // 판매자 통계 - 신청자 (pending)
+        $stmt = $pdo->query("
+            SELECT COUNT(*) 
+            FROM users u
+            LEFT JOIN seller_profiles sp ON u.user_id = sp.user_id
+            WHERE u.role = 'seller' 
+            AND u.seller_approved = 0
+            AND (u.approval_status IS NULL OR u.approval_status = 'pending')
+            AND (u.withdrawal_requested IS NULL OR u.withdrawal_requested = 0)
+        ");
+        $sellerStats['pending'] = (int)$stmt->fetchColumn();
+        
+        // 판매자 통계 - 업데이트 (info_updated = 1 AND info_checked_by_admin != 1)
+        $stmt = $pdo->query("
+            SELECT COUNT(*) 
+            FROM seller_profiles 
+            WHERE info_updated = 1 
+            AND (info_checked_by_admin IS NULL OR info_checked_by_admin = 0)
+        ");
+        $sellerStats['updated'] = (int)$stmt->fetchColumn();
+        
+        // 판매자 통계 - 탈퇴요청
+        $stmt = $pdo->query("
+            SELECT COUNT(*) 
+            FROM users 
+            WHERE role = 'seller' 
+            AND withdrawal_requested = 1 
+            AND (withdrawal_completed IS NULL OR withdrawal_completed = 0)
+        ");
+        $sellerStats['withdrawal'] = (int)$stmt->fetchColumn();
+        
+        // 광고 통계 - 오늘 광고신청 수
+        $stmt = $pdo->prepare("
+            SELECT COUNT(*) 
+            FROM rotation_advertisements 
+            WHERE DATE(created_at) = CURDATE()
+        ");
+        $stmt->execute();
+        $adStats['today_count'] = (int)$stmt->fetchColumn();
+        
+        // 광고 통계 - 오늘 총금액 (부가세 포함, price는 공급가액이므로 1.1 곱하기)
+        $stmt = $pdo->prepare("
+            SELECT COALESCE(SUM(price * 1.1), 0) 
+            FROM rotation_advertisements 
+            WHERE DATE(created_at) = CURDATE()
+        ");
+        $stmt->execute();
+        $adStats['today_amount'] = (float)$stmt->fetchColumn();
+        
+        // 광고 통계 - 일주일간 총금액
+        $stmt = $pdo->prepare("
+            SELECT COALESCE(SUM(price * 1.1), 0) 
+            FROM rotation_advertisements 
+            WHERE created_at >= :week_ago
+        ");
+        $stmt->execute([':week_ago' => $weekAgo]);
+        $adStats['week_amount'] = (float)$stmt->fetchColumn();
+        
+        // 광고 통계 - 한달간 총금액
+        $stmt = $pdo->prepare("
+            SELECT COALESCE(SUM(price * 1.1), 0) 
+            FROM rotation_advertisements 
+            WHERE created_at >= :month_ago
+        ");
+        $stmt->execute([':month_ago' => $monthAgo]);
+        $adStats['month_amount'] = (float)$stmt->fetchColumn();
+        
+        // 광고 통계 - 입금신청자 (pending 상태)
+        $stmt = $pdo->query("
+            SELECT COUNT(*) 
+            FROM deposit_requests 
+            WHERE status = 'pending'
+        ");
+        $adStats['deposit_pending'] = (int)$stmt->fetchColumn();
+        
+        // 회원 1:1 문의 답변대기
+        $stmt = $pdo->query("
+            SELECT COUNT(*) 
+            FROM qna 
+            WHERE status = 'pending' OR answer IS NULL OR answer = ''
+        ");
+        $inquiryStats['member_qna'] = (int)$stmt->fetchColumn();
+        
+        // 판매자 1:1 문의 답변대기
+        $stmt = $pdo->query("
+            SELECT COUNT(*) 
+            FROM seller_inquiries 
+            WHERE status = 'pending'
+        ");
+        $inquiryStats['seller_inquiry'] = (int)$stmt->fetchColumn();
+        
+        // 고객 적립포인트 (전체 포인트 잔액 합계)
+        $stmt = $pdo->query("
+            SELECT COALESCE(SUM(balance), 0) 
+            FROM user_point_accounts
+        ");
+        $totalCustomerPoints = (int)$stmt->fetchColumn();
+        
+    } catch (PDOException $e) {
+        error_log('대시보드 통계 조회 오류: ' . $e->getMessage());
+    }
+}
+
+// 카테고리 라벨
+$categoryLabels = [
+    'mno' => '통신사폰',
+    'mvno' => '알뜰폰',
+    'internet' => '인터넷',
+    'mno_sim' => '통신사단독유심'
+];
 ?>
 
 <style>
     .dashboard-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
         gap: 24px;
-        margin-bottom: 24px;
+        margin-bottom: 32px;
     }
     
     .dashboard-card {
         background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-        border-radius: 12px;
+        border-radius: 16px;
         padding: 24px;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
         border: 1px solid #e2e8f0;
         transition: all 0.3s;
+        cursor: pointer;
+        text-decoration: none;
+        color: inherit;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        min-height: 180px;
     }
     
     .dashboard-card:hover {
         transform: translateY(-4px);
-        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+        text-decoration: none;
+        color: inherit;
+    }
+    
+    .dashboard-card.has-new {
+        background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+        border: 2px solid #ef4444;
+    }
+    
+    .dashboard-card.has-new:hover {
+        background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+        border-color: #dc2626;
     }
     
     .dashboard-card-header {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        margin-bottom: 16px;
+        margin-bottom: 20px;
     }
     
     .dashboard-card-title {
@@ -44,124 +298,6 @@ require_once __DIR__ . '/includes/admin-header.php';
     }
     
     .dashboard-card-icon {
-        width: 40px;
-        height: 40px;
-        border-radius: 10px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 20px;
-    }
-    
-    .dashboard-card-value {
-        font-size: 32px;
-        font-weight: 700;
-        color: #1e293b;
-        margin-bottom: 8px;
-    }
-    
-    .dashboard-card-description {
-        font-size: 13px;
-        color: #94a3b8;
-    }
-    
-    .dashboard-card-link {
-        display: inline-flex;
-        align-items: center;
-        margin-top: 12px;
-        font-size: 13px;
-        color: #3b82f6;
-        text-decoration: none;
-        font-weight: 500;
-        transition: color 0.2s;
-    }
-    
-    .dashboard-card-link:hover {
-        color: #2563eb;
-    }
-    
-    .dashboard-section {
-        margin-bottom: 32px;
-    }
-    
-    .dashboard-section-title {
-        font-size: 20px;
-        font-weight: 700;
-        color: #1e293b;
-        margin-bottom: 20px;
-        padding-bottom: 12px;
-        border-bottom: 2px solid #e2e8f0;
-    }
-    
-    .quick-actions {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 16px;
-    }
-    
-    .quick-action-btn {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 16px 20px;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border: none;
-        border-radius: 10px;
-        text-decoration: none;
-        font-size: 14px;
-        font-weight: 600;
-        transition: all 0.3s;
-        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
-    }
-    
-    .quick-action-btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-    }
-    
-    .quick-action-btn svg {
-        width: 20px;
-        height: 20px;
-        stroke: currentColor;
-        fill: none;
-        stroke-width: 2.5;
-    }
-    
-    .navigation-cards {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-        gap: 20px;
-        margin-bottom: 24px;
-    }
-    
-    .navigation-card {
-        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-        border-radius: 12px;
-        padding: 24px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-        border: 1px solid #e2e8f0;
-        transition: all 0.3s;
-        text-decoration: none;
-        display: block;
-        color: inherit;
-    }
-    
-    .navigation-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
-        text-decoration: none;
-        color: inherit;
-    }
-    
-    .navigation-card-header {
-        display: flex;
-        align-items: center;
-        gap: 16px;
-        margin-bottom: 16px;
-    }
-    
-    .navigation-card-icon {
         width: 48px;
         height: 48px;
         border-radius: 12px;
@@ -171,7 +307,7 @@ require_once __DIR__ . '/includes/admin-header.php';
         flex-shrink: 0;
     }
     
-    .navigation-card-icon svg {
+    .dashboard-card-icon svg {
         width: 24px;
         height: 24px;
         stroke: white;
@@ -179,222 +315,404 @@ require_once __DIR__ . '/includes/admin-header.php';
         stroke-width: 2.5;
     }
     
-    .navigation-card-title {
+    .dashboard-card-value {
+        font-size: 36px;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 8px;
+        line-height: 1;
+    }
+    
+    .dashboard-card-description {
+        font-size: 13px;
+        color: #94a3b8;
+        margin-bottom: 12px;
+    }
+    
+    .dashboard-card-stats {
+        display: flex;
+        gap: 16px;
+        padding-top: 16px;
+        border-top: 1px solid #e2e8f0;
+    }
+    
+    .dashboard-card-stat {
+        flex: 1;
+    }
+    
+    .dashboard-card-stat-label {
+        font-size: 11px;
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 4px;
+    }
+    
+    .dashboard-card-stat-value {
+        font-size: 18px;
+        font-weight: 600;
+        color: #475569;
+    }
+    
+    .dashboard-section {
+        margin-bottom: 48px;
+    }
+    
+    .dashboard-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 24px;
+        margin-bottom: 32px;
+    }
+    
+    .dashboard-row-section {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .dashboard-row-section h2 {
         font-size: 18px;
         font-weight: 700;
         color: #1e293b;
-        margin: 0;
+        margin-bottom: 16px;
     }
     
-    .navigation-card-description {
-        font-size: 14px;
+    .dashboard-row-grid {
+        display: grid;
+        gap: 16px;
+        align-items: stretch;
+    }
+    
+    .dashboard-row-section:first-child .dashboard-row-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    
+    .dashboard-row-section:last-child .dashboard-row-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .dashboard-row-center {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .dashboard-row-center .dashboard-card-wrapper {
+        display: flex;
+        align-items: stretch;
+    }
+    
+    .dashboard-row-center .dashboard-card {
+        flex: 1;
+    }
+    
+    .dashboard-row-center h2 {
+        font-size: 18px;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 16px;
+    }
+    
+    @media (max-width: 1400px) {
+        .dashboard-row {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    .dashboard-section-title {
+        font-size: 24px;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 24px;
+        padding-bottom: 16px;
+        border-bottom: 3px solid #6366f1;
+    }
+    
+    .stats-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 16px;
+        margin-bottom: 16px;
+    }
+    
+    .stat-item {
+        background: #f8fafc;
+        border-radius: 8px;
+        padding: 12px 16px;
+        border-left: 4px solid #6366f1;
+    }
+    
+    .stat-item-label {
+        font-size: 12px;
         color: #64748b;
-        line-height: 1.6;
+        margin-bottom: 4px;
     }
     
-    .navigation-card-arrow {
-        margin-top: 12px;
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        font-size: 13px;
-        color: #3b82f6;
+    .stat-item-value {
+        font-size: 20px;
         font-weight: 600;
+        color: #1e293b;
     }
 </style>
 
 <div class="dashboard-section">
     <h1 class="dashboard-section-title">대시보드</h1>
     
-    <div class="dashboard-grid">
-        <div class="dashboard-card">
-            <div class="dashboard-card-header">
-                <span class="dashboard-card-title">판매자 승인 대기</span>
-                <div class="dashboard-card-icon" style="background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                        <polyline points="22 4 12 14.01 9 11.01"/>
-                    </svg>
-                </div>
+    <!-- 판매자 관리 & 문의 관리 -->
+    <div class="dashboard-row">
+        <!-- 판매자 관리 -->
+        <div class="dashboard-row-section">
+            <h2>판매자 관리</h2>
+            <div class="dashboard-row-grid">
+                <a href="/MVNO/admin/seller-approval.php?tab=pending" class="dashboard-card <?php echo $sellerStats['pending'] > 0 ? 'has-new' : ''; ?>">
+                    <div class="dashboard-card-header">
+                        <span class="dashboard-card-title">신청자</span>
+                        <div class="dashboard-card-icon" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                                <polyline points="22 4 12 14.01 9 11.01"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="dashboard-card-value"><?php echo number_format($sellerStats['pending']); ?></div>
+                    <div class="dashboard-card-description">승인 대기 중인 판매자</div>
+                </a>
+                
+                <a href="/MVNO/admin/seller-approval.php?tab=updated" class="dashboard-card <?php echo $sellerStats['updated'] > 0 ? 'has-new' : ''; ?>">
+                    <div class="dashboard-card-header">
+                        <span class="dashboard-card-title">업데이트</span>
+                        <div class="dashboard-card-icon" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="dashboard-card-value"><?php echo number_format($sellerStats['updated']); ?></div>
+                    <div class="dashboard-card-description">정보 업데이트 대기</div>
+                </a>
+                
+                <a href="/MVNO/admin/seller-approval.php?tab=withdrawal" class="dashboard-card <?php echo $sellerStats['withdrawal'] > 0 ? 'has-new' : ''; ?>">
+                    <div class="dashboard-card-header">
+                        <span class="dashboard-card-title">탈퇴요청</span>
+                        <div class="dashboard-card-icon" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);">
+                            <svg viewBox="0 0 24 24">
+                                <circle cx="12" cy="12" r="10"/>
+                                <line x1="15" y1="9" x2="9" y2="15"/>
+                                <line x1="9" y1="9" x2="15" y2="15"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="dashboard-card-value"><?php echo number_format($sellerStats['withdrawal']); ?></div>
+                    <div class="dashboard-card-description">탈퇴 요청 대기</div>
+                </a>
             </div>
-            <div class="dashboard-card-value">0</div>
-            <div class="dashboard-card-description">승인 대기 중인 판매자 수</div>
         </div>
         
-        <div class="dashboard-card">
-            <div class="dashboard-card-header">
-                <span class="dashboard-card-title">이벤트</span>
-                <div class="dashboard-card-icon" style="background: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%);">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-                    </svg>
-                </div>
+        <!-- 입금신청자 -->
+        <div class="dashboard-row-center">
+            <h2>입금신청자</h2>
+            <div class="dashboard-card-wrapper">
+                <a href="/MVNO/admin/deposit/requests.php" class="dashboard-card <?php echo $adStats['deposit_pending'] > 0 ? 'has-new' : ''; ?>">
+                    <div class="dashboard-card-header">
+                        <span class="dashboard-card-title">입금신청자</span>
+                        <div class="dashboard-card-icon" style="background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);">
+                            <svg viewBox="0 0 24 24">
+                                <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
+                                <line x1="1" y1="10" x2="23" y2="10"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="dashboard-card-value"><?php echo number_format($adStats['deposit_pending']); ?></div>
+                    <div class="dashboard-card-description">입금 확인 대기</div>
+                </a>
             </div>
-            <div class="dashboard-card-value">0</div>
-            <div class="dashboard-card-description">진행 중인 이벤트 수</div>
         </div>
         
-        <div class="dashboard-card">
-            <div class="dashboard-card-header">
-                <span class="dashboard-card-title">공지사항</span>
-                <div class="dashboard-card-icon" style="background: linear-gradient(135deg, #f472b6 0%, #ec4899 100%);">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-                    </svg>
-                </div>
+        <!-- 문의 관리 -->
+        <div class="dashboard-row-section">
+            <h2>문의 관리</h2>
+            <div class="dashboard-row-grid">
+                <a href="/MVNO/admin/content/qna-manage.php?status=pending" class="dashboard-card <?php echo $inquiryStats['member_qna'] > 0 ? 'has-new' : ''; ?>">
+                    <div class="dashboard-card-header">
+                        <span class="dashboard-card-title">회원 1:1 문의</span>
+                        <div class="dashboard-card-icon" style="background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);">
+                            <svg viewBox="0 0 24 24">
+                                <circle cx="12" cy="12" r="10"/>
+                                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                                <line x1="12" y1="17" x2="12.01" y2="17"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="dashboard-card-value"><?php echo number_format($inquiryStats['member_qna']); ?></div>
+                    <div class="dashboard-card-description">답변 대기 중인 문의</div>
+                </a>
+                
+                <a href="/MVNO/admin/content/seller-inquiry-manage.php?status=pending" class="dashboard-card <?php echo $inquiryStats['seller_inquiry'] > 0 ? 'has-new' : ''; ?>">
+                    <div class="dashboard-card-header">
+                        <span class="dashboard-card-title">판매자 1:1 문의</span>
+                        <div class="dashboard-card-icon" style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                                <path d="M13 8H7"/>
+                                <path d="M17 12H7"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="dashboard-card-value"><?php echo number_format($inquiryStats['seller_inquiry']); ?></div>
+                    <div class="dashboard-card-description">답변 대기 중인 문의</div>
+                </a>
             </div>
-            <div class="dashboard-card-value">0</div>
-            <div class="dashboard-card-description">등록된 공지사항 수</div>
-        </div>
-        
-        <div class="dashboard-card">
-            <div class="dashboard-card-header">
-                <span class="dashboard-card-title">Q&A</span>
-                <div class="dashboard-card-icon" style="background: linear-gradient(135deg, #34d399 0%, #10b981 100%);">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-                        <circle cx="12" cy="12" r="10"/>
-                        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
-                        <line x1="12" y1="17" x2="12.01" y2="17"/>
-                    </svg>
-                </div>
-            </div>
-            <div class="dashboard-card-value">0</div>
-            <div class="dashboard-card-description">답변 대기 중인 질문 수</div>
-        </div>
-        
-        <div class="dashboard-card">
-            <div class="dashboard-card-header">
-                <span class="dashboard-card-title">회원 정보</span>
-                <div class="dashboard-card-icon" style="background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                        <circle cx="9" cy="7" r="4"/>
-                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                    </svg>
-                </div>
-            </div>
-            <div class="dashboard-card-value"><?php 
-                require_once __DIR__ . '/../includes/data/auth-functions.php';
-                $usersData = getUsersData();
-                $totalUsers = count($usersData['users'] ?? []);
-                echo number_format($totalUsers);
-            ?></div>
-            <div class="dashboard-card-description">전체 회원 수</div>
         </div>
     </div>
-</div>
-
-<div class="dashboard-section">
-    <h2 class="dashboard-section-title">상품 관리</h2>
-    <div class="navigation-cards">
-        <a href="/MVNO/admin/products/mvno-list.php" class="navigation-card">
-            <div class="navigation-card-header">
-                <div class="navigation-card-icon" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
-                        <line x1="12" y1="18" x2="12.01" y2="18"/>
-                    </svg>
+    
+    <!-- 카테고리별 주문수 -->
+    <div class="dashboard-section">
+        <h2 style="font-size: 18px; font-weight: 700; color: #1e293b; margin-bottom: 16px;">카테고리별 주문수</h2>
+        <div class="dashboard-grid">
+            <?php foreach ($categoryLabels as $category => $label): ?>
+            <a href="/MVNO/admin/orders/<?php echo $category === 'mno_sim' ? 'mno-sim-list.php' : ($category . '-list.php'); ?>" class="dashboard-card">
+                <div class="dashboard-card-header">
+                    <span class="dashboard-card-title"><?php echo htmlspecialchars($label); ?></span>
+                    <div class="dashboard-card-icon" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);">
+                        <svg viewBox="0 0 24 24">
+                            <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
+                            <line x1="12" y1="18" x2="12.01" y2="18"/>
+                        </svg>
+                    </div>
                 </div>
-                <h3 class="navigation-card-title">알뜰폰 관리</h3>
-            </div>
-            <p class="navigation-card-description">알뜰폰 상품을 등록, 수정, 삭제하고 관리할 수 있습니다.</p>
-            <div class="navigation-card-arrow">
-                관리하기 →
-            </div>
-        </a>
-        
-        <a href="/MVNO/admin/products/mno-list.php" class="navigation-card">
-            <div class="navigation-card-header">
-                <div class="navigation-card-icon" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
-                    </svg>
+                <div class="dashboard-card-stats">
+                    <div class="dashboard-card-stat">
+                        <div class="dashboard-card-stat-label">오늘</div>
+                        <div class="dashboard-card-stat-value"><?php echo number_format($orderStats[$category]['today']); ?></div>
+                    </div>
+                    <div class="dashboard-card-stat">
+                        <div class="dashboard-card-stat-label">일주일</div>
+                        <div class="dashboard-card-stat-value"><?php echo number_format($orderStats[$category]['week']); ?></div>
+                    </div>
+                    <div class="dashboard-card-stat">
+                        <div class="dashboard-card-stat-label">한달</div>
+                        <div class="dashboard-card-stat-value"><?php echo number_format($orderStats[$category]['month']); ?></div>
+                    </div>
                 </div>
-                <h3 class="navigation-card-title">통신사폰 관리</h3>
-            </div>
-            <p class="navigation-card-description">통신사폰 상품을 등록, 수정, 삭제하고 관리할 수 있습니다.</p>
-            <div class="navigation-card-arrow">
-                관리하기 →
-            </div>
-        </a>
-        
-        <a href="/MVNO/admin/products/internet-list.php" class="navigation-card">
-            <div class="navigation-card-header">
-                <div class="navigation-card-icon" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10"/>
-                        <line x1="2" y1="12" x2="22" y2="12"/>
-                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-                    </svg>
-                </div>
-                <h3 class="navigation-card-title">인터넷 관리</h3>
-            </div>
-            <p class="navigation-card-description">인터넷 상품을 등록, 수정, 삭제하고 관리할 수 있습니다.</p>
-            <div class="navigation-card-arrow">
-                관리하기 →
-            </div>
-        </a>
+            </a>
+            <?php endforeach; ?>
+        </div>
     </div>
-</div>
-
-<div class="dashboard-section">
-    <h2 class="dashboard-section-title">빠른 작업</h2>
-    <div class="quick-actions">
-        <a href="/MVNO/admin/seller-approval.php" class="quick-action-btn">
-            <svg viewBox="0 0 24 24">
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                <polyline points="22 4 12 14.01 9 11.01"/>
-            </svg>
-            판매자 승인
-        </a>
-        <a href="/MVNO/admin/event-manage.php" class="quick-action-btn">
-            <svg viewBox="0 0 24 24">
-                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-            </svg>
-            이벤트 관리
-        </a>
-        <a href="/MVNO/admin/notice-manage.php" class="quick-action-btn">
-            <svg viewBox="0 0 24 24">
-                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-            </svg>
-            공지사항 관리
-        </a>
-        <a href="/MVNO/admin/qna-manage.php" class="quick-action-btn">
-            <svg viewBox="0 0 24 24">
-                <circle cx="12" cy="12" r="10"/>
-                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
-                <line x1="12" y1="17" x2="12.01" y2="17"/>
-            </svg>
-            Q&A 관리
-        </a>
-        <a href="/MVNO/admin/monitor.php" class="quick-action-btn">
-            <svg viewBox="0 0 24 24">
-                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
-                <line x1="8" y1="21" x2="16" y2="21"/>
-                <line x1="12" y1="17" x2="12" y2="21"/>
-            </svg>
-            모니터링
-        </a>
-        <a href="/MVNO/admin/analytics/dashboard.php" class="quick-action-btn">
-            <svg viewBox="0 0 24 24">
-                <line x1="18" y1="20" x2="18" y2="10"/>
-                <line x1="12" y1="20" x2="12" y2="4"/>
-                <line x1="6" y1="20" x2="6" y2="14"/>
-            </svg>
-            통계 대시보드
-        </a>
-        <a href="/MVNO/admin/users/member-list.php" class="quick-action-btn">
-            <svg viewBox="0 0 24 24">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                <circle cx="9" cy="7" r="4"/>
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-            </svg>
-            회원 관리
-        </a>
+    
+    <!-- 카테고리별 상품등록수 -->
+    <div class="dashboard-section">
+        <h2 style="font-size: 18px; font-weight: 700; color: #1e293b; margin-bottom: 16px;">카테고리별 상품등록수</h2>
+        <div class="dashboard-grid">
+            <?php foreach ($categoryLabels as $category => $label): ?>
+            <a href="/MVNO/admin/products/<?php echo $category === 'mno_sim' ? 'mno-sim-list.php' : ($category . '-list.php'); ?>" class="dashboard-card">
+                <div class="dashboard-card-header">
+                    <span class="dashboard-card-title"><?php echo htmlspecialchars($label); ?></span>
+                    <div class="dashboard-card-icon" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);">
+                        <svg viewBox="0 0 24 24">
+                            <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
+                            <line x1="12" y1="18" x2="12.01" y2="18"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="dashboard-card-stats">
+                    <div class="dashboard-card-stat">
+                        <div class="dashboard-card-stat-label">오늘</div>
+                        <div class="dashboard-card-stat-value"><?php echo number_format($productStats[$category]['today']); ?></div>
+                    </div>
+                    <div class="dashboard-card-stat">
+                        <div class="dashboard-card-stat-label">일주일</div>
+                        <div class="dashboard-card-stat-value"><?php echo number_format($productStats[$category]['week']); ?></div>
+                    </div>
+                    <div class="dashboard-card-stat">
+                        <div class="dashboard-card-stat-label">한달</div>
+                        <div class="dashboard-card-stat-value"><?php echo number_format($productStats[$category]['month']); ?></div>
+                    </div>
+                </div>
+            </a>
+            <?php endforeach; ?>
+        </div>
+    </div>
+    
+    <!-- 광고 관리 -->
+    <div class="dashboard-section">
+        <h2 style="font-size: 18px; font-weight: 700; color: #1e293b; margin-bottom: 16px;">광고 관리</h2>
+        <div class="dashboard-grid">
+            <a href="/MVNO/admin/advertisement/list.php" class="dashboard-card">
+                <div class="dashboard-card-header">
+                    <span class="dashboard-card-title">오늘 광고신청</span>
+                    <div class="dashboard-card-icon" style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M9 11l3 3L22 4"/>
+                            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="dashboard-card-value"><?php echo number_format($adStats['today_count']); ?></div>
+                <div class="dashboard-card-description">오늘 신청한 광고 수</div>
+            </a>
+            
+            <a href="/MVNO/admin/advertisement/list.php" class="dashboard-card">
+                <div class="dashboard-card-header">
+                    <span class="dashboard-card-title">오늘 총금액</span>
+                    <div class="dashboard-card-icon" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
+                        <svg viewBox="0 0 24 24">
+                            <line x1="12" y1="2" x2="12" y2="22"/>
+                            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="dashboard-card-value"><?php echo number_format($adStats['today_amount']); ?>원</div>
+                <div class="dashboard-card-description">오늘 신청한 광고 총액</div>
+            </a>
+            
+            <a href="/MVNO/admin/advertisement/list.php" class="dashboard-card">
+                <div class="dashboard-card-header">
+                    <span class="dashboard-card-title">일주일간 총금액</span>
+                    <div class="dashboard-card-icon" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+                        <svg viewBox="0 0 24 24">
+                            <line x1="12" y1="2" x2="12" y2="22"/>
+                            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="dashboard-card-value"><?php echo number_format($adStats['week_amount']); ?>원</div>
+                <div class="dashboard-card-description">지난 7일간 광고 총액</div>
+            </a>
+            
+            <a href="/MVNO/admin/advertisement/list.php" class="dashboard-card">
+                <div class="dashboard-card-header">
+                    <span class="dashboard-card-title">한달간 총금액</span>
+                    <div class="dashboard-card-icon" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);">
+                        <svg viewBox="0 0 24 24">
+                            <line x1="12" y1="2" x2="12" y2="22"/>
+                            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="dashboard-card-value"><?php echo number_format($adStats['month_amount']); ?>원</div>
+                <div class="dashboard-card-description">지난 30일간 광고 총액</div>
+            </a>
+        </div>
+    </div>
+    
+    <!-- 고객 적립포인트 -->
+    <div class="dashboard-section">
+        <h2 style="font-size: 18px; font-weight: 700; color: #1e293b; margin-bottom: 16px;">고객 적립포인트</h2>
+        <div class="dashboard-grid">
+            <a href="/MVNO/admin/settings/customer-point-history.php" class="dashboard-card">
+                <div class="dashboard-card-header">
+                    <span class="dashboard-card-title">총 적립포인트</span>
+                    <div class="dashboard-card-icon" style="background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);">
+                        <svg viewBox="0 0 24 24">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M12 6v6l4 2"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="dashboard-card-value"><?php echo number_format($totalCustomerPoints); ?>P</div>
+                <div class="dashboard-card-description">전체 고객 포인트 합계</div>
+            </a>
+        </div>
     </div>
 </div>
 

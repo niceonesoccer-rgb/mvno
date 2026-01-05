@@ -1,0 +1,148 @@
+<style>
+.privacy-marketing-container {
+    max-width: 900px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 12px;
+    padding: 40px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.privacy-marketing-header {
+    text-align: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #6366f1;
+}
+
+.privacy-marketing-header h1 {
+    font-size: 24px;
+    color: #1f2937;
+    margin-bottom: 12px;
+    font-weight: 700;
+}
+
+.privacy-marketing-header .required-badge,
+.privacy-marketing-header .optional-badge {
+    display: inline-block;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 6px;
+    margin-bottom: 16px;
+}
+
+.privacy-marketing-header .required-badge {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.privacy-marketing-header .optional-badge {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.privacy-marketing-header p {
+    font-size: 15px;
+    color: #4b5563;
+    line-height: 1.7;
+}
+
+.privacy-marketing-info-section {
+    margin-bottom: 30px;
+}
+
+.privacy-marketing-info-card {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 24px;
+    margin-bottom: 16px;
+    transition: box-shadow 0.2s;
+}
+
+.privacy-marketing-info-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.privacy-marketing-info-card-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.privacy-marketing-info-card-title::before {
+    content: "✓";
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    background: #6366f1;
+    color: white;
+    border-radius: 50%;
+    font-size: 14px;
+    font-weight: bold;
+    flex-shrink: 0;
+}
+
+.privacy-marketing-info-card.email .privacy-marketing-info-card-title::before {
+    content: "✉";
+}
+
+.privacy-marketing-info-card.sms .privacy-marketing-info-card-title::before {
+    content: "💬";
+}
+
+.privacy-marketing-info-card.push .privacy-marketing-info-card-title::before {
+    content: "🔔";
+}
+
+@media (max-width: 768px) {
+    .privacy-marketing-container {
+        padding: 24px;
+    }
+    
+    .privacy-marketing-header h1 {
+        font-size: 20px;
+    }
+    
+    .privacy-marketing-info-card {
+        padding: 20px;
+    }
+}
+</style>
+
+<div class="privacy-marketing-container">
+    <div class="privacy-marketing-header">
+        <h1>광고성 정보 수신동의</h1>
+        <span class="optional-badge">선택</span>
+        <p>
+            이메일, SMS·SNS, 앱 푸시를 통해 서비스 및 제휴사의 이벤트·프로모션, 할인·쿠폰, 맞춤형 혜택, 중요 공지 및 서비스 업데이트, 정기 뉴스레터 등 유용한 정보를 받아보실 수 있습니다.
+        </p>
+    </div>
+    
+    <div class="privacy-marketing-info-section">
+        <div class="privacy-marketing-info-card email">
+            <div class="privacy-marketing-info-card-title">
+                이메일 수신동의
+            </div>
+        </div>
+        
+        <div class="privacy-marketing-info-card sms">
+            <div class="privacy-marketing-info-card-title">
+                SMS, SNS 수신동의
+            </div>
+        </div>
+        
+        <div class="privacy-marketing-info-card push">
+            <div class="privacy-marketing-info-card-title">
+                앱 푸시 수신동의
+            </div>
+        </div>
+    </div>
+</div>

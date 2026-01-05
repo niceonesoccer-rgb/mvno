@@ -1,0 +1,135 @@
+<style>
+.privacy-service-notice-container {
+    max-width: 900px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 12px;
+    padding: 40px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.privacy-service-notice-header {
+    text-align: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #6366f1;
+}
+
+.privacy-service-notice-header h1 {
+    font-size: 24px;
+    color: #1f2937;
+    margin-bottom: 12px;
+    font-weight: 700;
+}
+
+.privacy-service-notice-header .required-badge,
+.privacy-service-notice-header .optional-badge {
+    display: inline-block;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 6px;
+    margin-bottom: 16px;
+}
+
+.privacy-service-notice-header .required-badge {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.privacy-service-notice-header .optional-badge {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.privacy-service-notice-header p {
+    font-size: 15px;
+    color: #4b5563;
+    line-height: 1.7;
+}
+
+.privacy-service-notice-info-section {
+    margin-bottom: 30px;
+}
+
+.privacy-service-notice-info-card {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 24px;
+    margin-bottom: 16px;
+    transition: box-shadow 0.2s;
+}
+
+.privacy-service-notice-info-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.privacy-service-notice-info-card-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.privacy-service-notice-info-card-title::before {
+    content: "📢";
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background: #6366f1;
+    color: white;
+    border-radius: 50%;
+    font-size: 16px;
+    flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+    .privacy-service-notice-container {
+        padding: 24px;
+    }
+    
+    .privacy-service-notice-header h1 {
+        font-size: 20px;
+    }
+    
+    .privacy-service-notice-info-card {
+        padding: 20px;
+    }
+}
+</style>
+
+<div class="privacy-service-notice-container">
+    <div class="privacy-service-notice-header">
+        <h1>서비스 이용 및 혜택 안내 알림 동의</h1>
+        <span class="required-badge">필수</span>
+        <p>
+            서비스 이용에 필요한 필수 알림입니다. 알림톡으로 발송됩니다.
+        </p>
+    </div>
+    
+    <div class="privacy-service-notice-info-section">
+        <div class="privacy-service-notice-info-card">
+            <div class="privacy-service-notice-info-card-title">
+                요금제 유지기간 만료 및 변경 안내
+            </div>
+        </div>
+        
+        <div class="privacy-service-notice-info-card">
+            <div class="privacy-service-notice-info-card-title">
+                부가서비스 종료 및 이용 조건 변경 안내
+            </div>
+        </div>
+        
+        <div class="privacy-service-notice-info-card">
+            <div class="privacy-service-notice-info-card-title">
+                가입 고객 대상 혜택·이벤트 안내
+            </div>
+        </div>
+    </div>
+</div>

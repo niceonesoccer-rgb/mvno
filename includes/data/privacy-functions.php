@@ -45,7 +45,7 @@ function getPrivacySettings() {
     
     $settings = getAppSettings('privacy', $defaults);
     
-    // DB에서 직접 읽어서 isVisible 값 명시적으로 적용
+    // DB에서 직접 읽어서 isRequired와 isVisible 값 명시적으로 적용
     // array_replace_recursive는 기본값을 우선하므로, DB 값을 직접 확인
     $pdo = getDBConnection();
     if ($pdo) {
@@ -58,8 +58,15 @@ function getPrivacySettings() {
                 $decoded = is_string($val) ? json_decode($val, true) : $val;
                 if (is_array($decoded)) {
                     foreach ($decoded as $key => $dbValue) {
-                        if (is_array($dbValue) && array_key_exists('isVisible', $dbValue)) {
-                            $settings[$key]['isVisible'] = (bool)$dbValue['isVisible'];
+                        if (is_array($dbValue)) {
+                            // isRequired 값이 DB에 있으면 덮어쓰기
+                            if (array_key_exists('isRequired', $dbValue)) {
+                                $settings[$key]['isRequired'] = (bool)$dbValue['isRequired'];
+                            }
+                            // isVisible 값이 DB에 있으면 덮어쓰기
+                            if (array_key_exists('isVisible', $dbValue)) {
+                                $settings[$key]['isVisible'] = (bool)$dbValue['isVisible'];
+                            }
                         }
                     }
                 }

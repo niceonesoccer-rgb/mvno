@@ -2566,6 +2566,31 @@ function openMnoSimPrivacyModal(type) {
     if (typeof mnoSimPrivacyContents !== 'undefined' && mnoSimPrivacyContents[type]) {
         modalTitle.textContent = mnoSimPrivacyContents[type].title || '';
         modalBody.innerHTML = mnoSimPrivacyContents[type].content || '';
+        
+        // 모달 내 배지 제거 (필수/선택 표시 제거)
+        if (type === 'serviceNotice' || type === 'marketing') {
+            // serviceNotice의 경우
+            if (type === 'serviceNotice') {
+                const header = modalBody.querySelector('.privacy-service-notice-header');
+                if (header) {
+                    const badge = header.querySelector('.required-badge, .optional-badge');
+                    if (badge) {
+                        badge.remove();
+                    }
+                }
+            }
+            
+            // marketing의 경우
+            if (type === 'marketing') {
+                const header = modalBody.querySelector('.privacy-marketing-header');
+                if (header) {
+                    const badge = header.querySelector('.required-badge, .optional-badge');
+                    if (badge) {
+                        badge.remove();
+                    }
+                }
+            }
+        }
     } else {
         return; // 데이터가 없으면 모달을 열지 않음
     }
@@ -2957,6 +2982,31 @@ window.openMnoSimPrivacyModal = function(type) {
     
     mnoSimPrivacyModalTitle.textContent = mnoSimPrivacyContents[type].title;
     mnoSimPrivacyModalBody.innerHTML = mnoSimPrivacyContents[type].content;
+    
+    // 모달 내 배지 제거 (필수/선택 표시 제거)
+    if (type === 'serviceNotice' || type === 'marketing') {
+        // serviceNotice의 경우
+        if (type === 'serviceNotice') {
+            const header = mnoSimPrivacyModalBody.querySelector('.privacy-service-notice-header');
+            if (header) {
+                const badge = header.querySelector('.required-badge, .optional-badge');
+                if (badge) {
+                    badge.remove();
+                }
+            }
+        }
+        
+        // marketing의 경우
+        if (type === 'marketing') {
+            const header = mnoSimPrivacyModalBody.querySelector('.privacy-marketing-header');
+            if (header) {
+                const badge = header.querySelector('.required-badge, .optional-badge');
+                if (badge) {
+                    badge.remove();
+                }
+            }
+        }
+    }
     
     mnoSimPrivacyModal.style.display = 'flex';
     mnoSimPrivacyModal.classList.add('privacy-content-modal-active');
