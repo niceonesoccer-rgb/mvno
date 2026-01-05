@@ -77,7 +77,7 @@ include '../includes/header.php';
                         <path d="M7 12H17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                         <path d="M7 16H12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                     </svg>
-                    <p style="font-size: 16px; margin: 0;">포인트 사용 내역이 없습니다.</p>
+                    <p style="font-size: 16px; margin: 0;">포인트 적립 내역이 없습니다.</p>
                 </div>
             <?php else: 
                 // 이미 최신순으로 정렬되어 있음 (getUserPoint에서 ORDER BY created_at DESC)
@@ -87,16 +87,23 @@ include '../includes/header.php';
                 $display_items = array_slice($sorted_history, 0, $display_count);
                 $remaining_count = $total_count - $display_count;
             ?>
-                <ul style="list-style: none; padding: 0; margin: 0;" id="pointHistoryList">
+                <ul style="list-style: none; padding: 0; margin: 0;" id="pointHistoryList" data-total-count="<?php echo $total_count; ?>">
                     <?php foreach ($display_items as $item): 
-                        $is_deduction = $item['type'] !== 'add';
+                        // 적립 타입: 'add', 'view_product'
+                        $is_deduction = !in_array($item['type'], ['add', 'view_product']);
                         $type_labels = [
                             'mvno' => '알뜰폰 신청',
                             'mno' => '통신사폰 신청',
                             'internet' => '인터넷 신청',
-                            'add' => '포인트 충전'
+                            'add' => '포인트 충전',
+                            'view_product' => '상품 조회 포인트'
                         ];
-                        $type_label = $type_labels[$item['type']] ?? '포인트 사용';
+                        // description이 '회원가입 축하 포인트'인 경우 타입 라벨 변경
+                        if ($item['type'] === 'add' && ($item['description'] ?? '') === '회원가입 축하 포인트') {
+                            $type_label = '회원가입 축하 포인트';
+                        } else {
+                            $type_label = $type_labels[$item['type']] ?? '포인트 적립';
+                        }
                     ?>
                         <li style="border-bottom: 1px solid #e5e7eb;">
                             <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0;">
@@ -108,7 +115,7 @@ include '../includes/header.php';
                                             </svg>
                                         <?php else: ?>
                                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                <path d="M12 4V20M4 12H20" stroke="#10b981" stroke-width="2" stroke-linecap="round"/>
+                                                <path d="M12 4V20M4 12H20" stroke="#3b82f6" stroke-width="2" stroke-linecap="round"/>
                                             </svg>
                                         <?php endif; ?>
                                         <span style="font-size: 15px; font-weight: 600; color: #1f2937;">
@@ -118,14 +125,14 @@ include '../includes/header.php';
                                     <div style="font-size: 13px; color: #6b7280;">
                                         <?php echo htmlspecialchars($item['date']); ?>
                                     </div>
-                                    <?php if (!empty($item['description'])): ?>
+                                    <?php if (!empty($item['description']) && $item['description'] !== $type_label): ?>
                                         <div style="font-size: 13px; color: #9ca3af; margin-top: 4px;">
                                             <?php echo htmlspecialchars($item['description']); ?>
                                         </div>
                                     <?php endif; ?>
                                 </div>
                                 <div style="text-align: right;">
-                                    <div style="font-size: 16px; font-weight: 700; color: <?php echo $is_deduction ? '#ef4444' : '#10b981'; ?>; margin-bottom: 4px;">
+                                    <div style="font-size: 16px; font-weight: 700; color: <?php echo $is_deduction ? '#ef4444' : '#3b82f6'; ?>; margin-bottom: 4px;">
                                         <?php echo $is_deduction ? '-' : '+'; ?><?php echo number_format($item['amount']); ?>원
                                     </div>
                                     <div style="font-size: 12px; color: #9ca3af;">
@@ -138,8 +145,8 @@ include '../includes/header.php';
                 </ul>
                 
                 <?php if ($remaining_count > 0): ?>
-                    <div style="margin-top: 16px;">
-                        <button type="button" id="showMorePointHistory" style="width: 100%; padding: 12px; background-color: #6366f1; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;">
+                    <div style="margin-top: 16px;" id="showMorePointHistoryContainer">
+                        <button type="button" id="showMorePointHistory" data-current-count="<?php echo $display_count; ?>" style="width: 100%; padding: 12px; background-color: #6366f1; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;">
                             더보기 (<?php echo $remaining_count; ?>개)
                         </button>
                     </div>
@@ -150,8 +157,8 @@ include '../includes/header.php';
 </main>
 
 <!-- 포인트 내역 모달 -->
-<div id="pointHistoryModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: white; z-index: 1000; overflow: hidden; width: 100%; height: 100%;">
-    <div style="position: relative; width: 100%; height: 100%; display: flex; flex-direction: column; background: white; margin: 0; padding: 0;">
+<div id="pointHistoryModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.5); z-index: 1000; overflow: hidden; padding: 20px;">
+    <div style="max-width: 600px; margin: 40px auto; background: white; border-radius: 12px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2); position: relative; display: flex; flex-direction: column; max-height: calc(100vh - 80px);">
         <!-- 모달 헤더 -->
         <div style="flex-shrink: 0; background: white; padding: 20px; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: space-between;">
             <h3 style="font-size: 20px; font-weight: bold; margin: 0;">포인트 내역 전체</h3>
@@ -163,7 +170,7 @@ include '../includes/header.php';
         </div>
         
         <!-- 모달 내용 (스크롤 가능 영역) -->
-        <div style="flex: 1; overflow-y: auto; padding: 20px;">
+        <div style="flex: 1; overflow-y: auto; padding: 20px; max-height: calc(100vh - 200px);">
             <ul style="list-style: none; padding: 0; margin: 0;" id="pointHistoryModalList">
                 <?php if (!empty($sorted_history)): 
                     // 모달에서도 처음 10개만 표시
@@ -172,14 +179,21 @@ include '../includes/header.php';
                     $modal_remaining_count = count($sorted_history) - $modal_display_count;
                 ?>
                     <?php foreach ($modal_display_items as $item): 
-                        $is_deduction = $item['type'] !== 'add';
+                        // 적립 타입: 'add', 'view_product'
+                        $is_deduction = !in_array($item['type'], ['add', 'view_product']);
                         $type_labels = [
                             'mvno' => '알뜰폰 신청',
                             'mno' => '통신사폰 신청',
                             'internet' => '인터넷 신청',
-                            'add' => '포인트 충전'
+                            'add' => '포인트 충전',
+                            'view_product' => '상품 조회 포인트'
                         ];
-                        $type_label = $type_labels[$item['type']] ?? '포인트 사용';
+                        // description이 '회원가입 축하 포인트'인 경우 타입 라벨 변경
+                        if ($item['type'] === 'add' && ($item['description'] ?? '') === '회원가입 축하 포인트') {
+                            $type_label = '회원가입 축하 포인트';
+                        } else {
+                            $type_label = $type_labels[$item['type']] ?? '포인트 적립';
+                        }
                     ?>
                         <li style="border-bottom: 1px solid #e5e7eb;" class="modal-history-item">
                             <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0;">
@@ -191,7 +205,7 @@ include '../includes/header.php';
                                             </svg>
                                         <?php else: ?>
                                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                <path d="M12 4V20M4 12H20" stroke="#10b981" stroke-width="2" stroke-linecap="round"/>
+                                                <path d="M12 4V20M4 12H20" stroke="#3b82f6" stroke-width="2" stroke-linecap="round"/>
                                             </svg>
                                         <?php endif; ?>
                                         <span style="font-size: 15px; font-weight: 600; color: #1f2937;">
@@ -201,14 +215,14 @@ include '../includes/header.php';
                                     <div style="font-size: 13px; color: #6b7280;">
                                         <?php echo htmlspecialchars($item['date']); ?>
                                     </div>
-                                    <?php if (!empty($item['description'])): ?>
+                                    <?php if (!empty($item['description']) && $item['description'] !== $type_label): ?>
                                         <div style="font-size: 13px; color: #9ca3af; margin-top: 4px;">
                                             <?php echo htmlspecialchars($item['description']); ?>
                                         </div>
                                     <?php endif; ?>
                                 </div>
                                 <div style="text-align: right;">
-                                    <div style="font-size: 16px; font-weight: 700; color: <?php echo $is_deduction ? '#ef4444' : '#10b981'; ?>; margin-bottom: 4px;">
+                                    <div style="font-size: 16px; font-weight: 700; color: <?php echo $is_deduction ? '#ef4444' : '#3b82f6'; ?>; margin-bottom: 4px;">
                                         <?php echo $is_deduction ? '-' : '+'; ?><?php echo number_format($item['amount']); ?>원
                                     </div>
                                     <div style="font-size: 12px; color: #9ca3af;">
@@ -237,7 +251,6 @@ include '../includes/header.php';
 // 포인트 내역 데이터를 JavaScript로 전달
 const pointHistoryData = <?php echo json_encode($sorted_history ?? []); ?>;
 
-<script>
 document.addEventListener('DOMContentLoaded', function() {
     const showMoreBtn = document.getElementById('showMorePointHistory');
     const modal = document.getElementById('pointHistoryModal');
@@ -253,13 +266,21 @@ document.addEventListener('DOMContentLoaded', function() {
         'mvno': '알뜰폰 신청',
         'mno': '통신사폰 신청',
         'internet': '인터넷 신청',
-        'add': '포인트 충전'
+        'add': '포인트 충전',
+        'view_product': '상품 조회 포인트'
     };
     
     // 포인트 내역 아이템 생성 함수
     function createHistoryItem(item) {
-        const isDeduction = item.type !== 'add';
-        const typeLabel = typeLabels[item.type] || '포인트 사용';
+        // 적립 타입: 'add', 'view_product'
+        const isDeduction = !['add', 'view_product'].includes(item.type);
+        // description이 '회원가입 축하 포인트'인 경우 타입 라벨 변경
+        let typeLabel;
+        if (item.type === 'add' && item.description === '회원가입 축하 포인트') {
+            typeLabel = '회원가입 축하 포인트';
+        } else {
+            typeLabel = typeLabels[item.type] || '포인트 적립';
+        }
         
         return `
             <li style="border-bottom: 1px solid #e5e7eb;" class="modal-history-item">
@@ -268,7 +289,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
                             ${isDeduction ? 
                                 '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M20 12H4" stroke="#ef4444" stroke-width="2" stroke-linecap="round"/></svg>' :
-                                '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 4V20M4 12H20" stroke="#10b981" stroke-width="2" stroke-linecap="round"/></svg>'
+                                '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 4V20M4 12H20" stroke="#3b82f6" stroke-width="2" stroke-linecap="round"/></svg>'
                             }
                             <span style="font-size: 15px; font-weight: 600; color: #1f2937;">
                                 ${typeLabel}
@@ -277,14 +298,14 @@ document.addEventListener('DOMContentLoaded', function() {
                         <div style="font-size: 13px; color: #6b7280;">
                             ${item.date}
                         </div>
-                        ${item.description ? `
+                        ${item.description && item.description !== typeLabel ? `
                             <div style="font-size: 13px; color: #9ca3af; margin-top: 4px;">
                                 ${item.description}
                             </div>
                         ` : ''}
                     </div>
                     <div style="text-align: right;">
-                        <div style="font-size: 16px; font-weight: 700; color: ${isDeduction ? '#ef4444' : '#10b981'}; margin-bottom: 4px;">
+                        <div style="font-size: 16px; font-weight: 700; color: ${isDeduction ? '#ef4444' : '#3b82f6'}; margin-bottom: 4px;">
                             ${isDeduction ? '-' : '+'}${parseInt(item.amount).toLocaleString()}원
                         </div>
                         <div style="font-size: 12px; color: #9ca3af;">
@@ -326,10 +347,16 @@ document.addEventListener('DOMContentLoaded', function() {
     if (showMoreBtn) {
         showMoreBtn.addEventListener('click', function() {
             if (modal) {
-                modal.style.display = 'flex';
+                modal.style.display = 'block';
                 document.body.style.overflow = 'hidden';
-                // 모달 열 때 초기화
-                currentDisplayCount = 10;
+                document.documentElement.style.overflow = 'hidden';
+                // 모달 열 때 초기화 (모달 내부에 이미 표시된 항목 수로 초기화)
+                if (showMoreModalBtn) {
+                    const initialCount = parseInt(showMoreModalBtn.getAttribute('data-current-count')) || 10;
+                    currentDisplayCount = initialCount;
+                } else {
+                    currentDisplayCount = 10;
+                }
             }
         });
     }
@@ -339,6 +366,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (modal) {
             modal.style.display = 'none';
             document.body.style.overflow = '';
+            document.documentElement.style.overflow = '';
         }
     }
     
@@ -348,10 +376,19 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // ESC 키로 모달 닫기
     document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' && modal && modal.style.display === 'flex') {
+        if (e.key === 'Escape' && modal && modal.style.display === 'block') {
             closeModal();
         }
     });
+    
+    // 모달 배경 클릭 시 닫기
+    if (modal) {
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                closeModal();
+            }
+        });
+    }
 });
 </script>
 

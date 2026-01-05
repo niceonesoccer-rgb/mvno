@@ -289,11 +289,95 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['terms_version_action'
     }
 }
 
+/**
+ * 사이트 로고/파비콘 업로드 함수
+ */
+function uploadSiteFile($file, $type = 'logo') {
+    $allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/x-icon', 'image/vnd.microsoft.icon'];
+    $maxSize = 5 * 1024 * 1024; // 5MB
+    
+    if (!in_array($file['type'], $allowedTypes)) {
+        return false;
+    }
+    
+    if ($file['size'] > $maxSize) {
+        return false;
+    }
+    
+    $uploadDir = __DIR__ . '/../../images/site/';
+    if (!is_dir($uploadDir)) {
+        mkdir($uploadDir, 0755, true);
+    }
+    
+    $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+    // 파비콘은 favicon.ico로 고정, 로고는 logo.확장자로 저장
+    if ($type === 'favicon' && $extension !== 'ico') {
+        // ico가 아니면 원본 확장자 사용
+        $filename = 'favicon.' . $extension;
+    } elseif ($type === 'favicon') {
+        $filename = 'favicon.ico';
+    } else {
+        $filename = 'logo.' . $extension;
+    }
+    
+    $filepath = $uploadDir . $filename;
+    
+    if (move_uploaded_file($file['tmp_name'], $filepath)) {
+        return '/MVNO/images/site/' . $filename;
+    }
+    
+    return false;
+}
+
 // 저장
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_settings'])) {
     $settings['site']['name_ko'] = trim($_POST['site_name_ko'] ?? '');
     $settings['site']['name_en'] = trim($_POST['site_name_en'] ?? '');
     // tagline 필드 제거됨 (카테고리별 태그라인으로 이동)
+    
+    // 로고 업로드 처리 (파일이 선택된 경우에만)
+    if (isset($_FILES['site_logo']) && $_FILES['site_logo']['error'] === UPLOAD_ERR_OK) {
+        // 기존 로고 파일 삭제
+        if (!empty($settings['site']['logo'])) {
+            $oldLogoPath = $settings['site']['logo'];
+            $oldLogoFile = __DIR__ . '/../../' . ltrim(str_replace('/MVNO/', '', $oldLogoPath), '/');
+            if (file_exists($oldLogoFile) && strpos(realpath($oldLogoFile), realpath(__DIR__ . '/../../images/site/')) === 0) {
+                @unlink($oldLogoFile);
+            }
+        }
+        
+        $logoPath = uploadSiteFile($_FILES['site_logo'], 'logo');
+        if ($logoPath) {
+            $settings['site']['logo'] = $logoPath;
+        }
+    } elseif (isset($settings['site']['logo'])) {
+        // 파일이 선택되지 않았으면 기존 값 유지
+        $settings['site']['logo'] = $settings['site']['logo'];
+    } else {
+        $settings['site']['logo'] = '';
+    }
+    
+    // 파비콘 업로드 처리 (파일이 선택된 경우에만)
+    if (isset($_FILES['site_favicon']) && $_FILES['site_favicon']['error'] === UPLOAD_ERR_OK) {
+        // 기존 파비콘 파일 삭제
+        if (!empty($settings['site']['favicon'])) {
+            $oldFaviconPath = $settings['site']['favicon'];
+            $oldFaviconFile = __DIR__ . '/../../' . ltrim(str_replace('/MVNO/', '', $oldFaviconPath), '/');
+            if (file_exists($oldFaviconFile) && strpos(realpath($oldFaviconFile), realpath(__DIR__ . '/../../images/site/')) === 0) {
+                @unlink($oldFaviconFile);
+            }
+        }
+        
+        $faviconPath = uploadSiteFile($_FILES['site_favicon'], 'favicon');
+        if ($faviconPath) {
+            $settings['site']['favicon'] = $faviconPath;
+        }
+    } elseif (isset($settings['site']['favicon'])) {
+        // 파일이 선택되지 않았으면 기존 값 유지
+        $settings['site']['favicon'] = $settings['site']['favicon'];
+    } else {
+        $settings['site']['favicon'] = '';
+    }
 
     $settings['footer']['company_name'] = trim($_POST['footer_company_name'] ?? '');
     $settings['footer']['business_number'] = trim($_POST['footer_business_number'] ?? '');
@@ -509,7 +593,7 @@ include '../includes/admin-header.php';
         <div class="alert alert-error"><?php echo htmlspecialchars($error); ?></div>
     <?php endif; ?>
 
-    <form method="POST">
+    <form method="POST" enctype="multipart/form-data">
         <input type="hidden" name="save_settings" value="1">
 
         <div class="tabs">
@@ -533,6 +617,31 @@ include '../includes/admin-header.php';
                     <label for="site_name_en">사이트명(영문)</label>
                     <input type="text" id="site_name_en" name="site_name_en" value="<?php echo htmlspecialchars($settings['site']['name_en'] ?? ''); ?>" required>
                     <div class="help">예: usimking</div>
+                </div>
+                <div class="form-group">
+                    <label for="site_logo">사이트 로고</label>
+                    <?php if (!empty($settings['site']['logo'])): ?>
+                        <div style="margin-bottom: 12px;">
+                            <p style="margin-bottom: 8px; color: #6b7280; font-size: 14px;">현재 로고:</p>
+                            <img src="<?php echo htmlspecialchars($settings['site']['logo']); ?>" alt="현재 로고" style="max-width: 200px; max-height: 80px; border-radius: 8px; border: 1px solid #e5e7eb; background: #f9fafb; padding: 8px;">
+                        </div>
+                    <?php endif; ?>
+                    <input type="file" id="site_logo" name="site_logo" accept="image/*">
+                    <div class="help">
+                        JPG, PNG, GIF, WEBP 파일 (최대 5MB). 새 파일을 선택하면 기존 로고가 교체됩니다.<br>
+                        <strong>이미지 표시:</strong> 헤더에 표시될 때 높이 32px, 너비는 자동(비율 유지)로 표시됩니다.
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="site_favicon">사이트 파비콘</label>
+                    <?php if (!empty($settings['site']['favicon'])): ?>
+                        <div style="margin-bottom: 12px;">
+                            <p style="margin-bottom: 8px; color: #6b7280; font-size: 14px;">현재 파비콘:</p>
+                            <img src="<?php echo htmlspecialchars($settings['site']['favicon']); ?>" alt="현재 파비콘" style="width: 32px; height: 32px; border-radius: 4px; border: 1px solid #e5e7eb; background: #f9fafb; padding: 4px;">
+                        </div>
+                    <?php endif; ?>
+                    <input type="file" id="site_favicon" name="site_favicon" accept="image/x-icon,image/vnd.microsoft.icon,image/png,image/jpeg">
+                    <div class="help">ICO, PNG, JPG 파일 (최대 5MB). 권장 크기: 32x32px 또는 16x16px. 새 파일을 선택하면 기존 파비콘이 교체됩니다.</div>
                 </div>
                 <div class="form-group">
                     <div class="help" style="padding: 12px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; color: #1e40af;">

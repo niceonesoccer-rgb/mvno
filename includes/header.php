@@ -116,6 +116,20 @@ else if (!isset($is_main_page)) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo htmlspecialchars(($site['name_ko'] ?? '유심킹') . ' - 알뜰폰 요금제'); ?></title>
+    <?php if (!empty($site['favicon'])): 
+        $faviconPath = $site['favicon'];
+        $faviconExt = strtolower(pathinfo($faviconPath, PATHINFO_EXTENSION));
+        $faviconType = 'image/x-icon';
+        if ($faviconExt === 'png') {
+            $faviconType = 'image/png';
+        } elseif ($faviconExt === 'jpg' || $faviconExt === 'jpeg') {
+            $faviconType = 'image/jpeg';
+        } elseif ($faviconExt === 'svg') {
+            $faviconType = 'image/svg+xml';
+        }
+    ?>
+        <link rel="icon" type="<?php echo htmlspecialchars($faviconType); ?>" href="<?php echo htmlspecialchars($faviconPath); ?>">
+    <?php endif; ?>
     <link rel="stylesheet" href="/MVNO/assets/css/style.css">
     <?php if (isset($add_inline_css) && $add_inline_css): ?>
     <style>
@@ -166,7 +180,11 @@ else if (!isset($is_main_page)) {
             <div class="left-addon-mobile" id="mobileLogo">
                 <a class="nav-logo" href="/MVNO/">
                     <span class="usimking-logo-full">
-                        <span class="logo-text" style="display:inline-block; font-weight: 700; font-size: 18px; color: #6366f1;"><?php echo htmlspecialchars($site['name_ko'] ?? '유심킹'); ?></span>
+                        <?php if (!empty($site['logo'])): ?>
+                            <img src="<?php echo htmlspecialchars($site['logo']); ?>" alt="<?php echo htmlspecialchars($site['name_ko'] ?? '유심킹'); ?>" style="height: 32px; width: auto; display: inline-block;">
+                        <?php else: ?>
+                            <span class="logo-text" style="display:inline-block; font-weight: 700; font-size: 18px; color: #6366f1;"><?php echo htmlspecialchars($site['name_ko'] ?? '유심킹'); ?></span>
+                        <?php endif; ?>
                     </span>
                 </a>
             </div>
@@ -175,7 +193,11 @@ else if (!isset($is_main_page)) {
             <div class="left-addon-desktop">
                 <a class="nav-logo" href="/MVNO/">
                     <span class="usimking-logo-full">
-                        <span class="logo-text" style="display:inline-block; font-weight: 700; font-size: 18px; color: #6366f1;"><?php echo htmlspecialchars($site['name_ko'] ?? '유심킹'); ?></span>
+                        <?php if (!empty($site['logo'])): ?>
+                            <img src="<?php echo htmlspecialchars($site['logo']); ?>" alt="<?php echo htmlspecialchars($site['name_ko'] ?? '유심킹'); ?>" style="height: 32px; width: auto; display: inline-block;">
+                        <?php else: ?>
+                            <span class="logo-text" style="display:inline-block; font-weight: 700; font-size: 18px; color: #6366f1;"><?php echo htmlspecialchars($site['name_ko'] ?? '유심킹'); ?></span>
+                        <?php endif; ?>
                     </span>
                 </a>
             </div>
@@ -297,11 +319,10 @@ else if (!isset($is_main_page)) {
                         <?php endif; ?>
                     </li>
                     <li class="nav-item nav-item-mobile-only">
-                        <a class="nav-link <?php echo (isset($current_page) && $current_page == 'wishlist') ? 'active' : ''; ?>" href="/MVNO/mypage/wishlist.php">
-                            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#ef4444"/>
+                        <a class="nav-link nav-link-heart <?php echo (isset($current_page) && $current_page == 'mypage') ? 'active' : ''; ?>" href="/MVNO/mypage/mypage.php" data-require-login="true" style="justify-content: center;">
+                            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: 26px; height: 26px;">
+                                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#ef4444" style="fill: #ef4444 !important;"/>
                             </svg>
-                            <span>찜</span>
                         </a>
                     </li>
                 </ul>

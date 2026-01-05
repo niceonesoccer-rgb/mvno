@@ -311,6 +311,19 @@ button {
         flex-shrink: 0;
     }
     
+    .nav-link-heart {
+        opacity: 1 !important;
+    }
+    
+    .nav-link-heart .nav-icon {
+        width: 26px !important;
+        height: 26px !important;
+    }
+    
+    .nav-link-heart .nav-icon path {
+        fill: #ef4444 !important;
+    }
+    
     .nav-link:hover {
         opacity: 0.8;
         background-color: rgba(99, 102, 241, 0.1);

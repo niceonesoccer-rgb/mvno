@@ -38,6 +38,8 @@ function getDefaultSiteSettings() {
         'site' => [
             'name_ko' => '유심킹',
             'name_en' => 'usimking',
+            'logo' => '',
+            'favicon' => '',
             // tagline 필드 제거됨 (카테고리별 태그라인으로 이동)
         ],
         'footer' => [
