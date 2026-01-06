@@ -12,6 +12,7 @@ require_once __DIR__ . '/../includes/data/db-config.php';
 require_once __DIR__ . '/../includes/data/product-functions.php';
 require_once __DIR__ . '/../includes/data/auth-functions.php';
 require_once __DIR__ . '/../includes/data/contract-type-functions.php';
+require_once __DIR__ . '/../includes/data/point-settings.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -427,6 +428,22 @@ try {
         $exception = new Exception($errorMsg);
         $exception->errorDetails = $errorDetails;
         throw $exception;
+    }
+    
+    // 통신사단독유심 신청 포인트 지급
+    if (function_exists('getPointSetting') && function_exists('addPoint')) {
+        $mnoSimPointEnabled = getPointSetting('point_application_mno_sim_enabled', 0);
+        if ($mnoSimPointEnabled) {
+            $mnoSimPointAmount = getPointSetting('point_application_mno_sim_amount', 0);
+            if ($mnoSimPointAmount > 0) {
+                $pointResult = addPoint($userId, $mnoSimPointAmount, '통신사단독유심 신청 포인트', $applicationId);
+                if ($pointResult['success']) {
+                    error_log("MNO-SIM Application - 포인트 지급 완료: {$mnoSimPointAmount}원 (잔액: {$pointResult['balance']}원)");
+                } else {
+                    error_log("MNO-SIM Application - 포인트 지급 실패: " . ($pointResult['message'] ?? '알 수 없는 오류'));
+                }
+            }
+        }
     }
     
     // 응답 반환

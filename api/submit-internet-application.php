@@ -11,6 +11,7 @@
 require_once __DIR__ . '/../includes/data/db-config.php';
 require_once __DIR__ . '/../includes/data/product-functions.php';
 require_once __DIR__ . '/../includes/data/auth-functions.php';
+require_once __DIR__ . '/../includes/data/point-settings.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -316,6 +317,22 @@ try {
     } catch (PDOException $e) {
         error_log("Internet Application Debug - Alarm settings update failed: " . $e->getMessage());
         // 알림 설정 저장 실패해도 신청은 성공으로 처리
+    }
+    
+    // 인터넷 신청 포인트 지급
+    if (function_exists('getPointSetting') && function_exists('addPoint')) {
+        $internetPointEnabled = getPointSetting('point_application_internet_enabled', 0);
+        if ($internetPointEnabled) {
+            $internetPointAmount = getPointSetting('point_application_internet_amount', 0);
+            if ($internetPointAmount > 0) {
+                $pointResult = addPoint($userId, $internetPointAmount, '인터넷 신청 포인트', $applicationId);
+                if ($pointResult['success']) {
+                    error_log("Internet Application - 포인트 지급 완료: {$internetPointAmount}원 (잔액: {$pointResult['balance']}원)");
+                } else {
+                    error_log("Internet Application - 포인트 지급 실패: " . ($pointResult['message'] ?? '알 수 없는 오류'));
+                }
+            }
+        }
     }
     
     // 응답 반환

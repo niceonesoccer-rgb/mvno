@@ -1620,17 +1620,8 @@ document.addEventListener('DOMContentLoaded', function() {
         consultationModalClose.addEventListener('click', closeConsultationModal);
     }
     
-    // 전체 동의 체크박스
-    const agreementAll = document.getElementById('mnoAgreementAll');
+    // 전체 동의 체크박스 (HTML의 onchange로 처리되므로 여기서는 개별 체크박스만 처리)
     const agreementItemCheckboxes = document.querySelectorAll('.internet-checkbox-input-item');
-    
-    // 전체 동의 체크박스 변경 이벤트
-    if (agreementAll) {
-        agreementAll.addEventListener('change', function() {
-            const isChecked = this.checked;
-            toggleAllMnoAgreements(isChecked);
-        });
-    }
     
     // 개별 체크박스 변경 이벤트 (전체 동의 상태 업데이트)
     agreementItemCheckboxes.forEach(checkbox => {
@@ -1645,27 +1636,19 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 전체 동의 토글 함수
     function toggleAllMnoAgreements(checked) {
-        const agreementPurpose = document.getElementById('mnoAgreementPurpose');
-        const agreementItems = document.getElementById('mnoAgreementItems');
-        const agreementPeriod = document.getElementById('mnoAgreementPeriod');
-        const agreementThirdParty = document.getElementById('mnoAgreementThirdParty');
-        const agreementServiceNotice = document.getElementById('mnoAgreementServiceNotice');
-        const agreementMarketing = document.getElementById('mnoAgreementMarketing');
-
-        if (agreementPurpose && agreementItems && agreementPeriod && agreementThirdParty && agreementServiceNotice) {
-            agreementPurpose.checked = checked;
-            agreementItems.checked = checked;
-            agreementPeriod.checked = checked;
-            agreementThirdParty.checked = checked;
-            agreementServiceNotice.checked = checked;
-            if (agreementMarketing) {
-                agreementMarketing.checked = checked;
-                if (checked) {
-                    toggleMnoMarketingChannels();
-                }
+        // 모든 개별 체크박스를 찾아서 체크/해제
+        const agreementItemCheckboxes = document.querySelectorAll('.internet-checkbox-input-item');
+        agreementItemCheckboxes.forEach(checkbox => {
+            checkbox.checked = checked;
+            // 마케팅 체크박스인 경우 채널 토글
+            if (checkbox.id === 'mnoAgreementMarketing' && checked) {
+                toggleMnoMarketingChannels();
             }
-            checkAllMnoAgreements();
-        }
+        });
+        
+        // 전체 동의 체크박스 상태는 이미 HTML onchange에서 처리되므로 여기서는 업데이트하지 않음
+        // 개별 체크박스 변경 이벤트를 트리거하여 버튼 상태 업데이트
+        checkAllMnoAgreements();
     }
     
     // 전체 동의 상태 확인 함수
@@ -1704,17 +1687,28 @@ document.addEventListener('DOMContentLoaded', function() {
             requiredItems.push('mnoAgreementPurpose', 'mnoAgreementItems', 'mnoAgreementPeriod', 'mnoAgreementThirdParty', 'mnoAgreementServiceNotice');
         }
 
-        // 전체 동의 체크박스 상태 업데이트
-        let allRequiredChecked = true;
-        for (const itemId of requiredItems) {
-            const checkbox = document.getElementById(itemId);
-            if (checkbox && !checkbox.checked) {
-                allRequiredChecked = false;
-                break;
+        // 전체 동의 체크박스 상태 업데이트 (모든 체크박스 확인)
+        const allCheckboxes = document.querySelectorAll('.internet-checkbox-input-item');
+        let allChecked = true;
+        if (allCheckboxes.length > 0) {
+            allCheckboxes.forEach(checkbox => {
+                if (!checkbox.checked) {
+                    allChecked = false;
+                }
+            });
+        } else {
+            // 체크박스가 없으면 필수 항목만 확인
+            allChecked = true;
+            for (const itemId of requiredItems) {
+                const checkbox = document.getElementById(itemId);
+                if (checkbox && !checkbox.checked) {
+                    allChecked = false;
+                    break;
+                }
             }
         }
         if (agreementAll) {
-            agreementAll.checked = allRequiredChecked;
+            agreementAll.checked = allChecked;
         }
 
         // 개인정보 입력 검증

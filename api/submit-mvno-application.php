@@ -12,6 +12,7 @@ require_once __DIR__ . '/../includes/data/db-config.php';
 require_once __DIR__ . '/../includes/data/product-functions.php';
 require_once __DIR__ . '/../includes/data/auth-functions.php';
 require_once __DIR__ . '/../includes/data/contract-type-functions.php';
+require_once __DIR__ . '/../includes/data/point-settings.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -330,6 +331,22 @@ try {
         $exception = new Exception($errorMsg);
         $exception->errorDetails = $errorDetails;
         throw $exception;
+    }
+    
+    // 알뜰폰 신청 포인트 지급
+    if (function_exists('getPointSetting') && function_exists('addPoint')) {
+        $mvnoPointEnabled = getPointSetting('point_application_mvno_enabled', 0);
+        if ($mvnoPointEnabled) {
+            $mvnoPointAmount = getPointSetting('point_application_mvno_amount', 0);
+            if ($mvnoPointAmount > 0) {
+                $pointResult = addPoint($userId, $mvnoPointAmount, '알뜰폰 신청 포인트', $applicationId);
+                if ($pointResult['success']) {
+                    error_log("MVNO Application - 포인트 지급 완료: {$mvnoPointAmount}원 (잔액: {$pointResult['balance']}원)");
+                } else {
+                    error_log("MVNO Application - 포인트 지급 실패: " . ($pointResult['message'] ?? '알 수 없는 오류'));
+                }
+            }
+        }
     }
     
     // 응답 반환

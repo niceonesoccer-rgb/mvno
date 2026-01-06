@@ -92,7 +92,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_settings'])) {
         $result3 = savePointSetting('point_view_amount', $viewPoint, '상품 조회 시 지급되는 포인트');
         $result4 = savePointSetting('point_view_enabled', $viewPointEnabled, '상품 조회 포인트 지급 활성화 여부');
         
-        if ($result1 && $result2 && $result3 && $result4) {
+        // 가입 신청 포인트 (알뜰폰)
+        $mvnoApplicationPoint = isset($_POST['mvno_application_point']) ? intval($_POST['mvno_application_point']) : 0;
+        $mvnoApplicationEnabled = isset($_POST['mvno_application_enabled']) && $_POST['mvno_application_enabled'] == '1' ? 1 : 0;
+        $result5 = savePointSetting('point_application_mvno_amount', $mvnoApplicationPoint, '알뜰폰 신청 시 지급되는 포인트');
+        $result6 = savePointSetting('point_application_mvno_enabled', $mvnoApplicationEnabled, '알뜰폰 신청 포인트 지급 활성화 여부');
+        
+        // 가입 신청 포인트 (통신사폰)
+        $mnoApplicationPoint = isset($_POST['mno_application_point']) ? intval($_POST['mno_application_point']) : 0;
+        $mnoApplicationEnabled = isset($_POST['mno_application_enabled']) && $_POST['mno_application_enabled'] == '1' ? 1 : 0;
+        $result7 = savePointSetting('point_application_mno_amount', $mnoApplicationPoint, '통신사폰 신청 시 지급되는 포인트');
+        $result8 = savePointSetting('point_application_mno_enabled', $mnoApplicationEnabled, '통신사폰 신청 포인트 지급 활성화 여부');
+        
+        // 가입 신청 포인트 (통신사단독유심)
+        $mnoSimApplicationPoint = isset($_POST['mno_sim_application_point']) ? intval($_POST['mno_sim_application_point']) : 0;
+        $mnoSimApplicationEnabled = isset($_POST['mno_sim_application_enabled']) && $_POST['mno_sim_application_enabled'] == '1' ? 1 : 0;
+        $result9 = savePointSetting('point_application_mno_sim_amount', $mnoSimApplicationPoint, '통신사단독유심 신청 시 지급되는 포인트');
+        $result10 = savePointSetting('point_application_mno_sim_enabled', $mnoSimApplicationEnabled, '통신사단독유심 신청 포인트 지급 활성화 여부');
+        
+        // 가입 신청 포인트 (인터넷)
+        $internetApplicationPoint = isset($_POST['internet_application_point']) ? intval($_POST['internet_application_point']) : 0;
+        $internetApplicationEnabled = isset($_POST['internet_application_enabled']) && $_POST['internet_application_enabled'] == '1' ? 1 : 0;
+        $result11 = savePointSetting('point_application_internet_amount', $internetApplicationPoint, '인터넷 신청 시 지급되는 포인트');
+        $result12 = savePointSetting('point_application_internet_enabled', $internetApplicationEnabled, '인터넷 신청 포인트 지급 활성화 여부');
+        
+        if ($result1 && $result2 && $result3 && $result4 && $result5 && $result6 && $result7 && $result8 && $result9 && $result10 && $result11 && $result12) {
             $pdo->commit();
             
             // POST-Redirect-GET 패턴으로 중복 제출 방지 및 값 확인
@@ -114,6 +138,16 @@ $signupPoint = getPointSetting('point_signup_amount', 0);
 $signupPointEnabled = getPointSetting('point_signup_enabled', 0);
 $viewPoint = getPointSetting('point_view_amount', 0);
 $viewPointEnabled = getPointSetting('point_view_enabled', 0);
+
+// 가입 신청 포인트 설정
+$mvnoApplicationPoint = getPointSetting('point_application_mvno_amount', 0);
+$mvnoApplicationEnabled = getPointSetting('point_application_mvno_enabled', 0);
+$mnoApplicationPoint = getPointSetting('point_application_mno_amount', 0);
+$mnoApplicationEnabled = getPointSetting('point_application_mno_enabled', 0);
+$mnoSimApplicationPoint = getPointSetting('point_application_mno_sim_amount', 0);
+$mnoSimApplicationEnabled = getPointSetting('point_application_mno_sim_enabled', 0);
+$internetApplicationPoint = getPointSetting('point_application_internet_amount', 0);
+$internetApplicationEnabled = getPointSetting('point_application_internet_enabled', 0);
 
 
 // 현재 페이지 설정
@@ -186,7 +220,7 @@ require_once __DIR__ . '/../includes/admin-header.php';
         </div>
         
         <!-- 상품 조회 포인트 설정 -->
-        <div style="margin-bottom: 40px;">
+        <div style="margin-bottom: 40px; padding-bottom: 32px; border-bottom: 1px solid #e5e7eb;">
             <h2 style="font-size: 20px; font-weight: 700; color: #1f2937; margin-bottom: 24px;">2. 상품 조회 포인트</h2>
             
             <div style="margin-bottom: 20px;">
@@ -218,6 +252,116 @@ require_once __DIR__ . '/../includes/admin-header.php';
                 >
                 <div style="font-size: 13px; color: #6b7280; margin-top: 6px;">
                     상품을 조회할 때마다 지급할 포인트 금액을 입력하세요.
+                </div>
+            </div>
+        </div>
+        
+        <!-- 가입 신청 포인트 설정 -->
+        <div style="margin-bottom: 40px;">
+            <h2 style="font-size: 20px; font-weight: 700; color: #1f2937; margin-bottom: 24px;">3. 가입 신청 포인트</h2>
+            <p style="font-size: 14px; color: #6b7280; margin-bottom: 24px;">회원이 각 상품 유형별로 가입 신청을 완료했을 때 지급되는 포인트를 설정합니다.</p>
+            
+            <!-- 알뜰폰 신청 포인트 -->
+            <div style="margin-bottom: 32px; padding: 20px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
+                <div style="margin-bottom: 16px;">
+                    <label style="display: flex; align-items: center; gap: 12px; font-size: 16px; font-weight: 600; color: #374151; cursor: pointer;">
+                        <input type="checkbox" name="mvno_application_enabled" value="1" <?= $mvnoApplicationEnabled ? 'checked' : '' ?> 
+                               style="width: 20px; height: 20px; cursor: pointer;">
+                        <span>알뜰폰 신청 시 자동으로 포인트 지급</span>
+                    </label>
+                </div>
+                <div style="margin-left: 32px;">
+                    <label for="mvno_application_point" style="display: block; font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 8px;">
+                        지급 포인트 (원)
+                    </label>
+                    <input 
+                        type="number" 
+                        id="mvno_application_point" 
+                        name="mvno_application_point" 
+                        value="<?= htmlspecialchars($mvnoApplicationPoint) ?>"
+                        min="0"
+                        step="1"
+                        required
+                        style="width: 200px; padding: 12px 16px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 15px;"
+                    >
+                </div>
+            </div>
+            
+            <!-- 통신사폰 신청 포인트 -->
+            <div style="margin-bottom: 32px; padding: 20px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
+                <div style="margin-bottom: 16px;">
+                    <label style="display: flex; align-items: center; gap: 12px; font-size: 16px; font-weight: 600; color: #374151; cursor: pointer;">
+                        <input type="checkbox" name="mno_application_enabled" value="1" <?= $mnoApplicationEnabled ? 'checked' : '' ?> 
+                               style="width: 20px; height: 20px; cursor: pointer;">
+                        <span>통신사폰 신청 시 자동으로 포인트 지급</span>
+                    </label>
+                </div>
+                <div style="margin-left: 32px;">
+                    <label for="mno_application_point" style="display: block; font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 8px;">
+                        지급 포인트 (원)
+                    </label>
+                    <input 
+                        type="number" 
+                        id="mno_application_point" 
+                        name="mno_application_point" 
+                        value="<?= htmlspecialchars($mnoApplicationPoint) ?>"
+                        min="0"
+                        step="1"
+                        required
+                        style="width: 200px; padding: 12px 16px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 15px;"
+                    >
+                </div>
+            </div>
+            
+            <!-- 통신사단독유심 신청 포인트 -->
+            <div style="margin-bottom: 32px; padding: 20px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
+                <div style="margin-bottom: 16px;">
+                    <label style="display: flex; align-items: center; gap: 12px; font-size: 16px; font-weight: 600; color: #374151; cursor: pointer;">
+                        <input type="checkbox" name="mno_sim_application_enabled" value="1" <?= $mnoSimApplicationEnabled ? 'checked' : '' ?> 
+                               style="width: 20px; height: 20px; cursor: pointer;">
+                        <span>통신사단독유심 신청 시 자동으로 포인트 지급</span>
+                    </label>
+                </div>
+                <div style="margin-left: 32px;">
+                    <label for="mno_sim_application_point" style="display: block; font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 8px;">
+                        지급 포인트 (원)
+                    </label>
+                    <input 
+                        type="number" 
+                        id="mno_sim_application_point" 
+                        name="mno_sim_application_point" 
+                        value="<?= htmlspecialchars($mnoSimApplicationPoint) ?>"
+                        min="0"
+                        step="1"
+                        required
+                        style="width: 200px; padding: 12px 16px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 15px;"
+                    >
+                </div>
+            </div>
+            
+            <!-- 인터넷 신청 포인트 -->
+            <div style="margin-bottom: 32px; padding: 20px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
+                <div style="margin-bottom: 16px;">
+                    <label style="display: flex; align-items: center; gap: 12px; font-size: 16px; font-weight: 600; color: #374151; cursor: pointer;">
+                        <input type="checkbox" name="internet_application_enabled" value="1" <?= $internetApplicationEnabled ? 'checked' : '' ?> 
+                               style="width: 20px; height: 20px; cursor: pointer;">
+                        <span>인터넷 신청 시 자동으로 포인트 지급</span>
+                    </label>
+                </div>
+                <div style="margin-left: 32px;">
+                    <label for="internet_application_point" style="display: block; font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 8px;">
+                        지급 포인트 (원)
+                    </label>
+                    <input 
+                        type="number" 
+                        id="internet_application_point" 
+                        name="internet_application_point" 
+                        value="<?= htmlspecialchars($internetApplicationPoint) ?>"
+                        min="0"
+                        step="1"
+                        required
+                        style="width: 200px; padding: 12px 16px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 15px;"
+                    >
                 </div>
             </div>
         </div>

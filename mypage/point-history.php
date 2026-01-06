@@ -94,15 +94,23 @@ include '../includes/header.php';
                         $type_labels = [
                             'mvno' => '알뜰폰 신청',
                             'mno' => '통신사폰 신청',
+                            'mno_sim' => '통신사단독유심 신청',
                             'internet' => '인터넷 신청',
-                            'add' => '포인트 충전',
+                            'add' => '회원가입 포인트',
                             'view_product' => '상품 조회 포인트'
                         ];
-                        // description이 '회원가입 축하 포인트'인 경우 타입 라벨 변경
-                        if ($item['type'] === 'add' && ($item['description'] ?? '') === '회원가입 축하 포인트') {
-                            $type_label = '회원가입 축하 포인트';
-                        } else {
-                            $type_label = $type_labels[$item['type']] ?? '포인트 적립';
+                        // description 기반 타입 라벨 결정
+                        $type_label = $type_labels[$item['type']] ?? '포인트 적립';
+                        if ($item['type'] === 'view_product' && !empty($item['description'])) {
+                            if (strpos($item['description'], '통신사폰 신청 포인트') !== false || strpos($item['description'], '통신사폰 신청') !== false) {
+                                $type_label = '통신사폰 신청';
+                            } elseif (strpos($item['description'], '알뜰폰 신청 포인트') !== false || strpos($item['description'], '알뜰폰 신청') !== false) {
+                                $type_label = '알뜰폰 신청';
+                            } elseif (strpos($item['description'], '통신사단독유심 신청 포인트') !== false || strpos($item['description'], '통신사단독유심 신청') !== false) {
+                                $type_label = '통신사단독유심 신청';
+                            } elseif (strpos($item['description'], '인터넷 신청 포인트') !== false || strpos($item['description'], '인터넷 신청') !== false) {
+                                $type_label = '인터넷 신청';
+                            }
                         }
                     ?>
                         <li style="border-bottom: 1px solid #e5e7eb;">
@@ -184,15 +192,23 @@ include '../includes/header.php';
                         $type_labels = [
                             'mvno' => '알뜰폰 신청',
                             'mno' => '통신사폰 신청',
+                            'mno_sim' => '통신사단독유심 신청',
                             'internet' => '인터넷 신청',
-                            'add' => '포인트 충전',
+                            'add' => '회원가입 포인트',
                             'view_product' => '상품 조회 포인트'
                         ];
-                        // description이 '회원가입 축하 포인트'인 경우 타입 라벨 변경
-                        if ($item['type'] === 'add' && ($item['description'] ?? '') === '회원가입 축하 포인트') {
-                            $type_label = '회원가입 축하 포인트';
-                        } else {
-                            $type_label = $type_labels[$item['type']] ?? '포인트 적립';
+                        // description 기반 타입 라벨 결정
+                        $type_label = $type_labels[$item['type']] ?? '포인트 적립';
+                        if ($item['type'] === 'view_product' && !empty($item['description'])) {
+                            if (strpos($item['description'], '통신사폰 신청 포인트') !== false || strpos($item['description'], '통신사폰 신청') !== false) {
+                                $type_label = '통신사폰 신청';
+                            } elseif (strpos($item['description'], '알뜰폰 신청 포인트') !== false || strpos($item['description'], '알뜰폰 신청') !== false) {
+                                $type_label = '알뜰폰 신청';
+                            } elseif (strpos($item['description'], '통신사단독유심 신청 포인트') !== false || strpos($item['description'], '통신사단독유심 신청') !== false) {
+                                $type_label = '통신사단독유심 신청';
+                            } elseif (strpos($item['description'], '인터넷 신청 포인트') !== false || strpos($item['description'], '인터넷 신청') !== false) {
+                                $type_label = '인터넷 신청';
+                            }
                         }
                     ?>
                         <li style="border-bottom: 1px solid #e5e7eb;" class="modal-history-item">
@@ -265,8 +281,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const typeLabels = {
         'mvno': '알뜰폰 신청',
         'mno': '통신사폰 신청',
+        'mno_sim': '통신사단독유심 신청',
         'internet': '인터넷 신청',
-        'add': '포인트 충전',
+        'add': '회원가입 포인트',
         'view_product': '상품 조회 포인트'
     };
     
@@ -274,12 +291,18 @@ document.addEventListener('DOMContentLoaded', function() {
     function createHistoryItem(item) {
         // 적립 타입: 'add', 'view_product'
         const isDeduction = !['add', 'view_product'].includes(item.type);
-        // description이 '회원가입 축하 포인트'인 경우 타입 라벨 변경
-        let typeLabel;
-        if (item.type === 'add' && item.description === '회원가입 축하 포인트') {
-            typeLabel = '회원가입 축하 포인트';
-        } else {
-            typeLabel = typeLabels[item.type] || '포인트 적립';
+        // description 기반 타입 라벨 결정
+        let typeLabel = typeLabels[item.type] || '포인트 적립';
+        if (item.type === 'view_product' && item.description) {
+            if (item.description.indexOf('통신사폰 신청 포인트') !== -1 || item.description.indexOf('통신사폰 신청') !== -1) {
+                typeLabel = '통신사폰 신청';
+            } else if (item.description.indexOf('알뜰폰 신청 포인트') !== -1 || item.description.indexOf('알뜰폰 신청') !== -1) {
+                typeLabel = '알뜰폰 신청';
+            } else if (item.description.indexOf('통신사단독유심 신청 포인트') !== -1 || item.description.indexOf('통신사단독유심 신청') !== -1) {
+                typeLabel = '통신사단독유심 신청';
+            } else if (item.description.indexOf('인터넷 신청 포인트') !== -1 || item.description.indexOf('인터넷 신청') !== -1) {
+                typeLabel = '인터넷 신청';
+            }
         }
         
         return `

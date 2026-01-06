@@ -12,6 +12,7 @@ require_once __DIR__ . '/../includes/data/db-config.php';
 require_once __DIR__ . '/../includes/data/product-functions.php';
 require_once __DIR__ . '/../includes/data/auth-functions.php';
 require_once __DIR__ . '/../includes/data/contract-type-functions.php';
+require_once __DIR__ . '/../includes/data/point-settings.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -270,6 +271,22 @@ try {
     } catch (PDOException $e) {
         // 알림 설정 저장 실패는 로그만 남기고 계속 진행 (신청은 성공으로 처리)
         error_log("MNO Application - Failed to save alarm settings: " . $e->getMessage());
+    }
+    
+    // 통신사폰 신청 포인트 지급
+    if (function_exists('getPointSetting') && function_exists('addPoint')) {
+        $mnoPointEnabled = getPointSetting('point_application_mno_enabled', 0);
+        if ($mnoPointEnabled) {
+            $mnoPointAmount = getPointSetting('point_application_mno_amount', 0);
+            if ($mnoPointAmount > 0) {
+                $pointResult = addPoint($userId, $mnoPointAmount, '통신사폰 신청 포인트', $applicationId);
+                if ($pointResult['success']) {
+                    error_log("MNO Application - 포인트 지급 완료: {$mnoPointAmount}원 (잔액: {$pointResult['balance']}원)");
+                } else {
+                    error_log("MNO Application - 포인트 지급 실패: " . ($pointResult['message'] ?? '알 수 없는 오류'));
+                }
+            }
+        }
     }
     
     // 응답 반환
