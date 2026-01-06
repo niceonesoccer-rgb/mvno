@@ -161,7 +161,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
 // 수정할 관리자 정보 가져오기
 $editAdmin = null;
-$editUserId = $_GET['edit'] ?? '';
+$editUserId = $_GET['edit'] ?? $_GET['user_id'] ?? '';
 if (!empty($editUserId)) {
     $editAdmin = getUserById($editUserId);
     if (!$editAdmin || !in_array(($editAdmin['role'] ?? ''), ['admin', 'sub_admin'], true)) {

@@ -3,12 +3,17 @@
  * 데이터베이스 연결 설정
  */
 
-// 데이터베이스 설정
-define('DB_HOST', 'localhost');
-define('DB_NAME', 'mvno_db');
-define('DB_USER', 'root');
-define('DB_PASS', '');
-define('DB_CHARSET', 'utf8mb4');
+// 로컬 설정 파일이 있으면 우선 로드 (관리자 페이지에서 설정한 값)
+if (file_exists(__DIR__ . '/db-config-local.php')) {
+    require_once __DIR__ . '/db-config-local.php';
+} else {
+    // 기본 데이터베이스 설정
+    define('DB_HOST', 'localhost');
+    define('DB_NAME', 'mvno_db');
+    define('DB_USER', 'root');
+    define('DB_PASS', '');
+    define('DB_CHARSET', 'utf8mb4');
+}
 
 /**
  * 데이터베이스 연결

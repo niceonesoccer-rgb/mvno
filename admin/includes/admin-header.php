@@ -835,17 +835,6 @@ if ($pdo) {
             <!-- 설정 -->
             <div class="menu-section">
                 <div class="menu-section-title">설정</div>
-                <a href="/MVNO/admin/settings/admin-manage.php" class="menu-item <?php echo $currentPage === 'admin-manage.php' ? 'active' : ''; ?>">
-                    <span class="menu-item-icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                            <circle cx="9" cy="7" r="4"/>
-                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                        </svg>
-                    </span>
-                    관리자 관리
-                </a>
                 <a href="/MVNO/admin/settings/site-settings.php" class="menu-item <?php echo $currentPage === 'site-settings.php' ? 'active' : ''; ?>">
                     <span class="menu-item-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -863,15 +852,6 @@ if ($pdo) {
                         </svg>
                     </span>
                     가입 금지어 관리
-                </a>
-                <a href="/MVNO/admin/settings/api-settings.php" class="menu-item <?php echo $currentPage === 'api-settings.php' ? 'active' : ''; ?>">
-                    <span class="menu-item-icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                        </svg>
-                    </span>
-                    API 설정
                 </a>
                 <a href="/MVNO/admin/settings/email-settings.php" class="menu-item <?php echo $currentPage === 'email-settings.php' ? 'active' : ''; ?>">
                     <span class="menu-item-icon">
@@ -942,6 +922,7 @@ if ($pdo) {
                     </span>
                     리뷰 작성 권한
                 </a>
+                <?php if (getUserRole($currentUser['user_id']) === 'admin'): ?>
                 <a href="/MVNO/admin/settings/data-delete.php" class="menu-item <?php echo $currentPage === 'data-delete.php' ? 'active' : ''; ?>">
                     <span class="menu-item-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -953,6 +934,26 @@ if ($pdo) {
                     </span>
                     데이터 삭제 관리
                 </a>
+                <a href="/MVNO/admin/api-settings.php" class="menu-item <?php echo $currentPage === 'api-settings.php' ? 'active' : ''; ?>">
+                    <span class="menu-item-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                        </svg>
+                    </span>
+                    API 설정
+                </a>
+                <a href="/MVNO/admin/settings/db-settings.php" class="menu-item <?php echo $currentPage === 'db-settings.php' ? 'active' : ''; ?>">
+                    <span class="menu-item-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <ellipse cx="12" cy="5" rx="9" ry="3"/>
+                            <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+                            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+                        </svg>
+                    </span>
+                    DB 설정
+                </a>
+                <?php endif; ?>
             </div>
             
             <!-- 통계 분석 -->

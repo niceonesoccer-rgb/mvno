@@ -15,13 +15,12 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// 관리자 권한 체크
-if (!isAdmin()) {
+// admin 계정만 접근 가능 (부관리자 제외)
+$currentUser = getCurrentUser();
+if (!$currentUser || getUserRole($currentUser['user_id']) !== 'admin') {
     header('Location: /MVNO/admin/');
     exit;
 }
-
-$currentUser = getCurrentUser();
 $error = '';
 $success = '';
 $deleteResult = null;

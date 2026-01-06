@@ -4,12 +4,14 @@
  * 관리자가 SNS 로그인 API 키를 설정할 수 있는 페이지
  */
 
-// 관리자 인증 체크 (실제로는 세션 확인 등 필요)
-// require_once __DIR__ . '/../includes/data/auth-functions.php';
-// if (!isAdmin()) {
-//     header('Location: /MVNO/auth/login.php');
-//     exit;
-// }
+require_once __DIR__ . '/../includes/data/auth-functions.php';
+
+// admin 계정만 접근 가능 (부관리자 제외)
+$currentUser = getCurrentUser();
+if (!$currentUser || getUserRole($currentUser['user_id']) !== 'admin') {
+    header('Location: /MVNO/admin/');
+    exit;
+}
 
 require_once __DIR__ . '/../includes/data/app-settings.php';
 
