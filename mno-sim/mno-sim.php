@@ -502,7 +502,7 @@ try {
             FROM products p
             INNER JOIN product_mno_sim_details mno_sim ON p.id = mno_sim.product_id
             {$whereClause}
-            ORDER BY p.updated_at DESC, p.id DESC
+            ORDER BY p.created_at DESC
             LIMIT :limit OFFSET :offset
         ");
         

@@ -119,13 +119,10 @@ $modal_id = "pointUsageModal_{$type}_{$item_id}";
                         min="0" 
                         step="1000"
                         max="<?php echo $current_balance; ?>"
-                        value="<?php echo $default_point; ?>"
+                        value="0"
                         placeholder="0"
                     >
                     <span class="point-input-unit">포인트</span>
-                </div>
-                <div class="point-quick-buttons" id="pointQuickButtons_<?php echo $modal_id; ?>">
-                    <!-- 동적으로 생성됨 -->
                 </div>
                 <div class="point-input-help" style="font-size: 12px; color: #6b7280; margin-top: 8px;">
                     1000포인트 단위로만 사용 가능합니다.
@@ -379,37 +376,6 @@ $modal_id = "pointUsageModal_{$type}_{$item_id}";
     pointer-events: none;
 }
 
-.point-quick-buttons {
-    display: flex;
-    gap: 8px;
-}
-
-.point-quick-btn {
-    flex: 1;
-    padding: 14px 24px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border: none;
-    border-radius: 12px;
-    font-size: 16px;
-    font-weight: 700;
-    color: #ffffff;
-    cursor: pointer;
-    transition: all 0.2s;
-    min-height: 52px;
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-    letter-spacing: -0.3px;
-}
-
-.point-quick-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
-    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
-}
-
-.point-quick-btn:active {
-    transform: translateY(0);
-}
-
 .point-balance-preview {
     display: flex;
     justify-content: center;
@@ -504,8 +470,6 @@ $modal_id = "pointUsageModal_{$type}_{$item_id}";
     const confirmBtn = modal.querySelector('.point-usage-confirm-btn');
     const pointInput = document.getElementById('pointInput_' + modalId);
     const balancePreview = document.getElementById('balancePreview_' + modalId);
-    const quickBtns = modal.querySelectorAll('.point-quick-btn');
-    
     const currentBalance = <?php echo $current_balance; ?>;
     
     // maxUsable 값을 모달 요소에서 가져오는 헬퍼 함수
@@ -546,7 +510,6 @@ $modal_id = "pointUsageModal_{$type}_{$item_id}";
                     const balanceValue = targetModal.querySelector('.point-balance-value');
                     const maxValue = document.getElementById('pointMaxValue_' + targetModalId);
                     const pointInput = targetModal.querySelector('.point-input');
-                    const quickButtonsContainer = document.getElementById('pointQuickButtons_' + targetModalId);
                     
                     if (balanceValue) {
                         balanceValue.textContent = formatNumber(balanceData.balance) + 'P';
@@ -566,27 +529,16 @@ $modal_id = "pointUsageModal_{$type}_{$item_id}";
                             pointInput.setAttribute('max', actualMaxUsable);
                             // 모달 요소에 maxUsable 값 저장 (로컬 함수에서 접근 가능하도록)
                             targetModal.setAttribute('data-max-usable', actualMaxUsable);
-                        }
-                        
-                        // 빠른 선택 버튼 업데이트
-                        if (quickButtonsContainer) {
-                            const roundedMax = actualMaxUsable;
-                            quickButtonsContainer.innerHTML = '';
-                            if (roundedMax > 0) {
-                                const quickBtn = document.createElement('button');
-                                quickBtn.type = 'button';
-                                quickBtn.className = 'point-quick-btn';
-                                quickBtn.setAttribute('data-point', roundedMax);
-                                quickBtn.textContent = formatNumber(roundedMax) + 'P 사용';
-                                quickBtn.addEventListener('click', function() {
-                                    let point = parseInt(this.getAttribute('data-point')) || 0;
-                                    if (point > 0 && point % 1000 !== 0) {
-                                        point = Math.round(point / 1000) * 1000;
-                                    }
-                                    pointInput.value = point;
-                                    updateBalancePreview();
-                                });
-                                quickButtonsContainer.appendChild(quickBtn);
+                            
+                            // 초기 로딩 시 최대 사용 가능 포인트를 입력 필드에 자동으로 설정 (1000 단위)
+                            if (actualMaxUsable > 0) {
+                                pointInput.value = actualMaxUsable;
+                                // 잔액 미리보기 업데이트
+                                const balancePreviewEl = document.getElementById('balancePreview_' + targetModalId);
+                                if (balancePreviewEl) {
+                                    const remainingBalance = balanceData.balance - actualMaxUsable;
+                                    balancePreviewEl.textContent = formatNumber(remainingBalance) + 'P';
+                                }
                             }
                         }
                     }
@@ -702,19 +654,6 @@ $modal_id = "pointUsageModal_{$type}_{$item_id}";
         
         this.value = inputValue;
         updateBalancePreview();
-    });
-    
-    // 빠른 선택 버튼
-    quickBtns.forEach(btn => {
-        btn.addEventListener('click', function() {
-            let point = parseInt(this.getAttribute('data-point')) || 0;
-            // 1000 포인트 단위로 반올림
-            if (point > 0 && point % 1000 !== 0) {
-                point = Math.round(point / 1000) * 1000;
-            }
-            pointInput.value = point;
-            updateBalancePreview();
-        });
     });
     
     // 입력 이벤트 (입력 중에는 반올림하지 않고 잔액만 업데이트)
