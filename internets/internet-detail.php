@@ -51,9 +51,6 @@ require_once '../includes/data/plan-data.php';
 $internet = getInternetDetailData($internet_id);
 $rawData = $internet['_raw_data'] ?? []; // 원본 DB 데이터 (null 대신 빈 배열로 초기화)
 
-// 상품번호 가져오기
-require_once '../includes/data/product-functions.php';
-$productNumber = getProductNumberByType($internet_id, 'internet', $rawData['seller_id'] ?? null);
 
 // 관리자 여부 확인
 $isAdmin = false;
@@ -236,10 +233,6 @@ if ($serviceType === '인터넷+TV') {
                             <?php endif; ?>
                             <span style="margin-left: 0.5em; margin-right: 0.5em; font-size: 1.0584rem; color: #9ca3af;">|</span>
                             <span style="font-size: 1.0584rem; color: #6b7280; text-align: left; display: inline-block; white-space: nowrap;"><?php echo htmlspecialchars($serviceTypeDisplay); ?></span>
-                            <?php if ($productNumber): ?>
-                                <span style="margin-left: 0.5em; margin-right: 0.5em; font-size: 1.0584rem; color: #9ca3af;">|</span>
-                                <span style="font-size: 1.0584rem; color: #6b7280; text-align: left; display: inline-block; white-space: nowrap;">상품번호 #<?php echo htmlspecialchars($productNumber); ?></span>
-                            <?php endif; ?>
                             <div class="css-huskxe e82z5mt13" style="margin-left: auto;">
                                 <div class="css-1fd5u73 e82z5mt14">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -2837,13 +2830,28 @@ function resetSteps() {
     const agreeItems = document.getElementById('agreeItems');
     const agreePeriod = document.getElementById('agreePeriod');
     const agreeThirdParty = document.getElementById('agreeThirdParty');
+    const agreementServiceNotice = document.getElementById('internetAgreementServiceNotice');
+    const agreementMarketing = document.getElementById('internetAgreementMarketing');
     const submitBtn = document.getElementById('submitBtn');
+    
+    // 모든 체크박스 초기화 (필수 + 선택 항목 모두)
     if (agreeAll) agreeAll.checked = false;
     if (agreePurpose) agreePurpose.checked = false;
     if (agreeItems) agreeItems.checked = false;
     if (agreePeriod) agreePeriod.checked = false;
     if (agreeThirdParty) agreeThirdParty.checked = false;
-    if (submitBtn) submitBtn.disabled = true; // 기본적으로 비활성화
+    if (agreementServiceNotice) agreementServiceNotice.checked = false;
+    if (agreementMarketing) agreementMarketing.checked = false;
+    
+    // 모든 체크박스를 한 번에 초기화하는 방법도 사용
+    const allCheckboxes = document.querySelectorAll('.internet-checkbox-input-item');
+    allCheckboxes.forEach(checkbox => {
+        checkbox.checked = false;
+    });
+    if (submitBtn) {
+        submitBtn.disabled = true; // 기본적으로 비활성화
+        submitBtn.textContent = '상담 신청'; // 버튼 텍스트 초기화
+    }
     
     // 초기화 후 버튼 상태 확인
     setTimeout(() => {
@@ -3104,7 +3112,7 @@ function toggleAllAgreements(checked) {
     const agreeAll = document.getElementById('agreeAll');
     if (!agreeAll) return;
     
-    // 모든 체크박스 찾기
+    // 모든 체크박스 찾기 (필수 + 선택 모두 포함)
     const checkboxes = document.querySelectorAll('.internet-checkbox-input-item');
     checkboxes.forEach(checkbox => {
         checkbox.checked = checked;
@@ -3443,6 +3451,11 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .then(data => {
                 if (data.success) {
+                    // 성공 시 버튼 상태 복원
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = '상담 신청';
+                    }
                     closeInternetModal();
                     showInternetToast('success', '인터넷 상담을 신청했어요', '입력한 번호로 상담 전화를 드릴예정이에요');
                 } else {

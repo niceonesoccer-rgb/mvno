@@ -26,8 +26,6 @@ require_once '../includes/data/plan-data.php';
 $plan = getPlanDetailData($plan_id);
 $rawData = $plan['_raw_data'] ?? []; // 원본 DB 데이터 (null 대신 빈 배열로 초기화)
 
-// 상품번호 가져오기
-$productNumber = getProductNumberByType($plan_id, 'mvno', $rawData['seller_id'] ?? null);
 
 // 관리자 여부 확인
 $isAdmin = false;
@@ -162,12 +160,6 @@ function getRelativeTime($datetime) {
                             <div class="plan-detail-label">요금제 이름</div>
                             <div class="plan-detail-value">
                                 <?php echo htmlspecialchars($plan['title'] ?? ($rawData['plan_name'] ?? '요금제명 없음')); ?>
-                            </div>
-                        </div>
-                        <div class="plan-detail-item">
-                            <div class="plan-detail-label">상품번호</div>
-                            <div class="plan-detail-value">
-                                <?php echo htmlspecialchars($productNumber ? '#' . $productNumber : '-'); ?>
                             </div>
                         </div>
                         <div class="plan-detail-item">
