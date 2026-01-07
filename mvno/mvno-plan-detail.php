@@ -2754,14 +2754,136 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
 
+    // 포인트 사용량 저장 변수
+    let usedPointAmount = 0;
+    let isSubmitting = false; // 중복 제출 방지 플래그
+    
+    // pointUsageConfirmed 이벤트 리스너 (한 번만 실행되도록)
+    let pointUsageListenerAdded = false;
+    if (!pointUsageListenerAdded) {
+        pointUsageListenerAdded = true;
+        document.addEventListener('pointUsageConfirmed', function(e) {
+            usedPointAmount = e.detail.usedPoint || 0;
+            console.log('포인트 사용 확인됨:', usedPointAmount);
+        }, { once: false }); // 여러 번 발생할 수 있으므로 once: false
+    }
+    
     // 신청하기 버튼 클릭 이벤트
     if (applyBtn) {
         applyBtn.addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
-            openApplyModal();
+            
+            // 로그인 체크
+            const isLoggedIn = <?php echo isLoggedIn() ? 'true' : 'false'; ?>;
+            if (!isLoggedIn) {
+                // 현재 URL을 세션에 저장 (회원가입 후 돌아올 주소)
+                const currentUrl = window.location.href;
+                fetch('/MVNO/api/save-redirect-url.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ redirect_url: currentUrl })
+                }).then(() => {
+                    // 로그인 모달 열기
+                    if (typeof openLoginModal === 'function') {
+                        openLoginModal(false);
+                    } else {
+                        setTimeout(() => {
+                            if (typeof openLoginModal === 'function') {
+                                openLoginModal(false);
+                            }
+                        }, 100);
+                    }
+                });
+                return;
+            }
+            
+            // 포인트 설정 확인
+            const planId = <?php echo $plan_id; ?>;
+            checkAndOpenPointModal('mvno', planId, openApplyModal);
             return false;
         });
+    }
+    
+    // 포인트 설정 확인 및 모달 열기 함수
+    function checkAndOpenPointModal(type, itemId, callback) {
+        // 포인트 설정 조회
+        fetch(`/MVNO/api/get-product-point-setting.php?type=${type}&id=${itemId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    // 조회 실패 시 바로 신청 모달 열기
+                    if (callback) callback();
+                    return;
+                }
+                
+                // 포인트 설정이 0이거나 할인 혜택이 없으면 바로 신청 모달 열기
+                if (!data.can_use_point || data.point_setting <= 0 || !data.point_benefit_description) {
+                    if (callback) callback();
+                    return;
+                }
+                
+                // 포인트 모달 열기
+                if (typeof openPointUsageModal === 'function') {
+                    openPointUsageModal(type, itemId);
+                    
+                    // 포인트 모달 확인 이벤트 리스너 (한 번만 등록)
+                    const eventHandler = function(e) {
+                        const { usedPoint } = e.detail;
+                        
+                        // 포인트 차감 API 호출
+                        fetch('/MVNO/api/point-deduct.php', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                user_id: 'default',
+                                type: type,
+                                item_id: itemId,
+                                amount: usedPoint,
+                                description: type === 'mvno' ? '알뜰폰 할인혜택' : type === 'mno' ? '통신사폰 할인혜택' : '인터넷 할인혜택'
+                            })
+                        })
+                        .then(response => response.json())
+                        .then(deductData => {
+                            if (deductData.success) {
+                                // 포인트 사용 정보 저장
+                                window.pointUsageData = {
+                                    type: type,
+                                    itemId: itemId,
+                                    usedPoint: usedPoint,
+                                    discountAmount: usedPoint,
+                                    productPointSetting: data.point_setting,
+                                    benefitDescription: data.point_benefit_description
+                                };
+                                
+                                // 기존 신청 모달 열기
+                                if (callback) callback();
+                            } else {
+                                alert(deductData.message || '포인트 차감에 실패했습니다.');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('포인트 차감 오류:', error);
+                            alert('포인트 차감 중 오류가 발생했습니다.');
+                        });
+                        
+                        // 이벤트 리스너 제거 (한 번만 실행)
+                        document.removeEventListener('pointUsageConfirmed', eventHandler);
+                    };
+                    
+                    document.addEventListener('pointUsageConfirmed', eventHandler, { once: true });
+                } else {
+                    // 포인트 모달 함수가 없으면 바로 신청 모달 열기
+                    if (callback) callback();
+                }
+            })
+            .catch(error => {
+                console.error('포인트 설정 조회 오류:', error);
+                // 오류 발생 시에도 신청 모달 열기 (사용자 경험 유지)
+                if (callback) callback();
+            });
     }
 
     // 모달 닫기
@@ -2877,6 +2999,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
+            // 중복 제출 방지
+            if (isSubmitting) {
+                console.log('이미 제출 중입니다. 중복 제출을 방지합니다.');
+                return;
+            }
+            
             // 제출 버튼 비활성화
             const submitBtn = document.getElementById('mvnoApplicationSubmitBtn');
             if (submitBtn) {
@@ -2884,8 +3012,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 submitBtn.textContent = '처리 중...';
             }
             
+            // 제출 플래그 설정
+            isSubmitting = true;
+            
             // 폼 데이터 준비
             const formData = new FormData(this);
+            
+            // 포인트 사용량 추가
+            if (usedPointAmount > 0) {
+                formData.append('used_point', usedPointAmount);
+            }
             
             // 서버로 데이터 전송
             fetch('/MVNO/api/submit-mvno-application.php', {
@@ -2914,6 +3050,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     // 마이페이지로 이동
                     window.location.href = mypageUrl;
                 } else {
+                    // 실패 시 플래그 리셋
+                    isSubmitting = false;
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = '신청하기';
+                    }
+                    
                     // 실패 시 모달로 표시
                     let errorMessage = data.message || '신청정보 저장에 실패했습니다.';
                     
@@ -2966,6 +3109,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             })
             .catch(error => {
+                // 에러 발생 시 플래그 리셋
+                isSubmitting = false;
+                
                 // 에러 발생 시 모달로 표시
                 if (typeof showAlert === 'function') {
                     showAlert('신청 처리 중 오류가 발생했습니다.', '오류');
@@ -3967,5 +4113,13 @@ span.internet-checkbox-text {
 
 <script src="/MVNO/assets/js/favorite-heart.js" defer></script>
 <script src="/MVNO/assets/js/point-usage-integration.js" defer></script>
+
+<?php 
+// 포인트 사용 모달 포함
+$type = 'mvno';
+$item_id = $plan_id;
+$item_name = $plan['plan_name'] ?? '';
+include '../includes/components/point-usage-modal.php';
+?>
 
 <?php include '../includes/footer.php'; ?>

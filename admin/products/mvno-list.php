@@ -179,7 +179,9 @@ try {
                 mvno.price_after AS monthly_fee,
                 p.seller_id AS seller_user_id,
                 COALESCE(NULLIF(u.seller_name,''), NULLIF(u.company_name,''), NULLIF(u.name,''), u.user_id) AS seller_name,
-                COALESCE(u.company_name,'') AS company_name
+                COALESCE(u.company_name,'') AS company_name,
+                p.point_setting,
+                p.point_benefit_description
             FROM products p
             INNER JOIN product_mvno_details mvno ON p.id = mvno.product_id
             {$searchJoin}
@@ -220,8 +222,10 @@ try {
 
 <style>
     .product-list-container {
-        max-width: 1400px;
-        margin: 0 auto;
+        width: 100%;
+        margin: 0;
+        padding: 0 20px;
+        box-sizing: border-box;
     }
     
     .page-header {
@@ -968,6 +972,8 @@ try {
                             <th style="text-align: right;">찜</th>
                             <th style="text-align: right;">리뷰</th>
                             <th style="text-align: right;">신청</th>
+                            <th style="text-align: center;">포인트</th>
+                            <th style="text-align: center;">혜택내용</th>
                             <th style="text-align: center;">상태</th>
                             <th style="text-align: center;">등록일</th>
                             <th style="text-align: center;">관리</th>
@@ -1028,6 +1034,52 @@ try {
                                     </a>
                                 </td>
                                 <td style="text-align: right;"><?php echo number_format($product['application_count'] ?? 0); ?></td>
+                                <td style="text-align: center;">
+                                    <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+                                        <?php 
+                                        $pointSetting = isset($product['point_setting']) ? intval($product['point_setting']) : 0;
+                                        if ($pointSetting > 0): 
+                                        ?>
+                                            <span style="color: #6366f1; font-weight: 600;"><?php echo number_format($pointSetting); ?>P</span>
+                                        <?php else: ?>
+                                            <span style="color: #9ca3af;">-</span>
+                                        <?php endif; ?>
+                                        <button type="button" 
+                                                class="point-edit-btn" 
+                                                onclick="openPointEditModal(<?php echo $product['id']; ?>, <?php echo $pointSetting; ?>, '<?php echo htmlspecialchars($product['point_benefit_description'] ?? '', ENT_QUOTES); ?>')"
+                                                title="포인트 편집"
+                                                style="background: none; border: none; padding: 4px; cursor: pointer; color: #6b7280; display: inline-flex; align-items: center; justify-content: center;">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </td>
+                                <td style="text-align: center;">
+                                    <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+                                        <?php 
+                                        $benefitDesc = $product['point_benefit_description'] ?? '';
+                                        if (!empty($benefitDesc)): 
+                                        ?>
+                                            <span style="color: #10b981; font-weight: 500; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="<?php echo htmlspecialchars($benefitDesc); ?>">
+                                                <?php echo htmlspecialchars($benefitDesc); ?>
+                                            </span>
+                                        <?php else: ?>
+                                            <span style="color: #9ca3af;">-</span>
+                                        <?php endif; ?>
+                                        <button type="button" 
+                                                class="point-edit-btn" 
+                                                onclick="openPointEditModal(<?php echo $product['id']; ?>, <?php echo $pointSetting; ?>, '<?php echo htmlspecialchars($benefitDesc, ENT_QUOTES); ?>')"
+                                                title="혜택내용 편집"
+                                                style="background: none; border: none; padding: 4px; cursor: pointer; color: #6b7280; display: inline-flex; align-items: center; justify-content: center;">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </td>
                                 <td style="text-align: center;">
                                     <span class="badge <?php echo ($product['status'] ?? 'active') === 'active' ? 'badge-active' : 'badge-inactive'; ?>">
                                         <?php echo ($product['status'] ?? 'active') === 'active' ? '판매중' : '판매종료'; ?>
@@ -1711,6 +1763,398 @@ document.addEventListener('DOMContentLoaded', function() {
 .review-link:hover {
     text-decoration: underline;
 }
+
+.point-edit-btn:hover {
+    background: #f3f4f6 !important;
+    color: #374151 !important;
+}
+
+/* 포인트 편집 모달 */
+#pointEditModal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 10000;
+    align-items: center;
+    justify-content: center;
+}
+
+#pointEditModal.show {
+    display: flex;
+}
+
+.point-edit-modal-content {
+    position: relative;
+    background: white;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 500px;
+    padding: 0;
+    z-index: 10001;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.point-edit-modal-header {
+    padding: 24px;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.point-edit-modal-header h2 {
+    font-size: 20px;
+    font-weight: 700;
+    margin: 0;
+    color: #1f2937;
+}
+
+.point-edit-modal-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    transition: background 0.2s;
+}
+
+.point-edit-modal-close:hover {
+    background: #f3f4f6;
+}
+
+.point-edit-modal-body {
+    padding: 24px;
+}
+
+.point-edit-form-group {
+    margin-bottom: 20px;
+}
+
+.point-edit-form-label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 8px;
+}
+
+.point-edit-form-input {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 14px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    background: white;
+    box-sizing: border-box;
+}
+
+.point-edit-form-input:focus {
+    outline: none;
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.point-edit-form-textarea {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 14px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    background: white;
+    box-sizing: border-box;
+    min-height: 100px;
+    resize: vertical;
+    font-family: inherit;
+}
+
+.point-edit-form-textarea:focus {
+    outline: none;
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.point-edit-form-help {
+    font-size: 12px;
+    color: #6b7280;
+    margin-top: 4px;
+}
+
+.point-edit-modal-footer {
+    padding: 16px 24px;
+    border-top: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.point-edit-btn {
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+}
+
+.point-edit-btn-primary {
+    background: #6366f1;
+    color: white;
+}
+
+.point-edit-btn-primary:hover {
+    background: #4f46e5;
+}
+
+.point-edit-btn-secondary {
+    background: #f3f4f6;
+    color: #374151;
+}
+
+.point-edit-btn-secondary:hover {
+    background: #e5e7eb;
+}
+
+.point-edit-btn-danger {
+    background: #ef4444;
+    color: white;
+}
+
+.point-edit-btn-danger:hover {
+    background: #dc2626;
+}
+
+.point-edit-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
 </style>
+
+<!-- 포인트 편집 모달 -->
+<div id="pointEditModal" class="point-edit-modal">
+    <div class="point-edit-modal-content">
+        <div class="point-edit-modal-header">
+            <h2>포인트 및 혜택내용 편집</h2>
+            <button type="button" class="point-edit-modal-close" onclick="closePointEditModal()">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M18 6L6 18M6 6L18 18" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+        </div>
+        <div class="point-edit-modal-body">
+            <form id="pointEditForm" onsubmit="savePointEdit(event)">
+                <input type="hidden" id="pointEditProductId" value="">
+                <div class="point-edit-form-group">
+                    <label class="point-edit-form-label" for="pointEditPointSetting">
+                        포인트 설정
+                    </label>
+                    <input type="number" 
+                           id="pointEditPointSetting" 
+                           class="point-edit-form-input" 
+                           min="0" 
+                           step="1000" 
+                           placeholder="0"
+                           required>
+                    <div class="point-edit-form-help">1000포인트 단위로 입력해주세요. (예: 3000, 5000, 10000) 삭제하려면 0을 입력하세요.</div>
+                </div>
+                <div class="point-edit-form-group">
+                    <label class="point-edit-form-label" for="pointEditBenefitDescription">
+                        혜택내용
+                    </label>
+                    <textarea id="pointEditBenefitDescription" 
+                              class="point-edit-form-textarea" 
+                              placeholder="예: 네이버페이 5000원 지급 익월말"></textarea>
+                    <div class="point-edit-form-help">고객에게 표시될 혜택 내용을 입력해주세요.</div>
+                </div>
+            </form>
+        </div>
+        <div class="point-edit-modal-footer">
+            <button type="button" class="point-edit-btn point-edit-btn-danger" onclick="deletePointEdit()">삭제</button>
+            <button type="button" class="point-edit-btn point-edit-btn-secondary" onclick="closePointEditModal()">취소</button>
+            <button type="button" class="point-edit-btn point-edit-btn-primary" onclick="savePointEdit()">저장</button>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentPointEditProductId = null;
+
+function openPointEditModal(productId, pointSetting, benefitDescription) {
+    currentPointEditProductId = productId;
+    const modal = document.getElementById('pointEditModal');
+    const pointInput = document.getElementById('pointEditPointSetting');
+    const benefitInput = document.getElementById('pointEditBenefitDescription');
+    const productIdInput = document.getElementById('pointEditProductId');
+    
+    if (modal && pointInput && benefitInput && productIdInput) {
+        productIdInput.value = productId;
+        pointInput.value = pointSetting || 0;
+        benefitInput.value = benefitDescription || '';
+        modal.classList.add('show');
+        document.body.style.overflow = 'hidden';
+        
+        // 포인트 입력 검증
+        pointInput.addEventListener('input', function() {
+            const value = parseInt(this.value) || 0;
+            if (value > 0 && value % 1000 !== 0) {
+                this.setCustomValidity('1000포인트 단위로 입력해주세요.');
+            } else {
+                this.setCustomValidity('');
+            }
+        });
+    }
+}
+
+function closePointEditModal() {
+    const modal = document.getElementById('pointEditModal');
+    if (modal) {
+        modal.classList.remove('show');
+        document.body.style.overflow = '';
+        currentPointEditProductId = null;
+    }
+}
+
+function deletePointEdit() {
+    if (!confirm('포인트와 혜택내용을 모두 삭제하시겠습니까?')) {
+        return;
+    }
+    
+    const productId = document.getElementById('pointEditProductId').value;
+    const pointInput = document.getElementById('pointEditPointSetting');
+    const benefitInput = document.getElementById('pointEditBenefitDescription');
+    
+    // 입력 필드 비우기
+    if (pointInput) pointInput.value = 0;
+    if (benefitInput) benefitInput.value = '';
+    
+    // 저장 버튼 비활성화
+    const saveBtn = document.querySelector('.point-edit-btn-primary');
+    if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.textContent = '삭제 중...';
+    }
+    
+    // API 호출
+    fetch('/MVNO/api/admin/update-product-point.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            product_id: productId,
+            point_setting: 0,
+            point_benefit_description: ''
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlertModal('성공', '포인트 및 혜택내용이 삭제되었습니다.');
+            setTimeout(() => {
+                location.reload();
+            }, 1500);
+        } else {
+            showAlertModal('오류', data.message || '삭제에 실패했습니다.');
+            if (saveBtn) {
+                saveBtn.disabled = false;
+                saveBtn.textContent = '저장';
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlertModal('오류', '삭제 중 오류가 발생했습니다.');
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.textContent = '저장';
+        }
+    });
+}
+
+function savePointEdit(event) {
+    if (event) {
+        event.preventDefault();
+    }
+    
+    const productId = document.getElementById('pointEditProductId').value;
+    const pointSetting = parseInt(document.getElementById('pointEditPointSetting').value) || 0;
+    const benefitDescription = document.getElementById('pointEditBenefitDescription').value.trim();
+    
+    // 포인트 검증
+    if (pointSetting > 0 && pointSetting % 1000 !== 0) {
+        showAlertModal('오류', '포인트는 1000포인트 단위로 입력해주세요.');
+        return;
+    }
+    
+    // 저장 버튼 비활성화
+    const saveBtn = document.querySelector('.point-edit-btn-primary');
+    if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.textContent = '저장 중...';
+    }
+    
+    // API 호출
+    fetch('/MVNO/api/admin/update-product-point.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            product_id: productId,
+            point_setting: pointSetting,
+            point_benefit_description: benefitDescription
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlertModal('성공', '포인트 및 혜택내용이 저장되었습니다.');
+            setTimeout(() => {
+                location.reload();
+            }, 1500);
+        } else {
+            showAlertModal('오류', data.message || '저장에 실패했습니다.');
+            if (saveBtn) {
+                saveBtn.disabled = false;
+                saveBtn.textContent = '저장';
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlertModal('오류', '저장 중 오류가 발생했습니다.');
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.textContent = '저장';
+        }
+    });
+}
+
+// 모달 오버레이 클릭 시 닫기
+document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('pointEditModal');
+    if (modal) {
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                closePointEditModal();
+            }
+        });
+    }
+    
+    // ESC 키로 모달 닫기
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && modal && modal.classList.contains('show')) {
+            closePointEditModal();
+        }
+    });
+});
+</script>
 
 <?php require_once __DIR__ . '/../includes/admin-footer.php'; ?>

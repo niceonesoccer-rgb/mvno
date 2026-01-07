@@ -70,25 +70,57 @@ try {
             throw new Exception('수정할 상품을 찾을 수 없습니다.');
         }
         
+        // 포인트 설정 처리
+        $point_setting = isset($_POST['point_setting']) ? intval($_POST['point_setting']) : 0;
+        $point_benefit_description = isset($_POST['point_benefit_description']) ? trim($_POST['point_benefit_description']) : '';
+        
+        // 1000원 단위 검증
+        if ($point_setting > 0 && $point_setting % 1000 !== 0) {
+            $point_setting = floor($point_setting / 1000) * 1000;
+        }
+        
+        // 할인 혜택 내용 길이 제한
+        if (strlen($point_benefit_description) > 500) {
+            $point_benefit_description = substr($point_benefit_description, 0, 500);
+        }
+        
         // products 테이블 업데이트
         $updateProductStmt = $pdo->prepare("
             UPDATE products 
-            SET status = :status, updated_at = NOW()
+            SET status = :status, point_setting = :point_setting, point_benefit_description = :point_benefit_description, updated_at = NOW()
             WHERE id = :product_id
         ");
         $updateProductStmt->execute([
             ':status' => $_POST['product_status'] ?? 'active',
+            ':point_setting' => $point_setting,
+            ':point_benefit_description' => $point_benefit_description ?: null,
             ':product_id' => $productId
         ]);
     } else {
+        // 포인트 설정 처리
+        $point_setting = isset($_POST['point_setting']) ? intval($_POST['point_setting']) : 0;
+        $point_benefit_description = isset($_POST['point_benefit_description']) ? trim($_POST['point_benefit_description']) : '';
+        
+        // 1000원 단위 검증
+        if ($point_setting > 0 && $point_setting % 1000 !== 0) {
+            $point_setting = floor($point_setting / 1000) * 1000;
+        }
+        
+        // 할인 혜택 내용 길이 제한
+        if (strlen($point_benefit_description) > 500) {
+            $point_benefit_description = substr($point_benefit_description, 0, 500);
+        }
+        
         // 등록 모드: products 테이블에 새 레코드 추가
         $insertProductStmt = $pdo->prepare("
-            INSERT INTO products (seller_id, product_type, status, created_at, updated_at)
-            VALUES (:seller_id, 'mno-sim', :status, NOW(), NOW())
+            INSERT INTO products (seller_id, product_type, status, point_setting, point_benefit_description, created_at, updated_at)
+            VALUES (:seller_id, 'mno-sim', :status, :point_setting, :point_benefit_description, NOW(), NOW())
         ");
         $insertProductStmt->execute([
             ':seller_id' => $sellerId,
-            ':status' => $_POST['product_status'] ?? 'active'
+            ':status' => $_POST['product_status'] ?? 'active',
+            ':point_setting' => $point_setting,
+            ':point_benefit_description' => $point_benefit_description ?: null
         ]);
         $productId = $pdo->lastInsertId();
     }

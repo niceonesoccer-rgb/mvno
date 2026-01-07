@@ -22,7 +22,7 @@ $point_settings = [
     'internet_application_point' => 1000,
     
     // 포인트 사용 안내 메시지
-    'usage_message' => '신청 시 포인트가 차감됩니다.',
+    'usage_message' => '포인트를 사용하시면 개통 시 추가 할인을 받으실 수 있습니다.',
 ];
 
 require_once __DIR__ . '/db-config.php';

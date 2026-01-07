@@ -287,7 +287,16 @@ if ($pdo && empty($errors)) {
                 mvno.sms_amount,
                 mvno.service_type,
                 mvno.promotions,
-                p.status as product_status
+                p.status as product_status,
+                p.point_setting,
+                p.point_benefit_description,
+                (SELECT ABS(delta) FROM user_point_ledger 
+                 WHERE user_id = c.user_id 
+                   AND item_id = a.product_id 
+                   AND type = 'mvno' 
+                   AND delta < 0 
+                   AND created_at <= a.created_at
+                 ORDER BY created_at DESC LIMIT 1) as used_point
             FROM product_applications a
             INNER JOIN application_customers c ON a.id = c.application_id
             LEFT JOIN products p ON a.product_id = p.id
@@ -408,9 +417,10 @@ function getContractType($app) {
 
 <style>
     .order-list-container {
-        max-width: 1800px;
+        max-width: 100%;
         margin: 0 auto;
         overflow-x: auto;
+        width: 100%;
     }
     
     .page-header {
@@ -528,23 +538,25 @@ function getContractType($app) {
         padding: 16px;
         border-bottom: 2px solid #e5e7eb;
         display: grid;
-        grid-template-columns: 50px 60px 120px 100px 120px 100px 150px 100px 100px 120px 120px 120px 120px 100px;
+        grid-template-columns: 50px 60px 120px 100px 120px 100px 150px 100px 100px 120px 120px 120px 100px 200px 100px;
         gap: 12px;
         font-weight: 600;
         font-size: 13px;
         color: #374151;
-        min-width: 1570px;
+        min-width: 1750px;
+        white-space: nowrap;
     }
     
     .table-row {
         padding: 16px;
         border-bottom: 1px solid #e5e7eb;
         display: grid;
-        grid-template-columns: 50px 60px 120px 100px 120px 100px 150px 100px 100px 120px 120px 120px 120px 100px;
+        grid-template-columns: 50px 60px 120px 100px 120px 100px 150px 100px 100px 120px 120px 120px 100px 200px 100px;
         gap: 12px;
         align-items: center;
         transition: background 0.2s;
-        min-width: 1520px;
+        min-width: 1750px;
+        white-space: nowrap;
     }
     
     .table-row:hover {
@@ -559,6 +571,9 @@ function getContractType($app) {
         font-size: 13px;
         color: #1f2937;
         word-break: break-word;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
     
     .status-badge {
@@ -567,6 +582,9 @@ function getContractType($app) {
         border-radius: 12px;
         font-size: 12px;
         font-weight: 600;
+        white-space: nowrap;
+        flex-shrink: 0;
+        line-height: 1;
     }
     
     .status-received,
@@ -718,8 +736,12 @@ function getContractType($app) {
     
     .status-cell-wrapper {
         display: flex;
+        flex-direction: row;
         align-items: center;
+        justify-content: flex-start;
         gap: 8px;
+        white-space: nowrap;
+        flex-wrap: nowrap;
     }
     
     .status-edit-btn {
@@ -728,11 +750,15 @@ function getContractType($app) {
         padding: 4px;
         cursor: pointer;
         color: #6b7280;
-        display: flex;
+        display: inline-flex;
         align-items: center;
         justify-content: center;
         border-radius: 4px;
         transition: all 0.2s;
+        flex-shrink: 0;
+        white-space: nowrap;
+        line-height: 1;
+        vertical-align: middle;
     }
     
     .status-edit-btn:hover {
@@ -1294,8 +1320,9 @@ function getContractType($app) {
             <div>고객명</div>
             <div>전화번호</div>
             <div>이메일</div>
-            <div>접수일</div>
-            <div>진행상황</div>
+            <div>포인트</div>
+            <div>혜택내용</div>
+            <div></div>
         </div>
         
         <?php 
@@ -1352,7 +1379,26 @@ function getContractType($app) {
                 <div class="table-cell"><?php echo htmlspecialchars($app['customer_name'] ?? '-'); ?></div>
                 <div class="table-cell"><?php echo htmlspecialchars($app['customer_phone'] ?? '-'); ?></div>
                 <div class="table-cell"><?php echo htmlspecialchars($app['customer_email'] ?? '-'); ?></div>
-                <div class="table-cell"><?php echo htmlspecialchars($formattedDate); ?></div>
+                <div class="table-cell">
+                    <?php 
+                    $usedPoint = isset($app['used_point']) ? intval($app['used_point']) : 0;
+                    if ($usedPoint > 0): 
+                        $formattedPoint = number_format($usedPoint);
+                    ?>
+                        <span style="color: #6366f1; font-weight: 600;" title="포인트 사용: <?php echo $formattedPoint; ?>원">
+                            <?php echo $formattedPoint; ?>원
+                        </span>
+                    <?php else: ?>
+                        <span style="color: #9ca3af;">-</span>
+                    <?php endif; ?>
+                </div>
+                <div class="table-cell" style="color: #10b981; font-weight: 500;" title="<?php echo !empty($app['point_benefit_description']) ? htmlspecialchars($app['point_benefit_description']) : ''; ?>">
+                    <?php if (!empty($app['point_benefit_description'])): ?>
+                        <?php echo htmlspecialchars($app['point_benefit_description']); ?>
+                    <?php else: ?>
+                        <span style="color: #9ca3af;">-</span>
+                    <?php endif; ?>
+                </div>
                 <div class="table-cell">
                     <div class="status-cell-wrapper">
                         <?php
@@ -1902,6 +1948,18 @@ function showProductModal(orderData) {
             };
             const statusLabel = statusLabels[orderData.application_status] || orderData.application_status;
             customerInfoRows.push(`<tr><th>진행상황</th><td>${escapeHtml(statusLabel)}</td></tr>`);
+        }
+        
+        // 포인트 사용 정보 추가
+        if (orderData.used_point && parseInt(orderData.used_point) > 0) {
+            const usedPoint = parseInt(orderData.used_point);
+            const formattedPoint = usedPoint.toLocaleString('ko-KR');
+            customerInfoRows.push(`<tr><th>포인트 사용</th><td style="color: #6366f1; font-weight: 600;">${formattedPoint}원</td></tr>`);
+            
+            // 할인 혜택 내용 표시
+            if (orderData.point_benefit_description) {
+                customerInfoRows.push(`<tr><th>할인 혜택</th><td style="color: #10b981; font-weight: 500;">${escapeHtml(orderData.point_benefit_description)}</td></tr>`);
+            }
         }
         
         if (customerInfoRows.length > 0) {

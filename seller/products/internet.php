@@ -1112,6 +1112,62 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
         </div>
         
+        <!-- 포인트 할인 혜택 설정 -->
+        <div class="form-section">
+            <div class="form-section-title">포인트 할인 혜택 설정</div>
+            
+            <div class="form-group">
+                <label class="form-label" for="point_setting">
+                    포인트 설정 (원)
+                    <span style="font-size: 12px; color: #6b7280; font-weight: normal; margin-left: 4px;">고객이 사용할 수 있는 포인트 금액을 입력하세요 (1000원 단위)</span>
+                </label>
+                <input 
+                    type="number" 
+                    name="point_setting" 
+                    id="point_setting" 
+                    class="form-control" 
+                    value="<?php echo isset($productData['point_setting']) ? htmlspecialchars($productData['point_setting']) : '0'; ?>"
+                    min="0" 
+                    step="1000"
+                    placeholder="예: 3000"
+                    style="max-width: 300px;"
+                >
+                <small class="form-text" style="display: block; margin-top: 8px; color: #6b7280; font-size: 13px;">
+                    고객이 이 상품 신청 시 사용할 수 있는 포인트 금액입니다. 0으로 설정하면 포인트 사용이 불가능합니다. (1000원 단위로 입력)
+                </small>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="point_benefit_description">
+                    할인 혜택 내용
+                    <span style="font-size: 12px; color: #6b7280; font-weight: normal; margin-left: 4px;">포인트 사용 시 제공되는 혜택을 입력하세요</span>
+                </label>
+                <textarea 
+                    name="point_benefit_description" 
+                    id="point_benefit_description" 
+                    class="form-textarea" 
+                    rows="3"
+                    maxlength="500"
+                    placeholder="예: 네이버페이 5000지급 익월말"
+                    style="max-width: 100%;"
+                ><?php echo isset($productData['point_benefit_description']) ? htmlspecialchars($productData['point_benefit_description']) : ''; ?></textarea>
+                <small class="form-text" style="display: block; margin-top: 8px; color: #6b7280; font-size: 13px;">
+                    포인트 사용 시 고객에게 제공되는 할인 혜택 내용을 입력하세요. 
+                    예: "네이버페이 5000지급 익월말", "쿠폰 3000원 지급", "추가 할인 5000원" 등
+                </small>
+            </div>
+            
+            <div style="background: #eef2ff; padding: 12px; border-radius: 8px; margin-top: 12px;">
+                <strong style="color: #4338ca;">💡 안내:</strong>
+                <ul style="margin: 8px 0 0 20px; padding: 0; color: #4338ca; font-size: 13px;">
+                    <li>포인트 설정이 0보다 크면 고객이 포인트를 사용할 수 있습니다.</li>
+                    <li>할인 혜택 내용은 고객이 포인트 사용 모달에서 확인할 수 있습니다.</li>
+                    <li>관리자 주문 관리 페이지에서도 할인 혜택 내용이 표시됩니다.</li>
+                    <li>포인트 설정이 0이거나 할인 혜택이 없으면 포인트 모달을 건너뛰고 바로 신청 모달로 이동합니다.</li>
+                </ul>
+            </div>
+        </div>
+        
         <!-- 제출 버튼 -->
         <div class="form-actions">
             <a href="/MVNO/seller/products/internet-list.php" class="btn btn-secondary">취소</a>

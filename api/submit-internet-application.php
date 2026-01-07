@@ -179,6 +179,19 @@ try {
     
     error_log("Internet Application Debug - Step 6: addProductApplication returned: " . var_export($applicationId, true));
     
+    // 포인트 차감 처리 (가입 신청 완료 후)
+    $usedPoint = isset($_POST['used_point']) ? intval($_POST['used_point']) : 0;
+    if ($usedPoint > 0 && $applicationId !== false) {
+        $pointResult = deductPoint($userId, $usedPoint, 'internet', $productId, '인터넷 할인혜택');
+        
+        if (!$pointResult['success']) {
+            error_log("Internet Application - 포인트 차감 실패: " . ($pointResult['message'] ?? '알 수 없는 오류'));
+            // 포인트 차감 실패해도 신청은 완료된 상태이므로 경고만 로그에 기록
+        } else {
+            error_log("Internet Application - 포인트 차감 성공: {$usedPoint}포인트 차감됨");
+        }
+    }
+    
     if ($applicationId === false) {
         // 더 자세한 에러 로깅
         error_log("Internet Application Save Failed - Product ID: {$productId}, Seller ID: {$sellerId}, User ID: {$userId}");

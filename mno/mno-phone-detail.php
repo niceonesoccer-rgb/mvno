@@ -477,6 +477,14 @@ if (!$isAdmin && isset($phone['status']) && $phone['status'] === 'inactive') {
 
 </main>
 
+<?php 
+// 포인트 사용 모달 포함
+$type = 'mno';
+$item_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
+$item_name = '';
+include '../includes/components/point-usage-modal.php';
+?>
+
 <?php
 // 푸터 포함
 include '../includes/footer.php';
@@ -486,6 +494,61 @@ include '../includes/footer.php';
 <script src="/MVNO/assets/js/favorite-heart.js" defer></script>
 
 <script>
+// 포인트 설정 확인 및 모달 열기 함수
+function checkAndOpenPointModal(type, itemId, callback) {
+    // 포인트 설정 조회
+    fetch(`/MVNO/api/get-product-point-setting.php?type=${type}&id=${itemId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (!data.success) {
+                // 조회 실패 시 바로 신청 모달 열기
+                if (callback) callback();
+                return;
+            }
+            
+            // 포인트 설정이 0이거나 할인 혜택이 없으면 바로 신청 모달 열기
+            if (!data.can_use_point || data.point_setting <= 0 || !data.point_benefit_description) {
+                if (callback) callback();
+                return;
+            }
+            
+            // 포인트 모달 열기
+            if (typeof openPointUsageModal === 'function') {
+                openPointUsageModal(type, itemId);
+                
+                // 포인트 모달 확인 이벤트 리스너 (한 번만 등록)
+                const eventHandler = function(e) {
+                    const { usedPoint } = e.detail;
+                    
+                    // 포인트 사용 정보만 저장 (실제 차감은 가입 신청 완료 시 처리)
+                    window.pointUsageData = {
+                        type: type,
+                        itemId: itemId,
+                        usedPoint: usedPoint,
+                        discountAmount: usedPoint,
+                        productPointSetting: data.point_setting,
+                        benefitDescription: data.point_benefit_description
+                    };
+                    
+                    // 기존 신청 모달 열기
+                    if (callback) callback();
+                    
+                    // 이벤트 리스너 제거 (한 번만 실행)
+                    document.removeEventListener('pointUsageConfirmed', eventHandler);
+                };
+                
+                document.addEventListener('pointUsageConfirmed', eventHandler, { once: true });
+            } else {
+                // 포인트 모달 함수가 없으면 바로 신청 모달 열기
+                if (callback) callback();
+            }
+        })
+        .catch(error => {
+            console.error('포인트 설정 조회 오류:', error);
+            // 오류 발생 시에도 신청 모달 열기 (사용자 경험 유지)
+            if (callback) callback();
+        });
+}
 </script>
 
 <?php
@@ -1630,8 +1693,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
-            // 회원: 할인방법 선택 모달 열기
-            openDiscountSelectionModal();
+            // 포인트 설정 확인 후 할인방법 선택 모달 열기
+            const productId = <?php echo isset($_GET['id']) ? intval($_GET['id']) : 0; ?>;
+            checkAndOpenPointModal('mno', productId, openDiscountSelectionModal);
         });
     }
     
@@ -3067,5 +3131,4 @@ span.internet-checkbox-text {
     z-index: 1;
 }
 </style>
-
 

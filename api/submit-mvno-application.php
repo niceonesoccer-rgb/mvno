@@ -199,6 +199,43 @@ try {
     
     error_log("MVNO Application - addProductApplication returned: " . ($applicationId === false ? 'false' : $applicationId));
     
+    // 포인트 차감 처리 (가입 신청 완료 후)
+    $usedPoint = isset($_POST['used_point']) ? intval($_POST['used_point']) : 0;
+    if ($usedPoint > 0 && $applicationId !== false) {
+        // 중복 차감 방지: 같은 신청에 대해 이미 포인트가 차감되었는지 확인
+        $pdo = getDBConnection();
+        if ($pdo) {
+            $checkStmt = $pdo->prepare("
+                SELECT COUNT(*) as count 
+                FROM user_point_ledger 
+                WHERE user_id = :user_id 
+                  AND item_id = :item_id 
+                  AND type = 'mvno' 
+                  AND delta < 0 
+                  AND description = '알뜰폰 할인혜택'
+                  AND created_at >= DATE_SUB(NOW(), INTERVAL 1 MINUTE)
+            ");
+            $checkStmt->execute([
+                ':user_id' => $userId,
+                ':item_id' => $productId
+            ]);
+            $existingDeduction = $checkStmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (($existingDeduction['count'] ?? 0) > 0) {
+                error_log("MVNO Application - 포인트 차감 중복 방지: 이미 차감된 내역이 있습니다.");
+            } else {
+                $pointResult = deductPoint($userId, $usedPoint, 'mvno', $productId, '알뜰폰 할인혜택');
+                
+                if (!$pointResult['success']) {
+                    error_log("MVNO Application - 포인트 차감 실패: " . ($pointResult['message'] ?? '알 수 없는 오류'));
+                    // 포인트 차감 실패해도 신청은 완료된 상태이므로 경고만 로그에 기록
+                } else {
+                    error_log("MVNO Application - 포인트 차감 성공: {$usedPoint}포인트 차감됨");
+                }
+            }
+        }
+    }
+    
     // 알림 설정 저장 (서비스 이용 및 혜택 안내 알림, 광고성 정보 수신동의)
     $serviceNoticeOptIn = isset($_POST['service_notice_opt_in']) ? (bool)$_POST['service_notice_opt_in'] : false;
     $serviceNoticePlanOptIn = isset($_POST['service_notice_plan_opt_in']) ? (bool)$_POST['service_notice_plan_opt_in'] : false;

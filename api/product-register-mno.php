@@ -93,8 +93,21 @@ $productData = [
     'delivery_method' => $_POST['delivery_method'] ?? 'delivery',
     'visit_region' => $_POST['visit_region'] ?? '',
     'redirect_url' => !empty($_POST['redirect_url']) ? trim($_POST['redirect_url']) : null,
+    'point_setting' => isset($_POST['point_setting']) ? intval($_POST['point_setting']) : 0,
+    'point_benefit_description' => isset($_POST['point_benefit_description']) ? trim($_POST['point_benefit_description']) : '',
     'created_at' => date('Y-m-d H:i:s')
 ];
+
+// 포인트 설정 유효성 검증 (1000원 단위)
+if (isset($productData['point_setting']) && $productData['point_setting'] > 0) {
+    if ($productData['point_setting'] % 1000 !== 0) {
+        echo json_encode([
+            'success' => false,
+            'message' => '포인트 설정은 1000원 단위로 입력해주세요.'
+        ]);
+        exit;
+    }
+}
 
 // 필수 필드 검증
 if (empty($productData['device_name'])) {

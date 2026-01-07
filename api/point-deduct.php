@@ -25,16 +25,21 @@ if (!$user_id) {
     echo json_encode(['success' => false, 'message' => '로그인이 필요합니다.']);
     exit;
 }
-$type = $input['type'] ?? ''; // 'mvno', 'mno', 'internet'
+$type = $input['type'] ?? ''; // 'mvno', 'mno', 'mno-sim', 'internet'
 $item_id = $input['item_id'] ?? 0;
 $amount = intval($input['amount'] ?? 0);
 $description = $input['description'] ?? '';
 
-// 유효성 검사
-if (!in_array($type, ['mvno', 'mno', 'internet'])) {
+// 유효성 검사 ('mno-sim'은 'mno'로 변환하여 처리)
+if (!in_array($type, ['mvno', 'mno', 'mno-sim', 'internet'])) {
     http_response_code(400);
     echo json_encode(['success' => false, 'message' => 'Invalid type']);
     exit;
+}
+
+// 'mno-sim'을 'mno'로 변환 (데이터베이스 저장 시 일관성 유지)
+if ($type === 'mno-sim') {
+    $type = 'mno';
 }
 
 if ($amount <= 0) {

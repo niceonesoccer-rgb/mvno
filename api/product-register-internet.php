@@ -55,7 +55,9 @@ $productData = [
     'installation_names' => isset($_POST['installation_names']) && is_array($_POST['installation_names']) ? $_POST['installation_names'] : [],
     'installation_prices' => isset($_POST['installation_prices']) && is_array($_POST['installation_prices']) ? $_POST['installation_prices'] : [],
     'promotion_title' => isset($_POST['promotion_title']) ? trim($_POST['promotion_title']) : '',
-    'promotions' => isset($_POST['promotions']) && is_array($_POST['promotions']) ? $_POST['promotions'] : []
+    'promotions' => isset($_POST['promotions']) && is_array($_POST['promotions']) ? $_POST['promotions'] : [],
+    'point_setting' => isset($_POST['point_setting']) ? intval($_POST['point_setting']) : 0,
+    'point_benefit_description' => isset($_POST['point_benefit_description']) ? trim($_POST['point_benefit_description']) : ''
 ];
 
 // 디버깅: installation 데이터 확인
@@ -92,6 +94,17 @@ if (empty($productData['speed_option'])) {
         'message' => '인터넷속도를 선택해주세요.'
     ]);
     exit;
+}
+
+// 포인트 설정 유효성 검증 (1000원 단위)
+if (isset($productData['point_setting']) && $productData['point_setting'] > 0) {
+    if ($productData['point_setting'] % 1000 !== 0) {
+        echo json_encode([
+            'success' => false,
+            'message' => '포인트 설정은 1000원 단위로 입력해주세요.'
+        ]);
+        exit;
+    }
 }
 
 // 인터넷 상품 데이터 저장

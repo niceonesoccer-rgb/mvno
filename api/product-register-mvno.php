@@ -95,8 +95,21 @@ $productData = [
     'benefits' => $_POST['benefits'] ?? [],
     'registration_types' => $_POST['registration_types'] ?? [],
     'status' => $_POST['product_status'] ?? ($productData['product_id'] > 0 ? null : 'active'),
-    'redirect_url' => !empty($_POST['redirect_url']) ? preg_replace('/\s+/', '', trim($_POST['redirect_url'])) : null
+    'redirect_url' => !empty($_POST['redirect_url']) ? preg_replace('/\s+/', '', trim($_POST['redirect_url'])) : null,
+    'point_setting' => isset($_POST['point_setting']) ? intval($_POST['point_setting']) : 0,
+    'point_benefit_description' => isset($_POST['point_benefit_description']) ? trim($_POST['point_benefit_description']) : ''
 ];
+
+// 포인트 설정 유효성 검증 (1000원 단위)
+if (isset($productData['point_setting']) && $productData['point_setting'] > 0) {
+    if ($productData['point_setting'] % 1000 !== 0) {
+        echo json_encode([
+            'success' => false,
+            'message' => '포인트 설정은 1000원 단위로 입력해주세요.'
+        ]);
+        exit;
+    }
+}
 
 // 필수 필드 검증
 if (empty($productData['plan_name'])) {

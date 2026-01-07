@@ -101,15 +101,44 @@ include '../includes/header.php';
                         ];
                         // description 기반 타입 라벨 결정
                         $type_label = $type_labels[$item['type']] ?? '포인트 적립';
-                        if ($item['type'] === 'view_product' && !empty($item['description'])) {
-                            if (strpos($item['description'], '통신사폰 신청 포인트') !== false || strpos($item['description'], '통신사폰 신청') !== false) {
-                                $type_label = '통신사폰 신청';
-                            } elseif (strpos($item['description'], '알뜰폰 신청 포인트') !== false || strpos($item['description'], '알뜰폰 신청') !== false) {
-                                $type_label = '알뜰폰 신청';
-                            } elseif (strpos($item['description'], '통신사단독유심 신청 포인트') !== false || strpos($item['description'], '통신사단독유심 신청') !== false) {
+                        
+                        // description을 확인하여 정확한 신청 타입 표시
+                        if (!empty($item['description'])) {
+                            $description = $item['description'];
+                            // 정확한 매칭을 위해 더 구체적인 키워드부터 확인
+                            // 통신사단독유심 할인혜택 확인 (가장 구체적인 키워드 먼저)
+                            if (strpos($description, '통신사단독유심 할인혜택') !== false) {
                                 $type_label = '통신사단독유심 신청';
-                            } elseif (strpos($item['description'], '인터넷 신청 포인트') !== false || strpos($item['description'], '인터넷 신청') !== false) {
+                            } elseif (strpos($description, '통신사단독유심') !== false) {
+                                $type_label = '통신사단독유심 신청';
+                            } elseif (strpos($description, '통신사폰 할인혜택') !== false) {
+                                $type_label = '통신사폰 신청';
+                            } elseif (strpos($description, '알뜰폰 할인혜택') !== false) {
+                                $type_label = '알뜰폰 신청';
+                            } elseif (strpos($description, '인터넷 할인혜택') !== false) {
                                 $type_label = '인터넷 신청';
+                            } elseif ($item['type'] === 'view_product') {
+                                // 기존 view_product 로직 유지
+                                if (strpos($description, '통신사단독유심 신청 포인트') !== false || strpos($description, '통신사단독유심 신청') !== false) {
+                                    $type_label = '통신사단독유심 신청';
+                                } elseif (strpos($description, '통신사폰 신청 포인트') !== false || strpos($description, '통신사폰 신청') !== false) {
+                                    $type_label = '통신사폰 신청';
+                                } elseif (strpos($description, '알뜰폰 신청 포인트') !== false || strpos($description, '알뜰폰 신청') !== false) {
+                                    $type_label = '알뜰폰 신청';
+                                } elseif (strpos($description, '인터넷 신청 포인트') !== false || strpos($description, '인터넷 신청') !== false) {
+                                    $type_label = '인터넷 신청';
+                                }
+                            } else {
+                                // 할인혜택 키워드가 없으면 일반 키워드로 확인 (순서 중요)
+                                if (strpos($description, '통신사단독유심') !== false) {
+                                    $type_label = '통신사단독유심 신청';
+                                } elseif (strpos($description, '통신사폰') !== false) {
+                                    $type_label = '통신사폰 신청';
+                                } elseif (strpos($description, '알뜰폰') !== false) {
+                                    $type_label = '알뜰폰 신청';
+                                } elseif (strpos($description, '인터넷') !== false) {
+                                    $type_label = '인터넷 신청';
+                                }
                             }
                         }
                     ?>
@@ -199,15 +228,44 @@ include '../includes/header.php';
                         ];
                         // description 기반 타입 라벨 결정
                         $type_label = $type_labels[$item['type']] ?? '포인트 적립';
-                        if ($item['type'] === 'view_product' && !empty($item['description'])) {
-                            if (strpos($item['description'], '통신사폰 신청 포인트') !== false || strpos($item['description'], '통신사폰 신청') !== false) {
-                                $type_label = '통신사폰 신청';
-                            } elseif (strpos($item['description'], '알뜰폰 신청 포인트') !== false || strpos($item['description'], '알뜰폰 신청') !== false) {
-                                $type_label = '알뜰폰 신청';
-                            } elseif (strpos($item['description'], '통신사단독유심 신청 포인트') !== false || strpos($item['description'], '통신사단독유심 신청') !== false) {
+                        
+                        // description을 확인하여 정확한 신청 타입 표시
+                        if (!empty($item['description'])) {
+                            $description = $item['description'];
+                            // 정확한 매칭을 위해 더 구체적인 키워드부터 확인
+                            // 통신사단독유심 할인혜택 확인 (가장 구체적인 키워드 먼저)
+                            if (strpos($description, '통신사단독유심 할인혜택') !== false) {
                                 $type_label = '통신사단독유심 신청';
-                            } elseif (strpos($item['description'], '인터넷 신청 포인트') !== false || strpos($item['description'], '인터넷 신청') !== false) {
+                            } elseif (strpos($description, '통신사단독유심') !== false) {
+                                $type_label = '통신사단독유심 신청';
+                            } elseif (strpos($description, '통신사폰 할인혜택') !== false) {
+                                $type_label = '통신사폰 신청';
+                            } elseif (strpos($description, '알뜰폰 할인혜택') !== false) {
+                                $type_label = '알뜰폰 신청';
+                            } elseif (strpos($description, '인터넷 할인혜택') !== false) {
                                 $type_label = '인터넷 신청';
+                            } elseif ($item['type'] === 'view_product') {
+                                // 기존 view_product 로직 유지
+                                if (strpos($description, '통신사단독유심 신청 포인트') !== false || strpos($description, '통신사단독유심 신청') !== false) {
+                                    $type_label = '통신사단독유심 신청';
+                                } elseif (strpos($description, '통신사폰 신청 포인트') !== false || strpos($description, '통신사폰 신청') !== false) {
+                                    $type_label = '통신사폰 신청';
+                                } elseif (strpos($description, '알뜰폰 신청 포인트') !== false || strpos($description, '알뜰폰 신청') !== false) {
+                                    $type_label = '알뜰폰 신청';
+                                } elseif (strpos($description, '인터넷 신청 포인트') !== false || strpos($description, '인터넷 신청') !== false) {
+                                    $type_label = '인터넷 신청';
+                                }
+                            } else {
+                                // 할인혜택 키워드가 없으면 일반 키워드로 확인 (순서 중요)
+                                if (strpos($description, '통신사단독유심') !== false) {
+                                    $type_label = '통신사단독유심 신청';
+                                } elseif (strpos($description, '통신사폰') !== false) {
+                                    $type_label = '통신사폰 신청';
+                                } elseif (strpos($description, '알뜰폰') !== false) {
+                                    $type_label = '알뜰폰 신청';
+                                } elseif (strpos($description, '인터넷') !== false) {
+                                    $type_label = '인터넷 신청';
+                                }
                             }
                         }
                     ?>
@@ -293,15 +351,44 @@ document.addEventListener('DOMContentLoaded', function() {
         const isDeduction = !['add', 'view_product'].includes(item.type);
         // description 기반 타입 라벨 결정
         let typeLabel = typeLabels[item.type] || '포인트 적립';
-        if (item.type === 'view_product' && item.description) {
-            if (item.description.indexOf('통신사폰 신청 포인트') !== -1 || item.description.indexOf('통신사폰 신청') !== -1) {
-                typeLabel = '통신사폰 신청';
-            } else if (item.description.indexOf('알뜰폰 신청 포인트') !== -1 || item.description.indexOf('알뜰폰 신청') !== -1) {
-                typeLabel = '알뜰폰 신청';
-            } else if (item.description.indexOf('통신사단독유심 신청 포인트') !== -1 || item.description.indexOf('통신사단독유심 신청') !== -1) {
+        
+        // description을 확인하여 정확한 신청 타입 표시
+        if (item.description) {
+            const description = item.description;
+            // 정확한 매칭을 위해 더 구체적인 키워드부터 확인
+            // 통신사단독유심 할인혜택 확인 (가장 구체적인 키워드 먼저)
+            if (description.indexOf('통신사단독유심 할인혜택') !== -1) {
                 typeLabel = '통신사단독유심 신청';
-            } else if (item.description.indexOf('인터넷 신청 포인트') !== -1 || item.description.indexOf('인터넷 신청') !== -1) {
+            } else if (description.indexOf('통신사단독유심') !== -1) {
+                typeLabel = '통신사단독유심 신청';
+            } else if (description.indexOf('통신사폰 할인혜택') !== -1) {
+                typeLabel = '통신사폰 신청';
+            } else if (description.indexOf('알뜰폰 할인혜택') !== -1) {
+                typeLabel = '알뜰폰 신청';
+            } else if (description.indexOf('인터넷 할인혜택') !== -1) {
                 typeLabel = '인터넷 신청';
+            } else if (item.type === 'view_product') {
+                // 기존 view_product 로직 유지
+                if (description.indexOf('통신사단독유심 신청 포인트') !== -1 || description.indexOf('통신사단독유심 신청') !== -1) {
+                    typeLabel = '통신사단독유심 신청';
+                } else if (description.indexOf('통신사폰 신청 포인트') !== -1 || description.indexOf('통신사폰 신청') !== -1) {
+                    typeLabel = '통신사폰 신청';
+                } else if (description.indexOf('알뜰폰 신청 포인트') !== -1 || description.indexOf('알뜰폰 신청') !== -1) {
+                    typeLabel = '알뜰폰 신청';
+                } else if (description.indexOf('인터넷 신청 포인트') !== -1 || description.indexOf('인터넷 신청') !== -1) {
+                    typeLabel = '인터넷 신청';
+                }
+            } else {
+                // 할인혜택 키워드가 없으면 일반 키워드로 확인 (순서 중요)
+                if (description.indexOf('통신사단독유심') !== -1) {
+                    typeLabel = '통신사단독유심 신청';
+                } else if (description.indexOf('통신사폰') !== -1) {
+                    typeLabel = '통신사폰 신청';
+                } else if (description.indexOf('알뜰폰') !== -1) {
+                    typeLabel = '알뜰폰 신청';
+                } else if (description.indexOf('인터넷') !== -1) {
+                    typeLabel = '인터넷 신청';
+                }
             }
         }
         

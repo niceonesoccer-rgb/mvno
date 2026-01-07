@@ -222,7 +222,16 @@ if ($pdo && empty($errors)) {
                 inet.service_type,
                 inet.speed_option,
                 inet.monthly_fee,
-                p.status as product_status
+                p.status as product_status,
+                p.point_setting,
+                p.point_benefit_description,
+                (SELECT ABS(delta) FROM user_point_ledger 
+                 WHERE user_id = c.user_id 
+                   AND item_id = a.product_id 
+                   AND type = 'internet' 
+                   AND delta < 0 
+                   AND created_at <= a.created_at
+                 ORDER BY created_at DESC LIMIT 1) as used_point
             FROM product_applications a
             INNER JOIN application_customers c ON a.id = c.application_id
             LEFT JOIN products p ON a.product_id = p.id
@@ -379,9 +388,10 @@ $statusMap = [
 
 <style>
     .order-list-container {
-        max-width: 1800px;
+        max-width: 100%;
         margin: 0 auto;
         overflow-x: auto;
+        width: 100%;
     }
     
     .page-header {
@@ -414,23 +424,26 @@ $statusMap = [
         padding: 16px;
         border-bottom: 2px solid #e5e7eb;
         display: grid;
-        grid-template-columns: 50px 60px 120px 100px 120px 120px 120px 120px 100px 100px 120px 120px 120px 120px 100px;
+        grid-template-columns: 50px 60px 120px 100px 150px 120px 150px 120px 100px 100px 120px 120px 100px 200px 140px;
         gap: 12px;
         font-weight: 600;
         font-size: 13px;
         color: #374151;
-        min-width: 1710px;
+        min-width: 2000px;
+        white-space: nowrap !important;
     }
     
     .table-row {
         padding: 16px;
         border-bottom: 1px solid #e5e7eb;
         display: grid;
-        grid-template-columns: 50px 60px 120px 100px 120px 120px 120px 120px 100px 100px 120px 120px 120px 120px 100px;
+        grid-template-columns: 50px 60px 120px 100px 150px 120px 150px 120px 100px 100px 120px 120px 100px 200px 140px;
         gap: 12px;
         align-items: center;
         transition: background 0.2s;
-        min-width: 1660px;
+        min-width: 2000px;
+        white-space: nowrap !important;
+        grid-auto-flow: column;
     }
     
     .table-row:hover {
@@ -444,15 +457,23 @@ $statusMap = [
     .table-cell {
         font-size: 13px;
         color: #1f2937;
-        word-break: break-word;
+        white-space: nowrap !important;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        word-break: keep-all;
+        line-height: 1.4;
     }
     
-    .status-badge {
-        display: inline-block;
-        padding: 4px 12px;
-        border-radius: 12px;
-        font-size: 12px;
-        font-weight: 600;
+    .table-cell * {
+        white-space: nowrap !important;
+    }
+    
+    .table-cell > div {
+        display: inline !important;
+    }
+    
+    .table-cell > span {
+        display: inline !important;
     }
     
     .status-received,
@@ -875,8 +896,31 @@ $statusMap = [
     
     .status-cell-wrapper {
         display: flex;
+        flex-direction: row;
         align-items: center;
+        justify-content: flex-start;
         gap: 8px;
+        white-space: nowrap;
+        overflow: visible;
+        flex-wrap: nowrap;
+        flex-shrink: 0;
+    }
+    
+    .table-cell:has(.status-cell-wrapper) {
+        overflow: visible !important;
+        white-space: nowrap !important;
+        min-width: 140px;
+    }
+    
+    .status-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+        white-space: nowrap;
+        flex-shrink: 0;
+        line-height: 1;
     }
     
     .status-edit-btn {
@@ -885,11 +929,15 @@ $statusMap = [
         padding: 4px;
         cursor: pointer;
         color: #6b7280;
-        display: flex;
+        display: inline-flex;
         align-items: center;
         justify-content: center;
         border-radius: 4px;
         transition: all 0.2s;
+        flex-shrink: 0;
+        white-space: nowrap;
+        line-height: 1;
+        vertical-align: middle;
     }
     
     .status-edit-btn:hover {
@@ -1206,8 +1254,9 @@ $statusMap = [
             <div>회원아이디</div>
             <div>고객명</div>
             <div>전화번호</div>
-            <div>접수일</div>
-            <div>진행상황</div>
+            <div>포인트</div>
+            <div>혜택내용</div>
+            <div></div>
         </div>
         
         <?php 
@@ -1235,10 +1284,10 @@ $statusMap = [
                         <?php echo htmlspecialchars($app['seller_user_id'] ?? '-'); ?>
                     <?php endif; ?>
                 </div>
-                <div class="table-cell">
-                    <div><?php echo htmlspecialchars($app['seller_name'] ?? '-'); ?></div>
+                <div class="table-cell" style="white-space: nowrap !important; display: flex; align-items: center; gap: 4px; flex-wrap: nowrap;">
+                    <span style="white-space: nowrap !important; flex-shrink: 0;"><?php echo htmlspecialchars($app['seller_name'] ?? '-'); ?></span>
                     <?php if (!empty($app['seller_company_name'])): ?>
-                        <div style="font-size: 11px; color: #6b7280;"><?php echo htmlspecialchars($app['seller_company_name']); ?></div>
+                        <span style="font-size: 11px; color: #6b7280; white-space: nowrap !important; flex-shrink: 0;">(<?php echo htmlspecialchars($app['seller_company_name']); ?>)</span>
                     <?php endif; ?>
                 </div>
                 <div class="table-cell">
@@ -1250,7 +1299,7 @@ $statusMap = [
                         <?php echo htmlspecialchars($app['registration_place'] ?? '-'); ?>
                     <?php endif; ?>
                 </div>
-                <div class="table-cell">
+                <div class="table-cell" style="white-space: nowrap !important;">
                     <?php 
                     $serviceType = $app['service_type'] ?? '인터넷';
                     $serviceTypeDisplay = $serviceType;
@@ -1280,7 +1329,7 @@ $statusMap = [
                     echo $existingCompany ? htmlspecialchars($existingCompany) : '-';
                     ?>
                 </div>
-                <div class="table-cell" style="text-align: right;">
+                <div class="table-cell" style="text-align: right; white-space: nowrap !important;">
                     <?php 
                     $monthlyFee = $app['monthly_fee'] ?? 0;
                     // 문자열에서 숫자만 추출 (예: "3000원" -> 3000)
@@ -1302,7 +1351,26 @@ $statusMap = [
                 </div>
                 <div class="table-cell"><?php echo htmlspecialchars($app['customer_name'] ?? '-'); ?></div>
                 <div class="table-cell"><?php echo htmlspecialchars($app['customer_phone'] ?? '-'); ?></div>
-                <div class="table-cell"><?php echo htmlspecialchars($formattedDate); ?></div>
+                <div class="table-cell">
+                    <?php 
+                    $usedPoint = isset($app['used_point']) ? intval($app['used_point']) : 0;
+                    if ($usedPoint > 0): 
+                        $formattedPoint = number_format($usedPoint);
+                    ?>
+                        <span style="color: #6366f1; font-weight: 600;" title="포인트 사용: <?php echo $formattedPoint; ?>원">
+                            <?php echo $formattedPoint; ?>원
+                        </span>
+                    <?php else: ?>
+                        <span style="color: #9ca3af;">-</span>
+                    <?php endif; ?>
+                </div>
+                <div class="table-cell" style="color: #10b981; font-weight: 500; white-space: nowrap;" title="<?php echo !empty($app['point_benefit_description']) ? htmlspecialchars($app['point_benefit_description']) : ''; ?>">
+                    <?php if (!empty($app['point_benefit_description'])): ?>
+                        <?php echo htmlspecialchars($app['point_benefit_description']); ?>
+                    <?php else: ?>
+                        <span style="color: #9ca3af;">-</span>
+                    <?php endif; ?>
+                </div>
                 <div class="table-cell">
                     <div class="status-cell-wrapper">
                         <?php
@@ -1691,8 +1759,31 @@ function showProductModal(orderData) {
                 <th>월 요금제</th>
                 <td>${validateMonthlyFee(order.monthly_fee)}</td>
             </tr>
-        </table>
     `;
+    
+    // 포인트 사용 정보 추가
+    if (orderData.used_point && parseInt(orderData.used_point) > 0) {
+        const usedPoint = parseInt(orderData.used_point);
+        const formattedPoint = usedPoint.toLocaleString('ko-KR');
+        html += `
+            <tr>
+                <th>포인트 사용</th>
+                <td style="color: #6366f1; font-weight: 600;">${formattedPoint}원</td>
+            </tr>
+        `;
+        
+        // 할인 혜택 내용 표시
+        if (orderData.point_benefit_description) {
+            html += `
+                <tr>
+                    <th>할인 혜택</th>
+                    <td style="color: #10b981; font-weight: 500;">${escapeHtml(orderData.point_benefit_description)}</td>
+                </tr>
+            `;
+        }
+    }
+    
+    html += `</table>`;
     
     // 현금지급 정보
     if (cashPairs.length > 0) {

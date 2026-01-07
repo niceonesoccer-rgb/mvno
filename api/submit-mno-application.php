@@ -161,6 +161,19 @@ try {
         throw new Exception('신청정보 저장에 실패했습니다.');
     }
     
+    // 포인트 차감 처리 (가입 신청 완료 후)
+    $usedPoint = isset($_POST['used_point']) ? intval($_POST['used_point']) : 0;
+    if ($usedPoint > 0) {
+        $pointResult = deductPoint($userId, $usedPoint, 'mno', $productId, '통신사폰 할인혜택');
+        
+        if (!$pointResult['success']) {
+            error_log("MNO Application - 포인트 차감 실패: " . ($pointResult['message'] ?? '알 수 없는 오류'));
+            // 포인트 차감 실패해도 신청은 완료된 상태이므로 경고만 로그에 기록
+        } else {
+            error_log("MNO Application - 포인트 차감 성공: {$usedPoint}포인트 차감됨");
+        }
+    }
+    
     // 알림 설정 저장 (서비스 이용 및 혜택 안내 알림, 광고성 정보 수신동의)
     $serviceNoticeOptIn = isset($_POST['service_notice_opt_in']) ? (bool)$_POST['service_notice_opt_in'] : false;
     $serviceNoticePlanOptIn = isset($_POST['service_notice_plan_opt_in']) ? (bool)$_POST['service_notice_plan_opt_in'] : false;

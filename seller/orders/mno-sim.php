@@ -196,7 +196,15 @@ try {
                 mno_sim.esim_price_unit,
                 mno_sim.promotion_title,
                 mno_sim.promotions,
-                mno_sim.benefits
+                mno_sim.benefits,
+                p.point_benefit_description,
+                (SELECT ABS(delta) FROM user_point_ledger 
+                 WHERE user_id = c.user_id 
+                   AND item_id = a.product_id 
+                   AND type IN ('mno', 'mno-sim') 
+                   AND delta < 0 
+                   AND created_at <= a.created_at
+                 ORDER BY created_at DESC LIMIT 1) as used_point
             FROM product_applications a
             INNER JOIN application_customers c ON a.id = c.application_id
             INNER JOIN products p ON a.product_id = p.id AND p.product_type = 'mno-sim'
@@ -1324,6 +1332,8 @@ include __DIR__ . '/../includes/seller-header.php';
                         <th>고객명</th>
                         <th>전화번호</th>
                         <th>이메일</th>
+                        <th>포인트</th>
+                        <th>혜택내용</th>
                         <th>상태변경시각</th>
                         <th>진행상황</th>
                     </tr>
@@ -1376,11 +1386,33 @@ include __DIR__ . '/../includes/seller-header.php';
                             <td><?php echo htmlspecialchars($order['name']); ?></td>
                             <td><?php echo htmlspecialchars($order['phone']); ?></td>
                             <td><?php echo htmlspecialchars($order['email'] ?? '-'); ?></td>
+                            <td style="text-align: center;">
+                                <?php 
+                                $usedPoint = isset($order['used_point']) ? intval($order['used_point']) : 0;
+                                if ($usedPoint > 0): 
+                                ?>
+                                    <span style="color: #6366f1; font-weight: 600;"><?php echo number_format($usedPoint); ?>P</span>
+                                <?php else: ?>
+                                    <span style="color: #9ca3af;">-</span>
+                                <?php endif; ?>
+                            </td>
+                            <td style="text-align: center;">
+                                <?php 
+                                $benefitDesc = $order['point_benefit_description'] ?? '';
+                                if (!empty($benefitDesc)): 
+                                ?>
+                                    <span style="color: #10b981; font-weight: 500; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block;" title="<?php echo htmlspecialchars($benefitDesc); ?>">
+                                        <?php echo htmlspecialchars($benefitDesc); ?>
+                                    </span>
+                                <?php else: ?>
+                                    <span style="color: #9ca3af;">-</span>
+                                <?php endif; ?>
+                            </td>
                             <td>
                                 <?php 
                                 $statusChangedAt = $order['status_changed_at'] ?? null;
                                 if ($statusChangedAt) {
-                                    echo date('Y-m-d H:i', strtotime($statusChangedAt));
+                                    echo date('Y-m-d', strtotime($statusChangedAt));
                                 } else {
                                     echo '-';
                                 }
@@ -1503,6 +1535,14 @@ function showProductInfo(order, productType) {
         if (productType === 'mno-sim') {
             const additionalInfo = order.additional_info || {};
             const productSnapshot = additionalInfo.product_snapshot || {};
+            
+            // HTML 이스케이프 함수
+            const escapeHtml = (text) => {
+                if (!text) return '';
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            };
             
             // 직접입력/직접선택 텍스트 제거 헬퍼 함수
             const removeDirectInputText = (value) => {
@@ -1900,6 +1940,18 @@ function showProductInfo(order, productType) {
                 };
                 const statusLabel = statusLabels[order.application_status] || order.application_status;
                 customerInfoRows.push(`<tr><th>진행상황</th><td>${statusLabel}</td></tr>`);
+            }
+            
+            // 포인트 사용 정보
+            if (order.used_point && parseInt(order.used_point) > 0) {
+                const usedPoint = parseInt(order.used_point);
+                const formattedPoint = usedPoint.toLocaleString('ko-KR');
+                customerInfoRows.push(`<tr><th>포인트 사용</th><td style="color: #6366f1; font-weight: 600;">${formattedPoint}P</td></tr>`);
+            }
+            
+            // 할인 혜택 내용
+            if (order.point_benefit_description) {
+                customerInfoRows.push(`<tr><th>혜택내용</th><td style="color: #10b981; font-weight: 500;">${escapeHtml(order.point_benefit_description)}</td></tr>`);
             }
             
             if (customerInfoRows.length > 0) {

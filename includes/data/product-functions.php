@@ -76,6 +76,20 @@ function saveMvnoProduct($productData) {
         $isEditMode = isset($productData['product_id']) && $productData['product_id'] > 0;
         $productId = $isEditMode ? $productData['product_id'] : null;
         
+        // 포인트 설정 처리
+        $point_setting = isset($productData['point_setting']) ? intval($productData['point_setting']) : 0;
+        $point_benefit_description = isset($productData['point_benefit_description']) ? trim($productData['point_benefit_description']) : '';
+        
+        // 1000원 단위 검증
+        if ($point_setting > 0 && $point_setting % 1000 !== 0) {
+            $point_setting = floor($point_setting / 1000) * 1000; // 자동으로 1000원 단위로 조정
+        }
+        
+        // 할인 혜택 내용 길이 제한
+        if (strlen($point_benefit_description) > 500) {
+            $point_benefit_description = substr($point_benefit_description, 0, 500);
+        }
+        
         try {
             if ($isEditMode) {
                 // 수정 모드: 기존 상품 정보 업데이트
@@ -83,37 +97,45 @@ function saveMvnoProduct($productData) {
                 if ($status) {
                     $stmt = $pdo->prepare("
                         UPDATE products 
-                        SET seller_id = :seller_id, product_type = 'mvno', status = :status
+                        SET seller_id = :seller_id, product_type = 'mvno', status = :status,
+                            point_setting = :point_setting, point_benefit_description = :point_benefit_description
                         WHERE id = :product_id AND seller_id = :seller_id_check
                     ");
                     $stmt->execute([
                         ':seller_id' => $productData['seller_id'],
                         ':product_id' => $productId,
                         ':seller_id_check' => $productData['seller_id'],
-                        ':status' => $status
+                        ':status' => $status,
+                        ':point_setting' => $point_setting,
+                        ':point_benefit_description' => $point_benefit_description ?: null
                     ]);
                 } else {
                     $stmt = $pdo->prepare("
                         UPDATE products 
-                        SET seller_id = :seller_id, product_type = 'mvno'
+                        SET seller_id = :seller_id, product_type = 'mvno',
+                            point_setting = :point_setting, point_benefit_description = :point_benefit_description
                         WHERE id = :product_id AND seller_id = :seller_id_check
                     ");
                     $stmt->execute([
                         ':seller_id' => $productData['seller_id'],
                         ':product_id' => $productId,
-                        ':seller_id_check' => $productData['seller_id']
+                        ':seller_id_check' => $productData['seller_id'],
+                        ':point_setting' => $point_setting,
+                        ':point_benefit_description' => $point_benefit_description ?: null
                     ]);
                 }
             } else {
                 // 등록 모드: 새 상품 정보 저장
                 $status = isset($productData['status']) && in_array($productData['status'], ['active', 'inactive']) ? $productData['status'] : 'active';
                 $stmt = $pdo->prepare("
-                    INSERT INTO products (seller_id, product_type, status, view_count)
-                    VALUES (:seller_id, 'mvno', :status, 0)
+                    INSERT INTO products (seller_id, product_type, status, view_count, point_setting, point_benefit_description)
+                    VALUES (:seller_id, 'mvno', :status, 0, :point_setting, :point_benefit_description)
                 ");
                 $stmt->execute([
                     ':seller_id' => $productData['seller_id'],
-                    ':status' => $status
+                    ':status' => $status,
+                    ':point_setting' => $point_setting,
+                    ':point_benefit_description' => $point_benefit_description ?: null
                 ]);
                 $productId = $pdo->lastInsertId();
             }
@@ -436,21 +458,54 @@ function saveMnoProduct($productData) {
                 throw new Exception("상품을 찾을 수 없거나 수정 권한이 없습니다.");
             }
             
-            // 상태 업데이트 (제공된 경우)
+            // 포인트 설정 처리
+            $point_setting = isset($productData['point_setting']) ? intval($productData['point_setting']) : 0;
+            $point_benefit_description = isset($productData['point_benefit_description']) ? trim($productData['point_benefit_description']) : '';
+            
+            // 1000원 단위 검증
+            if ($point_setting > 0 && $point_setting % 1000 !== 0) {
+                $point_setting = floor($point_setting / 1000) * 1000;
+            }
+            
+            // 할인 혜택 내용 길이 제한
+            if (strlen($point_benefit_description) > 500) {
+                $point_benefit_description = substr($point_benefit_description, 0, 500);
+            }
+            
+            // 상태 및 포인트 설정 업데이트
             if (isset($productData['status']) && in_array($productData['status'], ['active', 'inactive'])) {
-                $statusStmt = $pdo->prepare("UPDATE products SET status = ? WHERE id = ?");
-                $statusStmt->execute([$productData['status'], $productId]);
+                $statusStmt = $pdo->prepare("UPDATE products SET status = ?, point_setting = ?, point_benefit_description = ? WHERE id = ?");
+                $statusStmt->execute([$productData['status'], $point_setting, $point_benefit_description ?: null, $productId]);
+            } else {
+                $statusStmt = $pdo->prepare("UPDATE products SET point_setting = ?, point_benefit_description = ? WHERE id = ?");
+                $statusStmt->execute([$point_setting, $point_benefit_description ?: null, $productId]);
             }
         } else {
+            // 포인트 설정 처리
+            $point_setting = isset($productData['point_setting']) ? intval($productData['point_setting']) : 0;
+            $point_benefit_description = isset($productData['point_benefit_description']) ? trim($productData['point_benefit_description']) : '';
+            
+            // 1000원 단위 검증
+            if ($point_setting > 0 && $point_setting % 1000 !== 0) {
+                $point_setting = floor($point_setting / 1000) * 1000;
+            }
+            
+            // 할인 혜택 내용 길이 제한
+            if (strlen($point_benefit_description) > 500) {
+                $point_benefit_description = substr($point_benefit_description, 0, 500);
+            }
+            
             // 1. 기본 상품 정보 저장
             $status = isset($productData['status']) && in_array($productData['status'], ['active', 'inactive']) ? $productData['status'] : 'active';
             $stmt = $pdo->prepare("
-                INSERT INTO products (seller_id, product_type, status, view_count)
-                VALUES (:seller_id, 'mno', :status, 0)
+                INSERT INTO products (seller_id, product_type, status, view_count, point_setting, point_benefit_description)
+                VALUES (:seller_id, 'mno', :status, 0, :point_setting, :point_benefit_description)
             ");
             $stmt->execute([
                 ':seller_id' => $productData['seller_id'],
-                ':status' => $status
+                ':status' => $status,
+                ':point_setting' => $point_setting,
+                ':point_benefit_description' => $point_benefit_description ?: null
             ]);
             $productId = $pdo->lastInsertId();
         }
@@ -700,6 +755,20 @@ function saveInternetProduct($productData) {
         $isEditMode = isset($productData['product_id']) && $productData['product_id'] > 0;
         $productId = $isEditMode ? $productData['product_id'] : null;
         
+        // 포인트 설정 처리
+        $point_setting = isset($productData['point_setting']) ? intval($productData['point_setting']) : 0;
+        $point_benefit_description = isset($productData['point_benefit_description']) ? trim($productData['point_benefit_description']) : '';
+        
+        // 1000원 단위 검증
+        if ($point_setting > 0 && $point_setting % 1000 !== 0) {
+            $point_setting = floor($point_setting / 1000) * 1000;
+        }
+        
+        // 할인 혜택 내용 길이 제한
+        if (strlen($point_benefit_description) > 500) {
+            $point_benefit_description = substr($point_benefit_description, 0, 500);
+        }
+        
         if ($isEditMode) {
             $status = isset($productData['status']) && in_array($productData['status'], ['active', 'inactive']) ? $productData['status'] : 'active';
             
@@ -709,15 +778,21 @@ function saveInternetProduct($productData) {
                 throw new Exception("상품을 찾을 수 없거나 수정 권한이 없습니다.");
             }
             
-            $stmt = $pdo->prepare("UPDATE products SET status = :status WHERE id = :product_id AND seller_id = :seller_id");
+            $stmt = $pdo->prepare("UPDATE products SET status = :status, point_setting = :point_setting, point_benefit_description = :point_benefit_description WHERE id = :product_id AND seller_id = :seller_id");
             $stmt->execute([
                 ':status' => $status,
+                ':point_setting' => $point_setting,
+                ':point_benefit_description' => $point_benefit_description ?: null,
                 ':product_id' => $productId,
                 ':seller_id' => $productData['seller_id']
             ]);
         } else {
-            $stmt = $pdo->prepare("INSERT INTO products (seller_id, product_type, status, view_count) VALUES (:seller_id, 'internet', 'active', 0)");
-            $stmt->execute([':seller_id' => $productData['seller_id']]);
+            $stmt = $pdo->prepare("INSERT INTO products (seller_id, product_type, status, view_count, point_setting, point_benefit_description) VALUES (:seller_id, 'internet', 'active', 0, :point_setting, :point_benefit_description)");
+            $stmt->execute([
+                ':seller_id' => $productData['seller_id'],
+                ':point_setting' => $point_setting,
+                ':point_benefit_description' => $point_benefit_description ?: null
+            ]);
             $productId = $pdo->lastInsertId();
         }
         
