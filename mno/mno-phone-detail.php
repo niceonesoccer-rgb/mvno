@@ -631,7 +631,7 @@ $discountData = [
                     if ($hasVisibleItems):
                     ?>
                     <label class="internet-checkbox-all">
-                        <input type="checkbox" id="mnoAgreementAll" class="internet-checkbox-input" onchange="toggleAllMnoAgreements(this.checked)">
+                        <input type="checkbox" id="mnoAgreementAll" class="internet-checkbox-input">
                         <span class="internet-checkbox-label">전체 동의</span>
                     </label>
                     <?php endif; ?>
@@ -1370,6 +1370,30 @@ document.addEventListener('DOMContentLoaded', function() {
         consultationModal.style.display = 'flex';
         consultationModal.classList.add('consultation-modal-active');
         
+        // 모달이 열릴 때 전체 동의 체크박스 이벤트 다시 등록
+        setTimeout(() => {
+            const mnoAgreementAll = document.getElementById('mnoAgreementAll');
+            const mnoAgreementItemCheckboxes = document.querySelectorAll('.internet-checkbox-input-item');
+            
+            if (mnoAgreementAll) {
+                // 기존 이벤트 리스너 제거 후 재등록 (중복 방지)
+                const newAgreementAll = mnoAgreementAll.cloneNode(true);
+                mnoAgreementAll.parentNode.replaceChild(newAgreementAll, mnoAgreementAll);
+                
+                newAgreementAll.addEventListener('change', function() {
+                    const isChecked = this.checked;
+                    const checkboxes = document.querySelectorAll('.internet-checkbox-input-item');
+                    checkboxes.forEach(checkbox => {
+                        checkbox.checked = isChecked;
+                        // change 이벤트 트리거
+                        const changeEvent = new Event('change', { bubbles: true });
+                        checkbox.dispatchEvent(changeEvent);
+                    });
+                    checkAllMnoAgreements();
+                });
+            }
+        }, 100);
+        
         // 모달이 열릴 때 기존 값이 있으면 즉시 검증 (지연 없이)
         const phoneInput = document.getElementById('consultationPhone');
         const emailInput = document.getElementById('consultationEmail');
@@ -1620,11 +1644,26 @@ document.addEventListener('DOMContentLoaded', function() {
         consultationModalClose.addEventListener('click', closeConsultationModal);
     }
     
-    // 전체 동의 체크박스 (HTML의 onchange로 처리되므로 여기서는 개별 체크박스만 처리)
-    const agreementItemCheckboxes = document.querySelectorAll('.internet-checkbox-input-item');
+    // 전체 동의 체크박스 및 개별 체크박스 이벤트 등록 (알뜰폰 모달과 동일한 방식)
+    const mnoAgreementAll = document.getElementById('mnoAgreementAll');
+    const mnoAgreementItemCheckboxes = document.querySelectorAll('.internet-checkbox-input-item');
+    
+    // 전체 동의 체크박스 변경 이벤트
+    if (mnoAgreementAll) {
+        mnoAgreementAll.addEventListener('change', function() {
+            const isChecked = this.checked;
+            mnoAgreementItemCheckboxes.forEach(checkbox => {
+                checkbox.checked = isChecked;
+                // change 이벤트 트리거
+                const changeEvent = new Event('change', { bubbles: true });
+                checkbox.dispatchEvent(changeEvent);
+            });
+            checkAllMnoAgreements();
+        });
+    }
     
     // 개별 체크박스 변경 이벤트 (전체 동의 상태 업데이트)
-    agreementItemCheckboxes.forEach(checkbox => {
+    mnoAgreementItemCheckboxes.forEach(checkbox => {
         checkbox.addEventListener('change', function() {
             checkAllMnoAgreements();
             // 마케팅 체크박스인 경우 채널 토글
@@ -1634,19 +1673,21 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    // 전체 동의 토글 함수
+    // 전체 동의 토글 함수 (하위 호환성을 위해 유지)
     function toggleAllMnoAgreements(checked) {
         // 모든 개별 체크박스를 찾아서 체크/해제
         const agreementItemCheckboxes = document.querySelectorAll('.internet-checkbox-input-item');
         agreementItemCheckboxes.forEach(checkbox => {
             checkbox.checked = checked;
+            // change 이벤트를 수동으로 트리거하여 다른 이벤트 리스너도 실행되도록
+            const changeEvent = new Event('change', { bubbles: true });
+            checkbox.dispatchEvent(changeEvent);
             // 마케팅 체크박스인 경우 채널 토글
             if (checkbox.id === 'mnoAgreementMarketing' && checked) {
                 toggleMnoMarketingChannels();
             }
         });
         
-        // 전체 동의 체크박스 상태는 이미 HTML onchange에서 처리되므로 여기서는 업데이트하지 않음
         // 개별 체크박스 변경 이벤트를 트리거하여 버튼 상태 업데이트
         checkAllMnoAgreements();
     }

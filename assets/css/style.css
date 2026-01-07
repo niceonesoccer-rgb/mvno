@@ -379,6 +379,7 @@ button {
 .left-addon-desktop {
     display: flex;
     align-items: center;
+    margin-right: 24px;
 }
 
 .left-addon-desktop {
