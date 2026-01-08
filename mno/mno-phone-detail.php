@@ -2272,6 +2272,11 @@ document.addEventListener('DOMContentLoaded', function() {
             const formData = new FormData(this);
             formData.append('product_id', <?php echo $phone_id; ?>);
             
+            // 포인트 사용 정보 추가
+            if (window.pointUsageData && window.pointUsageData.usedPoint > 0) {
+                formData.append('used_point', window.pointUsageData.usedPoint);
+            }
+            
             // selected_amount 값 확인
             const selectedAmountInput = this.querySelector('input[name="selected_amount"]');
             if (selectedAmountInput) {

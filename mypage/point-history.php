@@ -164,7 +164,7 @@ include '../includes/header.php';
                                     </div>
                                     <?php if (!empty($item['description']) && $item['description'] !== $type_label): ?>
                                         <div style="font-size: 13px; color: #9ca3af; margin-top: 4px;">
-                                            <?php echo htmlspecialchars($item['description']); ?>
+                                            <?php echo htmlspecialchars(str_replace('할인혜택', '신청', $item['description'])); ?>
                                         </div>
                                     <?php endif; ?>
                                 </div>
@@ -291,7 +291,7 @@ include '../includes/header.php';
                                     </div>
                                     <?php if (!empty($item['description']) && $item['description'] !== $type_label): ?>
                                         <div style="font-size: 13px; color: #9ca3af; margin-top: 4px;">
-                                            <?php echo htmlspecialchars($item['description']); ?>
+                                            <?php echo htmlspecialchars(str_replace('할인혜택', '신청', $item['description'])); ?>
                                         </div>
                                     <?php endif; ?>
                                 </div>
@@ -410,7 +410,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         </div>
                         ${item.description && item.description !== typeLabel ? `
                             <div style="font-size: 13px; color: #9ca3af; margin-top: 4px;">
-                                ${item.description}
+                                ${item.description.replace(/할인혜택/g, '신청')}
                             </div>
                         ` : ''}
                     </div>

@@ -2914,6 +2914,11 @@ if (mnoSimApplicationForm) {
         // 폼 데이터 준비
         const formData = new FormData(this);
         
+        // 포인트 사용 정보 추가
+        if (window.pointUsageData && window.pointUsageData.usedPoint > 0) {
+            formData.append('used_point', window.pointUsageData.usedPoint);
+        }
+        
         // 서버로 데이터 전송
         fetch('/MVNO/api/submit-mno-sim-application.php', {
             method: 'POST',

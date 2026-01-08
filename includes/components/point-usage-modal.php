@@ -88,55 +88,29 @@ $modal_id = "pointUsageModal_{$type}_{$item_id}";
                 </div>
             </div>
             
-            <!-- 안내 메시지 -->
-            <div class="point-notice">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="#6366f1" stroke-width="2"/>
-                    <path d="M12 8V12M12 16H12.01" stroke="#6366f1" stroke-width="2" stroke-linecap="round"/>
-                </svg>
-                <span>포인트를 사용하시면 개통 시 추가 할인을 받으실 수 있습니다.</span>
-            </div>
-            
             <!-- 할인 혜택 내용 표시 영역 (동적으로 로드됨) -->
-            <div id="pointBenefitSection_<?php echo $modal_id; ?>" class="point-benefit-section" style="display: none; background: #f0fdf4; border: 1px solid #86efac; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
-                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <div id="pointBenefitSection_<?php echo $modal_id; ?>" class="point-benefit-section" style="display: none; background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 2px solid #10b981; border-radius: 12px; padding: 20px; margin-bottom: 24px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);">
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
-                    <strong style="color: #065f46; font-size: 14px;">개통 시 혜택</strong>
+                    <strong style="color: #065f46; font-size: 18px; font-weight: 800; letter-spacing: -0.3px;">개통 시 혜택</strong>
                 </div>
-                <p id="pointBenefitText_<?php echo $modal_id; ?>" style="color: #047857; font-size: 14px; margin: 0; line-height: 1.6; white-space: pre-line;"></p>
+                <p id="pointBenefitText_<?php echo $modal_id; ?>" style="color: #047857; font-size: 18px; font-weight: 700; margin: 0; line-height: 1.8; white-space: pre-line; letter-spacing: -0.2px;"></p>
             </div>
             
-            <!-- 포인트 입력 -->
-            <div class="point-input-section">
-                <label class="point-input-label">사용할 포인트</label>
-                <div class="point-input-wrapper">
-                    <input 
-                        type="number" 
-                        class="point-input" 
-                        id="pointInput_<?php echo $modal_id; ?>"
-                        min="0" 
-                        step="1000"
-                        max="<?php echo $current_balance; ?>"
-                        value="<?php echo $default_point; ?>"
-                        placeholder="0"
-                    >
-                    <span class="point-input-unit">포인트</span>
-                </div>
-                <div class="point-quick-buttons" id="pointQuickButtons_<?php echo $modal_id; ?>">
-                    <!-- 동적으로 생성됨 -->
-                </div>
-                <div class="point-input-help" style="font-size: 12px; color: #6b7280; margin-top: 8px;">
-                    1000포인트 단위로만 사용 가능합니다.
-                </div>
+            <!-- 최대 사용 가능 포인트 버튼 -->
+            <div class="point-max-button-section">
+                <button type="button" class="point-max-button" id="pointMaxButton_<?php echo $modal_id; ?>">
+                    <span id="pointMaxButtonValue_<?php echo $modal_id; ?>">-</span>P 사용
+                </button>
             </div>
             
             <!-- 잔액 정보 -->
             <div class="point-balance-preview">
                 <span class="point-balance-preview-label">사용 후 잔액</span>
                 <span class="point-balance-preview-value" id="balancePreview_<?php echo $modal_id; ?>">
-                    <?php echo number_format($current_balance - $default_point); ?>P
+                    <?php echo number_format($current_balance); ?>P
                 </span>
             </div>
         </div>
@@ -326,88 +300,47 @@ $modal_id = "pointUsageModal_{$type}_{$item_id}";
     color: #4338ca;
 }
 
-.point-input-section {
+.point-max-button-section {
     margin-bottom: 24px;
-    padding: 24px;
-    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-    border: 2px solid #e5e7eb;
-    border-radius: 16px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-}
-
-.point-input-label {
-    display: block;
-    font-size: 16px;
-    font-weight: 700;
-    color: #1f2937;
-    margin-bottom: 12px;
-    letter-spacing: -0.3px;
-}
-
-.point-input-wrapper {
-    position: relative;
-    margin-bottom: 12px;
-}
-
-.point-input {
-    width: 100%;
-    padding: 16px 52px 16px 20px;
-    border: 2px solid #e5e7eb;
-    border-radius: 12px;
-    font-size: 18px;
-    font-weight: 700;
-    color: #1f2937;
-    outline: none;
-    transition: all 0.2s;
-    box-sizing: border-box;
-    background: #ffffff;
-}
-
-.point-input:focus {
-    border-color: #6366f1;
-    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
-    transform: translateY(-1px);
-}
-
-.point-input-unit {
-    position: absolute;
-    right: 16px;
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 14px;
-    color: #6b7280;
-    pointer-events: none;
-}
-
-.point-quick-buttons {
     display: flex;
-    gap: 8px;
+    justify-content: center;
+    align-items: center;
 }
 
-.point-quick-btn {
-    flex: 1;
-    padding: 14px 24px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+.point-max-button {
+    width: 100%;
+    padding: 20px 24px;
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
     border: none;
-    border-radius: 12px;
-    font-size: 16px;
+    border-radius: 16px;
+    font-size: 20px;
     font-weight: 700;
     color: #ffffff;
     cursor: pointer;
     transition: all 0.2s;
-    min-height: 52px;
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
     letter-spacing: -0.3px;
+    min-height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
 }
 
-.point-quick-btn:hover {
+.point-max-button:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
-    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+    box-shadow: 0 6px 16px rgba(220, 38, 38, 0.4);
+    background: linear-gradient(135deg, #b91c1c 0%, #dc2626 100%);
 }
 
-.point-quick-btn:active {
+.point-max-button:active {
     transform: translateY(0);
+}
+
+.point-max-button:disabled {
+    background: #d1d5db;
+    cursor: not-allowed;
+    box-shadow: none;
 }
 
 .point-balance-preview {
@@ -502,16 +435,16 @@ $modal_id = "pointUsageModal_{$type}_{$item_id}";
     const closeBtn = modal.querySelector('.point-usage-modal-close');
     const cancelBtn = modal.querySelector('.point-usage-cancel-btn');
     const confirmBtn = modal.querySelector('.point-usage-confirm-btn');
-    const pointInput = document.getElementById('pointInput_' + modalId);
+    const pointMaxButton = document.getElementById('pointMaxButton_' + modalId);
+    const pointMaxButtonValue = document.getElementById('pointMaxButtonValue_' + modalId);
     const balancePreview = document.getElementById('balancePreview_' + modalId);
-    const quickBtns = modal.querySelectorAll('.point-quick-btn');
     
     const currentBalance = <?php echo $current_balance; ?>;
     
     // maxUsable 값을 모달 요소에서 가져오는 헬퍼 함수
     function getMaxUsable() {
         const maxUsableAttr = modal.getAttribute('data-max-usable');
-        return maxUsableAttr ? parseInt(maxUsableAttr) : currentBalance;
+        return maxUsableAttr ? parseInt(maxUsableAttr) : 0;
     }
     
     // 모달 열기 (전역 함수)
@@ -522,7 +455,56 @@ $modal_id = "pointUsageModal_{$type}_{$item_id}";
         const targetModal = document.getElementById(targetModalId);
         console.log('모달 요소 찾기:', targetModal ? '찾음' : '찾지 못함', targetModalId);
         
-        if (targetModal) {
+        if (!targetModal) {
+            console.warn('모달을 찾을 수 없습니다. 기존 신청 모달로 진행합니다.');
+            // 모달이 없으면 바로 다음 단계로 진행
+            const event = new CustomEvent('pointUsageConfirmed', {
+                detail: {
+                    type: type,
+                    itemId: itemId,
+                    usedPoint: 0
+                }
+            });
+            document.dispatchEvent(event);
+            return;
+        }
+        
+        // 포인트 잔액 최신화 및 할인 혜택 내용 로드
+        Promise.all([
+            fetch('/MVNO/api/point-balance.php?user_id=default').then(r => r.json()),
+            fetch(`/MVNO/api/get-product-point-setting.php?type=${type}&id=${itemId}`).then(r => r.json())
+        ])
+        .then(([balanceData, pointSettingData]) => {
+            // 최대 사용 가능 포인트 계산
+            let actualMaxUsable = 0;
+            if (balanceData.success) {
+                if (pointSettingData.success) {
+                    // 상품의 point_setting 값 사용
+                    const productPointSetting = parseInt(pointSettingData.point_setting) || 0;
+                    // 최대 사용 가능 포인트 = min(상품 point_setting, 보유 포인트)를 1000 단위로 내림
+                    const rawMaxUsable = Math.min(productPointSetting, balanceData.balance);
+                    actualMaxUsable = Math.floor(rawMaxUsable / 1000) * 1000; // 1000 단위로 내림
+                } else {
+                    // point_setting 정보가 없으면 보유 포인트를 기준으로 계산
+                    actualMaxUsable = Math.floor(balanceData.balance / 1000) * 1000; // 1000 단위로 내림
+                }
+            }
+            
+            // 사용 가능한 포인트가 없으면 모달을 띄우지 않고 바로 다음 단계로 진행
+            if (actualMaxUsable <= 0) {
+                console.log('사용 가능한 포인트가 없습니다. 바로 다음 단계로 진행합니다.');
+                const event = new CustomEvent('pointUsageConfirmed', {
+                    detail: {
+                        type: type,
+                        itemId: itemId,
+                        usedPoint: 0
+                    }
+                });
+                document.dispatchEvent(event);
+                return;
+            }
+            
+            // 모달 표시 시작
             console.log('모달 표시 시작');
             // 현재 스크롤 위치 저장
             const scrollY = window.scrollY;
@@ -535,84 +517,66 @@ $modal_id = "pointUsageModal_{$type}_{$item_id}";
             targetModal.style.display = 'flex';
             console.log('모달 표시 완료, 클래스:', targetModal.className);
             
-            // 포인트 잔액 최신화 및 할인 혜택 내용 로드
-            Promise.all([
-                fetch('/MVNO/api/point-balance.php?user_id=default').then(r => r.json()),
-                fetch(`/MVNO/api/get-product-point-setting.php?type=${type}&id=${itemId}`).then(r => r.json())
-            ])
-            .then(([balanceData, pointSettingData]) => {
-                // 포인트 잔액 업데이트
-                if (balanceData.success) {
-                    const balanceValue = targetModal.querySelector('.point-balance-value');
-                    const maxValue = document.getElementById('pointMaxValue_' + targetModalId);
-                    const pointInput = targetModal.querySelector('.point-input');
-                    const quickButtonsContainer = document.getElementById('pointQuickButtons_' + targetModalId);
-                    
-                    if (balanceValue) {
-                        balanceValue.textContent = formatNumber(balanceData.balance) + 'P';
-                    }
-                    
-                    // 상품의 point_setting 값 사용
-                    if (pointSettingData.success) {
-                        const productPointSetting = parseInt(pointSettingData.point_setting) || 0;
-                        // 최대 사용 가능 포인트 = min(상품 point_setting, 보유 포인트)를 1000 단위로 내림
-                        const rawMaxUsable = Math.min(productPointSetting, balanceData.balance);
-                        const actualMaxUsable = Math.floor(rawMaxUsable / 1000) * 1000; // 1000 단위로 내림
-                        
-                        if (maxValue) {
-                            maxValue.textContent = formatNumber(actualMaxUsable) + 'P';
-                        }
-                        if (pointInput) {
-                            pointInput.setAttribute('max', actualMaxUsable);
-                            // 모달 요소에 maxUsable 값 저장 (로컬 함수에서 접근 가능하도록)
-                            targetModal.setAttribute('data-max-usable', actualMaxUsable);
-                        }
-                        
-                        // 빠른 선택 버튼 업데이트
-                        if (quickButtonsContainer) {
-                            const roundedMax = actualMaxUsable;
-                            quickButtonsContainer.innerHTML = '';
-                            if (roundedMax > 0) {
-                                const quickBtn = document.createElement('button');
-                                quickBtn.type = 'button';
-                                quickBtn.className = 'point-quick-btn';
-                                quickBtn.setAttribute('data-point', roundedMax);
-                                quickBtn.textContent = formatNumber(roundedMax) + 'P 사용';
-                                quickBtn.addEventListener('click', function() {
-                                    let point = parseInt(this.getAttribute('data-point')) || 0;
-                                    if (point > 0 && point % 1000 !== 0) {
-                                        point = Math.round(point / 1000) * 1000;
-                                    }
-                                    pointInput.value = point;
-                                    updateBalancePreview();
-                                });
-                                quickButtonsContainer.appendChild(quickBtn);
-                            }
-                        }
-                    }
+            // 포인트 잔액 업데이트
+            if (balanceData.success) {
+                const balanceValue = targetModal.querySelector('.point-balance-value');
+                const maxValue = document.getElementById('pointMaxValue_' + targetModalId);
+                const pointMaxBtn = document.getElementById('pointMaxButton_' + targetModalId);
+                const pointMaxBtnValue = document.getElementById('pointMaxButtonValue_' + targetModalId);
+                
+                if (balanceValue) {
+                    balanceValue.textContent = formatNumber(balanceData.balance) + 'P';
                 }
                 
-                // 할인 혜택 내용 표시
-                if (pointSettingData.success && pointSettingData.point_benefit_description) {
-                    const benefitSection = document.getElementById('pointBenefitSection_' + targetModalId);
-                    const benefitText = document.getElementById('pointBenefitText_' + targetModalId);
-                    
-                    if (benefitSection && benefitText) {
-                        benefitText.textContent = pointSettingData.point_benefit_description;
-                        benefitSection.style.display = 'block';
-                    }
-                } else {
-                    // 할인 혜택이 없으면 섹션 숨기기
-                    const benefitSection = document.getElementById('pointBenefitSection_' + targetModalId);
-                    if (benefitSection) {
-                        benefitSection.style.display = 'none';
-                    }
+                if (maxValue) {
+                    maxValue.textContent = formatNumber(actualMaxUsable) + 'P';
                 }
-            })
-            .catch(error => {
-                console.error('포인트 정보 로드 오류:', error);
+                
+                // 모달 요소에 maxUsable 값 저장
+                targetModal.setAttribute('data-max-usable', actualMaxUsable);
+                
+                // 최대 사용 가능 포인트 버튼에 표시
+                if (pointMaxBtnValue) {
+                    pointMaxBtnValue.textContent = formatNumber(actualMaxUsable);
+                }
+                
+                // 잔액 미리보기 업데이트
+                const balancePreview = document.getElementById('balancePreview_' + targetModalId);
+                if (balancePreview) {
+                    const remainingBalance = balanceData.balance - actualMaxUsable;
+                    balancePreview.textContent = formatNumber(remainingBalance) + 'P';
+                }
+            }
+            
+            // 할인 혜택 내용 표시
+            if (pointSettingData.success && pointSettingData.point_benefit_description) {
+                const benefitSection = document.getElementById('pointBenefitSection_' + targetModalId);
+                const benefitText = document.getElementById('pointBenefitText_' + targetModalId);
+                
+                if (benefitSection && benefitText) {
+                    benefitText.textContent = pointSettingData.point_benefit_description;
+                    benefitSection.style.display = 'block';
+                }
+            } else {
+                // 할인 혜택이 없으면 섹션 숨기기
+                const benefitSection = document.getElementById('pointBenefitSection_' + targetModalId);
+                if (benefitSection) {
+                    benefitSection.style.display = 'none';
+                }
+            }
+        })
+        .catch(error => {
+            console.error('포인트 정보 로드 오류:', error);
+            // 오류 발생 시에도 다음 단계로 진행
+            const event = new CustomEvent('pointUsageConfirmed', {
+                detail: {
+                    type: type,
+                    itemId: itemId,
+                    usedPoint: 0
+                }
             });
-        }
+            document.dispatchEvent(event);
+        });
     };
     
     function formatNumber(num) {
@@ -628,117 +592,46 @@ $modal_id = "pointUsageModal_{$type}_{$item_id}";
         document.body.style.top = '';
     }
     
-    // 포인트 입력 변경 시 잔액 미리보기 업데이트
-    function updateBalancePreview() {
-        const inputValueStr = pointInput.value.trim();
-        const maxUsable = getMaxUsable();
-        
-        // 빈 문자열이면 0으로 처리하지 않고 잔액만 업데이트
-        if (inputValueStr === '') {
-            balancePreview.textContent = formatNumber(currentBalance) + 'P';
-            return;
-        }
-        
-        let inputValue = parseInt(inputValueStr) || 0;
-        
-        // 입력값 제한 (입력 중에는 반올림하지 않음)
-        if (inputValue < 0) {
-            inputValue = 0;
-        }
-        if (inputValue > maxUsable) {
-            inputValue = maxUsable;
-        }
-        
-        const usedPoint = Math.min(Math.max(0, inputValue), maxUsable);
-        const remainingBalance = currentBalance - usedPoint;
-        balancePreview.textContent = formatNumber(remainingBalance) + 'P';
+    // 최대 사용 가능 포인트 버튼 클릭
+    if (pointMaxButton) {
+        pointMaxButton.addEventListener('click', function() {
+            const maxUsable = getMaxUsable();
+            if (maxUsable > 0) {
+                // 최대 사용 가능 포인트로 설정
+                const type = confirmBtn.getAttribute('data-type');
+                const itemId = confirmBtn.getAttribute('data-item-id');
+                
+                // 포인트 사용 정보를 전역 변수에 저장
+                window.pointUsageData = {
+                    type: type,
+                    itemId: itemId,
+                    usedPoint: maxUsable
+                };
+                
+                // 모달 닫기
+                closeModal();
+                
+                // 기존 신청 모달 열기 (이벤트 발생)
+                const event = new CustomEvent('pointUsageConfirmed', {
+                    detail: {
+                        type: type,
+                        itemId: itemId,
+                        usedPoint: maxUsable
+                    }
+                });
+                document.dispatchEvent(event);
+            }
+        });
     }
     
-    // 포인트 입력 포커스 시
-    pointInput.addEventListener('focus', function() {
-        // 값이 0이면 빈 문자열로 변경 (사용자가 새로 입력할 수 있도록)
-        if (parseInt(this.value) === 0) {
-            this.value = '';
-        }
-    });
-    
-    // 포인트 입력 포커스 해제 시 (blur)
-    pointInput.addEventListener('blur', function() {
-        const inputValueStr = this.value.trim();
-        const maxUsable = getMaxUsable();
-        
-        // 빈 문자열이면 0으로 설정
-        if (inputValueStr === '') {
-            this.value = 0;
-            updateBalancePreview();
-            return;
-        }
-        
-        let inputValue = parseInt(inputValueStr) || 0;
-        
-        // 입력값 제한 (음수 방지)
-        if (inputValue < 0) {
-            inputValue = 0;
-        }
-        
-        // 최대 사용 가능 포인트보다 크면 먼저 제한
-        if (inputValue > maxUsable) {
-            inputValue = maxUsable;
-        }
-        
-        // 1000 포인트 단위로 조정
-        if (inputValue > 0) {
-            if (inputValue % 1000 !== 0) {
-                // 1000 단위가 아니면 가장 가까운 1000 단위로 반올림
-                inputValue = Math.round(inputValue / 1000) * 1000;
-            }
-            
-            // 반올림 후에도 maxUsable보다 크면, maxUsable을 1000 단위로 내림한 값으로 설정
-            if (inputValue > maxUsable) {
-                // maxUsable을 1000 단위로 내림
-                inputValue = Math.floor(maxUsable / 1000) * 1000;
-            }
-        }
-        
-        this.value = inputValue;
-        updateBalancePreview();
-    });
-    
-    // 빠른 선택 버튼
-    quickBtns.forEach(btn => {
-        btn.addEventListener('click', function() {
-            let point = parseInt(this.getAttribute('data-point')) || 0;
-            // 1000 포인트 단위로 반올림
-            if (point > 0 && point % 1000 !== 0) {
-                point = Math.round(point / 1000) * 1000;
-            }
-            pointInput.value = point;
-            updateBalancePreview();
-        });
-    });
-    
-    // 입력 이벤트 (입력 중에는 반올림하지 않고 잔액만 업데이트)
-    pointInput.addEventListener('input', updateBalancePreview);
-    
-    // 확인 버튼 클릭
+    // 확인 버튼 클릭 (최대 사용 가능 포인트로 자동 설정)
     confirmBtn.addEventListener('click', function() {
-        const usedPoint = parseInt(pointInput.value) || 0;
         const maxUsable = getMaxUsable();
-        
-        // 1000 포인트 단위 검증
-        if (usedPoint > 0 && usedPoint % 1000 !== 0) {
-            showAlert('포인트는 1000포인트 단위로만 사용 가능합니다.');
-            pointInput.focus();
-            return;
-        }
-        
-        if (usedPoint < 0 || usedPoint > maxUsable) {
-            showAlert('사용 가능한 포인트 범위를 벗어났습니다.');
-            return;
-        }
-        
         const type = this.getAttribute('data-type');
         const itemId = this.getAttribute('data-item-id');
+        
+        // 최대 사용 가능 포인트로 자동 설정
+        const usedPoint = maxUsable;
         
         // 포인트 사용 정보를 전역 변수에 저장 (기존 신청 모달로 전달)
         window.pointUsageData = {

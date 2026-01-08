@@ -2833,41 +2833,18 @@ document.addEventListener('DOMContentLoaded', function() {
                     const eventHandler = function(e) {
                         const { usedPoint } = e.detail;
                         
-                        // 포인트 차감 API 호출
-                        fetch('/MVNO/api/point-deduct.php', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                user_id: 'default',
-                                type: type,
-                                item_id: itemId,
-                                amount: usedPoint,
-                                description: type === 'mvno' ? '알뜰폰 할인혜택' : type === 'mno' ? '통신사폰 할인혜택' : '인터넷 할인혜택'
-                            })
-                        })
-                        .then(response => response.json())
-                        .then(deductData => {
-                            if (deductData.success) {
-                                // 포인트 사용 정보 저장
-                                window.pointUsageData = {
-                                    type: type,
-                                    itemId: itemId,
-                                    usedPoint: usedPoint,
-                                    discountAmount: usedPoint,
-                                    productPointSetting: data.point_setting,
-                                    benefitDescription: data.point_benefit_description
-                                };
-                                
-                                // 기존 신청 모달 열기
-                                if (callback) callback();
-                            } else {
-                                alert(deductData.message || '포인트 차감에 실패했습니다.');
-                            }
-                        })
-                        .catch(error => {
-                            console.error('포인트 차감 오류:', error);
-                            alert('포인트 차감 중 오류가 발생했습니다.');
-                        });
+                        // 포인트 사용 정보만 저장 (실제 차감은 가입 신청 완료 시 처리)
+                        window.pointUsageData = {
+                            type: type,
+                            itemId: itemId,
+                            usedPoint: usedPoint,
+                            discountAmount: usedPoint,
+                            productPointSetting: data.point_setting,
+                            benefitDescription: data.point_benefit_description
+                        };
+                        
+                        // 기존 신청 모달 열기
+                        if (callback) callback();
                         
                         // 이벤트 리스너 제거 (한 번만 실행)
                         document.removeEventListener('pointUsageConfirmed', eventHandler);
@@ -3018,9 +2995,9 @@ document.addEventListener('DOMContentLoaded', function() {
             // 폼 데이터 준비
             const formData = new FormData(this);
             
-            // 포인트 사용량 추가
-            if (usedPointAmount > 0) {
-                formData.append('used_point', usedPointAmount);
+            // 포인트 사용 정보 추가
+            if (window.pointUsageData && window.pointUsageData.usedPoint > 0) {
+                formData.append('used_point', window.pointUsageData.usedPoint);
             }
             
             // 서버로 데이터 전송

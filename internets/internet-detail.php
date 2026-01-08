@@ -3420,6 +3420,11 @@ document.addEventListener('DOMContentLoaded', function() {
             const formData = new FormData(this);
             formData.append('product_id', selectedData.product_id);
             
+            // 포인트 사용 정보 추가
+            if (window.pointUsageData && window.pointUsageData.usedPoint > 0) {
+                formData.append('used_point', window.pointUsageData.usedPoint);
+            }
+            
             // phoneNumber 필드명을 phone으로 변경 (API와 일치)
             const phoneValue = formData.get('phoneNumber');
             if (phoneValue) {

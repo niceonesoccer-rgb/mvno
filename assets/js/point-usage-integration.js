@@ -7,42 +7,19 @@
     'use strict';
     
     // 포인트 사용 확인 이벤트 리스너
+    // 포인트 차감은 각 신청 API에서 처리하므로 여기서는 차감하지 않음
     document.addEventListener('pointUsageConfirmed', function(e) {
         const { type, itemId, usedPoint } = e.detail;
         
-        // 포인트 차감 API 호출
-        fetch('/MVNO/api/point-deduct.php', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                user_id: 'default', // 실제로는 세션에서 가져옴
-                type: type,
-                item_id: itemId,
-                amount: usedPoint,
-                description: type === 'mvno' ? '알뜰폰 신청' : type === 'mno' ? '통신사폰 신청' : '인터넷 신청'
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // 포인트 차감 성공
-                console.log('포인트 차감 완료:', data);
-                
-                // 기존 신청 모달 열기 (각 페이지에서 구현)
-                // 예: window.openApplicationModal(type, itemId);
-                
-                // 포인트 잔액 업데이트
-                updatePointBalance();
-            } else {
-                showAlert(data.message || '포인트 차감에 실패했습니다.');
-            }
-        })
-        .catch(error => {
-            console.error('포인트 차감 오류:', error);
-            showAlert('포인트 차감 중 오류가 발생했습니다.');
-        });
+        // 포인트 사용 정보를 전역 변수에 저장 (각 페이지의 신청 폼에서 사용)
+        window.pointUsageData = {
+            type: type,
+            itemId: itemId,
+            usedPoint: usedPoint
+        };
+        
+        console.log('포인트 사용 확인:', { type, itemId, usedPoint });
+        // 실제 포인트 차감은 각 신청 API (submit-*-application.php)에서 처리됨
     });
     
     // 포인트 잔액 업데이트
