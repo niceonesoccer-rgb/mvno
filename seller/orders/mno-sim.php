@@ -5,6 +5,7 @@
  */
 
 require_once __DIR__ . '/../../includes/data/auth-functions.php';
+require_once __DIR__ . '/../../includes/data/path-config.php';
 require_once __DIR__ . '/../../includes/data/db-config.php';
 require_once __DIR__ . '/../../includes/data/product-functions.php';
 
@@ -17,20 +18,20 @@ $currentUser = getCurrentUser();
 
 // 판매자 로그인 체크
 if (!$currentUser || $currentUser['role'] !== 'seller') {
-    header('Location: /MVNO/seller/login.php');
+    header('Location: ' . getAssetPath('/seller/login.php'));
     exit;
 }
 
 // 판매자 승인 체크
 $approvalStatus = $currentUser['approval_status'] ?? 'pending';
 if ($approvalStatus !== 'approved') {
-    header('Location: /MVNO/seller/waiting.php');
+    header('Location: ' . getAssetPath('/seller/waiting.php'));
     exit;
 }
 
 // 탈퇴 요청 상태 확인
 if (isset($currentUser['withdrawal_requested']) && $currentUser['withdrawal_requested'] === true) {
-    header('Location: /MVNO/seller/waiting.php');
+    header('Location: ' . getAssetPath('/seller/waiting.php'));
     exit;
 }
 
@@ -1118,6 +1119,10 @@ $pageStyles = '
     }
 ';
 
+// JavaScript에서 사용할 API 경로 설정
+$apiBasePath = getApiPath('/api');
+$updateOrderStatusApi = getApiPath('/api/update-order-status.php');
+
 include __DIR__ . '/../includes/seller-header.php';
 ?>
 
@@ -2197,13 +2202,14 @@ function updateOrderStatus() {
     
     // API 호출
     const requestBody = `application_id=${applicationId}&status=${encodeURIComponent(newStatus)}`;
+    const updateOrderStatusApi = '<?php echo $updateOrderStatusApi; ?>';
     console.log('API Request:', {
-        url: '/MVNO/api/update-order-status.php',
+        url: updateOrderStatusApi,
         method: 'POST',
         body: requestBody
     });
     
-    fetch('/MVNO/api/update-order-status.php', {
+    fetch(updateOrderStatusApi, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
@@ -2364,8 +2370,9 @@ function bulkUpdateStatus() {
     }
     
     // 일괄 변경 API 호출
+    const updateOrderStatusApi = '<?php echo $updateOrderStatusApi; ?>';
     const promises = selectedIds.map(id => {
-        return fetch('/MVNO/api/update-order-status.php', {
+        return fetch(updateOrderStatusApi, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',

@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/data/path-config.php';
 require_once __DIR__ . '/data/site-settings.php';
 $siteSettings = getSiteSettings();
 $footer = $siteSettings['footer'] ?? [];
@@ -19,14 +20,14 @@ $site = $siteSettings['site'] ?? [];
             <div class="footer-terms">
                 <?php 
                 $termsOfServiceText = !empty($terms['terms_of_service']['text']) ? $terms['terms_of_service']['text'] : '이용약관';
-                $termsOfServiceUrl = !empty($terms['terms_of_service']['url']) ? $terms['terms_of_service']['url'] : '/MVNO/terms/view.php?type=terms_of_service';
+                $termsOfServiceUrl = !empty($terms['terms_of_service']['url']) ? $terms['terms_of_service']['url'] : getAssetPath('/terms/view.php?type=terms_of_service');
                 ?>
                 <?php if (!empty($termsOfServiceText)): ?>
                     <a href="<?php echo htmlspecialchars($termsOfServiceUrl); ?>" target="_blank" rel="noopener noreferrer" class="footer-terms-link"><?php echo htmlspecialchars($termsOfServiceText); ?></a>
                 <?php endif; ?>
                 <?php 
                 $privacyPolicyText = !empty($terms['privacy_policy']['text']) ? $terms['privacy_policy']['text'] : '개인정보처리방침';
-                $privacyPolicyUrl = !empty($terms['privacy_policy']['url']) ? $terms['privacy_policy']['url'] : '/MVNO/terms/view.php?type=privacy_policy';
+                $privacyPolicyUrl = !empty($terms['privacy_policy']['url']) ? $terms['privacy_policy']['url'] : getAssetPath('/terms/view.php?type=privacy_policy');
                 ?>
                 <?php if (!empty($privacyPolicyText)): ?>
                     <a href="<?php echo htmlspecialchars($privacyPolicyUrl); ?>" target="_blank" rel="noopener noreferrer" class="footer-terms-link-bold"><?php echo htmlspecialchars($privacyPolicyText); ?></a>
@@ -37,7 +38,7 @@ $site = $siteSettings['site'] ?? [];
             <?php endif; ?>
             
             <!-- 브랜드 로고 -->
-            <a href="/MVNO/" aria-label="<?php echo htmlspecialchars($site['name_ko'] ?? '유심킹'); ?>" class="footer-brand"></a>
+            <a href="<?php echo getBasePath(); ?>/" aria-label="<?php echo htmlspecialchars($site['name_ko'] ?? '유심킹'); ?>" class="footer-brand"></a>
             
             <!-- 회사 정보 및 고객센터 -->
             <div class="footer-info-wrapper">

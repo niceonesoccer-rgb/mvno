@@ -8,6 +8,9 @@
  * 3. 쿼리 파라미터 우선: 쿼리 파라미터가 있으면 무조건 서브페이지로 처리 (수동 설정보다 우선)
  */
 
+// 경로 설정 로드
+require_once __DIR__ . '/data/path-config.php';
+
 // 세션 및 인증 함수를 가장 먼저 로드 (HTML 출력 전에 세션 시작)
 require_once __DIR__ . '/data/auth-functions.php';
 require_once __DIR__ . '/data/site-settings.php';
@@ -118,6 +121,12 @@ else if (!isset($is_main_page)) {
     <title><?php echo htmlspecialchars(($site['name_ko'] ?? '유심킹') . ' - 알뜰폰 요금제'); ?></title>
     <?php if (!empty($site['favicon'])): 
         $faviconPath = $site['favicon'];
+        // 경로 정규화 (getAssetPath 사용)
+        if (strpos($faviconPath, '/') === 0 && !preg_match('/^https?:\/\//', $faviconPath)) {
+            $faviconPath = getAssetPath($faviconPath);
+        } elseif (!preg_match('/^https?:\/\//', $faviconPath)) {
+            $faviconPath = getAssetPath('/' . $faviconPath);
+        }
         $faviconExt = strtolower(pathinfo($faviconPath, PATHINFO_EXTENSION));
         $faviconType = 'image/x-icon';
         if ($faviconExt === 'png') {
@@ -130,7 +139,7 @@ else if (!isset($is_main_page)) {
     ?>
         <link rel="icon" type="<?php echo htmlspecialchars($faviconType); ?>" href="<?php echo htmlspecialchars($faviconPath); ?>">
     <?php endif; ?>
-    <link rel="stylesheet" href="/MVNO/assets/css/style.css">
+    <link rel="stylesheet" href="<?php echo getAssetPath('/assets/css/style.css'); ?>">
     <?php if (isset($add_inline_css) && $add_inline_css): ?>
     <style>
         /* 이미지 및 컨테이너 스타일 - CSS 로드 전에도 적용되도록 head에 추가 */
@@ -165,23 +174,23 @@ else if (!isset($is_main_page)) {
         // 메인 페이지 여부 (하단 메뉴 및 푸터 표시 제어용)
         window.IS_MAIN_PAGE = <?php echo (isset($is_main_page) && $is_main_page) ? 'true' : 'false'; ?>;
     </script>
-    <script src="/MVNO/assets/js/modal.js" defer></script>
-    <script src="/MVNO/assets/js/header-scroll.js" defer></script>
-    <script src="/MVNO/assets/js/phone-deal-scroll.js" defer></script>
-    <script src="/MVNO/assets/js/nav-click-fix.js" defer></script>
-    <script src="/MVNO/assets/js/share.js" defer></script>
-    <script src="/MVNO/assets/js/phone-consultation-modal.js" defer></script>
-    <script src="/MVNO/assets/js/tagline-effects.js" defer></script>
+    <script src="<?php echo getAssetPath('/assets/js/modal.js'); ?>" defer></script>
+    <script src="<?php echo getAssetPath('/assets/js/header-scroll.js'); ?>" defer></script>
+    <script src="<?php echo getAssetPath('/assets/js/phone-deal-scroll.js'); ?>" defer></script>
+    <script src="<?php echo getAssetPath('/assets/js/nav-click-fix.js'); ?>" defer></script>
+    <script src="<?php echo getAssetPath('/assets/js/share.js'); ?>" defer></script>
+    <script src="<?php echo getAssetPath('/assets/js/phone-consultation-modal.js'); ?>" defer></script>
+    <script src="<?php echo getAssetPath('/assets/js/tagline-effects.js'); ?>" defer></script>
 </head>
 <body>
     <header class="header sticky-nav" id="mainHeader">
         <div class="nav-wrapper">
             <!-- 모바일 로고 -->
             <div class="left-addon-mobile" id="mobileLogo">
-                <a class="nav-logo" href="/MVNO/">
+                <a class="nav-logo" href="<?php echo getBasePath(); ?>/">
                     <span class="usimking-logo-full">
                         <?php if (!empty($site['logo'])): ?>
-                            <img src="<?php echo htmlspecialchars($site['logo']); ?>" alt="<?php echo htmlspecialchars($site['name_ko'] ?? '유심킹'); ?>" style="height: 32px; width: auto; display: inline-block;">
+                            <img src="<?php echo htmlspecialchars(getAssetPath($site['logo'])); ?>" alt="<?php echo htmlspecialchars($site['name_ko'] ?? '유심킹'); ?>" style="height: 32px; width: auto; display: inline-block;">
                         <?php else: ?>
                             <span class="logo-text" style="display:inline-block; font-weight: 700; font-size: 18px; color: #6366f1;"><?php echo htmlspecialchars($site['name_ko'] ?? '유심킹'); ?></span>
                         <?php endif; ?>
@@ -191,10 +200,10 @@ else if (!isset($is_main_page)) {
             
             <!-- 데스크톱 로고 -->
             <div class="left-addon-desktop">
-                <a class="nav-logo" href="/MVNO/">
+                <a class="nav-logo" href="<?php echo getBasePath(); ?>/">
                     <span class="usimking-logo-full">
                         <?php if (!empty($site['logo'])): ?>
-                            <img src="<?php echo htmlspecialchars($site['logo']); ?>" alt="<?php echo htmlspecialchars($site['name_ko'] ?? '유심킹'); ?>" style="height: 32px; width: auto; display: inline-block;">
+                            <img src="<?php echo htmlspecialchars(getAssetPath($site['logo'])); ?>" alt="<?php echo htmlspecialchars($site['name_ko'] ?? '유심킹'); ?>" style="height: 32px; width: auto; display: inline-block;">
                         <?php else: ?>
                             <span class="logo-text" style="display:inline-block; font-weight: 700; font-size: 18px; color: #6366f1;"><?php echo htmlspecialchars($site['name_ko'] ?? '유심킹'); ?></span>
                         <?php endif; ?>
@@ -241,7 +250,7 @@ else if (!isset($is_main_page)) {
             <nav class="nav">
                 <ul class="nav-list">
                     <li class="nav-item">
-                        <a class="nav-link <?php echo (isset($current_page) && $current_page == 'home') ? 'active' : ''; ?>" href="/MVNO/">
+                        <a class="nav-link <?php echo (isset($current_page) && $current_page == 'home') ? 'active' : ''; ?>" href="<?php echo getBasePath(); ?>/">
                             <svg class="nav-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M3 12L5 10M5 10L12 3L19 10M5 10V20C5 20.5523 5.44772 21 6 21H9M19 10L21 12M19 10V20C19 20.5523 18.5523 21 18 21H15M9 21C9.55228 21 10 20.5523 10 20V16C10 15.4477 10.4477 15 11 15H13C13.5523 15 14 15.4477 14 16V20C14 20.5523 14.4477 21 15 21M9 21H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                             </svg>
@@ -249,7 +258,7 @@ else if (!isset($is_main_page)) {
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link <?php echo (isset($current_page) && $current_page == 'mno-sim') ? 'active' : ''; ?>" href="/MVNO/mno-sim/mno-sim.php">
+                        <a class="nav-link <?php echo (isset($current_page) && $current_page == 'mno-sim') ? 'active' : ''; ?>" href="<?php echo getAssetPath('/mno-sim/mno-sim.php'); ?>">
                             <svg class="nav-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M5 4C5 2.89543 5.89543 2 7 2H17C18.1046 2 19 2.89543 19 4V20C19 21.1046 18.1046 22 17 22H7C5.89543 22 5 21.1046 5 20V4Z" stroke="currentColor" stroke-width="2"/>
                                 <path d="M9 8H15M9 12H15M9 16H12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -259,7 +268,7 @@ else if (!isset($is_main_page)) {
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link <?php echo (isset($current_page) && ($current_page == 'plans' || $current_page == 'mvno')) ? 'active' : ''; ?>" href="/MVNO/mvno/mvno.php">
+                        <a class="nav-link <?php echo (isset($current_page) && ($current_page == 'plans' || $current_page == 'mvno')) ? 'active' : ''; ?>" href="<?php echo getAssetPath('/mvno/mvno.php'); ?>">
                             <svg class="nav-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M2 12C2 8.22876 2 6.34315 3.17157 5.17157C4.34315 4 6.22876 4 10 4H14C17.7712 4 19.6569 4 20.8284 5.17157C22 6.34315 22 8.22876 22 12C22 15.7712 22 17.6569 20.8284 18.8284C19.6569 20 17.7712 20 14 20H10C6.22876 20 4.34315 20 3.17157 18.8284C2 17.6569 2 15.7712 2 12Z" stroke="currentColor" stroke-width="2"/>
                                 <path d="M7 8H17M7 12H17M7 16H12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -268,7 +277,7 @@ else if (!isset($is_main_page)) {
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link <?php echo (isset($current_page) && $current_page == 'mno') ? 'active' : ''; ?>" href="/MVNO/mno/mno.php">
+                        <a class="nav-link <?php echo (isset($current_page) && $current_page == 'mno') ? 'active' : ''; ?>" href="<?php echo getAssetPath('/mno/mno.php'); ?>">
                             <svg class="nav-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M5 4C5 2.89543 5.89543 2 7 2H17C18.1046 2 19 2.89543 19 4V20C19 21.1046 18.1046 22 17 22H7C5.89543 22 5 21.1046 5 20V4Z" stroke="currentColor" stroke-width="2"/>
                                 <path d="M12 18H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -277,7 +286,7 @@ else if (!isset($is_main_page)) {
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link <?php echo (isset($current_page) && $current_page == 'internets') ? 'active' : ''; ?>" href="/MVNO/internets/internets.php">
+                        <a class="nav-link <?php echo (isset($current_page) && $current_page == 'internets') ? 'active' : ''; ?>" href="<?php echo getAssetPath('/internets/internets.php'); ?>">
                             <svg class="nav-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <!-- 지구 본체 -->
                                 <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/>
@@ -292,10 +301,10 @@ else if (!isset($is_main_page)) {
                         </a>
                     </li>
                     <li class="nav-item nav-item-desktop-only">
-                        <a class="nav-link <?php echo (isset($current_page) && $current_page == 'event') ? 'active' : ''; ?>" href="/MVNO/event/event.php">이벤트</a>
+                        <a class="nav-link <?php echo (isset($current_page) && $current_page == 'event') ? 'active' : ''; ?>" href="<?php echo getAssetPath('/event/event.php'); ?>">이벤트</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link <?php echo (isset($current_page) && $current_page == 'mypage') ? 'active' : ''; ?>" href="/MVNO/mypage/mypage.php" data-require-login="true">
+                        <a class="nav-link <?php echo (isset($current_page) && $current_page == 'mypage') ? 'active' : ''; ?>" href="<?php echo getAssetPath('/mypage/mypage.php'); ?>" data-require-login="true">
                             <svg class="nav-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                                 <path d="M12 11C14.2091 11 16 9.20914 16 7C16 4.79086 14.2091 3 12 3C9.79086 3 8 4.79086 8 7C8 9.20914 9.79086 11 12 11Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -309,7 +318,7 @@ else if (!isset($is_main_page)) {
                     ?>
                     <li class="nav-item nav-item-desktop-only">
                         <?php if ($isLoggedIn): ?>
-                            <a class="nav-link" href="/MVNO/api/logout.php">
+                            <a class="nav-link" href="<?php echo getApiPath('/api/logout.php'); ?>">
                                 <span>로그아웃</span>
                             </a>
                         <?php else: ?>
@@ -322,7 +331,7 @@ else if (!isset($is_main_page)) {
                         <?php endif; ?>
                     </li>
                     <li class="nav-item nav-item-mobile-only">
-                        <a class="nav-link nav-link-heart <?php echo (isset($current_page) && $current_page == 'mypage') ? 'active' : ''; ?>" href="/MVNO/mypage/mypage.php" data-require-login="true" style="justify-content: center;">
+                        <a class="nav-link nav-link-heart <?php echo (isset($current_page) && $current_page == 'mypage') ? 'active' : ''; ?>" href="<?php echo getAssetPath('/mypage/mypage.php'); ?>" data-require-login="true" style="justify-content: center;">
                             <svg class="nav-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: 26px; height: 26px;">
                                 <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#ef4444" style="fill: #ef4444 !important;"/>
                             </svg>
@@ -354,7 +363,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         if (typeof openLoginModal === 'function') {
                             openLoginModal(false);
                         } else {
-                            window.location.href = '/MVNO/auth/login.php';
+                            window.location.href = '<?php echo getAssetPath('/auth/login.php'); ?>';
                         }
                     }, 100);
                 }
@@ -365,7 +374,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // 자동 로그인 함수
 function autoLogin() {
-    fetch('/MVNO/api/auto-login.php')
+    fetch('<?php echo getApiPath('/api/auto-login.php'); ?>')
         .then(response => response.json())
         .then(data => {
             if (data.success) {

@@ -472,9 +472,17 @@ function deleteSellerInquiry($inquiryId, $sellerId) {
         $deletedDirs = [];
         foreach ($attachments as $attachment) {
             // DB 경로를 실제 파일 시스템 경로로 변환
-            // DB 경로: /MVNO/uploads/... -> 실제 경로: __DIR__/../../uploads/...
+            // DB 경로를 실제 파일 시스템 경로로 변환
+            require_once __DIR__ . '/path-config.php';
+            $basePath = getBasePath();
             $dbPath = $attachment['file_path'];
-            $actualPath = str_replace('/MVNO', '', $dbPath);
+            if ($basePath && strpos($dbPath, $basePath) === 0) {
+                $actualPath = str_replace($basePath, '', $dbPath);
+            } elseif (strpos($dbPath, '/MVNO') === 0) {
+                $actualPath = str_replace('/MVNO', '', $dbPath);
+            } else {
+                $actualPath = $dbPath;
+            }
             // __DIR__은 includes/data이므로 ../../로 루트로 이동
             $filePath = __DIR__ . '/../..' . $actualPath;
             if (file_exists($filePath)) {
@@ -874,9 +882,10 @@ function uploadSellerInquiryAttachment($file, $inquiryId, $userId) {
     $finalSize = $fileExists ? filesize($filePath) : 0;
     error_log("uploadSellerInquiryAttachment: file exists after processing - " . ($fileExists ? 'yes' : 'no') . ", size: $finalSize");
     
+    require_once __DIR__ . '/path-config.php';
     $result = [
         'file_name' => $file['name'],
-        'file_path' => '/MVNO/uploads/seller-inquiries/' . $inquiryId . '/' . $fileName,
+        'file_path' => getUploadPath('/uploads/seller-inquiries/' . $inquiryId . '/' . $fileName),
         'file_size' => $finalSize,
         'file_type' => $mimeType
     ];
@@ -952,9 +961,10 @@ function uploadSellerInquiryReplyAttachment($file, $inquiryId, $replyId, $userId
     // 파일 이동
     if ($moveResult) {
         $finalSize = filesize($filePath);
+        require_once __DIR__ . '/path-config.php';
         return [
             'file_name' => $file['name'],
-            'file_path' => '/MVNO/uploads/seller-inquiries/' . $inquiryId . '/replies/' . $replyId . '/' . $fileName,
+            'file_path' => getUploadPath('/uploads/seller-inquiries/' . $inquiryId . '/replies/' . $replyId . '/' . $fileName),
             'file_size' => $finalSize,
             'file_type' => $mimeType
         ];

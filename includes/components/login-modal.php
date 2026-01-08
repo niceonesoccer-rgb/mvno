@@ -2,7 +2,8 @@
 /**
  * 로그인 모달 컴포넌트
  */
-require_once __DIR__ . '/../../includes/data/auth-functions.php';
+require_once __DIR__ . '/../data/path-config.php';
+require_once __DIR__ . '/../data/auth-functions.php';
 
 // 로그인 상태 확인
 $isLoggedIn = isLoggedIn();
@@ -757,9 +758,9 @@ $isRegisterMode = false; // 기본값은 로그인 모드
                 <div class="login-sns-section">
                     <!-- SNS 로그인 버튼 -->
                     <div class="login-sns-buttons" style="margin-bottom: 32px;">
-                        <img src="/MVNO/assets/images/logo/button-kakao-login.png" alt="카카오톡 로그인" class="login-sns-button-img" onclick="snsLoginModal('kakao')">
-                        <img src="/MVNO/assets/images/logo/button-naver-login.png" alt="네이버로 로그인" class="login-sns-button-img" onclick="snsLoginModal('naver')">
-                        <img src="/MVNO/assets/images/logo/button-google-login.png" alt="구글 로그인" class="login-sns-button-img google" onclick="snsLoginModal('google')">
+                        <img src="<?php echo getAssetPath('/assets/images/logo/button-kakao-login.png'); ?>" alt="카카오톡 로그인" class="login-sns-button-img" onclick="snsLoginModal('kakao')">
+                        <img src="<?php echo getAssetPath('/assets/images/logo/button-naver-login.png'); ?>" alt="네이버로 로그인" class="login-sns-button-img" onclick="snsLoginModal('naver')">
+                        <img src="<?php echo getAssetPath('/assets/images/logo/button-google-login.png'); ?>" alt="구글 로그인" class="login-sns-button-img google" onclick="snsLoginModal('google')">
                     </div>
                     
                     <!-- 일반 로그인 폼 -->
@@ -786,9 +787,9 @@ $isRegisterMode = false; // 기본값은 로그인 모드
                     <h3 class="login-benefits-title">SNS로 회원가입</h3>
                     
                     <div class="login-sns-buttons" style="margin-top: 24px;">
-                        <img src="/MVNO/assets/images/logo/button-kakao-login.png" alt="카카오톡 로그인" class="login-sns-button-img" onclick="snsLoginModal('kakao')">
-                        <img src="/MVNO/assets/images/logo/button-naver-login.png" alt="네이버로 로그인" class="login-sns-button-img" onclick="snsLoginModal('naver')">
-                        <img src="/MVNO/assets/images/logo/button-google-login.png" alt="구글 로그인" class="login-sns-button-img google" onclick="snsLoginModal('google')">
+                        <img src="<?php echo getAssetPath('/assets/images/logo/button-kakao-login.png'); ?>" alt="카카오톡 로그인" class="login-sns-button-img" onclick="snsLoginModal('kakao')">
+                        <img src="<?php echo getAssetPath('/assets/images/logo/button-naver-login.png'); ?>" alt="네이버로 로그인" class="login-sns-button-img" onclick="snsLoginModal('naver')">
+                        <img src="<?php echo getAssetPath('/assets/images/logo/button-google-login.png'); ?>" alt="구글 로그인" class="login-sns-button-img google" onclick="snsLoginModal('google')">
                     </div>
                     
                     <div class="login-divider">

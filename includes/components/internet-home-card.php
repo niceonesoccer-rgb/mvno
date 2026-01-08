@@ -12,7 +12,7 @@ if (!isset($product)) {
 
 $is_link = $is_link ?? true;
 $product_id = $product['id'] ?? 0;
-$link_url = '/MVNO/internets/internet-detail.php?id=' . $product_id;
+$link_url = getAssetPath('/internets/internet-detail.php?id=' . $product_id);
 
 // 데이터 추출
 $provider = $product['registration_place'] ?? ''; // 통신사

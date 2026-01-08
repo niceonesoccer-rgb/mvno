@@ -5,6 +5,7 @@
  */
 
 require_once __DIR__ . '/../includes/data/auth-functions.php';
+require_once __DIR__ . '/../includes/data/path-config.php';
 require_once __DIR__ . '/../includes/data/db-config.php';
 require_once __DIR__ . '/../includes/data/notice-functions.php';
 
@@ -17,14 +18,14 @@ $currentUser = getCurrentUser();
 
 // 판매자 로그인 체크
 if (!$currentUser || $currentUser['role'] !== 'seller') {
-    header('Location: /MVNO/seller/login.php');
+    header('Location: ' . getAssetPath('/seller/login.php'));
     exit;
 }
 
 // 판매자 승인 체크 - 승인되지 않은 경우 waiting.php로 리다이렉트
 $isApproved = isset($currentUser['seller_approved']) && $currentUser['seller_approved'] === true;
 if (!$isApproved) {
-    header('Location: /MVNO/seller/waiting.php');
+    header('Location: ' . getAssetPath('/seller/waiting.php'));
     exit;
 }
 
@@ -923,10 +924,10 @@ include 'includes/seller-header.php';
                 
                 <?php
                 $orderCategories = [
-                    'mno-sim' => ['name' => '통신사단독유심', 'url' => '/MVNO/seller/orders/mno-sim.php'],
-                    'mvno' => ['name' => '알뜰폰', 'url' => '/MVNO/seller/orders/mvno.php'],
-                    'mno' => ['name' => '통신사폰', 'url' => '/MVNO/seller/orders/mno.php'],
-                    'internet' => ['name' => '인터넷', 'url' => '/MVNO/seller/orders/internet.php']
+                    'mno-sim' => ['name' => '통신사단독유심', 'url' => getAssetPath('/seller/orders/mno-sim.php')],
+                    'mvno' => ['name' => '알뜰폰', 'url' => getAssetPath('/seller/orders/mvno.php')],
+                    'mno' => ['name' => '통신사폰', 'url' => getAssetPath('/seller/orders/mno.php')],
+                    'internet' => ['name' => '인터넷', 'url' => getAssetPath('/seller/orders/internet.php')]
                 ];
                 $statusLabels = [
                     'received' => '접수',
@@ -991,10 +992,10 @@ include 'includes/seller-header.php';
                 
                 <?php
                 $adCategories = [
-                    'mno-sim' => ['name' => '통신사단독유심', 'url' => '/MVNO/seller/products/mno-sim-list.php'],
-                    'mvno' => ['name' => '알뜰폰', 'url' => '/MVNO/seller/products/mvno-list.php'],
-                    'mno' => ['name' => '통신사폰', 'url' => '/MVNO/seller/products/mno-list.php'],
-                    'internet' => ['name' => '인터넷', 'url' => '/MVNO/seller/products/internet-list.php']
+                    'mno-sim' => ['name' => '통신사단독유심', 'url' => getAssetPath('/seller/products/mno-sim-list.php')],
+                    'mvno' => ['name' => '알뜰폰', 'url' => getAssetPath('/seller/products/mvno-list.php')],
+                    'mno' => ['name' => '통신사폰', 'url' => getAssetPath('/seller/products/mno-list.php')],
+                    'internet' => ['name' => '인터넷', 'url' => getAssetPath('/seller/products/internet-list.php')]
                 ];
                 ?>
                 
@@ -1123,7 +1124,7 @@ include 'includes/seller-header.php';
                         </table>
                     </div>
                     <div style="margin-top: 20px; text-align: center;">
-                        <a href="/MVNO/seller/deposit/history.php" class="action-button secondary" style="display: inline-flex;">
+                        <a href="<?php echo getAssetPath('/seller/deposit/history.php'); ?>" class="action-button secondary" style="display: inline-flex;">
                             전체 사용내역 보기
                         </a>
                     </div>
@@ -1132,7 +1133,7 @@ include 'includes/seller-header.php';
                 <div class="content-box" style="background: #fff; border-radius: 12px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-top: 24px; text-align: center;">
                     <div style="font-size: 48px; margin-bottom: 16px; opacity: 0.5;">💳</div>
                     <div style="font-size: 16px; color: #64748b; margin-bottom: 20px;">사용내역이 없습니다</div>
-                    <a href="/MVNO/seller/deposit/charge.php" class="action-button" style="display: inline-flex;">
+                    <a href="<?php echo getAssetPath('/seller/deposit/charge.php'); ?>" class="action-button" style="display: inline-flex;">
                         예치금 충전하기
                     </a>
                 </div>
@@ -1143,20 +1144,20 @@ include 'includes/seller-header.php';
             <div class="dashboard-section">
                 <h2 class="dashboard-section-title">빠른 작업</h2>
                 <div class="quick-actions">
-                    <a href="/MVNO/seller/products/mvno.php" class="action-button">
+                    <a href="<?php echo getAssetPath('/seller/products/mvno.php'); ?>" class="action-button">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 20px; height: 20px;">
                             <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
                         </svg>
                         알뜰폰 상품 등록
                     </a>
-                    <a href="/MVNO/seller/products/mno.php" class="action-button">
+                    <a href="<?php echo getAssetPath('/seller/products/mno.php'); ?>" class="action-button">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 20px; height: 20px;">
                             <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
                             <line x1="12" y1="18" x2="12.01" y2="18"/>
                         </svg>
                         통신사폰 상품 등록
                     </a>
-                    <a href="/MVNO/seller/products/internet.php" class="action-button">
+                    <a href="<?php echo getAssetPath('/seller/products/internet.php'); ?>" class="action-button">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 20px; height: 20px;">
                             <circle cx="12" cy="12" r="10"/>
                             <line x1="2" y1="12" x2="22" y2="12"/>
@@ -1164,7 +1165,7 @@ include 'includes/seller-header.php';
                         </svg>
                         인터넷 상품 등록
                     </a>
-                    <a href="/MVNO/seller/products/mno-sim.php" class="action-button">
+                    <a href="<?php echo getAssetPath('/seller/products/mno-sim.php'); ?>" class="action-button">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 20px; height: 20px;">
                             <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
                             <line x1="12" y1="18" x2="12.01" y2="18"/>

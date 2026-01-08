@@ -5,12 +5,13 @@
  */
 
 require_once __DIR__ . '/../../includes/data/auth-functions.php';
+require_once __DIR__ . '/../../includes/data/path-config.php';
 
 // 관리자 인증 체크 (출력 전에 체크)
 $currentUser = getCurrentUser();
 if (!$currentUser || !isAdmin($currentUser['user_id'])) {
     // 관리자가 아니면 관리자 로그인 페이지로 리다이렉트
-    header('Location: /MVNO/admin/login.php');
+    header('Location: ' . getAssetPath('/admin/login.php'));
     exit;
 }
 
@@ -36,8 +37,8 @@ if ($pdo) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>관리자 페이지 - 유심킹</title>
-    <link rel="stylesheet" href="/MVNO/assets/css/style.css">
-    <script src="/MVNO/assets/js/modal.js" defer></script>
+    <link rel="stylesheet" href="<?php echo getAssetPath('/assets/css/style.css'); ?>">
+    <script src="<?php echo getAssetPath('/assets/js/modal.js'); ?>" defer></script>
     <style>
         * {
             margin: 0;
@@ -536,11 +537,11 @@ if ($pdo) {
     <!-- 상단 헤더 -->
     <header class="admin-top-header">
         <div class="admin-top-header-left">
-            <a href="/MVNO/admin/" class="admin-top-header-logo" style="text-decoration: none; color: inherit;">유심킹 관리자</a>
+            <a href="<?php echo getAssetPath('/admin/'); ?>" class="admin-top-header-logo" style="text-decoration: none; color: inherit;">유심킹 관리자</a>
         </div>
         <div class="admin-top-header-right">
-            <a href="/MVNO/" target="_blank" class="admin-top-header-link">사이트보기</a>
-            <a href="/MVNO/api/logout.php" class="admin-top-header-link">로그아웃</a>
+            <a href="<?php echo getAssetPath('/'); ?>" target="_blank" class="admin-top-header-link">사이트보기</a>
+            <a href="<?php echo getApiPath('/api/logout.php'); ?>" class="admin-top-header-link">로그아웃</a>
         </div>
     </header>
     
@@ -549,7 +550,7 @@ if ($pdo) {
         <nav class="sidebar-menu">
             <!-- 대시보드 -->
             <div class="menu-section">
-                <a href="/MVNO/admin/" class="menu-item <?php echo $currentPage === 'index.php' ? 'active' : ''; ?>">
+                <a href="<?php echo getAssetPath('/admin/'); ?>" class="menu-item <?php echo $currentPage === 'index.php' ? 'active' : ''; ?>">
                     <span class="menu-item-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
@@ -563,7 +564,7 @@ if ($pdo) {
             <!-- 사용자 관리 -->
             <div class="menu-section">
                 <div class="menu-section-title">사용자 관리</div>
-                <a href="/MVNO/admin/seller-approval.php?tab=pending" class="menu-item <?php echo ($currentPage === 'seller-approval.php' || $currentPage === 'seller-permissions.php') ? 'active' : ''; ?>">
+                <a href="<?php echo getAssetPath('/admin/seller-approval.php?tab=pending'); ?>" class="menu-item <?php echo ($currentPage === 'seller-approval.php' || $currentPage === 'seller-permissions.php') ? 'active' : ''; ?>">
                     <span class="menu-item-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
@@ -574,7 +575,7 @@ if ($pdo) {
                     </span>
                     판매자 관리
                 </a>
-                <a href="/MVNO/admin/users/member-list.php" class="menu-item <?php echo $currentPage === 'member-list.php' ? 'active' : ''; ?>">
+                <a href="<?php echo getAssetPath('/admin/users/member-list.php'); ?>" class="menu-item <?php echo $currentPage === 'member-list.php' ? 'active' : ''; ?>">
                     <span class="menu-item-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
@@ -585,7 +586,7 @@ if ($pdo) {
                     </span>
                     회원 관리
                 </a>
-                <a href="/MVNO/admin/users/sub-admin-manage.php" class="menu-item <?php echo $currentPage === 'sub-admin-manage.php' ? 'active' : ''; ?>">
+                <a href="<?php echo getAssetPath('/admin/users/sub-admin-manage.php'); ?>" class="menu-item <?php echo $currentPage === 'sub-admin-manage.php' ? 'active' : ''; ?>">
                     <span class="menu-item-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
@@ -601,7 +602,7 @@ if ($pdo) {
             <!-- 주문 관리 -->
             <div class="menu-section">
                 <div class="menu-section-title">주문 관리</div>
-                <a href="/MVNO/admin/orders/mno-sim-list.php" class="menu-item <?php echo ($currentPage === 'mno-sim-list.php' && strpos($_SERVER['REQUEST_URI'], '/orders/') !== false) ? 'active' : ''; ?>">
+                <a href="<?php echo getAssetPath('/admin/orders/mno-sim-list.php'); ?>" class="menu-item <?php echo ($currentPage === 'mno-sim-list.php' && strpos($_SERVER['REQUEST_URI'], '/orders/') !== false) ? 'active' : ''; ?>">
                     <span class="menu-item-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
@@ -610,7 +611,7 @@ if ($pdo) {
                     </span>
                     통신사단독유심
                 </a>
-                <a href="/MVNO/admin/orders/mvno-list.php" class="menu-item <?php echo ($currentPage === 'mvno-list.php' && strpos($_SERVER['REQUEST_URI'], '/orders/') !== false) ? 'active' : ''; ?>">
+                <a href="<?php echo getAssetPath('/admin/orders/mvno-list.php'); ?>" class="menu-item <?php echo ($currentPage === 'mvno-list.php' && strpos($_SERVER['REQUEST_URI'], '/orders/') !== false) ? 'active' : ''; ?>">
                     <span class="menu-item-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
@@ -619,7 +620,7 @@ if ($pdo) {
                     </span>
                     알뜰폰
                 </a>
-                <a href="/MVNO/admin/orders/mno-list.php" class="menu-item <?php echo ($currentPage === 'mno-list.php' && strpos($_SERVER['REQUEST_URI'], '/orders/') !== false) ? 'active' : ''; ?>">
+                <a href="<?php echo getAssetPath('/admin/orders/mno-list.php'); ?>" class="menu-item <?php echo ($currentPage === 'mno-list.php' && strpos($_SERVER['REQUEST_URI'], '/orders/') !== false) ? 'active' : ''; ?>">
                     <span class="menu-item-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
@@ -627,7 +628,7 @@ if ($pdo) {
                     </span>
                     통신사폰
                 </a>
-                <a href="/MVNO/admin/orders/internet-list.php" class="menu-item <?php echo ($currentPage === 'internet-list.php' && strpos($_SERVER['REQUEST_URI'], '/orders/') !== false) ? 'active' : ''; ?>">
+                <a href="<?php echo getAssetPath('/admin/orders/internet-list.php'); ?>" class="menu-item <?php echo ($currentPage === 'internet-list.php' && strpos($_SERVER['REQUEST_URI'], '/orders/') !== false) ? 'active' : ''; ?>">
                     <span class="menu-item-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <circle cx="12" cy="12" r="10"/>
@@ -642,7 +643,7 @@ if ($pdo) {
             <!-- 상품 관리 -->
             <div class="menu-section">
                 <div class="menu-section-title">상품 관리</div>
-                <a href="/MVNO/admin/products/mno-sim-list.php" class="menu-item <?php echo ($currentPage === 'mno-sim-list.php' && strpos($_SERVER['REQUEST_URI'], '/products/') !== false) ? 'active' : ''; ?>">
+                <a href="<?php echo getAssetPath('/admin/products/mno-sim-list.php'); ?>" class="menu-item <?php echo ($currentPage === 'mno-sim-list.php' && strpos($_SERVER['REQUEST_URI'], '/products/') !== false) ? 'active' : ''; ?>">
                     <span class="menu-item-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
@@ -651,7 +652,7 @@ if ($pdo) {
                     </span>
                     통신사단독유심 관리
                 </a>
-                <a href="/MVNO/admin/products/mvno-list.php" class="menu-item">
+                <a href="<?php echo getAssetPath('/admin/products/mvno-list.php'); ?>" class="menu-item">
                     <span class="menu-item-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
@@ -660,7 +661,7 @@ if ($pdo) {
                     </span>
                     알뜰폰 관리
                 </a>
-                <a href="/MVNO/admin/products/mno-list.php" class="menu-item">
+                <a href="<?php echo getAssetPath('/admin/products/mno-list.php'); ?>" class="menu-item">
                     <span class="menu-item-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
@@ -668,7 +669,7 @@ if ($pdo) {
                     </span>
                     통신사폰 관리
                 </a>
-                <a href="/MVNO/admin/products/internet-list.php" class="menu-item">
+                <a href="<?php echo getAssetPath('/admin/products/internet-list.php'); ?>" class="menu-item">
                     <span class="menu-item-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <circle cx="12" cy="12" r="10"/>
@@ -683,7 +684,7 @@ if ($pdo) {
             <!-- 광고 관리 -->
             <div class="menu-section">
                 <div class="menu-section-title">광고 관리</div>
-                <a href="/MVNO/admin/advertisement/prices.php" class="menu-item <?php echo ($currentPage === 'prices.php' && strpos($_SERVER['REQUEST_URI'], '/advertisement/') !== false) ? 'active' : ''; ?>">
+                <a href="<?php echo getAssetPath('/admin/advertisement/prices.php'); ?>" class="menu-item <?php echo ($currentPage === 'prices.php' && strpos($_SERVER['REQUEST_URI'], '/advertisement/') !== false) ? 'active' : ''; ?>">
                     <span class="menu-item-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <line x1="12" y1="2" x2="12" y2="22"/>
@@ -692,7 +693,7 @@ if ($pdo) {
                     </span>
                     광고 가격 설정
                 </a>
-                <a href="/MVNO/admin/advertisement/list.php" class="menu-item <?php echo ($currentPage === 'list.php' && strpos($_SERVER['REQUEST_URI'], '/advertisement/') !== false) ? 'active' : ''; ?>">
+                <a href="<?php echo getAssetPath('/admin/advertisement/list.php'); ?>" class="menu-item <?php echo ($currentPage === 'list.php' && strpos($_SERVER['REQUEST_URI'], '/advertisement/') !== false) ? 'active' : ''; ?>">
                     <span class="menu-item-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M9 11l3 3L22 4"/>
@@ -701,7 +702,7 @@ if ($pdo) {
                     </span>
                     광고 목록
                 </a>
-                <a href="/MVNO/admin/advertisement/tagline.php" class="menu-item <?php echo ($currentPage === 'tagline.php' && strpos($_SERVER['REQUEST_URI'], '/advertisement/') !== false) ? 'active' : ''; ?>">
+                <a href="<?php echo getAssetPath('/admin/advertisement/tagline.php'); ?>" class="menu-item <?php echo ($currentPage === 'tagline.php' && strpos($_SERVER['REQUEST_URI'], '/advertisement/') !== false) ? 'active' : ''; ?>">
                     <span class="menu-item-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
@@ -711,7 +712,7 @@ if ($pdo) {
                     </span>
                     태그라인
                 </a>
-                <a href="/MVNO/admin/advertisement/analytics.php" class="menu-item <?php echo ($currentPage === 'analytics.php' && strpos($_SERVER['REQUEST_URI'], '/advertisement/') !== false) ? 'active' : ''; ?>">
+                <a href="<?php echo getAssetPath('/admin/advertisement/analytics.php'); ?>" class="menu-item <?php echo ($currentPage === 'analytics.php' && strpos($_SERVER['REQUEST_URI'], '/advertisement/') !== false) ? 'active' : ''; ?>">
                     <span class="menu-item-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <line x1="18" y1="20" x2="18" y2="10"/>
@@ -721,7 +722,7 @@ if ($pdo) {
                     </span>
                     광고 분석
                 </a>
-                <a href="/MVNO/admin/deposit/requests.php" class="menu-item <?php echo ($currentPage === 'requests.php' && strpos($_SERVER['REQUEST_URI'], '/deposit/') !== false) ? 'active' : ''; ?>">
+                <a href="<?php echo getAssetPath('/admin/deposit/requests.php'); ?>" class="menu-item <?php echo ($currentPage === 'requests.php' && strpos($_SERVER['REQUEST_URI'], '/deposit/') !== false) ? 'active' : ''; ?>">
                     <span class="menu-item-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
@@ -730,7 +731,7 @@ if ($pdo) {
                     </span>
                     입금 신청 목록
                 </a>
-                <a href="/MVNO/admin/deposit/bank-accounts.php" class="menu-item <?php echo ($currentPage === 'bank-accounts.php' && strpos($_SERVER['REQUEST_URI'], '/deposit/') !== false) ? 'active' : ''; ?>">
+                <a href="<?php echo getAssetPath('/admin/deposit/bank-accounts.php'); ?>" class="menu-item <?php echo ($currentPage === 'bank-accounts.php' && strpos($_SERVER['REQUEST_URI'], '/deposit/') !== false) ? 'active' : ''; ?>">
                     <span class="menu-item-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
@@ -740,7 +741,7 @@ if ($pdo) {
                     </span>
                     무통장 계좌 관리
                 </a>
-                <a href="/MVNO/admin/deposit/adjust.php" class="menu-item <?php echo ($currentPage === 'adjust.php' && strpos($_SERVER['REQUEST_URI'], '/deposit/') !== false) ? 'active' : ''; ?>">
+                <a href="<?php echo getAssetPath('/admin/deposit/adjust.php'); ?>" class="menu-item <?php echo ($currentPage === 'adjust.php' && strpos($_SERVER['REQUEST_URI'], '/deposit/') !== false) ? 'active' : ''; ?>">
                     <span class="menu-item-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <line x1="12" y1="2" x2="12" y2="22"/>
@@ -749,7 +750,7 @@ if ($pdo) {
                     </span>
                     예치금 조정
                 </a>
-                <a href="/MVNO/admin/tax-invoice/issue.php" class="menu-item <?php echo ($currentPage === 'issue.php' && strpos($_SERVER['REQUEST_URI'], '/tax-invoice/') !== false) ? 'active' : ''; ?>">
+                <a href="<?php echo getAssetPath('/admin/tax-invoice/issue.php'); ?>" class="menu-item <?php echo ($currentPage === 'issue.php' && strpos($_SERVER['REQUEST_URI'], '/tax-invoice/') !== false) ? 'active' : ''; ?>">
                     <span class="menu-item-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
@@ -766,7 +767,7 @@ if ($pdo) {
             <!-- 콘텐츠 관리 -->
             <div class="menu-section">
                 <div class="menu-section-title">콘텐츠 관리</div>
-                <a href="/MVNO/admin/content/event-manage.php" class="menu-item <?php echo $currentPage === 'event-manage.php' ? 'active' : ''; ?>">
+                <a href="<?php echo getAssetPath('/admin/content/event-manage.php'); ?>" class="menu-item <?php echo $currentPage === 'event-manage.php' ? 'active' : ''; ?>">
                     <span class="menu-item-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
@@ -774,7 +775,7 @@ if ($pdo) {
                     </span>
                     이벤트 관리
                 </a>
-                <a href="/MVNO/admin/content/banner-manage.php" class="menu-item <?php echo $currentPage === 'banner-manage.php' ? 'active' : ''; ?>">
+                <a href="<?php echo getAssetPath('/admin/content/banner-manage.php'); ?>" class="menu-item <?php echo $currentPage === 'banner-manage.php' ? 'active' : ''; ?>">
                     <span class="menu-item-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
@@ -783,7 +784,7 @@ if ($pdo) {
                     </span>
                     배너 관리
                 </a>
-                <a href="/MVNO/admin/content/home-product-select.php" class="menu-item <?php echo $currentPage === 'home-product-select.php' ? 'active' : ''; ?>">
+                <a href="<?php echo getAssetPath('/admin/content/home-product-select.php'); ?>" class="menu-item <?php echo $currentPage === 'home-product-select.php' ? 'active' : ''; ?>">
                     <span class="menu-item-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M9 11l3 3L22 4"/>
@@ -792,7 +793,7 @@ if ($pdo) {
                     </span>
                     메인상품선택
                 </a>
-                <a href="/MVNO/admin/content/notice-manage.php" class="menu-item <?php echo $currentPage === 'notice-manage.php' ? 'active' : ''; ?>">
+                <a href="<?php echo getAssetPath('/admin/content/notice-manage.php'); ?>" class="menu-item <?php echo $currentPage === 'notice-manage.php' ? 'active' : ''; ?>">
                     <span class="menu-item-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
@@ -801,7 +802,7 @@ if ($pdo) {
                     </span>
                     공지사항 관리
                 </a>
-                <a href="/MVNO/admin/content/seller-notice-manage.php" class="menu-item <?php echo $currentPage === 'seller-notice-manage.php' ? 'active' : ''; ?>">
+                <a href="<?php echo getAssetPath('/admin/content/seller-notice-manage.php'); ?>" class="menu-item <?php echo $currentPage === 'seller-notice-manage.php' ? 'active' : ''; ?>">
                     <span class="menu-item-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
@@ -810,7 +811,7 @@ if ($pdo) {
                     </span>
                     판매자 공지사항 관리
                 </a>
-                <a href="/MVNO/admin/content/qna-manage.php" class="menu-item <?php echo $currentPage === 'qna-manage.php' ? 'active' : ''; ?>">
+                <a href="<?php echo getAssetPath('/admin/content/qna-manage.php'); ?>" class="menu-item <?php echo $currentPage === 'qna-manage.php' ? 'active' : ''; ?>">
                     <span class="menu-item-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <circle cx="12" cy="12" r="10"/>
@@ -820,7 +821,7 @@ if ($pdo) {
                     </span>
                     Q&A 관리
                 </a>
-                <a href="/MVNO/admin/content/seller-inquiry-manage.php" class="menu-item <?php echo $currentPage === 'seller-inquiry-manage.php' ? 'active' : ''; ?>">
+                <a href="<?php echo getAssetPath('/admin/content/seller-inquiry-manage.php'); ?>" class="menu-item <?php echo $currentPage === 'seller-inquiry-manage.php' ? 'active' : ''; ?>">
                     <span class="menu-item-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
@@ -835,7 +836,7 @@ if ($pdo) {
             <!-- 설정 -->
             <div class="menu-section">
                 <div class="menu-section-title">설정</div>
-                <a href="/MVNO/admin/settings/site-settings.php" class="menu-item <?php echo $currentPage === 'site-settings.php' ? 'active' : ''; ?>">
+                <a href="<?php echo getAssetPath('/admin/settings/site-settings.php'); ?>" class="menu-item <?php echo $currentPage === 'site-settings.php' ? 'active' : ''; ?>">
                     <span class="menu-item-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <circle cx="12" cy="12" r="3"/>
@@ -844,7 +845,7 @@ if ($pdo) {
                     </span>
                     사이트설정
                 </a>
-                <a href="/MVNO/admin/settings/forbidden-ids-manage.php" class="menu-item <?php echo $currentPage === 'forbidden-ids-manage.php' ? 'active' : ''; ?>">
+                <a href="<?php echo getAssetPath('/admin/settings/forbidden-ids-manage.php'); ?>" class="menu-item <?php echo $currentPage === 'forbidden-ids-manage.php' ? 'active' : ''; ?>">
                     <span class="menu-item-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
@@ -853,7 +854,7 @@ if ($pdo) {
                     </span>
                     가입 금지어 관리
                 </a>
-                <a href="/MVNO/admin/settings/email-settings.php" class="menu-item <?php echo $currentPage === 'email-settings.php' ? 'active' : ''; ?>">
+                <a href="<?php echo getAssetPath('/admin/settings/email-settings.php'); ?>" class="menu-item <?php echo $currentPage === 'email-settings.php' ? 'active' : ''; ?>">
                     <span class="menu-item-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
@@ -862,7 +863,7 @@ if ($pdo) {
                     </span>
                     이메일 설정
                 </a>
-                <a href="/MVNO/admin/settings/point-settings.php" class="menu-item <?php echo $currentPage === 'point-settings.php' ? 'active' : ''; ?>">
+                <a href="<?php echo getAssetPath('/admin/settings/point-settings.php'); ?>" class="menu-item <?php echo $currentPage === 'point-settings.php' ? 'active' : ''; ?>">
                     <span class="menu-item-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <circle cx="12" cy="12" r="10"/>
@@ -871,7 +872,7 @@ if ($pdo) {
                     </span>
                     포인트 설정
                 </a>
-                <a href="/MVNO/admin/settings/customer-point-history.php" class="menu-item <?php echo $currentPage === 'customer-point-history.php' ? 'active' : ''; ?>">
+                <a href="<?php echo getAssetPath('/admin/settings/customer-point-history.php'); ?>" class="menu-item <?php echo $currentPage === 'customer-point-history.php' ? 'active' : ''; ?>">
                     <span class="menu-item-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
@@ -883,7 +884,7 @@ if ($pdo) {
                     </span>
                     고객적립포인트
                 </a>
-                <a href="/MVNO/admin/settings/privacy-settings.php" class="menu-item <?php echo $currentPage === 'privacy-settings.php' ? 'active' : ''; ?>">
+                <a href="<?php echo getAssetPath('/admin/settings/privacy-settings.php'); ?>" class="menu-item <?php echo $currentPage === 'privacy-settings.php' ? 'active' : ''; ?>">
                     <span class="menu-item-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
@@ -892,7 +893,7 @@ if ($pdo) {
                     </span>
                     개인정보 설정
                 </a>
-                <a href="/MVNO/admin/settings/device-settings.php" class="menu-item <?php echo $currentPage === 'device-settings.php' ? 'active' : ''; ?>">
+                <a href="<?php echo getAssetPath('/admin/settings/device-settings.php'); ?>" class="menu-item <?php echo $currentPage === 'device-settings.php' ? 'active' : ''; ?>">
                     <span class="menu-item-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
@@ -901,7 +902,7 @@ if ($pdo) {
                     </span>
                     단말기 설정
                 </a>
-                <a href="/MVNO/admin/settings/internet-service-types.php" class="menu-item <?php echo $currentPage === 'internet-service-types.php' ? 'active' : ''; ?>">
+                <a href="<?php echo getAssetPath('/admin/settings/internet-service-types.php'); ?>" class="menu-item <?php echo $currentPage === 'internet-service-types.php' ? 'active' : ''; ?>">
                     <span class="menu-item-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <rect x="2" y="3" width="20" height="14" rx="2" stroke-linecap="round"/>
@@ -912,7 +913,7 @@ if ($pdo) {
                     </span>
                     인터넷 결합여부 설정
                 </a>
-                <a href="/MVNO/admin/review-settings.php" class="menu-item <?php echo $currentPage === 'review-settings.php' ? 'active' : ''; ?>">
+                <a href="<?php echo getAssetPath('/admin/review-settings.php'); ?>" class="menu-item <?php echo $currentPage === 'review-settings.php' ? 'active' : ''; ?>">
                     <span class="menu-item-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
@@ -923,7 +924,7 @@ if ($pdo) {
                     리뷰 작성 권한
                 </a>
                 <?php if (getUserRole($currentUser['user_id']) === 'admin'): ?>
-                <a href="/MVNO/admin/settings/data-delete.php" class="menu-item <?php echo $currentPage === 'data-delete.php' ? 'active' : ''; ?>">
+                <a href="<?php echo getAssetPath('/admin/settings/data-delete.php'); ?>" class="menu-item <?php echo $currentPage === 'data-delete.php' ? 'active' : ''; ?>">
                     <span class="menu-item-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <polyline points="3 6 5 6 21 6"/>
@@ -934,7 +935,7 @@ if ($pdo) {
                     </span>
                     데이터 삭제 관리
                 </a>
-                <a href="/MVNO/admin/api-settings.php" class="menu-item <?php echo $currentPage === 'api-settings.php' ? 'active' : ''; ?>">
+                <a href="<?php echo getAssetPath('/admin/api-settings.php'); ?>" class="menu-item <?php echo $currentPage === 'api-settings.php' ? 'active' : ''; ?>">
                     <span class="menu-item-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
@@ -943,7 +944,7 @@ if ($pdo) {
                     </span>
                     API 설정
                 </a>
-                <a href="/MVNO/admin/settings/db-settings.php" class="menu-item <?php echo $currentPage === 'db-settings.php' ? 'active' : ''; ?>">
+                <a href="<?php echo getAssetPath('/admin/settings/db-settings.php'); ?>" class="menu-item <?php echo $currentPage === 'db-settings.php' ? 'active' : ''; ?>">
                     <span class="menu-item-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <ellipse cx="12" cy="5" rx="9" ry="3"/>
@@ -959,7 +960,7 @@ if ($pdo) {
             <!-- 통계 분석 -->
             <div class="menu-section">
                 <div class="menu-section-title">통계 분석</div>
-                <a href="/MVNO/admin/analytics/dashboard.php" class="menu-item <?php echo $currentPage === 'dashboard.php' ? 'active' : ''; ?>">
+                <a href="<?php echo getAssetPath('/admin/analytics/dashboard.php'); ?>" class="menu-item <?php echo $currentPage === 'dashboard.php' ? 'active' : ''; ?>">
                     <span class="menu-item-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <line x1="18" y1="20" x2="18" y2="10"/>
@@ -969,7 +970,7 @@ if ($pdo) {
                     </span>
                     통계 대시보드
                 </a>
-                <a href="/MVNO/admin/analytics/realtime.php" class="menu-item <?php echo $currentPage === 'realtime.php' ? 'active' : ''; ?>">
+                <a href="<?php echo getAssetPath('/admin/analytics/realtime.php'); ?>" class="menu-item <?php echo $currentPage === 'realtime.php' ? 'active' : ''; ?>">
                     <span class="menu-item-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <circle cx="12" cy="12" r="10"/>
@@ -978,7 +979,7 @@ if ($pdo) {
                     </span>
                     실시간 통계
                 </a>
-                <a href="/MVNO/admin/analytics/advanced.php" class="menu-item <?php echo $currentPage === 'advanced.php' ? 'active' : ''; ?>">
+                <a href="<?php echo getAssetPath('/admin/analytics/advanced.php'); ?>" class="menu-item <?php echo $currentPage === 'advanced.php' ? 'active' : ''; ?>">
                     <span class="menu-item-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <circle cx="11" cy="11" r="8"/>
@@ -987,7 +988,7 @@ if ($pdo) {
                     </span>
                     고급 분석
                 </a>
-                <a href="/MVNO/admin/analytics/seller-stats.php" class="menu-item <?php echo $currentPage === 'seller-stats.php' ? 'active' : ''; ?>">
+                <a href="<?php echo getAssetPath('/admin/analytics/seller-stats.php'); ?>" class="menu-item <?php echo $currentPage === 'seller-stats.php' ? 'active' : ''; ?>">
                     <span class="menu-item-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
@@ -998,7 +999,7 @@ if ($pdo) {
                     </span>
                     판매자별 통계
                 </a>
-                <a href="/MVNO/admin/analytics/product-stats.php" class="menu-item <?php echo $currentPage === 'product-stats.php' ? 'active' : ''; ?>">
+                <a href="<?php echo getAssetPath('/admin/analytics/product-stats.php'); ?>" class="menu-item <?php echo $currentPage === 'product-stats.php' ? 'active' : ''; ?>">
                     <span class="menu-item-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <line x1="18" y1="20" x2="18" y2="10"/>
@@ -1008,7 +1009,7 @@ if ($pdo) {
                     </span>
                     게시물별 통계
                 </a>
-                <a href="/MVNO/admin/analytics/cleanup.php" class="menu-item <?php echo $currentPage === 'cleanup.php' ? 'active' : ''; ?>">
+                <a href="<?php echo getAssetPath('/admin/analytics/cleanup.php'); ?>" class="menu-item <?php echo $currentPage === 'cleanup.php' ? 'active' : ''; ?>">
                     <span class="menu-item-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <polyline points="3 6 5 6 21 6"/>
@@ -1017,7 +1018,7 @@ if ($pdo) {
                     </span>
                     데이터 정리
                 </a>
-                <a href="/MVNO/admin/analytics/settings.php" class="menu-item <?php echo $currentPage === 'settings.php' ? 'active' : ''; ?>">
+                <a href="<?php echo getAssetPath('/admin/analytics/settings.php'); ?>" class="menu-item <?php echo $currentPage === 'settings.php' ? 'active' : ''; ?>">
                     <span class="menu-item-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <circle cx="12" cy="12" r="3"/>
@@ -1030,7 +1031,7 @@ if ($pdo) {
             
             <!-- 모니터링 -->
             <div class="menu-section">
-                <a href="/MVNO/admin/monitor.php" class="menu-item <?php echo $currentPage === 'monitor.php' ? 'active' : ''; ?>">
+                <a href="<?php echo getAssetPath('/admin/monitor.php'); ?>" class="menu-item <?php echo $currentPage === 'monitor.php' ? 'active' : ''; ?>">
                     <span class="menu-item-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
@@ -1045,7 +1046,7 @@ if ($pdo) {
             <!-- 유틸리티 -->
             <div class="menu-section">
                 <div class="menu-section-title">유틸리티</div>
-                <a href="/MVNO/admin/utils/image-selector.php" class="menu-item <?php echo $currentPage === 'image-selector.php' ? 'active' : ''; ?>">
+                <a href="<?php echo getAssetPath('/admin/utils/image-selector.php'); ?>" class="menu-item <?php echo $currentPage === 'image-selector.php' ? 'active' : ''; ?>">
                     <span class="menu-item-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>

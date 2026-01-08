@@ -10,7 +10,7 @@ if (!isset($product)) {
 
 $product_id = $product['id'] ?? 0;
 $is_link = ($product_id > 0);
-$link_url = '/MVNO/mno-sim/mno-sim-detail.php?id=' . $product_id;
+$link_url = getAssetPath('/mno-sim/mno-sim-detail.php?id=' . $product_id);
 
 // 통신사
 $provider = $product['provider'] ?? '';

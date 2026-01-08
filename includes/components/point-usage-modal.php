@@ -472,8 +472,8 @@ $modal_id = "pointUsageModal_{$type}_{$item_id}";
         
         // 포인트 잔액 최신화 및 할인 혜택 내용 로드
         Promise.all([
-            fetch('/MVNO/api/point-balance.php?user_id=default').then(r => r.json()),
-            fetch(`/MVNO/api/get-product-point-setting.php?type=${type}&id=${itemId}`).then(r => r.json())
+            fetch('<?php echo getApiPath("/api/point-balance.php"); ?>?user_id=default').then(r => r.json()),
+            fetch(`<?php echo getApiPath("/api/get-product-point-setting.php"); ?>?type=${type}&id=${itemId}`).then(r => r.json())
         ])
         .then(([balanceData, pointSettingData]) => {
             // 최대 사용 가능 포인트 계산

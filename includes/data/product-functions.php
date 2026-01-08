@@ -7,6 +7,7 @@
 date_default_timezone_set('Asia/Seoul');
 
 require_once __DIR__ . '/db-config.php';
+require_once __DIR__ . '/path-config.php';
 
 /**
  * products 테이블 생성 (공통 함수)
@@ -3572,7 +3573,7 @@ function getUserMnoApplications($userId, $limit = null, $offset = null) {
                 'status' => $statusKor,
                 'application_status' => $app['application_status'],
                 'gifts' => $gifts,
-                'link_url' => '/MVNO/mno/mno-phone-detail.php?id=' . $app['product_id']
+                'link_url' => getAssetPath('/mno/mno-phone-detail.php') . '?id=' . $app['product_id']
             ];
             } catch (Exception $e) {
                 error_log("Error formatting application #{$index} (application_id: " . ($app['application_id'] ?? 'unknown') . "): " . $e->getMessage());

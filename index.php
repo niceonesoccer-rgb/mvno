@@ -4,6 +4,18 @@ $current_page = 'home';
 // 메인 페이지 여부 (하단 메뉴 및 푸터 표시용)
 $is_main_page = true;
 
+// 경로 설정 파일 먼저 로드 (헤더에서 사용)
+require_once __DIR__ . '/includes/data/path-config.php';
+
+// 디버깅 모드 확인 (헤더 로드 전에)
+$debug_mode = isset($_GET['debug']) && $_GET['debug'] == '1';
+$debug_info = [];
+
+// 디버깅을 위해 필요한 파일 먼저 로드
+if ($debug_mode) {
+    require_once __DIR__ . '/includes/data/db-config.php';
+}
+
 // 헤더 포함
 include 'includes/header.php';
 
@@ -21,32 +33,120 @@ function normalizeImagePathForDisplay($path) {
     
     $imagePath = trim($path);
     
-    // 이미 /MVNO/로 시작하면 그대로 사용
-    if (strpos($imagePath, '/MVNO/') === 0) {
+    // 이미 전체 URL이면 그대로 사용
+    if (preg_match('/^https?:\/\//', $imagePath)) {
         return $imagePath;
     }
-    // /uploads/events/ 또는 /uploads/events/로 시작하는 경우
-    elseif (preg_match('#^/uploads/events/#', $imagePath)) {
-        return '/MVNO' . $imagePath;
-    }
-    // /uploads/ 또는 /images/로 시작하면 /MVNO/ 추가
-    elseif (strpos($imagePath, '/uploads/') === 0 || strpos($imagePath, '/images/') === 0) {
-        return '/MVNO' . $imagePath;
-    }
-    // 파일명만 있는 경우 (확장자가 있고 슬래시가 없음)
-    elseif (strpos($imagePath, '/') === false && preg_match('/\.(webp|jpg|jpeg|png|gif)$/i', $imagePath)) {
-        return '/MVNO/uploads/events/' . $imagePath;
-    }
-    // 상대 경로인데 파일명이 아닌 경우
-    elseif (strpos($imagePath, '/') !== 0) {
-        return '/MVNO/' . $imagePath;
+    
+    // 이미 /로 시작하는 절대 경로면 getAssetPath 사용
+    if (strpos($imagePath, '/') === 0) {
+        return getAssetPath($imagePath);
     }
     
-    return $imagePath;
+    // 파일명만 있는 경우 (확장자가 있고 슬래시가 없음)
+    if (strpos($imagePath, '/') === false && preg_match('/\.(webp|jpg|jpeg|png|gif)$/i', $imagePath)) {
+        return getAssetPath('/uploads/events/' . $imagePath);
+    }
+    
+    // 상대 경로인 경우
+    return getAssetPath('/' . $imagePath);
+}
+
+if ($debug_mode) {
+    // 데이터베이스 연결 정보 확인
+    $dbConfigLocalFile = __DIR__ . '/includes/data/db-config-local.php';
+    $dbConfigFile = __DIR__ . '/includes/data/db-config.php';
+    
+    $debug_info['db_config_local_exists'] = file_exists($dbConfigLocalFile);
+    $debug_info['db_config_exists'] = file_exists($dbConfigFile);
+    
+    // DB 설정 읽기
+    if (file_exists($dbConfigLocalFile)) {
+        $content = file_get_contents($dbConfigLocalFile);
+        if (preg_match("/define\('DB_HOST',\s*'([^']+)'\)/", $content, $matches)) {
+            $debug_info['db_host'] = $matches[1];
+        }
+        if (preg_match("/define\('DB_NAME',\s*'([^']+)'\)/", $content, $matches)) {
+            $debug_info['db_name'] = $matches[1];
+        }
+        if (preg_match("/define\('DB_USER',\s*'([^']+)'\)/", $content, $matches)) {
+            $debug_info['db_user'] = $matches[1];
+        }
+    } else {
+        $content = file_get_contents($dbConfigFile);
+        if (preg_match("/define\('DB_HOST',\s*'([^']+)'\)/", $content, $matches)) {
+            $debug_info['db_host'] = $matches[1];
+        }
+        if (preg_match("/define\('DB_NAME',\s*'([^']+)'\)/", $content, $matches)) {
+            $debug_info['db_name'] = $matches[1];
+        }
+        if (preg_match("/define\('DB_USER',\s*'([^']+)'\)/", $content, $matches)) {
+            $debug_info['db_user'] = $matches[1];
+        }
+    }
+    
+    // 데이터베이스 연결 테스트
+    $pdo = getDBConnection();
+    if (!$pdo) {
+        $debug_info['db_connection'] = 'FAILED';
+        $debug_info['db_error'] = isset($GLOBALS['lastDbConnectionError']) ? $GLOBALS['lastDbConnectionError'] : 'Unknown error';
+    } else {
+        $debug_info['db_connection'] = 'SUCCESS';
+        
+        // 상품 개수 확인
+        try {
+            $stmt = $pdo->query("SELECT COUNT(*) as count FROM products WHERE status = 'active'");
+            $debug_info['total_active_products'] = $stmt->fetch(PDO::FETCH_ASSOC)['count'] ?? 0;
+            
+            $stmt = $pdo->query("SELECT COUNT(*) as count FROM products WHERE product_type = 'mno-sim' AND status = 'active'");
+            $debug_info['mno_sim_count'] = $stmt->fetch(PDO::FETCH_ASSOC)['count'] ?? 0;
+            
+            $stmt = $pdo->query("SELECT COUNT(*) as count FROM products WHERE product_type = 'mvno' AND status = 'active'");
+            $debug_info['mvno_count'] = $stmt->fetch(PDO::FETCH_ASSOC)['count'] ?? 0;
+            
+            $stmt = $pdo->query("SELECT COUNT(*) as count FROM products WHERE product_type = 'mno' AND status = 'active'");
+            $debug_info['mno_count'] = $stmt->fetch(PDO::FETCH_ASSOC)['count'] ?? 0;
+            
+            $stmt = $pdo->query("SELECT COUNT(*) as count FROM products WHERE product_type = 'internet' AND status = 'active'");
+            $debug_info['internet_count'] = $stmt->fetch(PDO::FETCH_ASSOC)['count'] ?? 0;
+            
+            // app_settings 확인
+            $stmt = $pdo->query("SELECT namespace, json_value FROM app_settings WHERE namespace = 'home' LIMIT 1");
+            $home_settings_row = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($home_settings_row) {
+                $home_settings_data = json_decode($home_settings_row['json_value'], true);
+                $debug_info['home_settings_exists'] = true;
+                $debug_info['home_settings_mno_sim'] = count($home_settings_data['mno_sim_plans'] ?? []);
+                $debug_info['home_settings_mvno'] = count($home_settings_data['mvno_plans'] ?? []);
+                $debug_info['home_settings_mno'] = count($home_settings_data['mno_phones'] ?? []);
+                $debug_info['home_settings_internet'] = count($home_settings_data['internet_products'] ?? []);
+                $debug_info['home_settings_large_banners'] = count($home_settings_data['site_large_banners'] ?? []);
+                $debug_info['home_settings_small_banners'] = count($home_settings_data['site_small_banners'] ?? []);
+            } else {
+                $debug_info['home_settings_exists'] = false;
+            }
+        } catch (PDOException $e) {
+            $debug_info['db_query_error'] = $e->getMessage();
+        }
+    }
 }
 
 // 메인 페이지 설정 가져오기
 $home_settings = getHomeSettings();
+
+if ($debug_mode) {
+    $debug_info['home_settings_loaded'] = !empty($home_settings);
+    $debug_info['home_settings_mno_sim_plans'] = count($home_settings['mno_sim_plans'] ?? []);
+    $debug_info['home_settings_mvno_plans'] = count($home_settings['mvno_plans'] ?? []);
+    $debug_info['home_settings_mno_phones'] = count($home_settings['mno_phones'] ?? []);
+    $debug_info['home_settings_internet_products'] = count($home_settings['internet_products'] ?? []);
+    
+    // 자동 채우기 결과 확인
+    $debug_info['mno_sim_plans_loaded'] = count($mno_sim_plans ?? []);
+    $debug_info['mvno_plans_loaded'] = count($mvno_plans ?? []);
+    $debug_info['mno_phones_loaded'] = count($mno_phones ?? []);
+    $debug_info['internet_products_loaded'] = count($internet_products ?? []);
+}
 
 // 메인 배너 이벤트 가져오기 (3개)
 $main_banner_events = [];
@@ -176,9 +276,18 @@ if (empty($mvno_plans)) {
             if (!empty($products)) {
                 // 메인페이지 전용 카드 컴포넌트를 사용하므로 원본 데이터 그대로 저장
                 $mvno_plans = $products;
+            } else {
+                error_log("Warning: Auto-fill mvno_plans returned empty. Check if product_mvno_details table has data.");
             }
         } catch (PDOException $e) {
             error_log("Error fetching top MVNO plans: " . $e->getMessage());
+            if ($debug_mode) {
+                $debug_info['mvno_auto_fill_error'] = $e->getMessage();
+            }
+        }
+    } else {
+        if ($debug_mode) {
+            $debug_info['mvno_auto_fill_pdo_null'] = true;
         }
     }
 }
@@ -439,9 +548,18 @@ if (empty($mno_sim_plans)) {
             if (!empty($products)) {
                 // 메인페이지 전용 카드 컴포넌트를 사용하므로 원본 데이터 그대로 저장
                 $mno_sim_plans = $products;
+            } else {
+                error_log("Warning: Auto-fill mno_sim_plans returned empty. Check if product_mno_sim_details table has data.");
             }
         } catch (PDOException $e) {
             error_log("Error fetching top MNO-SIM plans: " . $e->getMessage());
+            if ($debug_mode) {
+                $debug_info['mno_sim_auto_fill_error'] = $e->getMessage();
+            }
+        }
+    } else {
+        if ($debug_mode) {
+            $debug_info['mno_sim_auto_fill_pdo_null'] = true;
         }
     }
 }
@@ -529,6 +647,101 @@ if (empty($internet_products)) {
 }
 ?>
 
+<?php if ($debug_mode): ?>
+<div style="position: fixed; top: 0; left: 0; right: 0; background: #1f2937; color: #f9fafb; padding: 20px; z-index: 99999; max-height: 80vh; overflow-y: auto; font-family: monospace; font-size: 12px; border-bottom: 3px solid #ef4444;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h2 style="margin: 0; color: #fbbf24; font-size: 16px;">🔍 디버깅 정보 (index.php)</h2>
+        <button onclick="this.parentElement.parentElement.style.display='none'" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;">닫기</button>
+    </div>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div>
+            <h3 style="color: #60a5fa; margin-top: 0; margin-bottom: 8px; font-size: 14px;">📁 파일 존재 여부</h3>
+            <div style="background: rgba(255,255,255,0.1); padding: 8px; border-radius: 4px; margin-bottom: 8px;">
+                <div>db-config-local.php: <span style="color: <?= $debug_info['db_config_local_exists'] ? '#10b981' : '#ef4444' ?>"><?= $debug_info['db_config_local_exists'] ? '✅ 존재' : '❌ 없음' ?></span></div>
+                <div>db-config.php: <span style="color: <?= $debug_info['db_config_exists'] ? '#10b981' : '#ef4444' ?>"><?= $debug_info['db_config_exists'] ? '✅ 존재' : '❌ 없음' ?></span></div>
+            </div>
+            
+            <h3 style="color: #60a5fa; margin-top: 12px; margin-bottom: 8px; font-size: 14px;">🔌 데이터베이스 설정</h3>
+            <div style="background: rgba(255,255,255,0.1); padding: 8px; border-radius: 4px; margin-bottom: 8px;">
+                <div>Host: <span style="color: #fbbf24;"><?= htmlspecialchars($debug_info['db_host'] ?? 'N/A') ?></span></div>
+                <div>Database: <span style="color: #fbbf24;"><?= htmlspecialchars($debug_info['db_name'] ?? 'N/A') ?></span></div>
+                <div>User: <span style="color: #fbbf24;"><?= htmlspecialchars($debug_info['db_user'] ?? 'N/A') ?></span></div>
+            </div>
+            
+            <h3 style="color: #60a5fa; margin-top: 12px; margin-bottom: 8px; font-size: 14px;">🔗 데이터베이스 연결</h3>
+            <div style="background: rgba(255,255,255,0.1); padding: 8px; border-radius: 4px; margin-bottom: 8px;">
+                <div>상태: <span style="color: <?= $debug_info['db_connection'] === 'SUCCESS' ? '#10b981' : '#ef4444' ?>"><?= $debug_info['db_connection'] ?? 'N/A' ?></span></div>
+                <?php if (isset($debug_info['db_error'])): ?>
+                    <div style="color: #ef4444; margin-top: 4px;">에러: <?= htmlspecialchars($debug_info['db_error']) ?></div>
+                <?php endif; ?>
+            </div>
+        </div>
+        
+        <div>
+            <?php if ($debug_info['db_connection'] === 'SUCCESS'): ?>
+                <h3 style="color: #60a5fa; margin-top: 0; margin-bottom: 8px; font-size: 14px;">📦 상품 데이터</h3>
+                <div style="background: rgba(255,255,255,0.1); padding: 8px; border-radius: 4px; margin-bottom: 8px;">
+                    <div>전체 활성 상품: <span style="color: #10b981;"><?= $debug_info['total_active_products'] ?? 0 ?></span></div>
+                    <div>통신사단독유심: <span style="color: #10b981;"><?= $debug_info['mno_sim_count'] ?? 0 ?></span></div>
+                    <div>알뜰폰: <span style="color: #10b981;"><?= $debug_info['mvno_count'] ?? 0 ?></span></div>
+                    <div>통신사폰: <span style="color: #10b981;"><?= $debug_info['mno_count'] ?? 0 ?></span></div>
+                    <div>인터넷: <span style="color: #10b981;"><?= $debug_info['internet_count'] ?? 0 ?></span></div>
+                </div>
+                
+                <h3 style="color: #60a5fa; margin-top: 12px; margin-bottom: 8px; font-size: 14px;">⚙️ 홈 설정 (app_settings)</h3>
+                <div style="background: rgba(255,255,255,0.1); padding: 8px; border-radius: 4px; margin-bottom: 8px;">
+                    <div>설정 존재: <span style="color: <?= $debug_info['home_settings_exists'] ? '#10b981' : '#ef4444' ?>"><?= $debug_info['home_settings_exists'] ? '✅ 있음' : '❌ 없음' ?></span></div>
+                    <?php if ($debug_info['home_settings_exists']): ?>
+                        <div style="margin-top: 4px; font-size: 11px;">
+                            <div>통신사단독유심 설정: <?= $debug_info['home_settings_mno_sim'] ?? 0 ?>개</div>
+                            <div>알뜰폰 설정: <?= $debug_info['home_settings_mvno'] ?? 0 ?>개</div>
+                            <div>통신사폰 설정: <?= $debug_info['home_settings_mno'] ?? 0 ?>개</div>
+                            <div>인터넷 설정: <?= $debug_info['home_settings_internet'] ?? 0 ?>개</div>
+                            <div>큰 배너: <?= $debug_info['home_settings_large_banners'] ?? 0 ?>개</div>
+                            <div>작은 배너: <?= $debug_info['home_settings_small_banners'] ?? 0 ?>개</div>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            <?php endif; ?>
+            
+            <h3 style="color: #60a5fa; margin-top: 12px; margin-bottom: 8px; font-size: 14px;">📋 로드된 설정</h3>
+            <div style="background: rgba(255,255,255,0.1); padding: 8px; border-radius: 4px; margin-bottom: 8px;">
+                <div>설정 로드: <span style="color: <?= $debug_info['home_settings_loaded'] ? '#10b981' : '#ef4444' ?>"><?= $debug_info['home_settings_loaded'] ? '✅ 성공' : '❌ 실패' ?></span></div>
+                <div style="margin-top: 4px; font-size: 11px;">
+                    <div>통신사단독유심 설정: <?= $debug_info['home_settings_mno_sim_plans'] ?? 0 ?>개</div>
+                    <div>알뜰폰 설정: <?= $debug_info['home_settings_mvno_plans'] ?? 0 ?>개</div>
+                    <div>통신사폰 설정: <?= $debug_info['home_settings_mno_phones'] ?? 0 ?>개</div>
+                    <div>인터넷 설정: <?= $debug_info['home_settings_internet_products'] ?? 0 ?>개</div>
+                </div>
+            </div>
+            
+            <h3 style="color: #60a5fa; margin-top: 12px; margin-bottom: 8px; font-size: 14px;">🔄 자동 채우기 결과</h3>
+            <div style="background: rgba(255,255,255,0.1); padding: 8px; border-radius: 4px; margin-bottom: 8px;">
+                <div style="margin-top: 4px; font-size: 11px;">
+                    <div>통신사단독유심 로드: <span style="color: <?= ($debug_info['mno_sim_plans_loaded'] ?? 0) > 0 ? '#10b981' : '#ef4444' ?>"><?= $debug_info['mno_sim_plans_loaded'] ?? 0 ?>개</span></div>
+                    <div>알뜰폰 로드: <span style="color: <?= ($debug_info['mvno_plans_loaded'] ?? 0) > 0 ? '#10b981' : '#ef4444' ?>"><?= $debug_info['mvno_plans_loaded'] ?? 0 ?>개</span></div>
+                    <div>통신사폰 로드: <span style="color: <?= ($debug_info['mno_phones_loaded'] ?? 0) > 0 ? '#10b981' : '#ef4444' ?>"><?= $debug_info['mno_phones_loaded'] ?? 0 ?>개</span></div>
+                    <div>인터넷 로드: <span style="color: <?= ($debug_info['internet_products_loaded'] ?? 0) > 0 ? '#10b981' : '#ef4444' ?>"><?= $debug_info['internet_products_loaded'] ?? 0 ?>개</span></div>
+                </div>
+                <?php if (isset($debug_info['mno_sim_auto_fill_error'])): ?>
+                    <div style="color: #ef4444; margin-top: 4px; font-size: 10px;">통신사단독유심 에러: <?= htmlspecialchars($debug_info['mno_sim_auto_fill_error']) ?></div>
+                <?php endif; ?>
+                <?php if (isset($debug_info['mvno_auto_fill_error'])): ?>
+                    <div style="color: #ef4444; margin-top: 4px; font-size: 10px;">알뜰폰 에러: <?= htmlspecialchars($debug_info['mvno_auto_fill_error']) ?></div>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+    <?php if (isset($debug_info['db_query_error'])): ?>
+        <div style="background: rgba(239,68,68,0.2); padding: 12px; border-radius: 4px; margin-top: 16px; border: 1px solid #ef4444;">
+            <div style="color: #ef4444; font-weight: bold; margin-bottom: 4px;">❌ 쿼리 에러:</div>
+            <div style="color: #fca5a5;"><?= htmlspecialchars($debug_info['db_query_error']) ?></div>
+        </div>
+    <?php endif; ?>
+</div>
+<div style="margin-top: 200px;"></div>
+<?php endif; ?>
+
 <main class="main-content">
     <!-- 첫 번째 섹션: 메인 배너 레이아웃 (왼쪽 큰 배너 1개 + 오른쪽 작은 배너 2개) -->
     <div class="content-layout">
@@ -546,7 +759,7 @@ if (empty($internet_products)) {
                                     
                                     // 이벤트 상세 페이지 링크 생성
                                     if (!empty($banner_id)) {
-                                        $banner_link = '/MVNO/event/event-detail.php?id=' . urlencode($banner_id);
+                                        $banner_link = getAssetPath('/event/event-detail.php?id=' . urlencode($banner_id));
                                     } else {
                                         $banner_link = $banner['link'] ?? '#';
                                     }
@@ -604,7 +817,7 @@ if (empty($internet_products)) {
                             
                             // 이벤트 상세 페이지 링크 생성
                             if (!empty($banner_id)) {
-                                $banner_link = '/MVNO/event/event-detail.php?id=' . urlencode($banner_id);
+                                $banner_link = getAssetPath('/event/event-detail.php?id=' . urlencode($banner_id));
                             } else {
                                 $banner_link = $banner['link'] ?? '#';
                             }
@@ -632,7 +845,7 @@ if (empty($internet_products)) {
                             
                             // 이벤트 상세 페이지 링크 생성
                             if (!empty($banner_id)) {
-                                $banner_link = '/MVNO/event/event-detail.php?id=' . urlencode($banner_id);
+                                $banner_link = getAssetPath('/event/event-detail.php?id=' . urlencode($banner_id));
                             } else {
                                 $banner_link = $banner['link'] ?? '#';
                             }
@@ -695,7 +908,7 @@ if (empty($internet_products)) {
             <section class="home-product-section">
                 <div class="home-section-header">
                     <h2 class="home-section-title">알짜 통신사단독유심</h2>
-                    <a href="/MVNO/mno-sim/mno-sim.php" class="home-section-more">더보기 &gt;</a>
+                    <a href="<?php echo getAssetPath('/mno-sim/mno-sim.php'); ?>" class="home-section-more">더보기 &gt;</a>
                 </div>
                 
                 <!-- 상품 목록 -->
@@ -722,7 +935,7 @@ if (empty($internet_products)) {
             <section class="home-product-section">
                 <div class="home-section-header">
                     <h2 class="home-section-title">추천 알뜰폰</h2>
-                    <a href="/MVNO/mvno/mvno.php" class="home-section-more">더보기 &gt;</a>
+                    <a href="<?php echo getAssetPath('/mvno/mvno.php'); ?>" class="home-section-more">더보기 &gt;</a>
                 </div>
                 
                 
@@ -750,7 +963,7 @@ if (empty($internet_products)) {
             <section class="home-product-section">
                 <div class="home-section-header">
                     <h2 class="home-section-title">인기 통신사폰</h2>
-                    <a href="/MVNO/mno/mno.php" class="home-section-more">더보기 &gt;</a>
+                    <a href="<?php echo getAssetPath('/mno/mno.php'); ?>" class="home-section-more">더보기 &gt;</a>
                 </div>
                 <?php if (!empty($mno_phones)): ?>
                     <div class="home-product-grid home-product-grid-single-row mno-home-grid">
@@ -778,7 +991,7 @@ if (empty($internet_products)) {
                         <h2 class="home-section-title">최대할인 인터넷</h2>
                         <p class="home-section-subtitle">현금성 상품받고, 최대혜택 누리기</p>
                     </div>
-                    <a href="/MVNO/internets/internets.php" class="home-section-more">더보기 &gt;</a>
+                    <a href="<?php echo getAssetPath('/internets/internets.php'); ?>" class="home-section-more">더보기 &gt;</a>
                 </div>
                 <?php if (!empty($internet_products)): ?>
                     <div class="home-product-grid home-product-grid-single-row internet-home-grid">

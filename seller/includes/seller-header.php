@@ -5,6 +5,7 @@
  */
 
 require_once __DIR__ . '/../../includes/data/auth-functions.php';
+require_once __DIR__ . '/../../includes/data/path-config.php';
 
 // 판매자 인증 체크 (출력 전에 체크)
 // seller-edit.php에서 이미 체크한 경우 스킵
@@ -46,7 +47,7 @@ $sellerName = $currentUser['company_name'] ?? ($currentUser['seller_name'] ?? ''
     // 일반적인 경우: 인증 체크 수행
     $currentUser = getCurrentUser();
     if (!$currentUser || $currentUser['role'] !== 'seller') {
-        header('Location: /MVNO/seller/login.php');
+        header('Location: ' . getAssetPath('/seller/login.php'));
         exit;
     }
     
@@ -54,13 +55,13 @@ $sellerName = $currentUser['company_name'] ?? ($currentUser['seller_name'] ?? ''
     $approvalStatus = $currentUser['approval_status'] ?? 'pending';
     if ($approvalStatus !== 'approved') {
         // 승인 대기 중이거나 보류, 거부 상태인 경우
-        header('Location: /MVNO/seller/waiting.php');
+        header('Location: ' . getAssetPath('/seller/waiting.php'));
         exit;
     }
 
     // 탈퇴 요청 상태 확인 (탈퇴 요청 시 로그인 불가)
     if (isset($currentUser['withdrawal_requested']) && $currentUser['withdrawal_requested'] === true) {
-        header('Location: /MVNO/seller/waiting.php');
+        header('Location: ' . getAssetPath('/seller/waiting.php'));
         exit;
     }
     
@@ -78,8 +79,8 @@ $currentPage = basename($_SERVER['PHP_SELF']);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>판매자 센터 - 유심킹</title>
-    <link rel="stylesheet" href="/MVNO/assets/css/style.css">
-    <script src="/MVNO/assets/js/modal.js" defer></script>
+    <link rel="stylesheet" href="<?php echo getAssetPath('/assets/css/style.css'); ?>">
+    <script src="<?php echo getAssetPath('/assets/js/modal.js'); ?>" defer></script>
     <style>
         * {
             margin: 0;
@@ -587,16 +588,16 @@ $currentPage = basename($_SERVER['PHP_SELF']);
     <!-- 상단 헤더 -->
     <header class="seller-top-header">
         <div class="seller-top-header-left">
-            <a href="/MVNO/seller/" class="seller-top-header-logo">판매자 센터</a>
+            <a href="<?php echo getAssetPath('/seller/'); ?>" class="seller-top-header-logo">판매자 센터</a>
         </div>
         <div class="seller-top-header-right">
             <?php if ($currentUser && isset($currentUser['user_id']) && isset($currentUser['company_name'])): ?>
-                <a href="/MVNO/seller/profile.php" class="seller-info">
+                <a href="<?php echo getAssetPath('/seller/profile.php'); ?>" class="seller-info">
                     <?php echo htmlspecialchars($currentUser['company_name']); ?> (<?php echo htmlspecialchars($currentUser['user_id']); ?>)
                 </a>
             <?php endif; ?>
-            <a href="/MVNO/" class="seller-top-header-link">사이트보기</a>
-            <a href="/MVNO/seller/logout.php" class="seller-top-header-link">로그아웃</a>
+            <a href="<?php echo getAssetPath('/'); ?>" class="seller-top-header-link">사이트보기</a>
+            <a href="<?php echo getAssetPath('/seller/logout.php'); ?>" class="seller-top-header-link">로그아웃</a>
         </div>
     </header>
     
@@ -604,7 +605,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
     <aside class="seller-sidebar">
         <div class="menu-section">
             <div class="menu-section-title">대시보드</div>
-            <a href="/MVNO/seller/" class="menu-item <?php echo $currentPage === 'index.php' ? 'active' : ''; ?>">
+            <a href="<?php echo getAssetPath('/seller/'); ?>" class="menu-item <?php echo $currentPage === 'index.php' ? 'active' : ''; ?>">
                 <span class="menu-item-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <rect x="3" y="3" width="7" height="7"/>
@@ -620,7 +621,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         <!-- 광고 관리 -->
         <div class="menu-section">
             <div class="menu-section-title">광고 관리</div>
-            <a href="/MVNO/seller/advertisement/list.php" class="menu-item <?php echo ($currentPage === 'list.php' && strpos($_SERVER['REQUEST_URI'], '/advertisement/') !== false) ? 'active' : ''; ?>">
+            <a href="<?php echo getAssetPath('/seller/advertisement/list.php'); ?>" class="menu-item <?php echo ($currentPage === 'list.php' && strpos($_SERVER['REQUEST_URI'], '/advertisement/') !== false) ? 'active' : ''; ?>">
                 <span class="menu-item-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
@@ -633,7 +634,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         <!-- 예치금 관리 -->
         <div class="menu-section">
             <div class="menu-section-title">예치금 관리</div>
-            <a href="/MVNO/seller/deposit/charge.php" class="menu-item <?php echo ($currentPage === 'charge.php' && strpos($_SERVER['REQUEST_URI'], '/deposit/') !== false) ? 'active' : ''; ?>">
+            <a href="<?php echo getAssetPath('/seller/deposit/charge.php'); ?>" class="menu-item <?php echo ($currentPage === 'charge.php' && strpos($_SERVER['REQUEST_URI'], '/deposit/') !== false) ? 'active' : ''; ?>">
                 <span class="menu-item-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <line x1="12" y1="2" x2="12" y2="22"/>
@@ -642,7 +643,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                 </span>
                 예치금 충전
             </a>
-            <a href="/MVNO/seller/deposit/history.php" class="menu-item <?php echo ($currentPage === 'history.php' && strpos($_SERVER['REQUEST_URI'], '/deposit/') !== false) ? 'active' : ''; ?>">
+            <a href="<?php echo getAssetPath('/seller/deposit/history.php'); ?>" class="menu-item <?php echo ($currentPage === 'history.php' && strpos($_SERVER['REQUEST_URI'], '/deposit/') !== false) ? 'active' : ''; ?>">
                 <span class="menu-item-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
@@ -654,7 +655,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         
         <div class="menu-section">
             <div class="menu-section-title">주문 관리</div>
-            <a href="/MVNO/seller/orders/mno-sim.php" class="menu-item menu-item-sub <?php echo (basename($_SERVER['PHP_SELF']) === 'mno-sim.php' && strpos($_SERVER['REQUEST_URI'], '/orders/') !== false) ? 'active' : ''; ?>">
+            <a href="<?php echo getAssetPath('/seller/orders/mno-sim.php'); ?>" class="menu-item menu-item-sub <?php echo (basename($_SERVER['PHP_SELF']) === 'mno-sim.php' && strpos($_SERVER['REQUEST_URI'], '/orders/') !== false) ? 'active' : ''; ?>">
                 <span class="menu-item-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
@@ -663,7 +664,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                 </span>
                 통신사단독유심
             </a>
-            <a href="/MVNO/seller/orders/mvno.php" class="menu-item menu-item-sub <?php echo (basename($_SERVER['PHP_SELF']) === 'mvno.php' && strpos($_SERVER['REQUEST_URI'], '/orders/') !== false) ? 'active' : ''; ?>">
+            <a href="<?php echo getAssetPath('/seller/orders/mvno.php'); ?>" class="menu-item menu-item-sub <?php echo (basename($_SERVER['PHP_SELF']) === 'mvno.php' && strpos($_SERVER['REQUEST_URI'], '/orders/') !== false) ? 'active' : ''; ?>">
                 <span class="menu-item-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
@@ -672,7 +673,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                 </span>
                 알뜰폰
             </a>
-            <a href="/MVNO/seller/orders/mno.php" class="menu-item menu-item-sub <?php echo (basename($_SERVER['PHP_SELF']) === 'mno.php' && strpos($_SERVER['REQUEST_URI'], '/orders/') !== false) ? 'active' : ''; ?>">
+            <a href="<?php echo getAssetPath('/seller/orders/mno.php'); ?>" class="menu-item menu-item-sub <?php echo (basename($_SERVER['PHP_SELF']) === 'mno.php' && strpos($_SERVER['REQUEST_URI'], '/orders/') !== false) ? 'active' : ''; ?>">
                 <span class="menu-item-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
@@ -681,7 +682,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                 </span>
                 통신사폰
             </a>
-            <a href="/MVNO/seller/orders/internet.php" class="menu-item menu-item-sub <?php echo (basename($_SERVER['PHP_SELF']) === 'internet.php' && strpos($_SERVER['REQUEST_URI'], '/orders/') !== false) ? 'active' : ''; ?>">
+            <a href="<?php echo getAssetPath('/seller/orders/internet.php'); ?>" class="menu-item menu-item-sub <?php echo (basename($_SERVER['PHP_SELF']) === 'internet.php' && strpos($_SERVER['REQUEST_URI'], '/orders/') !== false) ? 'active' : ''; ?>">
                 <span class="menu-item-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="10"/>
@@ -695,7 +696,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         
         <div class="menu-section">
             <div class="menu-section-title">상품 관리</div>
-            <a href="/MVNO/seller/products/mno-sim-list.php" class="menu-item menu-item-sub <?php echo $currentPage === 'mno-sim-list.php' ? 'active' : ''; ?>">
+            <a href="<?php echo getAssetPath('/seller/products/mno-sim-list.php'); ?>" class="menu-item menu-item-sub <?php echo $currentPage === 'mno-sim-list.php' ? 'active' : ''; ?>">
                 <span class="menu-item-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
@@ -704,7 +705,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                 </span>
                 통신사단독유심
             </a>
-            <a href="/MVNO/seller/products/mvno-list.php" class="menu-item menu-item-sub <?php echo $currentPage === 'mvno-list.php' ? 'active' : ''; ?>">
+            <a href="<?php echo getAssetPath('/seller/products/mvno-list.php'); ?>" class="menu-item menu-item-sub <?php echo $currentPage === 'mvno-list.php' ? 'active' : ''; ?>">
                 <span class="menu-item-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
@@ -713,7 +714,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                 </span>
                 알뜰폰
             </a>
-            <a href="/MVNO/seller/products/mno-list.php" class="menu-item menu-item-sub <?php echo $currentPage === 'mno-list.php' ? 'active' : ''; ?>">
+            <a href="<?php echo getAssetPath('/seller/products/mno-list.php'); ?>" class="menu-item menu-item-sub <?php echo $currentPage === 'mno-list.php' ? 'active' : ''; ?>">
                 <span class="menu-item-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
@@ -722,7 +723,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                 </span>
                 통신사폰
             </a>
-            <a href="/MVNO/seller/products/internet-list.php" class="menu-item menu-item-sub <?php echo $currentPage === 'internet-list.php' ? 'active' : ''; ?>">
+            <a href="<?php echo getAssetPath('/seller/products/internet-list.php'); ?>" class="menu-item menu-item-sub <?php echo $currentPage === 'internet-list.php' ? 'active' : ''; ?>">
                 <span class="menu-item-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="10"/>
@@ -736,7 +737,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         
         <div class="menu-section">
             <div class="menu-section-title">상품 등록</div>
-            <a href="/MVNO/seller/products/mno-sim.php" class="menu-item menu-item-sub <?php echo ($currentPage === 'mno-sim.php' && strpos($_SERVER['REQUEST_URI'], '/products/') !== false && strpos($_SERVER['REQUEST_URI'], '/orders/') === false) ? 'active' : ''; ?>">
+            <a href="<?php echo getAssetPath('/seller/products/mno-sim.php'); ?>" class="menu-item menu-item-sub <?php echo ($currentPage === 'mno-sim.php' && strpos($_SERVER['REQUEST_URI'], '/products/') !== false && strpos($_SERVER['REQUEST_URI'], '/orders/') === false) ? 'active' : ''; ?>">
                 <span class="menu-item-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
@@ -745,7 +746,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                 </span>
                 통신사단독유심
             </a>
-            <a href="/MVNO/seller/products/mvno.php" class="menu-item menu-item-sub <?php echo ($currentPage === 'mvno.php' && strpos($_SERVER['REQUEST_URI'], '/products/') !== false && strpos($_SERVER['REQUEST_URI'], '/orders/') === false) ? 'active' : ''; ?>">
+            <a href="<?php echo getAssetPath('/seller/products/mvno.php'); ?>" class="menu-item menu-item-sub <?php echo ($currentPage === 'mvno.php' && strpos($_SERVER['REQUEST_URI'], '/products/') !== false && strpos($_SERVER['REQUEST_URI'], '/orders/') === false) ? 'active' : ''; ?>">
                 <span class="menu-item-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
@@ -754,7 +755,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                 </span>
                 알뜰폰
             </a>
-            <a href="/MVNO/seller/products/mno.php" class="menu-item menu-item-sub <?php echo ($currentPage === 'mno.php' && strpos($_SERVER['REQUEST_URI'], '/products/') !== false && strpos($_SERVER['REQUEST_URI'], '/orders/') === false) ? 'active' : ''; ?>">
+            <a href="<?php echo getAssetPath('/seller/products/mno.php'); ?>" class="menu-item menu-item-sub <?php echo ($currentPage === 'mno.php' && strpos($_SERVER['REQUEST_URI'], '/products/') !== false && strpos($_SERVER['REQUEST_URI'], '/orders/') === false) ? 'active' : ''; ?>">
                 <span class="menu-item-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
@@ -763,7 +764,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                 </span>
                 통신사폰
             </a>
-            <a href="/MVNO/seller/products/internet.php" class="menu-item menu-item-sub <?php echo ($currentPage === 'internet.php' && strpos($_SERVER['REQUEST_URI'], '/products/') !== false && strpos($_SERVER['REQUEST_URI'], '/orders/') === false) ? 'active' : ''; ?>">
+            <a href="<?php echo getAssetPath('/seller/products/internet.php'); ?>" class="menu-item menu-item-sub <?php echo ($currentPage === 'internet.php' && strpos($_SERVER['REQUEST_URI'], '/products/') !== false && strpos($_SERVER['REQUEST_URI'], '/orders/') === false) ? 'active' : ''; ?>">
                 <span class="menu-item-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="10"/>
@@ -777,7 +778,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         
         <div class="menu-section">
             <div class="menu-section-title">고객 지원</div>
-            <a href="/MVNO/seller/inquiry/inquiry-list.php" class="menu-item <?php echo (strpos($currentPage, 'inquiry') !== false) ? 'active' : ''; ?>">
+            <a href="<?php echo getAssetPath('/seller/inquiry/inquiry-list.php'); ?>" class="menu-item <?php echo (strpos($currentPage, 'inquiry') !== false) ? 'active' : ''; ?>">
                 <span class="menu-item-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
@@ -787,7 +788,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                 </span>
                 1:1 문의
             </a>
-            <a href="/MVNO/seller/notice/" class="menu-item <?php echo (strpos($_SERVER['REQUEST_URI'], '/seller/notice/') !== false) ? 'active' : ''; ?>">
+            <a href="<?php echo getAssetPath('/seller/notice/'); ?>" class="menu-item <?php echo (strpos($_SERVER['REQUEST_URI'], '/seller/notice/') !== false) ? 'active' : ''; ?>">
                 <span class="menu-item-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
@@ -800,7 +801,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         
         <div class="menu-section">
             <div class="menu-section-title">통계</div>
-            <a href="/MVNO/seller/statistics/" class="menu-item <?php echo ($currentPage === 'statistics' || strpos($_SERVER['REQUEST_URI'] ?? '', '/seller/statistics/') !== false) ? 'active' : ''; ?>">
+            <a href="<?php echo getAssetPath('/seller/statistics/'); ?>" class="menu-item <?php echo ($currentPage === 'statistics' || strpos($_SERVER['REQUEST_URI'] ?? '', '/seller/statistics/') !== false) ? 'active' : ''; ?>">
                 <span class="menu-item-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <line x1="18" y1="20" x2="18" y2="10"/>
@@ -814,7 +815,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         
         <div class="menu-section">
             <div class="menu-section-title">계정</div>
-            <a href="/MVNO/seller/profile.php" class="menu-item <?php echo $currentPage === 'profile.php' ? 'active' : ''; ?>">
+            <a href="<?php echo getAssetPath('/seller/profile.php'); ?>" class="menu-item <?php echo $currentPage === 'profile.php' ? 'active' : ''; ?>">
                 <span class="menu-item-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>

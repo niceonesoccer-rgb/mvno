@@ -3,12 +3,13 @@
  * 로그인 페이지
  */
 
+require_once __DIR__ . '/../includes/data/path-config.php';
 require_once __DIR__ . '/../includes/data/auth-functions.php';
 
 // 이미 로그인한 경우 리다이렉트
 if (isLoggedIn()) {
     // 세션에 저장된 리다이렉트 URL 확인
-    $redirectUrl = $_SESSION['redirect_url'] ?? '/MVNO/';
+    $redirectUrl = $_SESSION['redirect_url'] ?? getAssetPath('/');
     if (isset($_SESSION['redirect_url'])) {
         unset($_SESSION['redirect_url']);
     }
@@ -49,7 +50,7 @@ $isRegisterMode = isset($_GET['register']) && $_GET['register'] === 'true';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>로그인 - 유심킹</title>
-    <link rel="stylesheet" href="/MVNO/assets/css/style.css">
+    <link rel="stylesheet" href="<?php echo getAssetPath('/assets/css/style.css'); ?>">
     <style>
         .login-container {
             max-width: 400px;

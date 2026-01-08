@@ -25,7 +25,10 @@ FileETag None
 <IfModule mod_rewrite.c>
     RewriteEngine On
     
-    # /seller/* 경로를 /MVNO/seller/*로 리다이렉트
+    # 로컬 환경에서만 /seller/* 경로를 /MVNO/seller/*로 리다이렉트
+    RewriteCond %{HTTP_HOST} ^localhost [OR]
+    RewriteCond %{HTTP_HOST} ^127\.0\.0\.1 [OR]
+    RewriteCond %{HTTP_HOST} ^::1
     RewriteCond %{REQUEST_URI} ^/seller/(.*)$
     RewriteRule ^seller/(.*)$ /MVNO/seller/$1 [L]
     

@@ -5,6 +5,7 @@
  */
 
 require_once __DIR__ . '/../../includes/data/auth-functions.php';
+require_once __DIR__ . '/../../includes/data/path-config.php';
 require_once __DIR__ . '/../../includes/data/db-config.php';
 require_once __DIR__ . '/../../includes/data/app-settings.php';
 
@@ -17,20 +18,20 @@ $currentUser = getCurrentUser();
 
 // 판매자 로그인 체크
 if (!$currentUser || $currentUser['role'] !== 'seller') {
-    header('Location: /MVNO/seller/login.php');
+    header('Location: ' . getAssetPath('/seller/login.php'));
     exit;
 }
 
 // 판매자 승인 체크
 $approvalStatus = $currentUser['approval_status'] ?? 'pending';
 if ($approvalStatus !== 'approved') {
-    header('Location: /MVNO/seller/waiting.php');
+    header('Location: ' . getAssetPath('/seller/waiting.php'));
     exit;
 }
 
 // 탈퇴 요청 상태 확인
 if (isset($currentUser['withdrawal_requested']) && $currentUser['withdrawal_requested'] === true) {
-    header('Location: /MVNO/seller/waiting.php');
+    header('Location: ' . getAssetPath('/seller/waiting.php'));
     exit;
 }
 
@@ -692,6 +693,11 @@ $pageStyles = '
     }
 ';
 
+// JavaScript에서 사용할 API 경로 설정
+$productRegisterApi = getApiPath('/api/product-register-internet.php');
+$internetListUrl = getAssetPath('/seller/products/internet-list.php');
+$sellerHomeUrl = getAssetPath('/seller/');
+
 include __DIR__ . '/../includes/seller-header.php';
 ?>
 
@@ -700,11 +706,11 @@ include __DIR__ . '/../includes/seller-header.php';
 document.addEventListener('DOMContentLoaded', function() {
     if (typeof showAlert === 'function') {
         showAlert('등록권한이 없습니다.\n관리자에게 문의하세요.', '권한 없음').then(function() {
-            window.location.href = '/MVNO/seller/';
+            window.location.href = '<?php echo getAssetPath('/seller/'); ?>';
         });
     } else {
         alert('등록권한이 없습니다.\n관리자에게 문의하세요.');
-        window.location.href = '/MVNO/seller/';
+        window.location.href = '<?php echo getAssetPath('/seller/'); ?>';
     }
 });
 </script>
@@ -731,7 +737,7 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
     <?php endif; ?>
     
-    <form id="productForm" class="product-form" method="POST" action="/MVNO/api/product-register-internet.php" novalidate>
+    <form id="productForm" class="product-form" method="POST" action="<?php echo getApiPath('/api/product-register-internet.php'); ?>" novalidate>
         <?php if ($isEditMode): ?>
             <input type="hidden" name="product_id" value="<?php echo htmlspecialchars($productId); ?>">
         <?php endif; ?>
@@ -774,13 +780,13 @@ document.addEventListener('DOMContentLoaded', function() {
                                     $selectedPlace = $productData['registration_place'];
                                     $logoPath = '';
                                     switch($selectedPlace) {
-                                        case 'KT': $logoPath = '/MVNO/assets/images/internets/kt.svg'; break;
-                                        case 'SKT': $logoPath = '/MVNO/assets/images/internets/broadband.svg'; break;
-                                        case 'LG U+': $logoPath = '/MVNO/assets/images/internets/lgu.svg'; break;
-                                        case 'KT skylife': $logoPath = '/MVNO/assets/images/internets/ktskylife.svg'; break;
-                                        case 'LG헬로비전': $logoPath = '/MVNO/assets/images/internets/hellovision.svg'; break;
-                                        case 'BTV': $logoPath = '/MVNO/assets/images/internets/btv.svg'; break;
-                                        case 'DLIVE': $logoPath = '/MVNO/assets/images/internets/dlive.svg'; break;
+                                        case 'KT': $logoPath = getAssetPath('/assets/images/internets/kt.svg'); break;
+                                        case 'SKT': $logoPath = getAssetPath('/assets/images/internets/broadband.svg'); break;
+                                        case 'LG U+': $logoPath = getAssetPath('/assets/images/internets/lgu.svg'); break;
+                                        case 'KT skylife': $logoPath = getAssetPath('/assets/images/internets/ktskylife.svg'); break;
+                                        case 'LG헬로비전': $logoPath = getAssetPath('/assets/images/internets/hellovision.svg'); break;
+                                        case 'BTV': $logoPath = getAssetPath('/assets/images/internets/btv.svg'); break;
+                                        case 'DLIVE': $logoPath = getAssetPath('/assets/images/internets/dlive.svg'); break;
                                     }
                                     ?>
                                     <?php if ($logoPath): ?>
@@ -799,25 +805,25 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <span>선택하세요</span>
                             </div>
                             <div class="custom-option" data-value="KT">
-                                <img src="/MVNO/assets/images/internets/kt.svg" alt="KT">
+                                <img src="<?php echo getAssetPath('/assets/images/internets/kt.svg'); ?>" alt="KT">
                             </div>
                             <div class="custom-option" data-value="SKT">
-                                <img src="/MVNO/assets/images/internets/broadband.svg" alt="SKT">
+                                <img src="<?php echo getAssetPath('/assets/images/internets/broadband.svg'); ?>" alt="SKT">
                             </div>
                             <div class="custom-option" data-value="LG U+">
-                                <img src="/MVNO/assets/images/internets/lgu.svg" alt="LG U+">
+                                <img src="<?php echo getAssetPath('/assets/images/internets/lgu.svg'); ?>" alt="LG U+">
                             </div>
                             <div class="custom-option" data-value="KT skylife">
-                                <img src="/MVNO/assets/images/internets/ktskylife.svg" alt="KT skylife">
+                                <img src="<?php echo getAssetPath('/assets/images/internets/ktskylife.svg'); ?>" alt="KT skylife">
                             </div>
                             <div class="custom-option" data-value="LG헬로비전">
-                                <img src="/MVNO/assets/images/internets/hellovision.svg" alt="LG헬로비전">
+                                <img src="<?php echo getAssetPath('/assets/images/internets/hellovision.svg'); ?>" alt="LG헬로비전">
                             </div>
                             <div class="custom-option" data-value="BTV">
-                                <img src="/MVNO/assets/images/internets/btv.svg" alt="BTV">
+                                <img src="<?php echo getAssetPath('/assets/images/internets/btv.svg'); ?>" alt="BTV">
                             </div>
                             <div class="custom-option" data-value="DLIVE">
-                                <img src="/MVNO/assets/images/internets/dlive.svg" alt="DLIVE">
+                                <img src="<?php echo getAssetPath('/assets/images/internets/dlive.svg'); ?>" alt="DLIVE">
                             </div>
                             <div class="custom-option" data-value="기타">
                                 <span>기타</span>
@@ -908,7 +914,7 @@ document.addEventListener('DOMContentLoaded', function() {
         <!-- 현금지급 -->
         <div class="form-section">
             <div class="form-section-title">
-                <img src="/MVNO/assets/images/icons/cash.svg" alt="현금" class="form-section-title-icon">
+                <img src="<?php echo getAssetPath('/assets/images/icons/cash.svg'); ?>" alt="현금" class="form-section-title-icon">
                 현금지급
             </div>
             
@@ -923,7 +929,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     ?>
                     <div class="gift-input-group">
                         <div class="item-icon-wrapper">
-                            <img src="/MVNO/assets/images/icons/cash.svg" alt="현금" style="width: 20px; height: 20px; object-fit: contain;">
+                            <img src="<?php echo getAssetPath('/assets/images/icons/cash.svg'); ?>" alt="현금" style="width: 20px; height: 20px; object-fit: contain;">
                         </div>
                         <input type="text" name="cash_payment_names[]" class="form-control item-name-input" placeholder="현금" maxlength="30" value="<?php echo htmlspecialchars($cashNames[$i] ?? ''); ?>">
                         <div class="item-price-input-wrapper" style="display: flex; gap: 8px; align-items: center;">
@@ -965,7 +971,7 @@ document.addEventListener('DOMContentLoaded', function() {
         <!-- 상품권 지급 -->
         <div class="form-section">
             <div class="form-section-title">
-                <img src="/MVNO/assets/images/icons/gift-card.svg" alt="상품권" class="form-section-title-icon">
+                <img src="<?php echo getAssetPath('/assets/images/icons/gift-card.svg'); ?>" alt="상품권" class="form-section-title-icon">
                 상품권 지급
             </div>
             
@@ -980,7 +986,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     ?>
                     <div class="gift-input-group">
                         <div class="item-icon-wrapper">
-                            <img src="/MVNO/assets/images/icons/gift-card.svg" alt="상품권" style="width: 20px; height: 20px; object-fit: contain;">
+                            <img src="<?php echo getAssetPath('/assets/images/icons/gift-card.svg'); ?>" alt="상품권" style="width: 20px; height: 20px; object-fit: contain;">
                         </div>
                         <input type="text" name="gift_card_names[]" class="form-control item-name-input" placeholder="상품권" maxlength="30" value="<?php echo htmlspecialchars($giftNames[$i] ?? ''); ?>">
                         <div class="item-price-input-wrapper" style="display: flex; gap: 8px; align-items: center;">
@@ -1022,7 +1028,7 @@ document.addEventListener('DOMContentLoaded', function() {
         <!-- 장비 및 기타 서비스 -->
         <div class="form-section">
             <div class="form-section-title">
-                <img src="/MVNO/assets/images/icons/equipment.svg" alt="장비" class="form-section-title-icon">
+                <img src="<?php echo getAssetPath('/assets/images/icons/equipment.svg'); ?>" alt="장비" class="form-section-title-icon">
                 장비 및 기타 서비스
             </div>
             
@@ -1037,7 +1043,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     ?>
                     <div class="gift-input-group">
                         <div class="item-icon-wrapper">
-                            <img src="/MVNO/assets/images/icons/equipment.svg" alt="장비" style="width: 20px; height: 20px; object-fit: contain;">
+                            <img src="<?php echo getAssetPath('/assets/images/icons/equipment.svg'); ?>" alt="장비" style="width: 20px; height: 20px; object-fit: contain;">
                         </div>
                         <input type="text" name="equipment_names[]" class="form-control item-name-input" placeholder="와이파이 공유기" maxlength="30" value="<?php echo htmlspecialchars($equipNames[$i] ?? ''); ?>">
                         <input type="text" name="equipment_prices[]" class="form-control" placeholder="무료(월1,100원 상당)" value="<?php echo isset($equipPrices[$i]) && !empty($equipPrices[$i]) ? htmlspecialchars($equipPrices[$i]) : ''; ?>">
@@ -1062,7 +1068,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     ?>
                     <div class="gift-input-group">
                         <div class="item-icon-wrapper">
-                            <img src="/MVNO/assets/images/icons/installation.svg" alt="설치" style="width: 20px; height: 20px; object-fit: contain;">
+                            <img src="<?php echo getAssetPath('/assets/images/icons/installation.svg'); ?>" alt="설치" style="width: 20px; height: 20px; object-fit: contain;">
                         </div>
                         <input type="text" name="installation_names[]" class="form-control item-name-input" placeholder="인터넷,TV설치비" maxlength="30" value="<?php echo htmlspecialchars($installNames[$i] ?? ''); ?>">
                         <input type="text" name="installation_prices[]" class="form-control" placeholder="무료(36,000원 상당)" value="<?php echo isset($installPrices[$i]) && !empty($installPrices[$i]) ? htmlspecialchars($installPrices[$i]) : ''; ?>">
@@ -1170,7 +1176,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         <!-- 제출 버튼 -->
         <div class="form-actions">
-            <a href="/MVNO/seller/products/internet-list.php" class="btn btn-secondary">취소</a>
+            <a href="<?php echo getAssetPath('/seller/products/internet-list.php'); ?>" class="btn btn-secondary">취소</a>
             <button type="button" id="submitBtn" class="btn btn-primary">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M5 13l4 4L19 7"/>
@@ -1184,13 +1190,13 @@ document.addEventListener('DOMContentLoaded', function() {
 <script>
 // 가입처 로고 매핑
 const registrationLogos = {
-    'KT': '/MVNO/assets/images/internets/kt.svg',
-    'SKT': '/MVNO/assets/images/internets/broadband.svg',
-    'LG U+': '/MVNO/assets/images/internets/lgu.svg',
-    'KT skylife': '/MVNO/assets/images/internets/ktskylife.svg',
-    'LG헬로비전': '/MVNO/assets/images/internets/hellovision.svg',
-    'BTV': '/MVNO/assets/images/internets/btv.svg',
-    'DLIVE': '/MVNO/assets/images/internets/dlive.svg',
+    'KT': '<?php echo getAssetPath('/assets/images/internets/kt.svg'); ?>',
+    'SKT': '<?php echo getAssetPath('/assets/images/internets/broadband.svg'); ?>',
+    'LG U+': '<?php echo getAssetPath('/assets/images/internets/lgu.svg'); ?>',
+    'KT skylife': '<?php echo getAssetPath('/assets/images/internets/ktskylife.svg'); ?>',
+    'LG헬로비전': '<?php echo getAssetPath('/assets/images/internets/hellovision.svg'); ?>',
+    'BTV': '<?php echo getAssetPath('/assets/images/internets/btv.svg'); ?>',
+    'DLIVE': '<?php echo getAssetPath('/assets/images/internets/dlive.svg'); ?>',
     '기타': ''
 };
 
@@ -1321,7 +1327,7 @@ document.addEventListener('DOMContentLoaded', function() {
 const fieldConfigs = {
     cash: {
         container: 'cash-payment-container',
-        icon: '/MVNO/assets/images/icons/cash.svg',
+        icon: '<?php echo getAssetPath('/assets/images/icons/cash.svg'); ?>',
         iconAlt: '현금',
         nameField: 'cash_payment_names[]',
         priceField: 'cash_payment_prices[]',
@@ -1330,7 +1336,7 @@ const fieldConfigs = {
     },
     giftCard: {
         container: 'gift-card-container',
-        icon: '/MVNO/assets/images/icons/gift-card.svg',
+        icon: '<?php echo getAssetPath('/assets/images/icons/gift-card.svg'); ?>',
         iconAlt: '상품권',
         nameField: 'gift_card_names[]',
         priceField: 'gift_card_prices[]',
@@ -1339,7 +1345,7 @@ const fieldConfigs = {
     },
     equipment: {
         container: 'equipment-container',
-        icon: '/MVNO/assets/images/icons/equipment.svg',
+        icon: '<?php echo getAssetPath('/assets/images/icons/equipment.svg'); ?>',
         iconAlt: '장비',
         nameField: 'equipment_names[]',
         priceField: 'equipment_prices[]',
@@ -1348,7 +1354,7 @@ const fieldConfigs = {
     },
     installation: {
         container: 'installation-container',
-        icon: '/MVNO/assets/images/icons/installation.svg',
+        icon: '<?php echo getAssetPath('/assets/images/icons/installation.svg'); ?>',
         iconAlt: '설치',
         nameField: 'installation_names[]',
         priceField: 'installation_prices[]',
@@ -1923,10 +1929,14 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log(pair[0] + ': ' + pair[1]);
         }
         
-        console.log('API 호출 시작: /MVNO/api/product-register-internet.php');
+        const productRegisterApi = '<?php echo $productRegisterApi; ?>';
+        const internetListUrl = '<?php echo $internetListUrl; ?>';
+        const sellerHomeUrl = '<?php echo $sellerHomeUrl; ?>';
+        
+        console.log('API 호출 시작:', productRegisterApi);
         console.log('전송할 FormData:', Array.from(cleanFormData.entries()));
         
-        fetch('/MVNO/api/product-register-internet.php', {
+        fetch(productRegisterApi, {
             method: 'POST',
             body: cleanFormData
         })
@@ -1959,19 +1969,19 @@ document.addEventListener('DOMContentLoaded', function() {
                     // 수정 모드: 성공 메시지와 함께 리스트 페이지로 이동
                     if (typeof showAlert === 'function') {
                         showAlert('상품이 성공적으로 수정되었습니다.', '완료').then(() => {
-                            window.location.href = '/MVNO/seller/products/internet-list.php?success=1';
+                            window.location.href = internetListUrl + '?success=1';
                         });
                     } else {
                         showMessage('상품이 성공적으로 수정되었습니다.', 'success');
                         setTimeout(() => {
-                            window.location.href = '/MVNO/seller/products/internet-list.php?success=1';
+                            window.location.href = internetListUrl + '?success=1';
                         }, 1500);
                     }
                 } else {
                     // 등록 모드: 리스트 페이지로 이동
                     showMessage('상품이 성공적으로 등록되었습니다.', 'success');
                     setTimeout(() => {
-                        window.location.href = '/MVNO/seller/products/internet-list.php?success=1';
+                        window.location.href = internetListUrl + '?success=1';
                     }, 1500);
                 }
             } else {

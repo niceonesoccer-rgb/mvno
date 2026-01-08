@@ -4,6 +4,7 @@
  * 경로: /MVNO/seller/login.php
  */
 
+require_once __DIR__ . '/../includes/data/path-config.php';
 require_once __DIR__ . '/../includes/data/auth-functions.php';
 
 // 세션 시작
@@ -14,7 +15,7 @@ if (session_status() === PHP_SESSION_NONE) {
 // 이미 로그인한 판매자는 판매자 센터로 리다이렉트
 $currentUser = getCurrentUser();
 if ($currentUser && $currentUser['role'] === 'seller') {
-    header('Location: /MVNO/seller/');
+    header('Location: ' . getAssetPath('/seller/'));
     exit;
 }
 
@@ -46,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         logoutUser();
                         $error = '승인 대기중입니다. 관리자 승인 후 로그인할 수 있습니다.';
                     } else {
-                        header('Location: /MVNO/seller/');
+                        header('Location: ' . getAssetPath('/seller/'));
                         exit;
                     }
                 }
@@ -197,7 +198,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </form>
             
             <div class="register-link">
-                계정이 없으신가요? <a href="register.php">판매자 가입</a>
+                계정이 없으신가요? <a href="<?php echo getAssetPath('/seller/register.php'); ?>">판매자 가입</a>
             </div>
         </div>
     </div>

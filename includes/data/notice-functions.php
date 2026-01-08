@@ -76,7 +76,8 @@ function uploadNoticeImage($file) {
     
     // 파일 이동
     if (move_uploaded_file($file['tmp_name'], $filePath)) {
-        return '/MVNO/uploads/notices/' . $year . '/' . $month . '/' . $fileName;
+        require_once __DIR__ . '/path-config.php';
+        return getUploadPath('/uploads/notices/' . $year . '/' . $month . '/' . $fileName);
     }
     
     return null;
@@ -120,7 +121,8 @@ function uploadSellerNoticeImage($file) {
     
     // 파일 이동
     if (move_uploaded_file($file['tmp_name'], $filePath)) {
-        return '/MVNO/uploads/notices/seller/' . $year . '/' . $month . '/' . $fileName;
+        require_once __DIR__ . '/path-config.php';
+        return getUploadPath('/uploads/notices/seller/' . $year . '/' . $month . '/' . $fileName);
     }
     
     return null;
@@ -404,8 +406,19 @@ function deleteNotice($id) {
 function deleteNoticeImageFile($image_url) {
     if (empty($image_url)) return false;
     
-    // /MVNO/로 시작하는 경로를 실제 파일 경로로 변환
-    $filePath = str_replace('/MVNO/', __DIR__ . '/../../', $image_url);
+    // 경로를 실제 파일 경로로 변환
+    require_once __DIR__ . '/path-config.php';
+    $basePath = getBasePath();
+    if ($basePath && strpos($image_url, $basePath) === 0) {
+        $filePath = str_replace($basePath, __DIR__ . '/../../', $image_url);
+    } elseif (strpos($image_url, '/MVNO/') === 0) {
+        $filePath = str_replace('/MVNO/', __DIR__ . '/../../', $image_url);
+    } elseif (strpos($image_url, '/uploads/') === 0) {
+        // 프로덕션 루트 경로 처리
+        $filePath = __DIR__ . '/../../' . $image_url;
+    } else {
+        $filePath = __DIR__ . '/../../' . ltrim($image_url, '/');
+    }
     
     // 파일이 존재하면 삭제
     if (file_exists($filePath)) {

@@ -10,7 +10,7 @@ if (!isset($phone)) {
 
 $phone_id = $phone['id'] ?? 0;
 $is_link = ($phone_id > 0);
-$link_url = '/MVNO/mno/mno-phone-detail.php?id=' . $phone_id;
+$link_url = getAssetPath('/mno/mno-phone-detail.php?id=' . $phone_id);
 
 // 단말기명
 $deviceName = $phone['device_name'] ?? '';
