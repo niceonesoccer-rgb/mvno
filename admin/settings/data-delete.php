@@ -628,6 +628,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                             $taxInvoiceCount = (int)($stmt->fetch(PDO::FETCH_ASSOC)['count'] ?? 0);
                         } catch (PDOException $e) {}
                         
+                        // 포인트 내역 개수 확인 (신청 시 사용한 포인트)
+                        $pointLedgerCount = 0;
+                        try {
+                            $stmt = $pdo->query("SELECT COUNT(*) as count FROM user_point_ledger WHERE description LIKE '%할인혜택%'");
+                            $pointLedgerCount = (int)($stmt->fetch(PDO::FETCH_ASSOC)['count'] ?? 0);
+                        } catch (PDOException $e) {}
+                        
                         // 삭제 실행
                         $pdo->exec('TRUNCATE TABLE application_customers');
                         $pdo->exec('TRUNCATE TABLE product_applications');
@@ -636,6 +643,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                         try {
                             $pdo->exec('TRUNCATE TABLE tax_invoices');
                         } catch (PDOException $e) {}
+                        
+                        // 포인트 내역 삭제 (신청 시 사용한 포인트)
+                        try {
+                            $pdo->exec("DELETE FROM user_point_ledger WHERE description LIKE '%할인혜택%'");
+                        } catch (PDOException $e) {
+                            // 테이블이 없을 수 있음
+                        }
                         
                         // products 테이블의 application_count 초기화
                         $pdo->exec('UPDATE products SET application_count = 0');
@@ -648,12 +662,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                             'details' => [
                                 'applications' => $appCount,
                                 'customers' => $customerCount,
-                                'tax_invoices' => $taxInvoiceCount
+                                'tax_invoices' => $taxInvoiceCount,
+                                'point_ledger' => $pointLedgerCount
                             ]
                         ];
                         $success = "주문정보가 삭제되었습니다. (신청: {$appCount}건, 고객정보: {$customerCount}건";
                         if ($taxInvoiceCount > 0) {
                             $success .= ", 세금계산서: {$taxInvoiceCount}건";
+                        }
+                        if ($pointLedgerCount > 0) {
+                            $success .= ", 포인트 내역: {$pointLedgerCount}건";
                         }
                         $success .= ")";
                     }
