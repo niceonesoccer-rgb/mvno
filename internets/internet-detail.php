@@ -3227,16 +3227,29 @@ function checkAllAgreements() {
         requiredItems.push('agreePurpose', 'agreeItems', 'agreePeriod', 'agreeThirdParty');
     }
 
-    // 전체 동의 체크박스 상태 업데이트
-    let allRequiredChecked = true;
-    for (const itemId of requiredItems) {
-        const checkbox = document.getElementById(itemId);
-        if (checkbox && !checkbox.checked) {
-            allRequiredChecked = false;
-            break;
+    // 전체 동의 체크박스 상태 업데이트 (모든 체크박스 확인)
+    const allCheckboxes = document.querySelectorAll('.internet-checkbox-input-item');
+    let allChecked = true;
+    if (allCheckboxes.length > 0) {
+        allCheckboxes.forEach(checkbox => {
+            if (!checkbox.checked) {
+                allChecked = false;
+            }
+        });
+    } else {
+        // 체크박스가 없으면 필수 항목만 확인
+        allChecked = true;
+        for (const itemId of requiredItems) {
+            const checkbox = document.getElementById(itemId);
+            if (checkbox && !checkbox.checked) {
+                allChecked = false;
+                break;
+            }
         }
     }
-    agreeAll.checked = allRequiredChecked;
+    if (agreeAll) {
+        agreeAll.checked = allChecked;
+    }
 
     // 개인정보 입력 검증
     const name = nameInput ? nameInput.value.trim() : '';
@@ -3434,6 +3447,11 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (selectedData.currentCompany) {
                 formData.append('currentCompany', selectedData.currentCompany);
+            }
+            
+            // 포인트 사용량 추가 (포인트 모달에서 확인한 포인트)
+            if (window.pointUsageData && window.pointUsageData.usedPoint > 0) {
+                formData.append('used_point', window.pointUsageData.usedPoint);
             }
             
             // 제출 버튼 비활성화

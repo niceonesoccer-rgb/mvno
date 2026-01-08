@@ -2914,7 +2914,7 @@ if (mnoSimApplicationForm) {
         // 폼 데이터 준비
         const formData = new FormData(this);
         
-        // 포인트 사용 정보 추가
+        // 포인트 사용 정보 추가 (포인트 모달에서 확인한 포인트)
         if (window.pointUsageData && window.pointUsageData.usedPoint > 0) {
             formData.append('used_point', window.pointUsageData.usedPoint);
         }
@@ -3201,17 +3201,28 @@ function checkAllMnoSimAgreements() {
         requiredItems.push('mnoSimAgreementPurpose', 'mnoSimAgreementItems', 'mnoSimAgreementPeriod', 'mnoSimAgreementThirdParty', 'mnoSimAgreementServiceNotice');
     }
     
-    // 전체 동의 체크박스 상태 업데이트
+    // 전체 동의 체크박스 상태 업데이트 (모든 체크박스 확인)
     if (agreeAll) {
-        let allRequiredChecked = true;
-        for (const itemId of requiredItems) {
-            const checkbox = document.getElementById(itemId);
-            if (checkbox && !checkbox.checked) {
-                allRequiredChecked = false;
-                break;
+        const allCheckboxes = document.querySelectorAll('.internet-checkbox-input-item');
+        let allChecked = true;
+        if (allCheckboxes.length > 0) {
+            allCheckboxes.forEach(checkbox => {
+                if (!checkbox.checked) {
+                    allChecked = false;
+                }
+            });
+        } else {
+            // 체크박스가 없으면 필수 항목만 확인
+            allChecked = true;
+            for (const itemId of requiredItems) {
+                const checkbox = document.getElementById(itemId);
+                if (checkbox && !checkbox.checked) {
+                    allChecked = false;
+                    break;
+                }
             }
         }
-        agreeAll.checked = allRequiredChecked;
+        agreeAll.checked = allChecked;
     }
     
     // 개인정보 입력 검증

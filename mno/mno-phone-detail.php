@@ -2286,6 +2286,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.warn('Form submit - selected_amount input not found');
             }
             
+            // 포인트 사용량 추가 (포인트 모달에서 확인한 포인트)
+            if (window.pointUsageData && window.pointUsageData.usedPoint > 0) {
+                formData.append('used_point', window.pointUsageData.usedPoint);
+            }
+            
             // 제출 버튼 비활성화
             const submitBtn = document.getElementById('consultationSubmitBtn');
             if (submitBtn) {

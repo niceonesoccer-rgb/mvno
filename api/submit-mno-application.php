@@ -163,7 +163,7 @@ try {
     
     // 포인트 차감 처리 (가입 신청 완료 후)
     $usedPoint = isset($_POST['used_point']) ? intval($_POST['used_point']) : 0;
-    if ($usedPoint > 0) {
+    if ($usedPoint > 0 && $applicationId !== false) {
         $pointResult = deductPoint($userId, $usedPoint, 'mno', $productId, '통신사폰 할인혜택');
         
         if (!$pointResult['success']) {

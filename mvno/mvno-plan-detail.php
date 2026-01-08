@@ -1904,16 +1904,29 @@ function checkAllMvnoAgreements() {
         requiredItems.push('mvnoAgreementPurpose', 'mvnoAgreementItems', 'mvnoAgreementPeriod', 'mvnoAgreementThirdParty', 'mvnoAgreementServiceNotice');
     }
 
-    // 전체 동의 체크박스 상태 업데이트 (필수 항목만 포함)
-    let allRequiredChecked = true;
-    for (const itemId of requiredItems) {
-        const checkbox = document.getElementById(itemId);
-        if (checkbox && !checkbox.checked) {
-            allRequiredChecked = false;
-            break;
+    // 전체 동의 체크박스 상태 업데이트 (모든 체크박스 확인)
+    const allCheckboxes = document.querySelectorAll('.internet-checkbox-input-item');
+    let allChecked = true;
+    if (allCheckboxes.length > 0) {
+        allCheckboxes.forEach(checkbox => {
+            if (!checkbox.checked) {
+                allChecked = false;
+            }
+        });
+    } else {
+        // 체크박스가 없으면 필수 항목만 확인
+        allChecked = true;
+        for (const itemId of requiredItems) {
+            const checkbox = document.getElementById(itemId);
+            if (checkbox && !checkbox.checked) {
+                allChecked = false;
+                break;
+            }
         }
     }
-    mvnoAgreementAll.checked = allRequiredChecked;
+    if (mvnoAgreementAll) {
+        mvnoAgreementAll.checked = allChecked;
+    }
 
     // 이름, 휴대폰 번호, 이메일 확인
     const name = nameInput ? nameInput.value.trim() : '';
@@ -2754,19 +2767,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
 
-    // 포인트 사용량 저장 변수
-    let usedPointAmount = 0;
-    let isSubmitting = false; // 중복 제출 방지 플래그
-    
-    // pointUsageConfirmed 이벤트 리스너 (한 번만 실행되도록)
-    let pointUsageListenerAdded = false;
-    if (!pointUsageListenerAdded) {
-        pointUsageListenerAdded = true;
-        document.addEventListener('pointUsageConfirmed', function(e) {
-            usedPointAmount = e.detail.usedPoint || 0;
-            console.log('포인트 사용 확인됨:', usedPointAmount);
-        }, { once: false }); // 여러 번 발생할 수 있으므로 once: false
-    }
+    // 중복 제출 방지 플래그
+    let isSubmitting = false;
     
     // 신청하기 버튼 클릭 이벤트
     if (applyBtn) {
@@ -2995,7 +2997,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // 폼 데이터 준비
             const formData = new FormData(this);
             
-            // 포인트 사용 정보 추가
+            // 포인트 사용 정보 추가 (포인트 모달에서 확인한 포인트)
             if (window.pointUsageData && window.pointUsageData.usedPoint > 0) {
                 formData.append('used_point', window.pointUsageData.usedPoint);
             }

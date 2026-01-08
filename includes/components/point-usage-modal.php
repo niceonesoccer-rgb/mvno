@@ -302,6 +302,7 @@ $modal_id = "pointUsageModal_{$type}_{$item_id}";
 
 .point-max-button-section {
     margin-bottom: 24px;
+<<<<<<< HEAD
     display: flex;
     justify-content: center;
     align-items: center;
