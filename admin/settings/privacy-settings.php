@@ -1,10 +1,10 @@
 <?php
 /**
  * 개인정보 설정 관리자 페이지
- * 경로: /MVNO/admin/settings/privacy-settings.php
  */
 
 require_once __DIR__ . '/../../includes/data/auth-functions.php';
+require_once __DIR__ . '/../../includes/data/path-config.php';
 require_once __DIR__ . '/../../includes/data/app-settings.php';
 
 // 세션 시작
@@ -14,7 +14,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 // 관리자 권한 체크
 if (!isAdmin()) {
-    header('Location: /MVNO/admin/');
+    header('Location: ' . getAssetPath('/admin/login.php'));
     exit;
 }
 

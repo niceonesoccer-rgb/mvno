@@ -1,10 +1,11 @@
 <?php
 /**
  * 메인상품선택 관리 페이지
- * 경로: /MVNO/admin/content/home-product-select.php
+ * 경로: /admin/content/home-product-select.php
  */
 
 require_once __DIR__ . '/../includes/admin-header.php';
+require_once __DIR__ . '/../../includes/data/path-config.php';
 require_once __DIR__ . '/../../includes/data/db-config.php';
 require_once __DIR__ . '/../../includes/data/home-functions.php';
 require_once __DIR__ . '/../../includes/data/product-functions.php';
@@ -965,7 +966,7 @@ if ($activeTab === 'mvno') {
                                                 <?php 
                                                 $sellerId = $product['seller_id'] ?? '-';
                                                 if ($sellerId && $sellerId !== '-') {
-                                                    echo '<a href="/MVNO/admin/users/seller-detail.php?user_id=' . urlencode($sellerId) . '" style="color: #3b82f6; text-decoration: none; font-weight: 600;">' . htmlspecialchars($sellerId) . '</a>';
+                                                    echo '<a href="' . getAssetPath('/admin/users/seller-detail.php?user_id=' . urlencode($sellerId)) . '" style="color: #3b82f6; text-decoration: none; font-weight: 600;">' . htmlspecialchars($sellerId) . '</a>';
                                                 } else {
                                                     echo htmlspecialchars($sellerId);
                                                 }
@@ -1023,13 +1024,13 @@ if ($activeTab === 'mvno') {
                                             <td style="text-align: center;">
                                                 <div class="action-buttons">
                                                     <?php if ($activeTab === 'mvno'): ?>
-                                                        <a href="/MVNO/mvno/mvno-plan-detail.php?id=<?= $product['id'] ?>" target="_blank" class="btn btn-sm btn-primary">보기</a>
+                                                        <a href="<?php echo getAssetPath('/mvno/mvno-plan-detail.php?id=' . $product['id']); ?>" target="_blank" class="btn btn-sm btn-primary">보기</a>
                                                     <?php elseif ($activeTab === 'mno'): ?>
-                                                        <a href="/MVNO/mno/mno-phone-detail.php?id=<?= $product['id'] ?>" target="_blank" class="btn btn-sm btn-primary">보기</a>
+                                                        <a href="<?php echo getAssetPath('/mno/mno-phone-detail.php?id=' . $product['id']); ?>" target="_blank" class="btn btn-sm btn-primary">보기</a>
                                                     <?php elseif ($activeTab === 'mno-sim'): ?>
-                                                        <a href="/MVNO/mno-sim/mno-sim-detail.php?id=<?= $product['id'] ?>" target="_blank" class="btn btn-sm btn-primary">보기</a>
+                                                        <a href="<?php echo getAssetPath('/mno-sim/mno-sim-detail.php?id=' . $product['id']); ?>" target="_blank" class="btn btn-sm btn-primary">보기</a>
                                                     <?php elseif ($activeTab === 'internet'): ?>
-                                                        <a href="/MVNO/internets/internet-detail.php?id=<?= $product['id'] ?>" target="_blank" class="btn btn-sm btn-primary">보기</a>
+                                                        <a href="<?php echo getAssetPath('/internets/internet-detail.php?id=' . $product['id']); ?>" target="_blank" class="btn btn-sm btn-primary">보기</a>
                                                     <?php endif; ?>
                                                 </div>
                                             </td>
@@ -1098,7 +1099,7 @@ if ($activeTab === 'mvno') {
                     메인에서 제거
                 </button>
                 <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #e5e7eb;">
-                    <a href="/MVNO/" target="_blank" class="btn btn-secondary" style="width: 100%; text-align: center; display: block;">
+                    <a href="<?php echo getAssetPath('/'); ?>" target="_blank" class="btn btn-secondary" style="width: 100%; text-align: center; display: block;">
                         메인페이지 보기
                     </a>
                 </div>

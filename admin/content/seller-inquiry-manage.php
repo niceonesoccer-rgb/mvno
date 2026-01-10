@@ -1,18 +1,18 @@
 <?php
 /**
  * 판매자 1:1 문의 관리 페이지
- * 경로: /MVNO/admin/content/seller-inquiry-manage.php
  */
 
 require_once __DIR__ . '/../../includes/data/auth-functions.php';
 require_once __DIR__ . '/../../includes/data/seller-inquiry-functions.php';
+require_once __DIR__ . '/../../includes/data/path-config.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
 if (!isAdmin()) {
-    header('Location: /MVNO/admin/');
+    header('Location: ' . getAssetPath('/admin/'));
     exit;
 }
 
@@ -66,11 +66,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     $newPath = str_replace('/' . $tempReplyId . '/', '/' . $replyId . '/', $attachment['file_path']);
                     
                     // DB 경로를 실제 파일 시스템 경로로 변환
-                    // DB 경로: /MVNO/uploads/... -> 실제 경로: __DIR__/../../uploads/...
+                    // DB 경로: /uploads/... -> 실제 경로: __DIR__/../../uploads/...
                     $oldDbPath = $attachment['file_path'];
                     $newDbPath = $newPath;
-                    $oldActualPath = str_replace('/MVNO', '', $oldDbPath);
-                    $newActualPath = str_replace('/MVNO', '', $newDbPath);
+                    // 하드코딩된 /MVNO/ 제거
+                    $oldActualPath = preg_replace('#^/MVNO/#', '/', $oldDbPath);
+                    $oldActualPath = preg_replace('#^/MVNO#', '', $oldActualPath);
+                    $newActualPath = preg_replace('#^/MVNO/#', '/', $newDbPath);
+                    $newActualPath = preg_replace('#^/MVNO#', '', $newActualPath);
                     // __DIR__은 admin/content이므로 ../../로 루트로 이동
                     $oldPath = __DIR__ . '/../..' . $oldActualPath;
                     $newFullPath = __DIR__ . '/../..' . $newActualPath;
@@ -567,7 +570,7 @@ include '../includes/admin-header.php';
                     </div>
                     <div style="display: flex; align-items: center; gap: 16px;">
                         <div style="display: flex; align-items: center; gap: 8px; color: #6b7280; font-size: 14px;">
-                            <a href="/MVNO/admin/users/seller-detail.php?user_id=<?php echo urlencode($inquiry['seller_id']); ?>" 
+                            <a href="<?php echo getAssetPath('/admin/users/seller-detail.php?user_id=' . urlencode($inquiry['seller_id'])); ?>" 
                                style="color: #6366f1; text-decoration: none; font-weight: 500;"
                                onmouseover="this.style.textDecoration='underline'"
                                onmouseout="this.style.textDecoration='none'"
@@ -678,11 +681,13 @@ include '../includes/admin-header.php';
                                 <?php
                                 // DB 경로를 실제 파일 시스템 경로로 변환
                                 $dbPath = $attachment['file_path'];
-                                $actualPath = str_replace('/MVNO', '', $dbPath);
+                                // 하드코딩된 /MVNO/ 제거
+                                $actualPath = preg_replace('#^/MVNO/#', '/', $dbPath);
+                                $actualPath = preg_replace('#^/MVNO#', '', $actualPath);
                                 $filePath = __DIR__ . '/../..' . $actualPath;
                                 $fileExists = file_exists($filePath);
                                 $isImage = strpos($attachment['file_type'], 'image/') === 0;
-                                $fileUrl = '/MVNO/admin/content/seller-inquiry-download.php?file_id=' . $attachment['id'];
+                                $fileUrl = getAssetPath('/admin/content/seller-inquiry-download.php?file_id=' . $attachment['id']);
                                 ?>
                                 <div class="attachment-card">
                                     <a href="<?php echo $fileUrl; ?>" target="_blank" class="attachment-link">
@@ -736,7 +741,7 @@ include '../includes/admin-header.php';
                                         <?php foreach ($replyAttachments as $attachment): ?>
                                             <?php
                                             $isImage = strpos($attachment['file_type'], 'image/') === 0;
-                                            $fileUrl = '/MVNO/admin/content/seller-inquiry-download.php?file_id=' . $attachment['id'];
+                                            $fileUrl = getAssetPath('/admin/content/seller-inquiry-download.php?file_id=' . $attachment['id']);
                                             ?>
                                             <div class="attachment-card">
                                                 <a href="<?php echo $fileUrl; ?>" target="_blank" class="attachment-link">

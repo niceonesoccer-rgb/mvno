@@ -1,10 +1,11 @@
 <?php
 /**
  * 공지사항 관리 페이지
- * 경로: /MVNO/admin/content/notice-manage.php
+ * 경로: /admin/content/notice-manage.php
  */
 
 require_once __DIR__ . '/../../includes/data/auth-functions.php';
+require_once __DIR__ . '/../../includes/data/path-config.php';
 require_once __DIR__ . '/../../includes/data/notice-functions.php';
 
 if (session_status() === PHP_SESSION_NONE) {
@@ -12,7 +13,7 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 if (!isAdmin()) {
-    header('Location: /MVNO/admin/');
+    header('Location: ' . getAssetPath('/admin/'));
     exit;
 }
 
@@ -72,7 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     if (!$error) {
         $result = createNotice($title, $content, $show_on_main, $image_url, $link_url, $start_at, $end_at);
         if ($result) {
-            header('Location: /MVNO/admin/content/notice-manage.php?success=created&tab=list&page=' . $page . '&per_page=' . $perPage);
+            header('Location: ' . getAssetPath('/admin/content/notice-manage.php?success=created&tab=list&page=' . $page . '&per_page=' . $perPage));
             exit;
         } else {
             $error = '공지사항 등록에 실패했습니다.';
@@ -139,7 +140,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 if ($image_to_delete && file_exists(__DIR__ . '/../..' . $image_to_delete)) {
                     @unlink(__DIR__ . '/../..' . $image_to_delete);
                 }
-                header('Location: /MVNO/admin/content/notice-manage.php?success=updated&tab=list&page=' . $page . '&per_page=' . $perPage);
+                header('Location: ' . getAssetPath('/admin/content/notice-manage.php?success=updated&tab=list&page=' . $page . '&per_page=' . $perPage));
                 exit;
             } else {
                 $error = '공지사항 수정에 실패했습니다.';
@@ -152,7 +153,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete') {
     $id = trim($_POST['id'] ?? '');
     if (!empty($id) && deleteNotice($id)) {
-        header('Location: /MVNO/admin/content/notice-manage.php?success=deleted&tab=list');
+        header('Location: ' . getAssetPath('/admin/content/notice-manage.php?success=deleted&tab=list'));
         exit;
     } elseif (!empty($id)) {
         $error = '공지사항 삭제에 실패했습니다.';
@@ -311,9 +312,26 @@ include '../includes/admin-header.php';
                     
                     <!-- 현재 이미지 표시 -->
                     <div id="currentImageContainer" style="width: 100%; margin-bottom: 16px; position: relative; z-index: 1;">
-                        <?php if ($editNotice && !empty($editNotice['image_url'])): ?>
+                        <?php if ($editNotice && !empty($editNotice['image_url'])): 
+                            // 이미지 경로 정규화
+                            $currentImageUrl = $editNotice['image_url'];
+                            // DB에 저장된 경로에서 하드코딩된 /MVNO/ 제거 후 getAssetPath 사용
+                            while (strpos($currentImageUrl, '/MVNO/') !== false) {
+                                $currentImageUrl = str_replace('/MVNO/', '/', $currentImageUrl);
+                            }
+                            if (strpos($currentImageUrl, '/MVNO') === 0) {
+                                $currentImageUrl = substr($currentImageUrl, 5);
+                            }
+                            if (strpos($currentImageUrl, 'MVNO/') === 0) {
+                                $currentImageUrl = substr($currentImageUrl, 5);
+                            }
+                            if (strpos($currentImageUrl, '/') !== 0 && !preg_match('/^https?:\/\//', $currentImageUrl)) {
+                                $currentImageUrl = '/' . $currentImageUrl;
+                            }
+                            $currentImageUrl = getAssetPath($currentImageUrl);
+                        ?>
                             <div style="position: relative; display: inline-block; pointer-events: none;">
-                                <img src="<?php echo htmlspecialchars($editNotice['image_url']); ?>" 
+                                <img src="<?php echo htmlspecialchars($currentImageUrl); ?>" 
                                      alt="현재 이미지" 
                                      id="currentImage"
                                      style="max-width: 100%; max-height: 300px; border: 2px solid #e5e7eb; border-radius: 8px; padding: 8px; background: white; display: block; transition: opacity 0.3s;">
@@ -468,7 +486,7 @@ include '../includes/admin-header.php';
                     <?php echo $editNotice ? '수정하기' : '등록하기'; ?>
                 </button>
                 <?php if ($editNotice): ?>
-                    <a href="/MVNO/admin/content/notice-manage.php?tab=list&page=<?php echo $page; ?>&per_page=<?php echo $perPage; ?>" class="btn btn-secondary">취소</a>
+                    <a href="<?php echo getAssetPath('/admin/content/notice-manage.php?tab=list&page=' . $page . '&per_page=' . $perPage); ?>" class="btn btn-secondary">취소</a>
                 <?php else: ?>
                     <button type="button" class="btn btn-secondary" onclick="switchTab('list')">목록 보기</button>
                 <?php endif; ?>
@@ -577,7 +595,7 @@ include '../includes/admin-header.php';
                         </div>
                     </div>
                     <div class="notice-actions">
-                        <a href="/MVNO/admin/content/notice-manage.php?edit=<?php echo htmlspecialchars($notice['id']); ?>&tab=register&page=<?php echo $page; ?>&per_page=<?php echo $perPage; ?>" class="btn btn-secondary btn-sm">수정</a>
+                        <a href="<?php echo getAssetPath('/admin/content/notice-manage.php?edit=' . htmlspecialchars($notice['id']) . '&tab=register&page=' . $page . '&per_page=' . $perPage); ?>" class="btn btn-secondary btn-sm">수정</a>
                         <form method="POST" style="display: inline;" onsubmit="return confirm('정말 삭제하시겠습니까?');">
                             <input type="hidden" name="action" value="delete">
                             <input type="hidden" name="id" value="<?php echo htmlspecialchars($notice['id']); ?>">

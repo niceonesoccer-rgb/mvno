@@ -1,10 +1,10 @@
 <?php
 /**
  * 이메일 설정 관리자 페이지
- * 경로: /MVNO/admin/settings/email-settings.php
  */
 
 require_once __DIR__ . '/../../includes/data/auth-functions.php';
+require_once __DIR__ . '/../../includes/data/path-config.php';
 require_once __DIR__ . '/../../includes/data/app-settings.php';
 
 if (session_status() === PHP_SESSION_NONE) {
@@ -12,7 +12,7 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 if (!isAdmin()) {
-    header('Location: /MVNO/admin/');
+    header('Location: ' . getAssetPath('/admin/login.php'));
     exit;
 }
 

@@ -6,10 +6,11 @@
 
 require_once __DIR__ . '/../../includes/data/db-config.php';
 require_once __DIR__ . '/../../includes/data/auth-functions.php';
+require_once __DIR__ . '/../../includes/data/path-config.php';
 
 // 관리자 권한 체크
 if (!isAdmin()) {
-    header('Location: /MVNO/admin/');
+    header('Location: ' . getAssetPath('/admin/login.php'));
     exit;
 }
 
@@ -617,8 +618,21 @@ function showUserModal(userId) {
     modal.style.display = 'flex';
     
     // 사용자 정보 가져오기
-    fetch(`/MVNO/api/admin/get-user-info.php?user_id=${encodeURIComponent(userId)}`)
-        .then(response => response.json())
+    fetch(`<?php echo getApiPath('/api/admin/get-user-info.php'); ?>?user_id=${encodeURIComponent(userId)}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('HTTP error! status: ' + response.status);
+            }
+            return response.text();
+        })
+        .then(text => {
+            try {
+                return JSON.parse(text);
+            } catch (e) {
+                console.error('JSON parse error:', text);
+                throw new Error('Invalid JSON response');
+            }
+        })
         .then(data => {
             if (data.success && data.user) {
                 const user = data.user;

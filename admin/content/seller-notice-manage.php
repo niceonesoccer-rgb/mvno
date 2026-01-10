@@ -1,18 +1,18 @@
 <?php
 /**
  * 판매자 전용 공지사항 관리 페이지
- * 경로: /MVNO/admin/content/seller-notice-manage.php
  */
 
 require_once __DIR__ . '/../../includes/data/auth-functions.php';
 require_once __DIR__ . '/../../includes/data/notice-functions.php';
+require_once __DIR__ . '/../../includes/data/path-config.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
 if (!isAdmin()) {
-    header('Location: /MVNO/admin/');
+    header('Location: ' . getAssetPath('/admin/'));
     exit;
 }
 
@@ -869,7 +869,7 @@ function deleteImage() {
 }
 
 function deleteImageFile(imageUrl) {
-    fetch('/MVNO/admin/api/seller-notice-api.php', {
+    fetch('<?php echo getApiPath('/admin/api/seller-notice-api.php'); ?>', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
@@ -897,7 +897,7 @@ function openModal(noticeId = null) {
     
     if (isEditMode) {
         // 수정 모드: 공지사항 데이터 로드
-        fetch(`/MVNO/admin/api/seller-notice-api.php?action=get&id=${noticeId}`)
+        fetch('<?php echo getApiPath('/admin/api/seller-notice-api.php'); ?>?action=get&id=' + noticeId)
             .then(response => response.json())
             .then(data => {
                 if (data.success && data.data) {
@@ -915,7 +915,7 @@ function openModal(noticeId = null) {
                     document.querySelector(`input[name="banner_type"][value="${bannerType}"]`).checked = true;
                     updateImageUploadVisibility();
                     
-                    // 이미지 표시
+                    // 이미지 표시 (경로 정규화 필요시)
                     if (notice.image_url) {
                         currentImageUrl = notice.image_url;
                         document.getElementById('previewImage').src = notice.image_url;
@@ -956,7 +956,7 @@ function closeDeleteModal() {
 function confirmDelete() {
     if (!deleteNoticeId) return;
     
-    fetch('/MVNO/admin/api/seller-notice-api.php', {
+    fetch('<?php echo getApiPath('/admin/api/seller-notice-api.php'); ?>', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
@@ -969,7 +969,7 @@ function confirmDelete() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            location.href = '/MVNO/admin/content/seller-notice-manage.php?success=deleted&page=<?= $page ?>';
+            location.href = '<?php echo getAssetPath('/admin/content/seller-notice-manage.php?success=deleted&page=' . $page); ?>';
         } else {
             alert('삭제에 실패했습니다: ' + (data.message || '알 수 없는 오류'));
             closeDeleteModal();
@@ -999,14 +999,14 @@ document.getElementById('noticeForm').addEventListener('submit', function(e) {
     const formData = new FormData(this);
     const action = formData.get('action');
     
-    fetch('/MVNO/admin/api/seller-notice-api.php', {
+    fetch('<?php echo getApiPath('/admin/api/seller-notice-api.php'); ?>', {
         method: 'POST',
         body: formData
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            location.href = '/MVNO/admin/content/seller-notice-manage.php?success=' + (action === 'create' ? 'created' : 'updated') + '&page=<?= $page ?>';
+            location.href = '<?php echo getAssetPath('/admin/content/seller-notice-manage.php?success='); ?>' + (action === 'create' ? 'created' : 'updated') + '&page=<?= $page ?>';
         } else {
             alert('저장에 실패했습니다: ' + (data.message || '알 수 없는 오류'));
         }

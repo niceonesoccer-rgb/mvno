@@ -595,7 +595,8 @@ function getDeletedQnaForAdmin() {
     }
     
     if ($hasDeletedAt) {
-        $stmt = $pdo->query("SELECT * FROM qna WHERE deleted_at IS NOT NULL AND deleted_at != '' ORDER BY deleted_at DESC");
+        // DATETIME 컬럼은 빈 문자열 비교 불가 - IS NOT NULL만 사용
+        $stmt = $pdo->query("SELECT * FROM qna WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC");
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     } else {
         // deleted_at 컬럼이 없으면 삭제된 항목 없음

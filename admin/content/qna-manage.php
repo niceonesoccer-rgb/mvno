@@ -1,18 +1,18 @@
 <?php
 /**
  * 1:1 문의(Q&A) 관리 페이지
- * 경로: /MVNO/admin/content/qna-manage.php
  */
 
 require_once __DIR__ . '/../../includes/data/auth-functions.php';
 require_once __DIR__ . '/../../includes/data/qna-functions.php';
+require_once __DIR__ . '/../../includes/data/path-config.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
 if (!isAdmin()) {
-    header('Location: /MVNO/admin/');
+    header('Location: ' . getAssetPath('/admin/'));
     exit;
 }
 
@@ -55,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 }
             }
             
-            header('Location: /MVNO/admin/content/qna-manage.php?view=' . urlencode($id) . '&success=answered');
+            header('Location: ' . getAssetPath('/admin/content/qna-manage.php?view=' . urlencode($id) . '&success=answered'));
             exit;
         } else {
             error_log("답변 등록 실패");
@@ -83,7 +83,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $success = empty($answer) ? '답변이 삭제되었습니다.' : '답변이 수정되었습니다.';
             
             // 리다이렉트 URL 구성 (필터 및 검색 파라미터 유지)
-            $redirectUrl = '/MVNO/admin/content/qna-manage.php?view=' . urlencode($id) . '&success=updated';
+            $redirectUrl = getAssetPath('/admin/content/qna-manage.php?view=' . urlencode($id) . '&success=updated');
             if ($filter !== 'all') {
                 $redirectUrl .= '&filter=' . urlencode($filter);
             }
@@ -108,7 +108,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     } else {
         if (restoreQna($id)) {
             $success = 'Q&A가 복구되었습니다.';
-            header('Location: /MVNO/admin/content/qna-manage.php?success=restored');
+            header('Location: ' . getAssetPath('/admin/content/qna-manage.php?success=restored'));
             exit;
         } else {
             $error = 'Q&A 복구에 실패했습니다.';
@@ -139,7 +139,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             error_log("QnA 영구 삭제 성공 - ID: " . $id);
             
             // 삭제된 항목 목록으로 리다이렉트
-            header('Location: /MVNO/admin/content/qna-manage.php?show_deleted=1&success=permanently_deleted');
+            header('Location: ' . getAssetPath('/admin/content/qna-manage.php?show_deleted=1&success=permanently_deleted'));
             exit;
         } else {
             $error = 'Q&A 영구 삭제에 실패했습니다.';
@@ -174,7 +174,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             // 필터 및 검색 파라미터 유지
             $filter = isset($_GET['filter']) ? $_GET['filter'] : 'all';
             $search = isset($_GET['search']) ? trim($_GET['search']) : '';
-            $redirectUrl = '/MVNO/admin/content/qna-manage.php?success=deleted';
+            $redirectUrl = getAssetPath('/admin/content/qna-manage.php?success=deleted');
             if ($filter !== 'all') {
                 $redirectUrl .= '&filter=' . urlencode($filter);
             }
@@ -396,7 +396,7 @@ if (!isset($offset)) {
             <div style="display: flex; gap: 12px; margin-top: 8px; align-items: center; flex-wrap: wrap;">
                 <?php if ($showDeleted): ?>
                     <span style="font-size: 14px; color: #dc2626;">삭제된 Q&A: <strong><?php echo number_format($totalCount); ?></strong>건</span>
-                    <a href="/MVNO/admin/content/qna-manage.php" style="font-size: 14px; color: #6366f1; text-decoration: none;">← 일반 목록으로</a>
+                    <a href="<?php echo getAssetPath('/admin/content/qna-manage.php'); ?>" style="font-size: 14px; color: #6366f1; text-decoration: none;">← 일반 목록으로</a>
                 <?php else: ?>
                     <span style="font-size: 14px; color: #6b7280;">전체: <strong><?php echo number_format($totalCount); ?></strong>건</span>
                     <span style="font-size: 14px; color: #d97706;">답변 대기: <strong><?php echo number_format($pendingCount); ?></strong>건</span>
@@ -405,7 +405,7 @@ if (!isset($offset)) {
                     $deletedCount = count(getDeletedQnaForAdmin());
                     if ($deletedCount > 0): 
                     ?>
-                        <a href="/MVNO/admin/content/qna-manage.php?show_deleted=1" style="font-size: 14px; color: #dc2626; text-decoration: none;">
+                        <a href="<?php echo getAssetPath('/admin/content/qna-manage.php?show_deleted=1'); ?>" style="font-size: 14px; color: #dc2626; text-decoration: none;">
                             삭제된 항목: <strong><?php echo number_format($deletedCount); ?></strong>건 (복구 가능)
                         </a>
                     <?php endif; ?>
@@ -413,7 +413,7 @@ if (!isset($offset)) {
             </div>
         </div>
         <?php if (!empty($viewId)): ?>
-            <a href="/MVNO/admin/content/qna-manage.php<?php echo !empty($filter) && $filter !== 'all' ? '?filter=' . urlencode($filter) : ''; ?><?php echo !empty($search) ? ($filter !== 'all' ? '&' : '?') . 'search=' . urlencode($search) : ''; ?>" class="btn btn-secondary">목록으로</a>
+            <a href="<?php echo getAssetPath('/admin/content/qna-manage.php'); ?><?php echo !empty($filter) && $filter !== 'all' ? '?filter=' . urlencode($filter) : ''; ?><?php echo !empty($search) ? ($filter !== 'all' ? '&' : '?') . 'search=' . urlencode($search) : ''; ?>" class="btn btn-secondary">목록으로</a>
         <?php endif; ?>
     </div>
 
@@ -505,7 +505,7 @@ if (!isset($offset)) {
                             <button type="submit" class="btn btn-primary">
                                 <?php echo $viewQna['status'] === 'answered' ? '답변 수정' : '답변 등록'; ?>
                             </button>
-                            <a href="/MVNO/admin/content/qna-manage.php<?php echo !empty($filter) && $filter !== 'all' ? '?filter=' . urlencode($filter) : ''; ?><?php echo !empty($search) ? ($filter !== 'all' ? '&' : '?') . 'search=' . urlencode($search) : ''; ?>" class="btn btn-secondary">목록으로</a>
+                            <a href="<?php echo getAssetPath('/admin/content/qna-manage.php'); ?><?php echo !empty($filter) && $filter !== 'all' ? '?filter=' . urlencode($filter) : ''; ?><?php echo !empty($search) ? ($filter !== 'all' ? '&' : '?') . 'search=' . urlencode($search) : ''; ?>" class="btn btn-secondary">목록으로</a>
                         </div>
                     </form>
                 </div>
@@ -559,17 +559,17 @@ if (!isset($offset)) {
             
             <!-- 필터 탭 -->
             <div style="display: flex; gap: 8px; margin-bottom: 24px; border-bottom: 2px solid #e5e7eb;">
-                <a href="/MVNO/admin/content/qna-manage.php<?php echo !empty($search) ? '?search=' . urlencode($search) : ''; ?>" 
+                <a href="<?php echo getAssetPath('/admin/content/qna-manage.php'); ?><?php echo !empty($search) ? '?search=' . urlencode($search) : ''; ?>" 
                    class="filter-tab <?php echo $filter === 'all' ? 'active' : ''; ?>"
                    style="padding: 12px 20px; text-decoration: none; color: #6b7280; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s; <?php echo $filter === 'all' ? 'color: #6366f1; border-bottom-color: #6366f1; font-weight: 600;' : ''; ?>">
                     전체
                 </a>
-                <a href="/MVNO/admin/content/qna-manage.php?filter=pending<?php echo !empty($search) ? '&search=' . urlencode($search) : ''; ?>" 
+                <a href="<?php echo getAssetPath('/admin/content/qna-manage.php?filter=pending'); ?><?php echo !empty($search) ? '&search=' . urlencode($search) : ''; ?>" 
                    class="filter-tab <?php echo $filter === 'pending' ? 'active' : ''; ?>"
                    style="padding: 12px 20px; text-decoration: none; color: #6b7280; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s; <?php echo $filter === 'pending' ? 'color: #6366f1; border-bottom-color: #6366f1; font-weight: 600;' : ''; ?>">
                     답변 대기
                 </a>
-                <a href="/MVNO/admin/content/qna-manage.php?filter=answered<?php echo !empty($search) ? '&search=' . urlencode($search) : ''; ?>" 
+                <a href="<?php echo getAssetPath('/admin/content/qna-manage.php?filter=answered'); ?><?php echo !empty($search) ? '&search=' . urlencode($search) : ''; ?>" 
                    class="filter-tab <?php echo $filter === 'answered' ? 'active' : ''; ?>"
                    style="padding: 12px 20px; text-decoration: none; color: #6b7280; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s; <?php echo $filter === 'answered' ? 'color: #6366f1; border-bottom-color: #6366f1; font-weight: 600;' : ''; ?>">
                     답변 완료
@@ -604,7 +604,7 @@ if (!isset($offset)) {
                                 <tr style="border-bottom: 1px solid #e5e7eb; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#f9fafb'" onmouseout="this.style.backgroundColor=''">
                                     <td style="padding: 12px;">
                                         <?php
-                                        $viewUrl = '/MVNO/admin/content/qna-manage.php?view=' . urlencode($qna['id']);
+                                        $viewUrl = getAssetPath('/admin/content/qna-manage.php?view=' . urlencode($qna['id']));
                                         $viewParams = [];
                                         if ($filter !== 'all') $viewParams[] = 'filter=' . urlencode($filter);
                                         if (!empty($search)) $viewParams[] = 'search=' . urlencode($search);
@@ -630,7 +630,7 @@ if (!isset($offset)) {
                                     <td style="padding: 12px; text-align: center;">
                                         <div style="display: flex; gap: 6px; justify-content: center; align-items: center; flex-wrap: wrap;">
                                             <?php
-                                            $detailUrl = '/MVNO/admin/content/qna-manage.php?view=' . urlencode($qna['id']);
+                                            $detailUrl = getAssetPath('/admin/content/qna-manage.php?view=' . urlencode($qna['id']));
                                             $detailParams = [];
                                             if ($filter !== 'all') $detailParams[] = 'filter=' . urlencode($filter);
                                             if (!empty($search)) $detailParams[] = 'search=' . urlencode($search);
@@ -667,7 +667,7 @@ if (!isset($offset)) {
                         <!-- 이전 페이지 -->
                         <?php if ($paginationPage > 1): ?>
                             <?php
-                            $prevUrl = '/MVNO/admin/content/qna-manage.php?';
+                            $prevUrl = getAssetPath('/admin/content/qna-manage.php?');
                             $params = [];
                             if ($filter !== 'all') $params[] = 'filter=' . urlencode($filter);
                             if (!empty($search)) $params[] = 'search=' . urlencode($search);
@@ -700,13 +700,21 @@ if (!isset($offset)) {
                         // URL 파라미터 구성 함수
                         if (!function_exists('buildQnaPageUrl')) {
                             function buildQnaPageUrl($page, $filter, $search, $showDeleted) {
-                                $url = '/MVNO/admin/content/qna-manage.php?';
+                                require_once __DIR__ . '/../../includes/data/path-config.php';
+                                $url = getAssetPath('/admin/content/qna-manage.php?');
                                 $params = [];
                                 if ($filter !== 'all') $params[] = 'filter=' . urlencode($filter);
                                 if (!empty($search)) $params[] = 'search=' . urlencode($search);
                                 if ($showDeleted) $params[] = 'show_deleted=1';
                                 $params[] = 'page=' . $page;
                                 return $url . implode('&', $params);
+                            }
+                        }
+                        
+                        // buildPageUrl 별칭 (호환성)
+                        if (!function_exists('buildPageUrl')) {
+                            function buildPageUrl($page, $filter, $search, $showDeleted) {
+                                return buildQnaPageUrl($page, $filter, $search, $showDeleted);
                             }
                         }
                         
@@ -754,7 +762,7 @@ if (!isset($offset)) {
                         <!-- 다음 페이지 -->
                         <?php if ($paginationPage < $totalPages): ?>
                             <?php
-                            $nextUrl = '/MVNO/admin/content/qna-manage.php?';
+                            $nextUrl = getAssetPath('/admin/content/qna-manage.php?');
                             $params = [];
                             if ($filter !== 'all') $params[] = 'filter=' . urlencode($filter);
                             if (!empty($search)) $params[] = 'search=' . urlencode($search);

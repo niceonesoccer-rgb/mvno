@@ -40,6 +40,37 @@ function getNoticeById($id) {
     $stmt = $pdo->prepare("SELECT * FROM notices WHERE id = :id LIMIT 1");
     $stmt->execute([':id' => (string)$id]);
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    // 이미지 경로 정규화 (로컬/프로덕션 호환성)
+    if ($row && !empty($row['image_url'])) {
+        require_once __DIR__ . '/path-config.php';
+        $imagePath = $row['image_url'];
+        
+        // 전체 URL이면 그대로 반환
+        if (preg_match('/^https?:\/\//', $imagePath)) {
+            $row['image_url'] = $imagePath;
+        } else {
+            // DB에 저장된 경로에서 하드코딩된 /MVNO/ 제거 (프로덕션 경로로 정규화)
+            while (strpos($imagePath, '/MVNO/') !== false) {
+                $imagePath = str_replace('/MVNO/', '/', $imagePath);
+            }
+            if (strpos($imagePath, '/MVNO') === 0) {
+                $imagePath = substr($imagePath, 5);
+            }
+            if (strpos($imagePath, 'MVNO/') === 0) {
+                $imagePath = substr($imagePath, 5);
+            }
+            
+            // /로 시작하지 않으면 추가
+            if (strpos($imagePath, '/') !== 0) {
+                $imagePath = '/' . $imagePath;
+            }
+            
+            // getAssetPath를 사용하여 환경에 맞는 경로로 변환
+            $row['image_url'] = getAssetPath($imagePath);
+        }
+    }
+    
     return $row ?: null;
 }
 
@@ -76,8 +107,9 @@ function uploadNoticeImage($file) {
     
     // 파일 이동
     if (move_uploaded_file($file['tmp_name'], $filePath)) {
-        require_once __DIR__ . '/path-config.php';
-        return getUploadPath('/uploads/notices/' . $year . '/' . $month . '/' . $fileName);
+        // DB에는 항상 상대 경로만 저장 (환경별 경로는 읽을 때 getAssetPath()로 변환)
+        // 로컬/프로덕션 호환성을 위해 /MVNO/ 없이 순수 경로만 저장
+        return '/uploads/notices/' . $year . '/' . $month . '/' . $fileName;
     }
     
     return null;
@@ -548,6 +580,53 @@ function getMainPageNotice() {
             }
         }
         
+        // 반환 전 이미지 경로 정규화 (로컬/프로덕션 호환성)
+        if ($row && !empty($row['image_url'])) {
+            require_once __DIR__ . '/path-config.php';
+            // DB에 저장된 경로를 정규화 (원본 경로 저장)
+            $originalPath = $row['image_url'];
+            $imagePath = $originalPath;
+            
+            // 전체 URL이면 그대로 반환
+            if (preg_match('/^https?:\/\//', $imagePath)) {
+                $row['image_url'] = $imagePath;
+            } else {
+                // DB에 저장된 경로에서 하드코딩된 /MVNO/ 제거 (프로덕션 경로로 정규화)
+                // 여러 번 반복해서 모든 /MVNO/ 제거
+                while (strpos($imagePath, '/MVNO/') !== false) {
+                    $imagePath = str_replace('/MVNO/', '/', $imagePath);
+                }
+                // 경로 시작 부분의 /MVNO 제거
+                if (strpos($imagePath, '/MVNO') === 0 && (strlen($imagePath) === 5 || $imagePath[5] === '/')) {
+                    $imagePath = substr($imagePath, 5);
+                }
+                // MVNO/로 시작하는 경우도 처리
+                if (strpos($imagePath, 'MVNO/') === 0) {
+                    $imagePath = substr($imagePath, 5);
+                }
+                
+                // 앞뒤 공백 제거 및 경로 정규화
+                $imagePath = trim($imagePath);
+                $imagePath = preg_replace('#/+#', '/', $imagePath);
+                
+                // /로 시작하지 않으면 추가
+                if (strpos($imagePath, '/') !== 0) {
+                    $imagePath = '/' . $imagePath;
+                }
+                
+                // getAssetPath를 사용하여 환경에 맞는 경로로 변환
+                // 로컬: /MVNO + 경로, 프로덕션: 빈 문자열 + 경로
+                $normalizedPath = getAssetPath($imagePath);
+                
+                // 디버깅: 경로 변환 로그 (필요시)
+                if (isset($_GET['debug_notice']) && $_GET['debug_notice'] == '1') {
+                    error_log('getMainPageNotice: 경로 변환 - 원본: ' . $originalPath . ' → 정규화: ' . $imagePath . ' → 최종: ' . $normalizedPath);
+                }
+                
+                $row['image_url'] = $normalizedPath;
+            }
+        }
+        
         return $row ?: null;
     } catch (PDOException $e) {
         // 컬럼이 없으면 null 반환
@@ -657,7 +736,41 @@ function getSellerNoticesForAdmin($limit = null, $offset = 0) {
         $stmt->bindValue(':offset', (int)$offset, PDO::PARAM_INT);
     }
     $stmt->execute();
-    return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    $notices = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    
+    // 이미지 경로 정규화 (로컬/프로덕션 호환성)
+    require_once __DIR__ . '/path-config.php';
+    foreach ($notices as &$notice) {
+        if (!empty($notice['image_url'])) {
+            $imagePath = $notice['image_url'];
+            
+            // 전체 URL이면 그대로 유지
+            if (!preg_match('/^https?:\/\//', $imagePath)) {
+                // DB에 저장된 경로에서 하드코딩된 /MVNO/ 제거
+                while (strpos($imagePath, '/MVNO/') !== false) {
+                    $imagePath = str_replace('/MVNO/', '/', $imagePath);
+                }
+                if (strpos($imagePath, '/MVNO') === 0 && (strlen($imagePath) === 5 || $imagePath[5] === '/')) {
+                    $imagePath = substr($imagePath, 5);
+                }
+                if (strpos($imagePath, 'MVNO/') === 0) {
+                    $imagePath = substr($imagePath, 5);
+                }
+                
+                $imagePath = trim($imagePath);
+                $imagePath = preg_replace('#/+#', '/', $imagePath);
+                
+                if (strpos($imagePath, '/') !== 0) {
+                    $imagePath = '/' . $imagePath;
+                }
+                
+                $notice['image_url'] = getAssetPath($imagePath);
+            }
+        }
+    }
+    unset($notice);
+    
+    return $notices;
 }
 
 // 판매자 전용 공지사항 목록 가져오기 (판매자용, 모든 공지사항 표시)

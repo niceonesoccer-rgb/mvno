@@ -17,20 +17,13 @@ try {
     $currentUser = getCurrentUser();
     if (!$currentUser || !isAdmin($currentUser['user_id'])) {
         // 관리자가 아니면 관리자 로그인 페이지로 리다이렉트
-        // 현재 스크립트 위치 기준으로 상대 경로 계산
-        $currentDir = dirname($_SERVER['SCRIPT_NAME'] ?? '/admin');
-        $adminPath = rtrim($currentDir, '/');
-        $redirectUrl = $adminPath . '/login.php';
-        header('Location: ' . $redirectUrl);
+        header('Location: ' . getAssetPath('/admin/login.php'));
         exit;
     }
 } catch (Exception $e) {
     // 인증 체크 중 오류 발생 시 로그인 페이지로 리다이렉트
     error_log('admin-header auth check error: ' . $e->getMessage());
-    $currentDir = dirname($_SERVER['SCRIPT_NAME'] ?? '/admin');
-    $adminPath = rtrim($currentDir, '/');
-    $redirectUrl = $adminPath . '/login.php';
-    header('Location: ' . $redirectUrl);
+    header('Location: ' . getAssetPath('/admin/login.php'));
     exit;
 }
 
@@ -57,6 +50,8 @@ if ($pdo) {
     <meta name="viewport" id="viewportMeta" content="width=1400, initial-scale=0.5, minimum-scale=0.1, maximum-scale=5.0, user-scalable=yes">
     <title>관리자 페이지 - 유심킹</title>
     <link rel="icon" type="image/png" href="<?php echo getAssetPath('/images/site/favicon.png'); ?>">
+    <!-- 나눔스퀘어어라운드 웹폰트 (Regular & Bold) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/moonspam/NanumSquareRound@latest/nanumsquareround.min.css">
     <script>
     // 모바일에서 viewport 동적 조정
     (function() {
@@ -102,7 +97,7 @@ if ($pdo) {
         }
         
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: 'NanumSquareRound', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%);
             margin: 0;
             padding: 0;

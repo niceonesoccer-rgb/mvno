@@ -182,6 +182,19 @@ require_once __DIR__ . '/../includes/admin-header.php';
         </div>
     <?php endif; ?>
     
+    <style>
+        @media (max-width: 1400px) {
+            .application-points-grid {
+                grid-template-columns: repeat(2, 1fr) !important;
+            }
+        }
+        @media (max-width: 768px) {
+            .application-points-grid {
+                grid-template-columns: 1fr !important;
+            }
+        }
+    </style>
+    
     <form method="POST" style="background: white; border-radius: 12px; padding: 32px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); border: 1px solid #e5e7eb;">
         <!-- 회원가입 축하 포인트 설정 -->
         <div style="margin-bottom: 40px; padding-bottom: 32px; border-bottom: 1px solid #e5e7eb;">
@@ -262,18 +275,13 @@ require_once __DIR__ . '/../includes/admin-header.php';
             <h2 style="font-size: 20px; font-weight: 700; color: #1f2937; margin-bottom: 24px;">3. 가입 신청 포인트</h2>
             <p style="font-size: 14px; color: #6b7280; margin-bottom: 24px;">회원이 각 상품 유형별로 가입 신청을 완료했을 때 지급되는 포인트를 설정합니다.</p>
             
-            <!-- 알뜰폰 신청 포인트 -->
-            <div style="margin-bottom: 32px; padding: 20px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
-                <div style="margin-bottom: 16px;">
-                    <label style="display: flex; align-items: center; gap: 12px; font-size: 16px; font-weight: 600; color: #374151; cursor: pointer;">
+            <div class="application-points-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 16px;">
+                <!-- 알뜰폰 신청 포인트 -->
+                <div style="padding: 16px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: #374151; cursor: pointer; margin-bottom: 12px;">
                         <input type="checkbox" name="mvno_application_enabled" value="1" <?= $mvnoApplicationEnabled ? 'checked' : '' ?> 
-                               style="width: 20px; height: 20px; cursor: pointer;">
-                        <span>알뜰폰 신청 시 자동으로 포인트 지급</span>
-                    </label>
-                </div>
-                <div style="margin-left: 32px;">
-                    <label for="mvno_application_point" style="display: block; font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 8px;">
-                        지급 포인트 (원)
+                               style="width: 18px; height: 18px; cursor: pointer; flex-shrink: 0;">
+                        <span style="font-size: 13px;">알뜰폰 신청</span>
                     </label>
                     <input 
                         type="number" 
@@ -283,23 +291,17 @@ require_once __DIR__ . '/../includes/admin-header.php';
                         min="0"
                         step="1"
                         required
-                        style="width: 200px; padding: 12px 16px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 15px;"
+                        placeholder="포인트"
+                        style="width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; box-sizing: border-box;"
                     >
                 </div>
-            </div>
-            
-            <!-- 통신사폰 신청 포인트 -->
-            <div style="margin-bottom: 32px; padding: 20px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
-                <div style="margin-bottom: 16px;">
-                    <label style="display: flex; align-items: center; gap: 12px; font-size: 16px; font-weight: 600; color: #374151; cursor: pointer;">
+                
+                <!-- 통신사폰 신청 포인트 -->
+                <div style="padding: 16px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: #374151; cursor: pointer; margin-bottom: 12px;">
                         <input type="checkbox" name="mno_application_enabled" value="1" <?= $mnoApplicationEnabled ? 'checked' : '' ?> 
-                               style="width: 20px; height: 20px; cursor: pointer;">
-                        <span>통신사폰 신청 시 자동으로 포인트 지급</span>
-                    </label>
-                </div>
-                <div style="margin-left: 32px;">
-                    <label for="mno_application_point" style="display: block; font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 8px;">
-                        지급 포인트 (원)
+                               style="width: 18px; height: 18px; cursor: pointer; flex-shrink: 0;">
+                        <span style="font-size: 13px;">통신사폰 신청</span>
                     </label>
                     <input 
                         type="number" 
@@ -309,23 +311,17 @@ require_once __DIR__ . '/../includes/admin-header.php';
                         min="0"
                         step="1"
                         required
-                        style="width: 200px; padding: 12px 16px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 15px;"
+                        placeholder="포인트"
+                        style="width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; box-sizing: border-box;"
                     >
                 </div>
-            </div>
-            
-            <!-- 통신사단독유심 신청 포인트 -->
-            <div style="margin-bottom: 32px; padding: 20px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
-                <div style="margin-bottom: 16px;">
-                    <label style="display: flex; align-items: center; gap: 12px; font-size: 16px; font-weight: 600; color: #374151; cursor: pointer;">
+                
+                <!-- 통신사단독유심 신청 포인트 -->
+                <div style="padding: 16px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: #374151; cursor: pointer; margin-bottom: 12px;">
                         <input type="checkbox" name="mno_sim_application_enabled" value="1" <?= $mnoSimApplicationEnabled ? 'checked' : '' ?> 
-                               style="width: 20px; height: 20px; cursor: pointer;">
-                        <span>통신사단독유심 신청 시 자동으로 포인트 지급</span>
-                    </label>
-                </div>
-                <div style="margin-left: 32px;">
-                    <label for="mno_sim_application_point" style="display: block; font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 8px;">
-                        지급 포인트 (원)
+                               style="width: 18px; height: 18px; cursor: pointer; flex-shrink: 0;">
+                        <span style="font-size: 13px;">통신사단독유심 신청</span>
                     </label>
                     <input 
                         type="number" 
@@ -335,23 +331,17 @@ require_once __DIR__ . '/../includes/admin-header.php';
                         min="0"
                         step="1"
                         required
-                        style="width: 200px; padding: 12px 16px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 15px;"
+                        placeholder="포인트"
+                        style="width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; box-sizing: border-box;"
                     >
                 </div>
-            </div>
-            
-            <!-- 인터넷 신청 포인트 -->
-            <div style="margin-bottom: 32px; padding: 20px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
-                <div style="margin-bottom: 16px;">
-                    <label style="display: flex; align-items: center; gap: 12px; font-size: 16px; font-weight: 600; color: #374151; cursor: pointer;">
+                
+                <!-- 인터넷 신청 포인트 -->
+                <div style="padding: 16px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: #374151; cursor: pointer; margin-bottom: 12px;">
                         <input type="checkbox" name="internet_application_enabled" value="1" <?= $internetApplicationEnabled ? 'checked' : '' ?> 
-                               style="width: 20px; height: 20px; cursor: pointer;">
-                        <span>인터넷 신청 시 자동으로 포인트 지급</span>
-                    </label>
-                </div>
-                <div style="margin-left: 32px;">
-                    <label for="internet_application_point" style="display: block; font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 8px;">
-                        지급 포인트 (원)
+                               style="width: 18px; height: 18px; cursor: pointer; flex-shrink: 0;">
+                        <span style="font-size: 13px;">인터넷 신청</span>
                     </label>
                     <input 
                         type="number" 
@@ -361,7 +351,8 @@ require_once __DIR__ . '/../includes/admin-header.php';
                         min="0"
                         step="1"
                         required
-                        style="width: 200px; padding: 12px 16px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 15px;"
+                        placeholder="포인트"
+                        style="width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; box-sizing: border-box;"
                     >
                 </div>
             </div>

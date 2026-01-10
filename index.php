@@ -44,6 +44,20 @@ function normalizeImagePathForDisplay($path) {
         return $imagePath;
     }
     
+    // DB에 저장된 경로에서 하드코딩된 /MVNO/ 제거 후 getAssetPath 사용
+    // 여러 번 반복해서 모든 /MVNO/ 제거
+    while (strpos($imagePath, '/MVNO/') !== false) {
+        $imagePath = str_replace('/MVNO/', '/', $imagePath);
+    }
+    // 경로 시작 부분의 /MVNO 제거
+    if (strpos($imagePath, '/MVNO') === 0) {
+        $imagePath = substr($imagePath, 5); // '/MVNO' 제거
+    }
+    // MVNO/로 시작하는 경우도 처리
+    if (strpos($imagePath, 'MVNO/') === 0) {
+        $imagePath = substr($imagePath, 5); // 'MVNO/' 제거
+    }
+    
     // 이미 /로 시작하는 절대 경로면 getAssetPath 사용
     if (strpos($imagePath, '/') === 0) {
         return getAssetPath($imagePath);
@@ -51,7 +65,7 @@ function normalizeImagePathForDisplay($path) {
     
     // 파일명만 있는 경우 (확장자가 있고 슬래시가 없음)
     if (strpos($imagePath, '/') === false && preg_match('/\.(webp|jpg|jpeg|png|gif)$/i', $imagePath)) {
-        return getAssetPath('/uploads/events/' . $imagePath);
+        return getAssetPath('/uploads/notices/' . $imagePath);
     }
     
     // 상대 경로인 경우
@@ -2368,15 +2382,20 @@ if (file_exists($footerPath)) {
 <?php
 // 메인페이지 공지사항 새창 표시
 $mainNotice = getMainPageNotice();
+// getMainPageNotice()에서 이미 경로 정규화가 완료되었으므로 추가 처리 불필요
 // 디버깅: 메인공지 정보 확인 (개발 환경에서만)
 if (isset($_GET['debug_notice']) && $_GET['debug_notice'] == '1') {
     echo "<!-- 메인공지 디버깅 정보:\n";
     echo "getMainPageNotice() 반환값: " . ($mainNotice ? "있음" : "없음") . "\n";
     if ($mainNotice) {
+        $originalImageUrl = getMainPageNotice(); // 원본 경로 확인
+        if ($originalImageUrl && !empty($originalImageUrl['image_url'])) {
+            echo "원본 image_url (DB): " . htmlspecialchars($originalImageUrl['image_url']) . "\n";
+        }
         echo "ID: " . htmlspecialchars($mainNotice['id'] ?? 'N/A') . "\n";
         echo "제목: " . htmlspecialchars($mainNotice['title'] ?? 'N/A') . "\n";
         echo "show_on_main: " . ($mainNotice['show_on_main'] ?? 'N/A') . "\n";
-        echo "image_url: " . htmlspecialchars($mainNotice['image_url'] ?? '없음') . "\n";
+        echo "정규화된 image_url: " . htmlspecialchars($mainNotice['image_url'] ?? '없음') . "\n";
         echo "start_at: " . htmlspecialchars($mainNotice['start_at'] ?? 'NULL') . "\n";
         echo "end_at: " . htmlspecialchars($mainNotice['end_at'] ?? 'NULL') . "\n";
         echo "쿠키 확인: " . (isset($_COOKIE['notice_viewed_' . $mainNotice['id']]) ? "설정됨" : "없음") . "\n";

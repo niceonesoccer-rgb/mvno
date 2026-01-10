@@ -1,10 +1,11 @@
 <?php
 /**
  * 이벤트 등록 페이지
- * 경로: /MVNO/admin/content/event-register.php
+ * 경로: /admin/content/event-register.php
  */
 
 require_once __DIR__ . '/../../includes/data/auth-functions.php';
+require_once __DIR__ . '/../../includes/data/path-config.php';
 require_once __DIR__ . '/../../includes/data/db-config.php';
 
 if (session_status() === PHP_SESSION_NONE) {
@@ -13,7 +14,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 $currentUser = getCurrentUser();
 if (!$currentUser || !isAdmin($currentUser['user_id'])) {
-    header('Location: ../login.php');
+    header('Location: ' . getAssetPath('/admin/login.php'));
     exit;
 }
 
@@ -504,7 +505,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             
             $pdo->commit();
             $success = '이벤트가 등록되었습니다.';
-            header('Location: event-manage.php?success=created');
+            header('Location: ' . getAssetPath('/admin/content/event-manage.php?success=created'));
             exit;
             
         } catch (Exception $e) {
@@ -734,7 +735,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             }
             
             $pdo->commit();
-            header('Location: event-manage.php?success=updated');
+            header('Location: ' . getAssetPath('/admin/content/event-manage.php?success=updated'));
             exit;
             
         } catch (Exception $e) {
@@ -1060,7 +1061,7 @@ include __DIR__ . '/../includes/admin-header.php';
 
 <div class="admin-page-header">
     <h1><?php echo $isEditMode ? '이벤트 수정' : '이벤트 등록'; ?></h1>
-    <a href="event-manage.php" class="btn-back">목록으로</a>
+    <a href="<?php echo getAssetPath('/admin/content/event-manage.php'); ?>" class="btn-back">목록으로</a>
 </div>
 
 <?php if ($error): ?>
@@ -1157,17 +1158,21 @@ include __DIR__ . '/../includes/admin-header.php';
                 
                 // 이미지 경로 정규화
                 if ($existingImage) {
-                    if (strpos($existingImage, '/MVNO/') === 0) {
-                        // 이미 정규화됨
-                    } elseif (preg_match('#^/uploads/events/#', $existingImage)) {
-                        $existingImage = '/MVNO' . $existingImage;
-                    } elseif (strpos($existingImage, '/uploads/') === 0 || strpos($existingImage, '/images/') === 0) {
-                        $existingImage = '/MVNO' . $existingImage;
-                    } elseif (strpos($existingImage, '/') === false && preg_match('/\.(webp|jpg|jpeg|png|gif)$/i', $existingImage)) {
-                        $existingImage = '/MVNO/uploads/events/' . $existingImage;
-                    } elseif (strpos($existingImage, '/') !== 0) {
-                        $existingImage = '/MVNO/' . $existingImage;
+                    // DB 경로에서 하드코딩된 /MVNO/ 제거 후 getAssetPath 사용
+                    $normalizedImage = $existingImage;
+                    while (strpos($normalizedImage, '/MVNO/') !== false) {
+                        $normalizedImage = str_replace('/MVNO/', '/', $normalizedImage);
                     }
+                    if (strpos($normalizedImage, '/MVNO') === 0) {
+                        $normalizedImage = substr($normalizedImage, 5);
+                    }
+                    if (strpos($normalizedImage, 'MVNO/') === 0) {
+                        $normalizedImage = substr($normalizedImage, 5);
+                    }
+                    if (strpos($normalizedImage, '/') !== 0) {
+                        $normalizedImage = '/' . $normalizedImage;
+                    }
+                    $existingImage = getAssetPath($normalizedImage);
                 }
                 ?>
                 <?php if ($existingImage): ?>
@@ -1214,18 +1219,21 @@ include __DIR__ . '/../includes/admin-header.php';
                         <?php foreach ($eventData['detail_images'] as $detailImg): ?>
                             <?php
                             $imgPath = $detailImg['image_path'];
-                            // 이미지 경로 정규화
-                            if (strpos($imgPath, '/MVNO/') === 0) {
-                                // 이미 정규화됨
-                            } elseif (preg_match('#^/uploads/events/#', $imgPath)) {
-                                $imgPath = '/MVNO' . $imgPath;
-                            } elseif (strpos($imgPath, '/uploads/') === 0 || strpos($imgPath, '/images/') === 0) {
-                                $imgPath = '/MVNO' . $imgPath;
-                            } elseif (strpos($imgPath, '/') === false && preg_match('/\.(webp|jpg|jpeg|png|gif)$/i', $imgPath)) {
-                                $imgPath = '/MVNO/uploads/events/' . $imgPath;
-                            } elseif (strpos($imgPath, '/') !== 0) {
-                                $imgPath = '/MVNO/' . $imgPath;
+                            // 이미지 경로 정규화: DB 경로에서 하드코딩된 /MVNO/ 제거 후 getAssetPath 사용
+                            $normalizedPath = $imgPath;
+                            while (strpos($normalizedPath, '/MVNO/') !== false) {
+                                $normalizedPath = str_replace('/MVNO/', '/', $normalizedPath);
                             }
+                            if (strpos($normalizedPath, '/MVNO') === 0) {
+                                $normalizedPath = substr($normalizedPath, 5);
+                            }
+                            if (strpos($normalizedPath, 'MVNO/') === 0) {
+                                $normalizedPath = substr($normalizedPath, 5);
+                            }
+                            if (strpos($normalizedPath, '/') !== 0) {
+                                $normalizedPath = '/' . $normalizedPath;
+                            }
+                            $imgPath = getAssetPath($normalizedPath);
                             ?>
                             <div style="position: relative; display: inline-block;">
                                 <img src="<?php echo htmlspecialchars($imgPath); ?>" 
@@ -1339,7 +1347,7 @@ include __DIR__ . '/../includes/admin-header.php';
     
     <div class="form-actions">
         <button type="submit" class="btn btn-primary"><?php echo $isEditMode ? '이벤트 수정' : '이벤트 등록'; ?></button>
-        <a href="event-manage.php" class="btn btn-secondary">취소</a>
+        <a href="<?php echo getAssetPath('/admin/content/event-manage.php'); ?>" class="btn btn-secondary">취소</a>
     </div>
 </form>
 
@@ -2942,7 +2950,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const manufacturerSelect = document.getElementById('filter_manufacturer_mno');
         if (!manufacturerSelect) return;
         
-        fetch('/MVNO/api/get-manufacturers.php')
+        fetch('<?php echo getApiPath('/api/get-manufacturers.php'); ?>')
             .then(response => response.json())
             .then(data => {
                 if (data.success && data.manufacturers) {
@@ -2984,7 +2992,7 @@ document.addEventListener('DOMContentLoaded', function() {
         deviceSelect.innerHTML = '<option value="">로딩 중...</option>';
         deviceSelect.disabled = true;
         
-        fetch(`/MVNO/api/get-devices-by-manufacturer.php?manufacturer_id=${manufacturerId}`)
+        fetch(`<?php echo getApiPath('/api/get-devices-by-manufacturer.php'); ?>?manufacturer_id=${manufacturerId}`)
             .then(response => response.json())
             .then(data => {
                 if (data.success && data.grouped) {

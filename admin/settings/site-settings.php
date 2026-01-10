@@ -1,10 +1,10 @@
 <?php
 /**
  * 사이트 설정 관리자 페이지
- * 경로: /MVNO/admin/settings/site-settings.php
  */
 
 require_once __DIR__ . '/../../includes/data/auth-functions.php';
+require_once __DIR__ . '/../../includes/data/path-config.php';
 require_once __DIR__ . '/../../includes/data/site-settings.php';
 require_once __DIR__ . '/../../includes/data/db-config.php';
 require_once __DIR__ . '/../../includes/data/terms-functions.php';
@@ -52,7 +52,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_code' && isset($_GET['id'
 }
 
 if (!isAdmin()) {
-    header('Location: /MVNO/admin/');
+    header('Location: ' . getAssetPath('/admin/login.php'));
     exit;
 }
 
@@ -194,7 +194,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['privacy_version_actio
                                 $privacyVersionError = '버전 추가에 실패했습니다. 다시 시도해주세요. (테이블이 생성되지 않았을 수 있습니다. database/create_terms_versions_table_now.php를 실행하세요)';
                             }
                         } catch (PDOException $e) {
-                            $privacyVersionError = '버전 추가에 실패했습니다. terms_versions 테이블이 없습니다. <a href="/MVNO/database/create_terms_versions_table_now.php" target="_blank">테이블 생성 스크립트 실행</a>';
+                            $privacyVersionError = '버전 추가에 실패했습니다. terms_versions 테이블이 없습니다. <a href="' . getAssetPath('/database/create_terms_versions_table_now.php') . '" target="_blank">테이블 생성 스크립트 실행</a>';
                         }
                     } else {
                         $privacyVersionError = '버전 추가에 실패했습니다. 데이터베이스 연결 오류가 발생했습니다.';
@@ -263,7 +263,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['terms_version_action'
                                 $termsVersionError = '버전 추가에 실패했습니다. 다시 시도해주세요. (테이블이 생성되지 않았을 수 있습니다. database/create_terms_versions_table_now.php를 실행하세요)';
                             }
                         } catch (PDOException $e) {
-                            $termsVersionError = '버전 추가에 실패했습니다. terms_versions 테이블이 없습니다. <a href="/MVNO/database/create_terms_versions_table_now.php" target="_blank">테이블 생성 스크립트 실행</a>';
+                            $termsVersionError = '버전 추가에 실패했습니다. terms_versions 테이블이 없습니다. <a href="' . getAssetPath('/database/create_terms_versions_table_now.php') . '" target="_blank">테이블 생성 스크립트 실행</a>';
                         }
                     } else {
                         $termsVersionError = '버전 추가에 실패했습니다. 데이터베이스 연결 오류가 발생했습니다.';
@@ -291,22 +291,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['terms_version_action'
 
 /**
  * 사이트 로고/파비콘 업로드 함수
+ * @param array $file $_FILES 배열 요소
+ * @param string $type 'logo' 또는 'favicon'
+ * @return array|false 성공 시 ['path' => 경로, 'error' => null], 실패 시 ['path' => null, 'error' => 에러메시지]
  */
 function uploadSiteFile($file, $type = 'logo') {
+    // 파일 업로드 에러 체크
+    if (!isset($file['error']) || $file['error'] !== UPLOAD_ERR_OK) {
+        $errorMessages = [
+            UPLOAD_ERR_INI_SIZE => '파일 크기가 서버 최대 크기를 초과했습니다.',
+            UPLOAD_ERR_FORM_SIZE => '파일 크기가 폼 최대 크기를 초과했습니다.',
+            UPLOAD_ERR_PARTIAL => '파일이 일부만 업로드되었습니다.',
+            UPLOAD_ERR_NO_FILE => '파일이 선택되지 않았습니다.',
+            UPLOAD_ERR_NO_TMP_DIR => '임시 폴더가 없습니다.',
+            UPLOAD_ERR_CANT_WRITE => '파일 쓰기에 실패했습니다.',
+            UPLOAD_ERR_EXTENSION => '파일 업로드가 확장에 의해 중지되었습니다.'
+        ];
+        $errorCode = $file['error'] ?? UPLOAD_ERR_NO_FILE;
+        return ['path' => null, 'error' => $errorMessages[$errorCode] ?? "알 수 없는 오류 (코드: $errorCode)"];
+    }
+    
     $allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/x-icon', 'image/vnd.microsoft.icon'];
     $maxSize = 5 * 1024 * 1024; // 5MB
     
-    if (!in_array($file['type'], $allowedTypes)) {
-        return false;
+    if (!isset($file['type']) || !in_array($file['type'], $allowedTypes)) {
+        return ['path' => null, 'error' => '지원하지 않는 파일 형식입니다. JPG, PNG, GIF, WEBP, ICO 파일만 업로드 가능합니다.'];
     }
     
-    if ($file['size'] > $maxSize) {
-        return false;
+    if (!isset($file['size']) || $file['size'] > $maxSize) {
+        $fileSizeMB = isset($file['size']) ? round($file['size'] / 1024 / 1024, 2) : 0;
+        return ['path' => null, 'error' => "파일 크기가 5MB를 초과합니다. (현재: {$fileSizeMB}MB)"];
     }
     
     $uploadDir = __DIR__ . '/../../images/site/';
     if (!is_dir($uploadDir)) {
-        mkdir($uploadDir, 0755, true);
+        if (!mkdir($uploadDir, 0755, true)) {
+            return ['path' => null, 'error' => '업로드 디렉토리를 생성할 수 없습니다.'];
+        }
+    }
+    
+    // 디렉토리 쓰기 권한 확인
+    if (!is_writable($uploadDir)) {
+        return ['path' => null, 'error' => '업로드 디렉토리에 쓰기 권한이 없습니다.'];
     }
     
     $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
@@ -322,11 +348,13 @@ function uploadSiteFile($file, $type = 'logo') {
     
     $filepath = $uploadDir . $filename;
     
-    if (move_uploaded_file($file['tmp_name'], $filepath)) {
-        return '/MVNO/images/site/' . $filename;
+    if (!move_uploaded_file($file['tmp_name'], $filepath)) {
+        return ['path' => null, 'error' => '파일 업로드에 실패했습니다. 서버 설정을 확인해주세요.'];
     }
     
-    return false;
+    // DB에는 항상 상대 경로만 저장 (환경별 경로는 표시할 때 getAssetPath()로 변환)
+    // 로컬/프로덕션 호환성을 위해 /MVNO/ 없이 순수 경로만 저장
+    return ['path' => '/images/site/' . $filename, 'error' => null];
 }
 
 // 저장
@@ -336,19 +364,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_settings'])) {
     // tagline 필드 제거됨 (카테고리별 태그라인으로 이동)
     
     // 로고 업로드 처리 (파일이 선택된 경우에만)
-    if (isset($_FILES['site_logo']) && $_FILES['site_logo']['error'] === UPLOAD_ERR_OK) {
-        // 기존 로고 파일 삭제
-        if (!empty($settings['site']['logo'])) {
-            $oldLogoPath = $settings['site']['logo'];
-            $oldLogoFile = __DIR__ . '/../../' . ltrim(str_replace('/MVNO/', '', $oldLogoPath), '/');
-            if (file_exists($oldLogoFile) && strpos(realpath($oldLogoFile), realpath(__DIR__ . '/../../images/site/')) === 0) {
-                @unlink($oldLogoFile);
+    if (isset($_FILES['site_logo']) && $_FILES['site_logo']['error'] !== UPLOAD_ERR_NO_FILE) {
+        if ($_FILES['site_logo']['error'] === UPLOAD_ERR_OK) {
+            // 기존 로고 파일 삭제
+            if (!empty($settings['site']['logo'])) {
+                $oldLogoPath = $settings['site']['logo'];
+                // DB에 저장된 경로에서 하드코딩된 /MVNO/ 제거
+                while (strpos($oldLogoPath, '/MVNO/') !== false) {
+                    $oldLogoPath = str_replace('/MVNO/', '/', $oldLogoPath);
+                }
+                // 상대 경로로 정규화 (예: /images/site/logo.png)
+                if (strpos($oldLogoPath, '/images/site/') === 0) {
+                    $oldLogoFile = __DIR__ . '/../../' . ltrim($oldLogoPath, '/');
+                    // 안전성 체크: images/site 디렉토리 내 파일만 삭제
+                    $realOldFile = realpath($oldLogoFile);
+                    $realSiteDir = realpath(__DIR__ . '/../../images/site/');
+                    if ($realOldFile && $realSiteDir && strpos($realOldFile, $realSiteDir) === 0 && file_exists($realOldFile)) {
+                        @unlink($realOldFile);
+                    }
+                }
             }
-        }
-        
-        $logoPath = uploadSiteFile($_FILES['site_logo'], 'logo');
-        if ($logoPath) {
-            $settings['site']['logo'] = $logoPath;
+            
+            $logoResult = uploadSiteFile($_FILES['site_logo'], 'logo');
+            if ($logoResult && isset($logoResult['path']) && $logoResult['path']) {
+                $settings['site']['logo'] = $logoResult['path'];
+            } elseif ($logoResult && isset($logoResult['error'])) {
+                $error = '로고 업로드 실패: ' . $logoResult['error'];
+            } else {
+                $error = '로고 업로드에 실패했습니다.';
+            }
+        } else {
+            // 파일 업로드 에러
+            $errorMessages = [
+                UPLOAD_ERR_INI_SIZE => '로고 파일 크기가 서버 최대 크기를 초과했습니다.',
+                UPLOAD_ERR_FORM_SIZE => '로고 파일 크기가 폼 최대 크기를 초과했습니다.',
+                UPLOAD_ERR_PARTIAL => '로고 파일이 일부만 업로드되었습니다.',
+                UPLOAD_ERR_NO_TMP_DIR => '임시 폴더가 없습니다.',
+                UPLOAD_ERR_CANT_WRITE => '로고 파일 쓰기에 실패했습니다.',
+                UPLOAD_ERR_EXTENSION => '로고 파일 업로드가 확장에 의해 중지되었습니다.'
+            ];
+            $errorCode = $_FILES['site_logo']['error'];
+            $error = $errorMessages[$errorCode] ?? "로고 업로드 오류 (코드: $errorCode)";
         }
     } elseif (isset($settings['site']['logo'])) {
         // 파일이 선택되지 않았으면 기존 값 유지
@@ -358,19 +414,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_settings'])) {
     }
     
     // 파비콘 업로드 처리 (파일이 선택된 경우에만)
-    if (isset($_FILES['site_favicon']) && $_FILES['site_favicon']['error'] === UPLOAD_ERR_OK) {
-        // 기존 파비콘 파일 삭제
-        if (!empty($settings['site']['favicon'])) {
-            $oldFaviconPath = $settings['site']['favicon'];
-            $oldFaviconFile = __DIR__ . '/../../' . ltrim(str_replace('/MVNO/', '', $oldFaviconPath), '/');
-            if (file_exists($oldFaviconFile) && strpos(realpath($oldFaviconFile), realpath(__DIR__ . '/../../images/site/')) === 0) {
-                @unlink($oldFaviconFile);
+    if (isset($_FILES['site_favicon']) && $_FILES['site_favicon']['error'] !== UPLOAD_ERR_NO_FILE) {
+        if ($_FILES['site_favicon']['error'] === UPLOAD_ERR_OK) {
+            // 기존 파비콘 파일 삭제
+            if (!empty($settings['site']['favicon'])) {
+                $oldFaviconPath = $settings['site']['favicon'];
+                // DB에 저장된 경로에서 하드코딩된 /MVNO/ 제거
+                while (strpos($oldFaviconPath, '/MVNO/') !== false) {
+                    $oldFaviconPath = str_replace('/MVNO/', '/', $oldFaviconPath);
+                }
+                // 상대 경로로 정규화 (예: /images/site/favicon.ico)
+                if (strpos($oldFaviconPath, '/images/site/') === 0) {
+                    $oldFaviconFile = __DIR__ . '/../../' . ltrim($oldFaviconPath, '/');
+                    // 안전성 체크: images/site 디렉토리 내 파일만 삭제
+                    $realOldFile = realpath($oldFaviconFile);
+                    $realSiteDir = realpath(__DIR__ . '/../../images/site/');
+                    if ($realOldFile && $realSiteDir && strpos($realOldFile, $realSiteDir) === 0 && file_exists($realOldFile)) {
+                        @unlink($realOldFile);
+                    }
+                }
             }
-        }
-        
-        $faviconPath = uploadSiteFile($_FILES['site_favicon'], 'favicon');
-        if ($faviconPath) {
-            $settings['site']['favicon'] = $faviconPath;
+            
+            $faviconResult = uploadSiteFile($_FILES['site_favicon'], 'favicon');
+            if ($faviconResult && isset($faviconResult['path']) && $faviconResult['path']) {
+                $settings['site']['favicon'] = $faviconResult['path'];
+            } elseif ($faviconResult && isset($faviconResult['error'])) {
+                $error = (empty($error) ? '' : $error . ' ') . '파비콘 업로드 실패: ' . $faviconResult['error'];
+            } else {
+                $error = (empty($error) ? '' : $error . ' ') . '파비콘 업로드에 실패했습니다.';
+            }
+        } else {
+            // 파일 업로드 에러
+            $errorMessages = [
+                UPLOAD_ERR_INI_SIZE => '파비콘 파일 크기가 서버 최대 크기를 초과했습니다.',
+                UPLOAD_ERR_FORM_SIZE => '파비콘 파일 크기가 폼 최대 크기를 초과했습니다.',
+                UPLOAD_ERR_PARTIAL => '파비콘 파일이 일부만 업로드되었습니다.',
+                UPLOAD_ERR_NO_TMP_DIR => '임시 폴더가 없습니다.',
+                UPLOAD_ERR_CANT_WRITE => '파비콘 파일 쓰기에 실패했습니다.',
+                UPLOAD_ERR_EXTENSION => '파비콘 파일 업로드가 확장에 의해 중지되었습니다.'
+            ];
+            $errorCode = $_FILES['site_favicon']['error'];
+            $error = (empty($error) ? '' : $error . ' ') . ($errorMessages[$errorCode] ?? "파비콘 업로드 오류 (코드: $errorCode)");
         }
     } elseif (isset($settings['site']['favicon'])) {
         // 파일이 선택되지 않았으면 기존 값 유지
@@ -394,12 +478,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_settings'])) {
     
     // 약관 링크 설정
     $settings['footer']['terms']['terms_of_service']['text'] = trim($_POST['footer_terms_of_service_text'] ?? '') ?: '이용약관';
-    $settings['footer']['terms']['terms_of_service']['url'] = trim($_POST['footer_terms_of_service_url'] ?? '') ?: '/MVNO/terms/view.php?type=terms_of_service';
+    $settings['footer']['terms']['terms_of_service']['url'] = trim($_POST['footer_terms_of_service_url'] ?? '') ?: getAssetPath('/terms/view.php?type=terms_of_service');
     // content는 버전 관리 시스템으로 관리되므로 저장하지 않음
     // $settings['footer']['terms']['terms_of_service']['content'] = trim($_POST['footer_terms_of_service_content'] ?? '');
     
     $settings['footer']['terms']['privacy_policy']['text'] = trim($_POST['footer_privacy_policy_text'] ?? '') ?: '개인정보처리방침';
-    $settings['footer']['terms']['privacy_policy']['url'] = trim($_POST['footer_privacy_policy_url'] ?? '') ?: '/MVNO/terms/view.php?type=privacy_policy';
+    $settings['footer']['terms']['privacy_policy']['url'] = trim($_POST['footer_privacy_policy_url'] ?? '') ?: getAssetPath('/terms/view.php?type=privacy_policy');
     // content는 버전 관리 시스템으로 관리되므로 저장하지 않음
     // $settings['footer']['terms']['privacy_policy']['content'] = trim($_POST['footer_privacy_policy_content'] ?? '');
 
@@ -621,10 +705,22 @@ include '../includes/admin-header.php';
                 </div>
                 <div class="form-group">
                     <label for="site_logo">사이트 로고</label>
-                    <?php if (!empty($settings['site']['logo'])): ?>
+                    <?php if (!empty($settings['site']['logo'])): 
+                        // 관리자 페이지에서 이미지 표시 시 경로 정규화
+                        $logoDisplayPath = $settings['site']['logo'];
+                        // DB에 저장된 경로에서 하드코딩된 /MVNO/ 제거
+                        while (strpos($logoDisplayPath, '/MVNO/') !== false) {
+                            $logoDisplayPath = str_replace('/MVNO/', '/', $logoDisplayPath);
+                        }
+                        // 상대 경로인 경우 getAssetPath로 변환
+                        if (strpos($logoDisplayPath, '/') === 0 && !preg_match('/^https?:\/\//', $logoDisplayPath)) {
+                            $logoDisplayPath = getAssetPath($logoDisplayPath);
+                        }
+                    ?>
                         <div style="margin-bottom: 12px;">
                             <p style="margin-bottom: 8px; color: #6b7280; font-size: 14px;">현재 로고:</p>
-                            <img src="<?php echo htmlspecialchars($settings['site']['logo']); ?>" alt="현재 로고" style="max-width: 200px; max-height: 80px; border-radius: 8px; border: 1px solid #e5e7eb; background: #f9fafb; padding: 8px;">
+                            <img src="<?php echo htmlspecialchars($logoDisplayPath); ?>" alt="현재 로고" style="max-width: 200px; max-height: 80px; border-radius: 8px; border: 1px solid #e5e7eb; background: #f9fafb; padding: 8px;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                            <p style="display:none; color: #ef4444; font-size: 13px;">이미지를 불러올 수 없습니다. 새 파일을 업로드하세요.</p>
                         </div>
                     <?php endif; ?>
                     <input type="file" id="site_logo" name="site_logo" accept="image/*">
@@ -635,10 +731,22 @@ include '../includes/admin-header.php';
                 </div>
                 <div class="form-group">
                     <label for="site_favicon">사이트 파비콘</label>
-                    <?php if (!empty($settings['site']['favicon'])): ?>
+                    <?php if (!empty($settings['site']['favicon'])): 
+                        // 관리자 페이지에서 이미지 표시 시 경로 정규화
+                        $faviconDisplayPath = $settings['site']['favicon'];
+                        // DB에 저장된 경로에서 하드코딩된 /MVNO/ 제거
+                        while (strpos($faviconDisplayPath, '/MVNO/') !== false) {
+                            $faviconDisplayPath = str_replace('/MVNO/', '/', $faviconDisplayPath);
+                        }
+                        // 상대 경로인 경우 getAssetPath로 변환
+                        if (strpos($faviconDisplayPath, '/') === 0 && !preg_match('/^https?:\/\//', $faviconDisplayPath)) {
+                            $faviconDisplayPath = getAssetPath($faviconDisplayPath);
+                        }
+                    ?>
                         <div style="margin-bottom: 12px;">
                             <p style="margin-bottom: 8px; color: #6b7280; font-size: 14px;">현재 파비콘:</p>
-                            <img src="<?php echo htmlspecialchars($settings['site']['favicon']); ?>" alt="현재 파비콘" style="width: 32px; height: 32px; border-radius: 4px; border: 1px solid #e5e7eb; background: #f9fafb; padding: 4px;">
+                            <img src="<?php echo htmlspecialchars($faviconDisplayPath); ?>" alt="현재 파비콘" style="width: 32px; height: 32px; border-radius: 4px; border: 1px solid #e5e7eb; background: #f9fafb; padding: 4px;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                            <p style="display:none; color: #ef4444; font-size: 13px;">이미지를 불러올 수 없습니다. 새 파일을 업로드하세요.</p>
                         </div>
                     <?php endif; ?>
                     <input type="file" id="site_favicon" name="site_favicon" accept="image/x-icon,image/vnd.microsoft.icon,image/png,image/jpeg">
@@ -646,7 +754,7 @@ include '../includes/admin-header.php';
                 </div>
                 <div class="form-group">
                     <div class="help" style="padding: 12px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; color: #1e40af;">
-                        <strong>태그라인 관리:</strong> 카테고리별 태그라인은 <a href="/MVNO/admin/advertisement/tagline.php" style="color: #2563eb; text-decoration: underline;">광고 관리 > 태그라인</a>에서 설정할 수 있습니다.
+                        <strong>태그라인 관리:</strong> 카테고리별 태그라인은 <a href="<?php echo getAssetPath('/admin/advertisement/tagline.php'); ?>" style="color: #2563eb; text-decoration: underline;">광고 관리 > 태그라인</a>에서 설정할 수 있습니다.
                     </div>
                 </div>
                 <div style="margin-top: 24px;">
@@ -741,7 +849,7 @@ include '../includes/admin-header.php';
                 <div class="alert alert-error">
                     <strong>⚠️ 테이블이 생성되지 않았습니다.</strong><br>
                     버전 관리 기능을 사용하려면 먼저 <code>terms_versions</code> 테이블을 생성해야 합니다.<br>
-                    <a href="/MVNO/database/create_terms_versions_table_now.php" target="_blank" style="color: #3b82f6; text-decoration: underline;">테이블 생성 스크립트 실행</a>
+                    <a href="<?php echo getAssetPath('/database/create_terms_versions_table_now.php'); ?>" target="_blank" style="color: #3b82f6; text-decoration: underline;">테이블 생성 스크립트 실행</a>
                 </div>
             <?php endif; ?>
             
@@ -912,7 +1020,7 @@ include '../includes/admin-header.php';
                 <div class="alert alert-error">
                     <strong>⚠️ 테이블이 생성되지 않았습니다.</strong><br>
                     버전 관리 기능을 사용하려면 먼저 <code>terms_versions</code> 테이블을 생성해야 합니다.<br>
-                    <a href="/MVNO/database/create_terms_versions_table_now.php" target="_blank" style="color: #3b82f6; text-decoration: underline;">테이블 생성 스크립트 실행</a>
+                    <a href="<?php echo getAssetPath('/database/create_terms_versions_table_now.php'); ?>" target="_blank" style="color: #3b82f6; text-decoration: underline;">테이블 생성 스크립트 실행</a>
                 </div>
             <?php endif; ?>
             

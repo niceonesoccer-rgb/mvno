@@ -80,6 +80,8 @@ $currentPage = basename($_SERVER['PHP_SELF']);
     <meta name="viewport" id="viewportMeta" content="width=1400, initial-scale=0.5, minimum-scale=0.1, maximum-scale=5.0, user-scalable=yes">
     <title>판매자 센터 - 유심킹</title>
     <link rel="icon" type="image/png" href="<?php echo getAssetPath('/images/site/favicon.png'); ?>">
+    <!-- 나눔스퀘어어라운드 웹폰트 (Regular & Bold) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/moonspam/NanumSquareRound@latest/nanumsquareround.min.css">
     <script>
     // 모바일에서 viewport 동적 조정
     (function() {
@@ -125,7 +127,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         }
         
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: 'NanumSquareRound', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%);
             margin: 0;
             padding: 0;

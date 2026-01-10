@@ -1,7 +1,6 @@
 <?php
 /**
  * 판매자 전용 공지사항 API
- * 경로: /MVNO/admin/api/seller-notice-api.php
  */
 
 header('Content-Type: application/json; charset=utf-8');
@@ -9,6 +8,7 @@ header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../../includes/data/auth-functions.php';
 require_once __DIR__ . '/../../includes/data/notice-functions.php';
 require_once __DIR__ . '/../../includes/data/db-config.php';
+require_once __DIR__ . '/../../includes/data/path-config.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();

@@ -1,7 +1,7 @@
 <?php
 /**
  * 배너 관리 페이지
- * 경로: /MVNO/admin/content/banner-manage.php
+ * 경로: /admin/content/banner-manage.php
  */
 
 require_once __DIR__ . '/../../includes/data/path-config.php';
@@ -15,7 +15,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 $currentUser = getCurrentUser();
 if (!$currentUser || !isAdmin($currentUser['user_id'])) {
-    header('Location: ../login.php');
+    header('Location: ' . getAssetPath('/admin/login.php'));
     exit;
 }
 
@@ -49,7 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $saveResult = saveHomeSettings($home_settings);
         
         if ($saveResult) {
-            header('Location: banner-manage.php?success=banner_saved');
+            header('Location: ' . getAssetPath('/admin/content/banner-manage.php?success=banner_saved'));
             exit;
         } else {
             $error = '배너 설정 저장에 실패했습니다.';

@@ -120,6 +120,19 @@ include '../includes/header.php';
         </div>
 
         <!-- 하단 메뉴 리스트 -->
+        <style>
+            .mypage-container a:focus,
+            .mypage-container a:focus-visible {
+                outline: none !important;
+                border: none !important;
+                box-shadow: none !important;
+            }
+            .mypage-container a:active {
+                outline: none !important;
+                border: none !important;
+                box-shadow: none !important;
+            }
+        </style>
         <div style="margin-bottom: 32px;">
             <ul style="list-style: none; padding: 0; margin: 0;">
                 <!-- 찜한 통신사단독유심 내역 -->

@@ -1,10 +1,11 @@
 <?php
 /**
  * 이벤트 관리 페이지
- * 경로: /MVNO/admin/content/event-manage.php
+ * 경로: /admin/content/event-manage.php
  */
 
 require_once __DIR__ . '/../../includes/data/auth-functions.php';
+require_once __DIR__ . '/../../includes/data/path-config.php';
 require_once __DIR__ . '/../../includes/data/db-config.php';
 require_once __DIR__ . '/../../includes/data/plan-data.php';
 
@@ -14,7 +15,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 $currentUser = getCurrentUser();
 if (!$currentUser || !isAdmin($currentUser['user_id'])) {
-    header('Location: ../login.php');
+    header('Location: ' . getAssetPath('/admin/login.php'));
     exit;
 }
 
@@ -176,16 +177,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             if ($event) {
                 // 메인 이미지 삭제
                 if (!empty($event['main_image'])) {
-                    $imagePath = __DIR__ . '/../..' . $event['main_image'];
-                    if (file_exists($imagePath)) {
-                        @unlink($imagePath);
+                    // DB 경로에서 하드코딩된 /MVNO/ 제거
+                    $imagePath = $event['main_image'];
+                    while (strpos($imagePath, '/MVNO/') !== false) {
+                        $imagePath = str_replace('/MVNO/', '/', $imagePath);
+                    }
+                    if (strpos($imagePath, '/MVNO') === 0) {
+                        $imagePath = substr($imagePath, 5);
+                    }
+                    if (strpos($imagePath, 'MVNO/') === 0) {
+                        $imagePath = substr($imagePath, 5);
+                    }
+                    // /로 시작하지 않으면 추가
+                    if (strpos($imagePath, '/') !== 0) {
+                        $imagePath = '/' . $imagePath;
+                    }
+                    $fullPath = __DIR__ . '/../..' . $imagePath;
+                    if (file_exists($fullPath)) {
+                        @unlink($fullPath);
                     }
                 }
                 // image_url 삭제
                 if (!empty($event['image_url'])) {
-                    $imagePath = __DIR__ . '/../..' . $event['image_url'];
-                    if (file_exists($imagePath)) {
-                        @unlink($imagePath);
+                    // DB 경로에서 하드코딩된 /MVNO/ 제거
+                    $imagePath = $event['image_url'];
+                    while (strpos($imagePath, '/MVNO/') !== false) {
+                        $imagePath = str_replace('/MVNO/', '/', $imagePath);
+                    }
+                    if (strpos($imagePath, '/MVNO') === 0) {
+                        $imagePath = substr($imagePath, 5);
+                    }
+                    if (strpos($imagePath, 'MVNO/') === 0) {
+                        $imagePath = substr($imagePath, 5);
+                    }
+                    // /로 시작하지 않으면 추가
+                    if (strpos($imagePath, '/') !== 0) {
+                        $imagePath = '/' . $imagePath;
+                    }
+                    $fullPath = __DIR__ . '/../..' . $imagePath;
+                    if (file_exists($fullPath)) {
+                        @unlink($fullPath);
                     }
                 }
             }
@@ -193,7 +224,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             // 상세 이미지 삭제
             foreach ($detailImages as $imagePath) {
                 if (!empty($imagePath)) {
-                    $fullPath = __DIR__ . '/../..' . $imagePath;
+                    // DB 경로에서 하드코딩된 /MVNO/ 제거
+                    $normalizedPath = $imagePath;
+                    while (strpos($normalizedPath, '/MVNO/') !== false) {
+                        $normalizedPath = str_replace('/MVNO/', '/', $normalizedPath);
+                    }
+                    if (strpos($normalizedPath, '/MVNO') === 0) {
+                        $normalizedPath = substr($normalizedPath, 5);
+                    }
+                    if (strpos($normalizedPath, 'MVNO/') === 0) {
+                        $normalizedPath = substr($normalizedPath, 5);
+                    }
+                    // /로 시작하지 않으면 추가
+                    if (strpos($normalizedPath, '/') !== 0) {
+                        $normalizedPath = '/' . $normalizedPath;
+                    }
+                    $fullPath = __DIR__ . '/../..' . $normalizedPath;
                     if (file_exists($fullPath)) {
                         @unlink($fullPath);
                     }
@@ -451,26 +497,27 @@ include __DIR__ . '/../includes/admin-header.php';
                                     if ($rawImagePath) {
                                         $imagePath = trim($rawImagePath);
                                         
-                                        // 이미 /MVNO/로 시작하면 그대로 사용
-                                        if (strpos($imagePath, '/MVNO/') === 0) {
-                                            // 그대로 사용
+                                        // 경로 정규화: DB에 저장된 경로에서 하드코딩된 /MVNO/ 제거 후 getAssetPath 사용
+                                        // 여러 번 반복해서 모든 /MVNO/ 제거
+                                        while (strpos($imagePath, '/MVNO/') !== false) {
+                                            $imagePath = str_replace('/MVNO/', '/', $imagePath);
                                         }
-                                        // /uploads/events/ 또는 /uploads/events로 시작하는 경우
-                                        elseif (preg_match('#^/uploads/events/#', $imagePath)) {
-                                            $imagePath = '/MVNO' . $imagePath;
+                                        // 경로 시작 부분의 /MVNO 제거
+                                        if (strpos($imagePath, '/MVNO') === 0) {
+                                            $imagePath = substr($imagePath, 5); // '/MVNO' 제거
                                         }
-                                        // /uploads/ 또는 /images/로 시작하면 /MVNO/ 추가
-                                        elseif (strpos($imagePath, '/uploads/') === 0 || strpos($imagePath, '/images/') === 0) {
-                                            $imagePath = '/MVNO' . $imagePath;
+                                        // MVNO/로 시작하는 경우도 처리
+                                        if (strpos($imagePath, 'MVNO/') === 0) {
+                                            $imagePath = substr($imagePath, 5); // 'MVNO/' 제거
                                         }
-                                        // 파일명만 있는 경우 (확장자가 있고 슬래시가 없음)
-                                        elseif (strpos($imagePath, '/') === false && preg_match('/\.(webp|jpg|jpeg|png|gif)$/i', $imagePath)) {
-                                            $imagePath = '/MVNO/uploads/events/' . $imagePath;
+                                        
+                                        // 경로가 /로 시작하지 않으면 / 추가
+                                        if (strpos($imagePath, '/') !== 0) {
+                                            $imagePath = '/' . $imagePath;
                                         }
-                                        // 상대 경로인데 파일명이 아닌 경우
-                                        elseif (strpos($imagePath, '/') !== 0) {
-                                            $imagePath = '/MVNO/' . $imagePath;
-                                        }
+                                        
+                                        // getAssetPath로 변환
+                                        $imagePath = getAssetPath($imagePath);
                                     }
                                     ?>
                                     <?php if ($imagePath): ?>
@@ -484,7 +531,7 @@ include __DIR__ . '/../includes/admin-header.php';
                                     <?php else: ?>
                                         <span class="no-image">이미지 없음</span>
                                     <?php endif; ?>
-                                    <a href="/MVNO/event/event-detail.php?id=<?php echo htmlspecialchars($event['id']); ?>" 
+                                    <a href="<?php echo getAssetPath('/event/event-detail.php?id=' . htmlspecialchars($event['id'])); ?>" 
                                        target="_blank" class="event-title-link">
                                         <?php echo htmlspecialchars($event['title']); ?>
                                     </a>

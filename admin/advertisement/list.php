@@ -5,6 +5,7 @@
  */
 
 require_once __DIR__ . '/../includes/admin-header.php';
+require_once __DIR__ . '/../../includes/data/path-config.php';
 require_once __DIR__ . '/../../includes/data/db-config.php';
 require_once __DIR__ . '/../../includes/data/auth-functions.php';
 
@@ -419,7 +420,7 @@ async function cancelAdvertisement() {
         const formData = new FormData();
         formData.append('advertisement_id', currentAdvertisementId);
         
-        const response = await fetch('/MVNO/api/cancel-advertisement.php', {
+        const response = await fetch('<?php echo getApiPath('/api/cancel-advertisement.php'); ?>', {
             method: 'POST',
             headers: {
                 'X-Requested-With': 'XMLHttpRequest'

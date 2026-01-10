@@ -119,16 +119,28 @@ else if (!isset($is_main_page)) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo htmlspecialchars(($site['name_ko'] ?? '유심킹') . ' - 알뜰폰 요금제'); ?></title>
+    <!-- 나눔스퀘어어라운드 웹폰트 (Regular & Bold) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/moonspam/NanumSquareRound@latest/nanumsquareround.min.css">
     <?php if (!empty($site['favicon'])): 
         $faviconPath = $site['favicon'];
         // 경로 정규화 (getAssetPath 사용)
         // HTTP로 시작하는 경우 HTTPS로 변환 (Mixed Content 방지)
-        if (preg_match('/^http:\/\//', $faviconPath)) {
-            $faviconPath = str_replace('http://', 'https://', $faviconPath);
-        } elseif (strpos($faviconPath, '/') === 0 && !preg_match('/^https?:\/\//', $faviconPath)) {
-            $faviconPath = getAssetPath($faviconPath);
-        } elseif (!preg_match('/^https?:\/\//', $faviconPath)) {
-            $faviconPath = getAssetPath('/' . $faviconPath);
+        if (preg_match('/^https?:\/\//', $faviconPath)) {
+            // 전체 URL인 경우 그대로 사용 (HTTPS 변환만)
+            if (preg_match('/^http:\/\//', $faviconPath)) {
+                $faviconPath = str_replace('http://', 'https://', $faviconPath);
+            }
+        } else {
+            // 상대 경로인 경우: DB에 저장된 경로에서 하드코딩된 /MVNO/ 제거 (웹/로컬 호환성)
+            while (strpos($faviconPath, '/MVNO/') !== false) {
+                $faviconPath = str_replace('/MVNO/', '/', $faviconPath);
+            }
+            // getAssetPath로 변환
+            if (strpos($faviconPath, '/') === 0) {
+                $faviconPath = getAssetPath($faviconPath);
+            } else {
+                $faviconPath = getAssetPath('/' . $faviconPath);
+            }
         }
         $faviconExt = strtolower(pathinfo($faviconPath, PATHINFO_EXTENSION));
         $faviconType = 'image/x-icon';
@@ -199,7 +211,19 @@ else if (!isset($is_main_page)) {
                         <?php 
                         $logoPath = '';
                         if (!empty($site['logo'])) {
-                            $logoPath = getAssetPath($site['logo']);
+                            // DB에 저장된 경로에서 하드코딩된 /MVNO/ 제거 (웹/로컬 호환성)
+                            $logoPathRaw = $site['logo'];
+                            while (strpos($logoPathRaw, '/MVNO/') !== false) {
+                                $logoPathRaw = str_replace('/MVNO/', '/', $logoPathRaw);
+                            }
+                            // 상대 경로로 변환 후 getAssetPath 사용
+                            if (strpos($logoPathRaw, '/') === 0) {
+                                $logoPath = getAssetPath($logoPathRaw);
+                            } elseif (!preg_match('/^https?:\/\//', $logoPathRaw)) {
+                                $logoPath = getAssetPath('/' . $logoPathRaw);
+                            } else {
+                                $logoPath = $logoPathRaw;
+                            }
                         }
                         if (!empty($logoPath)): ?>
                             <img src="<?php echo htmlspecialchars($logoPath); ?>" alt="<?php echo htmlspecialchars($site['name_ko'] ?? '유심킹'); ?>" style="height: 32px; width: auto; display: inline-block;" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-block';">
@@ -218,7 +242,19 @@ else if (!isset($is_main_page)) {
                         <?php 
                         $logoPathDesktop = '';
                         if (!empty($site['logo'])) {
-                            $logoPathDesktop = getAssetPath($site['logo']);
+                            // DB에 저장된 경로에서 하드코딩된 /MVNO/ 제거 (웹/로컬 호환성)
+                            $logoPathRaw = $site['logo'];
+                            while (strpos($logoPathRaw, '/MVNO/') !== false) {
+                                $logoPathRaw = str_replace('/MVNO/', '/', $logoPathRaw);
+                            }
+                            // 상대 경로로 변환 후 getAssetPath 사용
+                            if (strpos($logoPathRaw, '/') === 0) {
+                                $logoPathDesktop = getAssetPath($logoPathRaw);
+                            } elseif (!preg_match('/^https?:\/\//', $logoPathRaw)) {
+                                $logoPathDesktop = getAssetPath('/' . $logoPathRaw);
+                            } else {
+                                $logoPathDesktop = $logoPathRaw;
+                            }
                         }
                         if (!empty($logoPathDesktop)): ?>
                             <img src="<?php echo htmlspecialchars($logoPathDesktop); ?>" alt="<?php echo htmlspecialchars($site['name_ko'] ?? '유심킹'); ?>" style="height: 32px; width: auto; display: inline-block;" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-block';">

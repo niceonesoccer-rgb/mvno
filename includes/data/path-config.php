@@ -106,8 +106,12 @@ function getAssetPath($path) {
     // 경로 정규화: 중복된 슬래시 제거 및 경로 정리
     $path = preg_replace('#/+#', '/', $path);
     
-    // 전체 URL이면 그대로 반환
+    // 전체 URL인 경우 HTTPS로 강제 변환 (Mixed Content 방지)
     if (preg_match('/^https?:\/\//', $path)) {
+        // HTTP를 HTTPS로 변환
+        if (preg_match('/^http:\/\//', $path)) {
+            $path = str_replace('http://', 'https://', $path);
+        }
         return $path;
     }
     
@@ -117,13 +121,20 @@ function getAssetPath($path) {
         $path = str_replace('/MVNO/', '/', $path);
     }
     // 경로 시작 부분의 /MVNO 제거
-    if (strpos($path, '/MVNO') === 0) {
-        $path = substr($path, 5); // '/MVNO' 제거
+    if (strpos($path, '/MVNO') === 0 && strlen($path) > 5) {
+        // /MVNO 다음이 슬래시가 아닌 경우에만 제거 (예: /MVNOuploads는 제거하지 않음)
+        if ($path[5] === '/' || strlen($path) === 5) {
+            $path = substr($path, 5); // '/MVNO' 제거
+        }
     }
     // MVNO/로 시작하는 경우도 처리
     if (strpos($path, 'MVNO/') === 0) {
         $path = substr($path, 5); // 'MVNO/' 제거
     }
+    
+    // 경로 정규화: 앞뒤 공백 제거 및 중복 슬래시 정리
+    $path = trim($path);
+    $path = preg_replace('#/+#', '/', $path);
     
     // 경로가 이미 /로 시작하면 그대로 사용
     if (strpos($path, '/') === 0) {

@@ -599,7 +599,7 @@ $errorMsg = $_GET['error'] ?? '';
                     </div>
                     <div style="display: flex; gap: 8px; align-items: end;">
                         <button type="submit" class="btn btn-primary" style="padding: 10px 20px;">검색</button>
-                        <a href="/MVNO/admin/settings/device-settings.php?tab=devices" class="btn btn-secondary" style="padding: 10px 20px; text-decoration: none;">초기화</a>
+                        <a href="<?php echo getAssetPath('/admin/settings/device-settings.php?tab=devices'); ?>" class="btn btn-secondary" style="padding: 10px 20px; text-decoration: none;">초기화</a>
                     </div>
                 </form>
             </div>
@@ -615,14 +615,14 @@ $errorMsg = $_GET['error'] ?? '';
                             <p style="font-size: 14px; color: #6b7280; margin-bottom: 20px;">
                                 검색 조건을 변경하거나 필터를 초기화해보세요.
                             </p>
-                            <a href="/MVNO/admin/settings/device-settings.php?tab=devices" class="btn btn-secondary" style="text-decoration: none;">필터 초기화</a>
+                            <a href="<?php echo getAssetPath('/admin/settings/device-settings.php?tab=devices'); ?>" class="btn btn-secondary" style="text-decoration: none;">필터 초기화</a>
                         <?php else: ?>
                             <p style="font-size: 16px; margin-bottom: 16px; color: #ef4444;">⚠️ 등록된 단말기가 없습니다.</p>
                             <p style="font-size: 14px; color: #6b7280; margin-bottom: 20px;">
                                 데이터를 추가하려면 <strong>database/insert_devices.sql</strong> 파일을 실행하거나<br>
                                 위의 "단말기 추가" 버튼을 클릭하여 직접 추가할 수 있습니다.
                             </p>
-                            <a href="/MVNO/database/check_devices.php" target="_blank" class="btn btn-secondary" style="text-decoration: none;">
+                            <a href="<?php echo getAssetPath('/database/check_devices.php'); ?>" target="_blank" class="btn btn-secondary" style="text-decoration: none;">
                                 데이터베이스 상태 확인
                             </a>
                         <?php endif; ?>
@@ -833,6 +833,26 @@ $errorMsg = $_GET['error'] ?? '';
     
 </div>
 
+<!-- 단말기 삭제 확인 모달 -->
+<div id="deleteDeviceModal" class="delete-modal">
+    <div class="delete-modal-content">
+        <div class="delete-modal-header">
+            <h2 class="delete-modal-title">단말기 삭제 확인</h2>
+            <button class="close-btn" onclick="closeDeleteDeviceModal()">&times;</button>
+        </div>
+        <div class="delete-modal-body">
+            <p><strong id="deleteDeviceName"></strong> 단말기를 삭제하시겠습니까?</p>
+            <p class="warning-text">⚠️ 주의: 이 작업은 되돌릴 수 없습니다.</p>
+            <p style="font-size: 14px; color: #6b7280;">연결된 상품이나 주문이 있는 경우 삭제할 수 없습니다.</p>
+        </div>
+        <div class="delete-modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeDeleteDeviceModal()">취소</button>
+            <button type="button" class="btn btn-danger" onclick="deleteDeviceConfirm()">삭제</button>
+        </div>
+        <input type="hidden" id="deleteDeviceId" value="">
+    </div>
+</div>
+
 <!-- 제조사 삭제 확인 모달 -->
 <div id="deleteManufacturerModal" class="delete-modal">
     <div class="delete-modal-content">
@@ -860,7 +880,7 @@ $errorMsg = $_GET['error'] ?? '';
             <h2 class="modal-title" id="manufacturerModalTitle">제조사 추가</h2>
             <button class="close-btn" onclick="closeManufacturerModal()">&times;</button>
         </div>
-        <form id="manufacturerForm" method="POST" action="/MVNO/api/device-manage.php">
+        <form id="manufacturerForm" method="POST" action="<?php echo getApiPath('/api/device-manage.php'); ?>">
             <input type="hidden" name="action" id="manufacturerAction" value="add_manufacturer">
             <input type="hidden" name="manufacturer_id" id="manufacturerId">
             
@@ -904,7 +924,7 @@ $errorMsg = $_GET['error'] ?? '';
             <h2 class="modal-title" id="deviceModalTitle">단말기 추가</h2>
             <button class="close-btn" onclick="closeDeviceModal()">&times;</button>
         </div>
-        <form id="deviceForm" method="POST" action="/MVNO/api/device-manage.php">
+        <form id="deviceForm" method="POST" action="<?php echo getApiPath('/api/device-manage.php'); ?>">
             <input type="hidden" name="action" id="deviceAction" value="add_device">
             <input type="hidden" name="device_id" id="deviceId">
             
@@ -964,9 +984,10 @@ $errorMsg = $_GET['error'] ?? '';
                 </select>
             </div>
             
-            <div style="display: flex; gap: 12px; margin-top: 24px;">
-                <button type="submit" class="btn btn-primary" style="flex: 1;">저장</button>
-                <button type="button" class="btn btn-secondary" onclick="closeDeviceModal()" style="flex: 1;">취소</button>
+            <div style="display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap;">
+                <button type="submit" class="btn btn-primary" style="flex: 1; min-width: 120px;">저장</button>
+                <button type="button" class="btn btn-secondary" onclick="closeDeviceModal()" style="flex: 1; min-width: 120px;">취소</button>
+                <button type="button" id="deleteDeviceInModalBtn" class="btn btn-danger" onclick="showDeleteDeviceFromModal()" style="display: none; min-width: 120px;">삭제</button>
             </div>
         </form>
     </div>
@@ -1076,7 +1097,7 @@ function deleteManufacturer() {
     
     const form = document.createElement('form');
     form.method = 'POST';
-    form.action = '/MVNO/api/device-manage.php';
+    form.action = '<?php echo getApiPath('/api/device-manage.php'); ?>';
     
     const actionInput = document.createElement('input');
     actionInput.type = 'hidden';
@@ -1164,7 +1185,7 @@ function updateManufacturerOrder() {
     });
     
     // 서버에 순서 업데이트 요청
-    fetch('/MVNO/api/device-manage.php', {
+    fetch('<?php echo getApiPath('/api/device-manage.php'); ?>', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
@@ -1208,7 +1229,7 @@ function updateStorageOrder() {
     });
     
     // 서버에 순서 업데이트 요청
-    fetch('/MVNO/api/device-manage.php', {
+    fetch('<?php echo getApiPath('/api/device-manage.php'); ?>', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
@@ -1247,6 +1268,7 @@ function openDeviceModal(device = null) {
     const title = document.getElementById('deviceModalTitle');
     const actionInput = document.getElementById('deviceAction');
     const idInput = document.getElementById('deviceId');
+    const deleteBtn = document.getElementById('deleteDeviceInModalBtn');
     
     if (device) {
         title.textContent = '단말기 수정';
@@ -1285,6 +1307,11 @@ function openDeviceModal(device = null) {
         document.getElementById('deviceModelCode').value = device.model_code || '';
         document.getElementById('deviceReleaseDate').value = device.release_date || '';
         document.getElementById('deviceStatus').value = device.status || 'active';
+        
+        // 삭제 버튼 표시
+        deleteBtn.style.display = 'block';
+        deleteBtn.setAttribute('data-device-id', device.id);
+        deleteBtn.setAttribute('data-device-name', device.name);
     } else {
         title.textContent = '단말기 추가';
         actionInput.value = 'add_device';
@@ -1293,6 +1320,9 @@ function openDeviceModal(device = null) {
         // 색상 목록 초기화
         document.getElementById('colorList').innerHTML = '';
         updateColorValues();
+        
+        // 삭제 버튼 숨김
+        deleteBtn.style.display = 'none';
     }
     
     modal.classList.add('active');
@@ -1311,27 +1341,64 @@ function editDevice(device) {
     openDeviceModal(device);
 }
 
+// 삭제 확인 모달 표시 (목록에서)
 function deleteDevice(id, name) {
-    if (confirm('"' + name + '" 단말기를 삭제하시겠습니까?')) {
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = '/MVNO/api/device-manage.php';
+    const modal = document.getElementById('deleteDeviceModal');
+    const modalId = document.getElementById('deleteDeviceId');
+    const modalName = document.getElementById('deleteDeviceName');
+    
+    modalId.value = id;
+    modalName.textContent = name;
+    
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+
+// 삭제 확인 모달 표시 (수정 모달에서)
+function showDeleteDeviceFromModal() {
+    const deleteBtn = document.getElementById('deleteDeviceInModalBtn');
+    const id = deleteBtn.getAttribute('data-device-id');
+    const name = deleteBtn.getAttribute('data-device-name');
+    
+    if (id && name) {
+        // 수정 모달 닫기
+        closeDeviceModal();
         
-        const actionInput = document.createElement('input');
-        actionInput.type = 'hidden';
-        actionInput.name = 'action';
-        actionInput.value = 'delete_device';
-        form.appendChild(actionInput);
-        
-        const idInput = document.createElement('input');
-        idInput.type = 'hidden';
-        idInput.name = 'device_id';
-        idInput.value = id;
-        form.appendChild(idInput);
-        
-        document.body.appendChild(form);
-        form.submit();
+        // 삭제 확인 모달 열기
+        deleteDevice(id, name);
     }
+}
+
+// 삭제 확인 모달 닫기
+function closeDeleteDeviceModal() {
+    const modal = document.getElementById('deleteDeviceModal');
+    modal.classList.remove('active');
+    document.body.style.overflow = '';
+}
+
+// 단말기 삭제 실행
+function deleteDeviceConfirm() {
+    const id = document.getElementById('deleteDeviceId').value;
+    const name = document.getElementById('deleteDeviceName').textContent;
+    
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '<?php echo getApiPath('/api/device-manage.php'); ?>';
+    
+    const actionInput = document.createElement('input');
+    actionInput.type = 'hidden';
+    actionInput.name = 'action';
+    actionInput.value = 'delete_device';
+    form.appendChild(actionInput);
+    
+    const idInput = document.createElement('input');
+    idInput.type = 'hidden';
+    idInput.name = 'device_id';
+    idInput.value = id;
+    form.appendChild(idInput);
+    
+    document.body.appendChild(form);
+    form.submit();
 }
 
 // 색상 입력 필드 추가 함수
@@ -1425,7 +1492,8 @@ document.getElementById('addColorBtn').addEventListener('click', function() {
 window.addEventListener('click', function(event) {
     const manufacturerModal = document.getElementById('manufacturerModal');
     const deviceModal = document.getElementById('deviceModal');
-    const deleteModal = document.getElementById('deleteManufacturerModal');
+    const deleteManufacturerModal = document.getElementById('deleteManufacturerModal');
+    const deleteDeviceModal = document.getElementById('deleteDeviceModal');
     
     // 삭제 모달은 외부 클릭으로 닫히지 않음
     if (event.target === manufacturerModal) {
@@ -1434,13 +1502,13 @@ window.addEventListener('click', function(event) {
     if (event.target === deviceModal) {
         closeDeviceModal();
     }
-    // deleteModal은 외부 클릭으로 닫히지 않음 (취소 버튼으로만 닫힘)
+    // deleteManufacturerModal과 deleteDeviceModal은 외부 클릭으로 닫히지 않음 (취소 버튼으로만 닫힘)
 });
 
 // 삭제 모달 배경 클릭 방지
-const deleteModal = document.getElementById('deleteManufacturerModal');
-if (deleteModal) {
-    deleteModal.addEventListener('click', function(e) {
+const deleteManufacturerModal = document.getElementById('deleteManufacturerModal');
+if (deleteManufacturerModal) {
+    deleteManufacturerModal.addEventListener('click', function(e) {
         // 모달 배경을 직접 클릭한 경우에도 닫히지 않음
         if (e.target === this) {
             e.preventDefault();
@@ -1449,7 +1517,27 @@ if (deleteModal) {
     });
     
     // 모달 내부 컨텐츠 클릭 시 이벤트 전파 방지
-    const deleteModalContent = deleteModal.querySelector('.delete-modal-content');
+    const deleteModalContent = deleteManufacturerModal.querySelector('.delete-modal-content');
+    if (deleteModalContent) {
+        deleteModalContent.addEventListener('click', function(e) {
+            e.stopPropagation();
+        });
+    }
+}
+
+// 단말기 삭제 모달 배경 클릭 방지
+const deleteDeviceModal = document.getElementById('deleteDeviceModal');
+if (deleteDeviceModal) {
+    deleteDeviceModal.addEventListener('click', function(e) {
+        // 모달 배경을 직접 클릭한 경우에도 닫히지 않음
+        if (e.target === this) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+    });
+    
+    // 모달 내부 컨텐츠 클릭 시 이벤트 전파 방지
+    const deleteModalContent = deleteDeviceModal.querySelector('.delete-modal-content');
     if (deleteModalContent) {
         deleteModalContent.addEventListener('click', function(e) {
             e.stopPropagation();
