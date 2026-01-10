@@ -4,6 +4,7 @@
  * 경로: /seller/products/internet-list.php
  */
 
+require_once __DIR__ . '/../../includes/data/path-config.php';
 require_once __DIR__ . '/../../includes/data/auth-functions.php';
 require_once __DIR__ . '/../../includes/data/db-config.php';
 require_once __DIR__ . '/../../includes/data/product-functions.php';
@@ -17,20 +18,20 @@ $currentUser = getCurrentUser();
 
 // 판매자 로그인 체크
 if (!$currentUser || $currentUser['role'] !== 'seller') {
-    header('Location: /MVNO/seller/login.php');
+    header('Location: ' . getAssetPath('/seller/login.php'));
     exit;
 }
 
 // 판매자 승인 체크
 $approvalStatus = $currentUser['approval_status'] ?? 'pending';
 if ($approvalStatus !== 'approved') {
-    header('Location: /MVNO/seller/waiting.php');
+    header('Location: ' . getAssetPath('/seller/waiting.php'));
     exit;
 }
 
 // 탈퇴 요청 상태 확인
 if (isset($currentUser['withdrawal_requested']) && $currentUser['withdrawal_requested'] === true) {
-    header('Location: /MVNO/seller/waiting.php');
+    header('Location: ' . getAssetPath('/seller/waiting.php'));
     exit;
 }
 
@@ -440,15 +441,6 @@ $pageStyles = '
         background: #059669;
     }
     
-    .btn-delete {
-        background: #ef4444;
-        color: white;
-    }
-    
-    .btn-delete:hover {
-        background: #dc2626;
-    }
-    
     .empty-state {
         padding: 60px 20px;
         text-align: center;
@@ -613,7 +605,7 @@ include __DIR__ . '/../includes/seller-header.php';
                 <div class="empty-state-title">등록된 상품이 없습니다</div>
                 <div class="empty-state-text">새로운 인터넷 상품을 등록해보세요</div>
                 <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
-                    <a href="/MVNO/seller/products/internet.php" class="btn btn-primary">인터넷 등록</a>
+                    <a href="<?php echo getAssetPath('/seller/products/internet.php'); ?>" class="btn btn-primary">인터넷 등록</a>
                 </div>
             </div>
         <?php else: ?>
@@ -771,6 +763,207 @@ include __DIR__ . '/../includes/seller-header.php';
 </div>
 
 <script>
+// 유틸리티 함수들 (먼저 정의)
+function number_format(number) {
+    const numValue = parseFloat(number) || 0;
+    if (numValue % 1 === 0) {
+        return Math.floor(numValue).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    } else {
+        const formatted = numValue.toString().replace(/\.?0+$/, '');
+        const parts = formatted.split('.');
+        parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        return parts.join('.');
+    }
+}
+
+function closeProductInfoModal() {
+    const modal = document.getElementById('productInfoModal');
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+}
+
+// 전역 함수로 선언 - showProductInfo
+function showProductInfo(productId, productType) {
+    const modal = document.getElementById('productInfoModal');
+    const content = document.getElementById('productInfoContent');
+    
+    if (!modal || !content) {
+        console.error('Modal elements not found');
+        alert('상품 정보를 불러올 수 없습니다.');
+        return;
+    }
+    
+    // 배경 스크롤 방지
+    document.body.style.overflow = 'hidden';
+    modal.style.display = 'block';
+    content.innerHTML = '<div style="text-align: center; padding: 40px; color: #6b7280;">상품 정보를 불러오는 중...</div>';
+    
+    fetch('<?php echo getApiPath('/api/get-product-info.php'); ?>?product_id=' + productId + '&product_type=' + productType)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.product) {
+                const product = data.product;
+                let html = '';
+                
+                if (productType === 'internet') {
+                    // 판매 상태
+                    html += '<div style="margin-bottom: 32px;"><h3 style="font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #e5e7eb;">판매 상태</h3>';
+                    html += '<table class="product-info-table">';
+                    html += '<tr><th>상태</th><td>' + (product.status === 'active' ? '판매중' : '판매종료') + '</td></tr>';
+                    html += '</table></div>';
+                    
+                    // 기본 정보
+                    html += '<div style="margin-bottom: 32px;"><h3 style="font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #e5e7eb;">기본 정보</h3>';
+                    html += '<table class="product-info-table">';
+                    html += '<tr><th>가입처</th><td>' + (product.registration_place || '-') + '</td></tr>';
+                    html += '<tr><th>결합여부</th><td>' + (product.service_type || '-') + '</td></tr>';
+                    html += '<tr><th>인터넷속도</th><td>' + (product.speed_option || '-') + '</td></tr>';
+                    // 월 요금 처리
+                    let monthlyFeeText = '-';
+                    if (product.monthly_fee) {
+                        const monthlyFeeStr = String(product.monthly_fee);
+                        const monthlyFeeNum = monthlyFeeStr.replace(/[^0-9]/g, '');
+                        if (monthlyFeeNum) {
+                            monthlyFeeText = number_format(parseInt(monthlyFeeNum)) + '원';
+                        } else {
+                            monthlyFeeText = monthlyFeeStr;
+                        }
+                    }
+                    html += '<tr><th>월 요금</th><td>' + monthlyFeeText + '</td></tr>';
+                    html += '</table></div>';
+                    
+                    // 현금지급
+                    if (product.cash_payment_names && product.cash_payment_prices) {
+                        const cashNames = typeof product.cash_payment_names === 'string' ? JSON.parse(product.cash_payment_names) : product.cash_payment_names;
+                        const cashPrices = typeof product.cash_payment_prices === 'string' ? JSON.parse(product.cash_payment_prices) : product.cash_payment_prices;
+                        if (Array.isArray(cashNames) && cashNames.length > 0 && cashNames.some(name => name)) {
+                            html += '<div style="margin-bottom: 32px;"><h3 style="font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #e5e7eb;">현금지급</h3>';
+                            html += '<table class="product-info-table">';
+                            cashNames.forEach((name, index) => {
+                                if (name && name.trim()) {
+                                    let priceText = '-';
+                                    if (cashPrices[index]) {
+                                        const priceStr = String(cashPrices[index]);
+                                        const priceNum = priceStr.replace(/[^0-9]/g, '');
+                                        if (priceNum) {
+                                            priceText = number_format(parseInt(priceNum)) + '원';
+                                        } else {
+                                            priceText = priceStr;
+                                        }
+                                    }
+                                    html += '<tr><th>' + name.trim() + '</th><td>' + priceText + '</td></tr>';
+                                }
+                            });
+                            html += '</table></div>';
+                        }
+                    }
+                    
+                    // 상품권 지급
+                    if (product.gift_card_names && product.gift_card_prices) {
+                        const giftNames = typeof product.gift_card_names === 'string' ? JSON.parse(product.gift_card_names) : product.gift_card_names;
+                        const giftPrices = typeof product.gift_card_prices === 'string' ? JSON.parse(product.gift_card_prices) : product.gift_card_prices;
+                        if (Array.isArray(giftNames) && giftNames.length > 0 && giftNames.some(name => name)) {
+                            html += '<div style="margin-bottom: 32px;"><h3 style="font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #e5e7eb;">상품권 지급</h3>';
+                            html += '<table class="product-info-table">';
+                            giftNames.forEach((name, index) => {
+                                if (name && name.trim()) {
+                                    let priceText = '-';
+                                    if (giftPrices[index]) {
+                                        const priceStr = String(giftPrices[index]);
+                                        const priceNum = priceStr.replace(/[^0-9]/g, '');
+                                        if (priceNum) {
+                                            priceText = number_format(parseInt(priceNum)) + '원';
+                                        } else {
+                                            priceText = priceStr;
+                                        }
+                                    }
+                                    html += '<tr><th>' + name.trim() + '</th><td>' + priceText + '</td></tr>';
+                                }
+                            });
+                            html += '</table></div>';
+                        }
+                    }
+                    
+                    // 장비 및 기타 서비스
+                    if ((product.equipment_names && (typeof product.equipment_names === 'string' ? JSON.parse(product.equipment_names) : product.equipment_names).length > 0) || 
+                        (product.installation_names && (typeof product.installation_names === 'string' ? JSON.parse(product.installation_names) : product.installation_names).length > 0)) {
+                        html += '<div style="margin-bottom: 32px;"><h3 style="font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #e5e7eb;">장비 및 기타 서비스</h3>';
+                        html += '<table class="product-info-table">';
+                        if (product.equipment_names) {
+                            const equipNames = typeof product.equipment_names === 'string' ? JSON.parse(product.equipment_names) : product.equipment_names;
+                            const equipPrices = typeof product.equipment_prices === 'string' ? JSON.parse(product.equipment_prices) : product.equipment_prices;
+                            if (Array.isArray(equipNames) && equipNames.length > 0 && equipNames.some(name => name)) {
+                                html += '<tr><th>장비 제공</th><td>';
+                                const equipItems = [];
+                                equipNames.forEach((name, index) => {
+                                    if (name) {
+                                        equipItems.push(name + (equipPrices[index] ? ' (' + equipPrices[index] + ')' : ''));
+                                    }
+                                });
+                                html += equipItems.join(', ') || '-';
+                                html += '</td></tr>';
+                            }
+                        }
+                        if (product.installation_names) {
+                            const installNames = typeof product.installation_names === 'string' ? JSON.parse(product.installation_names) : product.installation_names;
+                            const installPrices = typeof product.installation_prices === 'string' ? JSON.parse(product.installation_prices) : product.installation_prices;
+                            if (Array.isArray(installNames) && installNames.length > 0 && installNames.some(name => name)) {
+                                html += '<tr><th>설치 및 기타 서비스</th><td>';
+                                const installItems = [];
+                                installNames.forEach((name, index) => {
+                                    if (name) {
+                                        installItems.push(name + (installPrices[index] ? ' (' + installPrices[index] + ')' : ''));
+                                    }
+                                });
+                                html += installItems.join(', ') || '-';
+                                html += '</td></tr>';
+                            }
+                        }
+                        html += '</table></div>';
+                    }
+                    
+                    // 프로모션 이벤트
+                    if (product.promotion_title || (product.promotions && (typeof product.promotions === 'string' ? JSON.parse(product.promotions) : product.promotions).length > 0)) {
+                        html += '<div style="margin-bottom: 32px;"><h3 style="font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #e5e7eb;">프로모션 이벤트</h3>';
+                        html += '<table class="product-info-table">';
+                        if (product.promotion_title) html += '<tr><th>제목</th><td>' + product.promotion_title + '</td></tr>';
+                        if (product.promotions) {
+                            const promotions = typeof product.promotions === 'string' ? JSON.parse(product.promotions) : product.promotions;
+                            if (Array.isArray(promotions) && promotions.length > 0) {
+                                html += '<tr><th>항목</th><td>' + promotions.join(', ') + '</td></tr>';
+                            }
+                        }
+                        html += '</table></div>';
+                    }
+                    
+                    // 포인트 할인 혜택 설정
+                    html += '<div style="margin-bottom: 32px;"><h3 style="font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #e5e7eb;">포인트 할인 혜택 설정</h3>';
+                    html += '<table class="product-info-table">';
+                    const pointSettingInternet = product.point_setting ? parseInt(product.point_setting) : 0;
+                    html += '<tr><th>포인트설정금액</th><td>' + (pointSettingInternet > 0 ? number_format(pointSettingInternet) + 'P' : '-') + '</td></tr>';
+                    html += '<tr><th>할인혜택내용</th><td style="white-space: pre-wrap;">' + (product.point_benefit_description || '-') + '</td></tr>';
+                    html += '</table></div>';
+                    
+                    // 기타 정보
+                    html += '<div style="margin-bottom: 32px;"><h3 style="font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #e5e7eb;">기타 정보</h3>';
+                    html += '<table class="product-info-table">';
+                    html += '<tr><th>등록일</th><td>' + (product.created_at ? new Date(product.created_at).toLocaleString('ko-KR') : '-') + '</td></tr>';
+                    html += '</table></div>';
+                }
+                
+                content.innerHTML = html;
+            } else {
+                content.innerHTML = '<div style="text-align: center; padding: 40px; color: #ef4444;">상품 정보를 불러올 수 없습니다.</div>';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            content.innerHTML = '<div style="text-align: center; padding: 40px; color: #ef4444;">상품 정보를 불러오는 중 오류가 발생했습니다.</div>';
+        });
+}
+
 function changePerPage(perPage) {
     const params = new URLSearchParams(window.location.search);
     params.set('per_page', perPage);
@@ -804,7 +997,7 @@ function resetFilters() {
 }
 
 function editProduct(productId) {
-    window.location.href = '/MVNO/seller/products/internet.php?id=' + productId;
+    window.location.href = '<?php echo getAssetPath('/seller/products/internet.php'); ?>?id=' + productId;
 }
 
 function copyProduct(productId) {
@@ -821,7 +1014,7 @@ function copyProduct(productId) {
 }
 
 function processCopyProduct(productId) {
-    fetch('/MVNO/api/product-copy.php', {
+    fetch('<?php echo getApiPath('/api/product-copy.php'); ?>', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -955,7 +1148,7 @@ function setProductInactive(productId) {
 }
 
 function processSetProductInactive(productId) {
-    fetch('/MVNO/api/product-bulk-update.php', {
+    fetch('<?php echo getApiPath('/api/product-bulk-update.php'); ?>', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -1042,7 +1235,7 @@ function bulkChangeStatus(status) {
 function processBulkChangeStatus(productIds, status) {
     const statusText = status === 'active' ? '판매중' : '판매종료';
     
-    fetch('/MVNO/api/product-bulk-update.php', {
+    fetch('<?php echo getApiPath('/api/product-bulk-update.php'); ?>', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -1111,7 +1304,7 @@ function processBulkCopy(productIds) {
     
     // 각 상품을 순차적으로 복사
     productIds.forEach((productId, index) => {
-        fetch('/MVNO/api/product-copy.php', {
+        fetch('<?php echo getApiPath('/api/product-copy.php'); ?>', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -1201,208 +1394,6 @@ function processBulkCopy(productIds) {
 </style>
 
 <script>
-function showProductInfo(productId, productType) {
-    const modal = document.getElementById('productInfoModal');
-    const content = document.getElementById('productInfoContent');
-    
-    if (!modal || !content) {
-        console.error('Modal elements not found');
-        alert('상품 정보를 불러올 수 없습니다.');
-        return;
-    }
-    
-    // 배경 스크롤 방지
-    document.body.style.overflow = 'hidden';
-    modal.style.display = 'block';
-    content.innerHTML = '<div style="text-align: center; padding: 40px; color: #6b7280;">상품 정보를 불러오는 중...</div>';
-    
-    fetch('/MVNO/api/get-product-info.php?product_id=' + productId + '&product_type=' + productType)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success && data.product) {
-                const product = data.product;
-                let html = '';
-                
-                if (productType === 'internet') {
-                    // 판매 상태
-                    html += '<div style="margin-bottom: 32px;"><h3 style="font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #e5e7eb;">판매 상태</h3>';
-                    html += '<table class="product-info-table">';
-                    html += '<tr><th>상태</th><td>' + (product.status === 'active' ? '판매중' : '판매종료') + '</td></tr>';
-                    html += '</table></div>';
-                    
-                    // 기본 정보
-                    html += '<div style="margin-bottom: 32px;"><h3 style="font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #e5e7eb;">기본 정보</h3>';
-                    html += '<table class="product-info-table">';
-                    html += '<tr><th>가입처</th><td>' + (product.registration_place || '-') + '</td></tr>';
-                    html += '<tr><th>결합여부</th><td>' + (product.service_type || '-') + '</td></tr>';
-                    html += '<tr><th>인터넷속도</th><td>' + (product.speed_option || '-') + '</td></tr>';
-                    // 월 요금 처리 (이미 "원"이 포함되어 있을 수 있음)
-                    let monthlyFeeText = '-';
-                    if (product.monthly_fee) {
-                        const monthlyFeeStr = String(product.monthly_fee);
-                        // 숫자만 추출
-                        const monthlyFeeNum = monthlyFeeStr.replace(/[^0-9]/g, '');
-                        if (monthlyFeeNum) {
-                            monthlyFeeText = number_format(parseInt(monthlyFeeNum)) + '원';
-                        } else {
-                            monthlyFeeText = monthlyFeeStr; // 숫자가 없으면 원본 그대로 표시
-                        }
-                    }
-                    html += '<tr><th>월 요금</th><td>' + monthlyFeeText + '</td></tr>';
-                    html += '</table></div>';
-                    
-                    // 현금지급
-                    if (product.cash_payment_names && product.cash_payment_prices) {
-                        const cashNames = typeof product.cash_payment_names === 'string' ? JSON.parse(product.cash_payment_names) : product.cash_payment_names;
-                        const cashPrices = typeof product.cash_payment_prices === 'string' ? JSON.parse(product.cash_payment_prices) : product.cash_payment_prices;
-                        if (Array.isArray(cashNames) && cashNames.length > 0 && cashNames.some(name => name)) {
-                            html += '<div style="margin-bottom: 32px;"><h3 style="font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #e5e7eb;">현금지급</h3>';
-                            html += '<table class="product-info-table">';
-                            cashNames.forEach((name, index) => {
-                                if (name && name.trim()) {
-                                    // 가격 처리
-                                    let priceText = '-';
-                                    if (cashPrices[index]) {
-                                        const priceStr = String(cashPrices[index]);
-                                        const priceNum = priceStr.replace(/[^0-9]/g, '');
-                                        if (priceNum) {
-                                            priceText = number_format(parseInt(priceNum)) + '원';
-                                        } else {
-                                            priceText = priceStr; // 숫자가 없으면 원본 그대로 표시
-                                        }
-                                    }
-                                    html += '<tr><th>' + name.trim() + '</th><td>' + priceText + '</td></tr>';
-                                }
-                            });
-                            html += '</table></div>';
-                        }
-                    }
-                    
-                    // 상품권 지급
-                    if (product.gift_card_names && product.gift_card_prices) {
-                        const giftNames = typeof product.gift_card_names === 'string' ? JSON.parse(product.gift_card_names) : product.gift_card_names;
-                        const giftPrices = typeof product.gift_card_prices === 'string' ? JSON.parse(product.gift_card_prices) : product.gift_card_prices;
-                        if (Array.isArray(giftNames) && giftNames.length > 0 && giftNames.some(name => name)) {
-                            html += '<div style="margin-bottom: 32px;"><h3 style="font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #e5e7eb;">상품권 지급</h3>';
-                            html += '<table class="product-info-table">';
-                            giftNames.forEach((name, index) => {
-                                if (name && name.trim()) {
-                                    // 가격 처리
-                                    let priceText = '-';
-                                    if (giftPrices[index]) {
-                                        const priceStr = String(giftPrices[index]);
-                                        const priceNum = priceStr.replace(/[^0-9]/g, '');
-                                        if (priceNum) {
-                                            priceText = number_format(parseInt(priceNum)) + '원';
-                                        } else {
-                                            priceText = priceStr; // 숫자가 없으면 원본 그대로 표시
-                                        }
-                                    }
-                                    html += '<tr><th>' + name.trim() + '</th><td>' + priceText + '</td></tr>';
-                                }
-                            });
-                            html += '</table></div>';
-                        }
-                    }
-                    
-                    // 장비 및 기타 서비스
-                    if ((product.equipment_names && (typeof product.equipment_names === 'string' ? JSON.parse(product.equipment_names) : product.equipment_names).length > 0) || 
-                        (product.installation_names && (typeof product.installation_names === 'string' ? JSON.parse(product.installation_names) : product.installation_names).length > 0)) {
-                        html += '<div style="margin-bottom: 32px;"><h3 style="font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #e5e7eb;">장비 및 기타 서비스</h3>';
-                        html += '<table class="product-info-table">';
-                        if (product.equipment_names) {
-                            const equipNames = typeof product.equipment_names === 'string' ? JSON.parse(product.equipment_names) : product.equipment_names;
-                            const equipPrices = typeof product.equipment_prices === 'string' ? JSON.parse(product.equipment_prices) : product.equipment_prices;
-                            if (Array.isArray(equipNames) && equipNames.length > 0 && equipNames.some(name => name)) {
-                                html += '<tr><th>장비 제공</th><td>';
-                                const equipItems = [];
-                                equipNames.forEach((name, index) => {
-                                    if (name) {
-                                        equipItems.push(name + (equipPrices[index] ? ' (' + equipPrices[index] + ')' : ''));
-                                    }
-                                });
-                                html += equipItems.join(', ') || '-';
-                                html += '</td></tr>';
-                            }
-                        }
-                        if (product.installation_names) {
-                            const installNames = typeof product.installation_names === 'string' ? JSON.parse(product.installation_names) : product.installation_names;
-                            const installPrices = typeof product.installation_prices === 'string' ? JSON.parse(product.installation_prices) : product.installation_prices;
-                            if (Array.isArray(installNames) && installNames.length > 0 && installNames.some(name => name)) {
-                                html += '<tr><th>설치 및 기타 서비스</th><td>';
-                                const installItems = [];
-                                installNames.forEach((name, index) => {
-                                    if (name) {
-                                        installItems.push(name + (installPrices[index] ? ' (' + installPrices[index] + ')' : ''));
-                                    }
-                                });
-                                html += installItems.join(', ') || '-';
-                                html += '</td></tr>';
-                            }
-                        }
-                        html += '</table></div>';
-                    }
-                    
-                    // 프로모션 이벤트
-                    if (product.promotion_title || (product.promotions && (typeof product.promotions === 'string' ? JSON.parse(product.promotions) : product.promotions).length > 0)) {
-                        html += '<div style="margin-bottom: 32px;"><h3 style="font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #e5e7eb;">프로모션 이벤트</h3>';
-                        html += '<table class="product-info-table">';
-                        if (product.promotion_title) html += '<tr><th>제목</th><td>' + product.promotion_title + '</td></tr>';
-                        if (product.promotions) {
-                            const promotions = typeof product.promotions === 'string' ? JSON.parse(product.promotions) : product.promotions;
-                            if (Array.isArray(promotions) && promotions.length > 0) {
-                                html += '<tr><th>항목</th><td>' + promotions.join(', ') + '</td></tr>';
-                            }
-                        }
-                        html += '</table></div>';
-                    }
-                    
-                    // 등록일
-                    html += '<div style="margin-bottom: 32px;"><h3 style="font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #e5e7eb;">기타 정보</h3>';
-                    html += '<table class="product-info-table">';
-                    html += '<tr><th>등록일</th><td>' + (product.created_at ? new Date(product.created_at).toLocaleString('ko-KR') : '-') + '</td></tr>';
-                    html += '</table></div>';
-                }
-                
-                content.innerHTML = html;
-            } else {
-                content.innerHTML = '<div style="text-align: center; padding: 40px; color: #ef4444;">상품 정보를 불러올 수 없습니다.</div>';
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            content.innerHTML = '<div style="text-align: center; padding: 40px; color: #ef4444;">상품 정보를 불러오는 중 오류가 발생했습니다.</div>';
-        });
-}
-
-function closeProductInfoModal() {
-    const modal = document.getElementById('productInfoModal');
-    if (modal) {
-        modal.style.display = 'none';
-        // 배경 스크롤 복원
-        document.body.style.overflow = '';
-    }
-}
-
-function number_format(number) {
-    // 숫자를 파싱
-    const numValue = parseFloat(number) || 0;
-    
-    // 소수점이 없거나 소수점 아래가 0이면 정수로 표시
-    if (numValue % 1 === 0) {
-        // 정수인 경우
-        return Math.floor(numValue).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-    } else {
-        // 소수점이 있는 경우 - 소수점 아래 값 표시
-        // 소수점 아래 불필요한 0 제거 (예: 34000.50 → 34000.5, 34000.00 → 34000)
-        const formatted = numValue.toString().replace(/\.?0+$/, '');
-        // 천 단위 구분자 추가
-        const parts = formatted.split('.');
-        parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-        return parts.join('.');
-    }
-}
-
 // 모달 외부 클릭 시 닫기
 document.addEventListener('DOMContentLoaded', function() {
     const modal = document.getElementById('productInfoModal');
@@ -1520,7 +1511,7 @@ async function updateModalPrice() {
     }
     
     try {
-        const response = await fetch(`/MVNO/api/advertisement-price.php?product_type=${currentProductType}&advertisement_days=${days}`);
+        const response = await fetch(`<?php echo getApiPath('/api/advertisement-price.php'); ?>?product_type=${currentProductType}&advertisement_days=${days}`);
         const data = await response.json();
         
         if (data.success && data.price) {
@@ -1571,7 +1562,7 @@ async function submitAdForm(event) {
     messageDiv.style.display = 'none';
     
     try {
-        const response = await fetch('/MVNO/api/advertisement-apply.php', {
+        const response = await fetch('<?php echo getApiPath('/api/advertisement-apply.php'); ?>', {
             method: 'POST',
             body: formData
         });

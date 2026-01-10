@@ -4,6 +4,7 @@
  * 경로: /seller/products/mno-sim-list.php
  */
 
+require_once __DIR__ . '/../../includes/data/path-config.php';
 require_once __DIR__ . '/../../includes/data/auth-functions.php';
 require_once __DIR__ . '/../../includes/data/db-config.php';
 
@@ -16,20 +17,20 @@ $currentUser = getCurrentUser();
 
 // 판매자 로그인 체크
 if (!$currentUser || $currentUser['role'] !== 'seller') {
-    header('Location: /MVNO/seller/login.php');
+    header('Location: ' . getAssetPath('/seller/login.php'));
     exit;
 }
 
 // 판매자 승인 체크
 $approvalStatus = $currentUser['approval_status'] ?? 'pending';
 if ($approvalStatus !== 'approved') {
-    header('Location: /MVNO/seller/waiting.php');
+    header('Location: ' . getAssetPath('/seller/waiting.php'));
     exit;
 }
 
 // 탈퇴 요청 상태 확인
 if (isset($currentUser['withdrawal_requested']) && $currentUser['withdrawal_requested'] === true) {
-    header('Location: /MVNO/seller/waiting.php');
+    header('Location: ' . getAssetPath('/seller/waiting.php'));
     exit;
 }
 
@@ -589,15 +590,6 @@ $pageStyles = '
         background: #059669;
     }
     
-    .btn-danger {
-        background: #ef4444;
-        color: white;
-    }
-    
-    .btn-danger:hover {
-        background: #dc2626;
-    }
-    
     .empty-state {
         padding: 60px 20px;
         text-align: center;
@@ -702,7 +694,7 @@ include __DIR__ . '/../includes/seller-header.php';
                 <div class="empty-state-title">등록된 통신사단독유심 상품이 없습니다</div>
                 <div class="empty-state-text">새로운 통신사단독유심 상품을 등록해보세요</div>
                 <div style="margin-top: 20px;">
-                    <a href="/MVNO/seller/products/mno-sim.php" class="btn-sm btn-edit" style="text-decoration: none;">통신사단독유심 등록</a>
+                    <a href="<?php echo getAssetPath('/seller/products/mno-sim.php'); ?>" class="btn-sm btn-edit" style="text-decoration: none;">통신사단독유심 등록</a>
                 </div>
             </div>
         <?php else: ?>
@@ -1068,7 +1060,7 @@ function bulkChangeStatus(status) {
 function processBulkChangeStatus(productIds, status) {
     const statusText = status === 'active' ? '판매중' : '판매종료';
     
-    fetch('/MVNO/api/product-bulk-update.php', {
+    fetch('<?php echo getApiPath('/api/product-bulk-update.php'); ?>', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -1137,7 +1129,7 @@ function processBulkCopy(productIds) {
     
     // 각 상품을 순차적으로 복사
     productIds.forEach((productId, index) => {
-        fetch('/MVNO/api/product-copy.php', {
+        fetch('<?php echo getApiPath('/api/product-copy.php'); ?>', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -1191,7 +1183,7 @@ function processBulkCopy(productIds) {
 }
 
 function editProduct(productId) {
-    window.location.href = '/MVNO/seller/products/mno-sim.php?id=' + productId;
+    window.location.href = '<?php echo getAssetPath('/seller/products/mno-sim.php'); ?>?id=' + productId;
 }
 
 function copyProduct(productId) {
@@ -1208,7 +1200,7 @@ function copyProduct(productId) {
 }
 
 function processCopyProduct(productId) {
-    fetch('/MVNO/api/product-copy.php', {
+    fetch('<?php echo getApiPath('/api/product-copy.php'); ?>', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -1297,7 +1289,7 @@ function showProductInfo(productId, productType) {
     modal.style.display = 'block';
     content.innerHTML = '<div style="text-align: center; padding: 40px; color: #6b7280;">상품 정보를 불러오는 중...</div>';
     
-    fetch('/MVNO/api/get-product-info.php?product_id=' + productId + '&product_type=' + productType)
+    fetch('<?php echo getApiPath('/api/get-product-info.php'); ?>?product_id=' + productId + '&product_type=' + productType)
         .then(response => response.json())
         .then(data => {
             if (data.success && data.product) {
@@ -1482,6 +1474,14 @@ function showProductInfo(productId, productType) {
                         html += '</table></div>';
                     }
                     
+                    // 포인트 할인 혜택 설정
+                    html += '<div style="margin-bottom: 32px;"><h3 style="font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #e5e7eb;">포인트 할인 혜택 설정</h3>';
+                    html += '<table class="product-info-table">';
+                    const pointSetting = product.point_setting ? parseInt(product.point_setting) : 0;
+                    html += '<tr><th>포인트설정금액</th><td>' + (pointSetting > 0 ? number_format(pointSetting) + 'P' : '-') + '</td></tr>';
+                    html += '<tr><th>할인혜택내용</th><td style="white-space: pre-wrap;">' + (product.point_benefit_description || '-') + '</td></tr>';
+                    html += '</table></div>';
+                    
                     // 등록일
                     html += '<div style="margin-bottom: 32px;"><h3 style="font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #e5e7eb;">기타 정보</h3>';
                     html += '<table class="product-info-table">';
@@ -1640,6 +1640,14 @@ function showProductInfo(productId, productType) {
                         }
                     }
                     
+                    // 포인트 할인 혜택 설정
+                    html += '<div style="margin-bottom: 32px;"><h3 style="font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #e5e7eb;">포인트 할인 혜택 설정</h3>';
+                    html += '<table class="product-info-table">';
+                    const pointSettingMvno = product.point_setting ? parseInt(product.point_setting) : 0;
+                    html += '<tr><th>포인트설정금액</th><td>' + (pointSettingMvno > 0 ? number_format(pointSettingMvno) + 'P' : '-') + '</td></tr>';
+                    html += '<tr><th>할인혜택내용</th><td style="white-space: pre-wrap;">' + (product.point_benefit_description || '-') + '</td></tr>';
+                    html += '</table></div>';
+                    
                     // 등록일
                     html += '<div style="margin-bottom: 32px;"><h3 style="font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #e5e7eb;">기타 정보</h3>';
                     html += '<table class="product-info-table">';
@@ -1747,6 +1755,14 @@ function showProductInfo(productId, productType) {
                         }
                         html += '</table></div>';
                     }
+                    
+                    // 포인트 할인 혜택 설정
+                    html += '<div style="margin-bottom: 32px;"><h3 style="font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #e5e7eb;">포인트 할인 혜택 설정</h3>';
+                    html += '<table class="product-info-table">';
+                    const pointSettingInternet = product.point_setting ? parseInt(product.point_setting) : 0;
+                    html += '<tr><th>포인트설정금액</th><td>' + (pointSettingInternet > 0 ? number_format(pointSettingInternet) + 'P' : '-') + '</td></tr>';
+                    html += '<tr><th>할인혜택내용</th><td style="white-space: pre-wrap;">' + (product.point_benefit_description || '-') + '</td></tr>';
+                    html += '</table></div>';
                     
                     // 등록일
                     html += '<div style="margin-bottom: 32px;"><h3 style="font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #e5e7eb;">기타 정보</h3>';
@@ -1912,7 +1928,7 @@ async function updateModalPrice() {
     }
     
     try {
-        const response = await fetch(`/MVNO/api/advertisement-price.php?product_type=${currentProductType}&advertisement_days=${days}`);
+        const response = await fetch(`<?php echo getApiPath('/api/advertisement-price.php'); ?>?product_type=${currentProductType}&advertisement_days=${days}`);
         const data = await response.json();
         
         if (data.success && data.price) {
@@ -1981,7 +1997,7 @@ document.getElementById('adForm')?.addEventListener('submit', async function(e) 
         formData.append('product_id', productId);
         formData.append('advertisement_days', advertisementDays);
         
-        const response = await fetch('/MVNO/api/advertisement-apply.php', {
+        const response = await fetch('<?php echo getApiPath('/api/advertisement-apply.php'); ?>', {
             method: 'POST',
             body: formData
         });
@@ -2008,7 +2024,7 @@ document.getElementById('adForm')?.addEventListener('submit', async function(e) 
         if (data.success) {
             // 성공 시 모달 닫고 광고내역 페이지로 이동
             closeAdModal();
-            window.location.href = '/MVNO/seller/advertisement/list.php';
+            window.location.href = '<?php echo getAssetPath('/seller/advertisement/list.php'); ?>';
         } else {
             // 실패 시 (이미 광고중인 경우 포함) 모달로 메시지 표시
             alert(data.message || '광고 신청에 실패했습니다.');

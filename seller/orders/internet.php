@@ -177,7 +177,6 @@ try {
                 internet.equipment_prices,
                 internet.installation_names,
                 internet.installation_prices,
-                p.point_benefit_description,
                 (SELECT ABS(delta) FROM user_point_ledger 
                  WHERE user_id = c.user_id 
                    AND item_id = a.product_id 
@@ -242,6 +241,14 @@ try {
                     if (!in_array($key, $exclude) && $value !== null && $value !== '') {
                         $order[$key] = $value;
                     }
+                }
+                
+                // 포인트와 혜택내용은 product_snapshot에서 우선 사용 (주문 시점 정보 보존)
+                if (isset($snapshot['point_setting'])) {
+                    $order['point_setting'] = $snapshot['point_setting'];
+                }
+                if (isset($snapshot['point_benefit_description'])) {
+                    $order['point_benefit_description'] = $snapshot['point_benefit_description'];
                 }
             }
             // product_snapshot이 없으면 현재 테이블 값 사용 (fallback)

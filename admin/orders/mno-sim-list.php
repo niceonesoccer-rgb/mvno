@@ -288,8 +288,6 @@ if ($pdo && empty($errors)) {
                 mno_sim.service_type,
                 mno_sim.promotions,
                 p.status as product_status,
-                p.point_setting,
-                p.point_benefit_description,
                 (SELECT ABS(delta) FROM user_point_ledger 
                  WHERE user_id = c.user_id 
                    AND item_id = a.product_id 
@@ -344,6 +342,30 @@ if ($pdo && empty($errors)) {
                 'timestamp' => date('Y-m-d H:i:s')
             ];
         }
+        
+        // 신청 시점의 상품 정보를 우선 사용하도록 처리 (product_snapshot)
+        foreach ($applications as &$app) {
+            // additional_info 파싱
+            $additionalInfo = [];
+            if (!empty($app['additional_info'])) {
+                $decoded = json_decode($app['additional_info'], true);
+                if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                    $additionalInfo = $decoded;
+                }
+            }
+            
+            // 신청 시점의 상품 정보를 우선 사용 (product_snapshot)
+            $productSnapshot = $additionalInfo['product_snapshot'] ?? [];
+            if ($productSnapshot) {
+                $exclude = ['id', 'product_id', 'seller_id', 'order_number', 'application_id', 'created_at'];
+                foreach ($productSnapshot as $key => $value) {
+                    if (!in_array($key, $exclude) && $value !== null) {
+                        $app[$key] = $value; // 신청 시점 정보로 덮어쓰기
+                    }
+                }
+            }
+        }
+        unset($app);
         
         // 판매자 정보 추가 및 전체 판매자 정보 저장
         $sellersData = [];
@@ -2024,14 +2046,17 @@ function showProductModal(orderData) {
         }
         
         // 포인트 사용 정보 추가
+        const pointSetting = getValue('point_setting', 'point_setting');
+        const pointBenefitDescription = getValue('point_benefit_description', 'point_benefit_description');
+        
         if (orderData.used_point && parseInt(orderData.used_point) > 0) {
             const usedPoint = parseInt(orderData.used_point);
             const formattedPoint = usedPoint.toLocaleString('ko-KR');
             customerInfoRows.push(`<tr><th>포인트 사용</th><td style="color: #6366f1; font-weight: 600;">${formattedPoint}P</td></tr>`);
             
-            // 할인 혜택 내용 표시
-            if (orderData.point_benefit_description) {
-                customerInfoRows.push(`<tr><th>할인 혜택</th><td style="color: #10b981; font-weight: 500;">${escapeHtml(orderData.point_benefit_description)}</td></tr>`);
+            // 할인 혜택 내용 표시 (product_snapshot에서 가져온 값 사용)
+            if (pointBenefitDescription) {
+                customerInfoRows.push(`<tr><th>할인 혜택</th><td style="color: #10b981; font-weight: 500;">${escapeHtml(pointBenefitDescription)}</td></tr>`);
             }
         }
         

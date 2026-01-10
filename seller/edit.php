@@ -3,6 +3,7 @@
  * 판매자 센터용 판매자 정보 수정 페이지
  */
 
+require_once __DIR__ . '/../includes/data/path-config.php';
 require_once __DIR__ . '/../includes/data/auth-functions.php';
 
 /**
@@ -162,14 +163,14 @@ if (session_status() === PHP_SESSION_NONE) {
 // 판매자 인증 체크
 $currentUser = getCurrentUser();
 if (!$currentUser || $currentUser['role'] !== 'seller') {
-    header('Location: /MVNO/seller/login.php');
+    header('Location: ' . getAssetPath('/seller/login.php'));
     exit;
 }
 
 // 판매자 승인 상태 확인
 $approvalStatus = $currentUser['approval_status'] ?? 'pending';
 if ($approvalStatus !== 'approved') {
-    header('Location: /MVNO/seller/waiting.php');
+    header('Location: ' . getAssetPath('/seller/waiting.php'));
     exit;
 }
 
@@ -177,7 +178,7 @@ if ($approvalStatus !== 'approved') {
 $seller = getUserById($currentUser['user_id']);
 
 if (!$seller || $seller['role'] !== 'seller') {
-    header('Location: /MVNO/seller/profile.php');
+    header('Location: ' . getAssetPath('/seller/profile.php'));
     exit;
 }
 
@@ -460,8 +461,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_seller'])) {
                                 $error_message = '이미지 파일만 업로드 가능합니다. (jpg, jpeg, png)';
                             } else {
                                 // 기존 이미지 삭제 (있는 경우)
-                                if (!empty($seller['business_license_image']) && file_exists(__DIR__ . '/..' . $seller['business_license_image'])) {
-                                    @unlink(__DIR__ . '/..' . $seller['business_license_image']);
+                                // DB에는 웹경로로 저장되어 있으므로 파일시스템 경로로 안전하게 변환
+                                if (!empty($seller['business_license_image'])) {
+                                    $projectRoot = realpath(__DIR__ . '/../');
+                                    $webPath = (string)$seller['business_license_image'];
+                                    // getAssetPath로 생성된 경로나 /MVNO/로 시작하는 경로 처리
+                                    if ($projectRoot) {
+                                        // 웹 경로에서 실제 파일 경로로 변환
+                                        $candidate = $projectRoot . str_replace(['/MVNO', getAssetPath('')], '', $webPath);
+                                        $candidate = str_replace('/', DIRECTORY_SEPARATOR, $candidate);
+                                        $candidateReal = realpath($candidate);
+                                        if ($candidateReal && is_file($candidateReal)) {
+                                            @unlink($candidateReal);
+                                        }
+                                    }
                                 }
                                 
                                 // 새 파일명 생성
@@ -470,8 +483,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_seller'])) {
                                 
                                 // 이미지 압축 및 저장 (500MB 이하로 자동 압축)
                                 if (compressImage($tempPath, $targetPath)) {
-                                    // 상대 경로 저장
-                                    $updateData['business_license_image'] = '/MVNO/uploads/sellers/' . $fileName;
+                                    // 상대 경로 저장 (getAssetPath를 사용하여 동적 경로 생성)
+                                    $updateData['business_license_image'] = getAssetPath('/uploads/sellers/' . $fileName);
                                 } else {
                                     $error_message = '이미지 업로드에 실패했습니다.';
                                 }
@@ -673,6 +686,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_seller'])) {
         }
     }
 }
+
+// JavaScript에서 사용할 경로 설정
+$checkSellerDuplicateApi = getApiPath('/api/check-seller-duplicate.php');
+$sellerProfileUrl = getAssetPath('/seller/profile.php');
 
 // 판매자 헤더 포함
 require_once __DIR__ . '/includes/seller-header.php';
@@ -1027,7 +1044,7 @@ require_once __DIR__ . '/includes/seller-header.php';
 <div class="seller-edit-container">
     <div class="edit-header">
         <h1>회원정보 수정</h1>
-        <a href="/MVNO/seller/profile.php" class="back-button">
+        <a href="<?php echo $sellerProfileUrl; ?>" class="back-button">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M19 12H5M12 19l-7-7 7-7"/>
             </svg>
@@ -1176,7 +1193,7 @@ require_once __DIR__ . '/includes/seller-header.php';
         </div>
         
         <div class="form-actions">
-            <a href="/MVNO/seller/profile.php" class="btn btn-secondary">취소</a>
+            <a href="<?php echo $sellerProfileUrl; ?>" class="btn btn-secondary">취소</a>
             <button type="submit" class="btn btn-primary">저장</button>
         </div>
     </form>
@@ -1593,7 +1610,7 @@ require_once __DIR__ . '/includes/seller-header.php';
             resultDiv.className = 'check-result checking';
             
             const currentUserId = '<?php echo htmlspecialchars($seller['user_id'] ?? ''); ?>';
-            fetch(`/MVNO/api/check-seller-duplicate.php?type=seller_name&value=${encodeURIComponent(value)}&current_user_id=${encodeURIComponent(currentUserId)}`)
+            fetch(`<?php echo $checkSellerDuplicateApi; ?>?type=seller_name&value=${encodeURIComponent(value)}&current_user_id=${encodeURIComponent(currentUserId)}`)
                 .then(response => response.json())
                 .then(data => {
                     if (data.success && !data.duplicate) {
@@ -1690,7 +1707,7 @@ require_once __DIR__ . '/includes/seller-header.php';
     }
     
     function goToProfilePage() {
-        window.location.href = '/MVNO/seller/profile.php';
+        window.location.href = '<?php echo $sellerProfileUrl; ?>';
     }
 </script>
 

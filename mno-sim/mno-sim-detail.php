@@ -702,6 +702,35 @@ function getRelativeTime($datetime) {
         </section>
     </section>
 
+    <!-- 포인트 할인 혜택 설정 섹션 -->
+    <?php if (isset($plan['point_setting']) && $plan['point_setting'] > 0): ?>
+    <section class="plan-point-benefit-section">
+        <div class="content-layout">
+            <div class="plan-info-card">
+                <h3 class="plan-info-card-title">포인트 할인 혜택 설정</h3>
+                <div class="plan-info-card-content">
+                    <table class="product-info-table" style="width: 100%; border-collapse: collapse;">
+                        <tr>
+                            <th style="padding: 12px; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb; width: 200px;">포인트설정금액</th>
+                            <td style="padding: 12px; color: #1f2937; border-bottom: 1px solid #e5e7eb;">
+                                <?php echo number_format($plan['point_setting']); ?>P
+                            </td>
+                        </tr>
+                        <?php if (!empty($plan['point_benefit_description'])): ?>
+                        <tr>
+                            <th style="padding: 12px; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb; vertical-align: top;">할인혜택내용</th>
+                            <td style="padding: 12px; color: #1f2937; border-bottom: 1px solid #e5e7eb; line-height: 1.6;">
+                                <?php echo nl2br(htmlspecialchars($plan['point_benefit_description'])); ?>
+                            </td>
+                        </tr>
+                        <?php endif; ?>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+    <?php endif; ?>
+
     <!-- 탭 컨텐츠: 리뷰 -->
     <?php if ($hasReviews): ?>
     <section class="plan-detail-tab-content" id="tab-review">

@@ -4,6 +4,7 @@
  * 경로: /MVNO/seller/notice/
  */
 
+require_once __DIR__ . '/../../includes/data/path-config.php';
 require_once __DIR__ . '/../../includes/data/auth-functions.php';
 require_once __DIR__ . '/../../includes/data/notice-functions.php';
 
@@ -16,14 +17,14 @@ $currentUser = getCurrentUser();
 
 // 판매자 로그인 체크
 if (!$currentUser || $currentUser['role'] !== 'seller') {
-    header('Location: /MVNO/seller/login.php');
+    header('Location: ' . getAssetPath('/seller/login.php'));
     exit;
 }
 
 // 판매자 승인 체크
 $isApproved = isset($currentUser['seller_approved']) && $currentUser['seller_approved'] === true;
 if (!$isApproved) {
-    header('Location: /MVNO/seller/waiting.php');
+    header('Location: ' . getAssetPath('/seller/waiting.php'));
     exit;
 }
 
@@ -201,9 +202,9 @@ $total_pages = ceil($total / $per_page);
                 $has_image = !empty($notice['image_url']);
                 $has_content = !empty($notice['content']);
             ?>
-                <a href="/MVNO/seller/notice/detail.php?id=<?= htmlspecialchars($notice['id']) ?>" class="notice-item">
+                <a href="<?php echo getAssetPath('/seller/notice/detail.php'); ?>?id=<?= htmlspecialchars($notice['id']) ?>" class="notice-item">
                     <?php if ($has_image): ?>
-                        <img src="<?= htmlspecialchars($notice['image_url']) ?>" 
+                        <img src="<?= htmlspecialchars(getAssetPath($notice['image_url'])) ?>" 
                              alt="<?= htmlspecialchars($notice['title']) ?>" 
                              class="notice-item-image">
                     <?php endif; ?>

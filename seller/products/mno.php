@@ -4,6 +4,7 @@
  * 경로: /seller/products/mno.php
  */
 
+require_once __DIR__ . '/../../includes/data/path-config.php';
 require_once __DIR__ . '/../../includes/data/auth-functions.php';
 require_once __DIR__ . '/../../includes/data/db-config.php';
 
@@ -114,20 +115,20 @@ if ($productId > 0 && $pdo) {
 
 // 판매자 로그인 체크
 if (!$currentUser || $currentUser['role'] !== 'seller') {
-    header('Location: /MVNO/seller/login.php');
+    header('Location: ' . getAssetPath('/seller/login.php'));
     exit;
 }
 
 // 판매자 승인 체크
 $approvalStatus = $currentUser['approval_status'] ?? 'pending';
 if ($approvalStatus !== 'approved') {
-    header('Location: /MVNO/seller/waiting.php');
+    header('Location: ' . getAssetPath('/seller/waiting.php'));
     exit;
 }
 
 // 탈퇴 요청 상태 확인
 if (isset($currentUser['withdrawal_requested']) && $currentUser['withdrawal_requested'] === true) {
-    header('Location: /MVNO/seller/waiting.php');
+    header('Location: ' . getAssetPath('/seller/waiting.php'));
     exit;
 }
 
@@ -567,6 +568,14 @@ $pageStyles = '
     }
 ';
 
+// JavaScript에서 사용할 API 경로 설정
+$getDevicesByManufacturerApi = getApiPath('/api/get-devices-by-manufacturer.php');
+$getDeviceInfoApi = getApiPath('/api/get-device-info.php');
+$productRegisterApi = getApiPath('/api/product-register-mno.php');
+$productDeleteApi = getApiPath('/api/product-delete.php');
+$mnoListUrl = getAssetPath('/seller/products/mno-list.php');
+$sellerHomeUrl = getAssetPath('/seller/');
+
 include __DIR__ . '/../includes/seller-header.php';
 ?>
 
@@ -575,11 +584,11 @@ include __DIR__ . '/../includes/seller-header.php';
 document.addEventListener('DOMContentLoaded', function() {
     if (typeof showAlert === 'function') {
         showAlert('등록권한이 없습니다.\n관리자에게 문의하세요.', '권한 없음').then(function() {
-            window.location.href = '/MVNO/seller/';
+            window.location.href = '<?php echo $sellerHomeUrl; ?>';
         });
     } else {
         alert('등록권한이 없습니다.\n관리자에게 문의하세요.');
-        window.location.href = '/MVNO/seller/';
+        window.location.href = '<?php echo $sellerHomeUrl; ?>';
     }
 });
 </script>
@@ -609,7 +618,7 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
     <?php endif; ?>
     
-    <form id="productForm" class="product-form" method="POST" action="/MVNO/api/product-register-mno.php">
+    <form id="productForm" class="product-form" method="POST" action="<?php echo $productRegisterApi; ?>">
         <?php if ($editMode): ?>
             <input type="hidden" name="product_id" id="product_id" value="<?php echo $productId; ?>">
         <?php endif; ?>
@@ -924,10 +933,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         <!-- 제출 버튼 -->
         <div class="form-actions">
-            <?php if ($editMode): ?>
-                <button type="button" class="btn btn-danger" onclick="deleteProduct()">삭제</button>
-            <?php endif; ?>
-            <a href="<?php echo $editMode ? '/MVNO/seller/products/mno-list.php' : '/MVNO/seller/products/list.php'; ?>" class="btn btn-secondary">취소</a>
+            <a href="<?php echo $editMode ? $mnoListUrl : getAssetPath('/seller/products/list.php'); ?>" class="btn btn-secondary">취소</a>
             <button type="button" id="submitBtn" class="btn btn-primary">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M5 13l4 4L19 7"/>
@@ -1049,7 +1055,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.loadDeviceList = function(manufacturerId, selectDeviceId) {
         if (!manufacturerId || !deviceSelect) return;
         
-        fetch(`/MVNO/api/get-devices-by-manufacturer.php?manufacturer_id=${manufacturerId}`)
+        fetch(`<?php echo $getDevicesByManufacturerApi; ?>?manufacturer_id=${manufacturerId}`)
             .then(response => response.json())
             .then(data => {
                 if (data.success && data.grouped) {
@@ -1225,7 +1231,7 @@ document.addEventListener('DOMContentLoaded', function() {
         function loadDeviceListForEdit(manufacturerId, selectDeviceId) {
             if (!manufacturerId || !editDeviceSelect) return;
             
-            fetch(`/MVNO/api/get-devices-by-manufacturer.php?manufacturer_id=${manufacturerId}`)
+            fetch(`<?php echo $getDevicesByManufacturerApi; ?>?manufacturer_id=${manufacturerId}`)
                 .then(response => response.json())
                 .then(data => {
                     if (data.success && data.grouped) {
@@ -1292,7 +1298,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // manufacturer_id가 없으면 device_id로 제조사 정보 가져오기
         if (!editData.manufacturer_id && editData.device_id && editManufacturerSelect && editDeviceSelect) {
-            fetch(`/MVNO/api/get-device-info.php?device_id=${editData.device_id}`)
+            fetch(`<?php echo $getDeviceInfoApi; ?>?device_id=${editData.device_id}`)
                 .then(response => response.json())
                 .then(data => {
                     if (data.success && data.manufacturer_id) {
@@ -1556,7 +1562,7 @@ function loadDeviceColors(deviceId) {
     // 로딩 표시
     colorContainer.innerHTML = '<div style="width: 100%; color: #6b7280; font-size: 14px;">색상 정보를 불러오는 중...</div>';
     
-    fetch(`/MVNO/api/get-device-info.php?device_id=${deviceId}`)
+    fetch(`<?php echo $getDeviceInfoApi; ?>?device_id=${deviceId}`)
         .then(response => response.json())
         .then(data => {
             if (data.success && data.colors && Array.isArray(data.colors) && data.colors.length > 0) {
@@ -1642,7 +1648,7 @@ function deleteProduct() {
 }
 
 function processDeleteProduct(productId) {
-    fetch('/MVNO/api/product-delete.php', {
+    fetch('<?php echo $productDeleteApi; ?>', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -1656,11 +1662,11 @@ function processDeleteProduct(productId) {
         if (data.success) {
             if (typeof showAlert === 'function') {
                 showAlert('상품이 삭제되었습니다.', '완료').then(() => {
-                    window.location.href = '/MVNO/seller/products/mno-list.php';
+                    window.location.href = '<?php echo $mnoListUrl; ?>';
                 });
             } else {
                 alert('상품이 삭제되었습니다.');
-                window.location.href = '/MVNO/seller/products/mno-list.php';
+                window.location.href = '<?php echo $mnoListUrl; ?>';
             }
         } else {
             if (typeof showAlert === 'function') {
@@ -1895,7 +1901,7 @@ document.getElementById('productForm').addEventListener('submit', function(e) {
         submitBtn.disabled = true;
     }
     
-    fetch('/MVNO/api/product-register-mno.php', {
+    fetch('<?php echo $productRegisterApi; ?>', {
         method: 'POST',
         body: formData
     })
@@ -1904,15 +1910,17 @@ document.getElementById('productForm').addEventListener('submit', function(e) {
         if (data.success) {
             // 성공 모달
             const isEditMode = <?php echo $editMode ? 'true' : 'false'; ?>;
+            const mnoListUrl = '<?php echo $mnoListUrl; ?>';
+            const currentPageUrl = '<?php echo getAssetPath('/seller/products/mno.php'); ?>';
             document.getElementById('modalTitle').textContent = isEditMode ? '수정 완료' : '등록 완료';
             modalMessage.innerHTML = isEditMode ? '상품이 성공적으로 수정되었습니다.' : '상품이 성공적으로 등록되었습니다.';
             modalMessage.className = 'modal-message success';
             document.getElementById('modalConfirmBtn').style.display = 'block';
             document.getElementById('modalConfirmBtn').onclick = function() {
                 if (isEditMode) {
-                    window.location.href = '/MVNO/seller/products/mno-list.php';
+                    window.location.href = mnoListUrl;
                 } else {
-                    window.location.href = '/MVNO/seller/products/mno.php?success=1';
+                    window.location.href = currentPageUrl + '?success=1';
                 }
             };
         } else {
@@ -1933,7 +1941,7 @@ document.getElementById('productForm').addEventListener('submit', function(e) {
                 errorHtml += '<div style="font-size: 14px; color: #92400e; font-weight: 600; margin-bottom: 8px;">💡 해결 방법:</div>';
                 errorHtml += '<div style="font-size: 13px; color: #78350f; margin-bottom: 12px;">' + data.solution + '</div>';
                 if (data.solution.includes('install_mno_tables.php')) {
-                    errorHtml += '<a href="/MVNO/database/install_mno_tables.php" target="_blank" style="display: inline-block; padding: 10px 20px; background: #f59e0b; color: white; text-decoration: none; border-radius: 6px; font-weight: 600; margin-top: 8px;">테이블 생성 페이지 열기</a>';
+                    errorHtml += '<a href="<?php echo getAssetPath('/database/install_mno_tables.php'); ?>" target="_blank" style="display: inline-block; padding: 10px 20px; background: #f59e0b; color: white; text-decoration: none; border-radius: 6px; font-weight: 600; margin-top: 8px;">테이블 생성 페이지 열기</a>';
                 }
                 errorHtml += '</div>';
             }

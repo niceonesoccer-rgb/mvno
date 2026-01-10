@@ -31,8 +31,8 @@ if ($userRole === 'admin' || $userRole === 'sub_admin') {
     // 관리자는 로그아웃 후 관리자 로그인 페이지로
     $redirectUrl = getAssetPath('/admin/login.php');
 } elseif ($userRole === 'seller') {
-    // 판매자는 판매자 로그인 페이지로
-    $redirectUrl = getAssetPath('/seller/login.php');
+    // 판매자는 판매자 센터로
+    $redirectUrl = getAssetPath('/seller/');
 } else {
     // 일반 사용자는 홈으로
     $redirectUrl = getAssetPath('/');

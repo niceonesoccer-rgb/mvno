@@ -54,8 +54,38 @@ if ($pdo) {
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=1400, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" id="viewportMeta" content="width=1400, initial-scale=0.5, minimum-scale=0.1, maximum-scale=5.0, user-scalable=yes">
     <title>관리자 페이지 - 유심킹</title>
+    <link rel="icon" type="image/png" href="<?php echo getAssetPath('/images/site/favicon.png'); ?>">
+    <script>
+    // 모바일에서 viewport 동적 조정
+    (function() {
+        function adjustViewport() {
+            const viewport = document.getElementById('viewportMeta');
+            if (!viewport) return;
+            
+            const isMobile = window.innerWidth <= 768;
+            const deviceWidth = window.innerWidth || 375; // 기본값 375px
+            
+            if (isMobile) {
+                // 모바일: 실제 컨텐츠 너비(1400px) 기준으로 설정
+                // initial-scale 계산: 화면 너비 / 컨텐츠 너비 (최소 0.2 ~ 최대 1.0)
+                const calculatedScale = Math.max(0.2, Math.min(1.0, deviceWidth / 1400));
+                viewport.setAttribute('content', 'width=1400, initial-scale=' + calculatedScale + ', minimum-scale=0.1, maximum-scale=5.0, user-scalable=yes');
+            } else {
+                // PC: 일반 설정
+                viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes');
+            }
+        }
+        
+        // 초기 로드 및 리사이즈 시 조정
+        adjustViewport();
+        window.addEventListener('resize', adjustViewport);
+        window.addEventListener('orientationchange', function() {
+            setTimeout(adjustViewport, 100);
+        });
+    })();
+    </script>
     <link rel="stylesheet" href="<?php echo getAssetPath('/assets/css/style.css'); ?>">
     <script src="<?php echo getAssetPath('/assets/js/modal.js'); ?>" defer></script>
     <style>
@@ -68,7 +98,7 @@ if ($pdo) {
         html {
             overflow-x: auto;
             overflow-y: scroll;
-            min-width: 1400px;
+            min-width: 1400px; /* 모바일에서도 최소 너비 유지 */
         }
         
         body {
@@ -77,15 +107,14 @@ if ($pdo) {
             margin: 0;
             padding: 0;
             min-height: 100vh;
-            min-width: 1400px;
             overflow-x: auto;
             -webkit-overflow-scrolling: touch; /* iOS에서 부드러운 스크롤 */
+            min-width: 1400px; /* 모바일에서도 최소 너비 유지 */
         }
         
         /* 헤더 */
         .admin-top-header {
             width: 100%;
-            min-width: 1400px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             border-bottom: 1px solid #4c51bf;
             padding: 16px 24px;
@@ -100,9 +129,42 @@ if ($pdo) {
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
         
+        .admin-top-header {
+            min-width: 1400px; /* 모바일에서도 최소 너비 유지 */
+        }
+        
         .admin-top-header-left {
             display: flex;
             align-items: center;
+            gap: 16px;
+        }
+        
+        /* 햄버거 메뉴 버튼 */
+        .mobile-menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            color: #ffffff;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 6px;
+            transition: background 0.2s;
+            flex-shrink: 0;
+        }
+        
+        .mobile-menu-toggle:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .mobile-menu-toggle:active {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        @media (max-width: 768px) {
+            .mobile-menu-toggle {
+                display: block;
+            }
         }
         
         .admin-top-header-logo {
@@ -115,6 +177,13 @@ if ($pdo) {
             text-underline-offset: 4px;
             transition: opacity 0.2s;
             cursor: pointer;
+            white-space: nowrap;
+        }
+        
+        @media (max-width: 768px) {
+            .admin-top-header-logo {
+                font-size: 16px;
+            }
         }
         
         .admin-top-header-logo:hover {
@@ -124,7 +193,14 @@ if ($pdo) {
         .admin-top-header-right {
             display: flex;
             align-items: center;
-            gap: 24px;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        
+        @media (max-width: 768px) {
+            .admin-top-header-right {
+                display: none; /* 모바일에서 숨김 */
+            }
         }
         
         .admin-top-header-link {
@@ -135,6 +211,14 @@ if ($pdo) {
             padding: 6px 12px;
             border-radius: 6px;
             transition: background 0.2s;
+            white-space: nowrap;
+        }
+        
+        @media (max-width: 768px) {
+            .admin-top-header-link {
+                font-size: 12px;
+                padding: 6px 10px;
+            }
         }
         
         .admin-top-header-link:hover {
@@ -154,6 +238,70 @@ if ($pdo) {
             left: 0;
             border-right: 2px solid #64748b;
             box-shadow: 2px 0 16px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s ease;
+        }
+        
+        /* 사이드바 닫기 버튼 */
+        .sidebar-close-btn {
+            display: none;
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: #ffffff;
+            font-size: 24px;
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            cursor: pointer;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+            z-index: 1000;
+        }
+        
+        .sidebar-close-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        /* 사이드바 오버레이 */
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 998;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .sidebar-overlay.active {
+            opacity: 1;
+        }
+        
+        /* 모바일에서 사이드바 숨김 */
+        @media (max-width: 768px) {
+            .admin-sidebar {
+                transform: translateX(-100%);
+                width: 260px;
+                max-width: 80vw;
+            }
+            
+            .admin-sidebar.mobile-open {
+                transform: translateX(0);
+            }
+            
+            .sidebar-close-btn {
+                display: flex;
+            }
+            
+            .sidebar-overlay {
+                display: block;
+            }
         }
         
         .admin-sidebar::-webkit-scrollbar {
@@ -519,7 +667,30 @@ if ($pdo) {
             margin-top: 60px;
             min-height: calc(100vh - 60px);
             background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-            min-width: calc(1400px - 260px);
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            /* 스크롤바 숨김 */
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none; /* IE/Edge */
+        }
+        
+        /* 스크롤바 숨김 (Webkit 브라우저) */
+        .admin-main::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .admin-main {
+            min-width: calc(1400px - 260px); /* 모바일에서도 최소 너비 유지 */
+        }
+        
+        @media (max-width: 768px) {
+            .admin-main {
+                margin-left: 0;
+                width: 100%;
+                min-width: 1400px; /* 모바일에서도 전체 너비 유지 */
+                /* 모바일에서 확대/축소와 패닝 허용 */
+                touch-action: pan-x pan-y pinch-zoom;
+            }
         }
         
         .admin-content {
@@ -527,13 +698,79 @@ if ($pdo) {
             background: transparent;
             min-width: 1000px;
         }
+        
+        @media (max-width: 768px) {
+            .admin-content {
+                padding: 16px;
+                /* 모바일에서 터치 제스처 허용 */
+                touch-action: pan-x pan-y pinch-zoom;
+            }
+        }
+        
+        /* 테이블 컨테이너 가로 스크롤 지원 */
+        .table-container,
+        table {
+            min-width: 1000px;
+        }
+        
+        @media (max-width: 768px) {
+            .table-container,
+            table {
+                /* 모바일에서 터치 제스처 허용 */
+                touch-action: pan-x pan-y pinch-zoom;
+            }
+        }
+        
+        /* 그리드 레이아웃 가로 스크롤 지원 */
+        .dashboard-grid,
+        .grid-container {
+            min-width: 1000px;
+        }
+        
+        @media (max-width: 768px) {
+            .dashboard-grid,
+            .grid-container {
+                /* 모바일에서 터치 제스처 허용 */
+                touch-action: pan-x pan-y pinch-zoom;
+            }
+        }
+        
+        /* body와 html에서도 모바일 확대/축소 허용 */
+        @media (max-width: 768px) {
+            html, body {
+                /* 모바일에서 확대/축소와 패닝 허용 */
+                touch-action: pan-x pan-y pinch-zoom;
+                /* iOS에서 확대/축소 최적화 */
+                -webkit-text-size-adjust: 100%;
+                /* 모바일에서도 가로 스크롤 가능 */
+                overflow-x: auto;
+                overflow-y: auto;
+                /* 스크롤바 숨김 (스크롤은 가능) */
+                scrollbar-width: none; /* Firefox */
+                -ms-overflow-style: none; /* IE/Edge */
+            }
+            
+            html::-webkit-scrollbar, body::-webkit-scrollbar {
+                display: none; /* Chrome, Safari, Opera */
+            }
+        }
     </style>
 </head>
 <body>
+    <!-- 사이드바 오버레이 -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    
     <!-- 상단 헤더 -->
     <header class="admin-top-header">
         <div class="admin-top-header-left">
-            <a href="<?php echo getAssetPath('/admin/'); ?>" class="admin-top-header-logo" style="text-decoration: none; color: inherit;">유심킹 관리자</a>
+            <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="메뉴 열기">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="3" y1="6" x2="21" y2="6"/>
+                    <line x1="3" y1="12" x2="21" y2="12"/>
+                    <line x1="3" y1="18" x2="21" y2="18"/>
+                </svg>
+            </button>
+            <a href="<?php echo getAssetPath('/admin/'); ?>" class="admin-top-header-logo" style="text-decoration: none; color: inherit;">관리자 센터</a>
         </div>
         <div class="admin-top-header-right">
             <a href="<?php echo getAssetPath('/'); ?>" target="_blank" class="admin-top-header-link">사이트보기</a>
@@ -543,6 +780,12 @@ if ($pdo) {
     
     <!-- 사이드바 -->
     <aside class="admin-sidebar" id="adminSidebar">
+        <button class="sidebar-close-btn" id="sidebarCloseBtn" aria-label="메뉴 닫기">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"/>
+                <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+        </button>
         <nav class="sidebar-menu">
             <!-- 대시보드 -->
             <div class="menu-section">
@@ -1072,4 +1315,78 @@ if ($pdo) {
     <!-- 메인 콘텐츠 -->
     <main class="admin-main">
         <div class="admin-content">
+            
+<script>
+// 모바일 메뉴 토글 기능
+document.addEventListener('DOMContentLoaded', function() {
+    const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+    const sidebar = document.getElementById('adminSidebar');
+    const sidebarOverlay = document.getElementById('sidebarOverlay');
+    const sidebarCloseBtn = document.getElementById('sidebarCloseBtn');
+    
+    function openSidebar() {
+        if (sidebar) {
+            sidebar.classList.add('mobile-open');
+        }
+        if (sidebarOverlay) {
+            sidebarOverlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+    }
+    
+    function closeSidebar() {
+        if (sidebar) {
+            sidebar.classList.remove('mobile-open');
+        }
+        if (sidebarOverlay) {
+            sidebarOverlay.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+    }
+    
+    if (mobileMenuToggle) {
+        mobileMenuToggle.addEventListener('click', openSidebar);
+    }
+    
+    if (sidebarCloseBtn) {
+        sidebarCloseBtn.addEventListener('click', closeSidebar);
+    }
+    
+    if (sidebarOverlay) {
+        sidebarOverlay.addEventListener('click', closeSidebar);
+    }
+    
+    // 사이드바 메뉴 링크 클릭 시 모바일에서 사이드바 닫기
+    if (sidebar) {
+        const menuLinks = sidebar.querySelectorAll('a.menu-item');
+        menuLinks.forEach(link => {
+            link.addEventListener('click', function() {
+                // 모바일 환경에서만 닫기
+                if (window.innerWidth <= 768) {
+                    closeSidebar();
+                }
+            });
+        });
+    }
+    
+    // ESC 키로 사이드바 닫기
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && sidebar && sidebar.classList.contains('mobile-open')) {
+            closeSidebar();
+        }
+    });
+    
+    // 화면 크기 변경 시 처리
+    let resizeTimer;
+    window.addEventListener('resize', function() {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(function() {
+            // 데스크톱 크기로 변경되면 사이드바 열기 상태 유지 (필요시)
+            if (window.innerWidth > 768) {
+                closeSidebar();
+            }
+        }, 250);
+    });
+});
+</script>
 

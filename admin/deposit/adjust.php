@@ -12,6 +12,7 @@
 require_once __DIR__ . '/../includes/admin-header.php';
 require_once __DIR__ . '/../../includes/data/db-config.php';
 require_once __DIR__ . '/../../includes/data/auth-functions.php';
+require_once __DIR__ . '/../../includes/data/path-config.php';
 
 $pdo = getDBConnection();
 
@@ -356,7 +357,7 @@ function validateSellerId(sellerId) {
     
     validationDiv.innerHTML = '<span style="color: #64748b;">확인 중...</span>';
     
-    fetch(`/MVNO/api/get-seller-balance.php?seller_id=${encodeURIComponent(sellerId.trim())}`)
+    fetch(`<?= getApiPath('/api/get-seller-balance.php') ?>?seller_id=${encodeURIComponent(sellerId.trim())}`)
         .then(response => response.json())
         .then(data => {
             if (data.success) {

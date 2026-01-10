@@ -696,7 +696,7 @@ $categoryLabels = [
         <h2 style="font-size: 18px; font-weight: 700; color: #1e293b; margin-bottom: 16px;">카테고리별 주문수</h2>
         <div class="dashboard-grid">
             <?php foreach ($categoryLabels as $category => $label): ?>
-            <a href="/MVNO/admin/orders/<?php echo $category === 'mno_sim' ? 'mno-sim-list.php' : ($category . '-list.php'); ?>" class="dashboard-card">
+            <a href="<?php echo getAssetPath('/admin/orders/' . ($category === 'mno_sim' ? 'mno-sim-list.php' : ($category . '-list.php'))); ?>" class="dashboard-card">
                 <div class="dashboard-card-header">
                     <span class="dashboard-card-title"><?php echo htmlspecialchars($label); ?></span>
                     <div class="dashboard-card-icon" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);">

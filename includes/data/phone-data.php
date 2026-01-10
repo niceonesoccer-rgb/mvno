@@ -764,6 +764,8 @@ function getPhoneDetailData($phone_id) {
                 p.application_count,
                 p.favorite_count,
                 p.view_count,
+                p.point_setting,
+                p.point_benefit_description,
                 mno.device_name,
                 mno.device_price,
                 mno.device_capacity,
@@ -1083,7 +1085,10 @@ function getPhoneDetailData($phone_id) {
             'visit_region' => $visitRegion,
             'promotion_title' => $product['promotion_title'] ?? '부가서비스 없음',
             'device_colors' => $deviceColors,
-            'is_favorited' => $isFavorited
+            'point_setting' => isset($product['point_setting']) ? (int)$product['point_setting'] : 0,
+            'point_benefit_description' => $product['point_benefit_description'] ?? '',
+            'is_favorited' => $isFavorited,
+            '_raw_data' => $product // 원본 DB 데이터도 포함
         ];
         
     } catch (PDOException $e) {

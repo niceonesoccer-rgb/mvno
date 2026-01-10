@@ -20,11 +20,11 @@ if (!isLoggedIn()) {
 
 $currentUser = getCurrentUser();
 
-// 판매자 로그인 체크
-if (!$currentUser || $currentUser['role'] !== 'seller') {
+// 판매자 또는 관리자 로그인 체크
+if (!$currentUser || ($currentUser['role'] !== 'seller' && !isAdmin($currentUser['user_id']))) {
     echo json_encode([
         'success' => false,
-        'message' => '판매자만 접근 가능합니다.'
+        'message' => '판매자 또는 관리자만 접근 가능합니다.'
     ]);
     exit;
 }
@@ -46,20 +46,34 @@ try {
         throw new Exception('데이터베이스 연결에 실패했습니다.');
     }
     
-    $sellerId = (string)$currentUser['user_id'];
+    $isAdminUser = isAdmin($currentUser['user_id']);
+    $sellerId = $isAdminUser ? null : (string)$currentUser['user_id'];
     
     if ($productType === 'mno') {
         // 통신사폰 상품 정보
-        $stmt = $pdo->prepare("
-            SELECT 
-                p.*,
-                mno.*
-            FROM products p
-            LEFT JOIN product_mno_details mno ON p.id = mno.product_id
-            WHERE p.id = ? AND p.seller_id = ? AND p.product_type = 'mno' AND p.status != 'deleted'
-            LIMIT 1
-        ");
-        $stmt->execute([$productId, $sellerId]);
+        if ($isAdminUser) {
+            $stmt = $pdo->prepare("
+                SELECT 
+                    p.*,
+                    mno.*
+                FROM products p
+                LEFT JOIN product_mno_details mno ON p.id = mno.product_id
+                WHERE p.id = ? AND p.product_type = 'mno' AND p.status != 'deleted'
+                LIMIT 1
+            ");
+            $stmt->execute([$productId]);
+        } else {
+            $stmt = $pdo->prepare("
+                SELECT 
+                    p.*,
+                    mno.*
+                FROM products p
+                LEFT JOIN product_mno_details mno ON p.id = mno.product_id
+                WHERE p.id = ? AND p.seller_id = ? AND p.product_type = 'mno' AND p.status != 'deleted'
+                LIMIT 1
+            ");
+            $stmt->execute([$productId, $sellerId]);
+        }
         $product = $stmt->fetch(PDO::FETCH_ASSOC);
         
         if (!$product) {
@@ -72,16 +86,29 @@ try {
         ]);
     } else if ($productType === 'mvno') {
         // 알뜰폰 상품 정보
-        $stmt = $pdo->prepare("
-            SELECT 
-                p.*,
-                mvno.*
-            FROM products p
-            LEFT JOIN product_mvno_details mvno ON p.id = mvno.product_id
-            WHERE p.id = ? AND p.seller_id = ? AND p.product_type = 'mvno' AND p.status != 'deleted'
-            LIMIT 1
-        ");
-        $stmt->execute([$productId, $sellerId]);
+        if ($isAdminUser) {
+            $stmt = $pdo->prepare("
+                SELECT 
+                    p.*,
+                    mvno.*
+                FROM products p
+                LEFT JOIN product_mvno_details mvno ON p.id = mvno.product_id
+                WHERE p.id = ? AND p.product_type = 'mvno' AND p.status != 'deleted'
+                LIMIT 1
+            ");
+            $stmt->execute([$productId]);
+        } else {
+            $stmt = $pdo->prepare("
+                SELECT 
+                    p.*,
+                    mvno.*
+                FROM products p
+                LEFT JOIN product_mvno_details mvno ON p.id = mvno.product_id
+                WHERE p.id = ? AND p.seller_id = ? AND p.product_type = 'mvno' AND p.status != 'deleted'
+                LIMIT 1
+            ");
+            $stmt->execute([$productId, $sellerId]);
+        }
         $product = $stmt->fetch(PDO::FETCH_ASSOC);
         
         if (!$product) {
@@ -94,16 +121,29 @@ try {
         ]);
     } else if ($productType === 'internet') {
         // 인터넷 상품 정보
-        $stmt = $pdo->prepare("
-            SELECT 
-                p.*,
-                inet.*
-            FROM products p
-            LEFT JOIN product_internet_details inet ON p.id = inet.product_id
-            WHERE p.id = ? AND p.seller_id = ? AND p.product_type = 'internet' AND p.status != 'deleted'
-            LIMIT 1
-        ");
-        $stmt->execute([$productId, $sellerId]);
+        if ($isAdminUser) {
+            $stmt = $pdo->prepare("
+                SELECT 
+                    p.*,
+                    inet.*
+                FROM products p
+                LEFT JOIN product_internet_details inet ON p.id = inet.product_id
+                WHERE p.id = ? AND p.product_type = 'internet' AND p.status != 'deleted'
+                LIMIT 1
+            ");
+            $stmt->execute([$productId]);
+        } else {
+            $stmt = $pdo->prepare("
+                SELECT 
+                    p.*,
+                    inet.*
+                FROM products p
+                LEFT JOIN product_internet_details inet ON p.id = inet.product_id
+                WHERE p.id = ? AND p.seller_id = ? AND p.product_type = 'internet' AND p.status != 'deleted'
+                LIMIT 1
+            ");
+            $stmt->execute([$productId, $sellerId]);
+        }
         $product = $stmt->fetch(PDO::FETCH_ASSOC);
         
         if (!$product) {
@@ -116,16 +156,29 @@ try {
         ]);
     } else if ($productType === 'mno-sim') {
         // 통신사단독유심 상품 정보
-        $stmt = $pdo->prepare("
-            SELECT 
-                p.*,
-                sim.*
-            FROM products p
-            LEFT JOIN product_mno_sim_details sim ON p.id = sim.product_id
-            WHERE p.id = ? AND p.seller_id = ? AND p.product_type = 'mno-sim' AND p.status != 'deleted'
-            LIMIT 1
-        ");
-        $stmt->execute([$productId, $sellerId]);
+        if ($isAdminUser) {
+            $stmt = $pdo->prepare("
+                SELECT 
+                    p.*,
+                    sim.*
+                FROM products p
+                LEFT JOIN product_mno_sim_details sim ON p.id = sim.product_id
+                WHERE p.id = ? AND p.product_type = 'mno-sim' AND p.status != 'deleted'
+                LIMIT 1
+            ");
+            $stmt->execute([$productId]);
+        } else {
+            $stmt = $pdo->prepare("
+                SELECT 
+                    p.*,
+                    sim.*
+                FROM products p
+                LEFT JOIN product_mno_sim_details sim ON p.id = sim.product_id
+                WHERE p.id = ? AND p.seller_id = ? AND p.product_type = 'mno-sim' AND p.status != 'deleted'
+                LIMIT 1
+            ");
+            $stmt->execute([$productId, $sellerId]);
+        }
         $product = $stmt->fetch(PDO::FETCH_ASSOC);
         
         if (!$product) {

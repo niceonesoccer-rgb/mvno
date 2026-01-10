@@ -228,12 +228,6 @@ if ($periodStart && $periodEnd) {
                     </div>
                 <?php endif; ?>
                 
-                <?php if (isset($errorMessage)): ?>
-                    <div style="padding: 12px; background: #fee2e2; color: #991b1b; border-radius: 6px; margin-bottom: 20px;">
-                        <?= htmlspecialchars($errorMessage) ?>
-                    </div>
-                <?php endif; ?>
-                
                 <!-- 검색 및 필터 영역 -->
                 <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin-bottom: 24px;">
                     <form method="GET" id="searchForm">

@@ -597,7 +597,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     } else {
         alert('등록권한이 없습니다.\n관리자에게 문의하세요.');
-        window.location.href = '/MVNO/seller/';
+        window.location.href = '<?php echo getAssetPath('/seller/'); ?>';
     }
 });
 </script>

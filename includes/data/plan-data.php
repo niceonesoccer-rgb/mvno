@@ -2113,6 +2113,8 @@ function getPlanDetailData($plan_id) {
                 p.review_count,
                 p.share_count,
                 p.application_count,
+                p.point_setting,
+                p.point_benefit_description,
                 mvno.provider,
                 mvno.service_type,
                 mvno.plan_name,
@@ -2192,6 +2194,8 @@ function getPlanDetailData($plan_id) {
             }
             
             $planCard['is_favorited'] = $isFavorited;
+            $planCard['point_setting'] = isset($product['point_setting']) ? (int)$product['point_setting'] : 0;
+            $planCard['point_benefit_description'] = $product['point_benefit_description'] ?? '';
             
             // 원본 상세 데이터도 함께 반환 (상세 페이지에서 사용)
             $planCard['_raw_data'] = $product;
@@ -2260,6 +2264,8 @@ function getInternetDetailData($internet_id) {
                 p.view_count,
                 p.favorite_count,
                 p.application_count,
+                p.point_setting,
+                p.point_benefit_description,
                 inet.registration_place,
                 inet.service_type,
                 inet.speed_option,
@@ -2378,6 +2384,8 @@ function getInternetDetailData($internet_id) {
             'installation_prices' => $product['installation_prices'] ?? [],
             'promotion_title' => $product['promotion_title'] ?? '',
             'promotions' => $product['promotions'] ?? [],
+            'point_setting' => isset($product['point_setting']) ? (int)$product['point_setting'] : 0,
+            'point_benefit_description' => $product['point_benefit_description'] ?? '',
             'is_favorited' => $isFavorited,
             '_raw_data' => $product
         ];
@@ -2434,6 +2442,8 @@ function getMnoSimDetailData($product_id) {
                 p.review_count,
                 p.share_count,
                 p.application_count,
+                p.point_setting,
+                p.point_benefit_description,
                 mno_sim.provider,
                 mno_sim.service_type,
                 mno_sim.plan_name,
@@ -2540,6 +2550,8 @@ function getMnoSimDetailData($product_id) {
             }
             
             $planCard['is_favorited'] = $isFavorited;
+            $planCard['point_setting'] = isset($product['point_setting']) ? (int)$product['point_setting'] : 0;
+            $planCard['point_benefit_description'] = $product['point_benefit_description'] ?? '';
             
             // 원본 상세 데이터도 함께 반환
             $planCard['_raw_data'] = $product;

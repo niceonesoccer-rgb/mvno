@@ -329,6 +329,25 @@ $pageStyles = '
         box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
     }
     
+    .form-textarea {
+        width: 100%;
+        padding: 12px 16px;
+        font-size: 15px;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        min-height: 120px;
+        resize: vertical;
+        font-family: inherit;
+        transition: all 0.2s;
+        background: white;
+    }
+    
+    .form-textarea:focus {
+        outline: none;
+        border-color: #10b981;
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+    }
+    
     .form-help {
         font-size: 13px;
         color: #6b7280;
@@ -1155,7 +1174,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     rows="3"
                     maxlength="500"
                     placeholder="예: 네이버페이 5000지급 익월말"
-                    style="max-width: 100%;"
                 ><?php echo isset($productData['point_benefit_description']) ? htmlspecialchars($productData['point_benefit_description']) : ''; ?></textarea>
                 <small class="form-text" style="display: block; margin-top: 8px; color: #6b7280; font-size: 13px;">
                     포인트 사용 시 고객에게 제공되는 할인 혜택 내용을 입력하세요. 

@@ -1,11 +1,16 @@
         </div>
     </div>
-<?php if (isset($showSellerNameModal) && $showSellerNameModal): ?>
+<?php if (isset($showSellerNameModal) && $showSellerNameModal): 
+    require_once __DIR__ . '/../../includes/data/path-config.php';
+?>
 <script>
     // 판매자명 중복 검사 (실시간)
     let sellerNameCheckTimeout = null;
     let sellerNameValid = false;
     const currentUserId = '<?php echo htmlspecialchars($currentUser['user_id'] ?? ''); ?>';
+    const checkSellerDuplicateApiUrl = '<?php echo getApiPath('/api/check-seller-duplicate.php'); ?>';
+    const updateSellerNameApiUrl = '<?php echo getApiPath('/api/update-seller-name.php'); ?>';
+    const sellerProfileUrl = '<?php echo getAssetPath('/seller/profile.php'); ?>';
     
     function checkModalSellerNameDuplicate() {
         const sellerNameInput = document.getElementById('modalSellerName');
@@ -53,7 +58,7 @@
             resultDiv.innerHTML = '<span style="color: #6b7280;">확인 중...</span>';
             resultDiv.className = 'check-result checking';
             
-            fetch(`/MVNO/api/check-seller-duplicate.php?type=seller_name&value=${encodeURIComponent(value)}&current_user_id=${encodeURIComponent(currentUserId)}`)
+            fetch(`${checkSellerDuplicateApiUrl}?type=seller_name&value=${encodeURIComponent(value)}&current_user_id=${encodeURIComponent(currentUserId)}`)
                 .then(response => response.json())
                 .then(data => {
                     if (data.success && !data.duplicate) {
@@ -117,7 +122,7 @@
         const formData = new FormData();
         formData.append('seller_name', sellerName);
         
-        fetch('/MVNO/api/update-seller-name.php', {
+        fetch(updateSellerNameApiUrl, {
             method: 'POST',
             body: formData
         })
@@ -132,7 +137,7 @@
                 document.body.classList.remove('modal-open');
 
                 // 저장 확인용 파라미터를 붙여서 이동(페이지에서 메시지 표시 등에 활용 가능)
-                window.location.assign('/MVNO/seller/profile.php?seller_name_saved=1');
+                window.location.assign(sellerProfileUrl + '?seller_name_saved=1');
             } else {
                 alert(data.message || '판매자명 저장에 실패했습니다.');
                 if (saveBtn) {

@@ -229,8 +229,6 @@ if ($pdo && empty($errors)) {
                 mno.data_amount_value,
                 mno.data_unit,
                 p.status as product_status,
-                p.point_setting,
-                p.point_benefit_description,
                 (SELECT ABS(delta) FROM user_point_ledger 
                  WHERE user_id = c.user_id 
                    AND item_id = a.product_id 
@@ -285,6 +283,30 @@ if ($pdo && empty($errors)) {
                 'timestamp' => date('Y-m-d H:i:s')
             ];
         }
+        
+        // 신청 시점의 상품 정보를 우선 사용하도록 처리 (product_snapshot)
+        foreach ($applications as &$app) {
+            // additional_info 파싱
+            $additionalInfo = [];
+            if (!empty($app['additional_info'])) {
+                $decoded = json_decode($app['additional_info'], true);
+                if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                    $additionalInfo = $decoded;
+                }
+            }
+            
+            // 신청 시점의 상품 정보를 우선 사용 (product_snapshot)
+            $productSnapshot = $additionalInfo['product_snapshot'] ?? [];
+            if ($productSnapshot) {
+                $exclude = ['id', 'product_id', 'seller_id', 'order_number', 'application_id', 'created_at'];
+                foreach ($productSnapshot as $key => $value) {
+                    if (!in_array($key, $exclude) && $value !== null) {
+                        $app[$key] = $value; // 신청 시점 정보로 덮어쓰기
+                    }
+                }
+            }
+        }
+        unset($app);
         
         // 판매자 정보 추가 및 전체 판매자 정보 저장
         $sellersData = [];
@@ -1612,6 +1634,22 @@ function showProductModal(orderData) {
         
         // 주문 시 선택한 정보 가져오기
         const additionalInfo = orderData.additional_info || {};
+        const productSnapshot = additionalInfo.product_snapshot || {};
+        
+        // 고객이 가입한 정보를 우선 사용 (product_snapshot에서), 없으면 상품 기본 정보 사용
+        const getValue = (customerKey, productKey, defaultValue = null) => {
+            if (productSnapshot[customerKey] !== undefined && productSnapshot[customerKey] !== null) {
+                return productSnapshot[customerKey];
+            }
+            if (additionalInfo[customerKey] !== undefined && additionalInfo[customerKey] !== null) {
+                return additionalInfo[customerKey];
+            }
+            if (orderData[productKey] !== undefined && orderData[productKey] !== null) {
+                return orderData[productKey];
+            }
+            return defaultValue !== null ? defaultValue : '';
+        };
+        
         const subscriptionType = additionalInfo.subscription_type || '';
         const selectedCarrier = additionalInfo.carrier || additionalInfo.provider || '';
         const selectedDiscountType = additionalInfo.discount_type || '';
@@ -1664,9 +1702,10 @@ function showProductModal(orderData) {
             const formattedPoint = usedPoint.toLocaleString('ko-KR');
             customerInfoRows.push(`<tr><th>포인트 사용</th><td style="color: #6366f1; font-weight: 600;">${formattedPoint}원</td></tr>`);
             
-            // 할인 혜택 내용 표시
-            if (orderData.point_benefit_description) {
-                customerInfoRows.push(`<tr><th>할인 혜택</th><td style="color: #10b981; font-weight: 500;">${escapeHtml(orderData.point_benefit_description)}</td></tr>`);
+            // 할인 혜택 내용 표시 (product_snapshot에서 가져오기)
+            const pointBenefitDescription = getValue('point_benefit_description', 'point_benefit_description');
+            if (pointBenefitDescription) {
+                customerInfoRows.push(`<tr><th>할인 혜택</th><td style="color: #10b981; font-weight: 500;">${escapeHtml(pointBenefitDescription)}</td></tr>`);
             }
         }
         

@@ -223,8 +223,6 @@ if ($pdo && empty($errors)) {
                 inet.speed_option,
                 inet.monthly_fee,
                 p.status as product_status,
-                p.point_setting,
-                p.point_benefit_description,
                 (SELECT ABS(delta) FROM user_point_ledger 
                  WHERE user_id = c.user_id 
                    AND item_id = a.product_id 
@@ -315,6 +313,13 @@ if ($pdo && empty($errors)) {
                     if (isset($productSnapshot[$field]) && $productSnapshot[$field] !== '') {
                         $app[$field] = $productSnapshot[$field];
                     }
+                }
+                // point_setting과 point_benefit_description도 product_snapshot에서 가져오기
+                if (isset($productSnapshot['point_setting']) && $productSnapshot['point_setting'] !== '') {
+                    $app['point_setting'] = $productSnapshot['point_setting'];
+                }
+                if (isset($productSnapshot['point_benefit_description']) && $productSnapshot['point_benefit_description'] !== '') {
+                    $app['point_benefit_description'] = $productSnapshot['point_benefit_description'];
                 }
             }
             // product_snapshot이 없으면 현재 테이블 값 사용 (fallback)
@@ -1772,12 +1777,13 @@ function showProductModal(orderData) {
             </tr>
         `;
         
-        // 할인 혜택 내용 표시
-        if (orderData.point_benefit_description) {
+        // 할인 혜택 내용 표시 (product_snapshot에서 가져오기)
+        const pointBenefitDescription = productSnapshot.point_benefit_description || orderData.point_benefit_description || '';
+        if (pointBenefitDescription) {
             html += `
                 <tr>
                     <th>할인 혜택</th>
-                    <td style="color: #10b981; font-weight: 500;">${escapeHtml(orderData.point_benefit_description)}</td>
+                    <td style="color: #10b981; font-weight: 500;">${escapeHtml(pointBenefitDescription)}</td>
                 </tr>
             `;
         }

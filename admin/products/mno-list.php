@@ -5,6 +5,7 @@
  */
 
 require_once __DIR__ . '/../includes/admin-header.php';
+require_once __DIR__ . '/../../includes/data/path-config.php';
 require_once __DIR__ . '/../../includes/data/db-config.php';
 require_once __DIR__ . '/../../includes/data/product-functions.php';
 
@@ -1092,7 +1093,7 @@ try {
                             <td style="text-align: center;"><?php echo isset($product['created_at']) ? date('Y-m-d', strtotime($product['created_at'])) : '-'; ?></td>
                             <td style="text-align: center;">
                                 <div class="action-buttons">
-                                    <a href="<?php echo getAssetPath('/mno/mno-phone-detail.php'); ?>?id=<?php echo $product['id']; ?>" target="_blank" class="btn btn-sm btn-edit">보기</a>
+                                    <button type="button" class="btn btn-sm btn-edit" onclick="showProductInfo(<?php echo $product['id']; ?>, 'mno')">보기</button>
                                 </div>
                             </td>
                         </tr>
@@ -2129,6 +2130,150 @@ document.addEventListener('DOMContentLoaded', function() {
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape' && modal && modal.classList.contains('show')) {
             closePointEditModal();
+        }
+    });
+});
+</script>
+
+<!-- 상품 상세 정보 모달 -->
+<div id="productInfoModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 10001; overflow-y: auto;">
+    <div style="position: relative; max-width: 1200px; margin: 40px auto; background: white; border-radius: 12px; padding: 24px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; border-bottom: 2px solid #e5e7eb; padding-bottom: 16px;">
+            <h2 style="font-size: 24px; font-weight: 700; color: #1f2937; margin: 0;">상품 상세 정보</h2>
+            <button onclick="closeProductInfoModal()" style="background: none; border: none; font-size: 28px; color: #6b7280; cursor: pointer; padding: 0; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 4px; transition: all 0.2s;" onmouseover="this.style.background='#f3f4f6'; this.style.color='#374151';" onmouseout="this.style.background='none'; this.style.color='#6b7280';">×</button>
+        </div>
+        <div id="productInfoContent" style="color: #1f2937;">
+            <div style="text-align: center; padding: 40px; color: #6b7280;">상품 정보를 불러오는 중...</div>
+        </div>
+    </div>
+</div>
+
+<style>
+.product-info-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 24px;
+}
+.product-info-table th {
+    background: #f9fafb;
+    padding: 12px 16px;
+    text-align: left;
+    font-weight: 600;
+    color: #374151;
+    border: 1px solid #e5e7eb;
+    width: 200px;
+}
+.product-info-table td {
+    padding: 12px 16px;
+    border: 1px solid #e5e7eb;
+    color: #1f2937;
+}
+</style>
+
+<script>
+<?php
+$getProductInfoApi = getApiPath('/api/get-product-info.php');
+?>
+const GET_PRODUCT_INFO_API = '<?php echo htmlspecialchars($getProductInfoApi, ENT_QUOTES, 'UTF-8'); ?>';
+
+function showProductInfo(productId, productType) {
+    const modal = document.getElementById('productInfoModal');
+    const content = document.getElementById('productInfoContent');
+    
+    if (!modal || !content) {
+        console.error('Modal elements not found');
+        alert('상품 정보를 불러올 수 없습니다.');
+        return;
+    }
+    
+    document.body.style.overflow = 'hidden';
+    modal.style.display = 'block';
+    content.innerHTML = '<div style="text-align: center; padding: 40px; color: #6b7280;">상품 정보를 불러오는 중...</div>';
+    
+    fetch(GET_PRODUCT_INFO_API + '?product_id=' + productId + '&product_type=' + productType)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.product) {
+                const product = data.product;
+                let html = '';
+                
+                if (productType === 'mno') {
+                    html += '<div style="margin-bottom: 32px;"><h3 style="font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #e5e7eb;">판매 상태</h3>';
+                    html += '<table class="product-info-table">';
+                    html += '<tr><th>상태</th><td>' + (product.status === 'active' ? '판매중' : '판매종료') + '</td></tr>';
+                    html += '</table></div>';
+                    
+                    html += '<div style="margin-bottom: 32px;"><h3 style="font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #e5e7eb;">단말기</h3>';
+                    html += '<table class="product-info-table">';
+                    html += '<tr><th>단말기명</th><td>' + (product.device_name || '-') + '</td></tr>';
+                    html += '<tr><th>단말기 출고가</th><td>' + (product.device_price ? number_format(product.device_price) + '원' : '-') + '</td></tr>';
+                    html += '<tr><th>용량</th><td>' + (product.device_capacity || '-') + '</td></tr>';
+                    if (product.device_colors) {
+                        const colorArray = typeof product.device_colors === 'string' ? JSON.parse(product.device_colors) : product.device_colors;
+                        html += '<tr><th>색상</th><td>' + (Array.isArray(colorArray) ? colorArray.join(', ') : '-') + '</td></tr>';
+                    }
+                    html += '</table></div>';
+                    
+                    html += '<div style="margin-bottom: 32px;"><h3 style="font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #e5e7eb;">포인트 할인 혜택 설정</h3>';
+                    html += '<table class="product-info-table">';
+                    const pointSetting = product.point_setting ? parseInt(product.point_setting) : 0;
+                    html += '<tr><th>포인트설정금액</th><td>' + (pointSetting > 0 ? number_format(pointSetting) + 'P' : '-') + '</td></tr>';
+                    html += '<tr><th>할인혜택내용</th><td style="white-space: pre-wrap;">' + (product.point_benefit_description || '-') + '</td></tr>';
+                    html += '</table></div>';
+                    
+                    html += '<div style="margin-bottom: 32px;"><h3 style="font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #e5e7eb;">기타 정보</h3>';
+                    html += '<table class="product-info-table">';
+                    html += '<tr><th>등록일</th><td>' + (product.created_at ? new Date(product.created_at).toLocaleString('ko-KR') : '-') + '</td></tr>';
+                    html += '</table></div>';
+                }
+                
+                content.innerHTML = html;
+            } else {
+                content.innerHTML = '<div style="text-align: center; padding: 40px; color: #ef4444;">상품 정보를 불러올 수 없습니다.</div>';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            content.innerHTML = '<div style="text-align: center; padding: 40px; color: #ef4444;">상품 정보를 불러오는 중 오류가 발생했습니다.</div>';
+        });
+}
+
+function closeProductInfoModal() {
+    const modal = document.getElementById('productInfoModal');
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+}
+
+function number_format(number) {
+    const numValue = parseFloat(number) || 0;
+    if (numValue % 1 === 0) {
+        return Math.floor(numValue).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    } else {
+        const formatted = numValue.toString().replace(/\.?0+$/, '');
+        const parts = formatted.split('.');
+        parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        return parts.join('.');
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('productInfoModal');
+    if (modal) {
+        modal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeProductInfoModal();
+            }
+        });
+    }
+    
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            const modal = document.getElementById('productInfoModal');
+            if (modal && modal.style.display === 'block') {
+                closeProductInfoModal();
+            }
         }
     });
 });

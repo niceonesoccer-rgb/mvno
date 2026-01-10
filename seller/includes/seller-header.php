@@ -77,8 +77,38 @@ $currentPage = basename($_SERVER['PHP_SELF']);
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=1400, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" id="viewportMeta" content="width=1400, initial-scale=0.5, minimum-scale=0.1, maximum-scale=5.0, user-scalable=yes">
     <title>판매자 센터 - 유심킹</title>
+    <link rel="icon" type="image/png" href="<?php echo getAssetPath('/images/site/favicon.png'); ?>">
+    <script>
+    // 모바일에서 viewport 동적 조정
+    (function() {
+        function adjustViewport() {
+            const viewport = document.getElementById('viewportMeta');
+            if (!viewport) return;
+            
+            const isMobile = window.innerWidth <= 768;
+            const deviceWidth = window.innerWidth || 375; // 기본값 375px
+            
+            if (isMobile) {
+                // 모바일: 실제 컨텐츠 너비(1400px) 기준으로 설정
+                // initial-scale 계산: 화면 너비 / 컨텐츠 너비 (최소 0.2 ~ 최대 1.0)
+                const calculatedScale = Math.max(0.2, Math.min(1.0, deviceWidth / 1400));
+                viewport.setAttribute('content', 'width=1400, initial-scale=' + calculatedScale + ', minimum-scale=0.1, maximum-scale=5.0, user-scalable=yes');
+            } else {
+                // PC: 일반 설정
+                viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes');
+            }
+        }
+        
+        // 초기 로드 및 리사이즈 시 조정
+        adjustViewport();
+        window.addEventListener('resize', adjustViewport);
+        window.addEventListener('orientationchange', function() {
+            setTimeout(adjustViewport, 100);
+        });
+    })();
+    </script>
     <link rel="stylesheet" href="<?php echo getAssetPath('/assets/css/style.css'); ?>">
     <script src="<?php echo getAssetPath('/assets/js/modal.js'); ?>" defer></script>
     <style>
@@ -91,7 +121,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         html {
             overflow-x: auto;
             overflow-y: scroll;
-            min-width: 1400px;
+            min-width: 1400px; /* 모바일에서도 최소 너비 유지 */
         }
         
         body {
@@ -100,15 +130,14 @@ $currentPage = basename($_SERVER['PHP_SELF']);
             margin: 0;
             padding: 0;
             min-height: 100vh;
-            min-width: 1400px;
             overflow-x: auto;
             -webkit-overflow-scrolling: touch; /* iOS에서 부드러운 스크롤 */
+            min-width: 1400px; /* 모바일에서도 최소 너비 유지 */
         }
         
         /* 헤더 */
         .seller-top-header {
             width: 100%;
-            min-width: 1400px;
             background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
             padding: 16px 24px;
@@ -123,9 +152,49 @@ $currentPage = basename($_SERVER['PHP_SELF']);
             box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
         }
         
+        .seller-top-header {
+            min-width: 1400px; /* 모바일에서도 최소 너비 유지 */
+        }
+        
         .seller-top-header-left {
             display: flex;
             align-items: center;
+            gap: 16px;
+            flex: 1;
+        }
+        
+        @media (max-width: 768px) {
+            .seller-top-header-left {
+                gap: 12px;
+            }
+        }
+        
+        /* 햄버거 메뉴 버튼 */
+        .mobile-menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            color: #ffffff;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 6px;
+            transition: background 0.2s;
+            flex-shrink: 0;
+        }
+        
+        .mobile-menu-toggle:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .mobile-menu-toggle:active {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        @media (max-width: 768px) {
+            .mobile-menu-toggle {
+                display: block;
+            }
         }
         
         .seller-top-header-logo {
@@ -135,6 +204,13 @@ $currentPage = basename($_SERVER['PHP_SELF']);
             text-decoration: none;
             letter-spacing: -0.5px;
             transition: opacity 0.2s;
+            white-space: nowrap;
+        }
+        
+        @media (max-width: 768px) {
+            .seller-top-header-logo {
+                font-size: 18px;
+            }
         }
         
         .seller-top-header-logo:hover {
@@ -144,7 +220,14 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         .seller-top-header-right {
             display: flex;
             align-items: center;
-            gap: 20px;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        
+        @media (max-width: 768px) {
+            .seller-top-header-right {
+                display: none; /* 모바일에서 숨김 */
+            }
         }
         
         .seller-info {
@@ -158,6 +241,16 @@ $currentPage = basename($_SERVER['PHP_SELF']);
             transition: all 0.3s ease;
             border-radius: 8px;
             cursor: pointer;
+            white-space: nowrap;
+        }
+        
+        @media (max-width: 768px) {
+            .seller-info {
+                font-size: 13px;
+                padding: 6px 12px;
+                margin-right: 4px;
+                border-right: none;
+            }
         }
         
         .seller-info:hover {
@@ -174,6 +267,14 @@ $currentPage = basename($_SERVER['PHP_SELF']);
             padding: 8px 16px;
             border-radius: 8px;
             transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+        
+        @media (max-width: 768px) {
+            .seller-top-header-link {
+                font-size: 13px;
+                padding: 6px 12px;
+            }
         }
         
         .seller-top-header-link:hover {
@@ -193,6 +294,70 @@ $currentPage = basename($_SERVER['PHP_SELF']);
             overflow-y: auto;
             padding: 32px 0;
             box-shadow: 4px 0 16px rgba(0, 0, 0, 0.15);
+            transition: transform 0.3s ease;
+            z-index: 999;
+        }
+        
+        /* 사이드바 닫기 버튼 */
+        .sidebar-close-btn {
+            display: none;
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: #ffffff;
+            font-size: 24px;
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            cursor: pointer;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+        
+        .sidebar-close-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        /* 사이드바 오버레이 */
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 998;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .sidebar-overlay.active {
+            opacity: 1;
+        }
+        
+        /* 모바일에서 사이드바 숨김 */
+        @media (max-width: 768px) {
+            .seller-sidebar {
+                transform: translateX(-100%);
+                width: 280px;
+                max-width: 80vw;
+            }
+            
+            .seller-sidebar.mobile-open {
+                transform: translateX(0);
+            }
+            
+            .sidebar-close-btn {
+                display: flex;
+            }
+            
+            .sidebar-overlay {
+                display: block;
+            }
         }
         
         .seller-sidebar::-webkit-scrollbar {
@@ -419,12 +584,43 @@ $currentPage = basename($_SERVER['PHP_SELF']);
             margin-top: 64px;
             min-height: calc(100vh - 64px);
             padding: 0;
-            min-width: calc(1400px - 280px);
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            /* 스크롤바 숨김 */
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none; /* IE/Edge */
+        }
+        
+        /* 스크롤바 숨김 (Webkit 브라우저) */
+        .seller-content-wrapper::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .seller-content-wrapper {
+            min-width: calc(1400px - 280px); /* 모바일에서도 최소 너비 유지 */
+        }
+        
+        @media (max-width: 768px) {
+            .seller-content-wrapper {
+                margin-left: 0;
+                width: 100%;
+                min-width: 1400px; /* 모바일에서도 전체 너비 유지 */
+                /* 모바일에서 확대/축소와 패닝 허용 */
+                touch-action: pan-x pan-y pinch-zoom;
+            }
         }
         
         .seller-content {
             padding: 32px;
             min-width: 1000px;
+        }
+        
+        @media (max-width: 768px) {
+            .seller-content {
+                padding: 16px;
+                /* 모바일에서 터치 제스처 허용 */
+                touch-action: pan-x pan-y pinch-zoom;
+            }
         }
         
         /* 판매자명 입력 모달 */
@@ -573,6 +769,54 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         .check-result.checking {
             color: #6b7280;
         }
+        
+        /* 테이블 컨테이너 가로 스크롤 지원 */
+        .table-container,
+        table {
+            min-width: 1000px;
+        }
+        
+        @media (max-width: 768px) {
+            .table-container,
+            table {
+                /* 모바일에서 터치 제스처 허용 */
+                touch-action: pan-x pan-y pinch-zoom;
+            }
+        }
+        
+        /* 그리드 레이아웃 가로 스크롤 지원 */
+        .dashboard-grid,
+        .grid-container {
+            min-width: 1000px;
+        }
+        
+        @media (max-width: 768px) {
+            .dashboard-grid,
+            .grid-container {
+                /* 모바일에서 터치 제스처 허용 */
+                touch-action: pan-x pan-y pinch-zoom;
+            }
+        }
+        
+        /* body와 html에서도 모바일 확대/축소 허용 */
+        @media (max-width: 768px) {
+            html, body {
+                /* 모바일에서 확대/축소와 패닝 허용 */
+                touch-action: pan-x pan-y pinch-zoom;
+                /* iOS에서 확대/축소 최적화 */
+                -webkit-text-size-adjust: 100%;
+                /* 모바일에서도 가로 스크롤 가능 */
+                overflow-x: auto;
+                overflow-y: auto;
+                /* 스크롤바 숨김 (스크롤은 가능) */
+                scrollbar-width: none; /* Firefox */
+                -ms-overflow-style: none; /* IE/Edge */
+            }
+            
+            html::-webkit-scrollbar, body::-webkit-scrollbar {
+                display: none; /* Chrome, Safari, Opera */
+            }
+        }
     </style>
     <?php if (isset($pageStyles) && !empty($pageStyles)): ?>
     <style>
@@ -581,9 +825,19 @@ $currentPage = basename($_SERVER['PHP_SELF']);
     <?php endif; ?>
 </head>
 <body>
+    <!-- 사이드바 오버레이 -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    
     <!-- 상단 헤더 -->
     <header class="seller-top-header">
         <div class="seller-top-header-left">
+            <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="메뉴 열기">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="3" y1="6" x2="21" y2="6"/>
+                    <line x1="3" y1="12" x2="21" y2="12"/>
+                    <line x1="3" y1="18" x2="21" y2="18"/>
+                </svg>
+            </button>
             <a href="<?php echo getAssetPath('/seller/'); ?>" class="seller-top-header-logo">판매자 센터</a>
         </div>
         <div class="seller-top-header-right">
@@ -598,7 +852,13 @@ $currentPage = basename($_SERVER['PHP_SELF']);
     </header>
     
     <!-- 사이드바 -->
-    <aside class="seller-sidebar">
+    <aside class="seller-sidebar" id="sellerSidebar">
+        <button class="sidebar-close-btn" id="sidebarCloseBtn" aria-label="메뉴 닫기">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"/>
+                <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+        </button>
         <div class="menu-section">
             <div class="menu-section-title">대시보드</div>
             <a href="<?php echo getAssetPath('/seller/'); ?>" class="menu-item <?php echo $currentPage === 'index.php' ? 'active' : ''; ?>">
@@ -852,4 +1112,78 @@ $currentPage = basename($_SERVER['PHP_SELF']);
     <!-- 메인 컨텐츠 영역 -->
     <div class="seller-content-wrapper">
         <div class="seller-content">
+            
+<script>
+// 모바일 메뉴 토글 기능
+document.addEventListener('DOMContentLoaded', function() {
+    const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+    const sidebar = document.getElementById('sellerSidebar');
+    const sidebarOverlay = document.getElementById('sidebarOverlay');
+    const sidebarCloseBtn = document.getElementById('sidebarCloseBtn');
+    
+    function openSidebar() {
+        if (sidebar) {
+            sidebar.classList.add('mobile-open');
+        }
+        if (sidebarOverlay) {
+            sidebarOverlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+    }
+    
+    function closeSidebar() {
+        if (sidebar) {
+            sidebar.classList.remove('mobile-open');
+        }
+        if (sidebarOverlay) {
+            sidebarOverlay.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+    }
+    
+    if (mobileMenuToggle) {
+        mobileMenuToggle.addEventListener('click', openSidebar);
+    }
+    
+    if (sidebarCloseBtn) {
+        sidebarCloseBtn.addEventListener('click', closeSidebar);
+    }
+    
+    if (sidebarOverlay) {
+        sidebarOverlay.addEventListener('click', closeSidebar);
+    }
+    
+    // 사이드바 메뉴 링크 클릭 시 모바일에서 사이드바 닫기
+    if (sidebar) {
+        const menuLinks = sidebar.querySelectorAll('a.menu-item');
+        menuLinks.forEach(link => {
+            link.addEventListener('click', function() {
+                // 모바일 환경에서만 닫기
+                if (window.innerWidth <= 768) {
+                    closeSidebar();
+                }
+            });
+        });
+    }
+    
+    // ESC 키로 사이드바 닫기
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && sidebar && sidebar.classList.contains('mobile-open')) {
+            closeSidebar();
+        }
+    });
+    
+    // 화면 크기 변경 시 처리
+    let resizeTimer;
+    window.addEventListener('resize', function() {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(function() {
+            // 데스크톱 크기로 변경되면 사이드바 열기 상태 유지 (필요시)
+            if (window.innerWidth > 768) {
+                closeSidebar();
+            }
+        }, 250);
+    });
+});
+</script>
 

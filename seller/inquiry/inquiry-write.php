@@ -3,6 +3,7 @@
  * 판매자 1:1 문의 작성 페이지
  */
 
+require_once __DIR__ . '/../../includes/data/path-config.php';
 require_once __DIR__ . '/../../includes/data/auth-functions.php';
 require_once __DIR__ . '/../../includes/data/seller-inquiry-functions.php';
 
@@ -14,14 +15,14 @@ $currentUser = getCurrentUser();
 
 // 판매자 로그인 체크
 if (!$currentUser || $currentUser['role'] !== 'seller') {
-    header('Location: /MVNO/seller/login.php');
+    header('Location: ' . getAssetPath('/seller/login.php'));
     exit;
 }
 
 // 판매자 승인 체크
 $isApproved = isset($currentUser['seller_approved']) && $currentUser['seller_approved'] === true;
 if (!$isApproved) {
-    header('Location: /MVNO/seller/waiting.php');
+    header('Location: ' . getAssetPath('/seller/waiting.php'));
     exit;
 }
 
@@ -163,7 +164,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             }
             
             if (empty($error)) {
-                header('Location: /MVNO/seller/inquiry/inquiry-detail.php?id=' . $inquiryId . '&success=created');
+                header('Location: ' . getAssetPath('/seller/inquiry/inquiry-detail.php') . '?id=' . $inquiryId . '&success=created');
                 exit;
             } else {
                 // 에러 발생 시 문의 삭제
@@ -496,7 +497,7 @@ include '../includes/seller-header.php';
             
             <div class="btn-group">
                 <button type="submit" class="btn btn-primary">등록하기</button>
-                <a href="/MVNO/seller/inquiry/inquiry-list.php" class="btn btn-secondary">취소</a>
+                <a href="<?php echo getAssetPath('/seller/inquiry/inquiry-list.php'); ?>" class="btn btn-secondary">취소</a>
             </div>
         </form>
     </div>

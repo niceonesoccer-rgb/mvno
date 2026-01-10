@@ -92,7 +92,7 @@ try {
     // 상품 정보 전체 가져오기 (신청 시점의 상품 정보 전체를 저장하기 위해)
     error_log("MVNO Application - Fetching product info for product_id: " . $productId);
     $stmt = $pdo->prepare("
-        SELECT p.seller_id, mvno.*
+        SELECT p.seller_id, p.point_setting, p.point_benefit_description, mvno.*
         FROM products p
         LEFT JOIN product_mvno_details mvno ON p.id = mvno.product_id
         WHERE p.id = ? AND p.product_type = 'mvno' AND p.status = 'active'

@@ -1567,6 +1567,14 @@ function showProductInfo(productId, productType) {
                         }
                     }
                     
+                    // 포인트 할인 혜택 설정
+                    html += '<div style="margin-bottom: 32px;"><h3 style="font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #e5e7eb;">포인트 할인 혜택 설정</h3>';
+                    html += '<table class="product-info-table">';
+                    const pointSettingMvno = product.point_setting ? parseInt(product.point_setting) : 0;
+                    html += '<tr><th>포인트설정금액</th><td>' + (pointSettingMvno > 0 ? number_format(pointSettingMvno) + 'P' : '-') + '</td></tr>';
+                    html += '<tr><th>할인혜택내용</th><td style="white-space: pre-wrap;">' + (product.point_benefit_description || '-') + '</td></tr>';
+                    html += '</table></div>';
+                    
                     // 등록일
                     html += '<div style="margin-bottom: 32px;"><h3 style="font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #e5e7eb;">기타 정보</h3>';
                     html += '<table class="product-info-table">';

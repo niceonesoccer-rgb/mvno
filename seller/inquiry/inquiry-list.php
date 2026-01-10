@@ -3,6 +3,7 @@
  * 판매자 1:1 문의 목록 페이지
  */
 
+require_once __DIR__ . '/../../includes/data/path-config.php';
 require_once __DIR__ . '/../../includes/data/auth-functions.php';
 require_once __DIR__ . '/../../includes/data/seller-inquiry-functions.php';
 
@@ -14,14 +15,14 @@ $currentUser = getCurrentUser();
 
 // 판매자 로그인 체크
 if (!$currentUser || $currentUser['role'] !== 'seller') {
-    header('Location: /MVNO/seller/login.php');
+    header('Location: ' . getAssetPath('/seller/login.php'));
     exit;
 }
 
 // 판매자 승인 체크
 $isApproved = isset($currentUser['seller_approved']) && $currentUser['seller_approved'] === true;
 if (!$isApproved) {
-    header('Location: /MVNO/seller/waiting.php');
+    header('Location: ' . getAssetPath('/seller/waiting.php'));
     exit;
 }
 
@@ -148,10 +149,6 @@ include '../includes/seller-header.php';
         color: #6366f1;
     }
     
-    /* closed 상태 제거됨 */
-        color: #10b981;
-    }
-    
     .inquiry-list {
         display: flex;
         flex-direction: column;
@@ -221,11 +218,6 @@ include '../includes/seller-header.php';
         color: #5b21b6;
     }
     
-    /* closed 상태 제거됨 */
-        background: #d1fae5;
-        color: #065f46;
-    }
-    
     .attachment-icon {
         color: #6366f1;
         font-size: 14px;
@@ -282,7 +274,7 @@ include '../includes/seller-header.php';
 <div class="inquiry-container">
     <div class="page-header">
         <h1>1:1 문의</h1>
-        <a href="/MVNO/seller/inquiry/inquiry-write.php" class="btn-primary">+ 문의하기</a>
+        <a href="<?php echo getAssetPath('/seller/inquiry/inquiry-write.php'); ?>" class="btn-primary">+ 문의하기</a>
     </div>
     
     <!-- 통계 -->
@@ -312,7 +304,7 @@ include '../includes/seller-header.php';
                 // 역순 번호: 전체 개수에서 현재 위치를 빼서 계산
                 $inquiryNumber = $totalInquiries - (($page - 1) * $perPage + $index - 1);
             ?>
-                <a href="/MVNO/seller/inquiry/inquiry-detail.php?id=<?php echo $inquiry['id']; ?>" style="text-decoration: none; color: inherit; display: block;">
+                <a href="<?php echo getAssetPath('/seller/inquiry/inquiry-detail.php'); ?>?id=<?php echo $inquiry['id']; ?>" style="text-decoration: none; color: inherit; display: block;">
                     <div class="inquiry-item">
                         <div class="inquiry-info">
                             <div class="inquiry-title">

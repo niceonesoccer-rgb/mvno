@@ -5,6 +5,7 @@
  * 경로: /seller/products/mno-sim.php
  */
 
+require_once __DIR__ . '/../../includes/data/path-config.php';
 require_once __DIR__ . '/../../includes/data/auth-functions.php';
 require_once __DIR__ . '/../../includes/data/db-config.php';
 
@@ -17,20 +18,20 @@ $currentUser = getCurrentUser();
 
 // 판매자 로그인 체크
 if (!$currentUser || $currentUser['role'] !== 'seller') {
-    header('Location: /MVNO/seller/login.php');
+    header('Location: ' . getAssetPath('/seller/login.php'));
     exit;
 }
 
 // 판매자 승인 체크
 $approvalStatus = $currentUser['approval_status'] ?? 'pending';
 if ($approvalStatus !== 'approved') {
-    header('Location: /MVNO/seller/waiting.php');
+    header('Location: ' . getAssetPath('/seller/waiting.php'));
     exit;
 }
 
 // 탈퇴 요청 상태 확인
 if (isset($currentUser['withdrawal_requested']) && $currentUser['withdrawal_requested'] === true) {
-    header('Location: /MVNO/seller/waiting.php');
+    header('Location: ' . getAssetPath('/seller/waiting.php'));
     exit;
 }
 
@@ -632,6 +633,13 @@ $pageStyles = '
     }
 ';
 
+// JavaScript에서 사용할 API 경로 설정
+$productRegisterMnoSimApi = getApiPath('/api/product-register-mno-sim.php');
+$mnoSimListUrl = getAssetPath('/seller/products/mno-sim-list.php');
+$mnoSimUrl = getAssetPath('/seller/products/mno-sim.php');
+$sellerHomeUrl = getAssetPath('/seller/');
+$sellerProductsUrl = getAssetPath('/seller/products/');
+
 include __DIR__ . '/../includes/seller-header.php';
 ?>
 
@@ -640,11 +648,11 @@ include __DIR__ . '/../includes/seller-header.php';
 document.addEventListener('DOMContentLoaded', function() {
     if (typeof showAlert === 'function') {
         showAlert('등록권한이 없습니다.\n관리자에게 문의하세요.', '권한 없음').then(function() {
-            window.location.href = '/MVNO/seller/';
+            window.location.href = '<?php echo $sellerHomeUrl; ?>';
         });
     } else {
         alert('등록권한이 없습니다.\n관리자에게 문의하세요.');
-        window.location.href = '/MVNO/seller/';
+        window.location.href = '<?php echo $sellerHomeUrl; ?>';
     }
 });
 </script>
@@ -668,7 +676,7 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
     <?php endif; ?>
     
-    <form id="productForm" class="product-form" method="POST" action="/MVNO/api/product-register-mno-sim.php">
+    <form id="productForm" class="product-form" method="POST" action="<?php echo $productRegisterMnoSimApi; ?>">
         <?php if ($isEditMode): ?>
             <input type="hidden" name="product_id" value="<?php echo $productId; ?>">
         <?php endif; ?>
@@ -1394,7 +1402,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         <!-- 제출 버튼 -->
         <div class="form-actions">
-            <a href="/MVNO/seller/products/" class="btn btn-secondary">취소</a>
+            <a href="<?php echo $sellerProductsUrl; ?>" class="btn btn-secondary">취소</a>
             <button type="button" id="submitBtn" class="btn btn-primary">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M5 13l4 4L19 7"/>
@@ -2267,7 +2275,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // 실제 제출 함수
         const submitForm = function() {
-            fetch('/MVNO/api/product-register-mno-sim.php', {
+            fetch('<?php echo $productRegisterMnoSimApi; ?>', {
                 method: 'POST',
                 body: formData
             })
@@ -2278,10 +2286,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     const productId = formData.get('product_id');
                     if (productId && productId !== '0') {
                         // 수정 모드: 상품관리(등록 상품 목록) 페이지로 리다이렉트
-                        window.location.href = '/MVNO/seller/products/mno-sim-list.php?success=1';
+                        window.location.href = '<?php echo $mnoSimListUrl; ?>?success=1';
                     } else {
                         // 등록 모드: 등록 페이지로 리다이렉트
-                        window.location.href = '/MVNO/seller/products/mno-sim.php?success=1';
+                        window.location.href = '<?php echo $mnoSimUrl; ?>?success=1';
                     }
                 } else {
                     if (typeof showAlert === 'function') {

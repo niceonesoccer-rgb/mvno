@@ -4,6 +4,7 @@
  * 경로: /MVNO/seller/notice/detail.php
  */
 
+require_once __DIR__ . '/../../includes/data/path-config.php';
 require_once __DIR__ . '/../../includes/data/auth-functions.php';
 require_once __DIR__ . '/../../includes/data/notice-functions.php';
 
@@ -16,28 +17,28 @@ $currentUser = getCurrentUser();
 
 // 판매자 로그인 체크
 if (!$currentUser || $currentUser['role'] !== 'seller') {
-    header('Location: /MVNO/seller/login.php');
+    header('Location: ' . getAssetPath('/seller/login.php'));
     exit;
 }
 
 // 판매자 승인 체크
 $isApproved = isset($currentUser['seller_approved']) && $currentUser['seller_approved'] === true;
 if (!$isApproved) {
-    header('Location: /MVNO/seller/waiting.php');
+    header('Location: ' . getAssetPath('/seller/waiting.php'));
     exit;
 }
 
 // 공지사항 ID 확인
 $id = $_GET['id'] ?? '';
 if (empty($id)) {
-    header('Location: /MVNO/seller/notice/');
+    header('Location: ' . getAssetPath('/seller/notice/'));
     exit;
 }
 
 // 공지사항 가져오기
 $notice = getNoticeById($id);
 if (!$notice) {
-    header('Location: /MVNO/seller/notice/');
+    header('Location: ' . getAssetPath('/seller/notice/'));
     exit;
 }
 
@@ -45,7 +46,7 @@ if (!$notice) {
 $targetAudience = $notice['target_audience'] ?? 'all';
 if ($targetAudience !== 'seller') {
     // 판매자 전용 공지사항이 아니면 목록으로 리다이렉트
-    header('Location: /MVNO/seller/notice/');
+    header('Location: ' . getAssetPath('/seller/notice/'));
     exit;
 }
 
@@ -155,7 +156,7 @@ include '../includes/seller-header.php';
 ?>
 
 <div class="seller-notice-detail-container">
-    <a href="/MVNO/seller/notice/" class="notice-detail-back">
+    <a href="<?php echo getAssetPath('/seller/notice/'); ?>" class="notice-detail-back">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M15 18L9 12L15 6"/>
         </svg>
@@ -177,11 +178,11 @@ include '../includes/seller-header.php';
             <div class="notice-detail-image">
                 <?php if (!empty($notice['link_url'])): ?>
                     <a href="<?= htmlspecialchars($notice['link_url']) ?>" target="_blank">
-                        <img src="<?= htmlspecialchars($notice['image_url']) ?>" 
+                        <img src="<?= htmlspecialchars(getAssetPath($notice['image_url'])) ?>" 
                              alt="<?= htmlspecialchars($notice['title']) ?>">
                     </a>
                 <?php else: ?>
-                    <img src="<?= htmlspecialchars($notice['image_url']) ?>" 
+                    <img src="<?= htmlspecialchars(getAssetPath($notice['image_url'])) ?>" 
                          alt="<?= htmlspecialchars($notice['title']) ?>">
                 <?php endif; ?>
             </div>
@@ -195,7 +196,7 @@ include '../includes/seller-header.php';
     </article>
     
     <div class="notice-detail-footer">
-        <a href="/MVNO/seller/notice/">목록으로 돌아가기</a>
+        <a href="<?php echo getAssetPath('/seller/notice/'); ?>">목록으로 돌아가기</a>
     </div>
 </div>
 

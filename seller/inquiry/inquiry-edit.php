@@ -3,6 +3,7 @@
  * 판매자 1:1 문의 수정 페이지
  */
 
+require_once __DIR__ . '/../../includes/data/path-config.php';
 require_once __DIR__ . '/../../includes/data/auth-functions.php';
 require_once __DIR__ . '/../../includes/data/seller-inquiry-functions.php';
 
@@ -14,14 +15,14 @@ $currentUser = getCurrentUser();
 
 // 판매자 로그인 체크
 if (!$currentUser || $currentUser['role'] !== 'seller') {
-    header('Location: /MVNO/seller/login.php');
+    header('Location: ' . getAssetPath('/seller/login.php'));
     exit;
 }
 
 // 판매자 승인 체크
 $isApproved = isset($currentUser['seller_approved']) && $currentUser['seller_approved'] === true;
 if (!$isApproved) {
-    header('Location: /MVNO/seller/waiting.php');
+    header('Location: ' . getAssetPath('/seller/waiting.php'));
     exit;
 }
 
@@ -29,7 +30,7 @@ $sellerId = $currentUser['user_id'];
 $inquiryId = intval($_GET['id'] ?? 0);
 
 if (!$inquiryId) {
-    header('Location: /MVNO/seller/inquiry/inquiry-list.php');
+    header('Location: ' . getAssetPath('/seller/inquiry/inquiry-list.php'));
     exit;
 }
 
@@ -37,7 +38,7 @@ if (!$inquiryId) {
 $inquiry = getSellerInquiryById($inquiryId);
 
 if (!$inquiry || $inquiry['seller_id'] !== $sellerId) {
-    header('Location: /MVNO/seller/inquiry/inquiry-list.php');
+    header('Location: ' . getAssetPath('/seller/inquiry/inquiry-list.php'));
     exit;
 }
 
@@ -45,7 +46,7 @@ if (!$inquiry || $inquiry['seller_id'] !== $sellerId) {
 $canEdit = ($inquiry['status'] === 'pending' && empty($inquiry['admin_viewed_at']));
 
 if (!$canEdit) {
-    header('Location: /MVNO/seller/inquiry/inquiry-detail.php?id=' . $inquiryId . '&error=cannot_edit');
+    header('Location: ' . getAssetPath('/seller/inquiry/inquiry-detail.php') . '?id=' . $inquiryId . '&error=cannot_edit');
     exit;
 }
 
@@ -236,7 +237,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             error_log("inquiry-edit.php: updateSellerInquiry result: " . ($updateResult ? 'success' : 'failed'));
             
             if ($updateResult) {
-                header('Location: /MVNO/seller/inquiry/inquiry-detail.php?id=' . $inquiryId . '&success=updated');
+                header('Location: ' . getAssetPath('/seller/inquiry/inquiry-detail.php') . '?id=' . $inquiryId . '&success=updated');
                 exit;
             } else {
                 // DB 저장 실패 시 업로드된 파일 정리
@@ -578,7 +579,7 @@ include '../includes/seller-header.php';
                         <?php foreach ($existingAttachments as $attachment): ?>
                             <?php
                             $isImage = strpos($attachment['file_type'], 'image/') === 0;
-                            $fileUrl = '/MVNO/seller/inquiry/inquiry-download.php?file_id=' . $attachment['id'];
+                            $fileUrl = getAssetPath('/seller/inquiry/inquiry-download.php') . '?file_id=' . $attachment['id'];
                             ?>
                             <div class="file-item existing-file" data-file-id="<?php echo $attachment['id']; ?>">
                                 <?php if ($isImage): ?>
@@ -616,7 +617,7 @@ include '../includes/seller-header.php';
             
             <div class="btn-group">
                 <button type="submit" class="btn btn-primary">수정하기</button>
-                <a href="/MVNO/seller/inquiry/inquiry-detail.php?id=<?php echo $inquiryId; ?>" class="btn btn-secondary">취소</a>
+                <a href="<?php echo getAssetPath('/seller/inquiry/inquiry-detail.php'); ?>?id=<?php echo $inquiryId; ?>" class="btn btn-secondary">취소</a>
             </div>
         </form>
     </div>

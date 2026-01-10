@@ -5,6 +5,7 @@
  */
 
 require_once __DIR__ . '/../includes/admin-header.php';
+require_once __DIR__ . '/../../includes/data/path-config.php';
 require_once __DIR__ . '/../../includes/data/db-config.php';
 
 // 검색 필터 파라미터
@@ -634,6 +635,7 @@ try {
                             <th>혜택내용</th>
                             <th>상태</th>
                             <th>등록일</th>
+                            <th>관리</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -734,6 +736,11 @@ try {
                                     </span>
                                 </td>
                                 <td><?php echo isset($product['created_at']) ? date('Y-m-d', strtotime($product['created_at'])) : '-'; ?></td>
+                                <td style="text-align: center;">
+                                    <div class="action-buttons">
+                                        <button type="button" class="btn btn-sm btn-edit" onclick="showProductInfo(<?php echo $product['id']; ?>, 'mno-sim')">보기</button>
+                                    </div>
+                                </td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>
@@ -1636,6 +1643,159 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-<?php include __DIR__ . '/../includes/admin-footer.php'; ?>
+<!-- 상품 상세 정보 모달 -->
+<div id="productInfoModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 10001; overflow-y: auto;">
+    <div style="position: relative; max-width: 1200px; margin: 40px auto; background: white; border-radius: 12px; padding: 24px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; border-bottom: 2px solid #e5e7eb; padding-bottom: 16px;">
+            <h2 style="font-size: 24px; font-weight: 700; color: #1f2937; margin: 0;">상품 상세 정보</h2>
+            <button onclick="closeProductInfoModal()" style="background: none; border: none; font-size: 28px; color: #6b7280; cursor: pointer; padding: 0; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 4px; transition: all 0.2s;" onmouseover="this.style.background='#f3f4f6'; this.style.color='#374151';" onmouseout="this.style.background='none'; this.style.color='#6b7280';">×</button>
+        </div>
+        <div id="productInfoContent" style="color: #1f2937;">
+            <div style="text-align: center; padding: 40px; color: #6b7280;">상품 정보를 불러오는 중...</div>
+        </div>
+    </div>
+</div>
 
+<style>
+.product-info-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 24px;
+}
+.product-info-table th {
+    background: #f9fafb;
+    padding: 12px 16px;
+    text-align: left;
+    font-weight: 600;
+    color: #374151;
+    border: 1px solid #e5e7eb;
+    width: 200px;
+}
+.product-info-table td {
+    padding: 12px 16px;
+    border: 1px solid #e5e7eb;
+    color: #1f2937;
+}
+</style>
+
+<script>
+<?php
+$getProductInfoApi = getApiPath('/api/get-product-info.php');
+?>
+const GET_PRODUCT_INFO_API = '<?php echo htmlspecialchars($getProductInfoApi, ENT_QUOTES, 'UTF-8'); ?>';
+
+function showProductInfo(productId, productType) {
+    const modal = document.getElementById('productInfoModal');
+    const content = document.getElementById('productInfoContent');
+    
+    if (!modal || !content) {
+        console.error('Modal elements not found');
+        alert('상품 정보를 불러올 수 없습니다.');
+        return;
+    }
+    
+    // 배경 스크롤 방지
+    document.body.style.overflow = 'hidden';
+    modal.style.display = 'block';
+    content.innerHTML = '<div style="text-align: center; padding: 40px; color: #6b7280;">상품 정보를 불러오는 중...</div>';
+    
+    fetch(GET_PRODUCT_INFO_API + '?product_id=' + productId + '&product_type=' + productType)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.product) {
+                const product = data.product;
+                let html = '';
+                
+                // 상품 타입별 필드 표시 (mno-sim 타입)
+                if (productType === 'mno-sim') {
+                    // 판매 상태
+                    html += '<div style="margin-bottom: 32px;"><h3 style="font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #e5e7eb;">판매 상태</h3>';
+                    html += '<table class="product-info-table">';
+                    html += '<tr><th>상태</th><td>' + (product.status === 'active' ? '판매중' : '판매종료') + '</td></tr>';
+                    html += '</table></div>';
+                    
+                    // 요금제
+                    html += '<div style="margin-bottom: 32px;"><h3 style="font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #e5e7eb;">요금제</h3>';
+                    html += '<table class="product-info-table">';
+                    html += '<tr><th>통신사</th><td>' + (product.provider || '-') + '</td></tr>';
+                    html += '<tr><th>데이터 속도</th><td>' + (product.service_type || '-') + '</td></tr>';
+                    if (product.registration_types) {
+                        const regTypes = typeof product.registration_types === 'string' ? JSON.parse(product.registration_types) : product.registration_types;
+                        html += '<tr><th>가입 형태</th><td>' + (Array.isArray(regTypes) ? regTypes.join(', ') : regTypes || '-') + '</td></tr>';
+                    }
+                    html += '<tr><th>요금제명</th><td>' + (product.plan_name || product.product_name || '-') + '</td></tr>';
+                    html += '<tr><th>월 요금</th><td>' + (product.price_main ? number_format(product.price_main) + '원' : '-') + '</td></tr>';
+                    html += '</table></div>';
+                    
+                    // 포인트 할인 혜택 설정
+                    html += '<div style="margin-bottom: 32px;"><h3 style="font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #e5e7eb;">포인트 할인 혜택 설정</h3>';
+                    html += '<table class="product-info-table">';
+                    const pointSetting = product.point_setting ? parseInt(product.point_setting) : 0;
+                    html += '<tr><th>포인트설정금액</th><td>' + (pointSetting > 0 ? number_format(pointSetting) + 'P' : '-') + '</td></tr>';
+                    html += '<tr><th>할인혜택내용</th><td style="white-space: pre-wrap;">' + (product.point_benefit_description || '-') + '</td></tr>';
+                    html += '</table></div>';
+                    
+                    // 등록일
+                    html += '<div style="margin-bottom: 32px;"><h3 style="font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #e5e7eb;">기타 정보</h3>';
+                    html += '<table class="product-info-table">';
+                    html += '<tr><th>등록일</th><td>' + (product.created_at ? new Date(product.created_at).toLocaleString('ko-KR') : '-') + '</td></tr>';
+                    html += '</table></div>';
+                }
+                
+                content.innerHTML = html;
+            } else {
+                content.innerHTML = '<div style="text-align: center; padding: 40px; color: #ef4444;">상품 정보를 불러올 수 없습니다.</div>';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            content.innerHTML = '<div style="text-align: center; padding: 40px; color: #ef4444;">상품 정보를 불러오는 중 오류가 발생했습니다.</div>';
+        });
+}
+
+function closeProductInfoModal() {
+    const modal = document.getElementById('productInfoModal');
+    if (modal) {
+        modal.style.display = 'none';
+        // 배경 스크롤 복원
+        document.body.style.overflow = '';
+    }
+}
+
+function number_format(number) {
+    const numValue = parseFloat(number) || 0;
+    if (numValue % 1 === 0) {
+        return Math.floor(numValue).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    } else {
+        const formatted = numValue.toString().replace(/\.?0+$/, '');
+        const parts = formatted.split('.');
+        parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        return parts.join('.');
+    }
+}
+
+// 모달 외부 클릭 시 닫기
+document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('productInfoModal');
+    if (modal) {
+        modal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeProductInfoModal();
+            }
+        });
+    }
+    
+    // ESC 키로 모달 닫기
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            const modal = document.getElementById('productInfoModal');
+            if (modal && modal.style.display === 'block') {
+                closeProductInfoModal();
+            }
+        }
+    });
+});
+</script>
+
+<?php include __DIR__ . '/../includes/admin-footer.php'; ?>
 

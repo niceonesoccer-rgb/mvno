@@ -3,6 +3,7 @@
  * 판매자 1:1 문의 상세 페이지
  */
 
+require_once __DIR__ . '/../../includes/data/path-config.php';
 require_once __DIR__ . '/../../includes/data/auth-functions.php';
 require_once __DIR__ . '/../../includes/data/seller-inquiry-functions.php';
 
@@ -14,14 +15,14 @@ $currentUser = getCurrentUser();
 
 // 판매자 로그인 체크
 if (!$currentUser || $currentUser['role'] !== 'seller') {
-    header('Location: /MVNO/seller/login.php');
+    header('Location: ' . getAssetPath('/seller/login.php'));
     exit;
 }
 
 // 판매자 승인 체크
 $isApproved = isset($currentUser['seller_approved']) && $currentUser['seller_approved'] === true;
 if (!$isApproved) {
-    header('Location: /MVNO/seller/waiting.php');
+    header('Location: ' . getAssetPath('/seller/waiting.php'));
     exit;
 }
 
@@ -29,7 +30,7 @@ $sellerId = $currentUser['user_id'];
 $inquiryId = intval($_GET['id'] ?? 0);
 
 if (!$inquiryId) {
-    header('Location: /MVNO/seller/inquiry/inquiry-list.php');
+    header('Location: ' . getAssetPath('/seller/inquiry/inquiry-list.php'));
     exit;
 }
 
@@ -37,7 +38,7 @@ if (!$inquiryId) {
 $inquiry = getSellerInquiryById($inquiryId);
 
 if (!$inquiry || $inquiry['seller_id'] !== $sellerId) {
-    header('Location: /MVNO/seller/inquiry/inquiry-list.php');
+    header('Location: ' . getAssetPath('/seller/inquiry/inquiry-list.php'));
     exit;
 }
 
@@ -403,12 +404,12 @@ include '../includes/seller-header.php';
         <h1>1:1 문의 상세</h1>
         <div>
             <?php if ($canEdit): ?>
-                <a href="/MVNO/seller/inquiry/inquiry-edit.php?id=<?php echo $inquiryId; ?>" class="btn btn-primary">수정</a>
+                <a href="<?php echo getAssetPath('/seller/inquiry/inquiry-edit.php'); ?>?id=<?php echo $inquiryId; ?>" class="btn btn-primary">수정</a>
             <?php endif; ?>
             <?php if ($canDelete): ?>
-                <a href="/MVNO/seller/inquiry/inquiry-delete.php?id=<?php echo $inquiryId; ?>" class="btn btn-danger" onclick="return confirm('정말 삭제하시겠습니까?');">삭제</a>
+                <a href="<?php echo getAssetPath('/seller/inquiry/inquiry-delete.php'); ?>?id=<?php echo $inquiryId; ?>" class="btn btn-danger" onclick="return confirm('정말 삭제하시겠습니까?');">삭제</a>
             <?php endif; ?>
-            <a href="/MVNO/seller/inquiry/inquiry-list.php" class="btn btn-secondary">목록</a>
+            <a href="<?php echo getAssetPath('/seller/inquiry/inquiry-list.php'); ?>" class="btn btn-secondary">목록</a>
         </div>
     </div>
     
@@ -451,7 +452,7 @@ include '../includes/seller-header.php';
                         $filePath = __DIR__ . '/../..' . $actualPath;
                         $fileExists = file_exists($filePath);
                         $isImage = strpos($attachment['file_type'], 'image/') === 0;
-                        $fileUrl = '/MVNO/seller/inquiry/inquiry-download.php?file_id=' . $attachment['id'];
+                        $fileUrl = getAssetPath('/seller/inquiry/inquiry-download.php') . '?file_id=' . $attachment['id'];
                         ?>
                         <div class="attachment-card" onclick="<?php echo $isImage ? "openImageModal('$fileUrl', '" . htmlspecialchars($attachment['file_name'], ENT_QUOTES) . "', true)" : "window.open('$fileUrl', '_blank')"; ?>">
                             <?php if ($isImage && $fileExists): ?>
@@ -512,7 +513,7 @@ include '../includes/seller-header.php';
                                 <?php foreach ($replyAttachments as $attachment): ?>
                                     <?php
                                     $isImage = strpos($attachment['file_type'], 'image/') === 0;
-                                    $fileUrl = '/MVNO/seller/inquiry/inquiry-download.php?file_id=' . $attachment['id'];
+                                    $fileUrl = getAssetPath('/seller/inquiry/inquiry-download.php') . '?file_id=' . $attachment['id'];
                                     ?>
                                     <div class="attachment-card" onclick="<?php echo $isImage ? "openImageModal('$fileUrl', '" . htmlspecialchars($attachment['file_name'], ENT_QUOTES) . "', true)" : "window.open('$fileUrl', '_blank')"; ?>">
                                         <?php if ($isImage): ?>

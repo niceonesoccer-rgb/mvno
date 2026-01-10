@@ -123,7 +123,7 @@ try {
     // 상품 정보 전체 가져오기 (신청 시점의 상품 정보 전체를 저장하기 위해)
     error_log("MNO-SIM Application - Fetching product info for product_id: " . $productId);
     $stmt = $pdo->prepare("
-        SELECT p.seller_id, mno_sim.*
+        SELECT p.seller_id, p.point_setting, p.point_benefit_description, mno_sim.*
         FROM products p
         INNER JOIN product_mno_sim_details mno_sim ON p.id = mno_sim.product_id
         WHERE p.id = ? AND p.product_type = 'mno-sim' AND p.status = 'active'
@@ -221,6 +221,9 @@ try {
         'promotion_title', 'promotions', 'benefits', 'redirect_url'
     ];
     
+    // products 테이블의 포인트 관련 필드 (모든 상품 타입에 공통)
+    $commonProductFields = ['point_setting', 'point_benefit_description'];
+    
     // mno-sim 관련 필드만 저장
     foreach ($product as $key => $value) {
         // seller_id, product_id, id는 제외
@@ -228,8 +231,8 @@ try {
             continue;
         }
         
-        // mno-sim 관련 필드만 포함
-        if (in_array($key, $mnoSimFields)) {
+        // mno-sim 관련 필드 또는 공통 상품 필드 포함
+        if (in_array($key, $mnoSimFields) || in_array($key, $commonProductFields)) {
             // plan_name은 문자열로만 저장 (다른 값이 섞이지 않도록)
             if ($key === 'plan_name') {
                 $value = trim((string)$value);

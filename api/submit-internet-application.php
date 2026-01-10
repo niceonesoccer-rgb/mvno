@@ -76,7 +76,7 @@ try {
     
     // 상품 정보 전체 가져오기 (신청 시점의 상품 정보 전체를 저장하기 위해)
     $stmt = $pdo->prepare("
-        SELECT p.seller_id, inet.*
+        SELECT p.seller_id, p.point_setting, p.point_benefit_description, inet.*
         FROM products p
         LEFT JOIN product_internet_details inet ON p.id = inet.product_id
         WHERE p.id = ? AND p.product_type = 'internet' AND p.status = 'active'
