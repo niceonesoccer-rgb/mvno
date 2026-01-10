@@ -2,6 +2,9 @@
 // 현재 페이지 설정 (헤더에서 활성 링크 표시용)
 $current_page = 'mypage';
 
+// 경로 설정 파일 먼저 로드
+require_once '../includes/data/path-config.php';
+
 // 로그인 체크를 위한 auth-functions 포함 (세션 설정과 함께 세션을 시작함)
 require_once '../includes/data/auth-functions.php';
 
@@ -10,7 +13,7 @@ if (!isLoggedIn()) {
     // 현재 URL을 세션에 저장 (회원가입 후 돌아올 주소)
     $_SESSION['redirect_url'] = $_SERVER['REQUEST_URI'];
     // 로그인 모달이 있는 홈으로 리다이렉트 (모달 자동 열기)
-    header('Location: /MVNO/?show_login=1');
+    header('Location: ' . getAssetPath('/?show_login=1'));
     exit;
 }
 
@@ -26,7 +29,7 @@ if (!$currentUser) {
     }
     // 현재 URL을 세션에 저장 (회원가입 후 돌아올 주소)
     $_SESSION['redirect_url'] = $_SERVER['REQUEST_URI'];
-    header('Location: /MVNO/?show_login=1');
+    header('Location: ' . getAssetPath('/?show_login=1'));
     exit;
 }
 
@@ -39,7 +42,7 @@ include '../includes/header.php';
         <!-- 뒤로가기 버튼 및 제목 -->
         <div style="margin-bottom: 24px; padding: 20px 0;">
             <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
-                <a href="/MVNO/mypage/account-management.php" style="display: flex; align-items: center; text-decoration: none; color: inherit;">
+                <a href="<?php echo getAssetPath('/mypage/account-management.php'); ?>" style="display: flex; align-items: center; text-decoration: none; color: inherit;">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
@@ -90,6 +93,10 @@ include '../includes/header.php';
 </main>
 
 <script>
+    // BASE_PATH와 API_PATH를 JavaScript에서 사용할 수 있도록 설정
+    window.BASE_PATH = window.BASE_PATH || '<?php echo getBasePath(); ?>';
+    window.API_PATH = window.API_PATH || (window.BASE_PATH + '/api');
+
 // 체크박스 상태에 따라 버튼 활성화/비활성화
 document.getElementById('withdrawConfirm').addEventListener('change', function() {
     const btn = document.getElementById('withdrawBtn');
@@ -114,12 +121,44 @@ async function handleFinalWithdraw() {
     }
     
     const result = await showConfirm('정말 회원 탈퇴를 진행하시겠습니까?\n이 작업은 되돌릴 수 없습니다.', '회원 탈퇴 확인');
-    if (result) {
-        // 회원 탈퇴 처리 로직
-        // 실제로는 서버에 AJAX 요청을 보내야 합니다
-        await showAlert('회원 탈퇴가 완료되었습니다.');
-        // 홈페이지로 리다이렉트
-        window.location.href = '/MVNO/';
+    if (!result) {
+        return;
+    }
+    
+    // 탈퇴 버튼 비활성화
+    const btn = document.getElementById('withdrawBtn');
+    btn.disabled = true;
+    btn.textContent = '처리 중...';
+    
+    try {
+        // 회원 탈퇴 API 호출
+        const apiPath = window.API_PATH || (window.BASE_PATH || '') + '/api';
+        const response = await fetch(apiPath + '/withdraw-user.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                confirm: true
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            await showAlert('회원 탈퇴가 완료되었습니다.');
+            // 홈페이지로 리다이렉트
+            window.location.href = (window.BASE_PATH || '') + '/';
+        } else {
+            await showAlert(data.message || '회원 탈퇴 처리 중 오류가 발생했습니다.');
+            btn.disabled = false;
+            btn.textContent = '탈퇴하기';
+        }
+    } catch (error) {
+        console.error('탈퇴 처리 오류:', error);
+        await showAlert('회원 탈퇴 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+        btn.disabled = false;
+        btn.textContent = '탈퇴하기';
     }
 }
 </script>

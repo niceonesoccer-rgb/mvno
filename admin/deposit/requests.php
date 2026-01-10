@@ -55,8 +55,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new Exception('올바른 날짜 형식이 아닙니다.');
             }
             
-            // 입금 확인 처리 (입금 날짜 + 현재 시간으로 저장)
-            $confirmedDateTime = date('Y-m-d H:i:s');
+            // 입금 확인 처리 (관리자가 지정한 입금 날짜 + 00:00:00으로 저장)
+            // confirmed_at에 입금 날짜 저장 (날짜만 표시하기 위해 시간은 00:00:00으로 설정)
+            $confirmedDateTime = $depositDate . ' 00:00:00';
             $stmt = $pdo->prepare("
                 UPDATE deposit_requests 
                 SET status = 'confirmed',
@@ -178,12 +179,13 @@ $totalCount = $countStmt->fetchColumn();
 $totalPages = ceil($totalCount / $perPage);
 
 // 페이지별 데이터 조회
+// 계좌 정보는 deposit_requests에 저장된 텍스트 값을 우선 사용, 없으면 JOIN으로 가져오기
 $stmt = $pdo->prepare("
     SELECT 
         dr.*,
-        ba.bank_name,
-        ba.account_number,
-        ba.account_holder,
+        COALESCE(dr.bank_name, ba.bank_name) as bank_name,
+        COALESCE(dr.account_number, ba.account_number) as account_number,
+        COALESCE(dr.account_holder, ba.account_holder) as account_holder,
         COALESCE(sda.balance, 0) as seller_balance
     FROM deposit_requests dr
     LEFT JOIN bank_accounts ba ON dr.bank_account_id = ba.id
@@ -283,8 +285,15 @@ $deposits = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                         <td style="padding: 12px; font-weight: 500;"><?= htmlspecialchars($deposit['seller_id']) ?></td>
                                         <td style="padding: 12px;"><?= htmlspecialchars($deposit['depositor_name']) ?></td>
                                         <td style="padding: 12px; font-size: 13px; color: #64748b;">
-                                            <?= htmlspecialchars($deposit['bank_name'] ?? '-') ?><br>
-                                            <?= htmlspecialchars($deposit['account_number'] ?? '-') ?>
+                                            <?php 
+                                            // 계좌 정보 표시 (LEFT JOIN으로 가져온 정보 사용)
+                                            // 계좌가 삭제되었을 경우를 대비
+                                            if (!empty($deposit['bank_name']) && !empty($deposit['account_number'])) {
+                                                echo htmlspecialchars($deposit['bank_name']) . '<br>' . htmlspecialchars($deposit['account_number']);
+                                            } else {
+                                                echo '<span style="color: #9ca3af;">계좌 정보 없음 (삭제된 계좌)</span>';
+                                            }
+                                            ?>
                                         </td>
                                         <td style="padding: 12px; text-align: right;"><?= number_format(floatval($deposit['supply_amount'] ?? 0), 0) ?>원</td>
                                         <td style="padding: 12px; text-align: right;"><?= number_format(floatval($deposit['tax_amount'] ?? 0), 0) ?>원</td>
@@ -303,8 +312,8 @@ $deposits = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                                 <?= $statusInfo['label'] ?>
                                             </span>
                                             <?php if ($deposit['confirmed_at'] && $deposit['status'] === 'confirmed'): ?>
-                                                <div style="font-size: 12px; color: #64748b; margin-top: 4px;">
-                                                    <?= date('Y-m-d', strtotime($deposit['confirmed_at'])) ?>
+                                                <div style="font-size: 12px; color: #64748b; margin-top: 4px; font-weight: 500;">
+                                                    입금일: <?= date('Y-m-d', strtotime($deposit['confirmed_at'])) ?>
                                                 </div>
                                             <?php endif; ?>
                                             <?php if ($deposit['refunded_at'] && $deposit['status'] === 'confirmed'): ?>

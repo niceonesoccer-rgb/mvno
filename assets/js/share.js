@@ -118,7 +118,8 @@
                 const extractedType = urlMatch[1] === 'mvno' ? 'mvno' : (urlMatch[1] === 'mno' ? 'mno' : 'internet');
                 const extractedId = urlMatch[2];
                 
-                fetch('/MVNO/api/analytics/track-share.php', {
+                const apiPath = window.API_PATH || (window.BASE_PATH || '') + '/api';
+                fetch(apiPath + '/analytics/track-share.php', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded',
@@ -136,7 +137,8 @@
             return;
         }
         
-        fetch('/MVNO/api/analytics/track-share.php', {
+        const apiPath = window.API_PATH || (window.BASE_PATH || '') + '/api';
+        fetch(apiPath + '/analytics/track-share.php', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',

@@ -14,7 +14,35 @@ $layout_type = $layout_type ?? 'list';
 $card_wrapper_class = $card_wrapper_class ?? '';
 $phone_id = $phone['id'] ?? 0;
 $is_link = ($layout_type === 'list' && $phone_id > 0);
-$link_url = $phone['link_url'] ?? '/MVNO/mno/mno-phone-detail.php?id=' . $phone_id;
+
+// path-config.php가 로드되지 않았으면 로드
+if (!function_exists('getAssetPath')) {
+    require_once __DIR__ . '/../data/path-config.php';
+}
+
+// 상세 페이지 링크 설정
+if (isset($phone['link_url']) && !empty($phone['link_url'])) {
+    $link_url = $phone['link_url'];
+    // 전체 URL이 아니면 getAssetPath 적용
+    if (!preg_match('/^https?:\/\//', $link_url)) {
+        // /MVNO/로 시작하는 경우 제거 후 getAssetPath 적용
+        if (strpos($link_url, '/MVNO/') === 0) {
+            $link_url = getAssetPath(str_replace('/MVNO', '', $link_url));
+        } elseif (strpos($link_url, 'MVNO/') === 0) {
+            $link_url = getAssetPath(str_replace('MVNO/', '', $link_url));
+        } elseif (strpos($link_url, '/') === 0) {
+            // 이미 /로 시작하는 경로면 getAssetPath 적용
+            $link_url = getAssetPath($link_url);
+        } else {
+            // 상대 경로인 경우
+            $link_url = getAssetPath('/' . $link_url);
+        }
+    }
+} else {
+    // link_url이 없으면 기본 상세 페이지 링크 생성
+    $link_url = getAssetPath('/mno/mno-phone-detail.php?id=' . urlencode($phone_id));
+}
+
 // 푸터에서 공유 링크로 사용할 수 있도록 link_url을 phone 배열에 추가
 $phone['link_url'] = $link_url;
 

@@ -37,14 +37,14 @@ function getQnaList($user_id = null) {
 
     if ($user_id !== null) {
         if ($hasDeletedAt) {
-            $stmt = $pdo->prepare("SELECT * FROM qna WHERE user_id = :user AND (deleted_at IS NULL OR deleted_at = '') ORDER BY created_at DESC");
+            $stmt = $pdo->prepare("SELECT * FROM qna WHERE user_id = :user AND deleted_at IS NULL ORDER BY created_at DESC");
         } else {
             $stmt = $pdo->prepare("SELECT * FROM qna WHERE user_id = :user ORDER BY created_at DESC");
         }
         $stmt->execute([':user' => (string)$user_id]);
     } else {
         if ($hasDeletedAt) {
-            $stmt = $pdo->query("SELECT * FROM qna WHERE deleted_at IS NULL OR deleted_at = '' ORDER BY created_at DESC");
+            $stmt = $pdo->query("SELECT * FROM qna WHERE deleted_at IS NULL ORDER BY created_at DESC");
         } else {
             $stmt = $pdo->query("SELECT * FROM qna ORDER BY created_at DESC");
         }
@@ -71,7 +71,7 @@ function getQnaById($id, $user_id = null) {
         }
         
         if ($hasDeletedAt) {
-            $stmt = $pdo->prepare("SELECT * FROM qna WHERE id = :id AND (deleted_at IS NULL OR deleted_at = '') LIMIT 1");
+            $stmt = $pdo->prepare("SELECT * FROM qna WHERE id = :id AND deleted_at IS NULL LIMIT 1");
         } else {
             $stmt = $pdo->prepare("SELECT * FROM qna WHERE id = :id LIMIT 1");
         }
@@ -186,7 +186,7 @@ function answerQna($id, $answer, $answered_by = 'admin') {
         
         // 삭제되지 않은 QnA만 조회 (FOR UPDATE로 잠금)
         if ($hasDeletedAt) {
-            $checkStmt = $pdo->prepare("SELECT id, status, deleted_at, title FROM qna WHERE id = :id AND (deleted_at IS NULL OR deleted_at = '') LIMIT 1 FOR UPDATE");
+            $checkStmt = $pdo->prepare("SELECT id, status, deleted_at, title FROM qna WHERE id = :id AND deleted_at IS NULL LIMIT 1 FOR UPDATE");
         } else {
             $checkStmt = $pdo->prepare("SELECT id, status, title FROM qna WHERE id = :id LIMIT 1 FOR UPDATE");
         }
@@ -244,7 +244,7 @@ function answerQna($id, $answer, $answered_by = 'admin') {
                         status = 'pending',
                         updated_at = NOW()
                     WHERE id = :id
-                        AND (deleted_at IS NULL OR deleted_at = '')
+                        AND deleted_at IS NULL
                 ");
             } else {
                 $stmt = $pdo->prepare("
@@ -270,7 +270,7 @@ function answerQna($id, $answer, $answered_by = 'admin') {
                         status = 'answered',
                         updated_at = NOW()
                     WHERE id = :id
-                        AND (deleted_at IS NULL OR deleted_at = '')
+                        AND deleted_at IS NULL
                 ");
                 error_log("[{$debugId}] UPDATE 쿼리 준비 (deleted_at 조건 포함)");
             } else {
@@ -423,7 +423,7 @@ function deleteQna($id, $user_id = null) {
         
         // 삭제 전 데이터 확인 및 로깅
         if ($hasDeletedAt) {
-            $checkStmt = $pdo->prepare("SELECT id, title, user_id, status, answer, deleted_at FROM qna WHERE id = :id AND (deleted_at IS NULL OR deleted_at = '') LIMIT 1");
+            $checkStmt = $pdo->prepare("SELECT id, title, user_id, status, answer, deleted_at FROM qna WHERE id = :id AND deleted_at IS NULL LIMIT 1");
         } else {
             $checkStmt = $pdo->prepare("SELECT id, title, user_id, status, answer FROM qna WHERE id = :id LIMIT 1");
         }
@@ -457,11 +457,11 @@ function deleteQna($id, $user_id = null) {
         if ($hasDeletedAt) {
             // 소프트 삭제 사용
             if ($user_id !== null) {
-                $stmt = $pdo->prepare("UPDATE qna SET deleted_at = NOW(), updated_at = NOW() WHERE id = :id AND user_id = :user AND (deleted_at IS NULL OR deleted_at = '')");
+                $stmt = $pdo->prepare("UPDATE qna SET deleted_at = NOW(), updated_at = NOW() WHERE id = :id AND user_id = :user AND deleted_at IS NULL");
                 error_log("[{$debugId}] 소프트 삭제 실행 (user_id 조건 포함)");
                 $stmt->execute([':id' => (string)$id, ':user' => (string)$user_id]);
             } else {
-                $stmt = $pdo->prepare("UPDATE qna SET deleted_at = NOW(), updated_at = NOW() WHERE id = :id AND (deleted_at IS NULL OR deleted_at = '')");
+                $stmt = $pdo->prepare("UPDATE qna SET deleted_at = NOW(), updated_at = NOW() WHERE id = :id AND deleted_at IS NULL");
                 error_log("[{$debugId}] 소프트 삭제 실행 (user_id 조건 없음)");
                 $stmt->execute([':id' => (string)$id]);
             }
@@ -572,7 +572,7 @@ function getAllQnaForAdmin() {
     }
     
     if ($hasDeletedAt) {
-        $stmt = $pdo->query("SELECT * FROM qna WHERE deleted_at IS NULL OR deleted_at = '' ORDER BY created_at DESC");
+        $stmt = $pdo->query("SELECT * FROM qna WHERE deleted_at IS NULL ORDER BY created_at DESC");
     } else {
         $stmt = $pdo->query("SELECT * FROM qna ORDER BY created_at DESC");
     }
@@ -618,7 +618,7 @@ function getPendingQnaCount() {
     }
     
     if ($hasDeletedAt) {
-        $stmt = $pdo->query("SELECT COUNT(*) FROM qna WHERE status = 'pending' AND (deleted_at IS NULL OR deleted_at = '')");
+        $stmt = $pdo->query("SELECT COUNT(*) FROM qna WHERE status = 'pending' AND deleted_at IS NULL");
     } else {
         $stmt = $pdo->query("SELECT COUNT(*) FROM qna WHERE status = 'pending'");
     }

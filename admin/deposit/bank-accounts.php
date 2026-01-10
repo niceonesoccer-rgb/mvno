@@ -4,9 +4,17 @@
  * 경로: /admin/deposit/bank-accounts.php
  */
 
-require_once __DIR__ . '/../includes/admin-header.php';
+// POST 요청 처리 (헤더 출력 전에 먼저 처리)
 require_once __DIR__ . '/../../includes/data/db-config.php';
 require_once __DIR__ . '/../../includes/data/auth-functions.php';
+
+// 관리자 권한 체크
+require_once __DIR__ . '/../../includes/data/path-config.php';
+$currentUser = getCurrentUser();
+if (!$currentUser || !isAdmin($currentUser['user_id'])) {
+    header('Location: ' . getAssetPath('/admin/login.php'));
+    exit;
+}
 
 $pdo = getDBConnection();
 
@@ -14,13 +22,9 @@ if (!$pdo) {
     die('데이터베이스 연결에 실패했습니다.');
 }
 
-$currentUser = getCurrentUser();
 $adminId = $currentUser['user_id'] ?? 'system';
 
-$error = '';
-$success = '';
-
-// 계좌 등록/수정 처리
+// 계좌 등록/수정/삭제 처리 (헤더 출력 전에)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
     
@@ -34,7 +38,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $accountId = $action === 'edit' ? intval($_POST['account_id'] ?? 0) : 0;
         
         if (empty($bankName) || empty($accountNumber) || empty($accountHolder)) {
-            $error = '은행명, 계좌번호, 예금주는 필수 입력 항목입니다.';
+            // 에러 메시지를 세션에 저장하고 리다이렉트
+            if (session_status() === PHP_SESSION_NONE) {
+                session_start();
+            }
+            $_SESSION['bank_account_error'] = '은행명, 계좌번호, 예금주는 필수 입력 항목입니다.';
+            header('Location: ' . $_SERVER['PHP_SELF']);
+            exit;
         } else {
             try {
                 if ($action === 'add') {
@@ -50,7 +60,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         ':is_active' => $isActive,
                         ':memo' => $memo
                     ]);
-                    $success = '계좌가 등록되었습니다.';
+                    // POST-Redirect-GET 패턴으로 중복 제출 방지 및 모달 닫기
+                    $redirectUrl = $_SERVER['PHP_SELF'] . '?success=add';
+                    header('Location: ' . $redirectUrl);
+                    exit;
                 } else {
                     $stmt = $pdo->prepare("
                         UPDATE bank_accounts 
@@ -71,11 +84,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         ':memo' => $memo,
                         ':id' => $accountId
                     ]);
-                    $success = '계좌 정보가 수정되었습니다.';
+                    // POST-Redirect-GET 패턴으로 중복 제출 방지 및 모달 닫기
+                    $redirectUrl = $_SERVER['PHP_SELF'] . '?success=edit';
+                    header('Location: ' . $redirectUrl);
+                    exit;
                 }
             } catch (PDOException $e) {
                 error_log('Bank account save error: ' . $e->getMessage());
-                $error = '계좌 저장 중 오류가 발생했습니다.';
+                // 에러 메시지를 세션에 저장하고 리다이렉트
+                if (session_status() === PHP_SESSION_NONE) {
+                    session_start();
+                }
+                $_SESSION['bank_account_error'] = '계좌 저장 중 오류가 발생했습니다.';
+                header('Location: ' . $_SERVER['PHP_SELF']);
+                exit;
             }
         }
     } elseif ($action === 'delete') {
@@ -83,23 +105,73 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         if ($accountId > 0) {
             try {
-                // 입금 신청에서 사용 중인지 확인
-                $stmt = $pdo->prepare("SELECT COUNT(*) FROM deposit_requests WHERE bank_account_id = :id");
-                $stmt->execute([':id' => $accountId]);
-                $usageCount = $stmt->fetchColumn();
+                $pdo->beginTransaction();
                 
-                if ($usageCount > 0) {
-                    $error = '이 계좌는 입금 신청에서 사용 중이어서 삭제할 수 없습니다. (사용 건수: ' . $usageCount . '건)';
-                } else {
+                // 외래키 제약 조건을 일시적으로 비활성화하여 삭제 허용
+                // (입금 신청 기록의 bank_account_id는 그대로 유지되어도 문제없음)
+                $pdo->exec("SET FOREIGN_KEY_CHECKS = 0");
+                
+                try {
+                    // 계좌 삭제
                     $stmt = $pdo->prepare("DELETE FROM bank_accounts WHERE id = :id");
                     $stmt->execute([':id' => $accountId]);
-                    $success = '계좌가 삭제되었습니다.';
+                    
+                    // 외래키 제약 조건 복구
+                    $pdo->exec("SET FOREIGN_KEY_CHECKS = 1");
+                    $pdo->commit();
+                    
+                    // POST-Redirect-GET 패턴으로 중복 제출 방지 (헤더 출력 전에 리다이렉트)
+                    $redirectUrl = $_SERVER['PHP_SELF'] . '?success=delete';
+                    header('Location: ' . $redirectUrl);
+                    exit;
+                } catch (PDOException $e) {
+                    // 외래키 제약 조건 복구
+                    $pdo->exec("SET FOREIGN_KEY_CHECKS = 1");
+                    throw $e;
                 }
             } catch (PDOException $e) {
+                if ($pdo->inTransaction()) {
+                    $pdo->rollBack();
+                }
+                // 외래키 제약 조건 복구 (안전장치)
+                try {
+                    $pdo->exec("SET FOREIGN_KEY_CHECKS = 1");
+                } catch (PDOException $e2) {
+                    error_log('FOREIGN_KEY_CHECKS restore error: ' . $e2->getMessage());
+                }
                 error_log('Bank account delete error: ' . $e->getMessage());
-                $error = '계좌 삭제 중 오류가 발생했습니다.';
+                // 에러 메시지를 세션에 저장하고 리다이렉트
+                if (session_status() === PHP_SESSION_NONE) {
+                    session_start();
+                }
+                $_SESSION['bank_account_error'] = '계좌 삭제 중 오류가 발생했습니다: ' . htmlspecialchars($e->getMessage());
+                header('Location: ' . $_SERVER['PHP_SELF']);
+                exit;
             }
         }
+    }
+}
+
+// 헤더 포함 (POST 처리 완료 후)
+require_once __DIR__ . '/../includes/admin-header.php';
+
+$error = '';
+$success = '';
+
+// 세션에서 에러 메시지 가져오기
+if (isset($_SESSION['bank_account_error'])) {
+    $error = $_SESSION['bank_account_error'];
+    unset($_SESSION['bank_account_error']);
+}
+
+// 성공 메시지 처리 (GET 파라미터에서)
+if (isset($_GET['success'])) {
+    if ($_GET['success'] === 'add') {
+        $success = '계좌가 등록되었습니다.';
+    } elseif ($_GET['success'] === 'edit') {
+        $success = '계좌 정보가 수정되었습니다.';
+    } elseif ($_GET['success'] === 'delete') {
+        $success = '계좌가 삭제되었습니다.';
     }
 }
 
@@ -211,7 +283,7 @@ if (!empty($editId)) {
 </div>
 
 <!-- 계좌 등록/수정 모달 -->
-<div id="accountModal" style="display: <?= $editAccount ? 'flex' : 'none' ?>; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+<div id="accountModal" style="display: <?= ($editAccount || isset($_GET['add'])) ? 'flex' : 'none' ?>; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
     <div style="background: white; border-radius: 12px; padding: 32px; width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
             <h2 style="margin: 0; font-size: 20px; font-weight: 600;">
@@ -302,24 +374,71 @@ if (!empty($editId)) {
 <script>
 function closeModal() {
     document.getElementById('accountModal').style.display = 'none';
-    window.location.href = '<?= $_SERVER['PHP_SELF'] ?>';
+    // URL에서 edit, add 파라미터 제거
+    const url = new URL(window.location.href);
+    url.searchParams.delete('edit');
+    url.searchParams.delete('add');
+    window.history.replaceState({}, '', url);
 }
 
 document.getElementById('btnAddAccount')?.addEventListener('click', function() {
-    window.location.href = '<?= $_SERVER['PHP_SELF'] ?>?add=1';
+    // 모달 열기 (페이지 리로드 없이)
+    document.getElementById('accountModal').style.display = 'flex';
+    // 폼 초기화
+    document.getElementById('accountForm').reset();
+    document.querySelector('input[name="action"]').value = 'add';
+    // edit 관련 hidden input 제거
+    const accountIdInput = document.querySelector('input[name="account_id"]');
+    if (accountIdInput) {
+        accountIdInput.remove();
+    }
 });
 
 function deleteAccount(id) {
-    if (confirm('정말 이 계좌를 삭제하시겠습니까?\n\n입금 신청에서 사용 중인 계좌는 삭제할 수 없습니다.')) {
+    // 경고 모달 표시 (삭제 허용)
+    if (confirm('정말 이 계좌를 삭제하시겠습니까?\n\n주의: 과거 입금 신청 기록에서 이 계좌 정보가 표시되지 않을 수 있습니다.\n(입금 신청 시점의 계좌 정보는 저장되어 있어 삭제해도 문제없습니다.)')) {
         document.getElementById('deleteAccountId').value = id;
         document.getElementById('deleteForm').submit();
     }
 }
 
-// URL에 add 파라미터가 있으면 모달 열기
-if (window.location.search.includes('add=1')) {
-    document.getElementById('accountModal').style.display = 'flex';
-}
+// 폼 제출 시 AJAX로 처리하여 모달 닫기
+document.getElementById('accountForm')?.addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const submitBtn = this.querySelector('button[type="submit"]');
+    const originalText = submitBtn.textContent;
+    
+    // 버튼 비활성화
+    submitBtn.disabled = true;
+    submitBtn.textContent = '저장 중...';
+    
+    fetch('<?= $_SERVER['PHP_SELF'] ?>', {
+        method: 'POST',
+        body: formData,
+        redirect: 'follow' // 리다이렉트 자동 따라가기
+    })
+    .then(response => {
+        // 리다이렉트된 경우 (성공) - response.url이 변경됨
+        if (response.redirected || (response.url && response.url !== window.location.href)) {
+            // 성공 메시지와 함께 페이지 이동 (모달 자동 닫힘)
+            window.location.href = response.url;
+        } else {
+            // 리다이렉트가 없는 경우 (에러 발생 가능)
+            return response.text().then(html => {
+                // 페이지 새로고침하여 에러 메시지 표시
+                window.location.reload();
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+        alert('저장 중 오류가 발생했습니다.');
+    });
+});
 </script>
 
 <?php include __DIR__ . '/../includes/admin-footer.php'; ?>

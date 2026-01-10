@@ -5,6 +5,7 @@ $current_page = 'internets';
 $is_main_page = true;
 
 // 로그인 체크를 위한 auth-functions 포함
+require_once '../includes/data/path-config.php';
 require_once '../includes/data/auth-functions.php';
 require_once '../includes/data/db-config.php';
 require_once '../includes/data/product-functions.php';
@@ -201,15 +202,16 @@ try {
 // 가입처별 아이콘 경로 매핑
 function getInternetIconPath($registrationPlace) {
     $iconMap = [
-        'KT' => '/MVNO/assets/images/internets/kt.svg',
-        'SKT' => '/MVNO/assets/images/internets/broadband.svg',
-        'LG U+' => '/MVNO/assets/images/internets/lgu.svg',
-        'KT skylife' => '/MVNO/assets/images/internets/ktskylife.svg',
-        'LG헬로비전' => '/MVNO/assets/images/internets/hellovision.svg',
-        'BTV' => '/MVNO/assets/images/internets/btv.svg',
-        'DLIVE' => '/MVNO/assets/images/internets/dlive.svg',
+        'KT' => '/assets/images/internets/kt.svg',
+        'SKT' => '/assets/images/internets/broadband.svg',
+        'LG U+' => '/assets/images/internets/lgu.svg',
+        'KT skylife' => '/assets/images/internets/ktskylife.svg',
+        'LG헬로비전' => '/assets/images/internets/hellovision.svg',
+        'BTV' => '/assets/images/internets/btv.svg',
+        'DLIVE' => '/assets/images/internets/dlive.svg',
     ];
-    return $iconMap[$registrationPlace] ?? '';
+    $iconPath = $iconMap[$registrationPlace] ?? '';
+    return $iconPath ? getAssetPath($iconPath) : '';
 }
 ?>
 
@@ -378,7 +380,7 @@ function getInternetIconPath($registrationPlace) {
                                             }
                                     ?>
                                     <div class="css-12zfa6z e82z5mt8">
-                                        <img src="/MVNO/assets/images/icons/cash.svg" alt="현금" class="css-xj5cz0 e82z5mt9">
+                                        <img src="<?php echo getAssetPath('/assets/images/icons/cash.svg'); ?>" alt="현금" class="css-xj5cz0 e82z5mt9">
                                         <div class="css-0 e82z5mt10">
                                             <p class="css-2ht76o e82z5mt12 item-name-text">
                                                 <?php echo htmlspecialchars($cashNames[$i]); ?>
@@ -412,7 +414,7 @@ function getInternetIconPath($registrationPlace) {
                                             }
                                     ?>
                                     <div class="css-12zfa6z e82z5mt8">
-                                        <img src="/MVNO/assets/images/icons/gift-card.svg" alt="상품권" class="css-xj5cz0 e82z5mt9">
+                                        <img src="<?php echo getAssetPath('/assets/images/icons/gift-card.svg'); ?>" alt="상품권" class="css-xj5cz0 e82z5mt9">
                                         <div class="css-0 e82z5mt10">
                                             <p class="css-2ht76o e82z5mt12 item-name-text">
                                                 <?php echo htmlspecialchars($giftNames[$i]); ?>
@@ -436,7 +438,7 @@ function getInternetIconPath($registrationPlace) {
                                             $priceText = isset($equipPrices[$i]) && !empty($equipPrices[$i]) ? $equipPrices[$i] : '';
                                     ?>
                                     <div class="css-12zfa6z e82z5mt8">
-                                        <img src="/MVNO/assets/images/icons/equipment.svg" alt="장비" class="css-xj5cz0 e82z5mt9">
+                                        <img src="<?php echo getAssetPath('/assets/images/icons/equipment.svg'); ?>" alt="장비" class="css-xj5cz0 e82z5mt9">
                                         <div class="css-0 e82z5mt10">
                                             <p class="css-2ht76o e82z5mt12 item-name-text">
                                                 <?php echo htmlspecialchars($equipNames[$i]); ?>
@@ -458,7 +460,7 @@ function getInternetIconPath($registrationPlace) {
                                             $priceText = isset($installPrices[$i]) && !empty($installPrices[$i]) ? $installPrices[$i] : '';
                                     ?>
                                     <div class="css-12zfa6z e82z5mt8">
-                                        <img src="/MVNO/assets/images/icons/installation.svg" alt="설치" class="css-xj5cz0 e82z5mt9">
+                                        <img src="<?php echo getAssetPath('/assets/images/icons/installation.svg'); ?>" alt="설치" class="css-xj5cz0 e82z5mt9">
                                         <div class="css-0 e82z5mt10">
                                             <p class="css-2ht76o e82z5mt12 item-name-text">
                                                 <?php echo htmlspecialchars($installNames[$i]); ?>
@@ -2082,7 +2084,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // 상세페이지로 이동
                 e.preventDefault();
                 e.stopPropagation();
-                window.location.href = '/MVNO/internets/internet-detail.php?id=' + productId;
+                window.location.href = '<?php echo getAssetPath('/internets/internet-detail.php'); ?>?id=' + productId;
             }
         });
     }
@@ -2105,7 +2107,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const formData = new FormData(this);
             
-            fetch('/MVNO/api/direct-login.php', {
+            fetch('<?php echo getApiPath('/api/direct-login.php'); ?>', {
                 method: 'POST',
                 body: formData
             })
@@ -2126,7 +2128,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         }, 100);
                     } else {
                         // 일반적인 경우 페이지 리로드
-                        window.location.href = data.redirect || '/MVNO/';
+                        window.location.href = data.redirect || '<?php echo getBasePath(); ?>/';
                     }
                 } else {
                     alert(data.message || '로그인에 실패했습니다.');
@@ -2681,7 +2683,7 @@ function showCurrentCompanyInfo(company, icon) {
             '기타': null
         };
         
-        const logoPath = companyLogos[company] || (icon ? `/MVNO/assets/images/internets/${icon}.svg` : null);
+        const logoPath = companyLogos[company] || (icon ? '<?php echo getAssetPath('/assets/images/internets/'); ?>' + icon + '.svg' : null);
         
         if (logoPath && logoEl) {
             // 텍스트 먼저 숨기기
@@ -2732,7 +2734,7 @@ function showNewCompanyInfo() {
     
     if (infoEl && selectedData.newCompany) {
         const logoPath = selectedData.newCompanyLogo || 
-            (selectedData.newCompanyIcon ? `/MVNO/assets/images/internets/${selectedData.newCompanyIcon}.svg` : null);
+            (selectedData.newCompanyIcon ? '<?php echo getAssetPath('/assets/images/internets/'); ?>' + selectedData.newCompanyIcon + '.svg' : null);
         
         if (logoPath && logoEl) {
             // 텍스트 먼저 숨기기
@@ -3273,7 +3275,7 @@ function submitInternetForm() {
         
         // 현재 URL을 세션에 저장 (로그인 후 돌아올 주소)
         const currentUrl = window.location.href;
-        fetch('/MVNO/api/save-redirect-url.php', {
+        fetch('<?php echo getApiPath('/api/save-redirect-url.php'); ?>', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -3405,7 +3407,7 @@ function submitInternetForm() {
     console.log('  currentCompany:', selectedData.currentCompany || 'none');
     
     // 실제 제출 로직
-    fetch('/MVNO/api/submit-internet-application.php', {
+    fetch('<?php echo getApiPath('/api/submit-internet-application.php'); ?>', {
         method: 'POST',
         body: formData
     })
@@ -3436,7 +3438,7 @@ function submitInternetForm() {
             
             // 인터넷 상담 신청 성공 - 마이페이지 URL 저장
             window.internetApplicationSuccess = {
-                mypageUrl: '/MVNO/mypage/internet-order.php'
+                mypageUrl: '<?php echo getAssetPath('/mypage/internet-order.php'); ?>'
             };
             
             console.log('[DEBUG] 마이페이지 URL 저장 완료');
@@ -4022,13 +4024,13 @@ document.addEventListener('keydown', function(e) {
 </script>
 
 <!-- 더보기 기능 스크립트 -->
-<script src="/MVNO/assets/js/load-more-products.js?v=2"></script>
+<script src="<?php echo getAssetPath('/assets/js/load-more-products.js'); ?>?v=2"></script>
 
 <?php
 // 푸터 포함
 ?>
 <!-- 아코디언 스크립트 -->
-<script src="/MVNO/assets/js/plan-accordion.js"></script>
+<script src="<?php echo getAssetPath('/assets/js/plan-accordion.js'); ?>"></script>
 
 <?php include '../includes/footer.php'; ?>
 

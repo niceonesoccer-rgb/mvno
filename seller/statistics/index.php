@@ -4,6 +4,7 @@
  * 경로: /MVNO/seller/statistics/
  */
 
+require_once __DIR__ . '/../../includes/data/path-config.php';
 require_once __DIR__ . '/../../includes/data/auth-functions.php';
 require_once __DIR__ . '/../../includes/data/db-config.php';
 require_once __DIR__ . '/../../includes/data/seller-statistics-functions.php';
@@ -17,14 +18,14 @@ $currentUser = getCurrentUser();
 
 // 판매자 로그인 체크
 if (!$currentUser || $currentUser['role'] !== 'seller') {
-    header('Location: /MVNO/seller/login.php');
+    header('Location: ' . getAssetPath('/seller/login.php'));
     exit;
 }
 
 // 판매자 승인 체크
 $isApproved = isset($currentUser['seller_approved']) && $currentUser['seller_approved'] === true;
 if (!$isApproved) {
-    header('Location: /MVNO/seller/waiting.php');
+    header('Location: ' . getAssetPath('/seller/waiting.php'));
     exit;
 }
 
@@ -677,10 +678,10 @@ include '../includes/seller-header.php';
                             <?php
                             // 상품 타입별 수정 페이지 URL
                             $editUrls = [
-                                'mvno' => '/MVNO/seller/products/mvno.php?id=' . $product['id'],
-                                'mno' => '/MVNO/seller/products/mno.php?id=' . $product['id'],
-                                'mno-sim' => '/MVNO/seller/products/mno-sim.php?id=' . $product['id'],
-                                'internet' => '/MVNO/seller/products/internet.php?id=' . $product['id']
+                                'mvno' => getAssetPath('/seller/products/mvno.php?id=' . $product['id']),
+                                'mno' => getAssetPath('/seller/products/mno.php?id=' . $product['id']),
+                                'mno-sim' => getAssetPath('/seller/products/mno-sim.php?id=' . $product['id']),
+                                'internet' => getAssetPath('/seller/products/internet.php?id=' . $product['id'])
                             ];
                             $editUrl = $editUrls[$product['type']] ?? '#';
                             ?>

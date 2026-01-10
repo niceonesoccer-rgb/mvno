@@ -14,13 +14,13 @@ $currentUser = getCurrentUser();
 
 // 판매자 로그인 체크
 if (!$currentUser || $currentUser['role'] !== 'seller') {
-    header('Location: /MVNO/seller/login.php');
+    header('Location: ' . getAssetPath('/seller/login.php'));
     exit;
 }
 
 // 판매자 승인 체크 - 승인되지 않은 경우 waiting.php로 리다이렉트
 if (!isset($currentUser['approval_status']) || $currentUser['approval_status'] !== 'approved') {
-    header('Location: /MVNO/seller/waiting.php');
+    header('Location: ' . getAssetPath('/seller/waiting.php'));
     exit;
 }
 
@@ -331,7 +331,7 @@ include 'includes/seller-header.php';
             <h1>내정보</h1>
             <p>판매자 계정 정보를 확인할 수 있습니다.</p>
         </div>
-        <a href="/MVNO/seller/edit.php" class="btn" style="background: #6366f1; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 500; display: inline-block; transition: all 0.2s;">
+        <a href="<?php echo getAssetPath('/seller/edit.php'); ?>" class="btn" style="background: #6366f1; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 500; display: inline-block; transition: all 0.2s;">
             회원정보 수정
         </a>
     </div>
@@ -686,7 +686,7 @@ include 'includes/seller-header.php';
         
         const reason = document.getElementById('withdrawalReason').value;
         
-        fetch('/MVNO/api/request-seller-withdrawal.php', {
+        fetch('<?php echo getApiPath('/api/request-seller-withdrawal.php'); ?>', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -718,7 +718,7 @@ include 'includes/seller-header.php';
         // 확인 모달 닫기
         closeCancelWithdrawalModal();
         
-        fetch('/MVNO/api/cancel-seller-withdrawal.php', {
+        fetch('<?php echo getApiPath('/api/cancel-seller-withdrawal.php'); ?>', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -753,7 +753,7 @@ include 'includes/seller-header.php';
     
     function closeWithdrawalSuccessModal() {
         document.getElementById('withdrawalSuccessModal').classList.remove('active');
-        window.location.href = '/MVNO/seller/waiting.php';
+        window.location.href = '<?php echo getAssetPath('/seller/waiting.php'); ?>';
     }
     
     // 탈퇴 요청 실패 모달

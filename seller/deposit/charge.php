@@ -39,19 +39,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $taxAmount = $supplyAmount * 0.1;
             $totalAmount = $supplyAmount + $taxAmount; // 입금 금액 = 공급가액 + 부가세
             
-            $stmt = $pdo->prepare("
-                INSERT INTO deposit_requests 
-                (seller_id, bank_account_id, depositor_name, amount, supply_amount, tax_amount, status)
-                VALUES (:seller_id, :bank_account_id, :depositor_name, :amount, :supply_amount, :tax_amount, 'pending')
-            ");
-            $stmt->execute([
-                ':seller_id' => $sellerId,
-                ':bank_account_id' => $bankAccountId,
-                ':depositor_name' => $depositorName,
-                ':amount' => $totalAmount,
-                ':supply_amount' => $supplyAmount,
-                ':tax_amount' => $taxAmount
-            ]);
+            // 계좌 정보 조회 (텍스트로 저장하기 위해)
+            $bankStmt = $pdo->prepare("SELECT bank_name, account_number, account_holder FROM bank_accounts WHERE id = :id");
+            $bankStmt->execute([':id' => $bankAccountId]);
+            $bankInfo = $bankStmt->fetch(PDO::FETCH_ASSOC);
+            
+            $bankName = $bankInfo['bank_name'] ?? '';
+            $accountNumber = $bankInfo['account_number'] ?? '';
+            $accountHolder = $bankInfo['account_holder'] ?? '';
+            
+            // deposit_requests 테이블에 계좌 정보를 텍스트로 저장 (컬럼이 있는 경우)
+            // 컬럼 존재 여부 확인
+            $checkStmt = $pdo->query("SHOW COLUMNS FROM deposit_requests LIKE 'bank_name'");
+            $hasBankNameColumn = $checkStmt->rowCount() > 0;
+            
+            if ($hasBankNameColumn) {
+                // 컬럼이 있으면 텍스트로도 저장
+                $stmt = $pdo->prepare("
+                    INSERT INTO deposit_requests 
+                    (seller_id, bank_account_id, depositor_name, amount, supply_amount, tax_amount, status, bank_name, account_number, account_holder)
+                    VALUES (:seller_id, :bank_account_id, :depositor_name, :amount, :supply_amount, :tax_amount, 'pending', :bank_name, :account_number, :account_holder)
+                ");
+                $stmt->execute([
+                    ':seller_id' => $sellerId,
+                    ':bank_account_id' => $bankAccountId,
+                    ':depositor_name' => $depositorName,
+                    ':amount' => $totalAmount,
+                    ':supply_amount' => $supplyAmount,
+                    ':tax_amount' => $taxAmount,
+                    ':bank_name' => $bankName,
+                    ':account_number' => $accountNumber,
+                    ':account_holder' => $accountHolder
+                ]);
+            } else {
+                // 컬럼이 없으면 기존 방식으로 저장
+                $stmt = $pdo->prepare("
+                    INSERT INTO deposit_requests 
+                    (seller_id, bank_account_id, depositor_name, amount, supply_amount, tax_amount, status)
+                    VALUES (:seller_id, :bank_account_id, :depositor_name, :amount, :supply_amount, :tax_amount, 'pending')
+                ");
+                $stmt->execute([
+                    ':seller_id' => $sellerId,
+                    ':bank_account_id' => $bankAccountId,
+                    ':depositor_name' => $depositorName,
+                    ':amount' => $totalAmount,
+                    ':supply_amount' => $supplyAmount,
+                    ':tax_amount' => $taxAmount
+                ]);
+            }
             
             // 폼 초기화를 위해 GET으로 리다이렉트
             header('Location: ?success=1');

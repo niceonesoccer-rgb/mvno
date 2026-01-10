@@ -648,7 +648,7 @@ try {
                                     <?php 
                                     $sellerId = $product['seller_user_id_display'] ?? $product['seller_user_id'] ?? $product['seller_id'] ?? '-';
                                     if ($sellerId && $sellerId !== '-') {
-                                        echo '<a href="/MVNO/admin/users/seller-detail.php?user_id=' . urlencode($sellerId) . '" style="color: #3b82f6; text-decoration: none; font-weight: 600;">' . htmlspecialchars($sellerId) . '</a>';
+                                        echo '<a href="' . getAssetPath('/admin/users/seller-detail.php') . '?user_id=' . urlencode($sellerId) . '" style="color: #3b82f6; text-decoration: none; font-weight: 600;">' . htmlspecialchars($sellerId) . '</a>';
                                     } else {
                                         echo '-';
                                     }
@@ -750,28 +750,62 @@ try {
                         $endPage = min($currentGroup * $pageGroupSize, $totalPages);
                         $prevGroupLastPage = ($currentGroup - 1) * $pageGroupSize;
                         $nextGroupFirstPage = $currentGroup * $pageGroupSize + 1;
-                        $baseQuery = '?status=' . htmlspecialchars($status ?? '') . 
-                                    '&search_query=' . htmlspecialchars($search_query) . 
-                                    '&provider=' . htmlspecialchars($provider) . 
-                                    '&seller_id=' . htmlspecialchars($seller_id) . 
-                                    '&date_from=' . htmlspecialchars($date_from) . 
-                                    '&date_to=' . htmlspecialchars($date_to) . 
-                                    '&per_page=' . $perPage;
+                        
+                        // 현재 페이지 URL 경로
+                        $currentPagePath = getAssetPath('/admin/products/mno-sim-list.php');
+                        
+                        // 쿼리 파라미터 배열 생성
+                        $queryParams = [];
+                        if ($status !== null && $status !== '') {
+                            $queryParams['status'] = $status;
+                        }
+                        if (!empty($search_query)) {
+                            $queryParams['search_query'] = $search_query;
+                        }
+                        if (!empty($provider)) {
+                            $queryParams['provider'] = $provider;
+                        }
+                        if (!empty($seller_id)) {
+                            $queryParams['seller_id'] = $seller_id;
+                        }
+                        if (!empty($date_from)) {
+                            $queryParams['date_from'] = $date_from;
+                        }
+                        if (!empty($date_to)) {
+                            $queryParams['date_to'] = $date_to;
+                        }
+                        $queryParams['per_page'] = $perPage;
+                        
+                        // baseQuery 생성 (page 파라미터 제외)
+                        $baseQuery = $currentPagePath . '?' . http_build_query($queryParams);
                         ?>
                         <?php if ($currentGroup > 1): ?>
-                            <a href="<?php echo $baseQuery; ?>&page=<?php echo $prevGroupLastPage; ?>" 
+                            <?php 
+                            $queryParams['page'] = $prevGroupLastPage;
+                            $prevUrl = $currentPagePath . '?' . http_build_query($queryParams);
+                            ?>
+                            <a href="<?php echo htmlspecialchars($prevUrl); ?>" 
                                class="pagination-btn">이전</a>
                         <?php else: ?>
                             <span class="pagination-btn disabled">이전</span>
                         <?php endif; ?>
                         
                         <?php for ($i = $startPage; $i <= $endPage; $i++): ?>
-                            <a href="<?php echo $baseQuery; ?>&page=<?php echo $i; ?>" 
-                               class="pagination-btn <?php echo $i === $page ? 'active' : ''; ?>"><?php echo $i; ?></a>
+                            <?php 
+                            $queryParams['page'] = $i;
+                            $pageUrl = $currentPagePath . '?' . http_build_query($queryParams);
+                            $isActive = (intval($i) === intval($page));
+                            ?>
+                            <a href="<?php echo htmlspecialchars($pageUrl); ?>" 
+                               class="pagination-btn <?php echo $isActive ? 'active' : ''; ?>"><?php echo $i; ?></a>
                         <?php endfor; ?>
                         
                         <?php if ($nextGroupFirstPage <= $totalPages): ?>
-                            <a href="<?php echo $baseQuery; ?>&page=<?php echo $nextGroupFirstPage; ?>" 
+                            <?php 
+                            $queryParams['page'] = $nextGroupFirstPage;
+                            $nextUrl = $currentPagePath . '?' . http_build_query($queryParams);
+                            ?>
+                            <a href="<?php echo htmlspecialchars($nextUrl); ?>" 
                                class="pagination-btn">다음</a>
                         <?php else: ?>
                             <span class="pagination-btn disabled">다음</span>
@@ -784,6 +818,17 @@ try {
 </div>
 
 <script>
+// API 경로 설정 (절대 URL)
+<?php
+$apiUpdatePointPath = getAssetPath("/api/admin/update-product-point.php");
+// 프로덕션에서 절대 URL 필요시
+if (strpos($apiUpdatePointPath, 'http') !== 0 && isset($_SERVER['HTTP_HOST'])) {
+    $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    $apiUpdatePointPath = $protocol . '://' . $_SERVER['HTTP_HOST'] . $apiUpdatePointPath;
+}
+?>
+const API_UPDATE_POINT_URL = '<?php echo htmlspecialchars($apiUpdatePointPath, ENT_QUOTES, 'UTF-8'); ?>';
+
 function changePerPage() {
     const perPage = document.getElementById('per_page_select').value;
     const params = new URLSearchParams(window.location.search);
@@ -1000,7 +1045,7 @@ function processBulkChangeStatus(productIds, status) {
         status: normalizedStatus
     });
     
-    fetch('/MVNO/api/admin-product-bulk-update.php', {
+    fetch('<?php echo getAssetPath("/api/admin-product-bulk-update.php"); ?>', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -1433,36 +1478,55 @@ function deletePointEdit() {
         saveBtn.textContent = '삭제 중...';
     }
     
-    // API 호출
-    fetch('/MVNO/api/admin/update-product-point.php', {
+    // API 호출 - FormData 사용 (웹서버 호환성)
+    console.log('API URL (Delete):', API_UPDATE_POINT_URL);
+    
+    const formData = new FormData();
+    formData.append('product_id', productId);
+    formData.append('point_setting', '0');
+    formData.append('point_benefit_description', '');
+    
+    fetch(API_UPDATE_POINT_URL, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            product_id: productId,
-            point_setting: 0,
-            point_benefit_description: ''
-        })
+        body: formData
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showAlertModal('성공', '포인트 및 혜택내용이 삭제되었습니다.');
-            setTimeout(() => {
-                location.reload();
-            }, 1500);
+    .then(response => {
+        console.log('Response Status:', response.status);
+        if (!response.ok) {
+            return response.text().then(text => {
+                console.error('API Error Response:', text);
+                throw new Error('HTTP ' + response.status + ': ' + text.substring(0, 100));
+            });
+        }
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            return response.json();
         } else {
-            showAlertModal('오류', data.message || '삭제에 실패했습니다.');
-            if (saveBtn) {
-                saveBtn.disabled = false;
-                saveBtn.textContent = '저장';
+            return response.text().then(text => {
+                console.error('Non-JSON Response:', text);
+                throw new Error('서버가 JSON이 아닌 응답을 반환했습니다.');
+            });
+        }
+    })
+    .then(data => {
+        if (data && typeof data === 'object' && 'success' in data) {
+            if (data.success) {
+                showAlertModal('성공', '포인트 및 혜택내용이 삭제되었습니다.');
+                setTimeout(() => {
+                    location.reload();
+                }, 1500);
+            } else {
+                showAlertModal('오류', data.message || '삭제에 실패했습니다.');
+                if (saveBtn) {
+                    saveBtn.disabled = false;
+                    saveBtn.textContent = '저장';
+                }
             }
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        showAlertModal('오류', '삭제 중 오류가 발생했습니다.');
+        showAlertModal('오류', '삭제 중 오류가 발생했습니다: ' + (error.message || '알 수 없는 오류'));
         if (saveBtn) {
             saveBtn.disabled = false;
             saveBtn.textContent = '저장';
@@ -1492,36 +1556,59 @@ function savePointEdit(event) {
         saveBtn.textContent = '저장 중...';
     }
     
-    // API 호출
-    fetch('/MVNO/api/admin/update-product-point.php', {
+    // API 호출 - 웹서버 호환성을 위해 FormData도 시도
+    console.log('API URL:', API_UPDATE_POINT_URL);
+    console.log('Request Data:', { product_id: productId, point_setting: pointSetting, point_benefit_description: benefitDescription });
+    
+    // FormData 사용 (웹서버 호환성 - JSON은 400 에러 발생)
+    const formData = new FormData();
+    formData.append('product_id', productId);
+    formData.append('point_setting', pointSetting);
+    formData.append('point_benefit_description', benefitDescription);
+    
+    fetch(API_UPDATE_POINT_URL, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            product_id: productId,
-            point_setting: pointSetting,
-            point_benefit_description: benefitDescription
-        })
+        body: formData
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showAlertModal('성공', '포인트 및 혜택내용이 저장되었습니다.');
-            setTimeout(() => {
-                location.reload();
-            }, 1500);
+    .then(response => {
+        console.log('Response Status:', response.status);
+        console.log('Response Headers:', Object.fromEntries(response.headers.entries()));
+        
+        if (!response.ok) {
+            return response.text().then(text => {
+                console.error('API Error Response:', text);
+                throw new Error('HTTP ' + response.status + ': ' + text.substring(0, 100));
+            });
+        }
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            return response.json();
         } else {
-            showAlertModal('오류', data.message || '저장에 실패했습니다.');
-            if (saveBtn) {
-                saveBtn.disabled = false;
-                saveBtn.textContent = '저장';
+            return response.text().then(text => {
+                console.error('Non-JSON Response:', text);
+                throw new Error('서버가 JSON이 아닌 응답을 반환했습니다.');
+            });
+        }
+    })
+    .then(data => {
+        if (data && typeof data === 'object' && 'success' in data) {
+            if (data.success) {
+                showAlertModal('성공', '포인트 및 혜택내용이 저장되었습니다.');
+                setTimeout(() => {
+                    location.reload();
+                }, 1500);
+            } else {
+                showAlertModal('오류', data.message || '저장에 실패했습니다.');
+                if (saveBtn) {
+                    saveBtn.disabled = false;
+                    saveBtn.textContent = '저장';
+                }
             }
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        showAlertModal('오류', '저장 중 오류가 발생했습니다.');
+        showAlertModal('오류', '저장 중 오류가 발생했습니다: ' + (error.message || '알 수 없는 오류'));
         if (saveBtn) {
             saveBtn.disabled = false;
             saveBtn.textContent = '저장';

@@ -20,20 +20,27 @@ $site = $siteSettings['site'] ?? [];
             <div class="footer-terms">
                 <?php 
                 $termsOfServiceText = !empty($terms['terms_of_service']['text']) ? $terms['terms_of_service']['text'] : '이용약관';
-                $termsOfServiceUrl = !empty($terms['terms_of_service']['url']) ? $terms['terms_of_service']['url'] : getAssetPath('/terms/view.php?type=terms_of_service');
+                $termsOfServiceUrl = !empty($terms['terms_of_service']['url']) ? getAssetPath($terms['terms_of_service']['url']) : getAssetPath('/terms/view.php?type=terms_of_service');
                 ?>
                 <?php if (!empty($termsOfServiceText)): ?>
-                    <a href="<?php echo htmlspecialchars($termsOfServiceUrl); ?>" target="_blank" rel="noopener noreferrer" class="footer-terms-link"><?php echo htmlspecialchars($termsOfServiceText); ?></a>
+                    <a href="<?php echo htmlspecialchars($termsOfServiceUrl); ?>" class="footer-terms-link"><?php echo htmlspecialchars($termsOfServiceText); ?></a>
                 <?php endif; ?>
                 <?php 
                 $privacyPolicyText = !empty($terms['privacy_policy']['text']) ? $terms['privacy_policy']['text'] : '개인정보처리방침';
-                $privacyPolicyUrl = !empty($terms['privacy_policy']['url']) ? $terms['privacy_policy']['url'] : getAssetPath('/terms/view.php?type=privacy_policy');
+                $privacyPolicyUrl = !empty($terms['privacy_policy']['url']) ? getAssetPath($terms['privacy_policy']['url']) : getAssetPath('/terms/view.php?type=privacy_policy');
                 ?>
                 <?php if (!empty($privacyPolicyText)): ?>
-                    <a href="<?php echo htmlspecialchars($privacyPolicyUrl); ?>" target="_blank" rel="noopener noreferrer" class="footer-terms-link-bold"><?php echo htmlspecialchars($privacyPolicyText); ?></a>
+                    <a href="<?php echo htmlspecialchars($privacyPolicyUrl); ?>" class="footer-terms-link-bold"><?php echo htmlspecialchars($privacyPolicyText); ?></a>
                 <?php endif; ?>
-                <a href="https://spam.kisa.or.kr/spam/main.do" target="_blank" rel="noopener noreferrer" class="footer-terms-link">불법스팸대응센터</a>
-                <a href="https://www.msafer.or.kr/index.do" target="_blank" rel="noopener noreferrer" class="footer-terms-link">명의도용방지서비스</a>
+                <?php 
+                // 외부 링크 표시
+                $externalLinks = $terms['external_links'] ?? [];
+                if (!empty($externalLinks['spam_center']['url'])): ?>
+                    <a href="<?php echo htmlspecialchars($externalLinks['spam_center']['url']); ?>" target="_blank" rel="noopener noreferrer" class="footer-terms-link"><?php echo htmlspecialchars($externalLinks['spam_center']['text'] ?? '불법스팸대응센터'); ?></a>
+                <?php endif; ?>
+                <?php if (!empty($externalLinks['msafer']['url'])): ?>
+                    <a href="<?php echo htmlspecialchars($externalLinks['msafer']['url']); ?>" target="_blank" rel="noopener noreferrer" class="footer-terms-link"><?php echo htmlspecialchars($externalLinks['msafer']['text'] ?? '명의도용방지서비스'); ?></a>
+                <?php endif; ?>
             </div>
             <?php endif; ?>
             

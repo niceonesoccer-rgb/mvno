@@ -3,6 +3,9 @@
  * 1:1 Q&A 상세 페이지
  */
 
+// 경로 설정 파일 먼저 로드
+require_once '../includes/data/path-config.php';
+
 // 로그인 체크를 위한 auth-functions 포함 (세션 설정과 함께 세션을 시작함)
 require_once '../includes/data/auth-functions.php';
 
@@ -11,7 +14,7 @@ if (!isLoggedIn()) {
     // 현재 URL을 세션에 저장 (회원가입 후 돌아올 주소)
     $_SESSION['redirect_url'] = $_SERVER['REQUEST_URI'];
     // 로그인 모달이 있는 홈으로 리다이렉트 (모달 자동 열기)
-    header('Location: /MVNO/?show_login=1');
+    header('Location: ' . getAssetPath('/?show_login=1'));
     exit;
 }
 
@@ -27,7 +30,7 @@ if (!$currentUser) {
     }
     // 현재 URL을 세션에 저장 (회원가입 후 돌아올 주소)
     $_SESSION['redirect_url'] = $_SERVER['REQUEST_URI'];
-    header('Location: /MVNO/?show_login=1');
+    header('Location: ' . getAssetPath('/?show_login=1'));
     exit;
 }
 
@@ -40,7 +43,7 @@ $user_id = $currentUser['user_id'];
 // Q&A ID 확인
 $id = isset($_GET['id']) ? $_GET['id'] : null;
 if (!$id) {
-    header('Location: /MVNO/qna/qna.php');
+    header('Location: ' . getAssetPath('/qna/qna.php'));
     exit;
 }
 
@@ -50,23 +53,17 @@ if (!$qna) {
     // 에러 로깅
     error_log("QnA 상세 조회 실패 - ID: " . $id . ", User ID: " . $user_id);
     $_SESSION['qna_error'] = '문의글을 찾을 수 없습니다.';
-    header('Location: /MVNO/qna/qna.php');
+    header('Location: ' . getAssetPath('/qna/qna.php'));
     exit;
 }
 
-// 데이터 검증: 필수 필드 확인 (NULL 체크와 빈 문자열 체크를 명확히 구분)
-if (!isset($qna['title']) || $qna['title'] === null || trim($qna['title']) === '' || 
-    !isset($qna['content']) || $qna['content'] === null || trim($qna['content']) === '') {
-    error_log("QnA 데이터 불완전 - ID: " . $id . ", Title: " . ($qna['title'] ?? 'NULL') . ", Content: " . (isset($qna['content']) && $qna['content'] !== null ? (strlen($qna['content']) > 0 ? 'EXISTS(' . strlen($qna['content']) . ' chars)' : 'EMPTY') : 'NULL'));
-    $_SESSION['qna_error'] = '문의글 데이터가 불완전합니다.';
-    header('Location: /MVNO/qna/qna.php');
-    exit;
-}
+// getQnaById()에서 이미 데이터 검증 및 기본값 설정을 처리하므로
+// 여기서는 추가 검증이 필요 없음
 
 // 삭제 처리 (헤더 포함 전에 처리하여 리다이렉트 가능하도록)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete') {
     if (deleteQna($id, $user_id)) {
-        header('Location: /MVNO/qna/qna.php');
+        header('Location: ' . getAssetPath('/qna/qna.php'));
         exit;
     }
 }
@@ -82,7 +79,7 @@ include '../includes/header.php';
 <main class="main-content">
     <div style="width: 100%; max-width: 980px; margin: 0 auto; padding: 20px;" class="qna-detail-container">
         <!-- 뒤로가기 버튼 -->
-        <a href="/MVNO/qna/qna.php" 
+        <a href="<?php echo getAssetPath('/qna/qna.php'); ?>" 
            style="display: inline-flex; align-items: center; gap: 8px; margin-bottom: 24px; color: #6366f1; text-decoration: none; font-size: 14px; font-weight: 500;"
            onmouseover="this.style.opacity='0.8'" 
            onmouseout="this.style.opacity='1'">
@@ -146,7 +143,7 @@ include '../includes/header.php';
 
         <!-- 버튼 영역 -->
         <div style="display: flex; gap: 12px; justify-content: flex-end;">
-            <a href="/MVNO/qna/qna.php" 
+            <a href="<?php echo getAssetPath('/qna/qna.php'); ?>" 
                style="display: inline-flex; align-items: center; justify-content: center; padding: 12px 24px; background: white; color: #374151; border: 1px solid #d1d5db; border-radius: 8px; text-decoration: none; font-weight: 500; transition: all 0.2s;"
                onmouseover="this.style.borderColor='#6366f1'; this.style.color='#6366f1'" 
                onmouseout="this.style.borderColor='#d1d5db'; this.style.color='#374151'">

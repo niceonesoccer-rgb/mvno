@@ -23,6 +23,11 @@ if (!in_array($perPage, $perPageOptions)) {
 // 현재 페이지 (기본값: 1)
 $currentPage = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
 
+// 현재 로그인한 사용자 정보 가져오기
+$currentUser = getCurrentUser();
+$currentUserRole = $currentUser['role'] ?? 'user';
+$currentUserId = $currentUser['user_id'] ?? null;
+
 // 탭별로 사용자 분리
 $regularUsers = array_filter($users, function($user) {
     return ($user['role'] ?? 'user') === 'user';
@@ -32,10 +37,20 @@ $sellerUsers = array_filter($users, function($user) {
     return ($user['role'] ?? 'user') === 'seller';
 });
 
-// A안: 관리자도 users(DB)에서 가져오기
-$adminUsers = array_filter($users, function($user) {
+// 관리자 계정 필터링: admin은 모든 관리자/부관리자, sub_admin은 자신만
+$adminUsers = array_filter($users, function($user) use ($currentUserRole, $currentUserId) {
     $role = $user['role'] ?? 'user';
-    return $role === 'admin' || $role === 'sub_admin';
+    if ($role === 'admin' || $role === 'sub_admin') {
+        // admin 계정은 모든 관리자/부관리자 계정 보기
+        if ($currentUserRole === 'admin') {
+            return true;
+        }
+        // sub_admin 계정은 자신의 계정만 보기
+        if ($currentUserRole === 'sub_admin' && ($user['user_id'] ?? '') === $currentUserId) {
+            return true;
+        }
+    }
+    return false;
 });
 
 // 최신순 정렬 (created_at 기준 내림차순)
@@ -62,7 +77,8 @@ usort($adminUsers, function($a, $b) {
 $totalUsers = count($users);
 $userCount = count(array_filter($users, fn($u) => ($u['role'] ?? 'user') === 'user'));
 $sellerCount = count(array_filter($users, fn($u) => ($u['role'] ?? 'user') === 'seller'));
-$adminCount = count(array_filter($users, fn($u) => ($u['role'] ?? 'user') === 'admin' || ($u['role'] ?? 'user') === 'sub_admin'));
+// 관리자 통계도 필터링된 adminUsers 사용
+$adminCount = count($adminUsers);
 ?>
 
 <style>
@@ -342,19 +358,19 @@ $adminCount = count(array_filter($users, fn($u) => ($u['role'] ?? 'user') === 'a
     
     <!-- 통계 -->
     <div class="member-stats">
-        <a href="/MVNO/admin/users/member-list.php?tab=users" class="stat-card" style="text-decoration: none; color: inherit;">
+        <a href="<?php echo getAssetPath('/admin/users/member-list.php'); ?>?tab=users" class="stat-card" style="text-decoration: none; color: inherit;">
             <div class="stat-label">전체 회원</div>
             <div class="stat-value"><?php echo number_format($totalUsers); ?></div>
         </a>
-        <a href="/MVNO/admin/users/member-list.php?tab=users" class="stat-card" style="text-decoration: none; color: inherit;">
+        <a href="<?php echo getAssetPath('/admin/users/member-list.php'); ?>?tab=users" class="stat-card" style="text-decoration: none; color: inherit;">
             <div class="stat-label">일반 회원</div>
             <div class="stat-value"><?php echo number_format($userCount); ?></div>
         </a>
-        <a href="/MVNO/admin/users/member-list.php?tab=sellers" class="stat-card" style="text-decoration: none; color: inherit;">
+        <a href="<?php echo getAssetPath('/admin/users/member-list.php'); ?>?tab=sellers" class="stat-card" style="text-decoration: none; color: inherit;">
             <div class="stat-label">판매자</div>
             <div class="stat-value"><?php echo number_format($sellerCount); ?></div>
         </a>
-        <a href="/MVNO/admin/users/member-list.php?tab=admins" class="stat-card" style="text-decoration: none; color: inherit;">
+        <a href="<?php echo getAssetPath('/admin/users/member-list.php'); ?>?tab=admins" class="stat-card" style="text-decoration: none; color: inherit;">
             <div class="stat-label">관리자</div>
             <div class="stat-value"><?php echo number_format($adminCount); ?></div>
         </a>
@@ -362,13 +378,13 @@ $adminCount = count(array_filter($users, fn($u) => ($u['role'] ?? 'user') === 'a
     
     <!-- 탭 메뉴 -->
     <div class="member-tabs">
-        <a href="/MVNO/admin/users/member-list.php?tab=users" class="member-tab <?php echo $activeTab === 'users' ? 'active' : ''; ?>">
+        <a href="<?php echo getAssetPath('/admin/users/member-list.php'); ?>?tab=users" class="member-tab <?php echo $activeTab === 'users' ? 'active' : ''; ?>">
             일반 회원 (<?php echo number_format(count($regularUsers)); ?>)
         </a>
-        <a href="/MVNO/admin/users/member-list.php?tab=sellers" class="member-tab <?php echo $activeTab === 'sellers' ? 'active' : ''; ?>">
+        <a href="<?php echo getAssetPath('/admin/users/member-list.php'); ?>?tab=sellers" class="member-tab <?php echo $activeTab === 'sellers' ? 'active' : ''; ?>">
             판매자 (<?php echo number_format(count($sellerUsers)); ?>)
         </a>
-        <a href="/MVNO/admin/users/member-list.php?tab=admins" class="member-tab <?php echo $activeTab === 'admins' ? 'active' : ''; ?>">
+        <a href="<?php echo getAssetPath('/admin/users/member-list.php'); ?>?tab=admins" class="member-tab <?php echo $activeTab === 'admins' ? 'active' : ''; ?>">
             관리자/부관리자 (<?php echo number_format(count($adminUsers)); ?>)
         </a>
     </div>
@@ -394,7 +410,7 @@ $adminCount = count(array_filter($users, fn($u) => ($u['role'] ?? 'user') === 'a
                 </div>
                 <div class="filter-group">
                     <button type="submit" class="btn-sm btn-primary">검색</button>
-                    <a href="/MVNO/admin/users/member-list.php?tab=<?php echo htmlspecialchars($activeTab); ?>" class="btn-sm btn-primary">초기화</a>
+                    <a href="<?php echo getAssetPath('/admin/users/member-list.php'); ?>?tab=<?php echo htmlspecialchars($activeTab); ?>" class="btn-sm btn-primary">초기화</a>
                 </div>
                 <div class="filter-group">
                     <label>표시 개수:</label>
@@ -405,9 +421,9 @@ $adminCount = count(array_filter($users, fn($u) => ($u['role'] ?? 'user') === 'a
                     </select>
                 </div>
             </div>
-            <?php if ($activeTab === 'admins'): ?>
+            <?php if ($activeTab === 'admins' && $currentUserRole === 'admin'): ?>
                 <div class="filter-right">
-                    <a href="/MVNO/admin/users/sub-admin-manage.php?tab=add" class="btn-sm btn-primary" style="text-decoration: none; display: inline-block;">부관리자 추가</a>
+                    <a href="<?php echo getAssetPath('/admin/users/sub-admin-manage.php'); ?>?tab=add" class="btn-sm btn-primary" style="text-decoration: none; display: inline-block;">부관리자 추가</a>
                 </div>
             <?php endif; ?>
         </form>
@@ -473,7 +489,7 @@ $adminCount = count(array_filter($users, fn($u) => ($u['role'] ?? 'user') === 'a
                                 </td>
                                 <td>
                                     <div class="action-buttons">
-                                        <a href="/MVNO/admin/users/member-detail.php?user_id=<?php echo urlencode($user['user_id']); ?>" class="btn-sm btn-primary">상세</a>
+                                        <a href="<?php echo getAssetPath('/admin/users/member-detail.php'); ?>?user_id=<?php echo urlencode($user['user_id']); ?>" class="btn-sm btn-primary">상세</a>
                                     </div>
                                 </td>
                             </tr>
@@ -587,7 +603,7 @@ $adminCount = count(array_filter($users, fn($u) => ($u['role'] ?? 'user') === 'a
                                 </td>
                                 <td>
                                     <div class="action-buttons">
-                                        <a href="/MVNO/admin/users/member-detail.php?user_id=<?php echo urlencode($user['user_id']); ?>" class="btn-sm btn-primary">상세</a>
+                                        <a href="<?php echo getAssetPath('/admin/users/member-detail.php'); ?>?user_id=<?php echo urlencode($user['user_id']); ?>" class="btn-sm btn-primary">상세</a>
                                     </div>
                                 </td>
                             </tr>
@@ -687,7 +703,7 @@ $adminCount = count(array_filter($users, fn($u) => ($u['role'] ?? 'user') === 'a
                                 <td><?php echo htmlspecialchars($user['created_at'] ?? ''); ?></td>
                                 <td>
                                     <div class="action-buttons">
-                                        <a href="/MVNO/admin/users/member-detail.php?user_id=<?php echo urlencode($user['user_id']); ?>" class="btn-sm btn-primary">상세</a>
+                                        <a href="<?php echo getAssetPath('/admin/users/member-detail.php'); ?>?user_id=<?php echo urlencode($user['user_id']); ?>" class="btn-sm btn-primary">상세</a>
                                     </div>
                                 </td>
                             </tr>

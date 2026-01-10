@@ -22,7 +22,19 @@ if (strpos($company_name_raw, '스마트모바일') !== false) {
 }
 $rating = isset($phone['rating']) ? trim($phone['rating']) : '';
 $phone_id = $phone['id'] ?? 0;
-$share_url = $phone['link_url'] ?? '/MVNO/mno/mno-phone-detail.php?id=' . $phone_id;
+
+// path-config.php가 로드되지 않았으면 로드
+if (!function_exists('getAssetPath')) {
+    require_once __DIR__ . '/../data/path-config.php';
+}
+
+// 공유 링크 설정
+if (isset($phone['link_url']) && !empty($phone['link_url'])) {
+    $share_url = $phone['link_url'];
+} else {
+    $share_url = getAssetPath('/mno/mno-phone-detail.php?id=' . urlencode($phone_id));
+}
+
 $selection_count = $phone['selection_count'] ?? '29,448명이 선택';
 
 // 리뷰가 있는지 확인 (rating이 비어있지 않은 경우에만 평점 표시)

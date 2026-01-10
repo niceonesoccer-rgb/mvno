@@ -4,6 +4,9 @@ $current_page = 'mypage';
 // 메인 페이지 여부 (하단 메뉴 및 푸터 표시용)
 $is_main_page = true;
 
+// 경로 설정 파일 먼저 로드
+require_once '../includes/data/path-config.php';
+
 // 로그인 체크를 위한 auth-functions 포함 (세션 설정과 함께 세션을 시작함)
 require_once '../includes/data/auth-functions.php';
 
@@ -12,7 +15,7 @@ if (!isLoggedIn()) {
     // 현재 URL을 세션에 저장 (회원가입 후 돌아올 주소)
     $_SESSION['redirect_url'] = $_SERVER['REQUEST_URI'];
     // 로그인 모달이 있는 홈으로 리다이렉트 (모달 자동 열기)
-    header('Location: /MVNO/?show_login=1');
+    header('Location: ' . getAssetPath('/?show_login=1'));
     exit;
 }
 
@@ -36,7 +39,7 @@ if (!$currentUserId) {
     }
     // 현재 URL을 세션에 저장 (회원가입 후 돌아올 주소)
     $_SESSION['redirect_url'] = $_SERVER['REQUEST_URI'];
-    header('Location: /MVNO/?show_login=1');
+    header('Location: ' . getAssetPath('/?show_login=1'));
     exit;
 }
 
@@ -174,7 +177,7 @@ if ($is_mno_sim) {
         foreach ($mnoSimProducts as $product) {
             $plan = convertMnoSimProductToPlanCard($product);
             $plan['is_favorited'] = true;
-            $plan['link_url'] = '/MVNO/mno-sim/mno-sim-detail.php?id=' . $product['id'];
+            $plan['link_url'] = getAssetPath('/mno-sim/mno-sim-detail.php?id=' . $product['id']);
             $plan['item_type'] = 'mno-sim'; // 찜 버튼용 타입 (확실히 설정)
             $mnoSimPlans[] = $plan;
         }
@@ -237,7 +240,7 @@ if ($is_mno_sim) {
     <div class="content-layout wishlist-page">
         <!-- 페이지 제목 -->
         <div style="margin-bottom: 24px; padding-top: 24px; display: flex; align-items: center; gap: 12px;">
-            <a href="/MVNO/mypage/mypage.php" style="display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 50%; transition: background-color 0.2s; text-decoration: none; color: inherit;" onmouseover="this.style.backgroundColor='#f3f4f6'" onmouseout="this.style.backgroundColor='transparent'">
+            <a href="<?php echo getAssetPath('/mypage/mypage.php'); ?>" style="display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 50%; transition: background-color 0.2s; text-decoration: none; color: inherit;" onmouseover="this.style.backgroundColor='#f3f4f6'" onmouseout="this.style.backgroundColor='transparent'">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="transform: rotate(180deg);">
                     <path d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
@@ -315,7 +318,7 @@ if ($is_mno_sim) {
 <script src="../assets/js/favorite-heart.js" defer></script>
 <script src="../assets/js/share.js" defer></script>
 <!-- 더보기 기능 스크립트 -->
-<script src="/MVNO/assets/js/load-more-products.js?v=2"></script>
+<script src="<?php echo getAssetPath('/assets/js/load-more-products.js'); ?>?v=2"></script>
 
 <style>
 /* 더보기 버튼 컨테이너 - 카드와 같은 너비 */

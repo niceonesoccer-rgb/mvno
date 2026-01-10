@@ -3,6 +3,9 @@
  * 공지사항 목록 페이지
  */
 
+// 경로 설정 파일 먼저 로드
+require_once '../includes/data/path-config.php';
+
 // 로그인 체크를 위한 auth-functions 포함 (세션 설정과 함께 세션을 시작함)
 require_once '../includes/data/auth-functions.php';
 
@@ -12,7 +15,7 @@ if (!isLoggedIn()) {
     // 현재 URL을 세션에 저장 (회원가입 후 돌아올 주소)
     $_SESSION['redirect_url'] = $_SERVER['REQUEST_URI'];
     // 로그인 모달이 있는 홈으로 리다이렉트 (모달 자동 열기)
-    header('Location: /MVNO/?show_login=1');
+    header('Location: ' . getAssetPath('/?show_login=1'));
     exit;
 }
 
@@ -28,7 +31,7 @@ if (!$currentUser) {
     }
     // 현재 URL을 세션에 저장 (회원가입 후 돌아올 주소)
     $_SESSION['redirect_url'] = $_SERVER['REQUEST_URI'];
-    header('Location: /MVNO/?show_login=1');
+    header('Location: ' . getAssetPath('/?show_login=1'));
     exit;
 }
 
@@ -60,21 +63,46 @@ if ($target === 'seller') {
     $userRole = $currentUser['role'] ?? '';
     if ($userRole === 'seller') {
         // 판매자는 판매자 페이지로 리다이렉트
-        header('Location: /MVNO/seller/notice/');
+        header('Location: ' . getAssetPath('/seller/notice/'));
         exit;
     } else {
         // 일반회원은 일반 공지사항으로 리다이렉트
-        header('Location: /MVNO/notice/notice.php');
+        header('Location: ' . getAssetPath('/notice/notice.php'));
         exit;
     }
 }
 
 // 일반 공지사항: 판매자 전용 공지사항 제외
-$all_notices = getNotices(); // 전체 공지사항 (판매자 전용 제외)
-$total = count($all_notices);
+// 전체 개수 조회 (페이지네이션용)
+$pdo = getDBConnection();
+$total = 0;
+if ($pdo) {
+    $countStmt = $pdo->prepare("
+        SELECT COUNT(*) as total 
+        FROM notices 
+        WHERE (target_audience IS NULL OR target_audience = 'all' OR target_audience = 'user')
+        AND (start_at IS NULL OR start_at <= CURDATE())
+        AND (end_at IS NULL OR end_at >= CURDATE())
+    ");
+    $countStmt->execute();
+    $total = (int)$countStmt->fetch(PDO::FETCH_ASSOC)['total'];
+}
+
+// 페이지네이션된 공지사항 가져오기 (DB 레벨에서 처리)
+$notices = getNotices($per_page, $offset);
 $total_pages = ceil($total / $per_page);
-$notices = array_slice($all_notices, $offset, $per_page);
 ?>
+
+<script>
+function adjustImageDisplay(img) {
+    // 가로만 맞추고 원본 비율 유지
+    // 세로가 짧으면 가로에 맞춰서 자연스럽게 표시
+    img.style.width = '100%';
+    img.style.height = 'auto';
+    img.style.objectFit = 'contain';
+    img.style.objectPosition = 'top';
+}
+</script>
 
 <main class="main-content">
     <div style="width: 100%; max-width: 980px; margin: 0 auto; padding: 20px;" class="notice-container">
@@ -111,7 +139,7 @@ $notices = array_slice($all_notices, $offset, $per_page);
                     $has_image = !empty($notice['image_url']);
                     $has_content = !empty($notice['content']);
                 ?>
-                    <a href="/MVNO/notice/notice-detail.php?id=<?php echo htmlspecialchars($notice['id']); ?>" 
+                    <a href="<?php echo getAssetPath('/notice/notice-detail.php?id=' . urlencode($notice['id'])); ?>" 
                        style="display: block; background: white; border-radius: 12px; border: 1px solid #e5e7eb; overflow: hidden; text-decoration: none; color: inherit; transition: all 0.2s; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);"
                        onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(0, 0, 0, 0.15)';" 
                        onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 1px 3px rgba(0, 0, 0, 0.1)';">
@@ -119,7 +147,16 @@ $notices = array_slice($all_notices, $offset, $per_page);
                             <!-- 케이스 1: 이미지만 있을 때 / 케이스 3: 이미지와 텍스트 둘 다 있을 때 -->
                             <!-- 이미지 영역 -->
                             <div style="width: 100%; overflow: hidden; position: relative; background: #f3f4f6;">
-                                <img src="<?php echo htmlspecialchars($notice['image_url']); ?>" 
+                                <img src="<?php 
+                                    $imageUrl = $notice['image_url'] ?? '';
+                                    // 전체 URL이면 그대로 사용
+                                    if (preg_match('/^https?:\/\//', $imageUrl)) {
+                                        echo htmlspecialchars($imageUrl);
+                                    } else {
+                                        // 상대 경로는 getAssetPath로 정규화
+                                        echo htmlspecialchars(getAssetPath($imageUrl));
+                                    }
+                                ?>" 
                                      alt="<?php echo htmlspecialchars($notice['title']); ?>" 
                                      class="notice-image"
                                      style="width: 100%; height: auto; display: block; object-fit: contain; object-position: top;"
@@ -250,15 +287,6 @@ function changePerPage() {
     params.set('page', '1'); // 첫 페이지로 이동
     
     window.location.href = '?' + params.toString();
-}
-
-function adjustImageDisplay(img) {
-    // 가로만 맞추고 원본 비율 유지
-    // 세로가 짧으면 가로에 맞춰서 자연스럽게 표시
-    img.style.width = '100%';
-    img.style.height = 'auto';
-    img.style.objectFit = 'contain';
-    img.style.objectPosition = 'top';
 }
 
 // 페이지 로드 시 모든 이미지에 대해 적용

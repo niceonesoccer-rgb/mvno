@@ -7,6 +7,9 @@ $is_main_page = true; // 상세 페이지에서도 푸터 표시
 // 통신사폰 ID 가져오기
 $phone_id = isset($_GET['id']) ? intval($_GET['id']) : 1;
 
+// 경로 설정 파일 먼저 로드
+require_once '../includes/data/path-config.php';
+
 // 로그인 체크를 위한 auth-functions 포함
 require_once '../includes/data/auth-functions.php';
 require_once '../includes/data/privacy-functions.php';
@@ -490,14 +493,18 @@ include '../includes/components/point-usage-modal.php';
 include '../includes/footer.php';
 ?>
 
-<script src="/MVNO/assets/js/plan-accordion.js" defer></script>
-<script src="/MVNO/assets/js/favorite-heart.js" defer></script>
+<script src="<?php echo getAssetPath('/assets/js/plan-accordion.js'); ?>" defer></script>
+<script src="<?php echo getAssetPath('/assets/js/favorite-heart.js'); ?>" defer></script>
 
 <script>
+    // BASE_PATH를 JavaScript에서 사용할 수 있도록 설정
+    window.BASE_PATH = '<?php echo getBasePath(); ?>';
+    window.API_PATH = window.BASE_PATH + '/api';
+    
 // 포인트 설정 확인 및 모달 열기 함수
 function checkAndOpenPointModal(type, itemId, callback) {
     // 포인트 설정 조회
-    fetch(`/MVNO/api/get-product-point-setting.php?type=${type}&id=${itemId}`)
+    fetch(`${window.API_PATH}/get-product-point-setting.php?type=${type}&id=${itemId}`)
         .then(response => response.json())
         .then(data => {
             if (!data.success) {
@@ -1672,7 +1679,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!isLoggedIn) {
                 // 비회원: 현재 URL을 세션에 저장 (회원가입 후 돌아올 주소)
                 const currentUrl = window.location.href;
-                fetch('/MVNO/api/save-redirect-url.php', {
+                fetch(window.API_PATH + '/save-redirect-url.php', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -2168,7 +2175,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // 현재 URL을 세션에 저장 (회원가입 후 돌아올 주소)
                 const currentUrl = window.location.href;
-                fetch('/MVNO/api/save-redirect-url.php', {
+                fetch(window.API_PATH + '/save-redirect-url.php', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -2299,7 +2306,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             // 서버로 데이터 전송
-            fetch('/MVNO/api/submit-mno-application.php', {
+            fetch(window.API_PATH + '/submit-mno-application.php', {
                 method: 'POST',
                 body: formData
             })

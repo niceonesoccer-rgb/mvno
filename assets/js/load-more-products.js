@@ -208,7 +208,8 @@
 
     // API 호출하여 더 많은 상품 로드
     function loadMoreProducts(type, page, filterProvider, filterServiceType, filterSpeed, filterPromotion, filterPriceRange, isWishlist, isOrder, callback) {
-        let url = `/MVNO/api/load-more-products.php?type=${type}&page=${page}&limit=${ITEMS_PER_PAGE}`;
+        const apiPath = window.API_PATH || (window.BASE_PATH || '') + '/api';
+        let url = `${apiPath}/load-more-products.php?type=${type}&page=${page}&limit=${ITEMS_PER_PAGE}`;
         
         // 주문내역 파라미터 추가
         if (isOrder) {

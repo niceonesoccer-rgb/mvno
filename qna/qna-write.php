@@ -3,6 +3,9 @@
  * 1:1 Q&A 질문 작성 페이지
  */
 
+// 경로 설정 파일 먼저 로드
+require_once '../includes/data/path-config.php';
+
 // 로그인 체크를 위한 auth-functions 포함 (세션 설정과 함께 세션을 시작함)
 require_once '../includes/data/auth-functions.php';
 
@@ -11,7 +14,7 @@ if (!isLoggedIn()) {
     // 현재 URL을 세션에 저장 (회원가입 후 돌아올 주소)
     $_SESSION['redirect_url'] = $_SERVER['REQUEST_URI'];
     // 로그인 모달이 있는 홈으로 리다이렉트 (모달 자동 열기)
-    header('Location: /MVNO/?show_login=1');
+    header('Location: ' . getAssetPath('/?show_login=1'));
     exit;
 }
 
@@ -27,7 +30,7 @@ if (!$currentUser) {
     }
     // 현재 URL을 세션에 저장 (회원가입 후 돌아올 주소)
     $_SESSION['redirect_url'] = $_SERVER['REQUEST_URI'];
-    header('Location: /MVNO/?show_login=1');
+    header('Location: ' . getAssetPath('/?show_login=1'));
     exit;
 }
 
@@ -49,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $qna = createQna($user_id, $title, $content);
         if ($qna && isset($qna['id'])) {
-            header('Location: /MVNO/qna/qna-detail.php?id=' . $qna['id']);
+            header('Location: ' . getAssetPath('/qna/qna-detail.php?id=' . urlencode($qna['id'])));
             exit;
         } else {
             $error = '질문 등록에 실패했습니다. 다시 시도해주세요.';
@@ -73,7 +76,7 @@ if (!isset($error)) {
 <main class="main-content">
     <div style="width: 100%; max-width: 980px; margin: 0 auto; padding: 20px;" class="qna-write-container">
         <!-- 뒤로가기 버튼 -->
-        <a href="/MVNO/qna/qna.php" 
+        <a href="<?php echo getAssetPath('/qna/qna.php'); ?>" 
            style="display: inline-flex; align-items: center; gap: 8px; margin-bottom: 24px; color: #6366f1; text-decoration: none; font-size: 14px; font-weight: 500;"
            onmouseover="this.style.opacity='0.8'" 
            onmouseout="this.style.opacity='1'">
@@ -128,7 +131,7 @@ if (!isset($error)) {
             </div>
 
             <div style="display: flex; gap: 12px; justify-content: flex-end;">
-                <a href="/MVNO/qna/qna.php" 
+                <a href="<?php echo getAssetPath('/qna/qna.php'); ?>" 
                    style="display: inline-flex; align-items: center; justify-content: center; padding: 12px 24px; background: white; color: #374151; border: 1px solid #d1d5db; border-radius: 8px; text-decoration: none; font-weight: 500; transition: all 0.2s;"
                    onmouseover="this.style.borderColor='#6366f1'; this.style.color='#6366f1'" 
                    onmouseout="this.style.borderColor='#d1d5db'; this.style.color='#374151'">

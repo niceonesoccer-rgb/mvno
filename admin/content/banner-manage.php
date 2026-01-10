@@ -4,6 +4,7 @@
  * 경로: /MVNO/admin/content/banner-manage.php
  */
 
+require_once __DIR__ . '/../../includes/data/path-config.php';
 require_once __DIR__ . '/../../includes/data/auth-functions.php';
 require_once __DIR__ . '/../../includes/data/db-config.php';
 require_once __DIR__ . '/../../includes/data/home-functions.php';
@@ -68,7 +69,7 @@ $current_small_banners = $home_settings['site_small_banners'] ?? [];
 $current_large_banners = array_map('strval', $current_large_banners);
 $current_small_banners = array_map('strval', $current_small_banners);
 
-// 이미지 경로 정규화 함수 (event-manage.php와 동일한 로직)
+// 이미지 경로 정규화 함수 (getAssetPath 사용)
 function normalizeImagePath($path) {
     if (empty($path)) {
         return '';
@@ -76,28 +77,23 @@ function normalizeImagePath($path) {
     
     $imagePath = trim($path);
     
-    // 이미 /MVNO/로 시작하면 그대로 사용
-    if (strpos($imagePath, '/MVNO/') === 0) {
+    // 이미 전체 URL이면 그대로 사용
+    if (preg_match('/^https?:\/\//', $imagePath)) {
         return $imagePath;
     }
-    // /uploads/events/ 또는 /uploads/events/로 시작하는 경우
-    elseif (preg_match('#^/uploads/events/#', $imagePath)) {
-        return '/MVNO' . $imagePath;
-    }
-    // /uploads/ 또는 /images/로 시작하면 /MVNO/ 추가
-    elseif (strpos($imagePath, '/uploads/') === 0 || strpos($imagePath, '/images/') === 0) {
-        return '/MVNO' . $imagePath;
-    }
-    // 파일명만 있는 경우 (확장자가 있고 슬래시가 없음)
-    elseif (strpos($imagePath, '/') === false && preg_match('/\.(webp|jpg|jpeg|png|gif)$/i', $imagePath)) {
-        return '/MVNO/uploads/events/' . $imagePath;
-    }
-    // 상대 경로인데 파일명이 아닌 경우
-    elseif (strpos($imagePath, '/') !== 0) {
-        return '/MVNO/' . $imagePath;
+    
+    // 이미 /로 시작하는 절대 경로면 getAssetPath 사용
+    if (strpos($imagePath, '/') === 0) {
+        return getAssetPath($imagePath);
     }
     
-    return $imagePath;
+    // 파일명만 있는 경우 (확장자가 있고 슬래시가 없음)
+    if (strpos($imagePath, '/') === false && preg_match('/\.(webp|jpg|jpeg|png|gif)$/i', $imagePath)) {
+        return getAssetPath('/uploads/events/' . $imagePath);
+    }
+    
+    // 상대 경로인 경우
+    return getAssetPath('/' . $imagePath);
 }
 
 // 모든 이벤트 가져오기 (배너 선택용) - 공개된 이벤트만

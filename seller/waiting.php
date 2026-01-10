@@ -4,6 +4,7 @@
  * 경로: /MVNO/seller/waiting.php
  */
 
+require_once __DIR__ . '/../includes/data/path-config.php';
 require_once __DIR__ . '/../includes/data/auth-functions.php';
 
 // 세션 시작
@@ -15,14 +16,14 @@ $currentUser = getCurrentUser();
 
 // 판매자 로그인 체크
 if (!$currentUser || $currentUser['role'] !== 'seller') {
-    header('Location: /MVNO/seller/login.php');
+    header('Location: ' . getAssetPath('/seller/login.php'));
     exit;
 }
 
 // 이미 승인된 경우 판매자 센터로 리다이렉트
 $isApproved = isset($currentUser['seller_approved']) && $currentUser['seller_approved'] === true;
 if ($isApproved) {
-    header('Location: /MVNO/seller/');
+    header('Location: ' . getBasePath() . '/seller/');
     exit;
 }
 
@@ -58,8 +59,8 @@ if ($isWithdrawalRequested) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>승인 대기 - 판매자 센터</title>
-    <link rel="stylesheet" href="/MVNO/assets/css/style.css">
-    <script src="/MVNO/assets/js/modal.js" defer></script>
+    <link rel="stylesheet" href="<?php echo getAssetPath('/assets/css/style.css'); ?>">
+    <script src="<?php echo getAssetPath('/assets/js/modal.js'); ?>" defer></script>
     <style>
         * {
             margin: 0;
@@ -367,10 +368,10 @@ if ($isWithdrawalRequested) {
         
         <div class="action-buttons">
             <?php if ($isWithdrawalRequested): ?>
-                <a href="/MVNO/" class="btn btn-secondary">홈으로 가기</a>
+                <a href="<?php echo getBasePath(); ?>/" class="btn btn-secondary">홈으로 가기</a>
                 <button onclick="location.reload()" class="btn btn-primary">새로고침</button>
             <?php else: ?>
-                <a href="/MVNO/" class="btn btn-secondary">홈으로 가기</a>
+                <a href="<?php echo getBasePath(); ?>/" class="btn btn-secondary">홈으로 가기</a>
                 <?php if ($canWithdraw): ?>
                     <button onclick="showDeleteAccountModal()" class="btn btn-danger">탈퇴</button>
                 <?php endif; ?>
@@ -378,7 +379,7 @@ if ($isWithdrawalRequested) {
         </div>
         
         <div class="logout-link">
-            <a href="/MVNO/seller/logout.php">로그아웃</a>
+            <a href="<?php echo getAssetPath('/seller/logout.php'); ?>">로그아웃</a>
         </div>
     </div>
     
@@ -414,7 +415,7 @@ if ($isWithdrawalRequested) {
                 return;
             }
             
-            fetch('/MVNO/api/delete-seller-account.php', {
+            fetch('<?php echo getApiPath('/api/delete-seller-account.php'); ?>', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -427,7 +428,7 @@ if ($isWithdrawalRequested) {
             .then(data => {
                 if (data.success) {
                     alert('판매자 계정이 탈퇴되었습니다.');
-                    window.location.href = '/MVNO/';
+                    window.location.href = '<?php echo getBasePath(); ?>/';
                 } else {
                     alert('탈퇴에 실패했습니다: ' + (data.message || '알 수 없는 오류'));
                 }

@@ -4,6 +4,7 @@
  */
 
 // POST 처리는 출력 전에 수행 (헤더 리다이렉트를 위해)
+require_once __DIR__ . '/../includes/data/path-config.php';
 require_once __DIR__ . '/../includes/data/auth-functions.php';
 
 // 승인 처리
@@ -12,10 +13,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['approve_seller'])) {
     $currentTab = $_GET['tab'] ?? 'all';
     $perPage = isset($_GET['per_page']) ? '&per_page=' . (int)$_GET['per_page'] : '';
     if ($userId && approveSeller($userId)) {
-        header('Location: /MVNO/admin/seller-approval.php?tab=' . $currentTab . '&success=approve' . $perPage);
+        header('Location: ' . getAssetPath('/admin/seller-approval.php') . '?tab=' . $currentTab . '&success=approve' . $perPage);
         exit;
     } else {
-        header('Location: /MVNO/admin/seller-approval.php?tab=' . $currentTab . '&error=approve' . $perPage);
+        header('Location: ' . getAssetPath('/admin/seller-approval.php') . '?tab=' . $currentTab . '&error=approve' . $perPage);
         exit;
     }
 }
@@ -26,10 +27,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['hold_seller'])) {
     $currentTab = $_GET['tab'] ?? 'all';
     $perPage = isset($_GET['per_page']) ? '&per_page=' . (int)$_GET['per_page'] : '';
     if ($userId && holdSeller($userId)) {
-        header('Location: /MVNO/admin/seller-approval.php?tab=' . $currentTab . '&success=hold' . $perPage);
+        header('Location: ' . getAssetPath('/admin/seller-approval.php') . '?tab=' . $currentTab . '&success=hold' . $perPage);
         exit;
     } else {
-        header('Location: /MVNO/admin/seller-approval.php?tab=' . $currentTab . '&error=hold' . $perPage);
+        header('Location: ' . getAssetPath('/admin/seller-approval.php') . '?tab=' . $currentTab . '&error=hold' . $perPage);
         exit;
     }
 }
@@ -40,10 +41,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reject_seller'])) {
     $currentTab = $_GET['tab'] ?? 'all';
     $perPage = isset($_GET['per_page']) ? '&per_page=' . (int)$_GET['per_page'] : '';
     if ($userId && rejectSeller($userId)) {
-        header('Location: /MVNO/admin/seller-approval.php?tab=' . $currentTab . '&success=reject' . $perPage);
+        header('Location: ' . getAssetPath('/admin/seller-approval.php') . '?tab=' . $currentTab . '&success=reject' . $perPage);
         exit;
     } else {
-        header('Location: /MVNO/admin/seller-approval.php?tab=' . $currentTab . '&error=reject' . $perPage);
+        header('Location: ' . getAssetPath('/admin/seller-approval.php') . '?tab=' . $currentTab . '&error=reject' . $perPage);
         exit;
     }
 }
@@ -54,10 +55,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cancel_approval'])) {
     $currentTab = $_GET['tab'] ?? 'all';
     $perPage = isset($_GET['per_page']) ? '&per_page=' . (int)$_GET['per_page'] : '';
     if ($userId && cancelSellerApproval($userId)) {
-        header('Location: /MVNO/admin/seller-approval.php?tab=' . $currentTab . '&success=cancel_approval' . $perPage);
+        header('Location: ' . getAssetPath('/admin/seller-approval.php') . '?tab=' . $currentTab . '&success=cancel_approval' . $perPage);
         exit;
     } else {
-        header('Location: /MVNO/admin/seller-approval.php?tab=' . $currentTab . '&error=cancel_approval' . $perPage);
+        header('Location: ' . getAssetPath('/admin/seller-approval.php') . '?tab=' . $currentTab . '&error=cancel_approval' . $perPage);
         exit;
     }
 }
@@ -68,10 +69,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['complete_withdrawal']
     $deleteDate = $_POST['delete_date'] ?? ''; // 삭제 예정일
     $perPage = isset($_GET['per_page']) ? '&per_page=' . (int)$_GET['per_page'] : '';
     if ($userId && completeSellerWithdrawal($userId, $deleteDate)) {
-        header('Location: /MVNO/admin/seller-approval.php?tab=withdrawal&success=complete_withdrawal' . $perPage);
+        header('Location: ' . getAssetPath('/admin/seller-approval.php') . '?tab=withdrawal&success=complete_withdrawal' . $perPage);
         exit;
     } else {
-        header('Location: /MVNO/admin/seller-approval.php?tab=withdrawal&error=complete_withdrawal' . $perPage);
+        header('Location: ' . getAssetPath('/admin/seller-approval.php') . '?tab=withdrawal&error=complete_withdrawal' . $perPage);
         exit;
     }
 }
@@ -81,10 +82,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cancel_withdrawal']))
     $userId = $_POST['user_id'] ?? '';
     $perPage = isset($_GET['per_page']) ? '&per_page=' . (int)$_GET['per_page'] : '';
     if ($userId && cancelSellerWithdrawal($userId)) {
-        header('Location: /MVNO/admin/seller-approval.php?tab=withdrawal&success=cancel_withdrawal' . $perPage);
+        header('Location: ' . getAssetPath('/admin/seller-approval.php') . '?tab=withdrawal&success=cancel_withdrawal' . $perPage);
         exit;
     } else {
-        header('Location: /MVNO/admin/seller-approval.php?tab=withdrawal&error=cancel_withdrawal' . $perPage);
+        header('Location: ' . getAssetPath('/admin/seller-approval.php') . '?tab=withdrawal&error=cancel_withdrawal' . $perPage);
         exit;
     }
 }
@@ -96,11 +97,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_withdrawal'])
     $reason = $_POST['reason'] ?? '관리자에 의한 가입탈퇴 처리';
     $perPage = isset($_GET['per_page']) ? '&per_page=' . (int)$_GET['per_page'] : '';
     if ($userId && requestSellerWithdrawal($userId, $reason)) {
-        header('Location: /MVNO/admin/seller-approval.php?tab=withdrawal&success=request_withdrawal' . $perPage);
+        header('Location: ' . getAssetPath('/admin/seller-approval.php') . '?tab=withdrawal&success=request_withdrawal' . $perPage);
         exit;
     } else {
         $currentTab = $_GET['tab'] ?? 'all';
-        header('Location: /MVNO/admin/seller-approval.php?tab=' . $currentTab . '&error=request_withdrawal' . $perPage);
+        header('Location: ' . getAssetPath('/admin/seller-approval.php') . '?tab=' . $currentTab . '&error=request_withdrawal' . $perPage);
         exit;
     }
 }
@@ -126,7 +127,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['check_info_update']))
                 $stmt->execute([':user_id' => $userId]);
 
                 if ($stmt->rowCount() > 0) {
-                    header('Location: /MVNO/admin/seller-approval.php?tab=' . $currentTab . '&page=' . $currentPage . '&per_page=' . $perPage . '&success=check_info_update');
+                    header('Location: ' . getAssetPath('/admin/seller-approval.php') . '?tab=' . $currentTab . '&page=' . $currentPage . '&per_page=' . $perPage . '&success=check_info_update');
                     exit;
                 }
             } catch (PDOException $e) {
@@ -134,7 +135,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['check_info_update']))
             }
         }
     }
-    header('Location: /MVNO/admin/seller-approval.php?tab=' . $currentTab . '&page=' . $currentPage . '&per_page=' . $perPage . '&error=check_info_update');
+    header('Location: ' . getAssetPath('/admin/seller-approval.php') . '?tab=' . $currentTab . '&page=' . $currentPage . '&per_page=' . $perPage . '&error=check_info_update');
     exit;
 }
 
@@ -896,7 +897,7 @@ $paginatedSellers = array_slice($currentSellers, $offset, $perPage);
     <!-- 대시보드 버튼 탭 -->
     <div class="dashboard-tabs" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 24px;">
         <!-- 전체 - 흰색 -->
-        <a href="/MVNO/admin/seller-approval.php?tab=all&page=1&per_page=<?php echo $perPage; ?>" class="dashboard-tab-card" style="background: white; border: 2px solid #e5e7eb; border-radius: 12px; padding: 20px; text-decoration: none; display: block; transition: all 0.3s; cursor: pointer;">
+        <a href="<?php echo getAssetPath('/admin/seller-approval.php'); ?>?tab=all&page=1&per_page=<?php echo $perPage; ?>" class="dashboard-tab-card" style="background: white; border: 2px solid #e5e7eb; border-radius: 12px; padding: 20px; text-decoration: none; display: block; transition: all 0.3s; cursor: pointer;">
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
                 <div style="font-size: 14px; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.5px;">전체</div>
                 <div style="width: 40px; height: 40px; background: #f3f4f6; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
@@ -923,7 +924,7 @@ $paginatedSellers = array_slice($currentSellers, $offset, $perPage);
         $pendingIconBg = $pendingCount > 0 ? 'rgba(236, 72, 153, 0.2)' : '#f3f4f6';
         $pendingIconStroke = $pendingCount > 0 ? '#ec4899' : '#6b7280';
         ?>
-        <a href="/MVNO/admin/seller-approval.php?tab=pending&page=1&per_page=<?php echo $perPage; ?>" class="dashboard-tab-card" style="background: <?php echo $pendingBg; ?>; border: 2px solid <?php echo $pendingBorder; ?>; border-radius: 12px; padding: 20px; text-decoration: none; display: block; transition: all 0.3s; cursor: pointer;">
+        <a href="<?php echo getAssetPath('/admin/seller-approval.php'); ?>?tab=pending&page=1&per_page=<?php echo $perPage; ?>" class="dashboard-tab-card" style="background: <?php echo $pendingBg; ?>; border: 2px solid <?php echo $pendingBorder; ?>; border-radius: 12px; padding: 20px; text-decoration: none; display: block; transition: all 0.3s; cursor: pointer;">
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
                 <div style="font-size: 14px; font-weight: 600; color: <?php echo $pendingTextColor; ?>; text-transform: uppercase; letter-spacing: 0.5px;">신청자</div>
                 <div style="width: 40px; height: 40px; background: <?php echo $pendingIconBg; ?>; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
@@ -940,7 +941,7 @@ $paginatedSellers = array_slice($currentSellers, $offset, $perPage);
         </a>
         
         <!-- 승인판매자 - 흰색 -->
-        <a href="/MVNO/admin/seller-approval.php?tab=approved&page=1&per_page=<?php echo $perPage; ?>" class="dashboard-tab-card" style="background: white; border: 2px solid #e5e7eb; border-radius: 12px; padding: 20px; text-decoration: none; display: block; transition: all 0.3s; cursor: pointer;">
+        <a href="<?php echo getAssetPath('/admin/seller-approval.php'); ?>?tab=approved&page=1&per_page=<?php echo $perPage; ?>" class="dashboard-tab-card" style="background: white; border: 2px solid #e5e7eb; border-radius: 12px; padding: 20px; text-decoration: none; display: block; transition: all 0.3s; cursor: pointer;">
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
                 <div style="font-size: 14px; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.5px;">승인판매자</div>
                 <div style="width: 40px; height: 40px; background: #f3f4f6; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
@@ -964,7 +965,7 @@ $paginatedSellers = array_slice($currentSellers, $offset, $perPage);
         $updatedIconBg = $updatedCount > 0 ? 'rgba(236, 72, 153, 0.2)' : '#f3f4f6';
         $updatedIconStroke = $updatedCount > 0 ? '#ec4899' : '#6b7280';
         ?>
-        <a href="/MVNO/admin/seller-approval.php?tab=updated&page=1&per_page=<?php echo $perPage; ?>" class="dashboard-tab-card" style="background: <?php echo $updatedBg; ?>; border: 2px solid <?php echo $updatedBorder; ?>; border-radius: 12px; padding: 20px; text-decoration: none; display: block; transition: all 0.3s; cursor: pointer;">
+        <a href="<?php echo getAssetPath('/admin/seller-approval.php'); ?>?tab=updated&page=1&per_page=<?php echo $perPage; ?>" class="dashboard-tab-card" style="background: <?php echo $updatedBg; ?>; border: 2px solid <?php echo $updatedBorder; ?>; border-radius: 12px; padding: 20px; text-decoration: none; display: block; transition: all 0.3s; cursor: pointer;">
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
                 <div style="font-size: 14px; font-weight: 600; color: <?php echo $updatedTextColor; ?>; text-transform: uppercase; letter-spacing: 0.5px;">업데이트</div>
                 <div style="width: 40px; height: 40px; background: <?php echo $updatedIconBg; ?>; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
@@ -988,7 +989,7 @@ $paginatedSellers = array_slice($currentSellers, $offset, $perPage);
         $withdrawalIconBg = $withdrawalCount > 0 ? 'rgba(236, 72, 153, 0.2)' : '#f3f4f6';
         $withdrawalIconStroke = $withdrawalCount > 0 ? '#ec4899' : '#6b7280';
         ?>
-        <a href="/MVNO/admin/seller-approval.php?tab=withdrawal&page=1&per_page=<?php echo $perPage; ?>" class="dashboard-tab-card" style="background: <?php echo $withdrawalBg; ?>; border: 2px solid <?php echo $withdrawalBorder; ?>; border-radius: 12px; padding: 20px; text-decoration: none; display: block; transition: all 0.3s; cursor: pointer;">
+        <a href="<?php echo getAssetPath('/admin/seller-approval.php'); ?>?tab=withdrawal&page=1&per_page=<?php echo $perPage; ?>" class="dashboard-tab-card" style="background: <?php echo $withdrawalBg; ?>; border: 2px solid <?php echo $withdrawalBorder; ?>; border-radius: 12px; padding: 20px; text-decoration: none; display: block; transition: all 0.3s; cursor: pointer;">
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
                 <div style="font-size: 14px; font-weight: 600; color: <?php echo $withdrawalTextColor; ?>; text-transform: uppercase; letter-spacing: 0.5px;">탈퇴요청</div>
                 <div style="width: 40px; height: 40px; background: <?php echo $withdrawalIconBg; ?>; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
@@ -1168,7 +1169,7 @@ $paginatedSellers = array_slice($currentSellers, $offset, $perPage);
                                         <?php endif; ?>
                                     </td>
                                     <td>
-                                        <a href="/MVNO/admin/users/seller-detail.php?user_id=<?php echo urlencode($seller['user_id']); ?>" class="btn" style="background: #6366f1; color: white; text-decoration: none; display: inline-block;">상세보기</a>
+                                        <a href="<?php echo getAssetPath('/admin/users/seller-detail.php'); ?>?user_id=<?php echo urlencode($seller['user_id']); ?>" class="btn" style="background: #6366f1; color: white; text-decoration: none; display: inline-block;">상세보기</a>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -1308,7 +1309,7 @@ $paginatedSellers = array_slice($currentSellers, $offset, $perPage);
                                         <span class="badge badge-pending">신청자</span>
                                     </td>
                                     <td>
-                                        <a href="/MVNO/admin/users/seller-detail.php?user_id=<?php echo urlencode($seller['user_id']); ?>" class="btn" style="background: #6366f1; color: white; text-decoration: none; display: inline-block;">상세보기</a>
+                                        <a href="<?php echo getAssetPath('/admin/users/seller-detail.php'); ?>?user_id=<?php echo urlencode($seller['user_id']); ?>" class="btn" style="background: #6366f1; color: white; text-decoration: none; display: inline-block;">상세보기</a>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -1459,7 +1460,7 @@ $paginatedSellers = array_slice($currentSellers, $offset, $perPage);
                                         <span class="badge badge-approved">승인</span>
                                     </td>
                                     <td>
-                                        <a href="/MVNO/admin/users/seller-detail.php?user_id=<?php echo urlencode($seller['user_id']); ?>" class="btn" style="background: #6366f1; color: white; text-decoration: none; display: inline-block;">상세보기</a>
+                                        <a href="<?php echo getAssetPath('/admin/users/seller-detail.php'); ?>?user_id=<?php echo urlencode($seller['user_id']); ?>" class="btn" style="background: #6366f1; color: white; text-decoration: none; display: inline-block;">상세보기</a>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -1606,7 +1607,7 @@ $paginatedSellers = array_slice($currentSellers, $offset, $perPage);
                                     </td>
                                     <td>
                                         <div style="display: flex; gap: 8px; align-items: center;">
-                                            <a href="/MVNO/admin/users/seller-detail.php?user_id=<?php echo urlencode($seller['user_id']); ?>" class="btn" style="background: #6366f1; color: white; text-decoration: none; display: inline-block; padding: 6px 12px; font-size: 13px;">상세보기</a>
+                                            <a href="<?php echo getAssetPath('/admin/users/seller-detail.php'); ?>?user_id=<?php echo urlencode($seller['user_id']); ?>" class="btn" style="background: #6366f1; color: white; text-decoration: none; display: inline-block; padding: 6px 12px; font-size: 13px;">상세보기</a>
                                             <?php if (!isset($seller['info_checked_by_admin']) || $seller['info_checked_by_admin'] !== true): ?>
                                                 <button type="button" onclick="showCheckInfoUpdateModal('<?php echo htmlspecialchars($seller['user_id']); ?>', '<?php echo htmlspecialchars($seller['seller_name'] ?? $seller['name'] ?? $seller['user_id']); ?>')" class="btn" style="background: #10b981; color: white; border: none; padding: 6px 12px; font-size: 13px; cursor: pointer;">확인</button>
                                             <?php endif; ?>
@@ -1751,7 +1752,7 @@ $paginatedSellers = array_slice($currentSellers, $offset, $perPage);
                                     <td><?php echo htmlspecialchars($seller['withdrawal_reason'] ?? '사유 없음'); ?></td>
                                     <td>
                                         <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                                            <a href="/MVNO/admin/users/seller-detail.php?user_id=<?php echo urlencode($seller['user_id']); ?>" class="btn" style="background: #6366f1; color: white; text-decoration: none; display: inline-block; padding: 6px 12px; font-size: 12px;">상세보기</a>
+                                            <a href="<?php echo getAssetPath('/admin/users/seller-detail.php'); ?>?user_id=<?php echo urlencode($seller['user_id']); ?>" class="btn" style="background: #6366f1; color: white; text-decoration: none; display: inline-block; padding: 6px 12px; font-size: 12px;">상세보기</a>
                                             <button type="button" onclick="showCompleteWithdrawalModal('<?php echo htmlspecialchars($seller['user_id']); ?>', '<?php echo htmlspecialchars($sellerName); ?>')" class="btn" style="background: #10b981; color: white; border: none; padding: 6px 12px; font-size: 12px; cursor: pointer;">탈퇴 완료</button>
                                             <button type="button" onclick="showCancelWithdrawalAdminModal('<?php echo htmlspecialchars($seller['user_id']); ?>', '<?php echo htmlspecialchars($sellerName); ?>')" class="btn" style="background: #f59e0b; color: white; border: none; padding: 6px 12px; font-size: 12px; cursor: pointer;">반려</button>
                                         </div>
@@ -1966,7 +1967,7 @@ $paginatedSellers = array_slice($currentSellers, $offset, $perPage);
         </div>
         <div class="modal-actions">
             <button type="button" class="modal-btn modal-btn-cancel" onclick="closeCheckInfoUpdateModal()">취소</button>
-            <form method="POST" action="/MVNO/admin/seller-approval.php?tab=updated" id="checkInfoUpdateForm" style="display: inline;">
+            <form method="POST" action="<?php echo getAssetPath('/admin/seller-approval.php'); ?>?tab=updated" id="checkInfoUpdateForm" style="display: inline;">
                 <input type="hidden" name="user_id" id="checkInfoUpdateUserId">
                 <input type="hidden" name="page" id="checkInfoUpdatePage" value="<?php echo $updatedCurrentPage; ?>">
                 <input type="hidden" name="per_page" id="checkInfoUpdatePerPage" value="<?php echo $perPage; ?>">

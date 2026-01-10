@@ -5,6 +5,7 @@ $current_page = 'mno-sim';
 $is_main_page = true;
 
 // 로그인 체크를 위한 auth-functions 포함
+require_once '../includes/data/path-config.php';
 require_once '../includes/data/auth-functions.php';
 require_once '../includes/data/db-config.php';
 require_once '../includes/data/product-functions.php';
@@ -380,7 +381,7 @@ try {
                 'is_favorited' => false,
                 'gifts' => $gifts,
                 'promotion_title' => $promotionTitle,
-                'link_url' => '/MVNO/mno-sim/mno-sim-detail.php?id=' . $adProduct['product_id'],
+                'link_url' => getAssetPath('/mno-sim/mno-sim-detail.php?id=' . urlencode($adProduct['product_id'])),
                 'item_type' => 'mno-sim',
                 'is_advertising' => true // 스폰서 배지 표시용
             ];
@@ -548,11 +549,12 @@ require_once __DIR__ . '/../includes/data/plan-data.php';
 // 통신사별 아이콘 경로 매핑
 function getProviderIconPath($provider) {
     $iconMap = [
-        'KT' => '/MVNO/assets/images/internets/kt.svg',
-        'SKT' => '/MVNO/assets/images/internets/broadband.svg',
-        'LG U+' => '/MVNO/assets/images/internets/lgu.svg',
+        'KT' => '/assets/images/internets/kt.svg',
+        'SKT' => '/assets/images/internets/broadband.svg',
+        'LG U+' => '/assets/images/internets/lgu.svg',
     ];
-    return $iconMap[$provider] ?? '';
+    $iconPath = $iconMap[$provider] ?? '';
+    return $iconPath ? getAssetPath($iconPath) : '';
 }
 
 // 데이터 포맷팅 함수
@@ -827,7 +829,7 @@ function formatPriceAfter($priceAfterType, $priceAfter, $priceAfterUnit) {
                                 'is_favorited' => $isFavorited,
                                 'gifts' => $gifts,
                                 'promotion_title' => $promotionTitle,
-                                'link_url' => '/MVNO/mno-sim/mno-sim-detail.php?id=' . $adProduct['product_id'],
+                                'link_url' => getAssetPath('/mno-sim/mno-sim-detail.php?id=' . urlencode($adProduct['product_id'])),
                                 'item_type' => 'mno-sim',
                                 'is_advertising' => true
                             ];
@@ -1071,7 +1073,7 @@ function formatPriceAfter($priceAfterType, $priceAfter, $priceAfterUnit) {
                         'is_favorited' => $isFavorited,
                         'gifts' => $gifts, // 혜택 목록
                         'promotion_title' => $promotionTitle, // 프로모션 제목
-                        'link_url' => '/MVNO/mno-sim/mno-sim-detail.php?id=' . $product['id'], // 상세 페이지 링크
+                        'link_url' => getAssetPath('/mno-sim/mno-sim-detail.php?id=' . urlencode($product['id'])), // 상세 페이지 링크
                         'item_type' => 'mno-sim', // 찜 버튼용 타입
                         'is_advertising' => $isAdvertising // 광고중 여부
                     ];
@@ -1115,13 +1117,13 @@ function formatPriceAfter($priceAfterType, $priceAfter, $priceAfterUnit) {
 <?php include '../includes/footer.php'; ?>
 
 <!-- 아코디언 스크립트 -->
-<script src="/MVNO/assets/js/plan-accordion.js"></script>
+<script src="<?php echo getAssetPath('/assets/js/plan-accordion.js'); ?>"></script>
 <!-- 찜하기 스크립트 -->
-<script src="/MVNO/assets/js/favorite-heart.js" defer></script>
+<script src="<?php echo getAssetPath('/assets/js/favorite-heart.js'); ?>" defer></script>
 <!-- 공유 스크립트 -->
-<script src="/MVNO/assets/js/share.js" defer></script>
+<script src="<?php echo getAssetPath('/assets/js/share.js'); ?>" defer></script>
 <!-- 더보기 기능 스크립트 -->
-<script src="/MVNO/assets/js/load-more-products.js?v=2"></script>
+<script src="<?php echo getAssetPath('/assets/js/load-more-products.js'); ?>?v=2"></script>
 <script>
 // 필터 함수들
 function filterByProvider(provider) {

@@ -5,6 +5,7 @@
  * 경로: /seller/products/mvno.php
  */
 
+require_once __DIR__ . '/../../includes/data/path-config.php';
 require_once __DIR__ . '/../../includes/data/auth-functions.php';
 require_once __DIR__ . '/../../includes/data/db-config.php';
 
@@ -17,20 +18,20 @@ $currentUser = getCurrentUser();
 
 // 판매자 로그인 체크
 if (!$currentUser || $currentUser['role'] !== 'seller') {
-    header('Location: /MVNO/seller/login.php');
+    header('Location: ' . getAssetPath('/seller/login.php'));
     exit;
 }
 
 // 판매자 승인 체크
 $approvalStatus = $currentUser['approval_status'] ?? 'pending';
 if ($approvalStatus !== 'approved') {
-    header('Location: /MVNO/seller/waiting.php');
+    header('Location: ' . getAssetPath('/seller/waiting.php'));
     exit;
 }
 
 // 탈퇴 요청 상태 확인
 if (isset($currentUser['withdrawal_requested']) && $currentUser['withdrawal_requested'] === true) {
-    header('Location: /MVNO/seller/waiting.php');
+    header('Location: ' . getAssetPath('/seller/waiting.php'));
     exit;
 }
 
@@ -592,7 +593,7 @@ include __DIR__ . '/../includes/seller-header.php';
 document.addEventListener('DOMContentLoaded', function() {
     if (typeof showAlert === 'function') {
         showAlert('등록권한이 없습니다.\n관리자에게 문의하세요.', '권한 없음').then(function() {
-            window.location.href = '/MVNO/seller/';
+            window.location.href = '<?php echo getBasePath(); ?>/seller/';
         });
     } else {
         alert('등록권한이 없습니다.\n관리자에게 문의하세요.');
@@ -620,7 +621,7 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
     <?php endif; ?>
     
-    <form id="productForm" class="product-form" method="POST" action="/MVNO/api/product-register-mvno.php">
+    <form id="productForm" class="product-form" method="POST" action="<?php echo getApiPath('/api/product-register-mvno.php'); ?>">
         <?php if ($isEditMode): ?>
             <input type="hidden" name="product_id" value="<?php echo $productId; ?>">
         <?php endif; ?>
@@ -1193,7 +1194,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         <!-- 제출 버튼 -->
         <div class="form-actions">
-            <a href="/MVNO/seller/products/mvno-list.php" class="btn btn-secondary">취소</a>
+            <a href="<?php echo getAssetPath('/seller/products/mvno-list.php'); ?>" class="btn btn-secondary">취소</a>
             <button type="button" id="submitBtn" class="btn btn-primary">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M5 13l4 4L19 7"/>
@@ -1839,7 +1840,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // 실제 제출 함수
         const submitForm = function() {
-            fetch('/MVNO/api/product-register-mvno.php', {
+            fetch('<?php echo getApiPath('/api/product-register-mvno.php'); ?>', {
                 method: 'POST',
                 body: formData
             })
@@ -1850,10 +1851,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     const productId = formData.get('product_id');
                     if (productId && productId !== '0') {
                         // 수정 모드: 등록 상품 리스트로 리다이렉트
-                        window.location.href = '/MVNO/seller/products/mvno-list.php?success=1';
+                        window.location.href = '<?php echo getAssetPath('/seller/products/mvno-list.php'); ?>?success=1';
                     } else {
                         // 등록 모드: 등록 페이지로 리다이렉트
-                        window.location.href = '/MVNO/seller/products/mvno.php?success=1';
+                        window.location.href = '<?php echo getAssetPath('/seller/products/mvno.php'); ?>?success=1';
                     }
                 } else {
                     if (typeof showAlert === 'function') {

@@ -4,6 +4,9 @@ $current_page = 'mypage';
 // 메인 페이지 여부 (하단 메뉴 및 푸터 표시용)
 $is_main_page = true;
 
+// 경로 설정 파일 먼저 로드
+require_once '../includes/data/path-config.php';
+
 // 로그인 체크를 위한 auth-functions 포함 (세션 설정과 함께 세션을 시작함)
 require_once '../includes/data/auth-functions.php';
 require_once '../includes/data/privacy-functions.php';
@@ -13,7 +16,7 @@ if (!isLoggedIn()) {
     // 현재 URL을 세션에 저장 (회원가입 후 돌아올 주소)
     $_SESSION['redirect_url'] = $_SERVER['REQUEST_URI'];
     // 로그인 모달이 있는 홈으로 리다이렉트 (모달 자동 열기)
-    header('Location: /MVNO/?show_login=1');
+    header('Location: ' . getAssetPath('/?show_login=1'));
     exit;
 }
 
@@ -29,7 +32,7 @@ if (!$currentUser) {
     }
     // 현재 URL을 세션에 저장 (회원가입 후 돌아올 주소)
     $_SESSION['redirect_url'] = $_SERVER['REQUEST_URI'];
-    header('Location: /MVNO/?show_login=1');
+    header('Location: ' . getAssetPath('/?show_login=1'));
     exit;
 }
 
@@ -113,7 +116,7 @@ include '../includes/header.php';
         <!-- 뒤로가기 버튼 및 제목 -->
         <div style="margin-bottom: 24px; padding: 20px 0;">
             <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
-                <a href="/MVNO/mypage/mypage.php" style="display: flex; align-items: center; text-decoration: none; color: inherit;">
+                <a href="<?php echo getAssetPath('/mypage/mypage.php'); ?>" style="display: flex; align-items: center; text-decoration: none; color: inherit;">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
@@ -249,6 +252,9 @@ include '../includes/header.php';
 </style>
 
 <script>
+    // BASE_PATH와 API_PATH는 header.php에서 이미 설정됨
+    // header.php의 설정을 그대로 사용 (재설정하지 않음)
+
 // 혜택·이벤트 알림 토글 처리
 function handleBenefitToggle(checkbox) {
     const slider = checkbox.nextElementSibling;
@@ -334,23 +340,32 @@ function saveAlarmSettings() {
     const marketingOptIn = document.getElementById('marketingOptIn').checked;
     const smsSns = document.getElementById('marketingSmsSnsOptIn').checked;
 
-    const settings = {
-        service_notice_opt_in: document.getElementById('serviceNoticeOptIn').checked,
-        marketing_opt_in: marketingOptIn,
-        marketing_email_opt_in: document.getElementById('marketingEmailOptIn').checked,
-        marketing_sms_sns_opt_in: marketingOptIn ? smsSns : false,
-        marketing_push_opt_in: document.getElementById('marketingPushOptIn').checked
-    };
+    // FormData 사용 (웹 서버가 JSON 요청을 거부하는 경우 대비)
+    const formData = new FormData();
+    formData.append('service_notice_opt_in', document.getElementById('serviceNoticeOptIn').checked ? '1' : '0');
+    formData.append('marketing_opt_in', marketingOptIn ? '1' : '0');
+    formData.append('marketing_email_opt_in', document.getElementById('marketingEmailOptIn').checked ? '1' : '0');
+    formData.append('marketing_sms_sns_opt_in', (marketingOptIn ? smsSns : false) ? '1' : '0');
+    formData.append('marketing_push_opt_in', document.getElementById('marketingPushOptIn').checked ? '1' : '0');
     
-    fetch('/MVNO/api/update-alarm-settings.php', {
+    // API 경로 설정 (window.API_PATH를 그대로 사용)
+    const apiPath = window.API_PATH || (window.BASE_PATH || '') + '/api';
+    fetch(apiPath + '/update-alarm-settings.php', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
         credentials: 'same-origin',
-        body: JSON.stringify(settings)
+        body: formData
     })
-    .then(response => response.json())
+    .then(response => {
+        // Content-Type 확인
+        const contentType = response.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
+            return response.json();
+        } else {
+            return response.text().then(text => {
+                throw new Error('서버가 JSON을 반환하지 않았습니다: ' + text.substring(0, 200));
+            });
+        }
+    })
     .then(data => {
         if (data.success) {
             // 성공 메시지 (선택 사항)
@@ -362,7 +377,7 @@ function saveAlarmSettings() {
     })
     .catch(error => {
         console.error('알림 설정 저장 오류:', error);
-        alert('알림 설정 저장 중 오류가 발생했습니다.');
+        alert('알림 설정 저장 중 오류가 발생했습니다: ' + error.message);
     });
 }
 

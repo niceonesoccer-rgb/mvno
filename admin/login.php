@@ -4,6 +4,7 @@
  * 경로: /MVNO/admin/login.php
  */
 
+require_once __DIR__ . '/../includes/data/path-config.php';
 require_once __DIR__ . '/../includes/data/auth-functions.php';
 
 // 세션 시작
@@ -14,7 +15,12 @@ if (session_status() === PHP_SESSION_NONE) {
 // 이미 로그인한 관리자는 관리자 센터로 리다이렉트
 $currentUser = getCurrentUser();
 if ($currentUser && isAdmin($currentUser['user_id'])) {
-    header('Location: /MVNO/admin/');
+    // 현재 스크립트 위치 기준으로 상대 경로 계산
+    $currentDir = dirname($_SERVER['SCRIPT_NAME']);
+    // /admin/login.php -> /admin/, /MVNO/admin/login.php -> /MVNO/admin/
+    $adminPath = rtrim($currentDir, '/');
+    $redirectUrl = $adminPath . '/index.php';
+    header('Location: ' . $redirectUrl);
     exit;
 }
 
@@ -32,7 +38,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $user = $result['user'];
             // 관리자/부관리자만 로그인 허용
             if ($user['role'] === 'admin' || $user['role'] === 'sub_admin') {
-                header('Location: /MVNO/admin/');
+                // 현재 스크립트 위치 기준으로 상대 경로 계산
+                $currentDir = dirname($_SERVER['SCRIPT_NAME']);
+                // /admin/login.php -> /admin/, /MVNO/admin/login.php -> /MVNO/admin/
+                $adminPath = rtrim($currentDir, '/');
+                $redirectUrl = $adminPath . '/index.php';
+                header('Location: ' . $redirectUrl);
                 exit;
             } else {
                 $error = '관리자만 로그인할 수 있습니다.';
@@ -171,12 +182,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <form method="POST" id="loginForm">
                 <div class="form-group">
                     <label for="user_id">아이디</label>
-                    <input type="text" id="user_id" name="user_id" value="admin" required autofocus>
+                    <input type="text" id="user_id" name="user_id" value="" required autofocus>
                 </div>
                 
                 <div class="form-group">
                     <label for="password">비밀번호</label>
-                    <input type="password" id="password" name="password" value="admin" required>
+                    <input type="password" id="password" name="password" value="" required>
                 </div>
                 
                 <button type="submit" class="login-button">로그인</button>

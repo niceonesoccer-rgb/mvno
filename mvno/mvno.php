@@ -547,11 +547,11 @@ if (!empty($advertisementProducts)) {
 
 <?php include '../includes/footer.php'; ?>
 
-<script src="/MVNO/assets/js/plan-accordion.js" defer></script>
-<script src="/MVNO/assets/js/favorite-heart.js" defer></script>
-<script src="/MVNO/assets/js/share.js" defer></script>
+<script src="<?php echo getAssetPath('/assets/js/plan-accordion.js'); ?>" defer></script>
+<script src="<?php echo getAssetPath('/assets/js/favorite-heart.js'); ?>" defer></script>
+<script src="<?php echo getAssetPath('/assets/js/share.js'); ?>" defer></script>
 <!-- 더보기 기능 스크립트 -->
-<script src="/MVNO/assets/js/load-more-products.js?v=2"></script>
+<script src="<?php echo getAssetPath('/assets/js/load-more-products.js'); ?>?v=2"></script>
 
 <style>
 /* 더보기 버튼 컨테이너 - 카드와 같은 너비 */

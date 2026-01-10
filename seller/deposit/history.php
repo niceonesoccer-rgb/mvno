@@ -81,7 +81,11 @@ $depositRequestTotalCount = $depositRequestCountStmt->fetchColumn();
 $depositRequestTotalPages = ceil($depositRequestTotalCount / $requestPerPage);
 
 $depositRequestStmt = $pdo->prepare("
-    SELECT dr.*, ba.bank_name, ba.account_number, ba.account_holder
+    SELECT 
+        dr.*,
+        COALESCE(dr.bank_name, ba.bank_name) as bank_name,
+        COALESCE(dr.account_number, ba.account_number) as account_number,
+        COALESCE(dr.account_holder, ba.account_holder) as account_holder
     FROM deposit_requests dr
     LEFT JOIN bank_accounts ba ON dr.bank_account_id = ba.id
     WHERE $depositRequestWhereClause

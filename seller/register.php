@@ -4,6 +4,7 @@
  * 경로: /MVNO/seller/register.php
  */
 
+require_once __DIR__ . '/../includes/data/path-config.php';
 require_once __DIR__ . '/../includes/data/auth-functions.php';
 
 /**
@@ -166,10 +167,10 @@ function compressImage($sourcePath, $targetPath, $maxSizeMB = 500) {
 if (isLoggedIn()) {
     $currentUser = getCurrentUser();
     if ($currentUser && $currentUser['role'] === 'seller') {
-        header('Location: /MVNO/seller/');
+        header('Location: ' . getBasePath() . '/seller/');
         exit;
     } else {
-        header('Location: /MVNO/');
+        header('Location: ' . getBasePath() . '/');
         exit;
     }
 }
@@ -365,7 +366,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             
                             // 이미지 리사이징 및 압축 (500MB 이하로)
                             if (compressImage($tmpPath, $uploadPath, 500)) {
-                                $additionalData['business_license_image'] = '/MVNO/uploads/sellers/' . $fileName;
+                                $additionalData['business_license_image'] = getAssetPath('/uploads/sellers/' . $fileName);
                             } else {
                                 $error = '이미지 처리에 실패했습니다.';
                             }
@@ -412,8 +413,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>판매자 가입 - 유심킹</title>
-    <link rel="stylesheet" href="/MVNO/assets/css/style.css">
-    <script src="/MVNO/assets/js/modal.js" defer></script>
+    <link rel="stylesheet" href="<?php echo getAssetPath('/assets/css/style.css'); ?>">
+    <script src="<?php echo getAssetPath('/assets/js/modal.js'); ?>" defer></script>
 
 <style>
     body {
@@ -1219,7 +1220,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <div class="info-item full-width" style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #e5e7eb; text-align: center;">
                             <span class="info-value" style="color: #f59e0b; font-weight: 700; font-size: 18px;">승인대기중</span>
                             <div style="margin-top: 24px;">
-                                <a href="/MVNO/" class="home-button">홈으로 이동</a>
+                                <a href="<?php echo getBasePath(); ?>/" class="home-button">홈으로 이동</a>
                             </div>
                         </div>
                     </div>
@@ -1485,7 +1486,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </form>
                 
                 <div class="login-link">
-                    이미 계정이 있으신가요? <a href="/MVNO/seller/login.php">로그인</a>
+                    이미 계정이 있으신가요? <a href="<?php echo getAssetPath('/seller/login.php'); ?>">로그인</a>
                 </div>
             </div>
         <?php endif; ?>
@@ -1694,7 +1695,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         resultDiv.innerHTML = '<span class="checking">확인 중...</span>';
         resultDiv.className = 'check-result checking';
         
-        fetch(`/MVNO/api/check-seller-duplicate.php?type=${type}&value=${encodeURIComponent(value)}`)
+        fetch(`<?php echo getApiPath('/api/check-seller-duplicate.php'); ?>?type=${type}&value=${encodeURIComponent(value)}`)
             .then(response => response.json())
             .then(data => {
                 checkBtn.disabled = false;
@@ -2187,7 +2188,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         const formData = new FormData();
         formData.append('image', file);
         
-        fetch('/MVNO/api/extract-business-info.php', {
+        fetch('<?php echo getApiPath('/api/extract-business-info.php'); ?>', {
             method: 'POST',
             body: formData
         })

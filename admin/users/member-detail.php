@@ -4,6 +4,7 @@
  */
 
 // 필요한 함수 파일 먼저 포함
+require_once __DIR__ . '/../../includes/data/path-config.php';
 require_once __DIR__ . '/../../includes/data/auth-functions.php';
 require_once __DIR__ . '/../../includes/data/point-settings.php';
 require_once __DIR__ . '/../../includes/data/db-config.php';
@@ -14,10 +15,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['approve_seller'])) {
         $editUserId = $_POST['user_id'] ?? '';
         if ($editUserId && approveSeller($editUserId)) {
-            header('Location: /MVNO/admin/users/member-detail.php?user_id=' . urlencode($editUserId) . '&success=approve');
+            header('Location: ' . getAssetPath('/admin/users/member-detail.php') . '?user_id=' . urlencode($editUserId) . '&success=approve');
             exit;
         } else {
-            header('Location: /MVNO/admin/users/member-detail.php?user_id=' . urlencode($editUserId) . '&error=approve');
+            header('Location: ' . getAssetPath('/admin/users/member-detail.php') . '?user_id=' . urlencode($editUserId) . '&error=approve');
             exit;
         }
     }
@@ -26,10 +27,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['hold_seller'])) {
         $editUserId = $_POST['user_id'] ?? '';
         if ($editUserId && holdSeller($editUserId)) {
-            header('Location: /MVNO/admin/users/member-detail.php?user_id=' . urlencode($editUserId) . '&success=hold');
+            header('Location: ' . getAssetPath('/admin/users/member-detail.php') . '?user_id=' . urlencode($editUserId) . '&success=hold');
             exit;
         } else {
-            header('Location: /MVNO/admin/users/member-detail.php?user_id=' . urlencode($editUserId) . '&error=hold');
+            header('Location: ' . getAssetPath('/admin/users/member-detail.php') . '?user_id=' . urlencode($editUserId) . '&error=hold');
             exit;
         }
     }
@@ -40,13 +41,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $permissions = $_POST['permissions'] ?? [];
         
         if ($editUserId && setSellerPermissions($editUserId, $permissions)) {
-            header('Location: /MVNO/admin/users/member-detail.php?user_id=' . urlencode($editUserId) . '&success=permissions');
+            header('Location: ' . getAssetPath('/admin/users/member-detail.php') . '?user_id=' . urlencode($editUserId) . '&success=permissions');
             exit;
         } else {
-            header('Location: /MVNO/admin/users/member-detail.php?user_id=' . urlencode($editUserId) . '&error=permissions');
+            header('Location: ' . getAssetPath('/admin/users/member-detail.php') . '?user_id=' . urlencode($editUserId) . '&error=permissions');
             exit;
         }
     }
+}
+
+// 이미지 경로 정규화 함수 (하드코딩된 /MVNO 경로 제거)
+function normalizeBusinessLicenseImagePath($path) {
+    if (empty($path)) {
+        return '';
+    }
+    
+    $imagePath = trim($path);
+    
+    // 이미 전체 URL이면 그대로 사용
+    if (preg_match('/^https?:\/\//', $imagePath)) {
+        return $imagePath;
+    }
+    
+    // 하드코딩된 /MVNO/ 경로 제거
+    while (strpos($imagePath, '/MVNO/') !== false) {
+        $imagePath = str_replace('/MVNO/', '/', $imagePath);
+    }
+    if (strpos($imagePath, '/MVNO') === 0) {
+        $imagePath = substr($imagePath, 5); // '/MVNO' 제거
+    }
+    
+    // /로 시작하는 절대 경로면 getAssetPath 사용
+    if (strpos($imagePath, '/') === 0) {
+        return getAssetPath($imagePath);
+    }
+    
+    // 상대 경로인 경우
+    return getAssetPath('/' . $imagePath);
 }
 
 // 헤더 포함 (POST 처리가 완료된 후)
@@ -55,7 +86,7 @@ require_once __DIR__ . '/../includes/admin-header.php';
 // 관리자 권한 체크
 $currentUser = getCurrentUser();
 if (!$currentUser || !isAdmin()) {
-    header('Location: /MVNO/auth/login.php');
+    header('Location: ' . getAssetPath('/auth/login.php'));
     exit;
 }
 
@@ -63,7 +94,7 @@ if (!$currentUser || !isAdmin()) {
 $userId = $_GET['user_id'] ?? '';
 
 if (empty($userId)) {
-    header('Location: /MVNO/admin/users/member-list.php');
+    header('Location: ' . getAssetPath('/admin/users/member-list.php'));
     exit;
 }
 
@@ -75,7 +106,7 @@ $error_message = null;
 $user = getUserById($userId);
 
 if (!$user) {
-    header('Location: /MVNO/admin/users/member-list.php');
+    header('Location: ' . getAssetPath('/admin/users/member-list.php'));
     exit;
 }
 
@@ -686,14 +717,14 @@ if (!$isSeller && !$isAdmin) {
         <div class="detail-header">
             <h1><?php echo $isSeller ? '판매자 상세 정보' : '회원 상세 정보'; ?></h1>
             <div style="display: flex; gap: 12px; align-items: center;">
-                <a href="<?php echo $isSeller ? '/MVNO/admin/seller-approval.php?tab=approved' : '/MVNO/admin/users/member-list.php'; ?>" class="back-button">
+                <a href="<?php echo $isSeller ? getAssetPath('/admin/seller-approval.php') . '?tab=approved' : getAssetPath('/admin/users/member-list.php'); ?>" class="back-button">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M19 12H5M12 19l-7-7 7-7"/>
                     </svg>
                     목록으로
                 </a>
                 <?php if ($isSeller): ?>
-                    <a href="/MVNO/admin/users/seller-edit.php?user_id=<?php echo urlencode($userId); ?>" class="back-button" style="background: #6366f1; color: white;">
+                    <a href="<?php echo getAssetPath('/admin/users/seller-edit.php'); ?>?user_id=<?php echo urlencode($userId); ?>" class="back-button" style="background: #6366f1; color: white;">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
@@ -701,15 +732,30 @@ if (!$isSeller && !$isAdmin) {
                         회원정보 수정
                     </a>
                 <?php elseif ($isAdmin): ?>
-                    <a href="/MVNO/admin/settings/admin-manage.php?edit=<?php echo urlencode($userId); ?>" class="back-button" style="background: #6366f1; color: white;">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                        </svg>
-                        정보 수정
-                    </a>
+                    <?php 
+                    // 현재 사용자 역할 확인 (이미 상단에서 정의된 $currentUser 사용)
+                    $currentUserRole = $currentUser['role'] ?? 'user';
+                    $currentUserId = $currentUser['user_id'] ?? null;
+                    
+                    // admin 계정은 모든 관리자 정보 수정 가능
+                    // sub_admin 계정은 자신의 정보만 수정 가능
+                    $canEdit = ($currentUserRole === 'admin') || ($currentUserRole === 'sub_admin' && $userId === $currentUserId);
+                    // admin 계정 정보는 admin만 수정 가능
+                    if ($userId === 'admin' && $currentUserRole !== 'admin') {
+                        $canEdit = false;
+                    }
+                    ?>
+                    <?php if ($canEdit): ?>
+                        <a href="<?php echo getAssetPath('/admin/settings/admin-manage.php'); ?><?php echo ($currentUserRole === 'sub_admin' && $userId === $currentUserId) ? '' : '?user_id=' . urlencode($userId); ?>" class="back-button" style="background: #6366f1; color: white;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                            </svg>
+                            <?php echo ($currentUserRole === 'sub_admin' && $userId === $currentUserId) ? '내 정보 수정' : '정보 수정'; ?>
+                        </a>
+                    <?php endif; ?>
                 <?php elseif (!$isSeller && !$isAdmin): ?>
-                    <a href="/MVNO/admin/users/user-edit.php?user_id=<?php echo urlencode($userId); ?>" class="back-button" style="background: #6366f1; color: white;">
+                    <a href="<?php echo getAssetPath('/admin/users/user-edit.php'); ?>?user_id=<?php echo urlencode($userId); ?>" class="back-button" style="background: #6366f1; color: white;">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
@@ -986,11 +1032,13 @@ if (!$isSeller && !$isAdmin) {
                         </div>
                     <?php endif; ?>
                     
-                    <?php if (isset($user['business_license_image']) && !empty($user['business_license_image'])): ?>
+                    <?php if (isset($user['business_license_image']) && !empty($user['business_license_image'])): 
+                        $licenseImagePath = normalizeBusinessLicenseImagePath($user['business_license_image']);
+                    ?>
                         <div class="detail-item">
                             <div class="detail-label">사업자등록증</div>
                             <div class="detail-value">
-                                <img src="<?php echo htmlspecialchars($user['business_license_image']); ?>" alt="사업자등록증" class="license-image" onclick="showImageZoom(this.src)" style="max-width: 600px; max-height: 400px; border: 1px solid #e5e7eb; border-radius: 8px; margin-top: 12px; cursor: pointer; transition: transform 0.2s;">
+                                <img src="<?php echo htmlspecialchars($licenseImagePath); ?>" alt="사업자등록증" class="license-image" onclick="showImageZoom(this.src)" style="max-width: 600px; max-height: 400px; border: 1px solid #e5e7eb; border-radius: 8px; margin-top: 12px; cursor: pointer; transition: transform 0.2s;" onerror="this.src=''; this.alt='이미지를 불러올 수 없습니다.'; this.style.display='none';">
                             </div>
                         </div>
                     <?php endif; ?>
@@ -1074,7 +1122,7 @@ if (!$isSeller && !$isAdmin) {
     <div class="modal" style="background: white; border-radius: 12px; padding: 24px; max-width: 500px; width: 90%; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);">
         <div class="modal-title" style="font-size: 18px; font-weight: 700; color: #1f2937; margin-bottom: 16px;">판매자 권한 설정</div>
         
-        <form method="POST" action="/MVNO/admin/users/member-detail.php?user_id=<?php echo urlencode($user['user_id']); ?>" class="permissions-form" id="permissionsForm_<?php echo htmlspecialchars($user['user_id']); ?>" data-user-id="<?php echo htmlspecialchars($user['user_id']); ?>" data-initial-permissions="<?php echo htmlspecialchars(json_encode($user['permissions'] ?? [])); ?>">
+        <form method="POST" action="<?php echo getAssetPath('/admin/users/member-detail.php'); ?>?user_id=<?php echo urlencode($user['user_id']); ?>" class="permissions-form" id="permissionsForm_<?php echo htmlspecialchars($user['user_id']); ?>" data-user-id="<?php echo htmlspecialchars($user['user_id']); ?>" data-initial-permissions="<?php echo htmlspecialchars(json_encode($user['permissions'] ?? [])); ?>">
             <input type="hidden" name="save_permissions" value="1">
             <input type="hidden" name="user_id" value="<?php echo htmlspecialchars($user['user_id']); ?>">
             
@@ -1160,7 +1208,7 @@ if (!$isSeller && !$isAdmin) {
         </div>
         <div class="modal-actions" style="display: flex; gap: 12px; justify-content: flex-end;">
             <button type="button" class="modal-btn modal-btn-cancel" onclick="closeApproveConfirmModal()" style="padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; border: none; transition: all 0.2s; background: #f3f4f6; color: #374151;">취소</button>
-            <form method="POST" action="/MVNO/admin/users/member-detail.php?user_id=<?php echo urlencode($user['user_id']); ?>" id="approveConfirmForm" style="display: inline;">
+            <form method="POST" action="<?php echo getAssetPath('/admin/users/member-detail.php'); ?>?user_id=<?php echo urlencode($user['user_id']); ?>" id="approveConfirmForm" style="display: inline;">
                 <input type="hidden" name="user_id" id="approveConfirmUserId">
                 <button type="submit" name="approve_seller" class="modal-btn modal-btn-confirm" style="padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; border: none; transition: all 0.2s; background: #10b981; color: white;">승인</button>
             </form>
@@ -1177,7 +1225,7 @@ if (!$isSeller && !$isAdmin) {
         </div>
         <div class="modal-actions" style="display: flex; gap: 12px; justify-content: flex-end;">
             <button type="button" class="modal-btn modal-btn-cancel" onclick="closeHoldConfirmModal()" style="padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; border: none; transition: all 0.2s; background: #f3f4f6; color: #374151;">취소</button>
-            <form method="POST" action="/MVNO/admin/users/member-detail.php?user_id=<?php echo urlencode($user['user_id']); ?>" id="holdConfirmForm" style="display: inline;">
+            <form method="POST" action="<?php echo getAssetPath('/admin/users/member-detail.php'); ?>?user_id=<?php echo urlencode($user['user_id']); ?>" id="holdConfirmForm" style="display: inline;">
                 <input type="hidden" name="user_id" id="holdConfirmUserId">
                 <button type="submit" name="hold_seller" class="modal-btn modal-btn-hold" style="padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; border: none; transition: all 0.2s; background: #f59e0b; color: white;">승인보류</button>
             </form>

@@ -8,7 +8,8 @@
     
     // 포인트 잔액 업데이트 함수
     function updatePointBalance() {
-        fetch('/MVNO/api/point-balance.php?user_id=default')
+        const apiPath = window.API_PATH || (window.BASE_PATH || '') + '/api';
+        fetch(apiPath + '/point-balance.php?user_id=default')
             .then(response => response.json())
             .then(data => {
                 if (data.success) {

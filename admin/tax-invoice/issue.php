@@ -179,12 +179,13 @@ if ($periodStart && $periodEnd) {
     ];
     
     // 페이지별 데이터 조회
+    // 계좌 정보는 deposit_requests에 저장된 텍스트 값을 우선 사용, 없으면 JOIN으로 가져오기
     $stmt = $pdo->prepare("
         SELECT 
             dr.*,
-            ba.bank_name,
-            ba.account_number,
-            ba.account_holder
+            COALESCE(dr.bank_name, ba.bank_name) as bank_name,
+            COALESCE(dr.account_number, ba.account_number) as account_number,
+            COALESCE(dr.account_holder, ba.account_holder) as account_holder
         FROM deposit_requests dr
         LEFT JOIN bank_accounts ba ON dr.bank_account_id = ba.id
         $whereClause

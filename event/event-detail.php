@@ -7,6 +7,7 @@
 $current_page = 'event';
 $is_main_page = false;
 
+require_once '../includes/data/path-config.php';
 require_once '../includes/data/auth-functions.php';
 require_once '../includes/data/db-config.php';
 
@@ -18,28 +19,23 @@ function normalizeImagePathForDisplay($path) {
     
     $imagePath = trim($path);
     
-    // 이미 /MVNO/로 시작하면 그대로 사용
-    if (strpos($imagePath, '/MVNO/') === 0) {
+    // 이미 전체 URL이면 그대로 사용
+    if (preg_match('/^https?:\/\//', $imagePath)) {
         return $imagePath;
     }
-    // /uploads/events/ 또는 /uploads/events/로 시작하는 경우
-    elseif (preg_match('#^/uploads/events/#', $imagePath)) {
-        return '/MVNO' . $imagePath;
-    }
-    // /uploads/ 또는 /images/로 시작하면 /MVNO/ 추가
-    elseif (strpos($imagePath, '/uploads/') === 0 || strpos($imagePath, '/images/') === 0) {
-        return '/MVNO' . $imagePath;
-    }
-    // 파일명만 있는 경우 (확장자가 있고 슬래시가 없음)
-    elseif (strpos($imagePath, '/') === false && preg_match('/\.(webp|jpg|jpeg|png|gif)$/i', $imagePath)) {
-        return '/MVNO/uploads/events/' . $imagePath;
-    }
-    // 상대 경로인데 파일명이 아닌 경우
-    elseif (strpos($imagePath, '/') !== 0) {
-        return '/MVNO/' . $imagePath;
+    
+    // 이미 /로 시작하는 절대 경로면 getAssetPath 사용
+    if (strpos($imagePath, '/') === 0) {
+        return getAssetPath($imagePath);
     }
     
-    return $imagePath;
+    // 파일명만 있는 경우 (확장자가 있고 슬래시가 없음)
+    if (strpos($imagePath, '/') === false && preg_match('/\.(webp|jpg|jpeg|png|gif)$/i', $imagePath)) {
+        return getAssetPath('/uploads/events/' . $imagePath);
+    }
+    
+    // 상대 경로인 경우
+    return getAssetPath('/' . $imagePath);
 }
 
 $eventId = $_GET['id'] ?? '';
@@ -49,7 +45,7 @@ $eventProducts = [];
 
 // 이벤트 ID가 없으면 리다이렉트 (header() 호출 전에 처리)
 if (empty($eventId)) {
-    header('Location: /MVNO/event/event.php');
+    header('Location: ' . getAssetPath('/event/event.php'));
     exit;
 }
 
@@ -66,7 +62,7 @@ if ($pdo) {
         
         // 이벤트가 없으면 리다이렉트
         if (!$event) {
-            header('Location: /MVNO/event/event.php');
+            header('Location: ' . getAssetPath('/event/event.php'));
             exit;
         }
         
@@ -93,7 +89,7 @@ if ($pdo) {
         }
         
         if (!$isPublished) {
-            header('Location: /MVNO/event/event.php');
+            header('Location: ' . getAssetPath('/event/event.php'));
             exit;
         }
         
@@ -257,15 +253,13 @@ if ($pdo) {
             error_log('Event detail - Processing product: ID=' . ($product['product_id'] ?? 'N/A') . ', Type=' . $productType);
             
             if ($productType === 'mvno') {
-                $product['link_url'] = '/MVNO/mvno/mvno-plan-detail.php?id=' . $product['product_id'];
+                $product['link_url'] = getAssetPath('/mvno/mvno-plan-detail.php?id=' . $product['product_id']);
             } elseif ($productType === 'mno') {
-                $product['link_url'] = '/MVNO/mno/mno-phone-detail.php?id=' . $product['product_id'];
+                $product['link_url'] = getAssetPath('/mno/mno-phone-detail.php?id=' . $product['product_id']);
             } elseif ($productType === 'mno-sim') {
-                $product['link_url'] = '/MVNO/mno-sim/mno-sim-detail.php?id=' . $product['product_id'];
+                $product['link_url'] = getAssetPath('/mno-sim/mno-sim-detail.php?id=' . $product['product_id']);
             } elseif ($productType === 'internet') {
-                $product['link_url'] = '/MVNO/internets/internet-detail.php?id=' . $product['product_id'];
-            } elseif ($productType === 'internet') {
-                $product['link_url'] = '/MVNO/internets/internet-detail.php?id=' . $product['product_id'];
+                $product['link_url'] = getAssetPath('/internets/internet-detail.php?id=' . $product['product_id']);
             }
             $eventProducts[] = $product;
         }
@@ -279,7 +273,7 @@ if ($pdo) {
 
 // 이벤트가 없으면 리다이렉트 (header() 호출 전에 처리)
 if (!$event) {
-    header('Location: /MVNO/event/event.php');
+    header('Location: ' . getAssetPath('/event/event.php'));
     exit;
 }
 
@@ -291,7 +285,7 @@ include '../includes/header.php';
     <div class="event-detail-container">
         <!-- 목록으로 버튼 -->
         <div class="event-detail-actions-top">
-            <a href="/MVNO/event/event.php" class="btn-back">목록</a>
+            <a href="<?php echo getAssetPath('/event/event.php'); ?>" class="btn-back">목록</a>
             </div>
             
         <!-- 시작일 ~ 종료일 -->
@@ -615,15 +609,16 @@ include '../includes/header.php';
                             if (!function_exists('getInternetIconPath')) {
                                 function getInternetIconPath($registrationPlace) {
                                     $iconMap = [
-                                        'KT' => '/MVNO/assets/images/internets/kt.svg',
-                                        'SKT' => '/MVNO/assets/images/internets/broadband.svg',
-                                        'LG U+' => '/MVNO/assets/images/internets/lgu.svg',
-                                        'KT skylife' => '/MVNO/assets/images/internets/ktskylife.svg',
-                                        'LG헬로비전' => '/MVNO/assets/images/internets/hellovision.svg',
-                                        'BTV' => '/MVNO/assets/images/internets/btv.svg',
-                                        'DLIVE' => '/MVNO/assets/images/internets/dlive.svg',
+                                        'KT' => '/assets/images/internets/kt.svg',
+                                        'SKT' => '/assets/images/internets/broadband.svg',
+                                        'LG U+' => '/assets/images/internets/lgu.svg',
+                                        'KT skylife' => '/assets/images/internets/ktskylife.svg',
+                                        'LG헬로비전' => '/assets/images/internets/hellovision.svg',
+                                        'BTV' => '/assets/images/internets/btv.svg',
+                                        'DLIVE' => '/assets/images/internets/dlive.svg',
                                     ];
-                                    return $iconMap[$registrationPlace] ?? '';
+                                    $iconPath = $iconMap[$registrationPlace] ?? '';
+                                    return $iconPath ? getAssetPath($iconPath) : '';
                                 }
                             }
                             
@@ -780,7 +775,7 @@ include '../includes/header.php';
                                                     }
                                             ?>
                                             <div class="css-12zfa6z e82z5mt8">
-                                                <img src="/MVNO/assets/images/icons/cash.svg" alt="현금" class="css-xj5cz0 e82z5mt9">
+                                                <img src="<?php echo getAssetPath('/assets/images/icons/cash.svg'); ?>" alt="현금" class="css-xj5cz0 e82z5mt9">
                                                 <div class="css-0 e82z5mt10">
                                                     <p class="css-2ht76o e82z5mt12 item-name-text"><?php echo htmlspecialchars($cashNames[$i]); ?></p>
                                                     <?php if ($hasPrice): ?>
@@ -810,7 +805,7 @@ include '../includes/header.php';
                                                     }
                                             ?>
                                             <div class="css-12zfa6z e82z5mt8">
-                                                <img src="/MVNO/assets/images/icons/gift-card.svg" alt="상품권" class="css-xj5cz0 e82z5mt9">
+                                                <img src="<?php echo getAssetPath('/assets/images/icons/gift-card.svg'); ?>" alt="상품권" class="css-xj5cz0 e82z5mt9">
                                                 <div class="css-0 e82z5mt10">
                                                     <p class="css-2ht76o e82z5mt12 item-name-text"><?php echo htmlspecialchars($giftNames[$i]); ?></p>
                                                     <?php if ($hasPrice): ?>
@@ -831,7 +826,7 @@ include '../includes/header.php';
                                                     $priceText = (isset($equipPrices[$i]) && is_array($equipPrices) && !empty($equipPrices[$i])) ? $equipPrices[$i] : '';
                                             ?>
                                             <div class="css-12zfa6z e82z5mt8">
-                                                <img src="/MVNO/assets/images/icons/equipment.svg" alt="장비" class="css-xj5cz0 e82z5mt9">
+                                                <img src="<?php echo getAssetPath('/assets/images/icons/equipment.svg'); ?>" alt="장비" class="css-xj5cz0 e82z5mt9">
                                                 <div class="css-0 e82z5mt10">
                                                     <p class="css-2ht76o e82z5mt12 item-name-text"><?php echo htmlspecialchars($equipNames[$i]); ?></p>
                                                     <?php if (!empty($priceText)): ?>
@@ -850,7 +845,7 @@ include '../includes/header.php';
                                                     $priceText = (isset($installPrices[$i]) && is_array($installPrices) && !empty($installPrices[$i])) ? $installPrices[$i] : '';
                                             ?>
                                             <div class="css-12zfa6z e82z5mt8">
-                                                <img src="/MVNO/assets/images/icons/installation.svg" alt="설치" class="css-xj5cz0 e82z5mt9">
+                                                <img src="<?php echo getAssetPath('/assets/images/icons/installation.svg'); ?>" alt="설치" class="css-xj5cz0 e82z5mt9">
                                                 <div class="css-0 e82z5mt10">
                                                     <p class="css-2ht76o e82z5mt12 item-name-text"><?php echo htmlspecialchars($installNames[$i]); ?></p>
                                                     <?php if (!empty($priceText)): ?>
@@ -1234,5 +1229,5 @@ include '../includes/header.php';
 <?php include '../includes/footer.php'; ?>
 
 <!-- 아코디언 스크립트 -->
-<script src="/MVNO/assets/js/plan-accordion.js"></script>
+<script src="<?php echo getAssetPath('/assets/js/plan-accordion.js'); ?>"></script>
 

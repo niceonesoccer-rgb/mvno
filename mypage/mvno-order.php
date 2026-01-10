@@ -4,6 +4,9 @@ $current_page = 'mypage';
 // 메인 페이지 여부 (하단 메뉴 및 푸터 표시용)
 $is_main_page = true;
 
+// 경로 설정 파일 먼저 로드
+require_once '../includes/data/path-config.php';
+
 // 로그인 체크를 위한 auth-functions 포함 (세션 설정과 함께 세션을 시작함)
 require_once '../includes/data/auth-functions.php';
 
@@ -12,7 +15,7 @@ if (!isLoggedIn()) {
     // 현재 URL을 세션에 저장 (회원가입 후 돌아올 주소)
     $_SESSION['redirect_url'] = $_SERVER['REQUEST_URI'];
     // 로그인 모달이 있는 홈으로 리다이렉트 (모달 자동 열기)
-    header('Location: /MVNO/?show_login=1');
+    header('Location: ' . getAssetPath('/?show_login=1'));
     exit;
 }
 
@@ -28,7 +31,7 @@ if (!$currentUser) {
     }
     // 현재 URL을 세션에 저장 (회원가입 후 돌아올 주소)
     $_SESSION['redirect_url'] = $_SERVER['REQUEST_URI'];
-    header('Location: /MVNO/?show_login=1');
+    header('Location: ' . getAssetPath('/?show_login=1'));
     exit;
 }
 
@@ -66,7 +69,7 @@ include '../includes/components/mvno-review-modal.php';
                 <!-- 페이지 헤더 -->
                 <div style="margin-bottom: 24px; padding: 20px 0;">
                     <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
-                        <a href="/MVNO/mypage/mypage.php" style="display: flex; align-items: center; text-decoration: none; color: inherit;">
+                        <a href="<?php echo getAssetPath('/mypage/mypage.php'); ?>" style="display: flex; align-items: center; text-decoration: none; color: inherit;">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                             </svg>
@@ -193,6 +196,10 @@ include '../includes/components/mvno-review-modal.php';
 </style>
 
 <script>
+    // BASE_PATH와 API_PATH를 JavaScript에서 사용할 수 있도록 설정
+    window.BASE_PATH = window.BASE_PATH || '<?php echo getBasePath(); ?>';
+    window.API_PATH = window.API_PATH || (window.BASE_PATH + '/api');
+    
 document.addEventListener('DOMContentLoaded', function() {
     // MVNO 리뷰 작성/수정 기능
     const reviewWriteButtons = document.querySelectorAll('.mvno-review-write-btn, .mvno-review-edit-btn');
@@ -257,7 +264,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // 수정 모드일 경우 기존 리뷰 데이터 로드
                 if (isEditMode && currentReviewApplicationId && currentReviewProductId) {
-                    fetch(`/MVNO/api/get-review-by-application.php?application_id=${currentReviewApplicationId}&product_id=${currentReviewProductId}&product_type=mvno`)
+                    fetch(`${window.API_PATH || (window.BASE_PATH || '') + '/api'}/get-review-by-application.php?application_id=${currentReviewApplicationId}&product_id=${currentReviewProductId}&product_type=mvno`)
                         .then(response => response.json())
                         .then(data => {
                             if (data.success && data.review) {
@@ -399,7 +406,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
             
-            fetch('/MVNO/api/submit-review.php', {
+            fetch((window.API_PATH || (window.BASE_PATH || '') + '/api') + '/submit-review.php', {
                 method: 'POST',
                 body: formData
             })
@@ -464,7 +471,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 formData.append('review_id', reviewId);
                 formData.append('product_type', 'mvno');
                 
-                fetch('/MVNO/api/delete-review.php', {
+                fetch((window.API_PATH || (window.BASE_PATH || '') + '/api') + '/delete-review.php', {
                     method: 'POST',
                     body: formData
                 })
@@ -543,7 +550,7 @@ document.addEventListener('DOMContentLoaded', function() {
         `;
         
         // API 호출
-        fetch(`/MVNO/api/get-application-details.php?application_id=${applicationId}`)
+        fetch(`${window.API_PATH || (window.BASE_PATH || '') + '/api'}/get-application-details.php?application_id=${applicationId}`)
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
@@ -1132,7 +1139,7 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 </style>
 
-<script src="/MVNO/assets/js/load-more-products.js?v=2"></script>
+<script src="<?php echo getAssetPath('/assets/js/load-more-products.js'); ?>?v=2"></script>
 
 <?php
 // 푸터 포함

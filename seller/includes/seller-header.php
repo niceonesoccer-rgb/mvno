@@ -77,7 +77,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=1400, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>판매자 센터 - 유심킹</title>
     <link rel="stylesheet" href="<?php echo getAssetPath('/assets/css/style.css'); ?>">
     <script src="<?php echo getAssetPath('/assets/js/modal.js'); ?>" defer></script>
@@ -88,17 +88,27 @@ $currentPage = basename($_SERVER['PHP_SELF']);
             box-sizing: border-box;
         }
         
+        html {
+            overflow-x: auto;
+            overflow-y: scroll;
+            min-width: 1400px;
+        }
+        
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%);
             margin: 0;
             padding: 0;
             min-height: 100vh;
+            min-width: 1400px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch; /* iOS에서 부드러운 스크롤 */
         }
         
         /* 헤더 */
         .seller-top-header {
             width: 100%;
+            min-width: 1400px;
             background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
             padding: 16px 24px;
@@ -108,7 +118,6 @@ $currentPage = basename($_SERVER['PHP_SELF']);
             position: fixed;
             top: 0;
             left: 0;
-            right: 0;
             z-index: 1000;
             height: 64px;
             box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
@@ -410,25 +419,12 @@ $currentPage = basename($_SERVER['PHP_SELF']);
             margin-top: 64px;
             min-height: calc(100vh - 64px);
             padding: 0;
+            min-width: calc(1400px - 280px);
         }
         
         .seller-content {
             padding: 32px;
-        }
-        
-        @media (max-width: 1024px) {
-            .seller-sidebar {
-                transform: translateX(-100%);
-                transition: transform 0.3s;
-            }
-            
-            .seller-sidebar.open {
-                transform: translateX(0);
-            }
-            
-            .seller-content-wrapper {
-                margin-left: 0;
-            }
+            min-width: 1000px;
         }
         
         /* 판매자명 입력 모달 */

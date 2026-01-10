@@ -1,9 +1,10 @@
 <?php
 /**
  * 관리자 정보 수정 페이지
- * 경로: /MVNO/admin/settings/admin-manage.php
+ * 경로: /admin/settings/admin-manage.php
  */
 
+require_once __DIR__ . '/../../includes/data/path-config.php';
 require_once __DIR__ . '/../../includes/data/auth-functions.php';
 
 // 세션 시작
@@ -13,61 +14,68 @@ if (session_status() === PHP_SESSION_NONE) {
 
 // 관리자 권한 체크
 if (!isAdmin()) {
-    header('Location: /MVNO/admin/');
+    header('Location: ' . getAssetPath('/admin/index.php'));
     exit;
 }
 
 $currentUser = getCurrentUser();
+$currentUserRole = $currentUser['role'] ?? 'user';
+$currentUserId = $currentUser['user_id'] ?? null;
 $error = '';
 $success = '';
 
-// 관리자 삭제 처리
+// 관리자 삭제 처리 (admin 계정만 가능)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete_admin') {
-    $deleteUserId = $_POST['user_id'] ?? '';
-    
-    if (empty($deleteUserId)) {
-        $error = '삭제할 관리자 정보가 없습니다.';
-    } else if ($deleteUserId === 'admin') {
-        $error = 'admin 계정은 삭제할 수 없습니다.';
+    // 삭제는 admin 계정만 가능
+    if ($currentUserRole !== 'admin') {
+        $error = '관리자 삭제 권한이 없습니다.';
     } else {
-        $pdo = getDBConnection();
-        if (!$pdo) {
-            $error = 'DB 연결에 실패했습니다.';
+        $deleteUserId = $_POST['user_id'] ?? '';
+        
+        if (empty($deleteUserId)) {
+            $error = '삭제할 관리자 정보가 없습니다.';
+        } else if ($deleteUserId === 'admin') {
+            $error = 'admin 계정은 삭제할 수 없습니다.';
         } else {
-            try {
-                // 삭제할 관리자 확인
-                $checkStmt = $pdo->prepare("SELECT role FROM users WHERE user_id = :user_id AND role IN ('admin','sub_admin') LIMIT 1");
-                $checkStmt->execute([':user_id' => $deleteUserId]);
-                $targetAdmin = $checkStmt->fetch(PDO::FETCH_ASSOC);
-                
-                if (!$targetAdmin) {
-                    $error = '관리자 정보를 찾을 수 없습니다.';
-                } else if ($targetAdmin['role'] === 'admin') {
-                    $error = 'admin 계정은 삭제할 수 없습니다.';
-                } else {
-                    $pdo->beginTransaction();
+            $pdo = getDBConnection();
+            if (!$pdo) {
+                $error = 'DB 연결에 실패했습니다.';
+            } else {
+                try {
+                    // 삭제할 관리자 확인
+                    $checkStmt = $pdo->prepare("SELECT role FROM users WHERE user_id = :user_id AND role IN ('admin','sub_admin') LIMIT 1");
+                    $checkStmt->execute([':user_id' => $deleteUserId]);
+                    $targetAdmin = $checkStmt->fetch(PDO::FETCH_ASSOC);
                     
-                    // admin_profiles 삭제
-                    $pdo->prepare("DELETE FROM admin_profiles WHERE user_id = :user_id")
-                        ->execute([':user_id' => $deleteUserId]);
-                    
-                    // users 테이블에서 삭제
-                    $deleteStmt = $pdo->prepare("DELETE FROM users WHERE user_id = :user_id AND role = 'sub_admin' LIMIT 1");
-                    $deleteStmt->execute([':user_id' => $deleteUserId]);
-                    
-                    if ($deleteStmt->rowCount() < 1) {
-                        $pdo->rollBack();
-                        $error = '관리자 삭제에 실패했습니다.';
+                    if (!$targetAdmin) {
+                        $error = '관리자 정보를 찾을 수 없습니다.';
+                    } else if ($targetAdmin['role'] === 'admin') {
+                        $error = 'admin 계정은 삭제할 수 없습니다.';
                     } else {
-                        $pdo->commit();
-                        header('Location: /MVNO/admin/users/member-list.php?tab=admins&success=delete');
-                        exit;
+                        $pdo->beginTransaction();
+                        
+                        // admin_profiles 삭제
+                        $pdo->prepare("DELETE FROM admin_profiles WHERE user_id = :user_id")
+                            ->execute([':user_id' => $deleteUserId]);
+                        
+                        // users 테이블에서 삭제
+                        $deleteStmt = $pdo->prepare("DELETE FROM users WHERE user_id = :user_id AND role = 'sub_admin' LIMIT 1");
+                        $deleteStmt->execute([':user_id' => $deleteUserId]);
+                        
+                        if ($deleteStmt->rowCount() < 1) {
+                            $pdo->rollBack();
+                            $error = '관리자 삭제에 실패했습니다.';
+                        } else {
+                            $pdo->commit();
+                            header('Location: ' . getAssetPath('/admin/users/member-list.php') . '?tab=admins&success=delete');
+                            exit;
+                        }
                     }
+                } catch (PDOException $e) {
+                    if ($pdo->inTransaction()) $pdo->rollBack();
+                    error_log('admin-manage delete DB error: ' . $e->getMessage());
+                    $error = '관리자 삭제에 실패했습니다.';
                 }
-            } catch (PDOException $e) {
-                if ($pdo->inTransaction()) $pdo->rollBack();
-                error_log('admin-manage delete DB error: ' . $e->getMessage());
-                $error = '관리자 삭제에 실패했습니다.';
             }
         }
     }
@@ -79,80 +87,105 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $phone = trim($_POST['phone'] ?? '');
     $name = trim($_POST['name'] ?? '');
     $role = $_POST['role'] ?? 'sub_admin';
-    $password = $_POST['password'] ?? '';
+    $password = trim($_POST['password'] ?? '');
+    $passwordConfirm = trim($_POST['password_confirm'] ?? '');
     
-    if (empty($editUserId) || empty($phone) || empty($name)) {
+    // 권한 체크: sub_admin은 자신의 정보만 수정 가능
+    if ($currentUserRole === 'sub_admin' && $editUserId !== $currentUserId) {
+        $error = '자신의 정보만 수정할 수 있습니다.';
+    } 
+    // admin 계정 수정은 admin만 가능
+    else if ($editUserId === 'admin' && $currentUserRole !== 'admin') {
+        $error = 'admin 계정 정보는 admin만 수정할 수 있습니다.';
+    }
+    else if (empty($editUserId) || empty($phone) || empty($name)) {
         $error = '모든 필드를 입력해주세요.';
+    }
+    // 비밀번호 변경 시 확인
+    else if (!empty($password) && $password !== $passwordConfirm) {
+        $error = '비밀번호가 일치하지 않습니다.';
+    }
+    else if (!empty($password) && strlen($password) < 8) {
+        $error = '비밀번호는 최소 8자 이상이어야 합니다.';
     } else {
         // DB-only: users 테이블 업데이트 (admin/sub_admin)
         $pdo = getDBConnection();
         if (!$pdo) {
             $error = 'DB 연결에 실패했습니다.';
         } else {
-            // admin 아이디가 아닌 경우 관리자 역할로 변경 불가
-            $finalRole = ($editUserId === 'admin') ? 'admin' : 'sub_admin';
-
-            if (!empty($password) && strlen($password) < 8) {
-                $error = '비밀번호는 최소 8자 이상이어야 합니다.';
+            // 역할 변경 권한 체크
+            // admin 계정: 역할 변경 가능 (admin 계정은 admin으로 고정)
+            // sub_admin 계정: 역할 변경 불가 (항상 sub_admin)
+            if ($currentUserRole === 'admin') {
+                $finalRole = ($editUserId === 'admin') ? 'admin' : 'sub_admin';
             } else {
-                try {
-                    $pdo->beginTransaction();
+                // sub_admin은 자신의 정보만 수정 가능하고 역할 변경 불가
+                $finalRole = 'sub_admin';
+            }
+            
+            // 비밀번호 변경 처리
+            try {
+                $pdo->beginTransaction();
 
-                    if (!empty($password)) {
-                        $stmt = $pdo->prepare("
-                            UPDATE users
-                            SET phone = :phone,
-                                name = :name,
-                                role = :role,
-                                password = :password,
-                                updated_at = NOW()
-                            WHERE user_id = :user_id
-                              AND role IN ('admin','sub_admin')
-                            LIMIT 1
-                        ");
-                        $stmt->execute([
-                            ':phone' => $phone,
-                            ':name' => $name,
-                            ':role' => $finalRole,
-                            ':password' => password_hash($password, PASSWORD_DEFAULT),
-                            ':user_id' => $editUserId
-                        ]);
-                    } else {
-                        $stmt = $pdo->prepare("
-                            UPDATE users
-                            SET phone = :phone,
-                                name = :name,
-                                role = :role,
-                                updated_at = NOW()
-                            WHERE user_id = :user_id
-                              AND role IN ('admin','sub_admin')
-                            LIMIT 1
-                        ");
-                        $stmt->execute([
-                            ':phone' => $phone,
-                            ':name' => $name,
-                            ':role' => $finalRole,
-                            ':user_id' => $editUserId
-                        ]);
-                    }
-
-                    if ($stmt->rowCount() < 1) {
-                        $pdo->rollBack();
-                        $error = '관리자 정보를 찾을 수 없습니다.';
-                    } else {
-                        // admin_profiles에도 updated_at 반영 (존재하는 경우)
-                        $pdo->prepare("UPDATE admin_profiles SET updated_at = NOW() WHERE user_id = :user_id")
-                            ->execute([':user_id' => $editUserId]);
-
-                        $pdo->commit();
-                        header('Location: /MVNO/admin/users/member-list.php?tab=admins&success=update');
-                        exit;
-                    }
-                } catch (PDOException $e) {
-                    if ($pdo->inTransaction()) $pdo->rollBack();
-                    error_log('admin-manage update DB error: ' . $e->getMessage());
-                    $error = '관리자 정보 저장에 실패했습니다.';
+                if (!empty($password)) {
+                    $stmt = $pdo->prepare("
+                        UPDATE users
+                        SET phone = :phone,
+                            name = :name,
+                            role = :role,
+                            password = :password,
+                            updated_at = NOW()
+                        WHERE user_id = :user_id
+                          AND role IN ('admin','sub_admin')
+                        LIMIT 1
+                    ");
+                    $stmt->execute([
+                        ':phone' => $phone,
+                        ':name' => $name,
+                        ':role' => $finalRole,
+                        ':password' => password_hash($password, PASSWORD_DEFAULT),
+                        ':user_id' => $editUserId
+                    ]);
+                } else {
+                    $stmt = $pdo->prepare("
+                        UPDATE users
+                        SET phone = :phone,
+                            name = :name,
+                            role = :role,
+                            updated_at = NOW()
+                        WHERE user_id = :user_id
+                          AND role IN ('admin','sub_admin')
+                        LIMIT 1
+                    ");
+                    $stmt->execute([
+                        ':phone' => $phone,
+                        ':name' => $name,
+                        ':role' => $finalRole,
+                        ':user_id' => $editUserId
+                    ]);
                 }
+
+                if ($stmt->rowCount() < 1) {
+                    $pdo->rollBack();
+                    $error = '관리자 정보를 찾을 수 없습니다.';
+                } else {
+                    // admin_profiles에도 updated_at 반영 (존재하는 경우)
+                    $pdo->prepare("UPDATE admin_profiles SET updated_at = NOW() WHERE user_id = :user_id")
+                        ->execute([':user_id' => $editUserId]);
+
+                    $pdo->commit();
+                    // 자신의 정보를 수정한 경우 현재 페이지로 리다이렉트, 다른 관리자 정보 수정한 경우 목록으로
+                    if ($editUserId === $currentUserId) {
+                        header('Location: ' . getAssetPath('/admin/settings/admin-manage.php') . '?success=update');
+                    } else {
+                        header('Location: ' . getAssetPath('/admin/users/member-list.php') . '?tab=admins&success=update');
+                    }
+                    exit;
+                }
+            } catch (PDOException $e) {
+                if ($pdo->inTransaction()) $pdo->rollBack();
+                error_log('admin-manage update DB error: ' . $e->getMessage());
+                $error = '관리자 정보 저장에 실패했습니다.';
             }
         }
     }
@@ -162,10 +195,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 // 수정할 관리자 정보 가져오기
 $editAdmin = null;
 $editUserId = $_GET['edit'] ?? $_GET['user_id'] ?? '';
+
+// user_id가 없으면 현재 로그인한 사용자의 정보 수정 (내정보 수정)
+if (empty($editUserId)) {
+    $editUserId = $currentUserId;
+}
+
 if (!empty($editUserId)) {
     $editAdmin = getUserById($editUserId);
     if (!$editAdmin || !in_array(($editAdmin['role'] ?? ''), ['admin', 'sub_admin'], true)) {
         $editAdmin = null;
+        $error = '관리자 정보를 찾을 수 없습니다.';
+    } else {
+        // 권한 체크: sub_admin은 자신의 정보만 볼 수 있음
+        if ($currentUserRole === 'sub_admin' && $editUserId !== $currentUserId) {
+            $editAdmin = null;
+            $error = '자신의 정보만 볼 수 있습니다.';
+        }
+        // admin 계정 정보는 admin만 볼 수 있음
+        else if ($editUserId === 'admin' && $currentUserRole !== 'admin') {
+            $editAdmin = null;
+            $error = 'admin 계정 정보는 admin만 볼 수 있습니다.';
+        }
     }
 }
 
@@ -303,43 +354,75 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-function copyPageLink() {
-    const pageLinkInput = document.getElementById('pageLink');
-    if (pageLinkInput) {
-        pageLinkInput.select();
-        pageLinkInput.setSelectionRange(0, 99999); // 모바일 지원
-        try {
-            document.execCommand('copy');
-            alert('페이지 링크가 클립보드에 복사되었습니다.');
-        } catch (err) {
-            // 클립보드 API 사용 (최신 브라우저)
-            if (navigator.clipboard) {
-                navigator.clipboard.writeText(pageLinkInput.value).then(function() {
-                    alert('페이지 링크가 클립보드에 복사되었습니다.');
-                });
+// 비밀번호 변경 시 비밀번호 확인 필드 표시
+document.addEventListener('DOMContentLoaded', function() {
+    const passwordInput = document.getElementById('edit_password');
+    const passwordConfirmGroup = document.getElementById('password_confirm_group');
+    const passwordConfirmInput = document.getElementById('edit_password_confirm');
+    const passwordMatchMessage = document.getElementById('password_match_message');
+    const adminForm = document.querySelector('form[method="POST"]');
+
+    if (passwordInput && passwordConfirmGroup && passwordConfirmInput && adminForm) {
+        passwordInput.addEventListener('input', function() {
+            if (this.value.length > 0) {
+                passwordConfirmGroup.style.display = 'block';
+                passwordConfirmInput.required = true;
             } else {
-                alert('링크 복사에 실패했습니다. 수동으로 복사해주세요.');
+                passwordConfirmGroup.style.display = 'none';
+                passwordConfirmInput.required = false;
+                passwordConfirmInput.value = '';
+                if (passwordMatchMessage) {
+                    passwordMatchMessage.innerHTML = '';
+                }
             }
+        });
+        
+        if (passwordConfirmInput) {
+            passwordConfirmInput.addEventListener('input', function() {
+                if (passwordInput.value.length > 0) {
+                    if (passwordInput.value === this.value) {
+                        if (passwordMatchMessage) {
+                            passwordMatchMessage.innerHTML = '<span style="color: #10b981;">비밀번호가 일치합니다.</span>';
+                        }
+                        passwordConfirmInput.style.borderColor = '#10b981';
+                    } else {
+                        if (passwordMatchMessage) {
+                            passwordMatchMessage.innerHTML = '<span style="color: #ef4444;">비밀번호가 일치하지 않습니다.</span>';
+                        }
+                        passwordConfirmInput.style.borderColor = '#ef4444';
+                    }
+                }
+            });
         }
+        
+        // 폼 제출 시 비밀번호 확인
+        adminForm.addEventListener('submit', function(e) {
+            if (passwordInput.value.length > 0) {
+                if (passwordInput.value !== passwordConfirmInput.value) {
+                    e.preventDefault();
+                    alert('비밀번호가 일치하지 않습니다.');
+                    passwordConfirmInput.focus();
+                    return false;
+                }
+                if (passwordInput.value.length < 8) {
+                    e.preventDefault();
+                    alert('비밀번호는 최소 8자 이상이어야 합니다.');
+                    passwordInput.focus();
+                    return false;
+                }
+            }
+        });
     }
-}
+});
 </script>
 
 <div class="admin-content">
     <div class="page-header" style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px;">
         <div style="flex: 1;">
-            <h1>관리자 정보 수정</h1>
-            <?php if ($editAdmin): ?>
-                <div style="margin-top: 8px; font-size: 13px; color: #6b7280;">
-                    <span style="font-weight: 500;">페이지 링크:</span>
-                    <input type="text" id="pageLink" readonly value="<?= htmlspecialchars((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI']) ?>" 
-                           style="margin-left: 8px; padding: 4px 8px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 12px; width: 400px; background: #f9fafb; color: #374151;">
-                    <button type="button" onclick="copyPageLink()" style="margin-left: 4px; padding: 4px 12px; background: #6366f1; color: white; border: none; border-radius: 4px; font-size: 12px; cursor: pointer;">복사</button>
-                </div>
-            <?php endif; ?>
+            <h1><?php echo ($currentUserRole === 'sub_admin' && $editUserId === $currentUserId) ? '내 정보 수정' : '관리자 정보 수정'; ?></h1>
         </div>
         <div>
-            <a href="/MVNO/admin/users/member-list.php?tab=admins" class="btn" style="background: #f3f4f6; color: #374151; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px;">
+            <a href="<?php echo getAssetPath('/admin/users/member-list.php'); ?>?tab=admins" class="btn" style="background: #f3f4f6; color: #374151; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px;">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M19 12H5M12 19l-7-7 7-7"/>
                 </svg>
@@ -354,12 +437,22 @@ function copyPageLink() {
         </div>
     <?php endif; ?>
     
+    <?php if (isset($_GET['success']) && $_GET['success'] === 'update'): ?>
+        <div class="alert alert-success">
+            관리자 정보가 성공적으로 수정되었습니다.
+        </div>
+    <?php endif; ?>
+    
     <?php if (!$editAdmin): ?>
         <div class="alert alert-error">
             관리자 정보를 찾을 수 없습니다.
         </div>
         <div style="margin-top: 20px;">
-            <a href="/MVNO/admin/users/member-list.php?tab=admins" class="btn btn-primary" style="text-decoration: none; display: inline-block;">목록으로 돌아가기</a>
+            <?php if ($currentUserRole === 'admin'): ?>
+                <a href="<?php echo getAssetPath('/admin/users/member-list.php'); ?>?tab=admins" class="btn btn-primary" style="text-decoration: none; display: inline-block;">목록으로 돌아가기</a>
+            <?php else: ?>
+                <a href="<?php echo getAssetPath('/admin/index.php'); ?>" class="btn btn-primary" style="text-decoration: none; display: inline-block;">관리자 대시보드로 돌아가기</a>
+            <?php endif; ?>
         </div>
     <?php else: ?>
         <!-- 관리자 정보 수정 폼 -->
@@ -386,31 +479,48 @@ function copyPageLink() {
                 
                 <div class="form-group">
                     <label for="edit_password">비밀번호</label>
-                    <input type="password" id="edit_password" name="password" minlength="8">
+                    <input type="password" id="edit_password" name="password" minlength="8" placeholder="비밀번호 변경 시에만 입력">
                     <div class="form-help">변경하지 않으려면 비워두세요. (최소 8자 이상)</div>
+                </div>
+                
+                <div class="form-group" id="password_confirm_group" style="display: none;">
+                    <label for="edit_password_confirm">비밀번호 확인</label>
+                    <input type="password" id="edit_password_confirm" name="password_confirm" minlength="8" placeholder="비밀번호를 다시 입력하세요">
+                    <div class="form-help" id="password_match_message"></div>
                 </div>
                 
                 <div class="form-group">
                     <label for="edit_role">역할 <span class="required">*</span></label>
-                    <?php if (($editAdmin['user_id'] ?? '') === 'admin'): ?>
-                        <select id="edit_role" name="role" required>
-                            <option value="admin" <?php echo (($editAdmin['role'] ?? '') === 'admin') ? 'selected' : ''; ?>>관리자</option>
-                        </select>
-                        <div class="form-help">관리자(admin)는 역할을 변경할 수 없습니다.</div>
+                    <?php if ($currentUserRole === 'admin'): ?>
+                        <?php if (($editAdmin['user_id'] ?? '') === 'admin'): ?>
+                            <select id="edit_role" name="role" required>
+                                <option value="admin" <?php echo (($editAdmin['role'] ?? '') === 'admin') ? 'selected' : ''; ?>>관리자</option>
+                            </select>
+                            <div class="form-help">관리자(admin)는 역할을 변경할 수 없습니다.</div>
+                        <?php else: ?>
+                            <select id="edit_role" name="role" required>
+                                <option value="sub_admin" <?php echo (($editAdmin['role'] ?? '') === 'sub_admin') ? 'selected' : ''; ?>>부관리자</option>
+                            </select>
+                            <div class="form-help">부관리자만 추가 및 수정 가능합니다.</div>
+                        <?php endif; ?>
                     <?php else: ?>
-                        <select id="edit_role" name="role" required>
-                            <option value="sub_admin" <?php echo (($editAdmin['role'] ?? '') === 'sub_admin') ? 'selected' : ''; ?>>부관리자</option>
-                        </select>
-                        <div class="form-help">부관리자만 추가 및 수정 가능합니다.</div>
+                        <!-- sub_admin은 역할 변경 불가 (읽기 전용) -->
+                        <input type="text" value="부관리자" disabled style="background: #f3f4f6; color: #6b7280;">
+                        <input type="hidden" name="role" value="sub_admin">
+                        <div class="form-help">부관리자는 역할을 변경할 수 없습니다.</div>
                     <?php endif; ?>
                 </div>
                 
                 <div style="display: flex; gap: 12px; justify-content: space-between;">
                     <div style="display: flex; gap: 12px;">
                         <button type="submit" class="btn btn-primary">수정 완료</button>
-                        <a href="/MVNO/admin/users/member-list.php?tab=admins" class="btn" style="background: #f3f4f6; color: #374151; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">취소</a>
+                        <?php if ($currentUserRole === 'admin'): ?>
+                            <a href="<?php echo getAssetPath('/admin/users/member-list.php'); ?>?tab=admins" class="btn" style="background: #f3f4f6; color: #374151; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">취소</a>
+                        <?php else: ?>
+                            <a href="<?php echo getAssetPath('/admin/index.php'); ?>" class="btn" style="background: #f3f4f6; color: #374151; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">취소</a>
+                        <?php endif; ?>
                     </div>
-                    <?php if (($editAdmin['user_id'] ?? '') !== 'admin'): ?>
+                    <?php if ($currentUserRole === 'admin' && ($editAdmin['user_id'] ?? '') !== 'admin'): ?>
                         <button type="button" onclick="showDeleteModal()" class="btn" style="background: #ef4444; color: white;">
                             삭제
                         </button>

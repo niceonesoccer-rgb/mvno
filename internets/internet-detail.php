@@ -194,13 +194,13 @@ function getRelativeTime($datetime) {
 
 function getInternetIconPath($registrationPlace) {
     $iconMap = [
-        'KT' => '/MVNO/assets/images/internets/kt.svg',
-        'SKT' => '/MVNO/assets/images/internets/broadband.svg',
-        'LG U+' => '/MVNO/assets/images/internets/lgu.svg',
-        'KT skylife' => '/MVNO/assets/images/internets/ktskylife.svg',
-        'LG헬로비전' => '/MVNO/assets/images/internets/hellovision.svg',
-        'BTV' => '/MVNO/assets/images/internets/btv.svg',
-        'DLIVE' => '/MVNO/assets/images/internets/dlive.svg',
+        'KT' => getAssetPath('/assets/images/internets/kt.svg'),
+        'SKT' => getAssetPath('/assets/images/internets/broadband.svg'),
+        'LG U+' => getAssetPath('/assets/images/internets/lgu.svg'),
+        'KT skylife' => getAssetPath('/assets/images/internets/ktskylife.svg'),
+        'LG헬로비전' => getAssetPath('/assets/images/internets/hellovision.svg'),
+        'BTV' => getAssetPath('/assets/images/internets/btv.svg'),
+        'DLIVE' => getAssetPath('/assets/images/internets/dlive.svg'),
     ];
     return $iconMap[$registrationPlace] ?? '';
 }
@@ -293,7 +293,7 @@ if ($serviceType === '인터넷+TV') {
                                     }
                             ?>
                             <div class="css-12zfa6z e82z5mt8" style="display: flex; align-items: flex-start; gap: 0.5rem; width: 100%; box-sizing: border-box;">
-                                <img src="/MVNO/assets/images/icons/cash.svg" alt="현금" class="css-xj5cz0 e82z5mt9" style="max-width: 4rem; max-height: 4rem; object-fit: contain; flex-shrink: 0; width: auto;">
+                                <img src="<?php echo getAssetPath('/assets/images/icons/cash.svg'); ?>" alt="현금" class="css-xj5cz0 e82z5mt9" style="max-width: 4rem; max-height: 4rem; object-fit: contain; flex-shrink: 0; width: auto;">
                                 <div class="css-0 e82z5mt10">
                                     <p class="css-2ht76o e82z5mt12 item-name-text">
                                         <?php echo htmlspecialchars($cashNames[$i]); ?>
@@ -329,7 +329,7 @@ if ($serviceType === '인터넷+TV') {
                                     }
                             ?>
                             <div class="css-12zfa6z e82z5mt8" style="display: flex; align-items: flex-start; gap: 0.5rem; width: 100%; box-sizing: border-box;">
-                                <img src="/MVNO/assets/images/icons/gift-card.svg" alt="상품권" class="css-xj5cz0 e82z5mt9" style="max-width: 4rem; max-height: 4rem; object-fit: contain; flex-shrink: 0; width: auto;">
+                                <img src="<?php echo getAssetPath('/assets/images/icons/gift-card.svg'); ?>" alt="상품권" class="css-xj5cz0 e82z5mt9" style="max-width: 4rem; max-height: 4rem; object-fit: contain; flex-shrink: 0; width: auto;">
                                 <div class="css-0 e82z5mt10">
                                     <p class="css-2ht76o e82z5mt12 item-name-text">
                                         <?php echo htmlspecialchars($giftNames[$i]); ?>
@@ -355,7 +355,7 @@ if ($serviceType === '인터넷+TV') {
                                     $priceText = isset($equipPrices[$i]) && !empty($equipPrices[$i]) ? $equipPrices[$i] : '';
                             ?>
                             <div class="css-12zfa6z e82z5mt8" style="display: flex; align-items: flex-start; gap: 0.5rem; width: 100%; box-sizing: border-box;">
-                                <img src="/MVNO/assets/images/icons/equipment.svg" alt="장비" class="css-xj5cz0 e82z5mt9" style="max-width: 4rem; max-height: 4rem; object-fit: contain; flex-shrink: 0; width: auto;">
+                                <img src="<?php echo getAssetPath('/assets/images/icons/equipment.svg'); ?>" alt="장비" class="css-xj5cz0 e82z5mt9" style="max-width: 4rem; max-height: 4rem; object-fit: contain; flex-shrink: 0; width: auto;">
                                 <div class="css-0 e82z5mt10">
                                     <p class="css-2ht76o e82z5mt12 item-name-text">
                                         <?php echo htmlspecialchars($equipNames[$i]); ?>
@@ -379,7 +379,7 @@ if ($serviceType === '인터넷+TV') {
                                     $priceText = isset($installPrices[$i]) && !empty($installPrices[$i]) ? $installPrices[$i] : '';
                             ?>
                             <div class="css-12zfa6z e82z5mt8" style="display: flex; align-items: flex-start; gap: 0.5rem; width: 100%; box-sizing: border-box;">
-                                <img src="/MVNO/assets/images/icons/installation.svg" alt="설치" class="css-xj5cz0 e82z5mt9" style="max-width: 4rem; max-height: 4rem; object-fit: contain; flex-shrink: 0; width: auto;">
+                                <img src="<?php echo getAssetPath('/assets/images/icons/installation.svg'); ?>" alt="설치" class="css-xj5cz0 e82z5mt9" style="max-width: 4rem; max-height: 4rem; object-fit: contain; flex-shrink: 0; width: auto;">
                                 <div class="css-0 e82z5mt10">
                                     <p class="css-2ht76o e82z5mt12 item-name-text">
                                         <?php echo htmlspecialchars($installNames[$i]); ?>
@@ -2338,31 +2338,31 @@ span.internet-checkbox-text {
                 <div class="internet-company-scroll-wrapper">
                     <div class="internet-company-scroll">
                         <button class="internet-company-btn" onclick="selectInternetCompany('KT SkyLife', 'ktskylife')">
-                            <img src="/MVNO/assets/images/internets/ktskylife.svg" alt="KT SkyLife" class="internet-company-logo">
+                            <img src="<?php echo getAssetPath('/assets/images/internets/ktskylife.svg'); ?>" alt="KT SkyLife" class="internet-company-logo">
                             <span class="internet-company-name">KT SkyLife</span>
                         </button>
                         <button class="internet-company-btn" onclick="selectInternetCompany('HelloVision', 'hellovision')">
-                            <img src="/MVNO/assets/images/internets/hellovision.svg" alt="HelloVision" class="internet-company-logo">
+                            <img src="<?php echo getAssetPath('/assets/images/internets/hellovision.svg'); ?>" alt="HelloVision" class="internet-company-logo">
                             <span class="internet-company-name">HelloVision</span>
                         </button>
                         <button class="internet-company-btn" onclick="selectInternetCompany('BTV', 'btv')">
-                            <img src="/MVNO/assets/images/internets/btv.svg" alt="BTV" class="internet-company-logo">
+                            <img src="<?php echo getAssetPath('/assets/images/internets/btv.svg'); ?>" alt="BTV" class="internet-company-logo">
                             <span class="internet-company-name">BTV</span>
                         </button>
                         <button class="internet-company-btn" onclick="selectInternetCompany('DLive', 'dlive')">
-                            <img src="/MVNO/assets/images/internets/dlive.svg" alt="DLive" class="internet-company-logo">
+                            <img src="<?php echo getAssetPath('/assets/images/internets/dlive.svg'); ?>" alt="DLive" class="internet-company-logo">
                             <span class="internet-company-name">DLive</span>
                         </button>
                         <button class="internet-company-btn" onclick="selectInternetCompany('LG U+', 'lgu')">
-                            <img src="/MVNO/assets/images/internets/lgu.svg" alt="LG U+" class="internet-company-logo">
+                            <img src="<?php echo getAssetPath('/assets/images/internets/lgu.svg'); ?>" alt="LG U+" class="internet-company-logo">
                             <span class="internet-company-name">LG U+</span>
                         </button>
                         <button class="internet-company-btn" onclick="selectInternetCompany('KT', 'kt')">
-                            <img src="/MVNO/assets/images/internets/kt.svg" alt="KT" class="internet-company-logo">
+                            <img src="<?php echo getAssetPath('/assets/images/internets/kt.svg'); ?>" alt="KT" class="internet-company-logo">
                             <span class="internet-company-name">KT</span>
                         </button>
                         <button class="internet-company-btn" onclick="selectInternetCompany('Broadband', 'broadband')">
-                            <img src="/MVNO/assets/images/internets/broadband.svg" alt="Broadband" class="internet-company-logo">
+                            <img src="<?php echo getAssetPath('/assets/images/internets/broadband.svg'); ?>" alt="Broadband" class="internet-company-logo">
                             <span class="internet-company-name">Broadband</span>
                         </button>
                         <button class="internet-company-btn" onclick="selectInternetCompany('기타', 'other')">
@@ -2575,6 +2575,8 @@ span.internet-checkbox-text {
 </div>
 
 <script>
+    // BASE_PATH를 JavaScript에서 사용할 수 있도록 설정
+    window.BASE_PATH = '<?php echo getBasePath(); ?>';
 // 로그인한 사용자 정보 가져오기 (전역 변수)
 <?php
 $currentUser = null;
@@ -2929,18 +2931,19 @@ function showCurrentCompanyInfo(company, icon) {
     const arrowEl = document.querySelector('.internet-info-arrow');
     
     if (infoEl) {
+        const basePath = window.BASE_PATH || '';
         const companyLogos = {
-            'KT SkyLife': '/MVNO/assets/images/internets/ktskylife.svg',
-            'HelloVision': '/MVNO/assets/images/internets/hellovision.svg',
-            'BTV': '/MVNO/assets/images/internets/btv.svg',
-            'DLive': '/MVNO/assets/images/internets/dlive.svg',
-            'LG U+': '/MVNO/assets/images/internets/lgu.svg',
-            'KT': '/MVNO/assets/images/internets/kt.svg',
-            'Broadband': '/MVNO/assets/images/internets/broadband.svg',
+            'KT SkyLife': basePath + '/assets/images/internets/ktskylife.svg',
+            'HelloVision': basePath + '/assets/images/internets/hellovision.svg',
+            'BTV': basePath + '/assets/images/internets/btv.svg',
+            'DLive': basePath + '/assets/images/internets/dlive.svg',
+            'LG U+': basePath + '/assets/images/internets/lgu.svg',
+            'KT': basePath + '/assets/images/internets/kt.svg',
+            'Broadband': basePath + '/assets/images/internets/broadband.svg',
             '기타': null
         };
         
-        const logoPath = companyLogos[company] || (icon ? `/MVNO/assets/images/internets/${icon}.svg` : null);
+        const logoPath = companyLogos[company] || (icon ? basePath + `/assets/images/internets/${icon}.svg` : null);
         
         if (logoPath && logoEl) {
             if (nameEl) nameEl.style.display = 'none';
@@ -2980,8 +2983,9 @@ function showNewCompanyInfo() {
     const logoEl = document.getElementById('newCompanyLogo');
     
     if (infoEl && selectedData.newCompany) {
+        const basePath = window.BASE_PATH || '';
         const logoPath = selectedData.newCompanyLogo || 
-            (selectedData.newCompanyIcon ? `/MVNO/assets/images/internets/${selectedData.newCompanyIcon}.svg` : null);
+            (selectedData.newCompanyIcon ? basePath + `/assets/images/internets/${selectedData.newCompanyIcon}.svg` : null);
         
         if (logoPath && logoEl) {
             if (nameEl) nameEl.style.display = 'none';
@@ -4247,7 +4251,7 @@ function handleInternetApplyClick(e) {
 </script>
 
 <!-- 아코디언 스크립트 -->
-<script src="/MVNO/assets/js/plan-accordion.js"></script>
+<script src="<?php echo getAssetPath('/assets/js/plan-accordion.js'); ?>"></script>
 
 <script>
 // 포인트 설정 확인 및 모달 열기 함수

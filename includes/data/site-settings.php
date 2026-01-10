@@ -59,18 +59,28 @@ function getDefaultSiteSettings() {
             'terms' => [
                 'terms_of_service' => [
                     'text' => '이용약관',
-                    'url' => '/MVNO/terms/view.php?type=terms_of_service',
+                    'url' => '/terms/view.php?type=terms_of_service',
                     'content' => getTermsOfServiceContent(),
                 ],
                 'privacy_policy' => [
                     'text' => '개인정보처리방침',
-                    'url' => '/MVNO/terms/view.php?type=privacy_policy',
+                    'url' => '/terms/view.php?type=privacy_policy',
                     'content' => getPrivacyPolicyContent(),
                 ],
                 'information_security' => [
                     'text' => '정보보호현황',
-                    'url' => '/MVNO/terms/view.php?type=information_security',
+                    'url' => '/terms/view.php?type=information_security',
                     'content' => '<h1>정보보호현황</h1><p>정보보호현황 내용을 입력하세요.</p>',
+                ],
+                'external_links' => [
+                    'spam_center' => [
+                        'text' => '불법스팸대응센터',
+                        'url' => 'https://spam.kisa.or.kr/spam/main.do',
+                    ],
+                    'msafer' => [
+                        'text' => '명의도용방지서비스',
+                        'url' => 'https://www.msafer.or.kr/index.do',
+                    ],
                 ],
             ],
         ],

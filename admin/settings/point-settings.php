@@ -4,12 +4,13 @@
  * 관리자가 포인트 관련 설정을 변경할 수 있는 페이지
  */
 
+require_once __DIR__ . '/../../includes/data/path-config.php';
 require_once __DIR__ . '/../../includes/data/db-config.php';
 require_once __DIR__ . '/../../includes/data/auth-functions.php';
 
 // 관리자 권한 체크
 if (!isAdmin()) {
-    header('Location: /MVNO/admin/');
+    header('Location: ' . getAssetPath('/admin/index.php'));
     exit;
 }
 

@@ -16,14 +16,20 @@ if ($debug_mode) {
     require_once __DIR__ . '/includes/data/db-config.php';
 }
 
-// 헤더 포함
-include 'includes/header.php';
+// 헤더 포함 (절대 경로 사용으로 웹서버 환경 호환성 확보)
+$headerPath = __DIR__ . DIRECTORY_SEPARATOR . 'includes' . DIRECTORY_SEPARATOR . 'header.php';
+if (file_exists($headerPath)) {
+    include $headerPath;
+} else {
+    error_log("index.php: Cannot find header.php. __DIR__: " . __DIR__);
+    die("헤더 파일을 찾을 수 없습니다. 서버 관리자에게 문의하세요.");
+}
 
-// 메인 페이지 데이터 함수 포함
-require_once 'includes/data/home-functions.php';
-require_once 'includes/data/plan-data.php';
-require_once 'includes/data/phone-data.php';
-require_once 'includes/data/notice-functions.php';
+// 메인 페이지 데이터 함수 포함 (절대 경로 사용)
+require_once __DIR__ . DIRECTORY_SEPARATOR . 'includes' . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'home-functions.php';
+require_once __DIR__ . DIRECTORY_SEPARATOR . 'includes' . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'plan-data.php';
+require_once __DIR__ . DIRECTORY_SEPARATOR . 'includes' . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'phone-data.php';
+require_once __DIR__ . DIRECTORY_SEPARATOR . 'includes' . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'notice-functions.php';
 
 // 이미지 경로 정규화 함수
 function normalizeImagePathForDisplay($path) {
@@ -293,11 +299,12 @@ if (empty($mvno_plans)) {
 }
 
 // 사이트 전체 섹션 배너 가져오기
+// 배너는 관리자가 명시적으로 설정한 것이므로 기간 체크를 건너뜀
 $site_large_banners = [];
 $valid_large_banner_ids = [];
 if (!empty($home_settings['site_large_banners']) && is_array($home_settings['site_large_banners'])) {
     foreach ($home_settings['site_large_banners'] as $event_id) {
-        $event = getEventById($event_id);
+        $event = getEventById($event_id, true); // 기간 체크 건너뛰기
         if ($event) {
             // 이미지 경로 정규화
             if (!empty($event['image'])) {
@@ -313,7 +320,7 @@ $site_small_banners = [];
 $valid_small_banner_ids = [];
 if (!empty($home_settings['site_small_banners']) && is_array($home_settings['site_small_banners'])) {
     foreach ($home_settings['site_small_banners'] as $event_id) {
-        $event = getEventById($event_id);
+        $event = getEventById($event_id, true); // 기간 체크 건너뛰기
         if ($event) {
             // 이미지 경로 정규화
             if (!empty($event['image'])) {
@@ -757,11 +764,20 @@ if (empty($internet_products)) {
                                     $banner_title = $banner['title'] ?? '';
                                     $banner_id = $banner['id'] ?? '';
                                     
+                                    // 배너 이미지 경로 정규화
+                                    if (!empty($banner_image)) {
+                                        $banner_image = normalizeImagePathForDisplay($banner_image);
+                                    }
+                                    
                                     // 이벤트 상세 페이지 링크 생성
                                     if (!empty($banner_id)) {
                                         $banner_link = getAssetPath('/event/event-detail.php?id=' . urlencode($banner_id));
                                     } else {
                                         $banner_link = $banner['link'] ?? '#';
+                                        // 외부 링크가 아닌 경우 getAssetPath 적용
+                                        if (!empty($banner_link) && $banner_link !== '#' && !preg_match('/^https?:\/\//', $banner_link)) {
+                                            $banner_link = getAssetPath($banner_link);
+                                        }
                                     }
                                     
                                     if (empty($banner_image)) continue;
@@ -815,11 +831,20 @@ if (empty($internet_products)) {
                             $banner_title = $banner['title'] ?? '';
                             $banner_id = $banner['id'] ?? '';
                             
+                            // 배너 이미지 경로 정규화
+                            if (!empty($banner_image)) {
+                                $banner_image = normalizeImagePathForDisplay($banner_image);
+                            }
+                            
                             // 이벤트 상세 페이지 링크 생성
                             if (!empty($banner_id)) {
                                 $banner_link = getAssetPath('/event/event-detail.php?id=' . urlencode($banner_id));
                             } else {
                                 $banner_link = $banner['link'] ?? '#';
+                                // 외부 링크가 아닌 경우 getAssetPath 적용
+                                if (!empty($banner_link) && $banner_link !== '#' && !preg_match('/^https?:\/\//', $banner_link)) {
+                                    $banner_link = getAssetPath($banner_link);
+                                }
                             }
                         ?>
                             <a href="<?php echo htmlspecialchars($banner_link); ?>" class="main-banner-card small">
@@ -843,11 +868,20 @@ if (empty($internet_products)) {
                             $banner_title = $banner['title'] ?? '';
                             $banner_id = $banner['id'] ?? '';
                             
+                            // 배너 이미지 경로 정규화
+                            if (!empty($banner_image)) {
+                                $banner_image = normalizeImagePathForDisplay($banner_image);
+                            }
+                            
                             // 이벤트 상세 페이지 링크 생성
                             if (!empty($banner_id)) {
                                 $banner_link = getAssetPath('/event/event-detail.php?id=' . urlencode($banner_id));
                             } else {
                                 $banner_link = $banner['link'] ?? '#';
+                                // 외부 링크가 아닌 경우 getAssetPath 적용
+                                if (!empty($banner_link) && $banner_link !== '#' && !preg_match('/^https?:\/\//', $banner_link)) {
+                                    $banner_link = getAssetPath($banner_link);
+                                }
                             }
                         ?>
                             <a href="<?php echo htmlspecialchars($banner_link); ?>" class="main-banner-card small">
@@ -2322,7 +2356,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <?php
 // 푸터 포함
-include 'includes/footer.php';
+// 푸터 포함 (절대 경로 사용)
+$footerPath = __DIR__ . DIRECTORY_SEPARATOR . 'includes' . DIRECTORY_SEPARATOR . 'footer.php';
+if (file_exists($footerPath)) {
+    include $footerPath;
+} else {
+    error_log("index.php: Cannot find footer.php. __DIR__: " . __DIR__);
+}
 ?>
 
 <?php

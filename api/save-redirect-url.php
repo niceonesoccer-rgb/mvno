@@ -16,11 +16,16 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-// JSON 데이터 읽기
-$json = file_get_contents('php://input');
-$data = json_decode($json, true);
+// POST 데이터 읽기 (JSON 또는 form-data 모두 지원)
+$input = file_get_contents('php://input');
+$postData = json_decode($input, true);
 
-$redirectUrl = $data['redirect_url'] ?? '';
+// JSON 데이터가 없으면 일반 POST 데이터 사용
+if (empty($postData)) {
+    $postData = $_POST;
+}
+
+$redirectUrl = $postData['redirect_url'] ?? '';
 
 if (empty($redirectUrl)) {
     http_response_code(400);

@@ -3,6 +3,7 @@
  * 관리자용 판매자 정보 수정 페이지
  */
 
+require_once __DIR__ . '/../../includes/data/path-config.php';
 require_once __DIR__ . '/../../includes/data/auth-functions.php';
 
 /**
@@ -167,7 +168,7 @@ function compressImage($sourcePath, $targetPath, $maxSizeMB = 5) {
 // 관리자 권한 체크
 $currentUser = getCurrentUser();
 if (!$currentUser || !isAdmin($currentUser['user_id'])) {
-    header('Location: /MVNO/auth/login.php');
+    header('Location: ' . getAssetPath('/auth/login.php'));
     exit;
 }
 
@@ -180,7 +181,7 @@ if (session_status() === PHP_SESSION_NONE) {
 $sellerId = $_GET['user_id'] ?? '';
 
 if (empty($sellerId)) {
-    header('Location: /MVNO/admin/seller-approval.php');
+    header('Location: ' . getAssetPath('/admin/seller-approval.php'));
     exit;
 }
 
@@ -188,7 +189,7 @@ if (empty($sellerId)) {
 $seller = getUserById($sellerId);
 
 if (!$seller || $seller['role'] !== 'seller') {
-    header('Location: /MVNO/admin/seller-approval.php');
+    header('Location: ' . getAssetPath('/admin/seller-approval.php'));
     exit;
 }
 
@@ -327,7 +328,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_seller'])) {
                             // 이미지 압축 및 저장 (5MB 이하로 자동 압축)
                             if (compressImage($tempPath, $targetPath, 5)) {
                                 // 상대 경로 저장
-                                $updateData['business_license_image'] = '/MVNO/uploads/sellers/' . $fileName;
+                                $updateData['business_license_image'] = getAssetPath('/uploads/sellers/' . $fileName);
 
                                 // 같은 사용자 예전 파일 정리(폴더에 고아 파일이 남지 않게)
                                 // - 방금 저장된 파일은 유지
@@ -522,6 +523,36 @@ if (!empty($currentEmail) && strpos($currentEmail, '@') !== false) {
         $emailDomain = 'custom';
         $emailCustom = $domain;
     }
+}
+
+// 이미지 경로 정규화 함수 (하드코딩된 /MVNO 경로 제거)
+function normalizeBusinessLicenseImagePath($path) {
+    if (empty($path)) {
+        return '';
+    }
+    
+    $imagePath = trim($path);
+    
+    // 이미 전체 URL이면 그대로 사용
+    if (preg_match('/^https?:\/\//', $imagePath)) {
+        return $imagePath;
+    }
+    
+    // 하드코딩된 /MVNO/ 경로 제거
+    while (strpos($imagePath, '/MVNO/') !== false) {
+        $imagePath = str_replace('/MVNO/', '/', $imagePath);
+    }
+    if (strpos($imagePath, '/MVNO') === 0) {
+        $imagePath = substr($imagePath, 5); // '/MVNO' 제거
+    }
+    
+    // /로 시작하는 절대 경로면 getAssetPath 사용
+    if (strpos($imagePath, '/') === 0) {
+        return getAssetPath($imagePath);
+    }
+    
+    // 상대 경로인 경우
+    return getAssetPath('/' . $imagePath);
 }
 
 // 관리자 헤더 사용
@@ -901,13 +932,13 @@ require_once __DIR__ . '/../includes/admin-header.php';
         <div class="edit-header">
             <h1>판매자 정보 수정</h1>
             <div style="display: flex; gap: 12px; align-items: center;">
-                <a href="/MVNO/admin/seller-approval.php?tab=approved" class="back-button">
+                <a href="<?php echo getAssetPath('/admin/seller-approval.php?tab=approved'); ?>" class="back-button">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M19 12H5M12 19l-7-7 7-7"/>
                     </svg>
                     목록으로
                 </a>
-                <a href="/MVNO/admin/users/seller-detail.php?user_id=<?php echo urlencode($seller['user_id']); ?>" class="back-button">
+                <a href="<?php echo getAssetPath('/admin/users/seller-detail.php?user_id=' . urlencode($seller['user_id'])); ?>" class="back-button">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M19 12H5M12 19l-7-7 7-7"/>
                     </svg>
@@ -1046,9 +1077,11 @@ require_once __DIR__ . '/../includes/admin-header.php';
                 </div>
                 <div class="form-group">
                     <label class="form-label">사업자등록증</label>
-                    <?php if (!empty($seller['business_license_image'])): ?>
+                    <?php if (!empty($seller['business_license_image'])): 
+                        $licenseImagePath = normalizeBusinessLicenseImagePath($seller['business_license_image']);
+                    ?>
                         <div style="margin-bottom: 12px;">
-                            <img src="<?php echo htmlspecialchars($seller['business_license_image']); ?>" alt="사업자등록증" style="max-width: 400px; max-height: 300px; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 8px;">
+                            <img src="<?php echo htmlspecialchars($licenseImagePath); ?>" alt="사업자등록증" style="max-width: 400px; max-height: 300px; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 8px;" onerror="this.src=''; this.alt='이미지를 불러올 수 없습니다.'; this.style.display='none';">
                             <div class="password-note">현재 등록된 사업자등록증입니다. 새로 업로드하면 기존 이미지가 교체됩니다.</div>
                         </div>
                     <?php endif; ?>
@@ -1058,7 +1091,7 @@ require_once __DIR__ . '/../includes/admin-header.php';
             </div>
             
             <div class="form-actions">
-                <a href="/MVNO/admin/users/seller-detail.php?user_id=<?php echo urlencode($seller['user_id']); ?>" class="btn btn-secondary">취소</a>
+                <a href="<?php echo getAssetPath('/admin/users/seller-detail.php?user_id=' . urlencode($seller['user_id'])); ?>" class="btn btn-secondary">취소</a>
                 <button type="submit" class="btn btn-primary">저장</button>
             </div>
         </form>
@@ -1843,7 +1876,7 @@ require_once __DIR__ . '/../includes/admin-header.php';
                 sellerNameResult.className = 'seller-name-check-result checking';
                 
                 const currentUserId = '<?php echo htmlspecialchars($seller['user_id'] ?? ''); ?>';
-                fetch(`/MVNO/api/check-seller-duplicate.php?type=seller_name&value=${encodeURIComponent(value)}&current_user_id=${encodeURIComponent(currentUserId)}`)
+                fetch(`<?php echo getApiPath('/api/check-seller-duplicate.php'); ?>?type=seller_name&value=${encodeURIComponent(value)}&current_user_id=${encodeURIComponent(currentUserId)}`)
                     .then(response => response.json())
                     .then(data => {
                         if (data.success && !data.duplicate) {
@@ -2019,7 +2052,7 @@ require_once __DIR__ . '/../includes/admin-header.php';
     }
     
     function goToDetailPage() {
-        window.location.href = '/MVNO/admin/users/seller-detail.php?user_id=<?php echo urlencode($seller['user_id']); ?>';
+        window.location.href = '<?php echo getAssetPath('/admin/users/seller-detail.php?user_id=' . urlencode($seller['user_id'])); ?>';
     }
 </script>
 

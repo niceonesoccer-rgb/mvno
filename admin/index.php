@@ -3,9 +3,34 @@
  * 관리자 대시보드
  */
 
-require_once __DIR__ . '/includes/admin-header.php';
-require_once __DIR__ . '/../includes/data/db-config.php';
-require_once __DIR__ . '/../includes/monitor.php';
+// 경로 안전하게 계산 (웹서버 환경 호환성)
+$currentFile = __FILE__;
+$adminDir = dirname($currentFile);
+
+// 실제 파일 경로 확인 (심볼릭 링크 등 처리)
+$realAdminDir = realpath($adminDir);
+if ($realAdminDir === false) {
+    $realAdminDir = $adminDir;
+}
+
+// admin-header.php 파일 경로 확인
+$adminHeaderPath = $realAdminDir . DIRECTORY_SEPARATOR . 'includes' . DIRECTORY_SEPARATOR . 'admin-header.php';
+
+// 파일이 존재하는지 확인
+if (!file_exists($adminHeaderPath)) {
+    // 대체 경로 시도: 상대 경로 사용
+    $adminHeaderPath = __DIR__ . DIRECTORY_SEPARATOR . 'includes' . DIRECTORY_SEPARATOR . 'admin-header.php';
+    
+    // 여전히 없으면 에러 발생
+    if (!file_exists($adminHeaderPath)) {
+        error_log("admin/index.php: Cannot find admin-header.php. __DIR__: " . __DIR__ . ", realpath: " . $realAdminDir);
+        die("관리자 헤더 파일을 찾을 수 없습니다. 서버 관리자에게 문의하세요.");
+    }
+}
+
+require_once $adminHeaderPath;
+require_once dirname($realAdminDir) . DIRECTORY_SEPARATOR . 'includes' . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'db-config.php';
+require_once dirname($realAdminDir) . DIRECTORY_SEPARATOR . 'includes' . DIRECTORY_SEPARATOR . 'monitor.php';
 
 $pdo = getDBConnection();
 
@@ -498,7 +523,7 @@ $categoryLabels = [
         <div class="dashboard-row-section">
             <h2>판매자 관리</h2>
             <div class="dashboard-row-grid">
-                <a href="/MVNO/admin/seller-approval.php?tab=pending" class="dashboard-card <?php echo $sellerStats['pending'] > 0 ? 'has-new' : ''; ?>">
+                <a href="<?php echo getAssetPath('/admin/seller-approval.php'); ?>?tab=pending" class="dashboard-card <?php echo $sellerStats['pending'] > 0 ? 'has-new' : ''; ?>">
                     <div class="dashboard-card-header">
                         <span class="dashboard-card-title">신청자</span>
                         <div class="dashboard-card-icon" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
@@ -512,7 +537,7 @@ $categoryLabels = [
                     <div class="dashboard-card-description">승인 대기 중인 판매자</div>
                 </a>
                 
-                <a href="/MVNO/admin/seller-approval.php?tab=updated" class="dashboard-card <?php echo $sellerStats['updated'] > 0 ? 'has-new' : ''; ?>">
+                <a href="<?php echo getAssetPath('/admin/seller-approval.php'); ?>?tab=updated" class="dashboard-card <?php echo $sellerStats['updated'] > 0 ? 'has-new' : ''; ?>">
                     <div class="dashboard-card-header">
                         <span class="dashboard-card-title">업데이트</span>
                         <div class="dashboard-card-icon" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
@@ -526,7 +551,7 @@ $categoryLabels = [
                     <div class="dashboard-card-description">정보 업데이트 대기</div>
                 </a>
                 
-                <a href="/MVNO/admin/seller-approval.php?tab=withdrawal" class="dashboard-card <?php echo $sellerStats['withdrawal'] > 0 ? 'has-new' : ''; ?>">
+                <a href="<?php echo getAssetPath('/admin/seller-approval.php'); ?>?tab=withdrawal" class="dashboard-card <?php echo $sellerStats['withdrawal'] > 0 ? 'has-new' : ''; ?>">
                     <div class="dashboard-card-header">
                         <span class="dashboard-card-title">탈퇴요청</span>
                         <div class="dashboard-card-icon" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);">

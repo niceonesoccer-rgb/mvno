@@ -4,6 +4,9 @@ $current_page = 'mvno';
 // 메인 페이지 여부 (하단 메뉴 및 푸터 표시용)
 $is_main_page = true; // 상세 페이지에서도 하단 메뉴바 표시
 
+// 경로 설정 파일 먼저 로드
+require_once '../includes/data/path-config.php';
+
 // 로그인 체크를 위한 auth-functions 포함 (세션 설정과 함께 세션을 시작함)
 require_once '../includes/data/auth-functions.php';
 require_once '../includes/data/privacy-functions.php';
@@ -972,7 +975,7 @@ document.addEventListener('DOMContentLoaded', function() {
         <div class="share-modal-grid">
             <button class="share-modal-item" data-platform="link" id="shareLinkBtn">
                 <div class="share-modal-icon share-icon-link">
-                    <img src="/MVNO/assets/images/icons/share-link.svg" alt="링크 복사" width="32" height="32">
+                    <img src="<?php echo getAssetPath('/assets/images/icons/share-link.svg'); ?>" alt="링크 복사" width="32" height="32">
                 </div>
                 <span class="share-modal-label">링크 복사</span>
             </button>
@@ -2369,7 +2372,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // 현재 로그인한 사용자 정보 가져오기
-        fetch('/MVNO/api/get-current-user-info.php')
+        const apiPath = window.API_PATH || (window.BASE_PATH || '') + '/api';
+        fetch(apiPath + '/get-current-user-info.php')
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
@@ -2781,7 +2785,8 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!isLoggedIn) {
                 // 현재 URL을 세션에 저장 (회원가입 후 돌아올 주소)
                 const currentUrl = window.location.href;
-                fetch('/MVNO/api/save-redirect-url.php', {
+                const apiPath = window.API_PATH || (window.BASE_PATH || '') + '/api';
+                fetch(apiPath + '/save-redirect-url.php', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -2812,7 +2817,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // 포인트 설정 확인 및 모달 열기 함수
     function checkAndOpenPointModal(type, itemId, callback) {
         // 포인트 설정 조회
-        fetch(`/MVNO/api/get-product-point-setting.php?type=${type}&id=${itemId}`)
+        const apiPath = window.API_PATH || (window.BASE_PATH || '') + '/api';
+        fetch(`${apiPath}/get-product-point-setting.php?type=${type}&id=${itemId}`)
             .then(response => response.json())
             .then(data => {
                 if (!data.success) {
@@ -3003,7 +3009,8 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             // 서버로 데이터 전송
-            fetch('/MVNO/api/submit-mvno-application.php', {
+            const apiPath = window.API_PATH || (window.BASE_PATH || '') + '/api';
+            fetch(apiPath + '/submit-mvno-application.php', {
                 method: 'POST',
                 body: formData
             })
@@ -3013,7 +3020,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     // 신청정보가 DB에 저장됨
                     
                     // 무조건 마이페이지 알뜰폰 주문내역으로 이동
-                    const mypageUrl = '/MVNO/mypage/mvno-order.php';
+                    const mypageUrl = (window.BASE_PATH || '') + '/mypage/mvno-order.php';
                     
                     // redirect_url이 있으면 새 창으로 열기
                     if (data.redirect_url && data.redirect_url.trim() !== '') {
@@ -4090,8 +4097,13 @@ span.internet-checkbox-text {
 <script>
 </script>
 
-<script src="/MVNO/assets/js/favorite-heart.js" defer></script>
-<script src="/MVNO/assets/js/point-usage-integration.js" defer></script>
+<script>
+    // BASE_PATH와 API_PATH를 JavaScript에서 사용할 수 있도록 설정
+    window.BASE_PATH = window.BASE_PATH || '<?php echo getBasePath(); ?>';
+    window.API_PATH = window.API_PATH || (window.BASE_PATH + '/api');
+</script>
+<script src="<?php echo getAssetPath('/assets/js/favorite-heart.js'); ?>" defer></script>
+<script src="<?php echo getAssetPath('/assets/js/point-usage-integration.js'); ?>" defer></script>
 
 <?php 
 // 포인트 사용 모달 포함

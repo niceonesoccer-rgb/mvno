@@ -213,7 +213,8 @@ function getEvents($limit = null) {
 }
 
 // 이벤트 ID로 가져오기
-function getEventById($id) {
+// $skipDateCheck: true면 기간 체크를 건너뜀 (배너용)
+function getEventById($id, $skipDateCheck = false) {
     $pdo = getDBConnection();
     if (!$pdo) return null;
     
@@ -279,9 +280,12 @@ function getEventById($id) {
         $whereConditions[] = "(is_published IS NULL OR is_published != 0)";
     }
     
-    // 공개 기간 확인
-    $whereConditions[] = "(start_at IS NULL OR start_at <= CURDATE())";
-    $whereConditions[] = "(end_at IS NULL OR end_at >= CURDATE())";
+    // 기간 체크 (배너는 기간 체크 건너뛰기)
+    if (!$skipDateCheck) {
+        // 공개 기간 확인
+        $whereConditions[] = "(start_at IS NULL OR start_at <= CURDATE())";
+        $whereConditions[] = "(end_at IS NULL OR end_at >= CURDATE())";
+    }
     
     $whereClause = implode(' AND ', $whereConditions);
     

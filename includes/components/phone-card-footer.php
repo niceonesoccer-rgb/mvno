@@ -13,8 +13,18 @@ $support_count = count($additional_supports);
 $support_colors = $phone['support_colors'] ?? ['#6366F1', '#8B5CF6', '#EC4899']; // 기본값
 $support_text_color = $phone['support_text_color'] ?? '#FFFFFF'; // 기본값: 흰색
 $phone_id = $phone['id'] ?? 0;
+
+// path-config.php가 로드되지 않았으면 로드
+if (!function_exists('getAssetPath')) {
+    require_once __DIR__ . '/../data/path-config.php';
+}
+
 // 공유 링크는 카드 클릭 시 이동하는 신청 페이지 URL 사용
-$share_url = $phone['link_url'] ?? '/MVNO/mno/mno-phone-detail.php?id=' . $phone_id;
+if (isset($phone['link_url']) && !empty($phone['link_url'])) {
+    $share_url = $phone['link_url'];
+} else {
+    $share_url = getAssetPath('/mno/mno-phone-detail.php?id=' . urlencode($phone_id));
+}
 
 // 택배/내방지역명 가져오기
 $delivery_method = $phone['delivery_method'] ?? 'delivery';

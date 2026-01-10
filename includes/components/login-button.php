@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../../includes/data/path-config.php';
 require_once __DIR__ . '/../../includes/data/auth-functions.php';
 
 $isLoggedIn = isLoggedIn();
@@ -8,7 +9,7 @@ $currentUser = $isLoggedIn ? getCurrentUser() : null;
 <?php if ($isLoggedIn && $currentUser): ?>
     <!-- 로그인된 경우: 사용자 메뉴 -->
     <div class="user-menu">
-        <a href="/MVNO/mypage/mypage.php" class="user-menu-link">
+        <a href="<?php echo getAssetPath('/mypage/mypage.php'); ?>" class="user-menu-link">
             <span><?php echo htmlspecialchars($currentUser['name'] ?? '사용자'); ?>님</span>
         </a>
     </div>

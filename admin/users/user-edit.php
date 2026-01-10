@@ -1,9 +1,10 @@
 <?php
 /**
  * 일반 회원 정보 수정 페이지
- * 경로: /MVNO/admin/users/user-edit.php
+ * 경로: /admin/users/user-edit.php
  */
 
+require_once __DIR__ . '/../../includes/data/path-config.php';
 require_once __DIR__ . '/../../includes/data/auth-functions.php';
 
 // 세션 시작
@@ -13,7 +14,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 // 관리자 권한 체크
 if (!isAdmin()) {
-    header('Location: /MVNO/admin/');
+    header('Location: ' . getAssetPath('/admin/index.php'));
     exit;
 }
 
@@ -69,7 +70,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                         if ($stmt->rowCount() < 1) {
                             $error = '회원을 찾을 수 없습니다.';
                         } else {
-                            header('Location: /MVNO/admin/users/member-detail.php?user_id=' . urlencode($editUserId) . '&success=update');
+                            header('Location: ' . getAssetPath('/admin/users/member-detail.php') . '?user_id=' . urlencode($editUserId) . '&success=update');
                             exit;
                         }
                     } catch (PDOException $e) {
@@ -88,11 +89,11 @@ $editUserId = $_GET['user_id'] ?? '';
 if (!empty($editUserId)) {
     $editUser = getUserById($editUserId);
     if (!$editUser || $editUser['role'] !== 'user') {
-        header('Location: /MVNO/admin/users/member-list.php?tab=users&error=not_found');
+        header('Location: ' . getAssetPath('/admin/users/member-list.php') . '?tab=users&error=not_found');
         exit;
     }
 } else {
-    header('Location: /MVNO/admin/users/member-list.php?tab=users');
+    header('Location: ' . getAssetPath('/admin/users/member-list.php') . '?tab=users');
     exit;
 }
 
@@ -242,7 +243,7 @@ include '../includes/admin-header.php';
 <div class="admin-content">
     <div class="page-header">
         <h1>일반 회원 정보 수정</h1>
-        <a href="/MVNO/admin/users/member-detail.php?user_id=<?php echo urlencode($editUserId); ?>" class="btn btn-secondary">
+        <a href="<?php echo getAssetPath('/admin/users/member-detail.php'); ?>?user_id=<?php echo urlencode($editUserId); ?>" class="btn btn-secondary">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M19 12H5M12 19l-7-7 7-7"/>
             </svg>
@@ -344,7 +345,7 @@ include '../includes/admin-header.php';
             <?php endif; ?>
             
             <div class="button-group">
-                <a href="/MVNO/admin/users/member-detail.php?user_id=<?php echo urlencode($editUserId); ?>" class="btn btn-secondary">
+                <a href="<?php echo getAssetPath('/admin/users/member-detail.php'); ?>?user_id=<?php echo urlencode($editUserId); ?>" class="btn btn-secondary">
                     취소
                 </a>
                 <button type="submit" class="btn btn-primary">

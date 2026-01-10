@@ -7,11 +7,30 @@
 require_once __DIR__ . '/../../includes/data/auth-functions.php';
 require_once __DIR__ . '/../../includes/data/path-config.php';
 
+// 세션 시작 (인증 체크 전에 명시적으로 시작)
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 // 관리자 인증 체크 (출력 전에 체크)
-$currentUser = getCurrentUser();
-if (!$currentUser || !isAdmin($currentUser['user_id'])) {
-    // 관리자가 아니면 관리자 로그인 페이지로 리다이렉트
-    header('Location: ' . getAssetPath('/admin/login.php'));
+try {
+    $currentUser = getCurrentUser();
+    if (!$currentUser || !isAdmin($currentUser['user_id'])) {
+        // 관리자가 아니면 관리자 로그인 페이지로 리다이렉트
+        // 현재 스크립트 위치 기준으로 상대 경로 계산
+        $currentDir = dirname($_SERVER['SCRIPT_NAME'] ?? '/admin');
+        $adminPath = rtrim($currentDir, '/');
+        $redirectUrl = $adminPath . '/login.php';
+        header('Location: ' . $redirectUrl);
+        exit;
+    }
+} catch (Exception $e) {
+    // 인증 체크 중 오류 발생 시 로그인 페이지로 리다이렉트
+    error_log('admin-header auth check error: ' . $e->getMessage());
+    $currentDir = dirname($_SERVER['SCRIPT_NAME'] ?? '/admin');
+    $adminPath = rtrim($currentDir, '/');
+    $redirectUrl = $adminPath . '/login.php';
+    header('Location: ' . $redirectUrl);
     exit;
 }
 
@@ -35,7 +54,7 @@ if ($pdo) {
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=1400, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>관리자 페이지 - 유심킹</title>
     <link rel="stylesheet" href="<?php echo getAssetPath('/assets/css/style.css'); ?>">
     <script src="<?php echo getAssetPath('/assets/js/modal.js'); ?>" defer></script>
@@ -46,17 +65,27 @@ if ($pdo) {
             box-sizing: border-box;
         }
         
+        html {
+            overflow-x: auto;
+            overflow-y: scroll;
+            min-width: 1400px;
+        }
+        
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%);
             margin: 0;
             padding: 0;
             min-height: 100vh;
+            min-width: 1400px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch; /* iOS에서 부드러운 스크롤 */
         }
         
         /* 헤더 */
         .admin-top-header {
             width: 100%;
+            min-width: 1400px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             border-bottom: 1px solid #4c51bf;
             padding: 16px 24px;
@@ -66,7 +95,6 @@ if ($pdo) {
             position: fixed;
             top: 0;
             left: 0;
-            right: 0;
             z-index: 1000;
             height: 60px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -491,45 +519,13 @@ if ($pdo) {
             margin-top: 60px;
             min-height: calc(100vh - 60px);
             background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            min-width: calc(1400px - 260px);
         }
         
         .admin-content {
             padding: 24px;
             background: transparent;
-        }
-        
-        
-        
-        /* 반응형 */
-        @media (max-width: 768px) {
-            .admin-sidebar {
-                transform: translateX(-100%);
-                transition: transform 0.3s;
-            }
-            
-            .admin-sidebar.open {
-                transform: translateX(0);
-            }
-            
-            .admin-main {
-                margin-left: 0;
-            }
-            
-            .admin-top-header {
-                padding: 12px 16px;
-            }
-            
-            .admin-top-header-logo {
-                font-size: 16px;
-            }
-            
-            .admin-top-header-link {
-                font-size: 13px;
-            }
-            
-            .admin-top-header-right {
-                gap: 16px;
-            }
+            min-width: 1000px;
         }
     </style>
 </head>
@@ -586,6 +582,7 @@ if ($pdo) {
                     </span>
                     회원 관리
                 </a>
+                <?php if (getUserRole($currentUser['user_id']) === 'admin'): ?>
                 <a href="<?php echo getAssetPath('/admin/users/sub-admin-manage.php'); ?>" class="menu-item <?php echo $currentPage === 'sub-admin-manage.php' ? 'active' : ''; ?>">
                     <span class="menu-item-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -597,6 +594,7 @@ if ($pdo) {
                     </span>
                     부관리자 관리
                 </a>
+                <?php endif; ?>
             </div>
             
             <!-- 주문 관리 -->
@@ -836,6 +834,17 @@ if ($pdo) {
             <!-- 설정 -->
             <div class="menu-section">
                 <div class="menu-section-title">설정</div>
+                <?php if (getUserRole($currentUser['user_id']) === 'admin' || getUserRole($currentUser['user_id']) === 'sub_admin'): ?>
+                <a href="<?php echo getAssetPath('/admin/settings/admin-manage.php'); ?>" class="menu-item <?php echo $currentPage === 'admin-manage.php' ? 'active' : ''; ?>">
+                    <span class="menu-item-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                            <circle cx="12" cy="7" r="4"/>
+                        </svg>
+                    </span>
+                    내 정보
+                </a>
+                <?php endif; ?>
                 <a href="<?php echo getAssetPath('/admin/settings/site-settings.php'); ?>" class="menu-item <?php echo $currentPage === 'site-settings.php' ? 'active' : ''; ?>">
                     <span class="menu-item-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

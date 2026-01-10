@@ -4,9 +4,11 @@
  * assets/images/internets/ 폴더의 이미지를 선택할 수 있습니다.
  */
 
+require_once __DIR__ . '/../includes/data/path-config.php';
+
 // 이미지 디렉토리 경로
 $imageDir = __DIR__ . '/../assets/images/internets/';
-$imageUrl = '/MVNO/assets/images/internets/';
+$imageUrlBase = '/assets/images/internets/';
 
 // 이미지 파일 목록 가져오기
 $images = [];
@@ -16,7 +18,7 @@ if (is_dir($imageDir)) {
         if ($file !== '.' && $file !== '..' && preg_match('/\.(svg|png|jpg|jpeg|gif|webp)$/i', $file)) {
             $images[] = [
                 'filename' => $file,
-                'url' => $imageUrl . $file,
+                'url' => getAssetPath($imageUrlBase . $file),
                 'path' => $imageDir . $file
             ];
         }
@@ -36,7 +38,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_selected' && isset($_GET[
     if (file_exists($filepath)) {
         echo json_encode([
             'success' => true,
-            'url' => $imageUrl . $filename,
+            'url' => getAssetPath($imageUrlBase . $filename),
             'filename' => $filename
         ]);
     } else {
@@ -267,7 +269,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_selected' && isset($_GET[
                 this.classList.add('selected');
                 
                 const filename = this.dataset.filename;
-                const url = '/MVNO/assets/images/internets/' + filename;
+                const url = '<?php echo getAssetPath($imageUrlBase); ?>' + filename;
                 
                 selectedImage = {
                     filename: filename,

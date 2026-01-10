@@ -994,7 +994,7 @@ try {
                                     <?php 
                                     $sellerId = $product['seller_user_id'] ?? $product['seller_id'] ?? '-';
                                     if ($sellerId && $sellerId !== '-') {
-                                        echo '<a href="/MVNO/admin/users/seller-detail.php?user_id=' . urlencode($sellerId) . '" style="color: #3b82f6; text-decoration: none; font-weight: 600;">' . htmlspecialchars($sellerId) . '</a>';
+                                        echo '<a href="' . getAssetPath('/admin/users/seller-detail.php') . '?user_id=' . urlencode($sellerId) . '" style="color: #3b82f6; text-decoration: none; font-weight: 600;">' . htmlspecialchars($sellerId) . '</a>';
                                     } else {
                                         echo htmlspecialchars($sellerId);
                                     }
@@ -1088,7 +1088,7 @@ try {
                                 <td style="text-align: center;"><?php echo isset($product['created_at']) ? date('Y-m-d', strtotime($product['created_at'])) : '-'; ?></td>
                                 <td style="text-align: center;">
                                     <div class="action-buttons">
-                                        <a href="/MVNO/mvno/mvno-plan-detail.php?id=<?php echo $product['id']; ?>" target="_blank" class="btn btn-sm btn-edit">보기</a>
+                                        <a href="<?php echo getAssetPath('/mvno/mvno-plan-detail.php'); ?>?id=<?php echo $product['id']; ?>" target="_blank" class="btn btn-sm btn-edit">보기</a>
                                     </div>
                                 </td>
                             </tr>
@@ -1101,6 +1101,10 @@ try {
             <?php if ($totalPages > 1): ?>
                 <div class="pagination" style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 20px; flex-wrap: wrap;">
                     <?php
+                    // 현재 페이지 URL 경로
+                    $currentPagePath = getAssetPath('/admin/products/mvno-list.php');
+                    
+                    // 쿼리 파라미터 배열 생성
                     $queryParams = [];
                     if ($status) $queryParams['status'] = $status;
                     if (isset($seller_id) && $seller_id) $queryParams['seller_id'] = $seller_id;
@@ -1116,10 +1120,7 @@ try {
                     if ($date_from) $queryParams['date_from'] = $date_from;
                     if ($date_to) $queryParams['date_to'] = $date_to;
                     $queryParams['per_page'] = $perPage;
-                    $queryString = http_build_query($queryParams);
-                    ?>
                     
-                    <?php
                     // 페이지 그룹 계산 (10개씩 그룹화)
                     $pageGroupSize = 10;
                     $currentGroup = ceil($page / $pageGroupSize);
@@ -1130,7 +1131,11 @@ try {
                     ?>
                     <!-- 이전 버튼 -->
                     <?php if ($currentGroup > 1): ?>
-                        <a href="?<?php echo $queryString; ?>&page=<?php echo $prevGroupLastPage; ?>" 
+                        <?php 
+                        $queryParams['page'] = $prevGroupLastPage;
+                        $prevUrl = $currentPagePath . '?' . http_build_query($queryParams);
+                        ?>
+                        <a href="<?php echo htmlspecialchars($prevUrl); ?>" 
                            class="pagination-btn">이전</a>
                     <?php else: ?>
                         <span class="pagination-btn disabled">이전</span>
@@ -1138,13 +1143,22 @@ try {
                     
                     <!-- 페이지 번호 표시 (현재 그룹만) -->
                     <?php for ($i = $startPage; $i <= $endPage; $i++): ?>
-                        <a href="?<?php echo $queryString; ?>&page=<?php echo $i; ?>" 
-                           class="pagination-btn <?php echo $i === $page ? 'active' : ''; ?>"><?php echo $i; ?></a>
+                        <?php 
+                        $queryParams['page'] = $i;
+                        $pageUrl = $currentPagePath . '?' . http_build_query($queryParams);
+                        $isActive = (intval($i) === intval($page));
+                        ?>
+                        <a href="<?php echo htmlspecialchars($pageUrl); ?>" 
+                           class="pagination-btn <?php echo $isActive ? 'active' : ''; ?>"><?php echo $i; ?></a>
                     <?php endfor; ?>
                     
                     <!-- 다음 버튼 -->
                     <?php if ($nextGroupFirstPage <= $totalPages): ?>
-                        <a href="?<?php echo $queryString; ?>&page=<?php echo $nextGroupFirstPage; ?>" 
+                        <?php 
+                        $queryParams['page'] = $nextGroupFirstPage;
+                        $nextUrl = $currentPagePath . '?' . http_build_query($queryParams);
+                        ?>
+                        <a href="<?php echo htmlspecialchars($nextUrl); ?>" 
                            class="pagination-btn">다음</a>
                     <?php else: ?>
                         <span class="pagination-btn disabled">다음</span>
@@ -1178,6 +1192,17 @@ try {
 </div>
 
 <script>
+// API 경로 설정 (절대 URL)
+<?php
+$apiUpdatePointPath = getAssetPath("/api/admin/update-product-point.php");
+// 프로덕션에서 절대 URL 필요시
+if (strpos($apiUpdatePointPath, 'http') !== 0 && isset($_SERVER['HTTP_HOST'])) {
+    $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    $apiUpdatePointPath = $protocol . '://' . $_SERVER['HTTP_HOST'] . $apiUpdatePointPath;
+}
+?>
+const API_UPDATE_POINT_URL = '<?php echo htmlspecialchars($apiUpdatePointPath, ENT_QUOTES, 'UTF-8'); ?>';
+
 // 모달 함수
 function showConfirmModal(title, message) {
     const modal = document.getElementById('confirmModal');
@@ -1499,7 +1524,7 @@ function processBulkChangeStatus(productIds, status) {
         status: normalizedStatus
     });
     
-    fetch('/MVNO/api/admin-product-bulk-update.php', {
+    fetch('<?php echo getAssetPath("/api/admin-product-bulk-update.php"); ?>', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -1624,7 +1649,7 @@ document.addEventListener('DOMContentLoaded', function() {
         modalContent.innerHTML = '<div style="text-align: center; padding: 40px;"><div class="spinner"></div><p>리뷰를 불러오는 중...</p></div>';
         
         // API 호출
-        fetch(`/MVNO/api/get-product-reviews.php?product_id=${productId}&product_type=${productType}`)
+        fetch(`<?php echo getAssetPath("/api/get-product-reviews.php"); ?>?product_id=${productId}&product_type=${productType}`)
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
@@ -2041,19 +2066,34 @@ function deletePointEdit() {
         saveBtn.textContent = '삭제 중...';
     }
     
-    // API 호출
-    fetch('/MVNO/api/admin/update-product-point.php', {
+    // API 호출 - FormData 사용 (웹서버 호환성)
+    console.log('API URL:', API_UPDATE_POINT_URL);
+    const formData = new FormData();
+    formData.append('product_id', productId);
+    formData.append('point_setting', '0');
+    formData.append('point_benefit_description', '');
+    
+    fetch(API_UPDATE_POINT_URL, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            product_id: productId,
-            point_setting: 0,
-            point_benefit_description: ''
-        })
+        body: formData
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            return response.text().then(text => {
+                console.error('API Error Response:', text);
+                throw new Error('HTTP ' + response.status + ': ' + text.substring(0, 100));
+            });
+        }
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            return response.json();
+        } else {
+            return response.text().then(text => {
+                console.error('Non-JSON Response:', text);
+                throw new Error('서버가 JSON이 아닌 응답을 반환했습니다.');
+            });
+        }
+    })
     .then(data => {
         if (data.success) {
             showAlertModal('성공', '포인트 및 혜택내용이 삭제되었습니다.');
@@ -2070,7 +2110,7 @@ function deletePointEdit() {
     })
     .catch(error => {
         console.error('Error:', error);
-        showAlertModal('오류', '삭제 중 오류가 발생했습니다.');
+        showAlertModal('오류', '삭제 중 오류가 발생했습니다: ' + (error.message || '알 수 없는 오류'));
         if (saveBtn) {
             saveBtn.disabled = false;
             saveBtn.textContent = '저장';
@@ -2100,19 +2140,34 @@ function savePointEdit(event) {
         saveBtn.textContent = '저장 중...';
     }
     
-    // API 호출
-    fetch('/MVNO/api/admin/update-product-point.php', {
+    // API 호출 - FormData 사용 (웹서버 호환성)
+    console.log('API URL:', API_UPDATE_POINT_URL);
+    const formData = new FormData();
+    formData.append('product_id', productId);
+    formData.append('point_setting', pointSetting);
+    formData.append('point_benefit_description', benefitDescription);
+    
+    fetch(API_UPDATE_POINT_URL, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            product_id: productId,
-            point_setting: pointSetting,
-            point_benefit_description: benefitDescription
-        })
+        body: formData
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            return response.text().then(text => {
+                console.error('API Error Response:', text);
+                throw new Error('HTTP ' + response.status + ': ' + text.substring(0, 100));
+            });
+        }
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            return response.json();
+        } else {
+            return response.text().then(text => {
+                console.error('Non-JSON Response:', text);
+                throw new Error('서버가 JSON이 아닌 응답을 반환했습니다.');
+            });
+        }
+    })
     .then(data => {
         if (data.success) {
             showAlertModal('성공', '포인트 및 혜택내용이 저장되었습니다.');
@@ -2129,7 +2184,7 @@ function savePointEdit(event) {
     })
     .catch(error => {
         console.error('Error:', error);
-        showAlertModal('오류', '저장 중 오류가 발생했습니다.');
+        showAlertModal('오류', '저장 중 오류가 발생했습니다: ' + (error.message || '알 수 없는 오류'));
         if (saveBtn) {
             saveBtn.disabled = false;
             saveBtn.textContent = '저장';

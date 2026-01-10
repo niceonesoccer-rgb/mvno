@@ -3,6 +3,9 @@
  * 1:1 Q&A 목록 페이지
  */
 
+// 경로 설정 파일 먼저 로드
+require_once '../includes/data/path-config.php';
+
 // 로그인 체크를 위한 auth-functions 포함 (세션 설정과 함께 세션을 시작함)
 require_once '../includes/data/auth-functions.php';
 
@@ -11,7 +14,7 @@ if (!isLoggedIn()) {
     // 현재 URL을 세션에 저장 (회원가입 후 돌아올 주소)
     $_SESSION['redirect_url'] = $_SERVER['REQUEST_URI'];
     // 로그인 모달이 있는 홈으로 리다이렉트 (모달 자동 열기)
-    header('Location: /MVNO/?show_login=1');
+    header('Location: ' . getAssetPath('/?show_login=1'));
     exit;
 }
 
@@ -27,7 +30,7 @@ if (!$currentUser) {
     }
     // 현재 URL을 세션에 저장 (회원가입 후 돌아올 주소)
     $_SESSION['redirect_url'] = $_SERVER['REQUEST_URI'];
-    header('Location: /MVNO/?show_login=1');
+    header('Location: ' . getAssetPath('/?show_login=1'));
     exit;
 }
 
@@ -103,7 +106,7 @@ $answeredCount = count(array_filter($allQnas, function($qna) {
                     <h1 style="font-size: 28px; font-weight: bold; margin: 0 0 8px 0;">질문과 답변</h1>
                     <p style="color: #6b7280; font-size: 14px; margin: 0;">궁금한 사항을 질문해주시면 관리자가 답변해드립니다.</p>
                 </div>
-                <a href="/MVNO/qna/qna-write.php" 
+                <a href="<?php echo getAssetPath('/qna/qna-write.php'); ?>" 
                    style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; background: #6366f1; color: white; border-radius: 8px; text-decoration: none; font-weight: 500; transition: background-color 0.2s;"
                    onmouseover="this.style.background='#4f46e5'" 
                    onmouseout="this.style.background='#6366f1'">
@@ -116,15 +119,15 @@ $answeredCount = count(array_filter($allQnas, function($qna) {
             
             <!-- 필터 탭 -->
             <div style="display: flex; gap: 8px; border-bottom: 2px solid #e5e7eb;">
-                <a href="/MVNO/qna/qna.php?filter=all" 
+                <a href="<?php echo getAssetPath('/qna/qna.php?filter=all'); ?>" 
                    style="padding: 12px 20px; text-decoration: none; font-weight: 500; font-size: 14px; color: <?php echo $filter === 'all' ? '#6366f1' : '#6b7280'; ?>; border-bottom: 2px solid <?php echo $filter === 'all' ? '#6366f1' : 'transparent'; ?>; margin-bottom: -2px; transition: all 0.2s;">
                     전체 (<?php echo $totalCount; ?>)
                 </a>
-                <a href="/MVNO/qna/qna.php?filter=pending" 
+                <a href="<?php echo getAssetPath('/qna/qna.php?filter=pending'); ?>" 
                    style="padding: 12px 20px; text-decoration: none; font-weight: 500; font-size: 14px; color: <?php echo $filter === 'pending' ? '#6366f1' : '#6b7280'; ?>; border-bottom: 2px solid <?php echo $filter === 'pending' ? '#6366f1' : 'transparent'; ?>; margin-bottom: -2px; transition: all 0.2s;">
                     답변대기 (<?php echo $pendingCount; ?>)
                 </a>
-                <a href="/MVNO/qna/qna.php?filter=answered" 
+                <a href="<?php echo getAssetPath('/qna/qna.php?filter=answered'); ?>" 
                    style="padding: 12px 20px; text-decoration: none; font-weight: 500; font-size: 14px; color: <?php echo $filter === 'answered' ? '#6366f1' : '#6b7280'; ?>; border-bottom: 2px solid <?php echo $filter === 'answered' ? '#6366f1' : 'transparent'; ?>; margin-bottom: -2px; transition: all 0.2s;">
                     답변완료 (<?php echo $answeredCount; ?>)
                 </a>
@@ -156,7 +159,7 @@ $answeredCount = count(array_filter($allQnas, function($qna) {
                     <path d="M21 21L16.65 16.65" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
                 <p style="color: #9ca3af; font-size: 16px; margin-bottom: 24px;">등록된 질문이 없습니다.</p>
-                <a href="/MVNO/qna/qna-write.php" 
+                <a href="<?php echo getAssetPath('/qna/qna-write.php'); ?>" 
                    style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; background: #6366f1; color: white; border-radius: 8px; text-decoration: none; font-weight: 500;">
                     질문 작성하기
                 </a>
@@ -164,7 +167,7 @@ $answeredCount = count(array_filter($allQnas, function($qna) {
         <?php else: ?>
             <div style="background: white; border-radius: 12px; border: 1px solid #e5e7eb; overflow: hidden;">
                 <?php foreach ($pagedQnas as $qna): ?>
-                    <a href="/MVNO/qna/qna-detail.php?id=<?php echo htmlspecialchars($qna['id']); ?>" 
+                    <a href="<?php echo getAssetPath('/qna/qna-detail.php?id=' . urlencode($qna['id'])); ?>" 
                        style="display: block; padding: 20px; border-bottom: 1px solid #e5e7eb; text-decoration: none; color: inherit; transition: background-color 0.2s;"
                        onmouseover="this.style.backgroundColor='#f9fafb'" 
                        onmouseout="this.style.backgroundColor='white'">
@@ -206,7 +209,7 @@ $answeredCount = count(array_filter($allQnas, function($qna) {
                 <div style="display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 32px;">
                     <!-- 이전 페이지 -->
                     <?php if ($currentPage > 1): ?>
-                        <a href="/MVNO/qna/qna.php?filter=<?php echo urlencode($filter); ?>&page=<?php echo $currentPage - 1; ?>" 
+                        <a href="<?php echo getAssetPath('/qna/qna.php?filter=' . urlencode($filter) . '&page=' . ($currentPage - 1)); ?>" 
                            style="display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border: 1px solid #e5e7eb; border-radius: 8px; text-decoration: none; color: #374151; background: white; transition: all 0.2s;"
                            onmouseover="this.style.borderColor='#6366f1'; this.style.color='#6366f1';"
                            onmouseout="this.style.borderColor='#e5e7eb'; this.style.color='#374151';">
@@ -230,7 +233,7 @@ $answeredCount = count(array_filter($allQnas, function($qna) {
                     
                     // 첫 페이지 표시
                     if ($startPage > 1): ?>
-                        <a href="/MVNO/qna/qna.php?filter=<?php echo urlencode($filter); ?>&page=1" 
+                        <a href="<?php echo getAssetPath('/qna/qna.php?filter=' . urlencode($filter) . '&page=1'); ?>" 
                            style="display: inline-flex; align-items: center; justify-content: center; min-width: 40px; height: 40px; padding: 0 12px; border: 1px solid #e5e7eb; border-radius: 8px; text-decoration: none; color: #374151; background: white; transition: all 0.2s;"
                            onmouseover="this.style.borderColor='#6366f1'; this.style.color='#6366f1';"
                            onmouseout="this.style.borderColor='#e5e7eb'; this.style.color='#374151';">
@@ -247,7 +250,7 @@ $answeredCount = count(array_filter($allQnas, function($qna) {
                                 <?php echo $i; ?>
                             </span>
                         <?php else: ?>
-                            <a href="/MVNO/qna/qna.php?filter=<?php echo urlencode($filter); ?>&page=<?php echo $i; ?>" 
+                            <a href="<?php echo getAssetPath('/qna/qna.php?filter=' . urlencode($filter) . '&page=' . $i); ?>" 
                                style="display: inline-flex; align-items: center; justify-content: center; min-width: 40px; height: 40px; padding: 0 12px; border: 1px solid #e5e7eb; border-radius: 8px; text-decoration: none; color: #374151; background: white; transition: all 0.2s;"
                                onmouseover="this.style.borderColor='#6366f1'; this.style.color='#6366f1';"
                                onmouseout="this.style.borderColor='#e5e7eb'; this.style.color='#374151';">
@@ -261,7 +264,7 @@ $answeredCount = count(array_filter($allQnas, function($qna) {
                         <?php if ($endPage < $totalPages - 1): ?>
                             <span style="display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; color: #9ca3af;">...</span>
                         <?php endif; ?>
-                        <a href="/MVNO/qna/qna.php?filter=<?php echo urlencode($filter); ?>&page=<?php echo $totalPages; ?>" 
+                        <a href="<?php echo getAssetPath('/qna/qna.php?filter=' . urlencode($filter) . '&page=' . $totalPages); ?>" 
                            style="display: inline-flex; align-items: center; justify-content: center; min-width: 40px; height: 40px; padding: 0 12px; border: 1px solid #e5e7eb; border-radius: 8px; text-decoration: none; color: #374151; background: white; transition: all 0.2s;"
                            onmouseover="this.style.borderColor='#6366f1'; this.style.color='#6366f1';"
                            onmouseout="this.style.borderColor='#e5e7eb'; this.style.color='#374151';">
@@ -271,7 +274,7 @@ $answeredCount = count(array_filter($allQnas, function($qna) {
                     
                     <!-- 다음 페이지 -->
                     <?php if ($currentPage < $totalPages): ?>
-                        <a href="/MVNO/qna/qna.php?filter=<?php echo urlencode($filter); ?>&page=<?php echo $currentPage + 1; ?>" 
+                        <a href="<?php echo getAssetPath('/qna/qna.php?filter=' . urlencode($filter) . '&page=' . ($currentPage + 1)); ?>" 
                            style="display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border: 1px solid #e5e7eb; border-radius: 8px; text-decoration: none; color: #374151; background: white; transition: all 0.2s;"
                            onmouseover="this.style.borderColor='#6366f1'; this.style.color='#6366f1';"
                            onmouseout="this.style.borderColor='#e5e7eb'; this.style.color='#374151';">

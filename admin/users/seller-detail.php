@@ -3,12 +3,13 @@
  * 관리자용 판매자 상세 정보 페이지
  */
 
+require_once __DIR__ . '/../../includes/data/path-config.php';
 require_once __DIR__ . '/../../includes/data/auth-functions.php';
 
 // 관리자 권한 체크
 $currentUser = getCurrentUser();
 if (!$currentUser || !isAdmin()) {
-    header('Location: /MVNO/auth/login.php');
+    header('Location: ' . getAssetPath('/auth/login.php'));
     exit;
 }
 
@@ -16,7 +17,7 @@ if (!$currentUser || !isAdmin()) {
 $sellerId = $_GET['user_id'] ?? '';
 
 if (empty($sellerId)) {
-    header('Location: /MVNO/admin/seller-approval.php');
+    header('Location: ' . getAssetPath('/admin/seller-approval.php'));
     exit;
 }
 
@@ -38,10 +39,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_permissions'])) 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['approve_seller'])) {
     $userId = $_POST['user_id'] ?? '';
     if ($userId && approveSeller($userId)) {
-        header('Location: /MVNO/admin/users/seller-detail.php?user_id=' . urlencode($userId) . '&success=approve');
+        header('Location: ' . getAssetPath('/admin/users/seller-detail.php?user_id=' . urlencode($userId) . '&success=approve'));
         exit;
     } else {
-        header('Location: /MVNO/admin/users/seller-detail.php?user_id=' . urlencode($userId) . '&error=approve');
+        header('Location: ' . getAssetPath('/admin/users/seller-detail.php?user_id=' . urlencode($userId) . '&error=approve'));
         exit;
     }
 }
@@ -50,12 +51,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['approve_seller'])) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['hold_seller'])) {
     $userId = $_POST['user_id'] ?? '';
     if ($userId && holdSeller($userId)) {
-        header('Location: /MVNO/admin/users/seller-detail.php?user_id=' . urlencode($userId) . '&success=hold');
+        header('Location: ' . getAssetPath('/admin/users/seller-detail.php?user_id=' . urlencode($userId) . '&success=hold'));
         exit;
     } else {
-        header('Location: /MVNO/admin/users/seller-detail.php?user_id=' . urlencode($userId) . '&error=hold');
+        header('Location: ' . getAssetPath('/admin/users/seller-detail.php?user_id=' . urlencode($userId) . '&error=hold'));
         exit;
     }
+}
+
+// 이미지 경로 정규화 함수 (하드코딩된 /MVNO 경로 제거)
+function normalizeBusinessLicenseImagePath($path) {
+    if (empty($path)) {
+        return '';
+    }
+    
+    $imagePath = trim($path);
+    
+    // 이미 전체 URL이면 그대로 사용
+    if (preg_match('/^https?:\/\//', $imagePath)) {
+        return $imagePath;
+    }
+    
+    // 하드코딩된 /MVNO/ 경로 제거
+    while (strpos($imagePath, '/MVNO/') !== false) {
+        $imagePath = str_replace('/MVNO/', '/', $imagePath);
+    }
+    if (strpos($imagePath, '/MVNO') === 0) {
+        $imagePath = substr($imagePath, 5); // '/MVNO' 제거
+    }
+    
+    // /로 시작하는 절대 경로면 getAssetPath 사용
+    if (strpos($imagePath, '/') === 0) {
+        return getAssetPath($imagePath);
+    }
+    
+    // 상대 경로인 경우
+    return getAssetPath('/' . $imagePath);
 }
 
 require_once __DIR__ . '/../includes/admin-header.php';
@@ -64,7 +95,7 @@ require_once __DIR__ . '/../includes/admin-header.php';
 $seller = getUserById($sellerId);
 
 if (!$seller || $seller['role'] !== 'seller') {
-    header('Location: /MVNO/admin/seller-approval.php');
+    header('Location: ' . getAssetPath('/admin/seller-approval.php'));
     exit;
 }
 
@@ -335,13 +366,13 @@ if (!$seller || $seller['role'] !== 'seller') {
         <div class="detail-header">
             <h1>판매자 상세 정보</h1>
             <div style="display: flex; gap: 12px; align-items: center;">
-                <a href="/MVNO/admin/seller-approval.php?tab=approved" class="back-button list-button">
+                <a href="<?php echo getAssetPath('/admin/seller-approval.php?tab=approved'); ?>" class="back-button list-button">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M19 12H5M12 19l-7-7 7-7"/>
                     </svg>
                     목록으로
                 </a>
-                <a href="/MVNO/admin/users/seller-edit.php?user_id=<?php echo urlencode($seller['user_id']); ?>" class="back-button edit-button">
+                <a href="<?php echo getAssetPath('/admin/users/seller-edit.php?user_id=' . urlencode($seller['user_id'])); ?>" class="back-button edit-button">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
@@ -624,11 +655,13 @@ if (!$seller || $seller['role'] !== 'seller') {
                     </div>
                 <?php endif; ?>
                 
-                <?php if (isset($seller['business_license_image']) && !empty($seller['business_license_image'])): ?>
+                <?php if (isset($seller['business_license_image']) && !empty($seller['business_license_image'])): 
+                    $licenseImagePath = normalizeBusinessLicenseImagePath($seller['business_license_image']);
+                ?>
                     <div class="detail-item">
                         <div class="detail-label">사업자등록증</div>
                         <div class="detail-value">
-                            <img src="<?php echo htmlspecialchars($seller['business_license_image']); ?>" alt="사업자등록증" class="license-image" onclick="showImageZoom(this.src)">
+                            <img src="<?php echo htmlspecialchars($licenseImagePath); ?>" alt="사업자등록증" class="license-image" onclick="showImageZoom(this.src)" onerror="this.src=''; this.alt='이미지를 불러올 수 없습니다.'; this.style.display='none';">
                         </div>
                     </div>
                 <?php endif; ?>
@@ -765,7 +798,7 @@ if (!$seller || $seller['role'] !== 'seller') {
         </div>
         <div class="modal-actions" style="display: flex; gap: 12px; justify-content: flex-end;">
             <button type="button" class="modal-btn modal-btn-cancel" onclick="closeApproveConfirmModal()" style="padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; border: none; transition: all 0.2s; background: #f3f4f6; color: #374151;">취소</button>
-            <form method="POST" action="/MVNO/admin/users/seller-detail.php?user_id=<?php echo urlencode($seller['user_id']); ?>" id="approveConfirmForm" style="display: inline;">
+            <form method="POST" action="<?php echo getAssetPath('/admin/users/seller-detail.php?user_id=' . urlencode($seller['user_id'])); ?>" id="approveConfirmForm" style="display: inline;">
                 <input type="hidden" name="user_id" id="approveConfirmUserId">
                 <button type="submit" name="approve_seller" class="modal-btn modal-btn-confirm" style="padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; border: none; transition: all 0.2s; background: #10b981; color: white;">승인</button>
             </form>
@@ -782,7 +815,7 @@ if (!$seller || $seller['role'] !== 'seller') {
         </div>
         <div class="modal-actions" style="display: flex; gap: 12px; justify-content: flex-end;">
             <button type="button" class="modal-btn modal-btn-cancel" onclick="closeHoldConfirmModal()" style="padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; border: none; transition: all 0.2s; background: #f3f4f6; color: #374151;">취소</button>
-            <form method="POST" action="/MVNO/admin/users/seller-detail.php?user_id=<?php echo urlencode($seller['user_id']); ?>" id="holdConfirmForm" style="display: inline;">
+            <form method="POST" action="<?php echo getAssetPath('/admin/users/seller-detail.php?user_id=' . urlencode($seller['user_id'])); ?>" id="holdConfirmForm" style="display: inline;">
                 <input type="hidden" name="user_id" id="holdConfirmUserId">
                 <button type="submit" name="hold_seller" class="modal-btn modal-btn-hold" style="padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; border: none; transition: all 0.2s; background: #f59e0b; color: white;">승인보류</button>
             </form>

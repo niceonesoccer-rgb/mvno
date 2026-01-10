@@ -1,7 +1,7 @@
 <?php
 /**
  * 광고 분석 페이지
- * 경로: /MVNO/admin/advertisement/analytics.php
+ * 경로: /admin/advertisement/analytics.php
  */
 
 require_once __DIR__ . '/../includes/admin-header.php';
@@ -189,7 +189,6 @@ if ($summaryStats['total_impressions'] > 0) {
     </style>
 </head>
 <body>
-    <?php include __DIR__ . '/../includes/admin-header.php'; ?>
     
     <div class="admin-container">
         <div class="page-header">
@@ -301,7 +300,7 @@ if ($summaryStats['total_impressions'] > 0) {
             <strong>💡 참고사항:</strong>
             <ul style="margin-top: 8px; padding-left: 20px;">
                 <li>통계는 <code>advertisement_analytics</code> 테이블의 집계 데이터를 기반으로 합니다.</li>
-                <li>실시간 통계가 필요하면 <a href="/MVNO/admin/cron/aggregate-ad-analytics.php" style="color: #2563eb;">통계 집계 스크립트</a>를 실행하세요.</li>
+                <li>실시간 통계가 필요하면 <a href="<?php echo getAssetPath('/admin/cron/aggregate-ad-analytics.php'); ?>" style="color: #2563eb;">통계 집계 스크립트</a>를 실행하세요.</li>
                 <li>CTR (Click Through Rate) = 클릭 수 / 노출 수 × 100</li>
             </ul>
         </div>

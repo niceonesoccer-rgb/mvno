@@ -4,6 +4,7 @@ $current_page = 'event';
 // 메인 페이지 여부 (하단 메뉴 및 푸터 표시용)
 $is_main_page = true;
 
+require_once '../includes/data/path-config.php';
 require_once '../includes/data/db-config.php';
 
 // 이미지 경로 정규화 함수
@@ -14,28 +15,23 @@ function normalizeImagePathForDisplay($path) {
     
     $imagePath = trim($path);
     
-    // 이미 /MVNO/로 시작하면 그대로 사용
-    if (strpos($imagePath, '/MVNO/') === 0) {
+    // 이미 전체 URL이면 그대로 사용
+    if (preg_match('/^https?:\/\//', $imagePath)) {
         return $imagePath;
     }
-    // /uploads/events/ 또는 /uploads/events/로 시작하는 경우
-    elseif (preg_match('#^/uploads/events/#', $imagePath)) {
-        return '/MVNO' . $imagePath;
-    }
-    // /uploads/ 또는 /images/로 시작하면 /MVNO/ 추가
-    elseif (strpos($imagePath, '/uploads/') === 0 || strpos($imagePath, '/images/') === 0) {
-        return '/MVNO' . $imagePath;
-    }
-    // 파일명만 있는 경우 (확장자가 있고 슬래시가 없음)
-    elseif (strpos($imagePath, '/') === false && preg_match('/\.(webp|jpg|jpeg|png|gif)$/i', $imagePath)) {
-        return '/MVNO/uploads/events/' . $imagePath;
-    }
-    // 상대 경로인데 파일명이 아닌 경우
-    elseif (strpos($imagePath, '/') !== 0) {
-        return '/MVNO/' . $imagePath;
+    
+    // 이미 /로 시작하는 절대 경로면 getAssetPath 사용
+    if (strpos($imagePath, '/') === 0) {
+        return getAssetPath($imagePath);
     }
     
-    return $imagePath;
+    // 파일명만 있는 경우 (확장자가 있고 슬래시가 없음)
+    if (strpos($imagePath, '/') === false && preg_match('/\.(webp|jpg|jpeg|png|gif)$/i', $imagePath)) {
+        return getAssetPath('/uploads/events/' . $imagePath);
+    }
+    
+    // 상대 경로인 경우
+    return getAssetPath('/' . $imagePath);
 }
 
 // 이벤트 타입 필터 (전체, 요금제, 프로모션, 제휴카드)
@@ -186,10 +182,10 @@ include '../includes/header.php';
                             $now = time();
                             foreach ($events as $event): 
                                 // 이벤트 상세 페이지 링크
-                                $eventUrl = '/MVNO/event/event-detail.php?id=' . htmlspecialchars($event['id'], ENT_QUOTES, 'UTF-8');
+                                $eventUrl = getAssetPath('/event/event-detail.php?id=' . urlencode($event['id']));
                                 
                                 // 이미지 경로 처리
-                                $imageUrl = '/MVNO/assets/images/no-image.png';
+                                $imageUrl = getAssetPath('/assets/images/no-image.png');
                                 if (!empty($event['main_image'])) {
                                     $imagePath = normalizeImagePathForDisplay($event['main_image']);
                                     if (!empty($imagePath)) {

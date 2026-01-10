@@ -4,6 +4,9 @@ $current_page = 'mypage';
 // 메인 페이지 여부 (하단 메뉴 및 푸터 표시용)
 $is_main_page = true;
 
+// 경로 설정 파일 먼저 로드
+require_once '../includes/data/path-config.php';
+
 // 로그인 체크를 위한 auth-functions 포함 (세션 설정과 함께 세션을 시작함)
 require_once '../includes/data/auth-functions.php';
 
@@ -12,7 +15,7 @@ if (!isLoggedIn()) {
     // 현재 URL을 세션에 저장 (회원가입 후 돌아올 주소)
     $_SESSION['redirect_url'] = $_SERVER['REQUEST_URI'];
     // 로그인 모달이 있는 홈으로 리다이렉트 (모달 자동 열기)
-    header('Location: /MVNO/?show_login=1');
+    header('Location: ' . getAssetPath('/?show_login=1'));
     exit;
 }
 
@@ -28,7 +31,7 @@ if (!$currentUser) {
     }
     // 현재 URL을 세션에 저장 (회원가입 후 돌아올 주소)
     $_SESSION['redirect_url'] = $_SERVER['REQUEST_URI'];
-    header('Location: /MVNO/?show_login=1');
+    header('Location: ' . getAssetPath('/?show_login=1'));
     exit;
 }
 
@@ -49,18 +52,42 @@ $mno_count = 0;
 
 if ($pdo) {
     try {
-        // 찜한 통신사단독유심 개수
-        $stmt = $pdo->prepare("SELECT COUNT(*) as count FROM product_favorites WHERE user_id = :user_id AND product_type = 'mno-sim'");
+        // 찜한 통신사단독유심 개수 (활성화된 상품만)
+        $stmt = $pdo->prepare("
+            SELECT COUNT(*) as count 
+            FROM product_favorites pf
+            INNER JOIN products p ON pf.product_id = p.id
+            INNER JOIN product_mno_sim_details mno_sim ON p.id = mno_sim.product_id
+            WHERE pf.user_id = :user_id 
+            AND pf.product_type = 'mno-sim' 
+            AND p.status = 'active'
+        ");
         $stmt->execute([':user_id' => (string)$user_id]);
         $mno_sim_count = intval($stmt->fetch(PDO::FETCH_ASSOC)['count']);
         
-        // 찜한 알뜰폰 개수
-        $stmt = $pdo->prepare("SELECT COUNT(*) as count FROM product_favorites WHERE user_id = :user_id AND product_type = 'mvno'");
+        // 찜한 알뜰폰 개수 (활성화된 상품만)
+        // 알뜰폰은 products 테이블에 직접 저장되므로 간단한 조인
+        $stmt = $pdo->prepare("
+            SELECT COUNT(*) as count 
+            FROM product_favorites pf
+            INNER JOIN products p ON pf.product_id = p.id
+            WHERE pf.user_id = :user_id 
+            AND pf.product_type = 'mvno' 
+            AND p.status = 'active'
+        ");
         $stmt->execute([':user_id' => (string)$user_id]);
         $mvno_count = intval($stmt->fetch(PDO::FETCH_ASSOC)['count']);
         
-        // 찜한 통신사폰 개수
-        $stmt = $pdo->prepare("SELECT COUNT(*) as count FROM product_favorites WHERE user_id = :user_id AND product_type = 'mno'");
+        // 찜한 통신사폰 개수 (활성화된 상품만)
+        // 통신사폰도 products 테이블에 직접 저장되므로 간단한 조인
+        $stmt = $pdo->prepare("
+            SELECT COUNT(*) as count 
+            FROM product_favorites pf
+            INNER JOIN products p ON pf.product_id = p.id
+            WHERE pf.user_id = :user_id 
+            AND pf.product_type = 'mno' 
+            AND p.status = 'active'
+        ");
         $stmt->execute([':user_id' => (string)$user_id]);
         $mno_count = intval($stmt->fetch(PDO::FETCH_ASSOC)['count']);
     } catch (PDOException $e) {
@@ -88,7 +115,7 @@ include '../includes/header.php';
                         <?php echo number_format($current_balance); ?>원
                     </div>
                 </div>
-                <a href="/MVNO/mypage/point-history.php" style="display: inline-block; padding: 8px 16px; background: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.3); border-radius: 8px; color: white; text-decoration: none; font-size: 14px; font-weight: 500; transition: all 0.2s; white-space: nowrap;" onmouseover="this.style.background='rgba(255, 255, 255, 0.3)'; this.style.borderColor='rgba(255, 255, 255, 0.5)';" onmouseout="this.style.background='rgba(255, 255, 255, 0.2)'; this.style.borderColor='rgba(255, 255, 255, 0.3)';">내역보기</a>
+                <a href="<?php echo getAssetPath('/mypage/point-history.php'); ?>" style="display: inline-block; padding: 8px 16px; background: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.3); border-radius: 8px; color: white; text-decoration: none; font-size: 14px; font-weight: 500; transition: all 0.2s; white-space: nowrap;" onmouseover="this.style.background='rgba(255, 255, 255, 0.3)'; this.style.borderColor='rgba(255, 255, 255, 0.5)';" onmouseout="this.style.background='rgba(255, 255, 255, 0.2)'; this.style.borderColor='rgba(255, 255, 255, 0.3)';">내역보기</a>
             </div>
         </div>
 
@@ -97,7 +124,7 @@ include '../includes/header.php';
             <ul style="list-style: none; padding: 0; margin: 0;">
                 <!-- 찜한 통신사단독유심 내역 -->
                 <li style="border-bottom: 1px solid #e5e7eb;">
-                    <a href="/MVNO/mypage/wishlist.php?type=mno-sim" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; text-decoration: none; color: inherit;">
+                    <a href="<?php echo getAssetPath('/mypage/wishlist.php?type=mno-sim'); ?>" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; text-decoration: none; color: inherit;">
                         <div style="display: flex; align-items: center; gap: 12px;">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink: 0;">
                                 <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#ef4444"/>
@@ -112,7 +139,7 @@ include '../includes/header.php';
 
                 <!-- 찜한 알뜰폰 내역 -->
                 <li style="border-bottom: 1px solid #e5e7eb;">
-                    <a href="/MVNO/mypage/wishlist.php?type=mvno" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; text-decoration: none; color: inherit;">
+                    <a href="<?php echo getAssetPath('/mypage/wishlist.php?type=mvno'); ?>" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; text-decoration: none; color: inherit;">
                         <div style="display: flex; align-items: center; gap: 12px;">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink: 0;">
                                 <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#ef4444"/>
@@ -127,7 +154,7 @@ include '../includes/header.php';
 
                 <!-- 찜한 통신사폰 내역 -->
                 <li style="border-bottom: 1px solid #e5e7eb;">
-                    <a href="/MVNO/mypage/wishlist.php?type=mno" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; text-decoration: none; color: inherit;">
+                    <a href="<?php echo getAssetPath('/mypage/wishlist.php?type=mno'); ?>" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; text-decoration: none; color: inherit;">
                         <div style="display: flex; align-items: center; gap: 12px;">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink: 0;">
                                 <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#ef4444"/>
@@ -142,7 +169,7 @@ include '../includes/header.php';
 
                 <!-- 포인트 내역 -->
                 <li style="border-bottom: 1px solid #e5e7eb;">
-                    <a href="/MVNO/mypage/point-history.php" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; text-decoration: none; color: inherit;">
+                    <a href="<?php echo getAssetPath('/mypage/point-history.php'); ?>" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; text-decoration: none; color: inherit;">
                         <div style="display: flex; align-items: center; gap: 12px;">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink: 0;">
                                 <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
@@ -158,7 +185,7 @@ include '../includes/header.php';
 
                 <!-- 통신사단독유심 주문 내역 -->
                 <li style="border-bottom: 1px solid #e5e7eb;">
-                    <a href="/MVNO/mypage/mno-sim-order.php" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; text-decoration: none; color: inherit;">
+                    <a href="<?php echo getAssetPath('/mypage/mno-sim-order.php'); ?>" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; text-decoration: none; color: inherit;">
                         <div style="display: flex; align-items: center; gap: 12px;">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink: 0;">
                                 <path d="M9 11l3 3L22 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -174,7 +201,7 @@ include '../includes/header.php';
 
                 <!-- 알뜰폰 주문 내역 -->
                 <li style="border-bottom: 1px solid #e5e7eb;">
-                    <a href="/MVNO/mypage/mvno-order.php" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; text-decoration: none; color: inherit;">
+                    <a href="<?php echo getAssetPath('/mypage/mvno-order.php'); ?>" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; text-decoration: none; color: inherit;">
                         <div style="display: flex; align-items: center; gap: 12px;">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink: 0;">
                                 <path d="M9 11l3 3L22 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -190,7 +217,7 @@ include '../includes/header.php';
 
                 <!-- 통신사폰 주문 내역 -->
                 <li style="border-bottom: 1px solid #e5e7eb;">
-                    <a href="/MVNO/mypage/mno-order.php" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; text-decoration: none; color: inherit;">
+                    <a href="<?php echo getAssetPath('/mypage/mno-order.php'); ?>" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; text-decoration: none; color: inherit;">
                         <div style="display: flex; align-items: center; gap: 12px;">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink: 0;">
                                 <path d="M9 11l3 3L22 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -206,7 +233,7 @@ include '../includes/header.php';
 
                 <!-- 인터넷 주문 내역 -->
                 <li style="border-bottom: 1px solid #e5e7eb;">
-                    <a href="/MVNO/mypage/internet-order.php" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; text-decoration: none; color: inherit;">
+                    <a href="<?php echo getAssetPath('/mypage/internet-order.php'); ?>" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; text-decoration: none; color: inherit;">
                         <div style="display: flex; align-items: center; gap: 12px;">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink: 0;">
                                 <path d="M9 11l3 3L22 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -222,7 +249,7 @@ include '../includes/header.php';
 
                 <!-- 계정 관리 -->
                 <li style="border-bottom: 1px solid #e5e7eb;">
-                    <a href="/MVNO/mypage/account-management.php" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; text-decoration: none; color: inherit;">
+                    <a href="<?php echo getAssetPath('/mypage/account-management.php'); ?>" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; text-decoration: none; color: inherit;">
                         <div style="display: flex; align-items: center; gap: 12px;">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink: 0;">
                                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -238,7 +265,7 @@ include '../includes/header.php';
 
                 <!-- 알림 설정 -->
                 <li style="border-bottom: 1px solid #e5e7eb;">
-                    <a href="/MVNO/mypage/alarm-setting.php" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; text-decoration: none; color: inherit;">
+                    <a href="<?php echo getAssetPath('/mypage/alarm-setting.php'); ?>" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; text-decoration: none; color: inherit;">
                         <div style="display: flex; align-items: center; gap: 12px;">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink: 0;">
                                 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -256,7 +283,7 @@ include '../includes/header.php';
 
                 <!-- 공지 사항 -->
                 <li style="border-bottom: 1px solid #e5e7eb;">
-                    <a href="/MVNO/notice/notice.php" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; text-decoration: none; color: inherit;">
+                    <a href="<?php echo getAssetPath('/notice/notice.php'); ?>" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; text-decoration: none; color: inherit;">
                         <div style="display: flex; align-items: center; gap: 12px;">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink: 0;">
                                 <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -273,7 +300,7 @@ include '../includes/header.php';
 
                 <!-- 1:1 문의 -->
                 <li style="border-bottom: 1px solid #e5e7eb;">
-                    <a href="/MVNO/qna/qna.php" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; text-decoration: none; color: inherit;">
+                    <a href="<?php echo getAssetPath('/qna/qna.php'); ?>" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; text-decoration: none; color: inherit;">
                         <div style="display: flex; align-items: center; gap: 12px;">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink: 0;">
                                 <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/>

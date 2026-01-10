@@ -54,7 +54,23 @@
         
         const sellerId = document.querySelector('[data-seller-id]')?.getAttribute('data-seller-id') || null;
         
-        fetch('/MVNO/api/analytics/track-favorite.php', {
+        // API 경로 설정
+        // window.API_PATH가 설정되어 있으면 사용, 없으면 window.BASE_PATH + '/api' 사용
+        let baseApiPath = '';
+        if (typeof window !== 'undefined' && window.API_PATH) {
+            baseApiPath = window.API_PATH;
+        } else if (typeof window !== 'undefined' && window.BASE_PATH) {
+            baseApiPath = window.BASE_PATH + '/api';
+        } else {
+            // 둘 다 없으면 빈 문자열 (루트 설치)
+            baseApiPath = '/api';
+        }
+        
+        const apiPath = baseApiPath + '/analytics/track-favorite.php';
+        
+        console.log('API 경로:', apiPath, 'BASE_PATH:', window.BASE_PATH, 'API_PATH:', window.API_PATH, 'baseApiPath:', baseApiPath);
+        
+        fetch(apiPath, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',

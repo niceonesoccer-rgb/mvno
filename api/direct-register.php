@@ -5,9 +5,26 @@
  * - JSON 응답만 반환
  * - 성공 시: success=true
  */
+
+// 에러 출력 방지 (JSON만 반환)
+error_reporting(E_ALL);
+ini_set('display_errors', 0);
+ini_set('log_errors', 1);
+
+// JSON 헤더 먼저 설정
 header('Content-Type: application/json; charset=utf-8');
 
-require_once __DIR__ . '/../includes/data/auth-functions.php';
+try {
+    require_once __DIR__ . '/../includes/data/auth-functions.php';
+} catch (Exception $e) {
+    http_response_code(500);
+    echo json_encode([
+        'success' => false,
+        'message' => '서버 오류가 발생했습니다.',
+        'error' => $e->getMessage()
+    ]);
+    exit;
+}
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode(['success' => false, 'message' => '잘못된 요청입니다.']);
@@ -55,7 +72,7 @@ if (mb_strlen($name) > 15) {
 }
 
 // 전화번호 형식 (010만)
-if (!preg_match('/^010-\d{4}-\d{4}$/', $phone) || !str_starts_with($phone, '010-')) {
+if (!preg_match('/^010-\d{4}-\d{4}$/', $phone) || strpos($phone, '010-') !== 0) {
     echo json_encode(['success' => false, 'message' => '휴대폰번호는 010으로 시작하는 번호만 가능합니다. (010-XXXX-XXXX 형식)']);
     exit;
 }
@@ -115,21 +132,43 @@ if ($combinationCount < 2) {
 
 // 레이스 컨디션 방지: 최종 중복 확인
 if (getUserById($userId)) {
+    http_response_code(400);
     echo json_encode(['success' => false, 'message' => '이미 사용 중인 아이디입니다.']);
     exit;
 }
 
 // 가입 처리
-$result = registerDirectUser($userId, $password, $email, $name, 'user', ['phone' => $phone]);
-if (!($result['success'] ?? false)) {
-    echo json_encode(['success' => false, 'message' => $result['message'] ?? '회원가입에 실패했습니다.']);
+try {
+    $result = registerDirectUser($userId, $password, $email, $name, 'user', ['phone' => $phone]);
+    if (!($result['success'] ?? false)) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => $result['message'] ?? '회원가입에 실패했습니다.']);
+        exit;
+    }
+
+    echo json_encode([
+        'success' => true,
+        'message' => '회원가입이 완료되었습니다. 로그인해주세요.'
+    ]);
+} catch (Exception $e) {
+    error_log('direct-register error: ' . $e->getMessage());
+    http_response_code(500);
+    echo json_encode([
+        'success' => false,
+        'message' => '회원가입 처리 중 오류가 발생했습니다.',
+        'error' => $e->getMessage()
+    ]);
+    exit;
+} catch (Error $e) {
+    error_log('direct-register fatal error: ' . $e->getMessage());
+    http_response_code(500);
+    echo json_encode([
+        'success' => false,
+        'message' => '회원가입 처리 중 오류가 발생했습니다.',
+        'error' => $e->getMessage()
+    ]);
     exit;
 }
-
-echo json_encode([
-    'success' => true,
-    'message' => '회원가입이 완료되었습니다. 로그인해주세요.'
-]);
 
 
 

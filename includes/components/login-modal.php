@@ -765,7 +765,7 @@ $isRegisterMode = false; // 기본값은 로그인 모드
                     
                     <!-- 일반 로그인 폼 -->
                     <div class="login-form-section">
-                        <form id="loginForm" method="POST" action="/MVNO/api/direct-login.php">
+                        <form id="loginForm" method="POST" action="<?php echo getApiPath('/api/direct-login.php'); ?>">
                             <div class="login-form-group">
                                 <input type="text" id="login_user_id" name="user_id" placeholder="아이디" required>
                             </div>
@@ -798,7 +798,7 @@ $isRegisterMode = false; // 기본값은 로그인 모드
                     
                     <!-- 일반 회원가입 폼 -->
                     <div class="login-form-section">
-                        <form id="registerForm" method="POST" action="/MVNO/api/direct-register.php">
+                        <form id="registerForm" method="POST" action="<?php echo getApiPath('/api/direct-register.php'); ?>">
                             <input type="hidden" name="role" value="user">
                             <input type="hidden" id="register_user_id_checked" name="user_id_checked" value="0">
                             <div class="login-form-group">
@@ -914,14 +914,18 @@ function openLoginModal(isRegister = false) {
         return;
     }
     
+    // BASE_PATH를 JavaScript에서 사용할 수 있도록 설정
+    window.BASE_PATH = window.BASE_PATH || '<?php echo getBasePath(); ?>';
+    window.API_PATH = window.BASE_PATH + '/api';
+    
     // 현재 URL을 세션에 저장 (로그인/회원가입 후 돌아올 페이지)
     const currentUrl = window.location.href;
-    fetch('/MVNO/api/save-redirect-url.php', {
+    const formData = new FormData();
+    formData.append('redirect_url', currentUrl);
+    fetch(window.API_PATH + '/save-redirect-url.php', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ redirect_url: currentUrl })
+        credentials: 'same-origin',
+        body: formData
     }).catch(error => {
         console.error('Failed to save redirect URL:', error);
     });
@@ -978,15 +982,15 @@ function closeLoginModal() {
 function snsLoginModal(provider) {
     // 현재 URL을 세션에 저장 (로그인 후 돌아올 페이지)
     const currentUrl = window.location.href;
-    fetch('/MVNO/api/save-redirect-url.php', {
+    const formData = new FormData();
+    formData.append('redirect_url', currentUrl);
+    fetch(window.API_PATH + '/save-redirect-url.php', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ redirect_url: currentUrl })
+        credentials: 'same-origin',
+        body: formData
     }).then(() => {
         // URL 저장 후 SNS 로그인 진행
-        return fetch(`/MVNO/api/sns-login.php?action=${provider}`);
+        return fetch(`${window.API_PATH}/sns-login.php?action=${provider}`);
     })
     .then(response => response.json())
     .then(data => {
@@ -1032,14 +1036,14 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const formData = new FormData(this);
             
-            fetch('/MVNO/api/direct-login.php', {
+            fetch(window.API_PATH + '/direct-login.php', {
                 method: 'POST',
                 body: formData
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    window.location.href = data.redirect || '/MVNO/';
+                    window.location.href = data.redirect || (window.BASE_PATH || '') + '/';
                 } else {
                     alert(data.message || '로그인에 실패했습니다.');
                 }
@@ -1202,11 +1206,22 @@ document.addEventListener('DOMContentLoaded', function() {
                 submitBtn.textContent = '처리중...';
             }
 
-            fetch('/MVNO/api/direct-register.php', {
+            fetch(window.API_PATH + '/direct-register.php', {
                 method: 'POST',
+                credentials: 'same-origin',
                 body: formData
             })
-            .then(response => response.json())
+            .then(response => {
+                // Content-Type 확인
+                const contentType = response.headers.get('content-type') || '';
+                if (contentType.includes('application/json')) {
+                    return response.json();
+                } else {
+                    return response.text().then(text => {
+                        throw new Error('서버가 JSON을 반환하지 않았습니다: ' + text.substring(0, 200));
+                    });
+                }
+            })
             .then(data => {
                 if (data && data.success) {
                     openRegisterSuccessModal(data.message || '회원가입이 완료되었습니다. 로그인해주세요.');
@@ -1226,8 +1241,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             })
             .catch(error => {
-                console.error('Error:', error);
-                alert('회원가입 중 오류가 발생했습니다.');
+                console.error('회원가입 오류:', error);
+                alert('회원가입 중 오류가 발생했습니다: ' + error.message);
             })
             .finally(() => {
                 if (submitBtn) {
@@ -1488,7 +1503,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 userIdCheckResult.className = 'user-id-check-result checking';
                 
                 userIdCheckTimeout = setTimeout(function() {
-                    fetch(`/MVNO/api/check-user-duplicate.php?type=user_id&value=${encodeURIComponent(userId)}`)
+                    fetch(`${window.API_PATH}/check-user-duplicate.php?type=user_id&value=${encodeURIComponent(userId)}`)
                         .then(response => response.json())
                         .then(data => {
                             userIdInput.classList.remove('checking');

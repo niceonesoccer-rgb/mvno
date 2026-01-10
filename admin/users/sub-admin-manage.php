@@ -1,9 +1,10 @@
 <?php
 /**
  * 부관리자 관리 페이지
- * 경로: /MVNO/admin/users/sub-admin-manage.php
+ * 경로: /admin/users/sub-admin-manage.php
  */
 
+require_once __DIR__ . '/../../includes/data/path-config.php';
 require_once __DIR__ . '/../../includes/data/auth-functions.php';
 require_once __DIR__ . '/../../includes/data/db-config.php';
 
@@ -12,13 +13,19 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// 관리자 권한 체크
+// 관리자 권한 체크 (admin 계정만 접근 가능)
 if (!isAdmin()) {
-    header('Location: /MVNO/admin/');
+    header('Location: ' . getAssetPath('/admin/index.php'));
     exit;
 }
 
+// 부관리자 관리 페이지는 admin 계정만 접근 가능
 $currentUser = getCurrentUser();
+if (!$currentUser || ($currentUser['role'] ?? '') !== 'admin') {
+    header('Location: ' . getAssetPath('/admin/index.php'));
+    exit;
+}
+
 $pdo = getDBConnection();
 
 if (!$pdo) {
@@ -172,7 +179,7 @@ require_once __DIR__ . '/../includes/admin-header.php';
                                     <td style="padding: 12px; color: #6b7280;"><?php echo date('Y-m-d H:i', strtotime($admin['created_at'])); ?></td>
                                     <td style="padding: 12px; color: #6b7280;"><?php echo htmlspecialchars($admin['created_by'] ?? '-'); ?></td>
                                     <td style="padding: 12px; text-align: center;">
-                                        <a href="/MVNO/admin/settings/admin-manage.php?user_id=<?php echo urlencode($admin['user_id']); ?>" 
+                                        <a href="<?php echo getAssetPath('/admin/settings/admin-manage.php'); ?>?user_id=<?php echo urlencode($admin['user_id']); ?>" 
                                            style="padding: 6px 12px; background: #6366f1; color: white; text-decoration: none; border-radius: 6px; font-size: 14px; display: inline-block;">
                                             수정
                                         </a>
@@ -301,7 +308,7 @@ require_once __DIR__ . '/../includes/admin-header.php';
 <script>
 // 전역 함수로 정의
 window.switchTab = function(tab) {
-    window.location.href = '/MVNO/admin/users/sub-admin-manage.php?tab=' + tab;
+    window.location.href = '<?php echo getAssetPath('/admin/users/sub-admin-manage.php'); ?>?tab=' + tab;
 };
 
 let idChecked = false;
@@ -333,7 +340,7 @@ function checkDuplicate() {
         return;
     }
     
-    fetch(`/MVNO/api/check-admin-duplicate.php?type=user_id&value=${encodeURIComponent(userId)}`)
+    fetch(`<?php echo getAssetPath('/api/check-admin-duplicate.php'); ?>?type=user_id&value=${encodeURIComponent(userId)}`)
         .then(response => response.json())
         .then(data => {
             if (data.success && !data.duplicate) {

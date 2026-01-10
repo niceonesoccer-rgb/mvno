@@ -122,7 +122,10 @@ else if (!isset($is_main_page)) {
     <?php if (!empty($site['favicon'])): 
         $faviconPath = $site['favicon'];
         // 경로 정규화 (getAssetPath 사용)
-        if (strpos($faviconPath, '/') === 0 && !preg_match('/^https?:\/\//', $faviconPath)) {
+        // HTTP로 시작하는 경우 HTTPS로 변환 (Mixed Content 방지)
+        if (preg_match('/^http:\/\//', $faviconPath)) {
+            $faviconPath = str_replace('http://', 'https://', $faviconPath);
+        } elseif (strpos($faviconPath, '/') === 0 && !preg_match('/^https?:\/\//', $faviconPath)) {
             $faviconPath = getAssetPath($faviconPath);
         } elseif (!preg_match('/^https?:\/\//', $faviconPath)) {
             $faviconPath = getAssetPath('/' . $faviconPath);
@@ -171,6 +174,10 @@ else if (!isset($is_main_page)) {
     </style>
     <?php endif; ?>
     <script>
+        // BASE_PATH와 API_PATH를 JavaScript에서 사용할 수 있도록 설정
+        window.BASE_PATH = '<?php echo getBasePath(); ?>';
+        window.API_PATH = window.BASE_PATH + '/api';
+        
         // 메인 페이지 여부 (하단 메뉴 및 푸터 표시 제어용)
         window.IS_MAIN_PAGE = <?php echo (isset($is_main_page) && $is_main_page) ? 'true' : 'false'; ?>;
     </script>
@@ -189,8 +196,14 @@ else if (!isset($is_main_page)) {
             <div class="left-addon-mobile" id="mobileLogo">
                 <a class="nav-logo" href="<?php echo getBasePath(); ?>/">
                     <span class="usimking-logo-full">
-                        <?php if (!empty($site['logo'])): ?>
-                            <img src="<?php echo htmlspecialchars(getAssetPath($site['logo'])); ?>" alt="<?php echo htmlspecialchars($site['name_ko'] ?? '유심킹'); ?>" style="height: 32px; width: auto; display: inline-block;">
+                        <?php 
+                        $logoPath = '';
+                        if (!empty($site['logo'])) {
+                            $logoPath = getAssetPath($site['logo']);
+                        }
+                        if (!empty($logoPath)): ?>
+                            <img src="<?php echo htmlspecialchars($logoPath); ?>" alt="<?php echo htmlspecialchars($site['name_ko'] ?? '유심킹'); ?>" style="height: 32px; width: auto; display: inline-block;" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-block';">
+                            <span class="logo-text" style="display:none; font-weight: 700; font-size: 18px; color: #6366f1;"><?php echo htmlspecialchars($site['name_ko'] ?? '유심킹'); ?></span>
                         <?php else: ?>
                             <span class="logo-text" style="display:inline-block; font-weight: 700; font-size: 18px; color: #6366f1;"><?php echo htmlspecialchars($site['name_ko'] ?? '유심킹'); ?></span>
                         <?php endif; ?>
@@ -202,8 +215,14 @@ else if (!isset($is_main_page)) {
             <div class="left-addon-desktop">
                 <a class="nav-logo" href="<?php echo getBasePath(); ?>/">
                     <span class="usimking-logo-full">
-                        <?php if (!empty($site['logo'])): ?>
-                            <img src="<?php echo htmlspecialchars(getAssetPath($site['logo'])); ?>" alt="<?php echo htmlspecialchars($site['name_ko'] ?? '유심킹'); ?>" style="height: 32px; width: auto; display: inline-block;">
+                        <?php 
+                        $logoPathDesktop = '';
+                        if (!empty($site['logo'])) {
+                            $logoPathDesktop = getAssetPath($site['logo']);
+                        }
+                        if (!empty($logoPathDesktop)): ?>
+                            <img src="<?php echo htmlspecialchars($logoPathDesktop); ?>" alt="<?php echo htmlspecialchars($site['name_ko'] ?? '유심킹'); ?>" style="height: 32px; width: auto; display: inline-block;" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-block';">
+                            <span class="logo-text" style="display:none; font-weight: 700; font-size: 18px; color: #6366f1;"><?php echo htmlspecialchars($site['name_ko'] ?? '유심킹'); ?></span>
                         <?php else: ?>
                             <span class="logo-text" style="display:inline-block; font-weight: 700; font-size: 18px; color: #6366f1;"><?php echo htmlspecialchars($site['name_ko'] ?? '유심킹'); ?></span>
                         <?php endif; ?>
