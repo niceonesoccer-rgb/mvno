@@ -1,0 +1,30 @@
+# API 디렉토리 설정
+<IfModule mod_php7.c>
+    php_value upload_max_filesize 10M
+    php_value post_max_size 10M
+    php_value max_input_time 300
+    php_value max_execution_time 300
+</IfModule>
+
+# POST 요청 허용
+<Limit POST>
+    Require all granted
+</Limit>
+
+# OPTIONS 요청 허용 (CORS preflight)
+<Limit OPTIONS>
+    Require all granted
+</Limit>
+
+# JSON 요청 허용
+<IfModule mod_headers.c>
+    Header set Access-Control-Allow-Origin "*"
+    Header set Access-Control-Allow-Methods "POST, OPTIONS"
+    Header set Access-Control-Allow-Headers "Content-Type"
+</IfModule>
+
+# mod_security 우회 (일부 호스팅에서 필요)
+<IfModule mod_security.c>
+    SecFilterEngine Off
+    SecFilterScanPOST Off
+</IfModule>

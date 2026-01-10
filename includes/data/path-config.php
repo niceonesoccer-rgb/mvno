@@ -106,12 +106,9 @@ function getAssetPath($path) {
     // 경로 정규화: 중복된 슬래시 제거 및 경로 정리
     $path = preg_replace('#/+#', '/', $path);
     
-    // 전체 URL인 경우 HTTPS로 강제 변환 (Mixed Content 방지)
+    // 전체 URL인 경우 그대로 반환
+    // (HTTP→HTTPS 변환은 header.php에서만 처리)
     if (preg_match('/^https?:\/\//', $path)) {
-        // HTTP를 HTTPS로 변환
-        if (preg_match('/^http:\/\//', $path)) {
-            $path = str_replace('http://', 'https://', $path);
-        }
         return $path;
     }
     

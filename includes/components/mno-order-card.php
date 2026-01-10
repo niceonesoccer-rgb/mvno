@@ -82,9 +82,12 @@ if ($sellerName && $sellerPhone) {
     $sellerPhoneDisplay = $sellerName . '  ' . $sellerPhone;
 }
 
-// 개통완료 또는 종료 상태일 때만 리뷰 버튼 표시
+// 리뷰 설정 파일 포함
+require_once __DIR__ . '/../../includes/data/review-settings.php';
+
+// 리뷰 작성 권한 확인 (관리자 설정 기반)
 $appStatus = $phone['application_status'] ?? '';
-$canWrite = in_array($appStatus, ['activation_completed', 'completed', 'closed', 'terminated']);
+$canWrite = canWriteReview($appStatus);
 
 $hasReview = false;
 $buttonText = '리뷰 작성';

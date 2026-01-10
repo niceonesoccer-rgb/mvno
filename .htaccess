@@ -15,41 +15,20 @@
     ExpiresByType application/javascript "access plus 1 month"
 </IfModule>
 
-# ETag 비활성화 (캐싱 최적화)
-<IfModule mod_headers.c>
-    Header unset ETag
-</IfModule>
-FileETag None
+# 디렉토리 인덱스 파일 지정
+# 주의: 일부 호스팅에서는 DirectoryIndex가 제한될 수 있음
+# DirectoryIndex index.php index.html
 
-# URL 재작성 활성화
-<IfModule mod_rewrite.c>
-    RewriteEngine On
-    
-    # HTTPS 강제 리다이렉트 (프로덕션 환경에서만)
-    # 로컬 환경 제외
-    RewriteCond %{HTTPS} off
-    RewriteCond %{HTTP_HOST} !^localhost [NC]
-    RewriteCond %{HTTP_HOST} !^127\.0\.0\.1 [NC]
-    RewriteCond %{HTTP_HOST} !^::1 [NC]
-    RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
-    
-    # 로컬 환경에서만 /seller/* 경로를 /MVNO/seller/*로 리다이렉트
-    RewriteCond %{HTTP_HOST} ^localhost [OR]
-    RewriteCond %{HTTP_HOST} ^127\.0\.0\.1 [OR]
-    RewriteCond %{HTTP_HOST} ^::1
-    RewriteCond %{REQUEST_URI} ^/seller/(.*)$
-    RewriteRule ^seller/(.*)$ /MVNO/seller/$1 [L]
-    
-    # .php 확장자 없이 접근 가능하도록 설정
-    # 예: /mypage -> mypage.php
-    # 파일이나 디렉토리가 존재하지 않고, .php 파일이 존재하는 경우
-    RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteCond %{REQUEST_FILENAME}.php -f
-    RewriteRule ^(.+)$ $1.php [L]
-    
-</IfModule>
-
-# 커스텀 에러 페이지
-# 404.php 파일이 루트에 존재하는 경우에만 설정
-# (gabia 호스팅에서는 서버 설정이 우선 적용될 수 있음)
+# URL 재작성 (gabia 호스팅 호환성을 위해 최소화)
+# 주의: 프로덕션에서는 RewriteRule이 제한될 수 있으므로 주석 처리
+# 필요 시 로컬 환경에서만 활성화
+#<IfModule mod_rewrite.c>
+#    RewriteEngine On
+#    
+#    # 로컬 환경에서만 /seller/* 경로를 /MVNO/seller/*로 리다이렉트
+#    RewriteCond %{HTTP_HOST} ^localhost$ [OR]
+#    RewriteCond %{HTTP_HOST} ^127\.0\.0\.1$ [OR]
+#    RewriteCond %{HTTP_HOST} ^::1$
+#    RewriteCond %{REQUEST_URI} ^/seller/(.*)$
+#    RewriteRule ^seller/(.*)$ /MVNO/seller/$1 [L,R=302]
+#</IfModule>

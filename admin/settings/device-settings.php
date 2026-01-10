@@ -4,6 +4,7 @@
  * 제조사 및 단말기 관리
  */
 
+require_once __DIR__ . '/../../includes/data/path-config.php';
 require_once __DIR__ . '/../includes/admin-header.php';
 require_once __DIR__ . '/../../includes/data/db-config.php';
 
@@ -515,6 +516,75 @@ $errorMsg = $_GET['error'] ?? '';
         gap: 12px;
         justify-content: flex-end;
     }
+    
+    /* 성공/에러 메시지 모달 */
+    .message-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 3001;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .message-modal.active {
+        display: flex;
+    }
+    
+    .message-modal-content {
+        background: white;
+        border-radius: 12px;
+        padding: 32px;
+        max-width: 400px;
+        width: 90%;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        text-align: center;
+    }
+    
+    .message-modal-icon {
+        width: 64px;
+        height: 64px;
+        margin: 0 auto 20px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 32px;
+    }
+    
+    .message-modal-icon.success {
+        background: #dcfce7;
+        color: #16a34a;
+    }
+    
+    .message-modal-icon.error {
+        background: #fee2e2;
+        color: #dc2626;
+    }
+    
+    .message-modal-title {
+        font-size: 20px;
+        font-weight: 700;
+        color: #1f2937;
+        margin: 0 0 12px 0;
+    }
+    
+    .message-modal-body {
+        font-size: 15px;
+        color: #6b7280;
+        line-height: 1.6;
+        margin-bottom: 24px;
+    }
+    
+    .message-modal-footer {
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+    }
 </style>
 
 <div class="admin-content">
@@ -682,9 +752,9 @@ $errorMsg = $_GET['error'] ?? '';
                                         </span>
                                     </td>
                                     <td>
-                                        <div class="action-buttons">
+                                        <div class="action-buttons" style="display: flex; gap: 8px;">
                                             <button class="btn btn-secondary" onclick="editDevice(<?php echo htmlspecialchars(json_encode($device)); ?>)">수정</button>
-                                            <button class="btn btn-danger" onclick="deleteDevice(<?php echo $device['id']; ?>, '<?php echo htmlspecialchars($device['name']); ?>')">삭제</button>
+                                            <button class="btn btn-danger" onclick="deleteDevice(<?php echo $device['id']; ?>, '<?php echo htmlspecialchars(addslashes($device['name'])); ?>')">삭제</button>
                                         </div>
                                     </td>
                                 </tr>
@@ -853,6 +923,20 @@ $errorMsg = $_GET['error'] ?? '';
     </div>
 </div>
 
+<!-- 성공/에러 메시지 모달 -->
+<div id="messageModal" class="message-modal">
+    <div class="message-modal-content">
+        <div class="message-modal-icon" id="messageModalIcon">
+            <span id="messageModalIconText">✓</span>
+        </div>
+        <h2 class="message-modal-title" id="messageModalTitle">알림</h2>
+        <div class="message-modal-body" id="messageModalBody"></div>
+        <div class="message-modal-footer">
+            <button type="button" class="btn btn-primary" onclick="closeMessageModal()">확인</button>
+        </div>
+    </div>
+</div>
+
 <!-- 제조사 삭제 확인 모달 -->
 <div id="deleteManufacturerModal" class="delete-modal">
     <div class="delete-modal-content">
@@ -880,7 +964,7 @@ $errorMsg = $_GET['error'] ?? '';
             <h2 class="modal-title" id="manufacturerModalTitle">제조사 추가</h2>
             <button class="close-btn" onclick="closeManufacturerModal()">&times;</button>
         </div>
-        <form id="manufacturerForm" method="POST" action="<?php echo getApiPath('/api/device-manage.php'); ?>">
+        <form id="manufacturerForm" method="POST">
             <input type="hidden" name="action" id="manufacturerAction" value="add_manufacturer">
             <input type="hidden" name="manufacturer_id" id="manufacturerId">
             
@@ -924,7 +1008,7 @@ $errorMsg = $_GET['error'] ?? '';
             <h2 class="modal-title" id="deviceModalTitle">단말기 추가</h2>
             <button class="close-btn" onclick="closeDeviceModal()">&times;</button>
         </div>
-        <form id="deviceForm" method="POST" action="<?php echo getApiPath('/api/device-manage.php'); ?>">
+        <form id="deviceForm" method="POST">
             <input type="hidden" name="action" id="deviceAction" value="add_device">
             <input type="hidden" name="device_id" id="deviceId">
             
@@ -1051,6 +1135,54 @@ function closeManufacturerModal() {
     document.body.style.overflow = '';
 }
 
+// 제조사 폼 제출 처리 (AJAX)
+document.getElementById('manufacturerForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const form = document.getElementById('manufacturerForm');
+    const formData = new FormData(form);
+    const action = document.getElementById('manufacturerAction').value;
+    
+    // 버튼 비활성화
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const originalText = submitBtn.textContent;
+    submitBtn.disabled = true;
+    submitBtn.textContent = '처리 중...';
+    
+    fetch('<?php echo getApiPath('/api/device-manage.php'); ?>', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (response.ok) {
+            return response.json();
+        } else {
+            return response.text().then(text => {
+                throw new Error(text || '요청 처리에 실패했습니다.');
+            });
+        }
+    })
+    .then(data => {
+        if (data.success) {
+            // 모달 닫기
+            closeManufacturerModal();
+            
+            // 즉시 페이지 새로고침
+            location.reload();
+        } else {
+            showMessageModal('error', '오류', data.message || '처리 중 오류가 발생했습니다.');
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showMessageModal('error', '오류', '오류가 발생했습니다: ' + error.message);
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+    });
+});
+
 function editManufacturer(manufacturer) {
     openManufacturerModal(manufacturer);
 }
@@ -1095,24 +1227,53 @@ function deleteManufacturer() {
     const id = document.getElementById('deleteManufacturerId').value;
     const name = document.getElementById('deleteManufacturerName').textContent;
     
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = '<?php echo getApiPath('/api/device-manage.php'); ?>';
+    if (!id) {
+        showMessageModal('error', '오류', '삭제할 제조사 ID가 없습니다.');
+        return;
+    }
     
-    const actionInput = document.createElement('input');
-    actionInput.type = 'hidden';
-    actionInput.name = 'action';
-    actionInput.value = 'delete_manufacturer';
-    form.appendChild(actionInput);
+    // 삭제 버튼 비활성화
+    const deleteBtn = document.querySelector('#deleteManufacturerModal .btn-danger');
+    const originalText = deleteBtn.textContent;
+    deleteBtn.disabled = true;
+    deleteBtn.textContent = '삭제 중...';
     
-    const idInput = document.createElement('input');
-    idInput.type = 'hidden';
-    idInput.name = 'manufacturer_id';
-    idInput.value = id;
-    form.appendChild(idInput);
+    const formData = new FormData();
+    formData.append('action', 'delete_manufacturer');
+    formData.append('manufacturer_id', id);
     
-    document.body.appendChild(form);
-    form.submit();
+    fetch('<?php echo getApiPath('/api/device-manage.php'); ?>', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (response.ok) {
+            return response.json();
+        } else {
+            return response.text().then(text => {
+                throw new Error(text || '삭제에 실패했습니다.');
+            });
+        }
+    })
+    .then(data => {
+        if (data.success) {
+            // 삭제 모달 닫기
+            closeDeleteManufacturerModal();
+            
+            // 즉시 페이지 새로고침
+            location.reload();
+        } else {
+            showMessageModal('error', '오류', data.message || '삭제 중 오류가 발생했습니다.');
+            deleteBtn.disabled = false;
+            deleteBtn.textContent = originalText;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showMessageModal('error', '오류', '삭제 중 오류가 발생했습니다: ' + error.message);
+        deleteBtn.disabled = false;
+        deleteBtn.textContent = originalText;
+    });
 }
 
 // 드래그 앤 드롭 기능
@@ -1206,14 +1367,16 @@ function updateManufacturerOrder() {
                 row.setAttribute('data-order', index + 1);
             });
         } else {
-            alert('순서 업데이트에 실패했습니다: ' + (data.message || '알 수 없는 오류'));
-            location.reload();
+            showMessageModal('error', '오류', '순서 업데이트에 실패했습니다: ' + (data.message || '알 수 없는 오류'), function() {
+                location.reload();
+            });
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('순서 업데이트 중 오류가 발생했습니다.');
-        location.reload();
+        showMessageModal('error', '오류', '순서 업데이트 중 오류가 발생했습니다.', function() {
+            location.reload();
+        });
     });
 }
 
@@ -1250,14 +1413,16 @@ function updateStorageOrder() {
                 row.setAttribute('data-order', index + 1);
             });
         } else {
-            alert('순서 업데이트에 실패했습니다: ' + (data.message || '알 수 없는 오류'));
-            location.reload();
+            showMessageModal('error', '오류', '순서 업데이트에 실패했습니다: ' + (data.message || '알 수 없는 오류'), function() {
+                location.reload();
+            });
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('순서 업데이트 중 오류가 발생했습니다.');
-        location.reload();
+        showMessageModal('error', '오류', '순서 업데이트 중 오류가 발생했습니다.', function() {
+            location.reload();
+        });
     });
 }
 
@@ -1337,6 +1502,58 @@ function closeDeviceModal() {
     document.body.style.overflow = '';
 }
 
+// 단말기 폼 제출 처리 (AJAX)
+document.getElementById('deviceForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const form = document.getElementById('deviceForm');
+    const formData = new FormData(form);
+    const action = document.getElementById('deviceAction').value;
+    
+    // 색상 값 업데이트
+    updateColorValues();
+    formData.set('color_values', document.getElementById('deviceColorValues').value);
+    
+    // 버튼 비활성화
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const originalText = submitBtn.textContent;
+    submitBtn.disabled = true;
+    submitBtn.textContent = '처리 중...';
+    
+    fetch('<?php echo getApiPath('/api/device-manage.php'); ?>', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (response.ok) {
+            return response.json();
+        } else {
+            return response.text().then(text => {
+                throw new Error(text || '요청 처리에 실패했습니다.');
+            });
+        }
+    })
+    .then(data => {
+        if (data.success) {
+            // 모달 닫기
+            closeDeviceModal();
+            
+            // 즉시 페이지 새로고침
+            location.reload();
+        } else {
+            showMessageModal('error', '오류', data.message || '처리 중 오류가 발생했습니다.');
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showMessageModal('error', '오류', '오류가 발생했습니다: ' + error.message);
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+    });
+});
+
 function editDevice(device) {
     openDeviceModal(device);
 }
@@ -1381,24 +1598,53 @@ function deleteDeviceConfirm() {
     const id = document.getElementById('deleteDeviceId').value;
     const name = document.getElementById('deleteDeviceName').textContent;
     
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = '<?php echo getApiPath('/api/device-manage.php'); ?>';
+    if (!id) {
+        showMessageModal('error', '오류', '삭제할 단말기 ID가 없습니다.');
+        return;
+    }
     
-    const actionInput = document.createElement('input');
-    actionInput.type = 'hidden';
-    actionInput.name = 'action';
-    actionInput.value = 'delete_device';
-    form.appendChild(actionInput);
+    // 삭제 버튼 비활성화
+    const deleteBtn = document.querySelector('#deleteDeviceModal .btn-danger');
+    const originalText = deleteBtn.textContent;
+    deleteBtn.disabled = true;
+    deleteBtn.textContent = '삭제 중...';
     
-    const idInput = document.createElement('input');
-    idInput.type = 'hidden';
-    idInput.name = 'device_id';
-    idInput.value = id;
-    form.appendChild(idInput);
+    const formData = new FormData();
+    formData.append('action', 'delete_device');
+    formData.append('device_id', id);
     
-    document.body.appendChild(form);
-    form.submit();
+    fetch('<?php echo getApiPath('/api/device-manage.php'); ?>', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (response.ok) {
+            return response.json();
+        } else {
+            return response.text().then(text => {
+                throw new Error(text || '삭제에 실패했습니다.');
+            });
+        }
+    })
+    .then(data => {
+        if (data.success) {
+            // 삭제 모달 닫기
+            closeDeleteDeviceModal();
+            
+            // 즉시 페이지 새로고침
+            location.reload();
+        } else {
+            showMessageModal('error', '오류', data.message || '삭제 중 오류가 발생했습니다.');
+            deleteBtn.disabled = false;
+            deleteBtn.textContent = originalText;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showMessageModal('error', '오류', '삭제 중 오류가 발생했습니다: ' + error.message);
+        deleteBtn.disabled = false;
+        deleteBtn.textContent = originalText;
+    });
 }
 
 // 색상 입력 필드 추가 함수
@@ -1543,6 +1789,46 @@ if (deleteDeviceModal) {
             e.stopPropagation();
         });
     }
+}
+
+// 메시지 모달 표시 함수
+function showMessageModal(type, title, message, callback) {
+    const modal = document.getElementById('messageModal');
+    const icon = document.getElementById('messageModalIcon');
+    const iconText = document.getElementById('messageModalIconText');
+    const modalTitle = document.getElementById('messageModalTitle');
+    const modalBody = document.getElementById('messageModalBody');
+    
+    // 아이콘 설정
+    icon.className = 'message-modal-icon ' + type;
+    if (type === 'success') {
+        iconText.textContent = '✓';
+    } else {
+        iconText.textContent = '✕';
+    }
+    
+    modalTitle.textContent = title;
+    modalBody.textContent = message;
+    
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+    
+    // 확인 버튼 클릭 시 콜백 실행 후 모달 닫기
+    const confirmBtn = modal.querySelector('.btn-primary');
+    const originalOnclick = confirmBtn.onclick;
+    confirmBtn.onclick = function() {
+        closeMessageModal();
+        if (callback && typeof callback === 'function') {
+            callback();
+        }
+    };
+}
+
+// 메시지 모달 닫기
+function closeMessageModal() {
+    const modal = document.getElementById('messageModal');
+    modal.classList.remove('active');
+    document.body.style.overflow = '';
 }
 </script>
 

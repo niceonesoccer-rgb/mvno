@@ -6,13 +6,14 @@ $is_main_page = true;
 
 // 로그인 체크를 위한 auth-functions 포함 (세션 설정과 함께 세션을 시작함)
 require_once '../includes/data/auth-functions.php';
+require_once '../includes/data/path-config.php';
 
 // 로그인 체크 - 로그인하지 않은 경우 회원가입 모달로 리다이렉트
 if (!isLoggedIn()) {
     // 현재 URL을 세션에 저장 (회원가입 후 돌아올 주소)
     $_SESSION['redirect_url'] = $_SERVER['REQUEST_URI'];
     // 로그인 모달이 있는 홈으로 리다이렉트 (모달 자동 열기)
-    header('Location: /MVNO/?show_login=1');
+    header('Location: ' . getAssetPath('/') . '?show_login=1');
     exit;
 }
 
@@ -28,7 +29,7 @@ if (!$currentUser) {
     }
     // 현재 URL을 세션에 저장 (회원가입 후 돌아올 주소)
     $_SESSION['redirect_url'] = $_SERVER['REQUEST_URI'];
-    header('Location: /MVNO/?show_login=1');
+    header('Location: ' . getAssetPath('/') . '?show_login=1');
     exit;
 }
 
@@ -70,7 +71,7 @@ include '../includes/header.php';
         <!-- 뒤로가기 버튼 및 제목 -->
         <div style="margin-bottom: 24px; padding: 20px 0;">
             <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
-                <a href="/MVNO/mypage/mypage.php" style="display: flex; align-items: center; text-decoration: none; color: inherit;">
+                <a href="<?php echo getAssetPath('/mypage/mypage.php'); ?>" style="display: flex; align-items: center; text-decoration: none; color: inherit;">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
@@ -120,7 +121,7 @@ include '../includes/header.php';
 
         <!-- 회원 탈퇴 버튼 -->
         <div style="margin-top: 32px;">
-            <a href="/MVNO/mypage/withdraw.php" style="display: block; width: 100%; padding: 16px; background-color: transparent; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 16px; color: #212529; text-align: center; text-decoration: none; font-weight: 500;">
+            <a href="<?php echo getAssetPath('/mypage/withdraw.php'); ?>" style="display: block; width: 100%; padding: 16px; background-color: transparent; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 16px; color: #212529; text-align: center; text-decoration: none; font-weight: 500;">
                 회원 탈퇴
             </a>
         </div>
@@ -283,37 +284,6 @@ include '../includes/header.php';
                 
                 <div style="margin-bottom: 20px;">
                     <label style="display: block; font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 8px;">
-                        현재 비밀번호
-                    </label>
-                    <div style="position: relative;">
-                        <input 
-                            type="password" 
-                            id="currentPassword" 
-                            name="current_password" 
-                            placeholder="현재 비밀번호를 입력하세요" 
-                            required
-                            style="width: 100%; padding: 12px 40px 12px 16px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box; outline: none; transition: border-color 0.2s;"
-                            onfocus="this.style.borderColor='#6366f1'"
-                            onblur="this.style.borderColor='#d1d5db'"
-                        >
-                        <button 
-                            type="button" 
-                            id="toggleCurrentPassword"
-                            style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; padding: 4px; display: flex; align-items: center; color: #6b7280; z-index: 10;"
-                            onclick="togglePasswordVisibility('currentPassword', 'toggleCurrentPassword')"
-                            title="비밀번호 표시/숨김"
-                        >
-                            <svg id="iconCurrentPassword" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                                <circle cx="12" cy="12" r="3"></circle>
-                            </svg>
-                        </button>
-                    </div>
-                    <div id="currentPasswordError" style="display: none; color: #ef4444; font-size: 13px; margin-top: 8px;"></div>
-                </div>
-                
-                <div style="margin-bottom: 20px;">
-                    <label style="display: block; font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 8px;">
                         새 비밀번호
                     </label>
                     <div style="position: relative;">
@@ -400,6 +370,21 @@ include '../includes/header.php';
 </div>
 
 <script>
+// API 경로 설정 (PHP에서 동적으로 생성)
+const API_BASE_URL = '<?php echo getApiPath(""); ?>';
+const API_SEND_EMAIL_VERIFICATION = '<?php echo getApiPath("/api/send-email-verification.php"); ?>';
+const API_VERIFY_EMAIL_CODE = '<?php echo getApiPath("/api/verify-email-code.php"); ?>';
+const API_UPDATE_EMAIL = '<?php echo getApiPath("/api/update-email.php"); ?>';
+const API_CHANGE_PASSWORD = '<?php echo getApiPath("/api/change-password.php"); ?>';
+
+// 디버깅: 생성된 경로 확인 (콘솔에서 확인 가능)
+console.log('API 경로 설정:', {
+    API_SEND_EMAIL_VERIFICATION: API_SEND_EMAIL_VERIFICATION,
+    API_VERIFY_EMAIL_CODE: API_VERIFY_EMAIL_CODE,
+    API_CHANGE_PASSWORD: API_CHANGE_PASSWORD,
+    BASE_PATH: '<?php echo defined("BASE_PATH") ? BASE_PATH : "undefined"; ?>'
+});
+
 // 비밀번호 표시/숨김 토글 함수
 function togglePasswordVisibility(inputId, buttonId) {
     const input = document.getElementById(inputId);
@@ -407,9 +392,7 @@ function togglePasswordVisibility(inputId, buttonId) {
     
     let iconId = '';
     
-    if (inputId === 'currentPassword') {
-        iconId = 'iconCurrentPassword';
-    } else if (inputId === 'newPassword') {
+    if (inputId === 'newPassword') {
         iconId = 'iconNewPassword';
     } else if (inputId === 'confirmPassword') {
         iconId = 'iconConfirmPassword';
@@ -475,10 +458,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const closePasswordModal = document.getElementById('closePasswordModal');
     const cancelPasswordBtn = document.getElementById('cancelPasswordBtn');
     const passwordForm = document.getElementById('passwordForm');
-    const currentPassword = document.getElementById('currentPassword');
     const newPassword = document.getElementById('newPassword');
     const confirmPassword = document.getElementById('confirmPassword');
-    const currentPasswordError = document.getElementById('currentPasswordError');
     const newPasswordError = document.getElementById('newPasswordError');
     const confirmPasswordError = document.getElementById('confirmPasswordError');
     const passwordEmailVerification = document.getElementById('passwordEmailVerification');
@@ -573,29 +554,67 @@ document.addEventListener('DOMContentLoaded', function() {
             sendVerificationBtn.disabled = true;
             sendVerificationBtn.textContent = '발송 중...';
             
-            fetch('/MVNO/api/send-email-verification.php', {
+            // FormData 사용 (JSON이 서버에서 거부될 수 있으므로)
+            const formData = new FormData();
+            formData.append('email', email);
+            formData.append('type', 'email_change');
+            
+            fetch(API_SEND_EMAIL_VERIFICATION, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ 
-                    email: email,
-                    type: 'email_change'
-                })
+                credentials: 'include', // 세션 쿠키 전송
+                body: formData
             })
-            .then(response => response.json())
+            .then(response => {
+                // 응답 텍스트로 받기 (JSON 파싱은 나중에)
+                return response.text().then(text => {
+                    let data;
+                    try {
+                        data = JSON.parse(text);
+                    } catch (e) {
+                        // JSON 파싱 실패 시 에러로 처리
+                        throw new Error('서버 응답 파싱 오류: ' + text.substring(0, 200));
+                    }
+                    
+                    // response.ok가 false이고 JSON 파싱이 성공한 경우
+                    if (!response.ok) {
+                        // 에러 데이터를 포함한 에러 객체 생성
+                        const error = new Error(data.message || '서버 오류: ' + response.status);
+                        error.data = data;
+                        error.status = response.status;
+                        throw error;
+                    }
+                    
+                    return data;
+                });
+            })
             .then(data => {
                 sendVerificationBtn.disabled = false;
                 sendVerificationBtn.textContent = '인증번호 발송';
                 
                 if (data.success) {
+                    // 이메일 발송 실패 여부 확인
+                    if (data.email_send_failed) {
+                        // 이메일 발송 실패 시 안내 메시지
+                        emailError.innerHTML = '이메일 발송에 실패했습니다.<br>' +
+                            '<small style="color: #6b7280;">이메일 설정을 확인하시거나, 관리자에게 문의해주세요.</small><br>' +
+                            '<small style="color: #6b7280;">임시로 인증번호를 확인하려면 관리자 페이지를 이용해주세요.</small>';
+                        emailError.style.display = 'block';
+                        sendVerificationBtn.disabled = false;
+                        sendVerificationBtn.textContent = '인증번호 발송';
+                        return;
+                    }
+                    
                     let successMessage = '인증번호가 발송되었습니다. 이메일을 확인해주세요.';
                     
                     // 개발 환경에서 인증번호가 반환된 경우 표시
                     if (data.development_mode && data.verification_code) {
+                        const testUrl = '<?php echo getAssetPath("/admin/test-email-verification.php"); ?>';
                         successMessage = '인증번호가 생성되었습니다. (개발 환경)<br>' +
                                        '<strong style="font-size: 18px; color: #6366f1; letter-spacing: 3px;">인증번호: ' + data.verification_code + '</strong><br>' +
-                                       '<small style="color: #6b7280;">또는 <a href="/MVNO/admin/test-email-verification.php" target="_blank" style="color: #6366f1;">인증번호 확인 페이지</a>에서 확인하세요.</small>';
+                                       '<small style="color: #6b7280;">또는 <a href="' + testUrl + '" target="_blank" style="color: #6366f1;">인증번호 확인 페이지</a>에서 확인하세요.</small>';
+                    } else {
+                        // 실제 서버에서도 이메일이 도착하지 않을 경우를 대비해 안내 추가
+                        successMessage += '<br><small style="color: #6b7280; margin-top: 8px; display: block;">이메일이 도착하지 않으면 스팸함을 확인하거나, 잠시 후 다시 시도해주세요.</small>';
                     }
                     
                     emailSuccess.innerHTML = successMessage;
@@ -616,12 +635,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else {
                     emailError.textContent = data.message || '인증번호 발송에 실패했습니다.';
                     emailError.style.display = 'block';
+                    console.error('API 오류:', data);
                 }
             })
             .catch(error => {
                 sendVerificationBtn.disabled = false;
                 sendVerificationBtn.textContent = '인증번호 발송';
-                emailError.textContent = '인증번호 발송 중 오류가 발생했습니다.';
+                console.error('Fetch 오류:', error);
+                
+                // 에러 객체에 data 속성이 있는 경우 (서버에서 JSON 에러 응답을 보낸 경우)
+                if (error.data && error.data.message) {
+                    emailError.textContent = error.data.message;
+                } else {
+                    emailError.textContent = '인증번호 발송 중 오류가 발생했습니다: ' + (error.message || '알 수 없는 오류');
+                }
                 emailError.style.display = 'block';
             });
         });
@@ -650,18 +677,35 @@ document.addEventListener('DOMContentLoaded', function() {
             verifyCodeBtn.disabled = true;
             verifyCodeBtn.textContent = '인증 중...';
             
-            fetch('/MVNO/api/verify-email-code.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ 
-                    email: currentVerificationEmail,
-                    verification_code: code,
-                    type: 'email_change'
+                // FormData 사용
+                const formData = new FormData();
+                formData.append('email', currentVerificationEmail);
+                formData.append('verification_code', code);
+                formData.append('type', 'email_change');
+                
+                fetch(API_VERIFY_EMAIL_CODE, {
+                    method: 'POST',
+                    credentials: 'include', // 세션 쿠키 전송
+                    body: formData
                 })
+            .then(response => {
+                return response.text().then(text => {
+                    let data;
+                    try {
+                        data = JSON.parse(text);
+                    } catch (e) {
+                        throw new Error('서버 응답 파싱 오류: ' + text.substring(0, 200));
+                    }
+                    
+                    if (!response.ok) {
+                        const error = new Error(data.message || '서버 오류: ' + response.status);
+                        error.data = data;
+                        throw error;
+                    }
+                    
+                    return data;
+                });
             })
-            .then(response => response.json())
             .then(data => {
                 verifyCodeBtn.disabled = false;
                 verifyCodeBtn.textContent = '인증 확인';
@@ -681,7 +725,11 @@ document.addEventListener('DOMContentLoaded', function() {
             .catch(error => {
                 verifyCodeBtn.disabled = false;
                 verifyCodeBtn.textContent = '인증 확인';
-                verificationError.textContent = '인증 처리 중 오류가 발생했습니다.';
+                if (error.data && error.data.message) {
+                    verificationError.textContent = error.data.message;
+                } else {
+                    verificationError.textContent = '인증 처리 중 오류가 발생했습니다: ' + (error.message || '알 수 없는 오류');
+                }
                 verificationError.style.display = 'block';
             });
         });
@@ -713,17 +761,34 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        fetch('/MVNO/api/update-email.php', {
+        // FormData 사용
+        const formData = new FormData();
+        formData.append('email', currentVerificationEmail);
+        formData.append('verification_token', currentVerificationToken);
+        
+        fetch(API_UPDATE_EMAIL, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ 
-                email: currentVerificationEmail,
-                verification_token: currentVerificationToken
-            })
+            credentials: 'include', // 세션 쿠키 전송
+            body: formData
         })
-        .then(response => response.json())
+        .then(response => {
+            return response.text().then(text => {
+                let data;
+                try {
+                    data = JSON.parse(text);
+                } catch (e) {
+                    throw new Error('서버 응답 파싱 오류: ' + text.substring(0, 200));
+                }
+                
+                if (!response.ok) {
+                    const error = new Error(data.message || '서버 오류: ' + response.status);
+                    error.data = data;
+                    throw error;
+                }
+                
+                return data;
+            });
+        })
         .then(data => {
             if (data.success) {
                 originalEmail = currentVerificationEmail;
@@ -738,7 +803,11 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         })
         .catch(error => {
-            verificationError.textContent = '이메일 변경 중 오류가 발생했습니다.';
+            if (error.data && error.data.message) {
+                verificationError.textContent = error.data.message;
+            } else {
+                verificationError.textContent = '이메일 변경 중 오류가 발생했습니다: ' + (error.message || '알 수 없는 오류');
+            }
             verificationError.style.display = 'block';
         });
     }
@@ -830,18 +899,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             // 모든 비밀번호 필드를 숨김 상태로 초기화 (눈 아이콘은 항상 표시)
-            if (currentPassword) {
-                currentPassword.type = 'password';
-                const iconCurrent = document.getElementById('iconCurrentPassword');
-                if (iconCurrent) {
-                    iconCurrent.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>';
-                }
-                const btnCurrent = document.getElementById('toggleCurrentPassword');
-                if (btnCurrent) {
-                    btnCurrent.style.color = '#6b7280';
-                    btnCurrent.title = '비밀번호 표시';
-                }
-            }
             if (newPassword) {
                 newPassword.type = 'password';
                 const iconNew = document.getElementById('iconNewPassword');
@@ -853,6 +910,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     btnNew.style.color = '#6b7280';
                     btnNew.title = '비밀번호 표시';
                 }
+                newPassword.focus();
             }
             if (confirmPassword) {
                 confirmPassword.type = 'password';
@@ -866,8 +924,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     btnConfirm.title = '비밀번호 표시';
                 }
             }
-            
-            currentPassword.focus();
         });
     }
     
@@ -885,17 +941,35 @@ document.addEventListener('DOMContentLoaded', function() {
             sendPasswordVerificationBtn.disabled = true;
             sendPasswordVerificationBtn.textContent = '발송 중...';
             
-            fetch('/MVNO/api/send-email-verification.php', {
+            // FormData 사용
+            const formData = new FormData();
+            formData.append('email', userEmail);
+            formData.append('type', 'password_change');
+            
+            fetch(API_SEND_EMAIL_VERIFICATION, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ 
-                    email: userEmail,
-                    type: 'password_change'
-                })
+                credentials: 'include', // 세션 쿠키 전송
+                body: formData
             })
-            .then(response => response.json())
+            .then(response => {
+                return response.text().then(text => {
+                    let data;
+                    try {
+                        data = JSON.parse(text);
+                    } catch (e) {
+                        throw new Error('서버 응답 파싱 오류: ' + text.substring(0, 200));
+                    }
+                    
+                    if (!response.ok) {
+                        const error = new Error(data.message || '서버 오류: ' + response.status);
+                        error.data = data;
+                        error.status = response.status;
+                        throw error;
+                    }
+                    
+                    return data;
+                });
+            })
             .then(data => {
                 sendPasswordVerificationBtn.disabled = false;
                 sendPasswordVerificationBtn.textContent = '인증번호 발송';
@@ -905,9 +979,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     // 개발 환경에서 인증번호가 반환된 경우 표시
                     if (data.development_mode && data.verification_code) {
+                        const testUrl = '<?php echo getAssetPath("/admin/test-email-verification.php"); ?>';
                         successMessage = '인증번호가 생성되었습니다. (개발 환경)<br>' +
                                        '<strong style="font-size: 18px; color: #6366f1; letter-spacing: 3px;">인증번호: ' + data.verification_code + '</strong><br>' +
-                                       '<small style="color: #6b7280;">또는 <a href="/MVNO/admin/test-email-verification.php" target="_blank" style="color: #6366f1;">인증번호 확인 페이지</a>에서 확인하세요.</small>';
+                                       '<small style="color: #6b7280;">또는 <a href="' + testUrl + '" target="_blank" style="color: #6366f1;">인증번호 확인 페이지</a>에서 확인하세요.</small>';
                         
                         // 자동 입력
                         if (passwordVerificationCode) {
@@ -923,12 +998,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else {
                     passwordVerificationError.textContent = data.message || '인증번호 발송에 실패했습니다.';
                     passwordVerificationError.style.display = 'block';
+                    console.error('API 오류:', data);
                 }
             })
             .catch(error => {
                 sendPasswordVerificationBtn.disabled = false;
                 sendPasswordVerificationBtn.textContent = '인증번호 발송';
-                passwordVerificationError.textContent = '인증번호 발송 중 오류가 발생했습니다.';
+                console.error('Fetch 오류:', error);
+                
+                if (error.data && error.data.message) {
+                    passwordVerificationError.textContent = error.data.message;
+                } else {
+                    passwordVerificationError.textContent = '인증번호 발송 중 오류가 발생했습니다: ' + (error.message || '알 수 없는 오류');
+                }
                 passwordVerificationError.style.display = 'block';
             });
         });
@@ -949,18 +1031,35 @@ document.addEventListener('DOMContentLoaded', function() {
                 passwordVerificationError.style.display = 'none';
                 passwordVerificationSuccess.style.display = 'none';
                 
-                fetch('/MVNO/api/verify-email-code.php', {
+                // FormData 사용
+                const formData = new FormData();
+                formData.append('email', userEmail);
+                formData.append('verification_code', this.value);
+                formData.append('type', 'password_change');
+                
+                fetch(API_VERIFY_EMAIL_CODE, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ 
-                        email: userEmail,
-                        verification_code: this.value,
-                        type: 'password_change'
-                    })
+                    credentials: 'include', // 세션 쿠키 전송
+                    body: formData
                 })
-                .then(response => response.json())
+                .then(response => {
+                    return response.text().then(text => {
+                        let data;
+                        try {
+                            data = JSON.parse(text);
+                        } catch (e) {
+                            throw new Error('서버 응답 파싱 오류: ' + text.substring(0, 200));
+                        }
+                        
+                        if (!response.ok) {
+                            const error = new Error(data.message || '서버 오류: ' + response.status);
+                            error.data = data;
+                            throw error;
+                        }
+                        
+                        return data;
+                    });
+                })
                 .then(data => {
                     if (data.success) {
                         passwordVerificationToken = data.verification_token;
@@ -972,7 +1071,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 })
                 .catch(error => {
-                    passwordVerificationError.textContent = '인증 처리 중 오류가 발생했습니다.';
+                    if (error.data && error.data.message) {
+                        passwordVerificationError.textContent = error.data.message;
+                    } else {
+                        passwordVerificationError.textContent = '인증 처리 중 오류가 발생했습니다: ' + (error.message || '알 수 없는 오류');
+                    }
                     passwordVerificationError.style.display = 'block';
                 });
             }
@@ -984,7 +1087,6 @@ document.addEventListener('DOMContentLoaded', function() {
         closePasswordModal.addEventListener('click', function() {
             closeModal(passwordModal);
             passwordForm.reset();
-            currentPasswordError.style.display = 'none';
             newPasswordError.style.display = 'none';
             confirmPasswordError.style.display = 'none';
         });
@@ -994,7 +1096,6 @@ document.addEventListener('DOMContentLoaded', function() {
         cancelPasswordBtn.addEventListener('click', function() {
             closeModal(passwordModal);
             passwordForm.reset();
-            currentPasswordError.style.display = 'none';
             newPasswordError.style.display = 'none';
             confirmPasswordError.style.display = 'none';
         });
@@ -1006,18 +1107,6 @@ document.addEventListener('DOMContentLoaded', function() {
         let value = input.value.replace(/\s/g, ''); // 공백 제거
         value = value.replace(/[^a-zA-Z0-9!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/g, ''); // 허용된 문자만 남김
         input.value = value;
-    }
-    
-    // 현재 비밀번호 입력 필터링
-    if (currentPassword) {
-        currentPassword.addEventListener('input', function() {
-            filterPasswordInput(this);
-        });
-        currentPassword.addEventListener('paste', function() {
-            setTimeout(() => {
-                filterPasswordInput(this);
-            }, 0);
-        });
     }
     
     // 새 비밀번호 실시간 유효성 검사 및 필터링
@@ -1088,20 +1177,11 @@ document.addEventListener('DOMContentLoaded', function() {
         passwordForm.addEventListener('submit', function(e) {
             e.preventDefault();
             
-            const currentPwd = currentPassword.value;
             const newPwd = newPassword.value;
             const confirmPwd = confirmPassword.value;
             
             // 유효성 검사
             let isValid = true;
-            
-            if (!currentPwd) {
-                currentPasswordError.textContent = '현재 비밀번호를 입력해주세요.';
-                currentPasswordError.style.display = 'block';
-                isValid = false;
-            } else {
-                currentPasswordError.style.display = 'none';
-            }
             
             // 비밀번호 유효성 검사: 8자 이상, 영문자/숫자/특수문자 중 2가지 이상 조합
             let passwordErrorMsg = '';
@@ -1147,24 +1227,37 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
-            // 실제로는 서버에 전송
-            const requestBody = {
-                current_password: currentPwd,
-                new_password: newPwd
-            };
+            // FormData 사용
+            const formData = new FormData();
+            formData.append('new_password', newPwd);
             
             if (passwordVerificationToken) {
-                requestBody.verification_token = passwordVerificationToken;
+                formData.append('verification_token', passwordVerificationToken);
             }
             
-            fetch('/MVNO/api/change-password.php', {
+            fetch(API_CHANGE_PASSWORD, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(requestBody)
+                credentials: 'include', // 세션 쿠키 전송
+                body: formData
             })
-            .then(response => response.json())
+            .then(response => {
+                return response.text().then(text => {
+                    let data;
+                    try {
+                        data = JSON.parse(text);
+                    } catch (e) {
+                        throw new Error('서버 응답 파싱 오류: ' + text.substring(0, 200));
+                    }
+                    
+                    if (!response.ok) {
+                        const error = new Error(data.message || '서버 오류: ' + response.status);
+                        error.data = data;
+                        throw error;
+                    }
+                    
+                    return data;
+                });
+            })
             .then(data => {
                 if (data.success) {
                     closeModal(passwordModal);
@@ -1173,10 +1266,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (passwordVerificationCode) passwordVerificationCode.value = '';
                     showAlert('비밀번호가 변경되었습니다.');
                 } else {
-                    if (data.field === 'current_password') {
-                        currentPasswordError.textContent = data.message || '현재 비밀번호가 일치하지 않습니다.';
-                        currentPasswordError.style.display = 'block';
-                    } else if (data.requires_email_verification) {
+                    if (data.requires_email_verification) {
                         passwordVerificationError.textContent = data.message || '이메일 인증이 필요합니다.';
                         passwordVerificationError.style.display = 'block';
                     } else {
@@ -1185,7 +1275,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             })
             .catch(error => {
-                showAlert('비밀번호 변경 중 오류가 발생했습니다.');
+                if (error.data && error.data.message) {
+                    showAlert('비밀번호 변경 오류: ' + error.data.message);
+                } else {
+                    showAlert('비밀번호 변경 중 오류가 발생했습니다: ' + (error.message || '알 수 없는 오류'));
+                }
             });
         });
     }
@@ -1201,7 +1295,6 @@ document.addEventListener('DOMContentLoaded', function() {
             if (passwordModal.style.display === 'flex') {
                 closeModal(passwordModal);
                 passwordForm.reset();
-                currentPasswordError.style.display = 'none';
                 newPasswordError.style.display = 'none';
                 confirmPasswordError.style.display = 'none';
             }

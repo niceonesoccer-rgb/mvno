@@ -307,7 +307,7 @@ $isRegisterMode = isset($_GET['register']) && $_GET['register'] === 'true';
     
     <script>
         function snsLogin(provider) {
-            fetch(`/MVNO/api/sns-login.php?action=${provider}`)
+            fetch('<?php echo getApiPath('/api/sns-login.php'); ?>?action=' + provider)
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {

@@ -3,6 +3,7 @@
  * 데이터 정리 관리 페이지
  */
 
+require_once __DIR__ . '/../../includes/data/path-config.php';
 $pageTitle = '데이터 정리 관리';
 include __DIR__ . '/../includes/admin-header.php';
 
@@ -226,7 +227,7 @@ if (!empty($data['pageviews'])) {
     <div class="info-box-text">
         시스템은 자동으로 24시간마다 2년 이상 된 데이터를 정리합니다.<br>
         또한 성능 최적화를 위해 각 데이터 타입별로 최대 보관 개수가 제한됩니다.<br>
-        보관 개수는 <a href="/MVNO/admin/analytics/settings.php" style="color: #6366f1; text-decoration: underline;">통계 설정</a>에서 변경할 수 있습니다.<br><br>
+        보관 개수는 <a href="<?php echo getAssetPath('/admin/analytics/settings.php'); ?>" style="color: #6366f1; text-decoration: underline;">통계 설정</a>에서 변경할 수 있습니다.<br><br>
         필요시 아래에서 수동으로 정리할 수도 있습니다.
     </div>
 </div>

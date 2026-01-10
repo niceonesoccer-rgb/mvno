@@ -29,8 +29,14 @@ if (!$currentUser) {
     exit;
 }
 
-// POST 데이터 받기
+// POST 데이터 받기 (JSON 또는 FormData 지원)
 $input = json_decode(file_get_contents('php://input'), true);
+
+// FormData 요청도 지원
+if (empty($input) && !empty($_POST)) {
+    $input = $_POST;
+}
+
 $email = trim($input['email'] ?? '');
 $verificationToken = trim($input['verification_token'] ?? '');
 

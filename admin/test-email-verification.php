@@ -1,224 +1,243 @@
 <?php
 /**
- * 개발 환경용 이메일 인증번호 확인 페이지
- * 로그인한 사용자의 최근 인증번호를 확인할 수 있습니다.
+ * 이메일 인증번호 확인 페이지 (관리자용)
+ * 이메일 발송 실패 시 임시로 인증번호를 확인할 수 있습니다.
  */
 
 require_once __DIR__ . '/../includes/data/auth-functions.php';
+require_once __DIR__ . '/../includes/data/path-config.php';
 
-// 로그인 체크
-if (!isLoggedIn()) {
-    header('Location: /MVNO/?show_login=1');
+// 관리자 인증
+$currentUser = getCurrentUser();
+if (!$currentUser || !isAdmin($currentUser['user_id'])) {
+    header('Location: ' . getAssetPath('/admin/login.php'));
     exit;
 }
 
-$currentUser = getCurrentUser();
-if (!$currentUser) {
-    die('사용자 정보를 찾을 수 없습니다.');
-}
+require_once __DIR__ . '/includes/admin-header.php';
 
-// 최근 인증번호 조회
-$verifications = [];
-try {
-    $pdo = getDBConnection();
-    if ($pdo) {
-        $stmt = $pdo->prepare("
-            SELECT id, email, verification_code, type, status, expires_at, verified_at, created_at
-            FROM email_verifications
-            WHERE user_id = :user_id
-            ORDER BY created_at DESC
-            LIMIT 10
+// DB에서 최근 인증번호 조회
+$pdo = getDBConnection();
+$recentVerifications = [];
+
+if ($pdo) {
+    try {
+        $stmt = $pdo->query("
+            SELECT 
+                ev.id,
+                ev.user_id,
+                ev.email,
+                ev.verification_code,
+                ev.verification_token,
+                ev.type,
+                ev.status,
+                ev.created_at,
+                ev.expires_at,
+                ev.verified_at,
+                u.name as user_name,
+                u.user_id as user_user_id
+            FROM email_verifications ev
+            LEFT JOIN users u ON ev.user_id = u.user_id
+            ORDER BY ev.created_at DESC
+            LIMIT 50
         ");
-        $stmt->execute([':user_id' => $currentUser['user_id']]);
-        $verifications = $stmt->fetchAll();
+        $recentVerifications = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (Exception $e) {
+        $error = "데이터 조회 오류: " . $e->getMessage();
     }
-} catch (Exception $e) {
-    $error = $e->getMessage();
 }
 ?>
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>이메일 인증번호 확인 (개발용)</title>
-    <style>
-        body {
-            font-family: 'Malgun Gothic', Arial, sans-serif;
-            max-width: 800px;
-            margin: 50px auto;
-            padding: 20px;
-            background: #f9fafb;
-        }
-        .container {
-            background: white;
-            border-radius: 12px;
-            padding: 30px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-        h1 {
-            color: #1f2937;
-            margin-bottom: 10px;
-        }
-        .info {
-            background: #fef3c7;
-            border: 1px solid #f59e0b;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 20px;
-            color: #92400e;
-        }
-        .user-info {
-            background: #f3f4f6;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-        th, td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #e5e7eb;
-        }
-        th {
-            background: #f9fafb;
-            font-weight: 600;
-            color: #374151;
-        }
-        .code {
-            font-family: 'Courier New', monospace;
-            font-size: 18px;
-            font-weight: bold;
-            color: #6366f1;
-            letter-spacing: 3px;
-        }
-        .status-pending {
-            color: #f59e0b;
-            font-weight: 600;
-        }
-        .status-verified {
-            color: #10b981;
-            font-weight: 600;
-        }
-        .status-expired {
-            color: #ef4444;
-            font-weight: 600;
-        }
-        .empty {
-            text-align: center;
-            padding: 40px;
-            color: #6b7280;
-        }
-        .back-link {
-            display: inline-block;
-            margin-top: 20px;
-            color: #6366f1;
-            text-decoration: none;
-        }
-        .back-link:hover {
-            text-decoration: underline;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>📧 이메일 인증번호 확인 (개발용)</h1>
-        
-        <div class="info">
-            ⚠️ <strong>개발 환경 전용 페이지입니다.</strong><br>
-            XAMPP 환경에서는 이메일 발송이 작동하지 않으므로, 여기서 인증번호를 확인하세요.
+
+<style>
+    .admin-container {
+        margin-top: 80px;
+        max-width: 1200px;
+        margin-left: auto;
+        margin-right: auto;
+        padding: 24px;
+    }
+    
+    .admin-card {
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        margin-bottom: 24px;
+    }
+    
+    h1 {
+        font-size: 24px;
+        font-weight: 700;
+        margin-bottom: 24px;
+        color: #1f2937;
+    }
+    
+    .info-box {
+        background: #eff6ff;
+        border-left: 4px solid #3b82f6;
+        padding: 16px;
+        margin-bottom: 24px;
+        border-radius: 4px;
+    }
+    
+    .info-box p {
+        margin: 4px 0;
+        font-size: 14px;
+        color: #1e40af;
+    }
+    
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 16px;
+    }
+    
+    th, td {
+        padding: 12px;
+        text-align: left;
+        border-bottom: 1px solid #e5e7eb;
+        font-size: 14px;
+    }
+    
+    th {
+        background: #f9fafb;
+        font-weight: 600;
+        color: #374151;
+    }
+    
+    .status-pending {
+        color: #f59e0b;
+        font-weight: 600;
+    }
+    
+    .status-verified {
+        color: #10b981;
+        font-weight: 600;
+    }
+    
+    .status-expired {
+        color: #9ca3af;
+    }
+    
+    .code-display {
+        font-family: 'Courier New', monospace;
+        font-size: 18px;
+        font-weight: 700;
+        color: #6366f1;
+        letter-spacing: 3px;
+        background: #f3f4f6;
+        padding: 8px 12px;
+        border-radius: 6px;
+        display: inline-block;
+    }
+    
+    .type-badge {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: 500;
+    }
+    
+    .type-email_change {
+        background: #dbeafe;
+        color: #1e40af;
+    }
+    
+    .type-password_change {
+        background: #fce7f3;
+        color: #9f1239;
+    }
+</style>
+
+<div class="admin-container">
+    <h1>📧 이메일 인증번호 확인</h1>
+    
+    <div class="admin-card">
+        <div class="info-box">
+            <p><strong>⚠️ 주의사항</strong></p>
+            <p>• 이 페이지는 관리자만 접근 가능합니다.</p>
+            <p>• 이메일 발송 실패 시 임시로 인증번호를 확인할 수 있습니다.</p>
+            <p>• 인증번호는 보안상 중요한 정보이므로 외부에 노출되지 않도록 주의하세요.</p>
+            <p>• 만료된 인증번호는 사용할 수 없습니다.</p>
         </div>
         
-        <div class="user-info">
-            <strong>사용자:</strong> <?php echo htmlspecialchars($currentUser['user_id']); ?> 
-            (<?php echo htmlspecialchars($currentUser['name'] ?? '-'); ?>)
-        </div>
+        <h2 style="font-size: 18px; font-weight: 600; margin-bottom: 16px;">최근 인증번호 (최대 50개)</h2>
         
-        <?php if (isset($error)): ?>
-            <div style="background: #fee2e2; border: 1px solid #ef4444; border-radius: 8px; padding: 15px; color: #991b1b; margin-bottom: 20px;">
-                오류: <?php echo htmlspecialchars($error); ?>
-            </div>
-        <?php endif; ?>
-        
-        <?php if (empty($verifications)): ?>
-            <div class="empty">
-                발송된 인증번호가 없습니다.
-            </div>
-        <?php else: ?>
+        <?php if (!empty($recentVerifications)): ?>
             <table>
                 <thead>
                     <tr>
+                        <th>발송 시간</th>
+                        <th>사용자</th>
                         <th>이메일</th>
-                        <th>인증번호</th>
                         <th>타입</th>
+                        <th>인증번호</th>
                         <th>상태</th>
                         <th>만료 시간</th>
-                        <th>생성 시간</th>
+                        <th>인증 시간</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($verifications as $v): ?>
+                    <?php foreach ($recentVerifications as $verification): ?>
+                        <?php
+                        $isExpired = strtotime($verification['expires_at']) < time();
+                        $statusClass = 'status-' . $verification['status'];
+                        if ($isExpired && $verification['status'] === 'pending') {
+                            $statusClass = 'status-expired';
+                            $verification['status'] = 'expired';
+                        }
+                        ?>
                         <tr>
-                            <td><?php echo htmlspecialchars($v['email']); ?></td>
+                            <td><?php echo htmlspecialchars($verification['created_at']); ?></td>
                             <td>
-                                <span class="code"><?php echo htmlspecialchars($v['verification_code']); ?></span>
-                            </td>
-                            <td>
-                                <?php 
-                                echo $v['type'] === 'email_change' ? '이메일 변경' : '비밀번호 변경';
-                                ?>
-                            </td>
-                            <td>
-                                <?php
-                                $status = $v['status'];
-                                $statusText = [
-                                    'pending' => '대기중',
-                                    'verified' => '인증완료',
-                                    'expired' => '만료됨'
-                                ];
-                                $statusClass = 'status-' . $status;
-                                echo '<span class="' . $statusClass . '">' . ($statusText[$status] ?? $status) . '</span>';
-                                ?>
-                            </td>
-                            <td>
-                                <?php 
-                                $expiresAt = strtotime($v['expires_at']);
-                                $now = time();
-                                if ($expiresAt < $now) {
-                                    echo '<span style="color: #ef4444;">만료됨</span>';
-                                } else {
-                                    $remaining = $expiresAt - $now;
-                                    $minutes = floor($remaining / 60);
-                                    echo $minutes . '분 남음';
-                                }
-                                ?>
+                                <?php echo htmlspecialchars($verification['user_name'] ?? $verification['user_user_id'] ?? '-'); ?>
                                 <br>
-                                <small style="color: #6b7280;">
-                                    <?php echo date('Y-m-d H:i:s', $expiresAt); ?>
-                                </small>
+                                <small style="color: #9ca3af;">(<?php echo htmlspecialchars($verification['user_id']); ?>)</small>
+                            </td>
+                            <td><?php echo htmlspecialchars($verification['email']); ?></td>
+                            <td>
+                                <span class="type-badge type-<?php echo htmlspecialchars($verification['type']); ?>">
+                                    <?php echo $verification['type'] === 'email_change' ? '이메일 변경' : '비밀번호 변경'; ?>
+                                </span>
                             </td>
                             <td>
-                                <?php echo date('Y-m-d H:i:s', strtotime($v['created_at'])); ?>
+                                <?php if ($verification['status'] === 'pending' && !$isExpired): ?>
+                                    <span class="code-display"><?php echo htmlspecialchars($verification['verification_code']); ?></span>
+                                <?php else: ?>
+                                    <span style="color: #9ca3af;">-</span>
+                                <?php endif; ?>
+                            </td>
+                            <td>
+                                <span class="<?php echo $statusClass; ?>">
+                                    <?php
+                                    if ($verification['status'] === 'pending' && !$isExpired) {
+                                        echo '대기중';
+                                    } elseif ($verification['status'] === 'verified') {
+                                        echo '인증완료';
+                                    } else {
+                                        echo '만료됨';
+                                    }
+                                    ?>
+                                </span>
+                            </td>
+                            <td>
+                                <?php echo htmlspecialchars($verification['expires_at']); ?>
+                                <?php if ($isExpired): ?>
+                                    <br><small style="color: #ef4444;">(만료)</small>
+                                <?php endif; ?>
+                            </td>
+                            <td>
+                                <?php echo $verification['verified_at'] ? htmlspecialchars($verification['verified_at']) : '-'; ?>
                             </td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>
             </table>
+        <?php else: ?>
+            <p style="color: #9ca3af; text-align: center; padding: 40px;">발송된 인증번호가 없습니다.</p>
         <?php endif; ?>
-        
-        <a href="/MVNO/mypage/account-management.php" class="back-link">← 계정 설정으로 돌아가기</a>
     </div>
-</body>
-</html>
+</div>
 
-
-
-
-
-
-
-
+<?php require_once __DIR__ . '/includes/admin-footer.php'; ?>

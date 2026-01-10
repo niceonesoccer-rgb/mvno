@@ -5,11 +5,12 @@
  */
 
 require_once __DIR__ . '/../../includes/data/auth-functions.php';
+require_once __DIR__ . '/../../includes/data/path-config.php';
 
 // admin 계정만 접근 가능 (부관리자 제외)
 $currentUser = getCurrentUser();
 if (!$currentUser || getUserRole($currentUser['user_id']) !== 'admin') {
-    header('Location: /MVNO/admin/');
+    header('Location: ' . getAssetPath('/admin/'));
     exit;
 }
 

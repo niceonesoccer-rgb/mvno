@@ -11,7 +11,7 @@ require_once __DIR__ . '/../../includes/data/auth-functions.php';
 
 // 관리자 권한 체크
 if (!isAdmin()) {
-    header('Location: /MVNO/admin/');
+    header('Location: ' . getAssetPath('/admin/'));
     exit;
 }
 

@@ -15,6 +15,15 @@ require_once __DIR__ . '/data/path-config.php';
 require_once __DIR__ . '/data/auth-functions.php';
 require_once __DIR__ . '/data/site-settings.php';
 
+// 통계 추적 자동 실행 (관리자/판매자 페이지 제외)
+if (!defined('DISABLE_ANALYTICS') && !strpos($_SERVER['REQUEST_URI'] ?? '', '/admin/') && !strpos($_SERVER['REQUEST_URI'] ?? '', '/seller/')) {
+    // 세션이 시작되어 있는지 확인
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    require_once __DIR__ . '/analytics-tracker.php';
+}
+
 $siteSettings = getSiteSettings();
 $site = $siteSettings['site'] ?? [];
 
@@ -126,10 +135,8 @@ else if (!isset($is_main_page)) {
         // 경로 정규화 (getAssetPath 사용)
         // HTTP로 시작하는 경우 HTTPS로 변환 (Mixed Content 방지)
         if (preg_match('/^https?:\/\//', $faviconPath)) {
-            // 전체 URL인 경우 그대로 사용 (HTTPS 변환만)
-            if (preg_match('/^http:\/\//', $faviconPath)) {
-                $faviconPath = str_replace('http://', 'https://', $faviconPath);
-            }
+            // 전체 URL인 경우 HTTPS로 강제 변환
+            $faviconPath = preg_replace('/^http:\/\//', 'https://', $faviconPath);
         } else {
             // 상대 경로인 경우: DB에 저장된 경로에서 하드코딩된 /MVNO/ 제거 (웹/로컬 호환성)
             while (strpos($faviconPath, '/MVNO/') !== false) {
@@ -140,6 +147,15 @@ else if (!isset($is_main_page)) {
                 $faviconPath = getAssetPath($faviconPath);
             } else {
                 $faviconPath = getAssetPath('/' . $faviconPath);
+            }
+            
+            // 프로덕션 환경에서 HTTPS 강제 (Mixed Content 방지)
+            // HTTPS 요청인 경우 favicon 경로도 HTTPS로 변환
+            if ((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') || 
+                (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') ||
+                (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443)) {
+                // 상대 경로인 경우 절대 URL로 변환하지 않음 (getAssetPath가 이미 처리)
+                // 대신 favicon 링크에 protocol-relative URL 사용하지 않도록 함
             }
         }
         $faviconExt = strtolower(pathinfo($faviconPath, PATHINFO_EXTENSION));

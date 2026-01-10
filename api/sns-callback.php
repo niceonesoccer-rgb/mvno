@@ -5,6 +5,7 @@
 
 // auth-functions.php에서 세션 설정과 함께 세션을 시작함
 require_once __DIR__ . '/../includes/data/auth-functions.php';
+require_once __DIR__ . '/../includes/data/path-config.php';
 
 // API 설정 읽기
 function getApiSettings() {
@@ -17,7 +18,7 @@ $code = $_GET['code'] ?? '';
 $state = $_GET['state'] ?? '';
 
 if (empty($provider) || empty($code)) {
-    header('Location: /MVNO/auth/login.php?error=invalid_request');
+    header('Location: ' . getAssetPath('/auth/login.php') . '?error=invalid_request');
     exit;
 }
 
@@ -27,7 +28,7 @@ $settings = getApiSettings();
 if ($provider === 'naver') {
     // State 검증
     if (!isset($_SESSION['naver_state']) || $_SESSION['naver_state'] !== $state) {
-        header('Location: /MVNO/auth/login.php?error=invalid_state');
+        header('Location: ' . getAssetPath('/auth/login.php') . '?error=invalid_state');
         exit;
     }
     unset($_SESSION['naver_state']);
@@ -55,7 +56,7 @@ if ($provider === 'naver') {
     
     $tokenData = json_decode($tokenResponse, true);
     if (!isset($tokenData['access_token'])) {
-        header('Location: /MVNO/auth/login.php?error=token_failed');
+        header('Location: ' . getAssetPath('/auth/login.php') . '?error=token_failed');
         exit;
     }
     
@@ -69,7 +70,7 @@ if ($provider === 'naver') {
     
     $userData = json_decode($userResponse, true);
     if (!isset($userData['response'])) {
-        header('Location: /MVNO/auth/login.php?error=user_info_failed');
+        header('Location: ' . getAssetPath('/auth/login.php') . '?error=user_info_failed');
         exit;
     }
     
@@ -79,7 +80,7 @@ if ($provider === 'naver') {
     $name = $naverUser['name'] ?? '';
     
     if (empty($snsId)) {
-        header('Location: /MVNO/auth/login.php?error=invalid_user');
+        header('Location: ' . getAssetPath('/auth/login.php') . '?error=invalid_user');
         exit;
     }
     
@@ -90,13 +91,13 @@ if ($provider === 'naver') {
     }
 
     if (!$user) {
-        header('Location: /MVNO/auth/login.php?error=invalid_request');
+        header('Location: ' . getAssetPath('/auth/login.php') . '?error=invalid_request');
         exit;
     }
     
     // 관리자/판매자는 SNS 로그인 불가
     if ($user['role'] === 'admin' || $user['role'] === 'sub_admin' || $user['role'] === 'seller') {
-        header('Location: /MVNO/?error=sns_login_not_allowed');
+        header('Location: ' . getAssetPath('/') . '?error=sns_login_not_allowed');
         exit;
     }
     
@@ -105,7 +106,7 @@ if ($provider === 'naver') {
     // 전화번호가 없으면 추가 정보 입력 페이지로 리다이렉트
     // 리다이렉트 URL은 이미 세션에 저장되어 있으므로 그대로 유지
     if (empty($user['phone'])) {
-        header('Location: /MVNO/auth/complete-profile.php');
+        header('Location: ' . getAssetPath('/auth/complete-profile.php'));
         exit;
     }
     
@@ -115,7 +116,7 @@ if ($provider === 'naver') {
         unset($_SESSION['redirect_url']);
         header('Location: ' . $redirectUrl);
     } else {
-        header('Location: /MVNO/');
+        header('Location: ' . getAssetPath('/'));
     }
     exit;
 }
@@ -143,7 +144,7 @@ if ($provider === 'kakao') {
     
     $tokenData = json_decode($tokenResponse, true);
     if (!isset($tokenData['access_token'])) {
-        header('Location: /MVNO/auth/login.php?error=token_failed');
+        header('Location: ' . getAssetPath('/auth/login.php') . '?error=token_failed');
         exit;
     }
     
@@ -157,7 +158,7 @@ if ($provider === 'kakao') {
     
     $userData = json_decode($userResponse, true);
     if (!isset($userData['id'])) {
-        header('Location: /MVNO/auth/login.php?error=user_info_failed');
+        header('Location: ' . getAssetPath('/auth/login.php') . '?error=user_info_failed');
         exit;
     }
     
@@ -172,13 +173,13 @@ if ($provider === 'kakao') {
     }
 
     if (!$user) {
-        header('Location: /MVNO/auth/login.php?error=invalid_request');
+        header('Location: ' . getAssetPath('/auth/login.php') . '?error=invalid_request');
         exit;
     }
     
     // 관리자/판매자는 SNS 로그인 불가
     if ($user['role'] === 'admin' || $user['role'] === 'sub_admin' || $user['role'] === 'seller') {
-        header('Location: /MVNO/?error=sns_login_not_allowed');
+        header('Location: ' . getAssetPath('/') . '?error=sns_login_not_allowed');
         exit;
     }
     
@@ -187,7 +188,7 @@ if ($provider === 'kakao') {
     // 전화번호가 없으면 추가 정보 입력 페이지로 리다이렉트
     // 리다이렉트 URL은 이미 세션에 저장되어 있으므로 그대로 유지
     if (empty($user['phone'])) {
-        header('Location: /MVNO/auth/complete-profile.php');
+        header('Location: ' . getAssetPath('/auth/complete-profile.php'));
         exit;
     }
     
@@ -197,7 +198,7 @@ if ($provider === 'kakao') {
         unset($_SESSION['redirect_url']);
         header('Location: ' . $redirectUrl);
     } else {
-        header('Location: /MVNO/');
+        header('Location: ' . getAssetPath('/'));
     }
     exit;
 }
@@ -206,7 +207,7 @@ if ($provider === 'kakao') {
 if ($provider === 'google') {
     // State 검증
     if (!isset($_SESSION['google_state']) || $_SESSION['google_state'] !== $state) {
-        header('Location: /MVNO/auth/login.php?error=invalid_state');
+        header('Location: ' . getAssetPath('/auth/login.php') . '?error=invalid_state');
         exit;
     }
     unset($_SESSION['google_state']);
@@ -234,7 +235,7 @@ if ($provider === 'google') {
     
     $tokenData = json_decode($tokenResponse, true);
     if (!isset($tokenData['access_token'])) {
-        header('Location: /MVNO/auth/login.php?error=token_failed');
+        header('Location: ' . getAssetPath('/auth/login.php') . '?error=token_failed');
         exit;
     }
     
@@ -248,7 +249,7 @@ if ($provider === 'google') {
     
     $userData = json_decode($userResponse, true);
     if (!isset($userData['id'])) {
-        header('Location: /MVNO/auth/login.php?error=user_info_failed');
+        header('Location: ' . getAssetPath('/auth/login.php') . '?error=user_info_failed');
         exit;
     }
     
@@ -263,13 +264,13 @@ if ($provider === 'google') {
     }
 
     if (!$user) {
-        header('Location: /MVNO/auth/login.php?error=invalid_request');
+        header('Location: ' . getAssetPath('/auth/login.php') . '?error=invalid_request');
         exit;
     }
     
     // 관리자/판매자는 SNS 로그인 불가
     if ($user['role'] === 'admin' || $user['role'] === 'sub_admin' || $user['role'] === 'seller') {
-        header('Location: /MVNO/?error=sns_login_not_allowed');
+        header('Location: ' . getAssetPath('/') . '?error=sns_login_not_allowed');
         exit;
     }
     
@@ -278,7 +279,7 @@ if ($provider === 'google') {
     // 전화번호가 없으면 추가 정보 입력 페이지로 리다이렉트
     // 리다이렉트 URL은 이미 세션에 저장되어 있으므로 그대로 유지
     if (empty($user['phone'])) {
-        header('Location: /MVNO/auth/complete-profile.php');
+        header('Location: ' . getAssetPath('/auth/complete-profile.php'));
         exit;
     }
     
@@ -288,10 +289,10 @@ if ($provider === 'google') {
         unset($_SESSION['redirect_url']);
         header('Location: ' . $redirectUrl);
     } else {
-        header('Location: /MVNO/');
+        header('Location: ' . getAssetPath('/'));
     }
     exit;
 }
 
-header('Location: /MVNO/auth/login.php?error=invalid_provider');
+header('Location: ' . getAssetPath('/auth/login.php') . '?error=invalid_provider');
 

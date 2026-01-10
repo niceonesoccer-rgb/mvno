@@ -1,10 +1,10 @@
 <?php
 /**
  * 데이터 삭제 관리 페이지
- * 경로: /MVNO/admin/settings/data-delete.php
  */
 
 require_once __DIR__ . '/../../includes/data/auth-functions.php';
+require_once __DIR__ . '/../../includes/data/path-config.php';
 require_once __DIR__ . '/../../includes/data/db-config.php';
 require_once __DIR__ . '/../../includes/data/log-cleanup-functions.php';
 require_once __DIR__ . '/../../includes/data/app-settings.php';
@@ -18,7 +18,7 @@ if (session_status() === PHP_SESSION_NONE) {
 // admin 계정만 접근 가능 (부관리자 제외)
 $currentUser = getCurrentUser();
 if (!$currentUser || getUserRole($currentUser['user_id']) !== 'admin') {
-    header('Location: /MVNO/admin/');
+    header('Location: ' . getAssetPath('/admin/'));
     exit;
 }
 $error = '';
@@ -100,7 +100,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $success = "로그 파일이 정리되었습니다. ({$totalDeleted}건 삭제, {$totalSizeMB}MB 절약, 보관 기간: {$days}일)";
             
             // 리다이렉트하여 성공 메시지 표시 및 선택한 보관 기간 유지
-            header('Location: /MVNO/admin/settings/data-delete.php?success=' . urlencode($success) . '&days=' . $days);
+            header('Location: ' . getAssetPath('/admin/settings/data-delete.php') . '?success=' . urlencode($success) . '&days=' . $days);
             exit;
         } catch (Exception $e) {
             $error = '로그 정리 중 오류가 발생했습니다: ' . $e->getMessage();
@@ -119,7 +119,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             
             if (saveAppSettings('log_cleanup_settings', $logSettings, $updatedBy)) {
                 $success = "보관 기간이 저장되었습니다. ({$days}일)";
-                header('Location: /MVNO/admin/settings/data-delete.php?success=' . urlencode($success) . '&days=' . $days);
+                header('Location: ' . getAssetPath('/admin/settings/data-delete.php') . '?success=' . urlencode($success) . '&days=' . $days);
                 exit;
             } else {
                 $error = '보관 기간 저장에 실패했습니다.';
@@ -184,7 +184,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 
                 $totalDeleted = $deletedCounts['impressions'] + $deletedCounts['clicks'] + $deletedCounts['analytics'];
                 $success = "통계 데이터가 정리되었습니다. (노출: {$deletedCounts['impressions']}건, 클릭: {$deletedCounts['clicks']}건, 통계: {$deletedCounts['analytics']}건, 총 {$totalDeleted}건 삭제, 보관 기간: {$days}일)";
-                header('Location: /MVNO/admin/settings/data-delete.php?success=' . urlencode($success) . '&analytics_days=' . $days);
+                header('Location: ' . getAssetPath('/admin/settings/data-delete.php') . '?success=' . urlencode($success) . '&analytics_days=' . $days);
                 exit;
         } catch (Exception $e) {
             $error = '통계 데이터 정리 중 오류가 발생했습니다: ' . $e->getMessage();
@@ -201,7 +201,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $updatedBy = function_exists('getCurrentUserId') ? getCurrentUserId() : null;
                 if (saveAppSettings('analytics_cleanup_settings', $analyticsSettings, $updatedBy)) {
                     $success = "통계 데이터 보관 기간이 저장되었습니다. ({$days}일)";
-                    header('Location: /MVNO/admin/settings/data-delete.php?success=' . urlencode($success) . '&analytics_days=' . $days);
+                    header('Location: ' . getAssetPath('/admin/settings/data-delete.php') . '?success=' . urlencode($success) . '&analytics_days=' . $days);
                     exit;
                 } else {
                     $error = '통계 데이터 보관 기간 저장에 실패했습니다.';
@@ -288,7 +288,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             
             $totalDeleted = $deletedCounts['pageviews'] + $deletedCounts['events'] + $deletedCounts['sessions'] + $deletedCounts['daily_stats'];
             $success = "일반 통계 분석 데이터가 정리되었습니다. (페이지뷰: {$deletedCounts['pageviews']}건, 이벤트: {$deletedCounts['events']}건, 세션: {$deletedCounts['sessions']}건, 일별통계: {$deletedCounts['daily_stats']}건, 총 {$totalDeleted}건 삭제, 보관 기간: {$days}일)";
-            header('Location: /MVNO/admin/settings/data-delete.php?success=' . urlencode($success) . '&general_analytics_days=' . $days);
+            header('Location: ' . getAssetPath('/admin/settings/data-delete.php') . '?success=' . urlencode($success) . '&general_analytics_days=' . $days);
             exit;
         } catch (Exception $e) {
             $error = '일반 통계 분석 데이터 정리 중 오류가 발생했습니다: ' . $e->getMessage();
@@ -305,7 +305,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $updatedBy = function_exists('getCurrentUserId') ? getCurrentUserId() : null;
             if (saveAppSettings('general_analytics_cleanup_settings', $generalAnalyticsSettings, $updatedBy)) {
                 $success = "일반 통계 분석 데이터 보관 기간이 저장되었습니다. ({$days}일)";
-                header('Location: /MVNO/admin/settings/data-delete.php?success=' . urlencode($success) . '&general_analytics_days=' . $days);
+                header('Location: ' . getAssetPath('/admin/settings/data-delete.php') . '?success=' . urlencode($success) . '&general_analytics_days=' . $days);
                 exit;
             } else {
                 $error = '일반 통계 분석 데이터 보관 기간 저장에 실패했습니다.';
@@ -765,8 +765,255 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     }
                     break;
                     
+                case 'delete_dev_logs':
+                    // 개발 로그 파일 삭제
+                    $baseDir = __DIR__ . '/../..';
+                    $deletedFiles = [];
+                    $totalSize = 0;
+                    
+                    $logDir = $baseDir . '/logs';
+                    if (is_dir($logDir)) {
+                        $logFiles = glob($logDir . '/*');
+                        foreach ($logFiles as $file) {
+                            if (is_file($file)) {
+                                $size = filesize($file);
+                                if (@unlink($file)) {
+                                    $deletedFiles[] = basename($file);
+                                    $totalSize += $size;
+                                }
+                            }
+                        }
+                    }
+                    
+                    $fileCount = count($deletedFiles);
+                    $sizeMB = round($totalSize / 1024 / 1024, 2);
+                    $deleteResult = ['type' => '개발 로그 파일', 'count' => $fileCount, 'details' => ['files' => $fileCount, 'size_mb' => $sizeMB]];
+                    $success = "개발 로그 파일 {$fileCount}개가 삭제되었습니다. (총 {$sizeMB}MB)";
+                    break;
+                    
+                case 'delete_cache_files':
+                    // 캐시 파일 삭제
+                    $baseDir = __DIR__ . '/../..';
+                    $deletedFiles = [];
+                    $totalSize = 0;
+                    
+                    $cacheDir = $baseDir . '/cache';
+                    if (is_dir($cacheDir)) {
+                        $cacheFiles = glob($cacheDir . '/*');
+                        foreach ($cacheFiles as $file) {
+                            if (is_file($file)) {
+                                $size = filesize($file);
+                                if (@unlink($file)) {
+                                    $deletedFiles[] = 'cache/' . basename($file);
+                                    $totalSize += $size;
+                                }
+                            }
+                        }
+                    }
+                    
+                    $fileCount = count($deletedFiles);
+                    $sizeMB = round($totalSize / 1024 / 1024, 2);
+                    $deleteResult = ['type' => '캐시 파일', 'count' => $fileCount, 'details' => ['files' => $fileCount, 'size_mb' => $sizeMB]];
+                    $success = "캐시 파일 {$fileCount}개가 삭제되었습니다. (총 {$sizeMB}MB)";
+                    break;
+                    
+                case 'delete_test_scripts':
+                    // 테스트/디버그 스크립트 삭제
+                    $baseDir = __DIR__ . '/../..';
+                    $deletedFiles = [];
+                    $totalSize = 0;
+                    
+                    $testPatterns = [
+                        'check-*.php', 'debug-*.php', 'test-*.php', 'fix-*.php', 'verify-*.php',
+                        'calculate-*.php', 'optimize-*.php', 'monitor-*.php', 'process-*.php',
+                        'run-*.php', 'disable-*.php', 'cleanup-*.php', 'quick-*.php',
+                        'generate_*.php', 'get_*.php', 'mypage_history*.php',
+                        '*debug*.php', '*test*.php', '*check*.php', '*fix*.php',
+                        '*verify*.php', '*calculate*.php', '*monitor*.php', '*optimize*.php'
+                    ];
+                    
+                    foreach ($testPatterns as $pattern) {
+                        $files = glob($baseDir . '/' . $pattern);
+                        foreach ($files as $file) {
+                            if (is_file($file) && basename($file) !== 'data-delete.php') {
+                                $size = filesize($file);
+                                if (@unlink($file)) {
+                                    $deletedFiles[] = basename($file);
+                                    $totalSize += $size;
+                                }
+                            }
+                        }
+                    }
+                    
+                    $fileCount = count($deletedFiles);
+                    $sizeMB = round($totalSize / 1024 / 1024, 2);
+                    $deleteResult = ['type' => '테스트/디버그 스크립트', 'count' => $fileCount, 'details' => ['files' => $fileCount, 'size_mb' => $sizeMB]];
+                    $success = "테스트/디버그 스크립트 {$fileCount}개가 삭제되었습니다. (총 {$sizeMB}MB)";
+                    break;
+                    
+                case 'delete_debug_pages':
+                    // 디버깅 페이지 삭제
+                    $baseDir = __DIR__ . '/../..';
+                    $deletedFiles = [];
+                    $totalSize = 0;
+                    
+                    $debugPages = [
+                        'admin/review-settings-debug.php', 'admin/debug-login-redirect.php',
+                        'admin/debug-qna-deletion.php', 'admin/deposit/debug-account-info.php',
+                        'admin/products/debug-point-api.php', 'seller/inquiry/inquiry-debug.php',
+                        'seller/inquiry/inquiry-edit-debug.php', 'seller/debug-main-notice.php',
+                        'api/debug-mno-sim-orders.php'
+                    ];
+                    
+                    foreach ($debugPages as $debugPage) {
+                        $file = $baseDir . '/' . $debugPage;
+                        if (is_file($file)) {
+                            $size = filesize($file);
+                            if (@unlink($file)) {
+                                $deletedFiles[] = $debugPage;
+                                $totalSize += $size;
+                            }
+                        }
+                    }
+                    
+                    $fileCount = count($deletedFiles);
+                    $sizeMB = round($totalSize / 1024 / 1024, 2);
+                    $deleteResult = ['type' => '디버깅 페이지', 'count' => $fileCount, 'details' => ['files' => $fileCount, 'size_mb' => $sizeMB]];
+                    $success = "디버깅 페이지 {$fileCount}개가 삭제되었습니다. (총 {$sizeMB}MB)";
+                    break;
+                    
+                case 'delete_script_files':
+                    // 배치/스크립트 파일 삭제
+                    $baseDir = __DIR__ . '/../..';
+                    $deletedFiles = [];
+                    $totalSize = 0;
+                    
+                    $scriptFiles = [
+                        'check-logs.bat', 'check-logs.ps1', 'check_mypage.bat',
+                        'restore_mypage.bat', 'restore_mypage.ps1', 'restore_mypage.py',
+                        'check_mypage_history.py', 'generate_mypage_history_html.py',
+                        'get_mypage_history.py', 'restore_mypage_simple.bat'
+                    ];
+                    
+                    foreach ($scriptFiles as $script) {
+                        $file = $baseDir . '/' . $script;
+                        if (is_file($file)) {
+                            $size = filesize($file);
+                            if (@unlink($file)) {
+                                $deletedFiles[] = $script;
+                                $totalSize += $size;
+                            }
+                        }
+                    }
+                    
+                    $fileCount = count($deletedFiles);
+                    $sizeMB = round($totalSize / 1024 / 1024, 2);
+                    $deleteResult = ['type' => '배치/스크립트 파일', 'count' => $fileCount, 'details' => ['files' => $fileCount, 'size_mb' => $sizeMB]];
+                    $success = "배치/스크립트 파일 {$fileCount}개가 삭제되었습니다. (총 {$sizeMB}MB)";
+                    break;
+                    
+                case 'delete_doc_files':
+                    // 개발 문서 파일 삭제
+                    $baseDir = __DIR__ . '/../..';
+                    $deletedFiles = [];
+                    $totalSize = 0;
+                    
+                    $docPatterns = [
+                        '*.md', 'README*.md', '*_GUIDE.md', '*_DESIGN.md', '*_PROPOSAL.md',
+                        '*_SUMMARY.md', '*_EXPLANATION.md', '*_STATUS.md', '*_CHECK.md',
+                        '*_RESULT.md', '*_REPORT.md', '*_ANALYSIS.md', '*_OPTIMIZATION.md',
+                        '*_CLARIFICATION.md', '*_IMPLEMENTATION.md', '*_UPDATE.md',
+                        '*_CHANGES.md', '*_SYSTEM*.md', '*_JOURNEY.md', '회원가입_정보_정리.md'
+                    ];
+                    
+                    $excludeDocs = ['PRODUCTION_DEPLOYMENT_GUIDE.md', 'README.md'];
+                    
+                    foreach ($docPatterns as $pattern) {
+                        $files = glob($baseDir . '/' . $pattern);
+                        foreach ($files as $file) {
+                            $basename = basename($file);
+                            if (is_file($file) && !in_array($basename, $excludeDocs)) {
+                                $relativePath = str_replace($baseDir . DIRECTORY_SEPARATOR, '', $file);
+                                if (strpos($relativePath, 'database' . DIRECTORY_SEPARATOR) === 0) {
+                                    continue;
+                                }
+                                $size = filesize($file);
+                                if (@unlink($file)) {
+                                    $deletedFiles[] = basename($file);
+                                    $totalSize += $size;
+                                }
+                            }
+                        }
+                    }
+                    
+                    $fileCount = count($deletedFiles);
+                    $sizeMB = round($totalSize / 1024 / 1024, 2);
+                    $deleteResult = ['type' => '개발 문서 파일', 'count' => $fileCount, 'details' => ['files' => $fileCount, 'size_mb' => $sizeMB]];
+                    $success = "개발 문서 파일 {$fileCount}개가 삭제되었습니다. (총 {$sizeMB}MB)";
+                    break;
+                    
+                case 'delete_html_files':
+                    // 임시 HTML 파일 삭제
+                    $baseDir = __DIR__ . '/../..';
+                    $deletedFiles = [];
+                    $totalSize = 0;
+                    
+                    $htmlPatterns = [
+                        'mypage_history*.html', 'privacy-*.html', '*_report.html',
+                        '*_test.html', '*_debug.html'
+                    ];
+                    
+                    foreach ($htmlPatterns as $pattern) {
+                        $files = glob($baseDir . '/' . $pattern);
+                        foreach ($files as $file) {
+                            if (is_file($file)) {
+                                $size = filesize($file);
+                                if (@unlink($file)) {
+                                    $deletedFiles[] = basename($file);
+                                    $totalSize += $size;
+                                }
+                            }
+                        }
+                    }
+                    
+                    $fileCount = count($deletedFiles);
+                    $sizeMB = round($totalSize / 1024 / 1024, 2);
+                    $deleteResult = ['type' => '임시 HTML 파일', 'count' => $fileCount, 'details' => ['files' => $fileCount, 'size_mb' => $sizeMB]];
+                    $success = "임시 HTML 파일 {$fileCount}개가 삭제되었습니다. (총 {$sizeMB}MB)";
+                    break;
+                    
+                case 'delete_migration_scripts':
+                    // 마이그레이션/복구 스크립트 삭제
+                    $baseDir = __DIR__ . '/../..';
+                    $deletedFiles = [];
+                    $totalSize = 0;
+                    
+                    $migrationPatterns = [
+                        'restore-*.php', 'delete-*.php', 'add-*.php', 'rebuild-*.php',
+                        '*restore*.php', '*delete*.php', '*add*.php', '*rebuild*.php'
+                    ];
+                    
+                    foreach ($migrationPatterns as $pattern) {
+                        $files = glob($baseDir . '/' . $pattern);
+                        foreach ($files as $file) {
+                            if (is_file($file) && basename($file) !== 'data-delete.php') {
+                                $size = filesize($file);
+                                if (@unlink($file)) {
+                                    $deletedFiles[] = basename($file);
+                                    $totalSize += $size;
+                                }
+                            }
+                        }
+                    }
+                    
+                    $fileCount = count($deletedFiles);
+                    $sizeMB = round($totalSize / 1024 / 1024, 2);
+                    $deleteResult = ['type' => '마이그레이션/복구 스크립트', 'count' => $fileCount, 'details' => ['files' => $fileCount, 'size_mb' => $sizeMB]];
+                    $success = "마이그레이션/복구 스크립트 {$fileCount}개가 삭제되었습니다. (총 {$sizeMB}MB)";
+                    break;
+                    
                 case 'delete_upload_files':
-                    // 사이트 업로드 후 삭제해야 할 파일들
+                    // 사이트 업로드 후 삭제해야 할 파일들 (전체 일괄 삭제 - 기존 기능 유지)
                     $baseDir = __DIR__ . '/../..';
                     $deletedFiles = [];
                     $deletedDirs = [];
@@ -850,7 +1097,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                         'restore_mypage.py',
                         'check_mypage_history.py',
                         'generate_mypage_history_html.py',
-                        'get_mypage_history.py'
+                        'get_mypage_history.py',
+                        'restore_mypage_simple.bat'
                     ];
                     
                     foreach ($scriptFiles as $script) {
@@ -859,6 +1107,100 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                             $size = filesize($file);
                             if (@unlink($file)) {
                                 $deletedFiles[] = $script;
+                                $totalSize += $size;
+                            }
+                        }
+                    }
+                    
+                    // 문서 파일 삭제 (프로덕션에서 불필요한 개발 문서)
+                    $docPatterns = [
+                        '*.md',
+                        'README*.md',
+                        '*_GUIDE.md',
+                        '*_DESIGN.md',
+                        '*_PROPOSAL.md',
+                        '*_SUMMARY.md',
+                        '*_EXPLANATION.md',
+                        '*_STATUS.md',
+                        '*_CHECK.md',
+                        '*_RESULT.md',
+                        '*_REPORT.md',
+                        '*_ANALYSIS.md',
+                        '*_OPTIMIZATION.md',
+                        '*_CLARIFICATION.md',
+                        '*_IMPLEMENTATION.md',
+                        '*_UPDATE.md',
+                        '*_CHANGES.md',
+                        '*_SYSTEM*.md',
+                        '*_JOURNEY.md',
+                        '회원가입_정보_정리.md'
+                    ];
+                    
+                    $excludeDocs = [
+                        'PRODUCTION_DEPLOYMENT_GUIDE.md',
+                        'README.md'
+                    ];
+                    
+                    foreach ($docPatterns as $pattern) {
+                        $files = glob($baseDir . '/' . $pattern);
+                        foreach ($files as $file) {
+                            $basename = basename($file);
+                            if (is_file($file) && !in_array($basename, $excludeDocs)) {
+                                $relativePath = str_replace($baseDir . DIRECTORY_SEPARATOR, '', $file);
+                                // database 폴더의 문서는 건너뛰기 (선택사항)
+                                if (strpos($relativePath, 'database' . DIRECTORY_SEPARATOR) === 0) {
+                                    continue;
+                                }
+                                $size = filesize($file);
+                                if (@unlink($file)) {
+                                    $deletedFiles[] = basename($file);
+                                    $totalSize += $size;
+                                }
+                            }
+                        }
+                    }
+                    
+                    // 임시 HTML 파일 삭제
+                    $htmlPatterns = [
+                        'mypage_history*.html',
+                        'privacy-*.html',
+                        '*_report.html',
+                        '*_test.html',
+                        '*_debug.html'
+                    ];
+                    
+                    foreach ($htmlPatterns as $pattern) {
+                        $files = glob($baseDir . '/' . $pattern);
+                        foreach ($files as $file) {
+                            if (is_file($file)) {
+                                $size = filesize($file);
+                                if (@unlink($file)) {
+                                    $deletedFiles[] = basename($file);
+                                    $totalSize += $size;
+                                }
+                            }
+                        }
+                    }
+                    
+                    // 디버깅 페이지 삭제 (admin 폴더 내)
+                    $debugPages = [
+                        'admin/review-settings-debug.php',
+                        'admin/debug-login-redirect.php',
+                        'admin/debug-qna-deletion.php',
+                        'admin/deposit/debug-account-info.php',
+                        'admin/products/debug-point-api.php',
+                        'seller/inquiry/inquiry-debug.php',
+                        'seller/inquiry/inquiry-edit-debug.php',
+                        'seller/debug-main-notice.php',
+                        'api/debug-mno-sim-orders.php'
+                    ];
+                    
+                    foreach ($debugPages as $debugPage) {
+                        $file = $baseDir . '/' . $debugPage;
+                        if (is_file($file)) {
+                            $size = filesize($file);
+                            if (@unlink($file)) {
+                                $deletedFiles[] = $debugPage;
                                 $totalSize += $size;
                             }
                         }
@@ -1313,17 +1655,31 @@ if ($pdo) {
     }
 }
 
-// 업로드 후 삭제 파일 통계
+// 업로드 후 삭제 파일 통계 (카테고리별)
 $baseDir = __DIR__ . '/../..';
 $uploadFileCount = 0;
 $uploadFileSize = 0;
 
-// 로그 파일
+// 각 카테고리별 통계
+$uploadStats = [
+    'dev_logs' => ['count' => 0, 'size' => 0, 'name' => '개발 로그 파일'],
+    'cache' => ['count' => 0, 'size' => 0, 'name' => '캐시 파일'],
+    'test_scripts' => ['count' => 0, 'size' => 0, 'name' => '테스트/디버그 스크립트'],
+    'debug_pages' => ['count' => 0, 'size' => 0, 'name' => '디버깅 페이지'],
+    'script_files' => ['count' => 0, 'size' => 0, 'name' => '배치/스크립트 파일'],
+    'doc_files' => ['count' => 0, 'size' => 0, 'name' => '개발 문서 파일'],
+    'html_files' => ['count' => 0, 'size' => 0, 'name' => '임시 HTML 파일'],
+    'migration_scripts' => ['count' => 0, 'size' => 0, 'name' => '마이그레이션/복구 스크립트']
+];
+
+// 개발 로그 파일 (logs 폴더)
 $logDir = $baseDir . '/logs';
 if (is_dir($logDir)) {
     $logFiles = glob($logDir . '/*');
     foreach ($logFiles as $file) {
         if (is_file($file)) {
+            $uploadStats['dev_logs']['count']++;
+            $uploadStats['dev_logs']['size'] += filesize($file);
             $uploadFileCount++;
             $uploadFileSize += filesize($file);
         }
@@ -1336,13 +1692,15 @@ if (is_dir($cacheDir)) {
     $cacheFiles = glob($cacheDir . '/*');
     foreach ($cacheFiles as $file) {
         if (is_file($file)) {
+            $uploadStats['cache']['count']++;
+            $uploadStats['cache']['size'] += filesize($file);
             $uploadFileCount++;
             $uploadFileSize += filesize($file);
         }
     }
 }
 
-// 테스트/디버그 스크립트
+// 테스트/디버그 스크립트 (마이그레이션/복구 제외)
 $testPatterns = [
     'check-*.php',
     'debug-*.php',
@@ -1351,26 +1709,56 @@ $testPatterns = [
     'verify-*.php',
     'calculate-*.php',
     'optimize-*.php',
-    'rebuild-*.php',
     'monitor-*.php',
     'process-*.php',
     'run-*.php',
-    'restore-*.php',
-    'delete-*.php',
-    'add-*.php',
     'disable-*.php',
     'cleanup-*.php',
     'quick-*.php',
     'generate_*.php',
     'get_*.php',
     'mypage_history*.php',
-    'mypage_history*.html'
+    // 추가 개발/디버깅 파일
+    '*debug*.php',
+    '*test*.php',
+    '*check*.php',
+    '*fix*.php',
+    '*verify*.php',
+    '*calculate*.php',
+    '*monitor*.php',
+    '*optimize*.php'
 ];
 
 foreach ($testPatterns as $pattern) {
     $files = glob($baseDir . '/' . $pattern);
     foreach ($files as $file) {
         if (is_file($file) && basename($file) !== 'data-delete.php') {
+            $uploadStats['test_scripts']['count']++;
+            $uploadStats['test_scripts']['size'] += filesize($file);
+            $uploadFileCount++;
+            $uploadFileSize += filesize($file);
+        }
+    }
+}
+
+// 마이그레이션/복구 스크립트
+$migrationPatterns = [
+    'restore-*.php',
+    'delete-*.php',
+    'add-*.php',
+    'rebuild-*.php',
+    '*restore*.php',
+    '*delete*.php',
+    '*add*.php',
+    '*rebuild*.php'
+];
+
+foreach ($migrationPatterns as $pattern) {
+    $files = glob($baseDir . '/' . $pattern);
+    foreach ($files as $file) {
+        if (is_file($file) && basename($file) !== 'data-delete.php') {
+            $uploadStats['migration_scripts']['count']++;
+            $uploadStats['migration_scripts']['size'] += filesize($file);
             $uploadFileCount++;
             $uploadFileSize += filesize($file);
         }
@@ -1387,16 +1775,119 @@ $scriptFiles = [
     'restore_mypage.py',
     'check_mypage_history.py',
     'generate_mypage_history_html.py',
-    'get_mypage_history.py'
+    'get_mypage_history.py',
+    'restore_mypage_simple.bat'
 ];
 
 foreach ($scriptFiles as $script) {
     $file = $baseDir . '/' . $script;
     if (is_file($file)) {
+        $uploadStats['script_files']['count']++;
+        $uploadStats['script_files']['size'] += filesize($file);
         $uploadFileCount++;
         $uploadFileSize += filesize($file);
     }
 }
+
+// 문서 파일 (프로덕션에서 불필요한 개발 문서)
+$docPatterns = [
+    '*.md',
+    'README*.md',
+    '*_GUIDE.md',
+    '*_DESIGN.md',
+    '*_PROPOSAL.md',
+    '*_SUMMARY.md',
+    '*_EXPLANATION.md',
+    '*_STATUS.md',
+    '*_CHECK.md',
+    '*_RESULT.md',
+    '*_REPORT.md',
+    '*_ANALYSIS.md',
+    '*_OPTIMIZATION.md',
+    '*_CLARIFICATION.md',
+    '*_IMPLEMENTATION.md',
+    '*_UPDATE.md',
+    '*_CHANGES.md',
+    '*_SYSTEM*.md',
+    '*_JOURNEY.md',
+    '회원가입_정보_정리.md'
+];
+
+// 문서 파일 제외 목록 (유지해야 할 문서)
+$excludeDocs = [
+    'PRODUCTION_DEPLOYMENT_GUIDE.md',
+    'README.md' // 루트 README는 유지 가능
+];
+
+foreach ($docPatterns as $pattern) {
+    $files = glob($baseDir . '/' . $pattern);
+    foreach ($files as $file) {
+        $basename = basename($file);
+        // 제외 목록에 없고, database 폴더의 일부 중요한 문서는 유지
+        if (is_file($file) && !in_array($basename, $excludeDocs)) {
+            // database 폴더의 스키마 관련 문서는 유지 (선택사항)
+            $relativePath = str_replace($baseDir . DIRECTORY_SEPARATOR, '', $file);
+            if (strpos($relativePath, 'database' . DIRECTORY_SEPARATOR) === 0) {
+                // database 폴더의 문서는 건너뛰기 (선택사항)
+                continue;
+            }
+            $uploadStats['doc_files']['count']++;
+            $uploadStats['doc_files']['size'] += filesize($file);
+            $uploadFileCount++;
+            $uploadFileSize += filesize($file);
+        }
+    }
+}
+
+// 임시 HTML 파일
+$htmlPatterns = [
+    'mypage_history*.html',
+    'privacy-*.html',
+    '*_report.html',
+    '*_test.html',
+    '*_debug.html'
+];
+
+foreach ($htmlPatterns as $pattern) {
+    $files = glob($baseDir . '/' . $pattern);
+    foreach ($files as $file) {
+        if (is_file($file)) {
+            $uploadStats['html_files']['count']++;
+            $uploadStats['html_files']['size'] += filesize($file);
+            $uploadFileCount++;
+            $uploadFileSize += filesize($file);
+        }
+    }
+}
+
+// 디버깅 페이지 (admin, seller, api 폴더 내)
+$debugPages = [
+    'admin/review-settings-debug.php',
+    'admin/debug-login-redirect.php',
+    'admin/debug-qna-deletion.php',
+    'admin/deposit/debug-account-info.php',
+    'admin/products/debug-point-api.php',
+    'seller/inquiry/inquiry-debug.php',
+    'seller/inquiry/inquiry-edit-debug.php',
+    'seller/debug-main-notice.php',
+    'api/debug-mno-sim-orders.php'
+];
+
+foreach ($debugPages as $debugPage) {
+    $file = $baseDir . '/' . $debugPage;
+    if (is_file($file)) {
+        $uploadStats['debug_pages']['count']++;
+        $uploadStats['debug_pages']['size'] += filesize($file);
+        $uploadFileCount++;
+        $uploadFileSize += filesize($file);
+    }
+}
+
+// 각 카테고리의 MB 단위 계산
+foreach ($uploadStats as $key => &$stat) {
+    $stat['size_mb'] = round($stat['size'] / 1024 / 1024, 2);
+}
+unset($stat);
 
 $stats['upload_files'] = $uploadFileCount;
 $stats['upload_files_size_mb'] = round($uploadFileSize / 1024 / 1024, 2);
@@ -1648,24 +2139,120 @@ require_once __DIR__ . '/../includes/admin-header.php';
         <div class="delete-section" style="background: #fff3cd; border: 2px solid #ffc107;">
             <h2 style="color: #856404;">⚠️ 사이트 업로드 후 삭제해야 할 데이터</h2>
             <p style="color: #856404; margin-bottom: 20px; font-weight: 600;">
-                서버에 사이트를 업로드한 후에는 개발/테스트 환경에서 생성된 파일들을 삭제해야 합니다.
+                서버에 사이트를 업로드한 후에는 개발/테스트 환경에서 생성된 파일들을 삭제해야 합니다. 각 항목별로 개별 삭제가 가능합니다.
             </p>
-            <div class="delete-card" style="background: #fff;">
-                <div class="delete-card-header">
-                    <h3>업로드 후 삭제 파일</h3>
-                    <span class="count-badge"><?php echo number_format($stats['upload_files']); ?>개 (<?php echo number_format($stats['upload_files_size_mb'], 2); ?>MB)</span>
+            <div class="delete-cards">
+                <!-- 개발 로그 파일 -->
+                <?php if ($uploadStats['dev_logs']['count'] > 0): ?>
+                <div class="delete-card" style="background: #fff;">
+                    <div class="delete-card-header">
+                        <h3>개발 로그 파일</h3>
+                        <span class="count-badge"><?php echo number_format($uploadStats['dev_logs']['count']); ?>개 (<?php echo number_format($uploadStats['dev_logs']['size_mb'], 2); ?>MB)</span>
+                    </div>
+                    <p class="delete-description">logs/* 폴더의 모든 로그 파일</p>
+                    <button type="button" class="btn btn-danger" onclick="showDeleteModal('delete_dev_logs', '개발 로그 파일', <?php echo $uploadStats['dev_logs']['count']; ?>)">
+                        삭제하기
+                    </button>
                 </div>
-                <p class="delete-description">
-                    다음 파일들이 삭제됩니다:<br>
-                    • 로그 파일 (logs/*)<br>
-                    • 캐시 파일 (cache/*)<br>
-                    • 테스트/디버그 스크립트 (check-*.php, debug-*.php, test-*.php 등)<br>
-                    • 배치/스크립트 파일 (*.bat, *.ps1, *.py 등)<br>
-                    • 임시 파일 (mypage_history*.html 등)
-                </p>
-                <button type="button" class="btn btn-danger" onclick="showDeleteModal('delete_upload_files', '업로드 후 삭제 파일', <?php echo $stats['upload_files']; ?>)">
-                    삭제하기
-                </button>
+                <?php endif; ?>
+
+                <!-- 캐시 파일 -->
+                <?php if ($uploadStats['cache']['count'] > 0): ?>
+                <div class="delete-card" style="background: #fff;">
+                    <div class="delete-card-header">
+                        <h3>캐시 파일</h3>
+                        <span class="count-badge"><?php echo number_format($uploadStats['cache']['count']); ?>개 (<?php echo number_format($uploadStats['cache']['size_mb'], 2); ?>MB)</span>
+                    </div>
+                    <p class="delete-description">cache/* 폴더의 모든 캐시 파일</p>
+                    <button type="button" class="btn btn-danger" onclick="showDeleteModal('delete_cache_files', '캐시 파일', <?php echo $uploadStats['cache']['count']; ?>)">
+                        삭제하기
+                    </button>
+                </div>
+                <?php endif; ?>
+
+                <!-- 테스트/디버그 스크립트 -->
+                <?php if ($uploadStats['test_scripts']['count'] > 0): ?>
+                <div class="delete-card" style="background: #fff;">
+                    <div class="delete-card-header">
+                        <h3>테스트/디버그 스크립트</h3>
+                        <span class="count-badge"><?php echo number_format($uploadStats['test_scripts']['count']); ?>개 (<?php echo number_format($uploadStats['test_scripts']['size_mb'], 2); ?>MB)</span>
+                    </div>
+                    <p class="delete-description">check-*.php, debug-*.php, test-*.php, fix-*.php, verify-*.php, calculate-*.php, optimize-*.php, monitor-*.php 등</p>
+                    <button type="button" class="btn btn-danger" onclick="showDeleteModal('delete_test_scripts', '테스트/디버그 스크립트', <?php echo $uploadStats['test_scripts']['count']; ?>)">
+                        삭제하기
+                    </button>
+                </div>
+                <?php endif; ?>
+
+                <!-- 디버깅 페이지 -->
+                <?php if ($uploadStats['debug_pages']['count'] > 0): ?>
+                <div class="delete-card" style="background: #fff;">
+                    <div class="delete-card-header">
+                        <h3>디버깅 페이지</h3>
+                        <span class="count-badge"><?php echo number_format($uploadStats['debug_pages']['count']); ?>개 (<?php echo number_format($uploadStats['debug_pages']['size_mb'], 2); ?>MB)</span>
+                    </div>
+                    <p class="delete-description">admin/review-settings-debug.php, seller/inquiry/inquiry-debug.php 등 디버깅용 페이지</p>
+                    <button type="button" class="btn btn-danger" onclick="showDeleteModal('delete_debug_pages', '디버깅 페이지', <?php echo $uploadStats['debug_pages']['count']; ?>)">
+                        삭제하기
+                    </button>
+                </div>
+                <?php endif; ?>
+
+                <!-- 배치/스크립트 파일 -->
+                <?php if ($uploadStats['script_files']['count'] > 0): ?>
+                <div class="delete-card" style="background: #fff;">
+                    <div class="delete-card-header">
+                        <h3>배치/스크립트 파일</h3>
+                        <span class="count-badge"><?php echo number_format($uploadStats['script_files']['count']); ?>개 (<?php echo number_format($uploadStats['script_files']['size_mb'], 2); ?>MB)</span>
+                    </div>
+                    <p class="delete-description">*.bat, *.ps1, *.py 등 배치 및 스크립트 파일</p>
+                    <button type="button" class="btn btn-danger" onclick="showDeleteModal('delete_script_files', '배치/스크립트 파일', <?php echo $uploadStats['script_files']['count']; ?>)">
+                        삭제하기
+                    </button>
+                </div>
+                <?php endif; ?>
+
+                <!-- 개발 문서 파일 -->
+                <?php if ($uploadStats['doc_files']['count'] > 0): ?>
+                <div class="delete-card" style="background: #fff;">
+                    <div class="delete-card-header">
+                        <h3>개발 문서 파일</h3>
+                        <span class="count-badge"><?php echo number_format($uploadStats['doc_files']['count']); ?>개 (<?php echo number_format($uploadStats['doc_files']['size_mb'], 2); ?>MB)</span>
+                    </div>
+                    <p class="delete-description">*.md 파일 (database 폴더 제외, PRODUCTION_DEPLOYMENT_GUIDE.md, README.md 제외)</p>
+                    <button type="button" class="btn btn-danger" onclick="showDeleteModal('delete_doc_files', '개발 문서 파일', <?php echo $uploadStats['doc_files']['count']; ?>)">
+                        삭제하기
+                    </button>
+                </div>
+                <?php endif; ?>
+
+                <!-- 임시 HTML 파일 -->
+                <?php if ($uploadStats['html_files']['count'] > 0): ?>
+                <div class="delete-card" style="background: #fff;">
+                    <div class="delete-card-header">
+                        <h3>임시 HTML 파일</h3>
+                        <span class="count-badge"><?php echo number_format($uploadStats['html_files']['count']); ?>개 (<?php echo number_format($uploadStats['html_files']['size_mb'], 2); ?>MB)</span>
+                    </div>
+                    <p class="delete-description">mypage_history*.html, privacy-*.html, *_report.html, *_test.html, *_debug.html</p>
+                    <button type="button" class="btn btn-danger" onclick="showDeleteModal('delete_html_files', '임시 HTML 파일', <?php echo $uploadStats['html_files']['count']; ?>)">
+                        삭제하기
+                    </button>
+                </div>
+                <?php endif; ?>
+
+                <!-- 마이그레이션/복구 스크립트 -->
+                <?php if ($uploadStats['migration_scripts']['count'] > 0): ?>
+                <div class="delete-card" style="background: #fff;">
+                    <div class="delete-card-header">
+                        <h3>마이그레이션/복구 스크립트</h3>
+                        <span class="count-badge"><?php echo number_format($uploadStats['migration_scripts']['count']); ?>개 (<?php echo number_format($uploadStats['migration_scripts']['size_mb'], 2); ?>MB)</span>
+                    </div>
+                    <p class="delete-description">add-*.php, restore-*.php, rebuild-*.php, delete-*.php 등 마이그레이션 및 복구 스크립트</p>
+                    <button type="button" class="btn btn-danger" onclick="showDeleteModal('delete_migration_scripts', '마이그레이션/복구 스크립트', <?php echo $uploadStats['migration_scripts']['count']; ?>)">
+                        삭제하기
+                    </button>
+                </div>
+                <?php endif; ?>
             </div>
         </div>
 

@@ -3,22 +3,71 @@
  * 판매자별 통계 페이지
  */
 
+require_once __DIR__ . '/../../includes/data/path-config.php';
 $pageTitle = '판매자별 통계';
 include __DIR__ . '/../includes/admin-header.php';
 
 require_once __DIR__ . '/../../includes/data/analytics-functions.php';
+require_once __DIR__ . '/../../includes/data/seller-statistics-functions.php';
+require_once __DIR__ . '/../../includes/data/auth-functions.php';
 
 $days = $_GET['days'] ?? 30;
 $sellerId = $_GET['seller_id'] ?? null;
 
 // 판매자별 통계 (별점/리뷰 포함)
 if ($sellerId) {
-    $sellerStats = getSellerStatsWithReviews($sellerId, $days);
-    $currentSeller = null;
-    require_once __DIR__ . '/../../includes/data/auth-functions.php';
+    $sellerStatsData = getSellerStatistics($sellerId, $days);
+    // admin 페이지 형식에 맞게 변환
+    $sellerStats = [
+        'favorites' => $sellerStatsData['total_favorites'] ?? 0,
+        'applications' => $sellerStatsData['total_applications'] ?? 0,
+        'shares' => $sellerStatsData['total_shares'] ?? 0,
+        'views' => $sellerStatsData['total_views'] ?? 0,
+        'reviews' => $sellerStatsData['total_reviews'] ?? 0,
+        'average_rating' => $sellerStatsData['average_rating'] ?? 0,
+        'products' => $sellerStatsData['products'] ?? []
+    ];
     $currentSeller = getUserById($sellerId);
 } else {
-    $allSellersStats = getAllSellersStats($days);
+    // 전체 판매자 통계
+    $pdo = getDBConnection();
+    $allSellersStats = [];
+    if ($pdo) {
+        try {
+            $startDate = date('Y-m-d', strtotime("-{$days} days"));
+            $stmt = $pdo->query("
+                SELECT DISTINCT seller_id 
+                FROM products 
+                WHERE status != 'deleted' 
+                AND seller_id IS NOT NULL
+            ");
+            $sellerIds = $stmt->fetchAll(PDO::FETCH_COLUMN);
+            
+            foreach ($sellerIds as $sid) {
+                $stats = getSellerStatistics($sid, $days);
+                $seller = getUserById($sid);
+                $allSellersStats[] = [
+                    'seller_id' => $sid,
+                    'seller_name' => $seller['name'] ?? $sid,
+                    'favorites' => $stats['total_favorites'] ?? 0,
+                    'applications' => $stats['total_applications'] ?? 0,
+                    'shares' => $stats['total_shares'] ?? 0,
+                    'views' => $stats['total_views'] ?? 0,
+                    'reviews' => $stats['total_reviews'] ?? 0,
+                    'average_rating' => $stats['average_rating'] ?? 0,
+                    'products_count' => $stats['total_products'] ?? 0
+                ];
+            }
+            
+            // 찜 개수 순으로 정렬
+            usort($allSellersStats, function($a, $b) {
+                return $b['favorites'] - $a['favorites'];
+            });
+        } catch (PDOException $e) {
+            error_log("getAllSellersStats error: " . $e->getMessage());
+            $allSellersStats = [];
+        }
+    }
 }
 ?>
 
@@ -149,7 +198,7 @@ if ($sellerId) {
     </select>
     
     <?php if ($sellerId): ?>
-        <a href="/MVNO/admin/analytics/seller-stats.php?days=<?php echo $days; ?>" style="margin-left: auto; padding: 8px 16px; background: #f3f4f6; color: #374151; border-radius: 6px; text-decoration: none; font-size: 14px;">
+        <a href="<?php echo getAssetPath('/admin/analytics/seller-stats.php'); ?>?days=<?php echo $days; ?>" style="margin-left: auto; padding: 8px 16px; background: #f3f4f6; color: #374151; border-radius: 6px; text-decoration: none; font-size: 14px;">
             전체 판매자 보기
         </a>
     <?php endif; ?>
@@ -294,7 +343,7 @@ if ($sellerId) {
                         <td><?php echo number_format($seller['views']); ?></td>
                         <td><?php echo number_format($seller['products_count']); ?>개</td>
                         <td>
-                            <a href="/MVNO/admin/analytics/seller-stats.php?seller_id=<?php echo urlencode($seller['seller_id']); ?>&days=<?php echo $days; ?>" class="seller-link">
+                            <a href="<?php echo getAssetPath('/admin/analytics/seller-stats.php'); ?>?seller_id=<?php echo urlencode($seller['seller_id']); ?>&days=<?php echo $days; ?>" class="seller-link">
                                 상세보기
                             </a>
                         </td>

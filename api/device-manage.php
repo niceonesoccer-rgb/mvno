@@ -6,6 +6,7 @@
 
 require_once __DIR__ . '/../includes/data/db-config.php';
 require_once __DIR__ . '/../includes/data/auth-functions.php';
+require_once __DIR__ . '/../includes/data/path-config.php';
 
 // 세션 시작
 if (session_status() === PHP_SESSION_NONE) {
@@ -15,14 +16,18 @@ if (session_status() === PHP_SESSION_NONE) {
 // 관리자 권한 체크
 $currentUser = getCurrentUser();
 if (!$currentUser || !isAdmin($currentUser['user_id'])) {
-    header('Location: /MVNO/auth/login.php');
+    header('Content-Type: application/json; charset=utf-8');
+    http_response_code(403);
+    echo json_encode(['success' => false, 'message' => '권한이 없습니다.']);
     exit;
 }
 
 // 데이터베이스 연결
 $pdo = getDBConnection();
 if (!$pdo) {
-    header('Location: /MVNO/admin/settings/device-settings.php?error=' . urlencode('데이터베이스 연결에 실패했습니다.'));
+    header('Content-Type: application/json; charset=utf-8');
+    http_response_code(500);
+    echo json_encode(['success' => false, 'message' => '데이터베이스 연결에 실패했습니다.']);
     exit;
 }
 
@@ -53,7 +58,8 @@ try {
             ");
             $stmt->execute([$name, $nameEn ?: null, $displayOrder, $status]);
             
-            header('Location: /MVNO/admin/settings/device-settings.php?success=manufacturer_added');
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode(['success' => true, 'message' => '제조사가 추가되었습니다.']);
             exit;
             
         case 'update_manufacturer':
@@ -81,7 +87,8 @@ try {
             ");
             $stmt->execute([$name, $nameEn ?: null, $displayOrder, $status, $id]);
             
-            header('Location: /MVNO/admin/settings/device-settings.php?success=manufacturer_updated');
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode(['success' => true, 'message' => '제조사 정보가 수정되었습니다.']);
             exit;
             
         case 'update_manufacturer_order':
@@ -107,13 +114,13 @@ try {
                 
                 $pdo->commit();
                 
-                header('Content-Type: application/json');
+                header('Content-Type: application/json; charset=utf-8');
                 echo json_encode(['success' => true, 'message' => '순서가 업데이트되었습니다.']);
                 exit;
                 
             } catch (Exception $e) {
                 $pdo->rollBack();
-                header('Content-Type: application/json');
+                header('Content-Type: application/json; charset=utf-8');
                 echo json_encode(['success' => false, 'message' => $e->getMessage()]);
                 exit;
             }
@@ -137,7 +144,8 @@ try {
             $stmt = $pdo->prepare("DELETE FROM device_manufacturers WHERE id = ?");
             $stmt->execute([$id]);
             
-            header('Location: /MVNO/admin/settings/device-settings.php?success=manufacturer_deleted');
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode(['success' => true, 'message' => '제조사가 삭제되었습니다.']);
             exit;
             
         case 'add_device':
@@ -193,7 +201,8 @@ try {
                 $status
             ]);
             
-            header('Location: /MVNO/admin/settings/device-settings.php?success=device_added');
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode(['success' => true, 'message' => '단말기가 추가되었습니다.']);
             exit;
             
         case 'update_device':
@@ -253,7 +262,8 @@ try {
                 $id
             ]);
             
-            header('Location: /MVNO/admin/settings/device-settings.php?success=device_updated');
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode(['success' => true, 'message' => '단말기 정보가 수정되었습니다.']);
             exit;
             
         case 'delete_device':
@@ -266,19 +276,17 @@ try {
             $stmt = $pdo->prepare("DELETE FROM devices WHERE id = ?");
             $stmt->execute([$id]);
             
-            header('Location: /MVNO/admin/settings/device-settings.php?success=device_deleted');
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode(['success' => true, 'message' => '단말기가 삭제되었습니다.']);
             exit;
             
         default:
             throw new Exception('잘못된 요청입니다.');
     }
 } catch (Exception $e) {
-    $tab = $_GET['tab'] ?? $_POST['tab'] ?? '';
-    $redirectUrl = '/MVNO/admin/settings/device-settings.php?error=' . urlencode($e->getMessage());
-    if ($tab) {
-        $redirectUrl .= '&tab=' . urlencode($tab);
-    }
-    header('Location: ' . $redirectUrl);
+    header('Content-Type: application/json; charset=utf-8');
+    http_response_code(400);
+    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
     exit;
 }
 

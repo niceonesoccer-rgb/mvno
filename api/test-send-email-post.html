@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>이메일 발송 API 테스트</title>
+    <style>
+        body {
+            font-family: 'Malgun Gothic', Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        button {
+            background: #6366f1;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+        }
+        button:hover {
+            background: #4f46e5;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 6px;
+            display: none;
+        }
+        .result.success {
+            background: #d1fae5;
+            border: 1px solid #10b981;
+            color: #065f46;
+        }
+        .result.error {
+            background: #fee2e2;
+            border: 1px solid #ef4444;
+            color: #991b1b;
+        }
+        .result pre {
+            margin: 10px 0 0 0;
+            padding: 10px;
+            background: rgba(0,0,0,0.05);
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+        .info {
+            background: #eff6ff;
+            border-left: 4px solid #3b82f6;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📧 이메일 발송 API 테스트</h1>
+        
+        <div class="info">
+            <strong>테스트 방법:</strong><br>
+            1. 로그인한 상태에서 이 페이지를 열어주세요.<br>
+            2. 이메일 주소와 타입을 선택하세요.<br>
+            3. "인증번호 발송 테스트" 버튼을 클릭하세요.<br>
+            4. 결과를 확인하세요.<br><br>
+            <strong>문제 발생 시:</strong><br>
+            <a href="/api/test-post-simple.php" target="_blank" style="color: #6366f1;">간단한 POST 테스트</a>로 먼저 확인해주세요.
+        </div>
+
+        <form id="testForm">
+            <div class="form-group">
+                <label for="email">이메일 주소</label>
+                <input type="email" id="email" name="email" placeholder="test@example.com" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="type">인증 타입</label>
+                <select id="type" name="type">
+                    <option value="email_change">이메일 변경</option>
+                    <option value="password_change">비밀번호 변경</option>
+                </select>
+            </div>
+            
+            <button type="submit" id="submitBtn">인증번호 발송 테스트</button>
+        </form>
+
+        <div id="result" class="result"></div>
+    </div>
+
+    <script>
+        const form = document.getElementById('testForm');
+        const resultDiv = document.getElementById('result');
+        const submitBtn = document.getElementById('submitBtn');
+
+        // 현재 도메인에서 API 경로 생성
+        const apiUrl = window.location.origin + '/api/send-email-verification.php';
+        
+        console.log('API URL:', apiUrl);
+
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const type = document.getElementById('type').value;
+            
+            // 결과 초기화
+            resultDiv.style.display = 'none';
+            submitBtn.disabled = true;
+            submitBtn.textContent = '요청 중...';
+            
+            try {
+                console.log('요청 시작:', { email, type, apiUrl });
+                console.log('요청 본문:', JSON.stringify({ email, type }));
+                
+                // 방법 1: JSON 형식으로 시도
+                let response;
+                try {
+                    response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json; charset=UTF-8',
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        credentials: 'include', // 세션 쿠키 포함
+                        body: JSON.stringify({
+                            email: email,
+                            type: type
+                        })
+                    });
+                } catch (fetchError) {
+                    console.error('JSON 요청 실패, form-data로 재시도:', fetchError);
+                    // 방법 2: FormData 형식으로 재시도
+                    const formData = new FormData();
+                    formData.append('email', email);
+                    formData.append('type', type);
+                    
+                    response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        credentials: 'include',
+                        body: formData
+                    });
+                }
+                
+                console.log('응답 상태:', response.status, response.statusText);
+                console.log('응답 헤더:', Object.fromEntries(response.headers.entries()));
+                
+                // 응답 본문 가져오기
+                const responseText = await response.text();
+                console.log('응답 본문 (텍스트):', responseText.substring(0, 500));
+                
+                let data;
+                try {
+                    data = JSON.parse(responseText);
+                    console.log('응답 본문 (JSON):', data);
+                } catch (parseError) {
+                    console.error('JSON 파싱 실패:', parseError);
+                    throw new Error('서버 응답이 JSON 형식이 아닙니다: ' + responseText.substring(0, 200));
+                }
+                
+                // 결과 표시
+                resultDiv.className = 'result ' + (data.success ? 'success' : 'error');
+                resultDiv.innerHTML = `
+                    <strong>${data.success ? '✅ 성공' : '❌ 실패'}</strong><br>
+                    <div style="margin-top: 10px;">
+                        <strong>메시지:</strong> ${data.message || '없음'}<br>
+                        ${data.email ? `<strong>이메일:</strong> ${data.email}<br>` : ''}
+                        ${data.expires_at ? `<strong>만료 시간:</strong> ${data.expires_at}<br>` : ''}
+                        ${data.development_mode ? `<strong style="color: #f59e0b;">개발 모드:</strong> 인증번호가 화면에 표시됩니다<br>` : ''}
+                        ${data.verification_code ? `<strong style="color: #6366f1; font-size: 24px; letter-spacing: 5px;">인증번호: ${data.verification_code}</strong><br>` : ''}
+                        ${data.error ? `<strong>에러:</strong> ${data.error}<br>` : ''}
+                        ${data.error_type ? `<strong>에러 타입:</strong> ${data.error_type}<br>` : ''}
+                    </div>
+                    <details style="margin-top: 15px;">
+                        <summary style="cursor: pointer; font-weight: 600;">상세 응답 보기</summary>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </details>
+                    <details style="margin-top: 10px;">
+                        <summary style="cursor: pointer; font-weight: 600;">응답 원문 보기</summary>
+                        <pre>${responseText}</pre>
+                    </details>
+                `;
+                resultDiv.style.display = 'block';
+                
+            } catch (error) {
+                console.error('에러 발생:', error);
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `
+                    <strong>❌ 요청 실패</strong><br>
+                    <div style="margin-top: 10px;">
+                        <strong>에러 메시지:</strong> ${error.message}<br>
+                        <strong>에러 타입:</strong> ${error.name || 'Unknown'}<br>
+                    </div>
+                    <details style="margin-top: 15px;">
+                        <summary style="cursor: pointer; font-weight: 600;">에러 스택 보기</summary>
+                        <pre>${error.stack || '스택 정보 없음'}</pre>
+                    </details>
+                `;
+                resultDiv.style.display = 'block';
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = '인증번호 발송 테스트';
+            }
+        });
+    </script>
+</body>
+</html>

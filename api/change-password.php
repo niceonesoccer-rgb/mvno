@@ -3,12 +3,20 @@
  * 비밀번호 변경 API (이메일 인증 포함)
  * 
  * POST 파라미터:
- * - current_password: 현재 비밀번호
  * - new_password: 새 비밀번호
  * - verification_token: 이메일 인증 토큰 (선택, 이메일이 있는 경우 필수)
  */
 
 header('Content-Type: application/json; charset=UTF-8');
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: POST, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type');
+
+// OPTIONS 요청 처리 (CORS preflight)
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit;
+}
 
 require_once __DIR__ . '/../includes/data/auth-functions.php';
 
@@ -31,21 +39,22 @@ if (!$currentUser) {
 }
 
 // POST 데이터 받기
-$input = json_decode(file_get_contents('php://input'), true);
-$currentPassword = $input['current_password'] ?? '';
-$newPassword = $input['new_password'] ?? '';
-$verificationToken = trim($input['verification_token'] ?? '');
+$rawInput = file_get_contents('php://input');
+$input = json_decode($rawInput, true);
 
-// 유효성 검사
-if (empty($currentPassword)) {
+// JSON 파싱 오류 체크
+if (json_last_error() !== JSON_ERROR_NONE) {
     echo json_encode([
         'success' => false,
-        'field' => 'current_password',
-        'message' => '현재 비밀번호를 입력해주세요.'
+        'message' => '잘못된 요청 형식입니다. (JSON 파싱 오류: ' . json_last_error_msg() . ')'
     ]);
     exit;
 }
 
+$newPassword = $input['new_password'] ?? '';
+$verificationToken = trim($input['verification_token'] ?? '');
+
+// 유효성 검사
 if (empty($newPassword) || strlen($newPassword) < 8) {
     echo json_encode([
         'success' => false,
@@ -55,31 +64,12 @@ if (empty($newPassword) || strlen($newPassword) < 8) {
     exit;
 }
 
-// 현재 비밀번호 확인
+// 데이터베이스 연결 확인
 $pdo = getDBConnection();
 if (!$pdo) {
     echo json_encode([
         'success' => false,
         'message' => '데이터베이스 연결에 실패했습니다.'
-    ]);
-    exit;
-}
-
-$stmt = $pdo->prepare("
-    SELECT password
-    FROM users
-    WHERE user_id = :user_id
-    LIMIT 1
-");
-
-$stmt->execute([':user_id' => $currentUser['user_id']]);
-$user = $stmt->fetch();
-
-if (!$user || !password_verify($currentPassword, $user['password'])) {
-    echo json_encode([
-        'success' => false,
-        'field' => 'current_password',
-        'message' => '현재 비밀번호가 일치하지 않습니다.'
     ]);
     exit;
 }

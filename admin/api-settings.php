@@ -5,11 +5,12 @@
  */
 
 require_once __DIR__ . '/../includes/data/auth-functions.php';
+require_once __DIR__ . '/../includes/data/path-config.php';
 
 // admin 계정만 접근 가능 (부관리자 제외)
 $currentUser = getCurrentUser();
 if (!$currentUser || getUserRole($currentUser['user_id']) !== 'admin') {
-    header('Location: /MVNO/admin/');
+    header('Location: ' . getAssetPath('/admin/'));
     exit;
 }
 
@@ -43,29 +44,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_settings'])) {
 // 현재 설정 읽기
 $settings = getAppSettings('api', []);
 
-$naver_settings = $settings['naver'] ?? ['client_id' => '', 'client_secret' => '', 'redirect_uri' => ''];
-$kakao_settings = $settings['kakao'] ?? ['client_id' => '', 'rest_api_key' => '', 'redirect_uri' => ''];
-$google_settings = $settings['google'] ?? ['client_id' => '', 'client_secret' => '', 'redirect_uri' => ''];
+// 기본 리다이렉트 URI 생성 (동적)
+$baseUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') 
+    . '://' . $_SERVER['HTTP_HOST'] . getAssetPath('/api/sns-callback.php');
+$defaultRedirectUri = $baseUrl;
+
+$naver_settings = $settings['naver'] ?? [
+    'client_id' => '', 
+    'client_secret' => '', 
+    'redirect_uri' => $defaultRedirectUri . '?provider=naver'
+];
+$kakao_settings = $settings['kakao'] ?? [
+    'client_id' => '', 
+    'rest_api_key' => '', 
+    'redirect_uri' => $defaultRedirectUri . '?provider=kakao'
+];
+$google_settings = $settings['google'] ?? [
+    'client_id' => '', 
+    'client_secret' => '', 
+    'redirect_uri' => $defaultRedirectUri . '?provider=google'
+];
+
+// 현재 페이지 설정
+$currentPage = 'api-settings.php';
+
+// 헤더 포함
+require_once __DIR__ . '/includes/admin-header.php';
 ?>
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>API 설정 관리</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f9fafb;
-            padding: 20px;
-        }
-        
         .admin-container {
             max-width: 900px;
             margin: 0 auto;
@@ -75,7 +81,7 @@ $google_settings = $settings['google'] ?? ['client_id' => '', 'client_secret' =>
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
         
-        h1 {
+        .admin-container h1 {
             font-size: 24px;
             font-weight: 700;
             color: #1f2937;
@@ -197,8 +203,13 @@ $google_settings = $settings['google'] ?? ['client_id' => '', 'client_secret' =>
     </style>
 </head>
 <body>
-    <div class="admin-container">
+<div class="admin-content">
+    <div class="content-header">
         <h1>API 설정 관리</h1>
+        <p class="content-description">SNS 로그인(네이버, 카카오, 구글) API 키를 설정할 수 있습니다. API 키는 나중에 입력해도 됩니다.</p>
+    </div>
+    
+    <div class="admin-container" style="max-width: 900px; margin: 0 auto; background: white; border-radius: 12px; padding: 32px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);">
         
         <?php if (isset($success_message)): ?>
             <div class="alert alert-success">
@@ -208,13 +219,19 @@ $google_settings = $settings['google'] ?? ['client_id' => '', 'client_secret' =>
         
         <div class="info-box">
             <h3>설정 안내</h3>
-            <p>각 SNS 개발자 센터에서 API 키를 발급받아 설정해주세요.</p>
+            <p>각 SNS 개발자 센터에서 API 키를 발급받아 설정해주세요. API 키는 나중에 입력해도 되며, 입력하지 않으면 해당 SNS 로그인이 비활성화됩니다.</p>
             <ul>
                 <li><strong>네이버:</strong> <a href="https://developers.naver.com/apps/" target="_blank">네이버 개발자 센터</a></li>
                 <li><strong>카카오:</strong> <a href="https://developers.kakao.com/" target="_blank">카카오 개발자 센터</a></li>
                 <li><strong>구글:</strong> <a href="https://console.cloud.google.com/" target="_blank">구글 클라우드 콘솔</a></li>
             </ul>
-            <p style="margin-top: 12px;"><strong>리다이렉트 URI:</strong> <code>http://localhost/MVNO/api/sns-callback.php?provider={provider}</code></p>
+            <p style="margin-top: 12px;"><strong>리다이렉트 URI (자동 설정됨):</strong></p>
+            <ul style="margin-top: 4px;">
+                <li><strong>네이버:</strong> <code><?php echo htmlspecialchars($baseUrl); ?>?provider=naver</code></li>
+                <li><strong>카카오:</strong> <code><?php echo htmlspecialchars($baseUrl); ?>?provider=kakao</code></li>
+                <li><strong>구글:</strong> <code><?php echo htmlspecialchars($baseUrl); ?>?provider=google</code></li>
+            </ul>
+            <p style="margin-top: 12px; color: #dc2626; font-weight: 600;">⚠️ 각 SNS 개발자 센터에 위 리다이렉트 URI를 정확히 등록해야 합니다.</p>
         </div>
         
         <form method="POST">
@@ -255,10 +272,10 @@ $google_settings = $settings['google'] ?? ['client_id' => '', 'client_secret' =>
                         type="url" 
                         id="naver_redirect_uri" 
                         name="naver_redirect_uri" 
-                        value="<?php echo htmlspecialchars($naver_settings['redirect_uri']); ?>"
-                        placeholder="http://localhost/MVNO/api/sns-callback.php?provider=naver"
+                        value="<?php echo htmlspecialchars($naver_settings['redirect_uri'] ?: $defaultRedirectUri . '?provider=naver'); ?>"
+                        placeholder="<?php echo htmlspecialchars($defaultRedirectUri); ?>?provider=naver"
                     >
-                    <div class="form-help">네이버 개발자 센터에 등록한 리다이렉트 URI와 동일해야 합니다.</div>
+                    <div class="form-help">네이버 개발자 센터에 등록한 리다이렉트 URI와 정확히 동일해야 합니다. (기본값 자동 설정됨)</div>
                 </div>
             </div>
             
@@ -300,10 +317,10 @@ $google_settings = $settings['google'] ?? ['client_id' => '', 'client_secret' =>
                         type="url" 
                         id="kakao_redirect_uri" 
                         name="kakao_redirect_uri" 
-                        value="<?php echo htmlspecialchars($kakao_settings['redirect_uri']); ?>"
-                        placeholder="http://localhost/MVNO/api/sns-callback.php?provider=kakao"
+                        value="<?php echo htmlspecialchars($kakao_settings['redirect_uri'] ?: $defaultRedirectUri . '?provider=kakao'); ?>"
+                        placeholder="<?php echo htmlspecialchars($defaultRedirectUri); ?>?provider=kakao"
                     >
-                    <div class="form-help">카카오 개발자 센터에 등록한 리다이렉트 URI와 동일해야 합니다.</div>
+                    <div class="form-help">카카오 개발자 센터에 등록한 리다이렉트 URI와 정확히 동일해야 합니다. (기본값 자동 설정됨)</div>
                 </div>
             </div>
             
@@ -347,10 +364,10 @@ $google_settings = $settings['google'] ?? ['client_id' => '', 'client_secret' =>
                         type="url" 
                         id="google_redirect_uri" 
                         name="google_redirect_uri" 
-                        value="<?php echo htmlspecialchars($google_settings['redirect_uri']); ?>"
-                        placeholder="http://localhost/MVNO/api/sns-callback.php?provider=google"
+                        value="<?php echo htmlspecialchars($google_settings['redirect_uri'] ?: $defaultRedirectUri . '?provider=google'); ?>"
+                        placeholder="<?php echo htmlspecialchars($defaultRedirectUri); ?>?provider=google"
                     >
-                    <div class="form-help">구글 클라우드 콘솔에 등록한 리다이렉트 URI와 동일해야 합니다.</div>
+                    <div class="form-help">구글 클라우드 콘솔에 등록한 리다이렉트 URI와 정확히 동일해야 합니다. (기본값 자동 설정됨)</div>
                 </div>
             </div>
             
@@ -362,8 +379,9 @@ $google_settings = $settings['google'] ?? ['client_id' => '', 'client_secret' =>
             </div>
         </form>
     </div>
-</body>
-</html>
+</div>
+
+<?php require_once __DIR__ . '/includes/admin-footer.php'; ?>
 
 
 

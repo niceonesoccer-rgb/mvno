@@ -5,11 +5,12 @@
  */
 
 require_once __DIR__ . '/../includes/data/auth-functions.php';
+require_once __DIR__ . '/../includes/data/path-config.php';
 
 // 관리자 인증 체크
 $currentUser = getCurrentUser();
 if (!$currentUser || !isAdmin($currentUser['user_id'])) {
-    header('Location: /MVNO/admin/login.php');
+    header('Location: ' . getAssetPath('/admin/login.php'));
     exit;
 }
 
@@ -20,22 +21,91 @@ $settings_file = __DIR__ . '/../includes/data/review-settings.php';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_settings'])) {
     $allowedStatuses = $_POST['allowed_statuses'] ?? [];
     
-    // 설정 파일 읽기
-    $file_content = file_get_contents($settings_file);
+    // 배열을 PHP 코드로 변환 (이스케이프 처리)
+    $escapedStatuses = array_map('addslashes', $allowedStatuses);
+    $statusesString = "['" . implode("', '", $escapedStatuses) . "']";
     
-    // 배열을 PHP 코드로 변환
-    $statusesString = "['" . implode("', '", array_map('addslashes', $allowedStatuses)) . "']";
+    // 상태 라벨 맵
+    $statusLabels = [
+        'received' => '접수',
+        'activating' => '개통중',
+        'on_hold' => '보류',
+        'cancelled' => '취소',
+        'activation_completed' => '개통완료',
+        'installation_completed' => '설치완료',
+        'closed' => '종료'
+    ];
     
-    // 설정 값 업데이트
-    $file_content = preg_replace(
-        "/'allowed_statuses'\s*=>\s*\[[^\]]*\]/",
-        "'allowed_statuses' => {$statusesString}",
-        $file_content
-    );
+    // 주석 문자열 생성
+    $labelStrings = array_map(function($s) use ($statusLabels) {
+        return $statusLabels[$s] ?? $s;
+    }, $allowedStatuses);
+    $commentText = implode(", ", $labelStrings) . " 상태에서 리뷰 작성 가능";
     
-    file_put_contents($settings_file, $file_content);
+    // 설정 파일을 직접 재생성 (더 안정적)
+    $newFileContent = <<<PHP
+<?php
+/**
+ * 리뷰 작성 권한 설정 파일
+ * 관리자가 설정할 수 있는 리뷰 작성 권한 관련 설정
+ */
+
+// 한국 시간대 설정 (KST, UTC+9)
+date_default_timezone_set('Asia/Seoul');
+
+// 리뷰 작성 권한 설정
+// 리뷰를 작성할 수 있는 진행상황 목록
+\$review_settings = [
+    // 리뷰 작성 가능한 진행상황 목록
+    // 가능한 값: 'received', 'activating', 'on_hold', 'cancelled', 'activation_completed', 'installation_completed', 'closed'
+    // 인터넷의 경우: 'activating'(개통중), 'installation_completed'/'completed'(설치완료), 'closed'/'terminated'(종료)
+    'allowed_statuses' => {$statusesString}, // {$commentText}
+];
+
+/**
+ * 특정 진행상황에서 리뷰 작성이 가능한지 확인
+ * @param string \$application_status 진행상황 (DB에는 영어로 저장됨: received, activating, on_hold, cancelled, activation_completed, installation_completed, closed)
+ * @return bool 리뷰 작성 가능 여부
+ */
+function canWriteReview(\$application_status) {
+    global \$review_settings;
     
-    $success_message = '설정이 저장되었습니다.';
+    if (empty(\$application_status)) {
+        return false;
+    }
+    
+    // 상태값 정규화 (소문자로 변환하여 비교)
+    \$normalizedStatus = strtolower(trim(\$application_status));
+    
+    // pending -> received 변환
+    if (\$normalizedStatus === 'pending') {
+        \$normalizedStatus = 'received';
+    }
+    
+    // 허용된 상태 목록 가져오기
+    \$allowedStatuses = \$review_settings['allowed_statuses'] ?? ['activation_completed', 'installation_completed', 'closed'];
+    
+    // 소문자로 변환된 배열 생성 (비교용)
+    \$allowedStatusesLower = array_map('strtolower', \$allowedStatuses);
+    
+    // 소문자 변환된 상태값과 비교
+    return in_array(\$normalizedStatus, \$allowedStatusesLower);
+}
+PHP;
+
+    // 파일 저장
+    $result = file_put_contents($settings_file, $newFileContent, LOCK_EX);
+    if ($result !== false) {
+        $success_message = '설정이 저장되었습니다.';
+        // 설정 파일 다시 로드하여 반영 확인
+        if (function_exists('opcache_invalidate')) {
+            opcache_invalidate($settings_file, true);
+        }
+        require_once $settings_file;
+    } else {
+        $message = '설정 저장에 실패했습니다. 파일 쓰기 권한을 확인해주세요. (경로: ' . htmlspecialchars($settings_file) . ')';
+        $messageType = 'error';
+    }
 }
 
 // 현재 설정 읽기

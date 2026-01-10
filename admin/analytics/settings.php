@@ -3,6 +3,7 @@
  * 통계 설정 관리 페이지
  */
 
+require_once __DIR__ . '/../../includes/data/path-config.php';
 $pageTitle = '통계 설정';
 include __DIR__ . '/../includes/admin-header.php';
 

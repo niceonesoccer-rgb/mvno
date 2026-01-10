@@ -3,6 +3,7 @@
  * 고급 분석 페이지
  */
 
+require_once __DIR__ . '/../../includes/data/path-config.php';
 $pageTitle = '고급 분석';
 include __DIR__ . '/../includes/admin-header.php';
 

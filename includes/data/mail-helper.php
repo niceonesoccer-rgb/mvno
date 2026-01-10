@@ -142,6 +142,15 @@ function sendEmailViaSMTP($to, $subject, $message, $fromEmail, $fromName) {
  * 기본 mail() 함수를 사용한 이메일 발송
  */
 function sendEmailViaMailFunction($to, $subject, $message, $from) {
+    // 호스트 확인 (실제 서버인지 개발 환경인지)
+    $host = $_SERVER['HTTP_HOST'] ?? '';
+    $isProduction = (
+        strpos($host, 'localhost') === false && 
+        strpos($host, '127.0.0.1') === false &&
+        strpos($host, '::1') === false &&
+        strpos($host, '.') !== false // 도메인이 있는 경우 (예: ganadamobile.co.kr)
+    );
+    
     $headers = [];
     $headers[] = 'MIME-Version: 1.0';
     $headers[] = 'Content-type: text/html; charset=UTF-8';
@@ -150,10 +159,35 @@ function sendEmailViaMailFunction($to, $subject, $message, $from) {
     $headers[] = 'X-Mailer: PHP/' . phpversion();
     
     $headersString = implode("\r\n", $headers);
+    
+    // PHP 오류 발생 시 캡처
+    $lastError = null;
+    set_error_handler(function($errno, $errstr) use (&$lastError) {
+        $lastError = $errstr;
+    }, E_WARNING | E_NOTICE);
+    
     $result = @mail($to, $subject, $message, $headersString);
     
-    if (!$result) {
-        error_log("mail() 함수 이메일 발송 실패: {$to} - {$subject}");
+    restore_error_handler();
+    
+    // 실제 서버에서는 더 엄격하게 체크
+    if ($isProduction) {
+        // 실제 서버에서는 mail() 함수가 false를 반환하거나 오류가 발생하면 실패로 간주
+        if (!$result || $lastError !== null) {
+            error_log("mail() 함수 이메일 발송 실패 (실제 서버): {$to} - {$subject} - 오류: " . ($lastError ?? 'mail() 반환값 false'));
+            return false;
+        }
+        
+        // 실제 서버에서는 mail()가 true를 반환해도 실제 발송 여부는 확실하지 않음
+        // 하지만 일단 true를 반환하고, 서버 로그를 확인하도록 함
+        error_log("mail() 함수 이메일 발송 시도 (실제 서버): {$to} - {$subject} - mail() 반환값: " . ($result ? 'true' : 'false'));
+    } else {
+        // 개발 환경
+        if (!$result) {
+            error_log("mail() 함수 이메일 발송 실패 (개발 환경): {$to} - {$subject}");
+        } else {
+            error_log("mail() 함수 이메일 발송 시도 (개발 환경): {$to} - {$subject}");
+        }
     }
     
     return $result;

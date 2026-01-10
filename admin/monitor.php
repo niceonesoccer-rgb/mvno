@@ -4,7 +4,17 @@
  * 동시 접속 수 및 통계 확인
  */
 
-require_once '../includes/monitor.php';
+require_once __DIR__ . '/../includes/data/auth-functions.php';
+require_once __DIR__ . '/../includes/data/path-config.php';
+
+// 관리자 인증 체크
+$currentUser = getCurrentUser();
+if (!$currentUser || !isAdmin($currentUser['user_id'])) {
+    header('Location: ' . getAssetPath('/admin/login.php'));
+    exit;
+}
+
+require_once __DIR__ . '/../includes/monitor.php';
 
 $monitor = new ConnectionMonitor();
 $currentConnections = $monitor->getCurrentConnections();
@@ -12,21 +22,15 @@ $recentStats = $monitor->getRecentStats(5);
 $limit = 30; // 호스팅 제한
 $percentage = ($currentConnections / $limit) * 100;
 $status = $currentConnections >= $limit ? 'danger' : ($currentConnections >= $limit * 0.8 ? 'warning' : 'success');
+
+// 현재 페이지 설정
+$currentPage = 'monitor.php';
+
+// 헤더 포함
+require_once __DIR__ . '/includes/admin-header.php';
 ?>
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>접속 모니터링</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f5f5f5;
-            padding: 20px;
-        }
-        .container {
+<style>
+        .admin-container {
             max-width: 1200px;
             margin: 0 auto;
             background: white;
@@ -106,8 +110,13 @@ $status = $currentConnections >= $limit ? 'danger' : ($currentConnections >= $li
     </style>
 </head>
 <body>
-    <div class="container">
+<div class="admin-content">
+    <div class="content-header">
         <h1>🔍 접속 모니터링</h1>
+        <p class="content-description">현재 동시 접속 수 및 최근 접속 통계를 확인할 수 있습니다.</p>
+    </div>
+    
+    <div class="admin-container">
         
         <div class="stat-card">
             <div class="stat-label">현재 동시 접속 수</div>
@@ -163,15 +172,16 @@ $status = $currentConnections >= $limit ? 'danger' : ($currentConnections >= $li
             <?php endif; ?>
         </div>
     </div>
-    
-    <script>
-        // 30초마다 자동 새로고침
-        setTimeout(function() {
-            location.reload();
-        }, 30000);
-    </script>
-</body>
-</html>
+</div>
+
+<script>
+    // 30초마다 자동 새로고침
+    setTimeout(function() {
+        location.reload();
+    }, 30000);
+</script>
+
+<?php require_once __DIR__ . '/includes/admin-footer.php'; ?>
 
 
 

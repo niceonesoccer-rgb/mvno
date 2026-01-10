@@ -3,6 +3,7 @@
  * 실시간 통계 페이지
  */
 
+require_once __DIR__ . '/../../includes/data/path-config.php';
 $pageTitle = '실시간 통계';
 include __DIR__ . '/../includes/admin-header.php';
 
@@ -204,7 +205,7 @@ require_once __DIR__ . '/../../includes/data/analytics-functions.php';
     let refreshInterval;
     
     function updateRealtimeStats() {
-        fetch('/MVNO/api/analytics/realtime.php')
+        fetch('<?php echo getApiPath('/api/analytics/realtime.php'); ?>')
             .then(response => response.json())
             .then(data => {
                 if (data.success) {

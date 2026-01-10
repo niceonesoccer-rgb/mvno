@@ -3,6 +3,7 @@
  * 웹 통계 대시보드
  */
 
+require_once __DIR__ . '/../../includes/data/path-config.php';
 $pageTitle = '웹 통계';
 include __DIR__ . '/../includes/admin-header.php';
 

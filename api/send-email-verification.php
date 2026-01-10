@@ -7,13 +7,30 @@
  * - type: 인증 타입 ('email_change' 또는 'password_change')
  */
 
-header('Content-Type: application/json; charset=UTF-8');
+// 헤더 먼저 설정 (point-deduct.php와 동일한 구조)
+header('Content-Type: application/json; charset=utf-8');
 
+// OPTIONS 요청 처리 (CORS preflight)
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit;
+}
+
+// 필요한 파일들 로드
 require_once __DIR__ . '/../includes/data/auth-functions.php';
 require_once __DIR__ . '/../includes/data/mail-helper.php';
 
+// POST 요청만 허용 (point-deduct.php와 동일한 구조)
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    http_response_code(405);
+    echo json_encode(['success' => false, 'message' => 'Method not allowed']);
+    exit;
+}
+
 // 로그인 체크
 if (!isLoggedIn()) {
+    http_response_code(401);
+    error_log("send-email-verification: 로그인 필요");
     echo json_encode([
         'success' => false,
         'message' => '로그인이 필요합니다.'
@@ -23,6 +40,8 @@ if (!isLoggedIn()) {
 
 $currentUser = getCurrentUser();
 if (!$currentUser) {
+    http_response_code(401);
+    error_log("send-email-verification: 사용자 정보 없음");
     echo json_encode([
         'success' => false,
         'message' => '사용자 정보를 찾을 수 없습니다.'
@@ -30,8 +49,14 @@ if (!$currentUser) {
     exit;
 }
 
-// POST 데이터 받기
+// 입력 데이터 받기 (point-deduct.php와 동일한 구조)
 $input = json_decode(file_get_contents('php://input'), true);
+
+// FormData 요청도 지원
+if (empty($input) && !empty($_POST)) {
+    $input = $_POST;
+}
+
 $email = trim($input['email'] ?? '');
 $type = trim($input['type'] ?? 'email_change');
 
@@ -126,17 +151,32 @@ try {
         error_log("이메일 발송 오류 (무시됨): " . $emailException->getMessage());
     }
     
-    // 개발 환경에서는 이메일 발송 실패해도 DB에는 저장되어 있으므로 성공으로 처리
-    // 인증번호는 DB에서 확인 가능
+    // 개발 환경 감지 (localhost만 개발 환경으로 간주)
+    $isDevelopment = (
+        strpos($_SERVER['HTTP_HOST'] ?? '', 'localhost') !== false || 
+        strpos($_SERVER['HTTP_HOST'] ?? '', '127.0.0.1') !== false ||
+        strpos($_SERVER['HTTP_HOST'] ?? '', '::1') !== false
+    );
+    
+    // 이메일 발송 실패 처리
     if (!$emailSent) {
-        error_log("이메일 발송 실패했지만 DB에는 저장됨 - 인증번호: {$verificationCode}, 이메일: {$email}");
+        error_log("이메일 발송 실패 - 인증번호: {$verificationCode}, 이메일: {$email}, 호스트: " . ($_SERVER['HTTP_HOST'] ?? 'unknown'));
+        
+        // 실제 서버에서는 이메일 발송 실패 시 에러 반환
+        if (!$isDevelopment) {
+            echo json_encode([
+                'success' => false,
+                'message' => '이메일 발송에 실패했습니다. 이메일 설정을 확인해주세요. (관리자 페이지 > 설정 > 이메일 설정)',
+                'email_send_failed' => true
+            ]);
+            exit;
+        }
+        
+        // 개발 환경에서만 실패해도 계속 진행하고 인증번호 표시
+        error_log("개발 환경: 이메일 발송 실패했지만 DB에는 저장됨 - 인증번호: {$verificationCode}");
     }
     
-    // 개발 환경 감지 (XAMPP 등)
-    $isDevelopment = (strpos($_SERVER['HTTP_HOST'], 'localhost') !== false || 
-                      strpos($_SERVER['HTTP_HOST'], '127.0.0.1') !== false);
-    
-    $message = '인증번호가 발송되었습니다.';
+    $message = '인증번호가 발송되었습니다. 이메일을 확인해주세요.';
     if (!$emailSent && $isDevelopment) {
         $message = '인증번호가 생성되었습니다. (개발 환경: DB에서 확인 가능)';
     }
@@ -146,7 +186,7 @@ try {
         'message' => $message,
         'email' => $email,
         'expires_at' => $expiresAt,
-        'development_mode' => $isDevelopment && !$emailSent,
+        'development_mode' => $isDevelopment && !$emailSent, // 개발 환경에서만 true
         'verification_code' => ($isDevelopment && !$emailSent) ? $verificationCode : null // 개발 환경에서만 코드 반환
     ]);
     

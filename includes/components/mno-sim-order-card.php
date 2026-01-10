@@ -142,7 +142,11 @@ if ($sellerName && $sellerPhone) {
     $sellerPhoneDisplay = $sellerName . '  ' . $sellerPhone;
 }
 
-$canWrite = in_array($appStatus, ['activation_completed', 'completed', 'closed', 'terminated']);
+// 리뷰 설정 파일 포함
+require_once __DIR__ . '/../../includes/data/review-settings.php';
+
+// 리뷰 작성 권한 확인 (관리자 설정 기반)
+$canWrite = canWriteReview($appStatus);
 $hasReview = false;
 $buttonText = '리뷰 작성';
 $buttonClass = 'mno-sim-review-write-btn';
