@@ -80,6 +80,13 @@ $inquiryStats = [
 // 고객 적립포인트 (전체 고객 포인트 합계)
 $totalCustomerPoints = 0;
 
+// 일반회원 가입자수 통계
+$memberStats = [
+    'today' => 0,      // 오늘 가입자수
+    'yesterday' => 0,  // 어제 가입자수
+    'week' => 0        // 일주일 가입자수
+];
+
 // 접속모니터링 통계
 $connectionStats = [
     'current' => 0,          // 현재 동시 접속 수
@@ -286,6 +293,34 @@ if ($pdo) {
             FROM user_point_accounts
         ");
         $totalCustomerPoints = (int)$stmt->fetchColumn();
+        
+        // 일반회원 가입자수 통계 - 오늘
+        $stmt = $pdo->query("
+            SELECT COUNT(*) 
+            FROM users 
+            WHERE role = 'user' 
+            AND DATE(created_at) = CURDATE()
+        ");
+        $memberStats['today'] = (int)$stmt->fetchColumn();
+        
+        // 일반회원 가입자수 통계 - 어제
+        $stmt = $pdo->query("
+            SELECT COUNT(*) 
+            FROM users 
+            WHERE role = 'user' 
+            AND DATE(created_at) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)
+        ");
+        $memberStats['yesterday'] = (int)$stmt->fetchColumn();
+        
+        // 일반회원 가입자수 통계 - 일주일
+        $stmt = $pdo->prepare("
+            SELECT COUNT(*) 
+            FROM users 
+            WHERE role = 'user' 
+            AND created_at >= :week_ago
+        ");
+        $stmt->execute([':week_ago' => $weekAgo]);
+        $memberStats['week'] = (int)$stmt->fetchColumn();
         
     } catch (PDOException $e) {
         error_log('대시보드 통계 조회 오류: ' . $e->getMessage());
@@ -625,11 +660,65 @@ $categoryLabels = [
         </div>
     </div>
     
+    <!-- 일반회원 가입자수 -->
+    <div class="dashboard-section">
+        <h2 style="font-size: 18px; font-weight: 700; color: #1e293b; margin-bottom: 16px;">일반회원 가입자수</h2>
+        <div class="dashboard-grid">
+            <div class="dashboard-card">
+                <div class="dashboard-card-header">
+                    <span class="dashboard-card-title">오늘</span>
+                    <div class="dashboard-card-icon" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);">
+                        <svg viewBox="0 0 24 24">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                            <line x1="16" y1="2" x2="16" y2="6"/>
+                            <line x1="8" y1="2" x2="8" y2="6"/>
+                            <line x1="3" y1="10" x2="21" y2="10"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="dashboard-card-value"><?php echo number_format($memberStats['today']); ?></div>
+                <div class="dashboard-card-description">오늘 가입한 회원 수</div>
+            </div>
+            
+            <div class="dashboard-card">
+                <div class="dashboard-card-header">
+                    <span class="dashboard-card-title">어제</span>
+                    <div class="dashboard-card-icon" style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);">
+                        <svg viewBox="0 0 24 24">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                            <line x1="16" y1="2" x2="16" y2="6"/>
+                            <line x1="8" y1="2" x2="8" y2="6"/>
+                            <line x1="3" y1="10" x2="21" y2="10"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="dashboard-card-value"><?php echo number_format($memberStats['yesterday']); ?></div>
+                <div class="dashboard-card-description">어제 가입한 회원 수</div>
+            </div>
+            
+            <div class="dashboard-card">
+                <div class="dashboard-card-header">
+                    <span class="dashboard-card-title">일주일</span>
+                    <div class="dashboard-card-icon" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);">
+                        <svg viewBox="0 0 24 24">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                            <line x1="16" y1="2" x2="16" y2="6"/>
+                            <line x1="8" y1="2" x2="8" y2="6"/>
+                            <line x1="3" y1="10" x2="21" y2="10"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="dashboard-card-value"><?php echo number_format($memberStats['week']); ?></div>
+                <div class="dashboard-card-description">최근 7일간 가입한 회원 수</div>
+            </div>
+        </div>
+    </div>
+    
     <!-- 접속모니터링 -->
     <div class="dashboard-section">
         <h2 style="font-size: 18px; font-weight: 700; color: #1e293b; margin-bottom: 16px;">접속모니터링</h2>
         <div class="dashboard-grid">
-            <a href="/MVNO/admin/monitor.php" class="dashboard-card">
+            <a href="<?php echo getAssetPath('/admin/monitor.php'); ?>" class="dashboard-card">
                 <div class="dashboard-card-header">
                     <span class="dashboard-card-title">현재 동시 접속</span>
                     <div class="dashboard-card-icon" style="background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);">
@@ -645,7 +734,7 @@ $categoryLabels = [
                 <div class="dashboard-card-description">현재 활성 접속자 수</div>
             </a>
             
-            <a href="/MVNO/admin/monitor.php" class="dashboard-card">
+            <a href="<?php echo getAssetPath('/admin/monitor.php'); ?>" class="dashboard-card">
                 <div class="dashboard-card-header">
                     <span class="dashboard-card-title">최근 5분 접속</span>
                     <div class="dashboard-card-icon" style="background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);">
@@ -659,7 +748,7 @@ $categoryLabels = [
                 <div class="dashboard-card-description">최근 5분간 접속 수</div>
             </a>
             
-            <a href="/MVNO/admin/monitor.php" class="dashboard-card">
+            <a href="<?php echo getAssetPath('/admin/monitor.php'); ?>" class="dashboard-card">
                 <div class="dashboard-card-header">
                     <span class="dashboard-card-title">최근 1시간 접속</span>
                     <div class="dashboard-card-icon" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
@@ -673,7 +762,7 @@ $categoryLabels = [
                 <div class="dashboard-card-description">최근 1시간간 접속 수</div>
             </a>
             
-            <a href="/MVNO/admin/monitor.php" class="dashboard-card">
+            <a href="<?php echo getAssetPath('/admin/monitor.php'); ?>" class="dashboard-card">
                 <div class="dashboard-card-header">
                     <span class="dashboard-card-title">오늘 총 접속</span>
                     <div class="dashboard-card-icon" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);">

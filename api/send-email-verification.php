@@ -145,10 +145,14 @@ try {
     $userName = $currentUser['name'] ?? '';
     $emailSent = false;
     
+    error_log("send-email-verification - 이메일 발송 시도 - 이메일: {$email}, 타입: {$type}, 인증번호: {$verificationCode}");
+    
     try {
         $emailSent = sendVerificationEmail($email, $verificationCode, $type, $userName);
+        error_log("send-email-verification - sendVerificationEmail 반환값: " . ($emailSent ? 'true (성공)' : 'false (실패)'));
     } catch (Exception $emailException) {
-        error_log("이메일 발송 오류 (무시됨): " . $emailException->getMessage());
+        error_log("send-email-verification - 이메일 발송 예외 발생: " . $emailException->getMessage());
+        error_log("send-email-verification - 예외 트레이스: " . $emailException->getTraceAsString());
     }
     
     // 개발 환경 감지 (localhost만 개발 환경으로 간주)
@@ -158,9 +162,11 @@ try {
         strpos($_SERVER['HTTP_HOST'] ?? '', '::1') !== false
     );
     
+    error_log("send-email-verification - 환경: " . ($isDevelopment ? '개발' : '프로덕션') . ", 호스트: " . ($_SERVER['HTTP_HOST'] ?? 'unknown'));
+    
     // 이메일 발송 실패 처리
     if (!$emailSent) {
-        error_log("이메일 발송 실패 - 인증번호: {$verificationCode}, 이메일: {$email}, 호스트: " . ($_SERVER['HTTP_HOST'] ?? 'unknown'));
+        error_log("send-email-verification - 이메일 발송 실패 - 인증번호: {$verificationCode}, 이메일: {$email}, 호스트: " . ($_SERVER['HTTP_HOST'] ?? 'unknown'));
         
         // 실제 서버에서는 이메일 발송 실패 시 에러 반환
         if (!$isDevelopment) {

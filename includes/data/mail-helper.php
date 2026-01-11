@@ -18,8 +18,13 @@ if (file_exists(__DIR__ . '/mail-config.php')) {
  * @return bool 발송 성공 여부
  */
 function sendEmail($to, $subject, $message, $from = null) {
+    // 디버깅: sendEmail 함수 시작 로그
+    $host = $_SERVER['HTTP_HOST'] ?? 'unknown';
+    error_log("sendEmail 시작 - 수신자: {$to}, 호스트: {$host}");
+    
     // 설정 확인
     $mailMethod = defined('MAIL_METHOD') ? MAIL_METHOD : 'mail';
+    error_log("sendEmail - 메일 방식 설정: {$mailMethod}");
     
     // 환경 자동 감지
     $isLocalhost = (
@@ -27,6 +32,7 @@ function sendEmail($to, $subject, $message, $from = null) {
         strpos($_SERVER['HTTP_HOST'] ?? '', '127.0.0.1') !== false ||
         strpos($_SERVER['HTTP_HOST'] ?? '', '::1') !== false
     );
+    error_log("sendEmail - 환경: " . ($isLocalhost ? '로컬' : '프로덕션'));
     
     // 'auto' 모드: 환경에 따라 자동 선택
     if ($mailMethod === 'auto') {
@@ -34,8 +40,10 @@ function sendEmail($to, $subject, $message, $from = null) {
         $phpmailerPath = __DIR__ . '/../../vendor/autoload.php';
         if ($isLocalhost && file_exists($phpmailerPath)) {
             $mailMethod = 'smtp';
+            error_log("sendEmail - auto 모드: SMTP 선택 (PHPMailer 발견)");
         } else {
             $mailMethod = 'mail';
+            error_log("sendEmail - auto 모드: mail() 함수 선택");
         }
     }
     
@@ -43,12 +51,16 @@ function sendEmail($to, $subject, $message, $from = null) {
         // SMTP 사용
         $fromEmail = defined('SMTP_FROM_EMAIL') ? SMTP_FROM_EMAIL : ($from ?: 'noreply@mvno.com');
         $fromName = defined('SMTP_FROM_NAME') ? SMTP_FROM_NAME : 'MVNO';
-        return sendEmailViaSMTP($to, $subject, $message, $fromEmail, $fromName);
+        error_log("sendEmail - SMTP 방식 사용 - 발신자: {$fromEmail} ({$fromName})");
+        $result = sendEmailViaSMTP($to, $subject, $message, $fromEmail, $fromName);
+        error_log("sendEmail - SMTP 결과: " . ($result ? '성공' : '실패') . " - 수신자: {$to}");
+        return $result;
     } else {
         // 기본 mail() 함수 사용 (호스팅에서 대부분 작동)
         if (empty($from)) {
             $from = defined('SMTP_FROM_EMAIL') ? SMTP_FROM_EMAIL : 'noreply@mvno.com';
         }
+        error_log("sendEmail - mail() 함수 사용 - 발신자: {$from}");
         
         // 헤더 설정
         $headers = [];
@@ -61,13 +73,14 @@ function sendEmail($to, $subject, $message, $from = null) {
         $headersString = implode("\r\n", $headers);
         
         // 이메일 발송
+        error_log("sendEmail - mail() 함수 호출 시도 - 수신자: {$to}, 제목: {$subject}");
         $result = @mail($to, $subject, $message, $headersString);
         
         // 로그 기록
         if (!$result) {
-            error_log("이메일 발송 실패: {$to} - {$subject}");
+            error_log("sendEmail - mail() 함수 발송 실패: {$to} - {$subject}");
         } else {
-            error_log("이메일 발송 성공: {$to} - {$subject}");
+            error_log("sendEmail - mail() 함수 발송 성공 (반환값 true): {$to} - {$subject}");
         }
         
         return $result;
@@ -95,13 +108,20 @@ function sendEmailViaSMTP($to, $subject, $message, $fromEmail, $fromName) {
             $mail = new PHPMailer\PHPMailer\PHPMailer(true);
             
             // SMTP 설정
+            $smtpHost = defined('SMTP_HOST') ? SMTP_HOST : 'smtp.gmail.com';
+            $smtpUsername = defined('SMTP_USERNAME') ? SMTP_USERNAME : '';
+            $smtpPort = defined('SMTP_PORT') ? SMTP_PORT : 587;
+            $smtpSecure = defined('SMTP_SECURE') ? SMTP_SECURE : 'tls';
+            
+            error_log("sendEmailViaSMTP - SMTP 설정: Host={$smtpHost}, Port={$smtpPort}, Secure={$smtpSecure}, Username={$smtpUsername}");
+            
             $mail->isSMTP();
-            $mail->Host = defined('SMTP_HOST') ? SMTP_HOST : 'smtp.gmail.com';
+            $mail->Host = $smtpHost;
             $mail->SMTPAuth = true;
-            $mail->Username = defined('SMTP_USERNAME') ? SMTP_USERNAME : '';
+            $mail->Username = $smtpUsername;
             $mail->Password = defined('SMTP_PASSWORD') ? SMTP_PASSWORD : '';
-            $mail->SMTPSecure = defined('SMTP_SECURE') ? SMTP_SECURE : 'tls';
-            $mail->Port = defined('SMTP_PORT') ? SMTP_PORT : 587;
+            $mail->SMTPSecure = $smtpSecure;
+            $mail->Port = $smtpPort;
             $mail->CharSet = 'UTF-8';
             $mail->SMTPKeepAlive = false; // 매번 새 연결 (연결 재사용 문제 방지)
             $mail->SMTPOptions = [
@@ -112,6 +132,10 @@ function sendEmailViaSMTP($to, $subject, $message, $fromEmail, $fromName) {
                 ]
             ];
             
+            // 디버깅 모드 활성화 (상세 오류 로그)
+            $mail->SMTPDebug = 2; // 0 = off, 1 = client, 2 = client and server
+            $mail->Debugoutput = 'error_log'; // 디버그 출력을 error_log로 전송
+            
             // 발신자/수신자 설정
             $mail->setFrom($fromEmail, $fromName);
             $mail->addAddress($to);
@@ -121,22 +145,37 @@ function sendEmailViaSMTP($to, $subject, $message, $fromEmail, $fromName) {
             $mail->Subject = $subject;
             $mail->Body = $message;
             
+            error_log("sendEmailViaSMTP - 이메일 발송 시도 - 수신자: {$to}, 제목: {$subject}");
+            
             // 발송
             $result = $mail->send();
             
-            if ($result) {
-                error_log("SMTP 이메일 발송 성공: {$to} - {$subject}");
+            // ErrorInfo 확인 (send()가 true를 반환해도 ErrorInfo가 있으면 실제로는 실패)
+            $errorInfo = $mail->ErrorInfo ?? '';
+            if ($result && empty($errorInfo)) {
+                error_log("sendEmailViaSMTP - 이메일 발송 성공: {$to} - {$subject}");
+                return true;
+            } else {
+                // 실패한 경우 (반환값이 false이거나 ErrorInfo가 있는 경우)
+                if (!empty($errorInfo)) {
+                    error_log("sendEmailViaSMTP - 이메일 발송 실패 (ErrorInfo 있음): {$to} - {$subject} - ErrorInfo: {$errorInfo}");
+                } else {
+                    error_log("sendEmailViaSMTP - 이메일 발송 실패 (반환값 false): {$to} - {$subject}");
+                }
+                return false;
             }
             
-            return $result;
-            
         } catch (\PHPMailer\PHPMailer\Exception $e) {
-            error_log("SMTP 이메일 발송 오류: " . $e->getMessage());
+            error_log("sendEmailViaSMTP - PHPMailer 예외: " . $e->getMessage());
+            $errorInfo = (isset($mail) && isset($mail->ErrorInfo)) ? $mail->ErrorInfo : 'N/A';
+            error_log("sendEmailViaSMTP - ErrorInfo: " . $errorInfo);
             // PHPMailer 실패 시 기본 mail() 함수로 폴백
+            error_log("sendEmailViaSMTP - mail() 함수로 폴백 시도");
             return sendEmailViaMailFunction($to, $subject, $message, $fromEmail);
         } catch (\Exception $e) {
-            error_log("SMTP 이메일 발송 일반 오류: " . $e->getMessage());
+            error_log("sendEmailViaSMTP - 일반 예외: " . $e->getMessage());
             // PHPMailer 실패 시 기본 mail() 함수로 폴백
+            error_log("sendEmailViaSMTP - mail() 함수로 폴백 시도");
             return sendEmailViaMailFunction($to, $subject, $message, $fromEmail);
         }
     } else {
@@ -211,6 +250,9 @@ function sendEmailViaMailFunction($to, $subject, $message, $from) {
  * @return bool 발송 성공 여부
  */
 function sendVerificationEmail($to, $verificationCode, $type = 'email_change', $userName = '') {
+    // 디버깅: 함수 시작 로그
+    error_log("sendVerificationEmail 시작 - 수신자: {$to}, 타입: {$type}, 인증번호: {$verificationCode}");
+    
     $typeNames = [
         'email_change' => '이메일 주소 변경',
         'password_change' => '비밀번호 변경'
@@ -342,7 +384,11 @@ function sendVerificationEmail($to, $verificationCode, $type = 'email_change', $
     </table>
     ";
     
-    return sendEmail($to, $subject, $message);
+    // 디버깅: 이메일 발송 전 로그
+    error_log("sendVerificationEmail - sendEmail 호출 전 - 수신자: {$to}, 제목: {$subject}");
+    $result = sendEmail($to, $subject, $message);
+    error_log("sendVerificationEmail - sendEmail 반환값: " . ($result ? 'true (성공)' : 'false (실패)') . " - 수신자: {$to}");
+    return $result;
 }
 
 /**

@@ -678,21 +678,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 window.currentReviewId = reviewIdAttr ? parseInt(reviewIdAttr) : null;
                 
                 if (reviewModal) {
-                    // 변수들 가져오기
-                    const isEditMode = window.isEditMode;
-                    const currentReviewApplicationId = window.currentReviewApplicationId;
-                    const currentReviewProductId = window.currentReviewProductId;
-                    
                     // 먼저 모달 제목과 버튼 텍스트를 설정 (모달이 보이기 전에)
                     const modalTitle = reviewModal.querySelector('.internet-review-modal-title');
                     if (modalTitle) {
-                        modalTitle.textContent = isEditMode ? '리뷰 수정' : '리뷰 작성';
+                        modalTitle.textContent = window.isEditMode ? '리뷰 수정' : '리뷰 작성';
                     }
                     
                     // 제출 버튼 텍스트 변경
                     const submitBtn = reviewForm ? reviewForm.querySelector('.internet-review-btn-submit span') : null;
                     if (submitBtn) {
-                        submitBtn.textContent = isEditMode ? '저장하기' : '작성하기';
+                        submitBtn.textContent = window.isEditMode ? '저장하기' : '작성하기';
                     }
                     
                     // 삭제 버튼 표시/숨김

@@ -141,14 +141,45 @@ $buttonText = '리뷰 작성';
 $buttonClass = 'internet-review-write-btn';
 $buttonBgColor = '#EF4444';
 $buttonHoverColor = '#dc2626';
+$buttonDataReviewId = '';
 
-if ($canWrite) {
-    $hasReview = $internet['has_review'] ?? false;
-    $buttonText = $hasReview ? '리뷰 수정' : '리뷰 작성';
-    $buttonClass = $hasReview ? 'internet-review-edit-btn' : 'internet-review-write-btn';
-    $buttonBgColor = $hasReview ? '#6b7280' : '#EF4444';
-    $buttonHoverColor = $hasReview ? '#4b5563' : '#dc2626';
+if ($canWrite && $applicationId && $productId) {
+    try {
+        require_once __DIR__ . '/../data/db-config.php';
+        $pdo = getDBConnection();
+        if ($pdo) {
+            $reviewStmt = $pdo->prepare("
+                SELECT id 
+                FROM product_reviews 
+                WHERE application_id = :application_id 
+                AND product_id = :product_id 
+                AND user_id = :user_id 
+                AND product_type = 'internet'
+                AND status != 'deleted'
+                ORDER BY created_at DESC
+                LIMIT 1
+            ");
+            $reviewStmt->execute([
+                ':application_id' => $applicationId,
+                ':product_id' => $productId,
+                ':user_id' => $user_id
+            ]);
+            $reviewResult = $reviewStmt->fetch(PDO::FETCH_ASSOC);
+            if ($reviewResult) {
+                $hasReview = true;
+                $latestReviewId = $reviewResult['id'];
+                $buttonDataReviewId = ' data-review-id="' . htmlspecialchars($latestReviewId) . '"';
+            }
+        }
+    } catch (Exception $e) {
+        error_log("Error checking review: " . $e->getMessage());
+    }
 }
+
+$buttonText = $hasReview ? '리뷰 수정' : '리뷰 작성';
+$buttonClass = $hasReview ? 'internet-review-edit-btn' : 'internet-review-write-btn';
+$buttonBgColor = $hasReview ? '#6b7280' : '#EF4444';
+$buttonHoverColor = $hasReview ? '#4b5563' : '#dc2626';
 ?>
 
 <div class="internet-item application-card" 
@@ -274,6 +305,7 @@ if ($canWrite) {
                         data-application-id="<?php echo $applicationId; ?>"
                         data-product-id="<?php echo htmlspecialchars($productId); ?>"
                         data-has-review="<?php echo $hasReview ? '1' : '0'; ?>"
+                        <?php echo $buttonDataReviewId; ?>
                         style="width: 100%; padding: 12px 16px; background: <?php echo $buttonBgColor; ?>; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: background 0.2s;"
                         onmouseover="this.style.background='<?php echo $buttonHoverColor; ?>'"
                         onmouseout="this.style.background='<?php echo $buttonBgColor; ?>'">

@@ -39,15 +39,19 @@ if (!$currentUser) {
     exit;
 }
 
-// POST 데이터 받기
-$rawInput = file_get_contents('php://input');
-$input = json_decode($rawInput, true);
+// POST 데이터 받기 (JSON 또는 FormData 지원)
+$input = json_decode(file_get_contents('php://input'), true);
 
-// JSON 파싱 오류 체크
-if (json_last_error() !== JSON_ERROR_NONE) {
+// FormData 요청도 지원
+if (empty($input) && !empty($_POST)) {
+    $input = $_POST;
+}
+
+// 입력 데이터 확인
+if (empty($input)) {
     echo json_encode([
         'success' => false,
-        'message' => '잘못된 요청 형식입니다. (JSON 파싱 오류: ' . json_last_error_msg() . ')'
+        'message' => '잘못된 요청 형식입니다.'
     ]);
     exit;
 }

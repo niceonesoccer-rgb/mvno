@@ -203,15 +203,6 @@ include '../includes/header.php';
                         >
                         <div id="verificationError" style="display: none; color: #ef4444; font-size: 13px; margin-top: 8px;"></div>
                         <div id="verificationSuccess" style="display: none; color: #10b981; font-size: 13px; margin-top: 8px;"></div>
-                        <div style="margin-top: 8px; font-size: 12px; color: #6b7280; text-align: center;">
-                            <button 
-                                type="button" 
-                                id="resendVerificationBtn"
-                                style="background: none; border: none; color: #6366f1; font-size: 12px; cursor: pointer; text-decoration: underline;"
-                            >
-                                인증번호 다시 받기
-                            </button>
-                        </div>
                     </div>
                     
                     <div style="display: flex; gap: 12px;">
@@ -220,7 +211,7 @@ include '../includes/header.php';
                             id="backToEmailBtn"
                             style="flex: 1; padding: 14px; background-color: #f3f4f6; border: none; border-radius: 8px; font-size: 16px; color: #374151; font-weight: 500; cursor: pointer;"
                         >
-                            이전
+                            인증번호 다시받기
                         </button>
                         <button 
                             type="button" 
@@ -351,10 +342,10 @@ include '../includes/header.php';
                 <div style="display: flex; gap: 12px;">
                     <button 
                         type="button" 
-                        id="cancelPasswordBtn"
-                        style="flex: 1; padding: 14px; background-color: #f3f4f6; border: none; border-radius: 8px; font-size: 16px; color: #374151; font-weight: 500; cursor: pointer;"
+                        id="resendPasswordVerificationBtn"
+                        style="flex: 1; padding: 14px; background-color: #f3f4f6; border: none; border-radius: 8px; font-size: 16px; color: #374151; font-weight: 500; cursor: pointer; display: none;"
                     >
-                        취소
+                        인증번호 다시받기
                     </button>
                     <button 
                         type="submit" 
@@ -442,7 +433,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const sendVerificationBtn = document.getElementById('sendVerificationBtn');
     const verificationCodeInput = document.getElementById('verificationCodeInput');
     const verifyCodeBtn = document.getElementById('verifyCodeBtn');
-    const resendVerificationBtn = document.getElementById('resendVerificationBtn');
     const backToEmailBtn = document.getElementById('backToEmailBtn');
     const verificationError = document.getElementById('verificationError');
     const verificationSuccess = document.getElementById('verificationSuccess');
@@ -464,6 +454,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const confirmPasswordError = document.getElementById('confirmPasswordError');
     const passwordEmailVerification = document.getElementById('passwordEmailVerification');
     const sendPasswordVerificationBtn = document.getElementById('sendPasswordVerificationBtn');
+    const resendPasswordVerificationBtn = document.getElementById('resendPasswordVerificationBtn');
     const passwordVerificationCode = document.getElementById('passwordVerificationCode');
     const passwordVerificationError = document.getElementById('passwordVerificationError');
     const passwordVerificationSuccess = document.getElementById('passwordVerificationSuccess');
@@ -735,23 +726,36 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // 인증번호 다시 받기
-    if (resendVerificationBtn) {
-        resendVerificationBtn.addEventListener('click', function() {
-            if (currentVerificationEmail) {
-                sendVerificationBtn.click();
-            }
-        });
-    }
-    
-    // 이전 버튼
+    // 인증번호 다시 받기 버튼 (이전 버튼을 대체)
     if (backToEmailBtn) {
         backToEmailBtn.addEventListener('click', function() {
-            emailStep1.style.display = 'block';
-            emailStep2.style.display = 'none';
+            // 1단계(이메일 입력)로 돌아가기
+            if (emailStep1 && emailStep2) {
+                emailStep1.style.display = 'block';
+                emailStep2.style.display = 'none';
+            }
+            
+            // 입력 필드 초기화
+            if (verificationCodeInput) {
+                verificationCodeInput.value = '';
+            }
+            if (emailInput) {
+                emailInput.value = '';
+            }
+            
+            // 에러/성공 메시지 초기화
             verificationError.style.display = 'none';
             verificationSuccess.style.display = 'none';
-            verificationCodeInput.value = '';
+            emailError.style.display = 'none';
+            emailSuccess.style.display = 'none';
+            
+            // 이메일 입력 필드에 포커스
+            if (emailInput) {
+                emailInput.focus();
+            }
+            
+            // 현재 인증 이메일 초기화
+            currentVerificationEmail = null;
         });
     }
     
@@ -992,6 +996,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     passwordVerificationSuccess.innerHTML = successMessage;
                     passwordVerificationSuccess.style.display = 'block';
+                    // 인증번호 다시 받기 버튼 표시
+                    if (resendPasswordVerificationBtn) {
+                        resendPasswordVerificationBtn.style.display = 'block';
+                    }
                     if (passwordVerificationCode) {
                         passwordVerificationCode.focus();
                     }
@@ -1013,6 +1021,30 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 passwordVerificationError.style.display = 'block';
             });
+        });
+    }
+    
+    // 비밀번호 변경용 인증번호 다시 받기
+    if (resendPasswordVerificationBtn) {
+        resendPasswordVerificationBtn.addEventListener('click', function() {
+            const userEmail = '<?php echo htmlspecialchars($currentUser['email'] ?? ''); ?>';
+            if (!userEmail) {
+                return;
+            }
+            
+            // 입력 필드 초기화
+            if (passwordVerificationCode) {
+                passwordVerificationCode.value = '';
+            }
+            
+            // 에러/성공 메시지 초기화
+            passwordVerificationError.style.display = 'none';
+            passwordVerificationSuccess.style.display = 'none';
+            
+            // 인증번호 다시 발송
+            if (sendPasswordVerificationBtn) {
+                sendPasswordVerificationBtn.click();
+            }
         });
     }
     
@@ -1092,14 +1124,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    if (cancelPasswordBtn) {
-        cancelPasswordBtn.addEventListener('click', function() {
-            closeModal(passwordModal);
-            passwordForm.reset();
-            newPasswordError.style.display = 'none';
-            confirmPasswordError.style.display = 'none';
-        });
-    }
     
     // 비밀번호 입력 필터링 (영문자, 숫자, 특수문자만 허용, 공백 불가)
     function filterPasswordInput(input) {
