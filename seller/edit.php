@@ -1183,7 +1183,7 @@ require_once __DIR__ . '/includes/seller-header.php';
                 <label class="form-label">사업자등록증 <span class="required">*</span></label>
                 <?php if (!empty($seller['business_license_image'])): ?>
                     <div style="margin-bottom: 12px;">
-                        <img src="<?php echo htmlspecialchars($seller['business_license_image']); ?>" alt="사업자등록증" style="max-width: 400px; max-height: 300px; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 8px;">
+                        <img src="<?php echo htmlspecialchars(getAssetPath($seller['business_license_image'])); ?>" alt="사업자등록증" style="max-width: 400px; max-height: 300px; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 8px;">
                         <div class="password-note">현재 등록된 사업자등록증입니다. 새로 업로드하면 기존 이미지가 교체됩니다.</div>
                     </div>
                 <?php endif; ?>

@@ -4,7 +4,18 @@
  * POST /api/product-bulk-update.php
  */
 
+// 에러 출력 방지 (JSON 응답을 위해)
+error_reporting(E_ALL);
+ini_set('display_errors', 0);
+ini_set('log_errors', 1);
+
+// 출력 버퍼링 시작 (에러 방지)
+ob_start();
+
 header('Content-Type: application/json; charset=utf-8');
+
+// 출력 버퍼 비우기 (이전 출력 제거)
+ob_clean();
 
 require_once __DIR__ . '/../includes/data/auth-functions.php';
 require_once __DIR__ . '/../includes/data/db-config.php';
@@ -46,9 +57,22 @@ if ($approvalStatus !== 'approved') {
     exit;
 }
 
-// JSON 데이터 읽기
-$input = file_get_contents('php://input');
-$data = json_decode($input, true);
+// JSON 또는 FormData 데이터 읽기 (웹서버 호환성)
+$data = null;
+
+// FormData 요청 확인 (웹서버 호환성)
+if (!empty($_POST)) {
+    $data = $_POST;
+} else {
+    // JSON 요청 처리
+    $input = file_get_contents('php://input');
+    if (!empty($input)) {
+        $data = json_decode($input, true);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            $data = null;
+        }
+    }
+}
 
 if (!$data || !isset($data['product_ids']) || !isset($data['status'])) {
     http_response_code(400);
@@ -57,6 +81,14 @@ if (!$data || !isset($data['product_ids']) || !isset($data['status'])) {
         'message' => '잘못된 요청입니다.'
     ]);
     exit;
+}
+
+// product_ids가 문자열인 경우 배열로 변환 (FormData에서)
+if (is_string($data['product_ids'])) {
+    $data['product_ids'] = json_decode($data['product_ids'], true);
+    if (!is_array($data['product_ids'])) {
+        $data['product_ids'] = [$data['product_ids']];
+    }
 }
 
 $productIds = $data['product_ids'];

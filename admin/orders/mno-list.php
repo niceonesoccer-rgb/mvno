@@ -1489,6 +1489,18 @@ function getContractType($app) {
 </div>
 
 <script>
+// API 경로 설정
+<?php
+require_once __DIR__ . '/../../includes/data/path-config.php';
+$apiUpdateOrderStatusPath = getAssetPath("/api/update-order-status.php");
+// 프로덕션에서 절대 URL 필요시
+if (strpos($apiUpdateOrderStatusPath, 'http') !== 0 && isset($_SERVER['HTTP_HOST'])) {
+    $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    $apiUpdateOrderStatusPath = $protocol . '://' . $_SERVER['HTTP_HOST'] . $apiUpdateOrderStatusPath;
+}
+?>
+const API_UPDATE_ORDER_STATUS_URL = '<?php echo htmlspecialchars($apiUpdateOrderStatusPath, ENT_QUOTES, 'UTF-8'); ?>';
+
 // 판매자 데이터를 JavaScript에서 사용할 수 있도록 전달
 const sellersData = <?php echo json_encode($sellersData ?? [], JSON_UNESCAPED_UNICODE); ?>;
 
@@ -2101,7 +2113,7 @@ function updateOrderStatus() {
     }
     
     // API 호출
-    fetch('/MVNO/api/update-order-status.php', {
+    fetch(API_UPDATE_ORDER_STATUS_URL, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
@@ -2157,7 +2169,7 @@ function bulkUpdateStatus() {
     
     // 일괄 변경 API 호출
     const promises = selectedIds.map(id => {
-        return fetch('/MVNO/api/update-order-status.php', {
+        return fetch(API_UPDATE_ORDER_STATUS_URL, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',

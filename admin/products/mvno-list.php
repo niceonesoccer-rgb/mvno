@@ -1196,13 +1196,19 @@ try {
 // API 경로 설정 (절대 URL)
 <?php
 $apiUpdatePointPath = getAssetPath("/api/admin/update-product-point.php");
+$apiBulkUpdatePath = getAssetPath("/api/admin-product-bulk-update.php");
 // 프로덕션에서 절대 URL 필요시
 if (strpos($apiUpdatePointPath, 'http') !== 0 && isset($_SERVER['HTTP_HOST'])) {
     $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
     $apiUpdatePointPath = $protocol . '://' . $_SERVER['HTTP_HOST'] . $apiUpdatePointPath;
 }
+if (strpos($apiBulkUpdatePath, 'http') !== 0 && isset($_SERVER['HTTP_HOST'])) {
+    $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    $apiBulkUpdatePath = $protocol . '://' . $_SERVER['HTTP_HOST'] . $apiBulkUpdatePath;
+}
 ?>
 const API_UPDATE_POINT_URL = '<?php echo htmlspecialchars($apiUpdatePointPath, ENT_QUOTES, 'UTF-8'); ?>';
+const API_BULK_UPDATE_PRODUCT_URL = '<?php echo htmlspecialchars($apiBulkUpdatePath, ENT_QUOTES, 'UTF-8'); ?>';
 
 // 모달 함수
 function showConfirmModal(title, message) {
@@ -1525,7 +1531,7 @@ function processBulkChangeStatus(productIds, status) {
         status: normalizedStatus
     });
     
-    fetch('<?php echo getAssetPath("/api/admin-product-bulk-update.php"); ?>', {
+    fetch(API_BULK_UPDATE_PRODUCT_URL, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -1535,7 +1541,14 @@ function processBulkChangeStatus(productIds, status) {
             status: normalizedStatus
         })
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            return response.text().then(text => {
+                throw new Error(`HTTP ${response.status}: ${text}`);
+            });
+        }
+        return response.json();
+    })
     .then(data => {
         if (data.success) {
             showAlertModal('성공', data.message || productIds.length + '개의 상품이 ' + statusText + ' 처리되었습니다.');

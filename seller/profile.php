@@ -3,6 +3,7 @@
  * 판매자 내정보 확인 페이지
  */
 
+require_once __DIR__ . '/../includes/data/path-config.php';
 require_once __DIR__ . '/../includes/data/auth-functions.php';
 
 // 세션 시작
@@ -515,7 +516,7 @@ include 'includes/seller-header.php';
                 <div class="detail-item">
                     <div class="detail-label">사업자등록증</div>
                     <div class="detail-value">
-                        <img src="<?php echo htmlspecialchars($currentUser['business_license_image']); ?>" alt="사업자등록증" class="license-image">
+                        <img src="<?php echo htmlspecialchars(getAssetPath($currentUser['business_license_image'])); ?>" alt="사업자등록증" class="license-image">
                     </div>
                 </div>
             <?php endif; ?>

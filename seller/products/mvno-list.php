@@ -882,6 +882,23 @@ include __DIR__ . '/../includes/seller-header.php';
 </div>
 
 <script>
+// API 경로 설정 (절대 URL)
+<?php
+$apiBulkUpdatePath = getAssetPath('/api/product-bulk-update.php');
+$apiCopyPath = getAssetPath('/api/product-copy.php');
+// 프로덕션에서 절대 URL 필요시
+if (strpos($apiBulkUpdatePath, 'http') !== 0 && isset($_SERVER['HTTP_HOST'])) {
+    $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    $apiBulkUpdatePath = $protocol . '://' . $_SERVER['HTTP_HOST'] . $apiBulkUpdatePath;
+}
+if (strpos($apiCopyPath, 'http') !== 0 && isset($_SERVER['HTTP_HOST'])) {
+    $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    $apiCopyPath = $protocol . '://' . $_SERVER['HTTP_HOST'] . $apiCopyPath;
+}
+?>
+const API_BULK_UPDATE_URL = '<?php echo htmlspecialchars($apiBulkUpdatePath, ENT_QUOTES, 'UTF-8'); ?>';
+const API_COPY_URL = '<?php echo htmlspecialchars($apiCopyPath, ENT_QUOTES, 'UTF-8'); ?>';
+
 function applyFilters() {
     const params = new URLSearchParams();
     
@@ -1063,7 +1080,7 @@ function copyProduct(productId) {
 }
 
 function processCopyProduct(productId) {
-    fetch('<?php echo getApiPath('/api/product-copy.php'); ?>', {
+    fetch(API_COPY_URL, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -1233,7 +1250,7 @@ function bulkChangeStatus(status) {
 function processBulkChangeStatus(productIds, status) {
     const statusText = status === 'active' ? '판매중' : '판매종료';
     
-    fetch('<?php echo getApiPath('/api/product-bulk-update.php'); ?>', {
+    fetch(API_BULK_UPDATE_URL, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -1243,7 +1260,14 @@ function processBulkChangeStatus(productIds, status) {
             status: status
         })
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            return response.text().then(text => {
+                throw new Error(`HTTP ${response.status}: ${text}`);
+            });
+        }
+        return response.json();
+    })
     .then(data => {
         if (data.success) {
             if (typeof showAlert === 'function') {
@@ -1302,7 +1326,7 @@ function processBulkCopy(productIds) {
     
     // 각 상품을 순차적으로 복사
     productIds.forEach((productId, index) => {
-        fetch('<?php echo getApiPath('/api/product-copy.php'); ?>', {
+        fetch(API_COPY_URL, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -1312,7 +1336,14 @@ function processBulkCopy(productIds) {
                 product_type: 'mvno'
             })
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                return response.text().then(text => {
+                    throw new Error(`HTTP ${response.status}: ${text}`);
+                });
+            }
+            return response.json();
+        })
         .then(data => {
             if (data.success) {
                 completedCount++;
