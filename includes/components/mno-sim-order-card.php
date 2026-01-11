@@ -15,7 +15,7 @@ if (!isset($user_id)) {
 }
 
 // 변수 초기화 및 기본값 설정
-$applicationId = htmlspecialchars($app['application_id'] ?? '');
+$applicationId = isset($app['application_id']) && $app['application_id'] !== null && $app['application_id'] !== '' ? (int)$app['application_id'] : '';
 $orderDate = $app['order_date'] ?? '';
 $formattedDate = '';
 if ($orderDate) {
@@ -67,7 +67,8 @@ if (!empty($appStatus)) {
 }
 
 // 판매자 정보 및 리뷰 작성 영역
-$productId = $app['product_id'] ?? ($app['id'] ?? 0);
+// product_id가 없으면 application_id를 사용하지 말고 0으로 처리 (데이터 오류)
+$productId = isset($app['product_id']) && $app['product_id'] > 0 ? (int)$app['product_id'] : 0;
 // 1. additional_info에서 seller_snapshot 확인 (주문 시점 정보)
 $sellerSnapshot = null;
 $sellerId = isset($app['seller_id']) && $app['seller_id'] > 0 ? (int)$app['seller_id'] : null;
@@ -151,84 +152,87 @@ $buttonBgColor = '#EF4444';
 $buttonHoverColor = '#dc2626';
 $buttonDataReviewId = '';
 
-if ($canWrite && $applicationId && $productId && $user_id) {
-    try {
-        require_once __DIR__ . '/../data/db-config.php';
-        $pdo = getDBConnection();
-        if ($pdo) {
-            // application_id 컬럼 존재 여부 확인
-            $hasApplicationId = false;
-            try {
-                $checkStmt = $pdo->query("SHOW COLUMNS FROM product_reviews LIKE 'application_id'");
-                $hasApplicationId = $checkStmt->rowCount() > 0;
-            } catch (PDOException $e) {
-                error_log("Error checking application_id column: " . $e->getMessage());
-            }
-            
-            // product_type에 'mno-sim'이 있는지 확인 (없으면 'mno'로 대체)
-            $productTypeForQuery = 'mno-sim';
-            try {
-                $typeCheckStmt = $pdo->query("SHOW COLUMNS FROM product_reviews WHERE Field = 'product_type'");
-                $typeColumn = $typeCheckStmt->fetch(PDO::FETCH_ASSOC);
-                if ($typeColumn && strpos($typeColumn['Type'], 'mno-sim') === false) {
-                    $productTypeForQuery = 'mno';
-                    error_log("Warning: product_type ENUM에 'mno-sim'이 없어 'mno'로 조회합니다.");
-                }
-            } catch (PDOException $e) {
-                error_log("Error checking product_type: " . $e->getMessage());
-                $productTypeForQuery = 'mno';
-            }
-            
-            if ($hasApplicationId && !empty($applicationId)) {
+if ($canWrite) {
+    $latestReviewId = null;
+    if ($applicationId && $productId) {
+        try {
+            $pdo = getDBConnection();
+            if ($pdo) {
+                // application_id를 정수로 변환 (DB 비교 시 타입 일치를 위해)
+                $applicationIdInt = is_numeric($applicationId) ? (int)$applicationId : 0;
+                
+                // 디버깅: 조회 조건 확인
+                error_log("MNO-SIM 리뷰 조회 - application_id=" . var_export($applicationId, true) . " (type: " . gettype($applicationId) . "), applicationIdInt=$applicationIdInt, product_id=$productId (type: " . gettype($productId) . "), user_id=$user_id");
+                
+                // MVNO와 동일한 방식으로 단순화 (application_id 정수로 변환하여 비교)
                 $reviewStmt = $pdo->prepare("
                     SELECT id 
                     FROM product_reviews 
                     WHERE application_id = :application_id 
                     AND product_id = :product_id 
                     AND user_id = :user_id 
-                    AND product_type = :product_type
+                    AND product_type = 'mno-sim'
                     AND status != 'deleted'
                     ORDER BY created_at DESC
                     LIMIT 1
                 ");
-                $reviewStmt->execute([
-                    ':application_id' => $applicationId,
-                    ':product_id' => $productId,
-                    ':user_id' => $user_id,
-                    ':product_type' => $productTypeForQuery
-                ]);
-            } else {
-                $reviewStmt = $pdo->prepare("
-                    SELECT id 
-                    FROM product_reviews 
-                    WHERE product_id = :product_id 
-                    AND user_id = :user_id 
-                    AND product_type = :product_type
-                    AND status != 'deleted'
-                    ORDER BY created_at DESC
-                    LIMIT 1
-                ");
-                $reviewStmt->execute([
-                    ':product_id' => $productId,
-                    ':user_id' => $user_id,
-                    ':product_type' => $productTypeForQuery
-                ]);
+                // application_id를 명시적으로 정수로 변환하여 바인딩
+                $reviewStmt->bindValue(':application_id', $applicationIdInt, PDO::PARAM_INT);
+                $reviewStmt->bindValue(':product_id', $productId, PDO::PARAM_INT);
+                $reviewStmt->bindValue(':user_id', $user_id, PDO::PARAM_STR);
+                $reviewStmt->execute();
+                $reviewResult = $reviewStmt->fetch(PDO::FETCH_ASSOC);
+                
+                // 디버깅: 조회 결과 확인
+                if ($reviewResult) {
+                    $latestReviewId = $reviewResult['id'];
+                    $hasReview = true;
+                    error_log("MNO-SIM 리뷰 조회 성공 - review_id=$latestReviewId");
+                } else {
+                    error_log("MNO-SIM 리뷰 조회 실패 - 리뷰를 찾을 수 없음");
+                    
+                    // 디버깅: 실제 DB에 존재하는 리뷰 확인 (조건 완화)
+                    $debugStmt = $pdo->prepare("
+                        SELECT id, application_id, product_id, user_id, product_type, status, created_at
+                        FROM product_reviews 
+                        WHERE (application_id = :application_id OR application_id = CAST(:application_id AS UNSIGNED))
+                        AND product_id = :product_id 
+                        AND user_id = :user_id 
+                        AND product_type IN ('mno-sim', 'mno')
+                        ORDER BY created_at DESC
+                        LIMIT 5
+                    ");
+                    $debugStmt->execute([
+                        ':application_id' => $applicationIdInt,
+                        ':product_id' => $productId,
+                        ':user_id' => $user_id
+                    ]);
+                    $debugResults = $debugStmt->fetchAll(PDO::FETCH_ASSOC);
+                    error_log("MNO-SIM 리뷰 디버깅 - 찾은 리뷰 개수: " . count($debugResults));
+                    if (!empty($debugResults)) {
+                        foreach ($debugResults as $idx => $debugRow) {
+                            error_log("MNO-SIM 리뷰 디버깅 [$idx]: id={$debugRow['id']}, application_id={$debugRow['application_id']} (type: " . gettype($debugRow['application_id']) . "), product_id={$debugRow['product_id']}, product_type={$debugRow['product_type']}, status={$debugRow['status']}, created_at={$debugRow['created_at']}");
+                        }
+                    } else {
+                        error_log("MNO-SIM 리뷰 디버깅 - 조건 완화해도 리뷰 없음");
+                    }
+                }
             }
-            
-            $reviewResult = $reviewStmt->fetch(PDO::FETCH_ASSOC);
-            if ($reviewResult) {
-                $latestReviewId = $reviewResult['id'];
-                $hasReview = true;
-                $buttonDataReviewId = ' data-review-id="' . htmlspecialchars($latestReviewId) . '"';
-            }
+        } catch (Exception $e) {
+            error_log("MNO-SIM 리뷰 조회 오류: " . $e->getMessage());
         }
-    } catch (Exception $e) {
-        error_log("MNO SIM Order Card - Error checking review: " . $e->getMessage());
+    } else {
+        error_log("MNO-SIM 리뷰 조회 조건 실패 - applicationId=" . var_export($applicationId, true) . ", productId=$productId, canWrite=" . ($canWrite ? 'true' : 'false'));
     }
+    
     $buttonText = $hasReview ? '리뷰 수정' : '리뷰 작성';
     $buttonClass = $hasReview ? 'mno-sim-review-edit-btn' : 'mno-sim-review-write-btn';
     $buttonBgColor = $hasReview ? '#6b7280' : '#EF4444';
     $buttonHoverColor = $hasReview ? '#4b5563' : '#dc2626';
+    
+    if ($latestReviewId) {
+        $buttonDataReviewId = ' data-review-id="' . htmlspecialchars($latestReviewId) . '"';
+    }
 }
 ?>
 

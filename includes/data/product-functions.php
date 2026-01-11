@@ -1341,10 +1341,14 @@ function addProductReview($productId, $userId, $productType, $rating, $content, 
             ':status' => $status
         ];
         
-        if ($hasApplicationId && $applicationId !== null) {
+        // application_id는 항상 저장 (null이 아니고 0보다 큰 경우)
+        if ($hasApplicationId && $applicationId !== null && $applicationId > 0) {
             $columns[] = 'application_id';
             $values[] = ':application_id';
-            $executeParams[':application_id'] = $applicationId;
+            $executeParams[':application_id'] = (int)$applicationId; // 명시적으로 정수로 변환
+            error_log("addProductReview: application_id 저장 - " . var_export($applicationId, true) . " (type: " . gettype($applicationId) . ") -> " . (int)$applicationId);
+        } else {
+            error_log("addProductReview: application_id 저장 안 함 - hasApplicationId=" . ($hasApplicationId ? 'true' : 'false') . ", applicationId=" . var_export($applicationId, true));
         }
         
         if ($hasKindnessRating && $hasSpeedRating && $kindnessRating !== null && $speedRating !== null) {
@@ -1359,6 +1363,12 @@ function addProductReview($productId, $userId, $productType, $rating, $content, 
         $columnsStr = implode(', ', $columns);
         $valuesStr = implode(', ', $values);
         
+        // 디버깅: 저장되는 값 확인
+        if ($productType === 'mno-sim') {
+            error_log("addProductReview (mno-sim): 저장되는 값 - product_id=$productId, user_id=$userId, product_type=$productType, application_id=" . var_export($applicationId, true) . " (type: " . gettype($applicationId) . "), status=$status");
+            error_log("addProductReview (mno-sim): columns=" . $columnsStr);
+        }
+        
         $stmt = $pdo->prepare("
             INSERT INTO product_reviews ($columnsStr)
             VALUES ($valuesStr)
@@ -1366,6 +1376,22 @@ function addProductReview($productId, $userId, $productType, $rating, $content, 
         
         $stmt->execute($executeParams);
         $newId = $pdo->lastInsertId();
+        
+        // 디버깅: 저장 후 확인
+        if ($productType === 'mno-sim' && $newId) {
+            error_log("addProductReview (mno-sim): 리뷰 저장 성공 - review_id=$newId");
+            // 저장된 리뷰 확인
+            try {
+                $checkStmt = $pdo->prepare("SELECT id, application_id, product_id, user_id, product_type, status FROM product_reviews WHERE id = :id");
+                $checkStmt->execute([':id' => $newId]);
+                $savedReview = $checkStmt->fetch(PDO::FETCH_ASSOC);
+                if ($savedReview) {
+                    error_log("addProductReview (mno-sim): 저장된 리뷰 확인 - id={$savedReview['id']}, application_id=" . var_export($savedReview['application_id'], true) . " (type: " . gettype($savedReview['application_id']) . "), product_id={$savedReview['product_id']}, product_type={$savedReview['product_type']}, status={$savedReview['status']}");
+                }
+            } catch (PDOException $e) {
+                error_log("addProductReview (mno-sim): 저장된 리뷰 확인 오류 - " . $e->getMessage());
+            }
+        }
         
         // 통계 업데이트는 트리거(trg_update_review_statistics_on_insert)가 자동으로 처리
         // 트리거가 approved 상태의 리뷰만 통계에 자동 추가하여 통계 업데이트

@@ -22,9 +22,40 @@ $review_settings = [
  * @return bool 리뷰 작성 가능 여부
  */
 function canWriteReview($application_status) {
-    global $review_settings;
-    
     if (empty($application_status)) {
+        return false;
+    }
+    
+    // DB에서 설정 읽기 (하드코딩 제거 - DB에서만 읽기)
+    require_once __DIR__ . '/db-config.php';
+    $pdo = getDBConnection();
+    
+    if (!$pdo) {
+        error_log("canWriteReview: DB 연결 실패 - 리뷰 작성 불가");
+        return false;
+    }
+    
+    try {
+        $stmt = $pdo->prepare("SELECT setting_value FROM system_settings WHERE setting_key = 'review_allowed_statuses' LIMIT 1");
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$row || empty($row['setting_value'])) {
+            // DB에 설정이 없으면 리뷰 작성 불가
+            error_log("canWriteReview: DB에 설정이 없음 - 리뷰 작성 불가");
+            return false;
+        }
+        
+        $decoded = json_decode($row['setting_value'], true);
+        if (!is_array($decoded) || empty($decoded)) {
+            // JSON 파싱 실패 또는 빈 배열이면 리뷰 작성 불가
+            error_log("canWriteReview: JSON 파싱 실패 또는 빈 배열 - " . $row['setting_value']);
+            return false;
+        }
+        
+        $allowedStatuses = $decoded;
+    } catch (PDOException $e) {
+        error_log("canWriteReview DB 오류: " . $e->getMessage() . " - 리뷰 작성 불가");
         return false;
     }
     
@@ -36,12 +67,14 @@ function canWriteReview($application_status) {
         $normalizedStatus = 'received';
     }
     
-    // 허용된 상태 목록 가져오기
-    $allowedStatuses = $review_settings['allowed_statuses'] ?? ['activation_completed', 'installation_completed', 'closed'];
-    
     // 소문자로 변환된 배열 생성 (비교용)
     $allowedStatusesLower = array_map('strtolower', $allowedStatuses);
     
     // 소문자 변환된 상태값과 비교
-    return in_array($normalizedStatus, $allowedStatusesLower);
+    $result = in_array($normalizedStatus, $allowedStatusesLower);
+    
+    // 디버깅 로그 (필요시 주석 해제)
+    // error_log("canWriteReview: status=$application_status, normalized=$normalizedStatus, allowed=" . json_encode($allowedStatusesLower) . ", result=" . ($result ? 'true' : 'false'));
+    
+    return $result;
 }

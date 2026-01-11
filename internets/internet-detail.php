@@ -2602,7 +2602,7 @@ span.internet-checkbox-text {
         <div class="internet-toast-icon" id="internetToastIcon"></div>
         <div class="internet-toast-title" id="internetToastTitle">인터넷 상담을 신청했어요</div>
         <div class="internet-toast-message" id="internetToastMessage">입력한 번호로 상담 전화를 드릴예정이에요</div>
-        <button class="internet-toast-button" onclick="closeInternetToast()">확인</button>
+        <button class="internet-toast-button" onclick="handleInternetToastButton()">확인</button>
     </div>
 </div>
 
@@ -3515,6 +3515,27 @@ document.addEventListener('DOMContentLoaded', function() {
                         submitBtn.disabled = false;
                         submitBtn.textContent = '상담 신청';
                     }
+                    
+                    // 무조건 마이페이지 인터넷 주문내역으로 이동
+                    const mypageUrl = (window.BASE_PATH || '') + '/mypage/internet-order.php';
+                    
+                    // redirect_url이 있으면 새 창으로 열기
+                    if (data.redirect_url && data.redirect_url.trim() !== '') {
+                        // 모든 공백 제거 (앞뒤 + 내부)
+                        let redirectUrl = data.redirect_url.replace(/\s+/g, '').trim();
+                        // URL이 프로토콜(http:// 또는 https://)을 포함하지 않으면 https:// 추가
+                        if (!/^https?:\/\//i.test(redirectUrl)) {
+                            redirectUrl = 'https://' + redirectUrl;
+                        }
+                        // 새 창으로 열기
+                        window.open(redirectUrl, '_blank');
+                    }
+                    
+                    // 인터넷 상담 신청 성공 - 마이페이지 URL 저장
+                    window.internetApplicationSuccess = {
+                        mypageUrl: mypageUrl
+                    };
+                    
                     closeInternetModal();
                     showInternetToast('success', '인터넷 상담을 신청했어요', '입력한 번호로 상담 전화를 드릴예정이에요');
                 } else {
@@ -3574,6 +3595,19 @@ function showInternetToast(type = 'success', title = '인터넷 상담을 신청
     
     // 모달 표시
     toastModal.classList.add('active');
+}
+
+function handleInternetToastButton() {
+    const toastModal = document.getElementById('internetToastModal');
+    if (toastModal) {
+        toastModal.classList.remove('active');
+    }
+    
+    // 성공 모달인 경우 마이페이지로 이동
+    if (window.internetApplicationSuccess) {
+        window.location.href = window.internetApplicationSuccess.mypageUrl;
+        delete window.internetApplicationSuccess;
+    }
 }
 
 function closeInternetToast() {

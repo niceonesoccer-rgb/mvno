@@ -2975,7 +2975,7 @@ if (mnoSimApplicationForm) {
                 // 무조건 마이페이지 통신사단독유심 주문내역으로 이동
                 const mypageUrl = (window.BASE_PATH || '') + '/mypage/mno-sim-order.php';
                 
-                // redirect_url이 있으면 새 창으로 열기
+                // redirect_url이 있으면 sessionStorage에 저장하고 마이페이지로 이동 (모달 표시용)
                 if (data.redirect_url && data.redirect_url.trim() !== '') {
                     // 모든 공백 제거 (앞뒤 + 내부)
                     let redirectUrl = data.redirect_url.replace(/\s+/g, '').trim();
@@ -2983,12 +2983,13 @@ if (mnoSimApplicationForm) {
                     if (!/^https?:\/\//i.test(redirectUrl)) {
                         redirectUrl = 'https://' + redirectUrl;
                     }
-                    // 새 창으로 열기
-                    window.open(redirectUrl, '_blank');
+                    // sessionStorage에 저장하고 마이페이지로 이동
+                    sessionStorage.setItem('pendingRedirectUrl', redirectUrl);
+                    window.location.href = mypageUrl;
+                } else {
+                    // redirect_url이 없으면 바로 마이페이지로 이동
+                    window.location.href = mypageUrl;
                 }
-                
-                // 마이페이지로 이동
-                window.location.href = mypageUrl;
             } else {
                 // 실패 시 모달로 표시
                 let errorMessage = data.message || '신청정보 저장에 실패했습니다.';

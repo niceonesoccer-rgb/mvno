@@ -523,12 +523,23 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                     
                     // 수정 모드일 경우 기존 리뷰 데이터 로드
-                    if (isEditMode && currentReviewApplicationId && currentReviewProductId) {
-                        fetch(`${window.API_PATH || (window.BASE_PATH || '') + '/api'}/get-review-by-application.php?application_id=${currentReviewApplicationId}&product_id=${currentReviewProductId}&product_type=mno`)
+                    if (window.isEditMode && window.currentReviewApplicationId && window.currentReviewApplicationId !== '' && window.currentReviewApplicationId !== 'null' && window.currentReviewProductId) {
+                        const apiPath = window.API_PATH || (window.BASE_PATH || '') + '/api';
+                        console.log('MNO 리뷰 수정 모드 - application_id:', window.currentReviewApplicationId, 'product_id:', window.currentReviewProductId);
+                        fetch(`${apiPath}/get-review-by-application.php?application_id=${window.currentReviewApplicationId}&product_id=${window.currentReviewProductId}&product_type=mno`)
                             .then(response => response.json())
                             .then(data => {
                                 if (data.success && data.review) {
                                     window.currentReviewId = data.review.id;
+                                    console.log('MNO 리뷰 데이터 로드 성공:', data.review);
+                                    
+                                    // 삭제 버튼에 리뷰 ID 저장 및 표시
+                                    const deleteBtn = document.getElementById('mnoReviewDeleteBtn');
+                                    if (deleteBtn) {
+                                        deleteBtn.setAttribute('data-review-id', data.review.id);
+                                        deleteBtn.style.display = 'flex';
+                                        console.log('MNO 삭제 버튼에 data-review-id 설정:', data.review.id);
+                                    }
                                     
                                     // 별점 설정
                                     if (data.review.kindness_rating) {
@@ -887,6 +898,156 @@ document.addEventListener('DOMContentLoaded', function() {
 document.addEventListener('DOMContentLoaded', function() {
     // 초기 페이지 로드 시 이벤트 바인딩
     initApplicationCardClickEvents();
+});
+</script>
+
+<!-- 계속신청하기 모달 -->
+<div id="continueApplicationModal" class="continue-application-modal" style="display: none;">
+    <div class="continue-application-overlay"></div>
+    <div class="continue-application-content">
+        <div class="continue-application-icon">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M2 17L12 22L22 17" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M2 12L12 17L22 12" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </div>
+        <div class="continue-application-title">판매자님 대리점으로 이동합니다.</div>
+        <div class="continue-application-message">계속 가입신청을 진행해주셔야 가입 신청이 완료됩니다.</div>
+        <div class="continue-application-submessage">최저가격으로 가입해보세요~</div>
+        <button type="button" id="continueApplicationBtn" class="continue-application-button">계속신청하기</button>
+    </div>
+</div>
+
+<style>
+.continue-application-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.continue-application-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+}
+
+.continue-application-content {
+    position: relative;
+    background: white;
+    border-radius: 16px;
+    padding: 32px 24px;
+    max-width: 400px;
+    width: 100%;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    text-align: center;
+}
+
+.continue-application-icon {
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: center;
+}
+
+.continue-application-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #1f2937;
+    margin-bottom: 12px;
+    line-height: 1.4;
+}
+
+.continue-application-message {
+    font-size: 16px;
+    color: #4b5563;
+    margin-bottom: 8px;
+    line-height: 1.5;
+}
+
+.continue-application-submessage {
+    font-size: 14px;
+    color: #6366f1;
+    font-weight: 600;
+    margin-bottom: 24px;
+}
+
+.continue-application-button {
+    width: 100%;
+    padding: 14px 24px;
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.continue-application-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+}
+
+.continue-application-button:active {
+    transform: translateY(0);
+}
+</style>
+
+<script>
+// 계속신청하기 모달 처리
+document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('continueApplicationModal');
+    const continueBtn = document.getElementById('continueApplicationBtn');
+    const overlay = modal ? modal.querySelector('.continue-application-overlay') : null;
+    
+    // sessionStorage에서 redirect_url 확인
+    const pendingRedirectUrl = sessionStorage.getItem('pendingRedirectUrl');
+    
+    if (pendingRedirectUrl && modal) {
+        // 모달 표시
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        
+        // 계속신청하기 버튼 클릭 시
+        if (continueBtn) {
+            continueBtn.addEventListener('click', function() {
+                // 새 창으로 외부 링크 열기
+                window.open(pendingRedirectUrl, '_blank');
+                // sessionStorage에서 제거
+                sessionStorage.removeItem('pendingRedirectUrl');
+                // 모달 닫기
+                if (modal) {
+                    modal.style.display = 'none';
+                    document.body.style.overflow = '';
+                }
+            });
+        }
+        
+        // 오버레이 클릭 시 모달 닫기
+        if (overlay) {
+            overlay.addEventListener('click', function() {
+                sessionStorage.removeItem('pendingRedirectUrl');
+                if (modal) {
+                    modal.style.display = 'none';
+                    document.body.style.overflow = '';
+                }
+            });
+        }
+    }
 });
 </script>
 

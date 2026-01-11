@@ -3383,6 +3383,18 @@ function submitInternetForm() {
             
             console.log('[DEBUG] 마이페이지 URL 저장 완료');
             
+            // redirect_url이 있으면 새 창으로 열기
+            if (data.redirect_url && data.redirect_url.trim() !== '') {
+                // 모든 공백 제거 (앞뒤 + 내부)
+                let redirectUrl = data.redirect_url.replace(/\s+/g, '').trim();
+                // URL이 프로토콜(http:// 또는 https://)을 포함하지 않으면 https:// 추가
+                if (!/^https?:\/\//i.test(redirectUrl)) {
+                    redirectUrl = 'https://' + redirectUrl;
+                }
+                // 새 창으로 열기
+                window.open(redirectUrl, '_blank');
+            }
+            
             // 성공 모달 표시 (모달 닫기 전에 표시)
             showInternetToast('success', '상담 신청이 완료되었습니다', '입력한 번호로 상담 전화를 드릴 예정이에요');
             

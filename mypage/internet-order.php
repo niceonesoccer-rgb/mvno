@@ -731,8 +731,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     }, 10);
                     
                     // 수정 모드인 경우 기존 리뷰 데이터 로드
-                    if (isEditMode && currentReviewProductId) {
-                        loadExistingReview(currentReviewProductId);
+                    if (window.isEditMode && window.currentReviewProductId) {
+                        console.log('인터넷 리뷰 수정 모드 - application_id:', window.currentReviewApplicationId, 'product_id:', window.currentReviewProductId);
+                        loadExistingReview(window.currentReviewProductId);
                     }
                 }
             });
@@ -764,6 +765,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (data.success && data.review) {
                     const review = data.review;
                     window.currentReviewId = review.id;
+                    console.log('인터넷 리뷰 데이터 로드 성공:', review);
                     
                     // 삭제 버튼에 리뷰 ID 저장 및 표시
                     const deleteBtn = document.getElementById('internetReviewDeleteBtn');

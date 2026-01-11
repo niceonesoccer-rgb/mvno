@@ -3061,15 +3061,15 @@ document.addEventListener('DOMContentLoaded', function() {
                     // 무조건 마이페이지 알뜰폰 주문내역으로 이동
                     const mypageUrl = (window.BASE_PATH || '') + '/mypage/mvno-order.php';
                     
-                    // redirect_url이 있으면 새 창으로 열기
+                    // redirect_url이 있으면 sessionStorage에 저장하고 마이페이지로 이동 (모달 표시용)
                     if (data.redirect_url && data.redirect_url.trim() !== '') {
                         let redirectUrl = data.redirect_url.replace(/\s+/g, '').trim();
                         // URL이 프로토콜(http:// 또는 https://)을 포함하지 않으면 https:// 추가
                         if (!/^https?:\/\//i.test(redirectUrl)) {
                             redirectUrl = 'https://' + redirectUrl;
                         }
-                        // 새 창으로 열기
-                        window.open(redirectUrl, '_blank');
+                        // sessionStorage에 저장 (PC/모바일 동일)
+                        sessionStorage.setItem('pendingRedirectUrl', redirectUrl);
                     }
                     
                     // 마이페이지로 이동

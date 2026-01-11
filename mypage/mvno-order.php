@@ -1181,6 +1181,65 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <script src="<?php echo getAssetPath('/assets/js/load-more-products.js'); ?>?v=2"></script>
 
+<!-- 외부 링크 안내 모달 -->
+<div id="redirectLinkModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.5); z-index: 10000; padding: 20px;">
+    <div style="max-width: 400px; margin: 0 auto; background: white; border-radius: 16px; padding: 24px; position: relative; top: 50%; transform: translateY(-50%); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);">
+        <div style="text-align: center; margin-bottom: 24px;">
+            <h3 style="font-size: 20px; font-weight: bold; color: #1f2937; margin: 0 0 16px 0;">판매자님 대리점으로 이동합니다.</h3>
+            <p style="font-size: 15px; color: #4b5563; line-height: 1.6; margin: 0 0 8px 0;">계속 가입신청을 진행해주셔야<br>가입 신청이 완료됩니다.</p>
+            <p style="font-size: 15px; color: #6366f1; font-weight: 600; margin: 0;">최저가격으로 가입해보세요~</p>
+        </div>
+        <button type="button" id="continueApplyBtn" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+            계속신청하기
+        </button>
+    </div>
+</div>
+
+<script>
+// 페이지 로드 시 sessionStorage에서 pendingRedirectUrl 확인
+document.addEventListener('DOMContentLoaded', function() {
+    const redirectUrl = sessionStorage.getItem('pendingRedirectUrl');
+    
+    if (redirectUrl) {
+        // 모달 표시
+        const modal = document.getElementById('redirectLinkModal');
+        const continueBtn = document.getElementById('continueApplyBtn');
+        
+        if (modal) {
+            modal.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        }
+        
+        // 계속신청하기 버튼 클릭 시 새창으로 외부 링크 열기
+        if (continueBtn) {
+            continueBtn.addEventListener('click', function() {
+                // 새 창으로 외부 링크 열기
+                window.open(redirectUrl, '_blank');
+                // sessionStorage에서 제거
+                sessionStorage.removeItem('pendingRedirectUrl');
+                // 모달 닫기
+                if (modal) {
+                    modal.style.display = 'none';
+                    document.body.style.overflow = '';
+                }
+            });
+        }
+        
+        // 모달 배경 클릭 시 닫기
+        if (modal) {
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    // sessionStorage에서 제거
+                    sessionStorage.removeItem('pendingRedirectUrl');
+                    modal.style.display = 'none';
+                    document.body.style.overflow = '';
+                }
+            });
+        }
+    }
+});
+</script>
+
 <?php
 // 푸터 포함
 include '../includes/footer.php';

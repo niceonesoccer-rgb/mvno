@@ -40,7 +40,7 @@ $title = isset($_POST['title']) ? trim($_POST['title']) : '';
 $reviewId = isset($_POST['review_id']) ? intval($_POST['review_id']) : 0; // 수정 모드일 때 리뷰 ID
 $kindnessRating = isset($_POST['kindness_rating']) ? intval($_POST['kindness_rating']) : null; // 인터넷/MVNO/MNO/MNO-SIM 리뷰용
 $speedRating = isset($_POST['speed_rating']) ? intval($_POST['speed_rating']) : null; // 인터넷/MVNO/MNO/MNO-SIM 리뷰용
-$applicationId = isset($_POST['application_id']) ? intval($_POST['application_id']) : null; // 신청 ID
+$applicationId = isset($_POST['application_id']) && $_POST['application_id'] !== '' && $_POST['application_id'] !== 'null' ? intval($_POST['application_id']) : null; // 신청 ID
 
 // 디버깅 로그
 error_log("submit-review.php: product_id=$productId, product_type=$productType, kindness_rating=" . ($kindnessRating ?? 'NULL') . ", speed_rating=" . ($speedRating ?? 'NULL') . ", content_length=" . strlen($content));
@@ -112,7 +112,10 @@ try {
         }
     } else {
         // 새 리뷰 작성
-        error_log("submit-review.php: 새 리뷰 작성 시작 - product_id=$productId, product_type=$productType");
+        error_log("submit-review.php: 새 리뷰 작성 시작 - product_id=$productId, product_type=$productType, application_id=" . var_export($applicationId, true) . " (type: " . gettype($applicationId) . ")");
+        if ($productType === 'mno-sim') {
+            error_log("submit-review.php (mno-sim): POST 데이터 - product_id=$productId, application_id=" . var_export($_POST['application_id'] ?? 'NOT_SET', true));
+        }
         $newReviewId = addProductReview($productId, $userId, $productType, $rating, $content, $title, $kindnessRating, $speedRating, $applicationId);
         error_log("submit-review.php: 리뷰 작성 결과 - review_id=" . ($newReviewId !== false ? $newReviewId : 'false'));
         

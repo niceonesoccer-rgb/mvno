@@ -1,0 +1,29 @@
+프로덕션 서버 업로드 파일 목록
+================================
+
+방금 수정한 파일들 (MNO-SIM 리뷰 기능 개선):
+
+1. includes/data/product-functions.php
+   - application_id를 정수로 명시적 변환하여 DB 저장
+   - 저장 전 로그 추가
+
+2. api/submit-review.php
+   - application_id 입력 검증 강화 (null, 빈 문자열 체크)
+
+3. includes/components/mno-sim-order-card.php
+   - 리뷰 조회 시 PDO 파라미터 타입 명시적 지정 (INT, STR)
+   - 타입 불일치 문제 해결
+
+4. check-mno-sim-review-logs.php (선택사항)
+   - 새로 만든 로그 확인 스크립트
+   - 프로덕션에서도 로그 확인 가능
+
+================================
+업로드 방법:
+1. FTP 클라이언트 (FileZilla 등)로 ganadamobile.co.kr 연결
+2. 위 3개 파일 (또는 4개)을 프로덕션 서버의 해당 경로에 업로드
+3. 기존 파일을 덮어쓰기 (덮어쓰기 전 백업 권장)
+
+주의사항:
+- 프로덕션 서버에 db-config-local.php 파일이 있어야 프로덕션 DB에 연결됨
+- 업로드 후 브라우저 캐시 클리어 (Ctrl+F5) 권장
