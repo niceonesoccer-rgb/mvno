@@ -165,10 +165,6 @@ $show_only_one_section = ($show_common_section && !$show_contract_section) || (!
         <?php echo htmlspecialchars($device_storage); ?> 
         <span class="phone-title-separator">|</span> 
         출고가 <?php echo htmlspecialchars($release_price); ?>원
-        <?php if (isset($phone['product_number']) && $phone['product_number']): ?>
-            <span class="phone-title-separator">|</span> 
-            상품번호 #<?php echo htmlspecialchars($phone['product_number']); ?>
-        <?php endif; ?>
     </span>
 </div>
 

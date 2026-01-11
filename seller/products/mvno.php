@@ -738,7 +738,7 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
             
             <div class="form-group" style="display: flex; gap: 16px; align-items: flex-start;">
-                <div style="flex: 1;">
+                <div id="discount_period_container" style="flex: 1; display: <?php echo (!isset($productData['discount_period']) || $productData['discount_period'] === '프로모션 없음' || $productData['discount_period'] === '') ? 'none' : 'block'; ?>;">
                     <label class="form-label" for="discount_period">
                         할인기간(프로모션기간)
                     </label>
@@ -757,7 +757,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                 </div>
                 
-                <div style="flex: 1;">
+                <div id="price_after_container" style="flex: 1; display: <?php echo (!isset($productData['price_after']) || $productData['price_after'] === null || $productData['price_after'] === '' || $productData['price_after'] === 'null') ? 'none' : 'block'; ?>;">
                     <label class="form-label" for="price_after_type">
                         할인기간요금(프로포션기간) <span style="color: #6b7280; font-size: 12px; font-weight: normal;">(0=공짜)</span>
                     </label>
@@ -1392,14 +1392,22 @@ document.addEventListener('DOMContentLoaded', function() {
     toggleInputField('discount_period', 'discount_period_input', '직접입력', 'discount_period_value');
     // 할인기간 입력 필드는 오른쪽에 표시되도록 flex로 설정
     const discountPeriodInput = document.getElementById('discount_period_input');
-    if (discountPeriodInput) {
+    const discountPeriodContainer = document.getElementById('discount_period_container');
+    if (discountPeriodInput && discountPeriodContainer) {
         const discountPeriodSelect = document.getElementById('discount_period');
         if (discountPeriodSelect) {
             const updateDiscountPeriodDisplay = () => {
-                if (discountPeriodSelect.value === '직접입력') {
-                    discountPeriodInput.style.display = 'flex';
+                if (discountPeriodSelect.value === '프로모션 없음') {
+                    // 프로모션 없음 선택 시 전체 필드 숨김
+                    discountPeriodContainer.style.display = 'none';
                 } else {
-                    discountPeriodInput.style.display = 'none';
+                    // 직접입력 선택 시 전체 필드 표시
+                    discountPeriodContainer.style.display = 'block';
+                    if (discountPeriodSelect.value === '직접입력') {
+                        discountPeriodInput.style.display = 'flex';
+                    } else {
+                        discountPeriodInput.style.display = 'none';
+                    }
                 }
             };
             discountPeriodSelect.addEventListener('change', updateDiscountPeriodDisplay);
@@ -1587,33 +1595,39 @@ document.addEventListener('DOMContentLoaded', function() {
     const priceAfterInput = document.getElementById('price_after_input');
     const priceAfterField = document.getElementById('price_after');
     const priceAfterHidden = document.getElementById('price_after_hidden');
+    const priceAfterContainer = document.getElementById('price_after_container');
     
     const priceAfterTypeHidden = document.getElementById('price_after_type_hidden');
     
-    if (priceAfterType && priceAfterInput && priceAfterHidden && priceAfterTypeHidden) {
+    if (priceAfterType && priceAfterInput && priceAfterHidden && priceAfterTypeHidden && priceAfterContainer) {
         // 페이지 로드 시 초기값 설정 (기본값: 프로모션 없음)
         if (priceAfterType.value === '' || priceAfterType.value === 'none') {
             priceAfterType.value = 'none'; // 기본값 설정
             priceAfterTypeHidden.value = 'none';
             priceAfterInput.style.display = 'none';
+            priceAfterContainer.style.display = 'none'; // 프로모션 없음 시 전체 필드 숨김
         } else if (priceAfterType.value === 'custom') {
             priceAfterTypeHidden.value = 'custom';
             priceAfterInput.style.display = 'flex';
+            priceAfterContainer.style.display = 'block'; // 직접입력 시 전체 필드 표시
         } else {
             priceAfterType.value = 'none'; // 기본값 설정
             priceAfterTypeHidden.value = 'none';
             priceAfterInput.style.display = 'none';
+            priceAfterContainer.style.display = 'none'; // 프로모션 없음 시 전체 필드 숨김
         }
         
         priceAfterType.addEventListener('change', function() {
             if (this.value === 'none') {
-                // 프로모션 없음 선택 시
+                // 프로모션 없음 선택 시 전체 필드 숨김
+                priceAfterContainer.style.display = 'none';
                 priceAfterInput.style.display = 'none';
                 priceAfterHidden.value = '';
                 priceAfterTypeHidden.value = 'none';
                 if (priceAfterField) priceAfterField.value = '';
             } else if (this.value === 'custom') {
-                // 직접입력 선택 시 (0 입력 시 공짜로 표시됨)
+                // 직접입력 선택 시 전체 필드 표시 (0 입력 시 공짜로 표시됨)
+                priceAfterContainer.style.display = 'block';
                 priceAfterInput.style.display = 'flex';
                 priceAfterHidden.value = '';
                 priceAfterTypeHidden.value = 'custom';
@@ -1622,6 +1636,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             } else {
                 // 선택 안함
+                priceAfterContainer.style.display = 'none';
                 priceAfterInput.style.display = 'none';
                 priceAfterHidden.value = '';
                 priceAfterTypeHidden.value = '';

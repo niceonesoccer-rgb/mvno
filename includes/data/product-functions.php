@@ -3096,10 +3096,11 @@ function getUserMvnoApplications($userId, $limit = null, $offset = null) {
             }
             
             $priceAfterFormatted = '';
-            if (!empty($discountPeriod)) {
+            if (!empty($discountPeriod) && $discountPeriod !== '프로모션 없음') {
                 $priceAfterFormatted = $discountPeriod . ' 이후 월 ' . number_format((float)$priceMain) . '원';
             } else {
-                $priceAfterFormatted = '월 ' . number_format((float)$priceMain) . '원';
+                // 프로모션 없음인 경우 price_after를 표시하지 않음
+                $priceAfterFormatted = '';
             }
             
             // 프로모션 파싱

@@ -146,11 +146,11 @@ function convertMvnoProductToPlanCard($product) {
     
     // price_after: 할인기간 + 원래 월요금
     $priceAfter = '';
-    if (!empty($product['discount_period'])) {
+    if (!empty($product['discount_period']) && $product['discount_period'] !== '프로모션 없음') {
         $priceAfter = $product['discount_period'] . ' 이후 월 ' . number_format((float)$originalPriceMain) . '원';
     } else {
-        // 할인기간이 없으면 원래 월요금만 표시
-        $priceAfter = '월 ' . number_format((float)$originalPriceMain) . '원';
+        // 할인기간이 없거나 프로모션 없음인 경우 price_after를 표시하지 않음
+        $priceAfter = '';
     }
     
     // 선택 수 포맷팅 (실제 DB의 application_count 사용)

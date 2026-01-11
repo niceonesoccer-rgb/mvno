@@ -103,6 +103,14 @@ function sendEmailViaSMTP($to, $subject, $message, $fromEmail, $fromName) {
             $mail->SMTPSecure = defined('SMTP_SECURE') ? SMTP_SECURE : 'tls';
             $mail->Port = defined('SMTP_PORT') ? SMTP_PORT : 587;
             $mail->CharSet = 'UTF-8';
+            $mail->SMTPKeepAlive = false; // 매번 새 연결 (연결 재사용 문제 방지)
+            $mail->SMTPOptions = [
+                'ssl' => [
+                    'verify_peer' => false,
+                    'verify_peer_name' => false,
+                    'allow_self_signed' => true
+                ]
+            ];
             
             // 발신자/수신자 설정
             $mail->setFrom($fromEmail, $fromName);
@@ -219,90 +227,119 @@ function sendVerificationEmail($to, $verificationCode, $type = 'email_change', $
     
     $greeting = !empty($userName) ? "{$userName}님" : "고객님";
     
+    $preheaderText = $siteName . ' ' . $typeName . '을 위한 인증번호를 확인해주세요. (30분 유효)';
+    
     $message = "
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <meta charset='UTF-8'>
-        <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-        <style>
-            body { font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background: #f3f4f6; }
-            .email-wrapper { max-width: 600px; margin: 0 auto; background: white; }
-            .header { background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; padding: 30px 20px; text-align: center; }
-            .header h1 { margin: 0; font-size: 24px; font-weight: 700; }
-            .content { padding: 40px 30px; background: white; }
-            .greeting { font-size: 16px; color: #1f2937; margin-bottom: 20px; }
-            .description { font-size: 15px; color: #4b5563; margin-bottom: 30px; line-height: 1.8; }
-            .code-box { background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%); border: 2px dashed #6366f1; border-radius: 12px; padding: 30px 20px; text-align: center; margin: 30px 0; }
-            .code { font-size: 36px; font-weight: 700; color: #6366f1; letter-spacing: 8px; font-family: 'Courier New', monospace; }
-            .code-label { font-size: 13px; color: #6b7280; margin-top: 10px; }
-            .info-box { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 25px 0; border-radius: 4px; }
-            .info-box p { margin: 5px 0; font-size: 14px; color: #92400e; }
-            .warning-box { background: #fee2e2; border-left: 4px solid #ef4444; padding: 15px; margin: 25px 0; border-radius: 4px; }
-            .warning-box p { margin: 5px 0; font-size: 14px; color: #991b1b; }
-            .footer { background: #f9fafb; padding: 25px 30px; border-top: 1px solid #e5e7eb; text-align: center; }
-            .footer-text { font-size: 12px; color: #6b7280; margin: 5px 0; }
-            .footer-link { color: #6366f1; text-decoration: none; }
-            .footer-link:hover { text-decoration: underline; }
-            .divider { height: 1px; background: #e5e7eb; margin: 25px 0; }
-        </style>
-    </head>
-    <body>
-        <div class='email-wrapper'>
-            <div class='header'>
-                <h1>{$siteName}</h1>
-                <p style='margin: 10px 0 0 0; font-size: 14px; opacity: 0.9;'>{$typeName} 인증번호</p>
-            </div>
-            
-            <div class='content'>
-                <div class='greeting'>
-                    안녕하세요, <strong>{$greeting}</strong>
+    <!-- Preheader -->
+    <div style='display:none; font-size:1px; line-height:1px; max-height:0; max-width:0; opacity:0; overflow:hidden;'>
+      {$preheaderText}
+    </div>
+
+    <table role='presentation' width='100%' cellpadding='0' cellspacing='0' border='0' style='background:#f5f7fb;'>
+      <tr>
+        <td align='center' style='padding:32px 16px;'>
+          <table role='presentation' width='600' cellpadding='0' cellspacing='0' border='0' style='max-width:600px; width:100%;'>
+
+            <!-- Header -->
+            <tr>
+              <td style='padding-bottom:14px;'>
+                <div style='
+                  font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"Noto Sans KR\",Arial,sans-serif;
+                  font-size:18px;
+                  font-weight:800;
+                  color:#111827;
+                '>
+                  {$siteName}
                 </div>
-                
-                <div class='description'>
-                    {$siteName} 서비스에서 <strong>{$typeName}</strong>을 위해 아래 인증번호를 발송해드립니다.<br>
+              </td>
+            </tr>
+
+            <!-- Card -->
+            <tr>
+              <td style='
+                background:#ffffff;
+                border:1px solid #e5e7eb;
+                border-radius:16px;
+                padding:28px 24px;
+              '>
+                <div style='
+                  font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"Noto Sans KR\",Arial,sans-serif;
+                  color:#111827;
+                '>
+                  <div style='font-size:18px; font-weight:800; margin-bottom:8px;'>
+                    {$typeName} 인증번호
+                  </div>
+
+                  <div style='font-size:14px; line-height:1.7; color:#374151; margin-bottom:18px;'>
+                    안녕하세요, <strong>{$greeting}</strong><br />
+                    {$siteName} 서비스에서 <strong>{$typeName}</strong>을 위해 아래 인증번호를 발송해드립니다.<br />
                     인증번호를 입력하여 인증을 완료해주세요.
+                  </div>
+
+                  <!-- 인증번호 -->
+                  <table role='presentation' width='100%' cellpadding='0' cellspacing='0' border='0' style='margin:18px 0;'>
+                    <tr>
+                      <td align='center' style='
+                        background:#f3f4f6;
+                        border:1px solid #e5e7eb;
+                        border-radius:14px;
+                        padding:26px 20px;
+                      '>
+                        <div style='
+                          font-size:72px;
+                          font-weight:900;
+                          letter-spacing:16px;
+                          color:#111827;
+                          line-height:1.2;
+                        '>
+                          {$verificationCode}
+                        </div>
+                        <div style='font-size:12px; color:#6b7280; margin-top:10px;'>
+                          위 인증번호를 입력해주세요.
+                        </div>
+                      </td>
+                    </tr>
+                  </table>
+
+                  <!-- Info -->
+                  <div style='border-top:1px solid #e5e7eb; padding-top:16px;'>
+                    <div style='font-size:13px; line-height:1.7; color:#374151; margin-bottom:12px;'>
+                      <strong style='color:#111827;'>인증번호 유효시간</strong><br />
+                      인증번호는 발송 시점부터 <strong>30분</strong>간 유효합니다.<br />
+                      만료된 경우 '인증번호 다시 받기'를 클릭하여 새 인증번호를 발송받으세요.
+                    </div>
+
+                    <div style='font-size:13px; line-height:1.7; color:#374151;'>
+                      <strong style='color:#111827;'>보안 안내</strong><br />
+                      본인이 요청하지 않은 경우 이 메일을 무시하세요.<br />
+                      인증번호를 타인에게 알려주지 마세요.<br />
+                      이 메일은 발신 전용입니다.
+                    </div>
+                  </div>
                 </div>
-                
-                <div class='code-box'>
-                    <div class='code'>{$verificationCode}</div>
-                    <div class='code-label'>위 인증번호를 입력해주세요</div>
+              </td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td style='padding-top:14px;'>
+                <div style='
+                  font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"Noto Sans KR\",Arial,sans-serif;
+                  font-size:12px;
+                  line-height:1.6;
+                  color:#6b7280;
+                '>
+                  이 메일 주소로는 회신이 불가능합니다.<br />
+                  © {$siteName}. All rights reserved.<br />
+                  본 메일은 {$siteName} 서비스의 계정 보안을 위해 자동으로 발송되었습니다.
                 </div>
-                
-                <div class='info-box'>
-                    <p><strong>📌 인증번호 유효시간</strong></p>
-                    <p>인증번호는 발송 시점부터 <strong>30분간</strong> 유효합니다.</p>
-                    <p>만료된 경우 '인증번호 다시 받기'를 클릭하여 새 인증번호를 발송받으세요.</p>
-                </div>
-                
-                <div class='warning-box'>
-                    <p><strong>⚠️ 보안 안내</strong></p>
-                    <p>본인이 요청하지 않은 경우 이 메일을 무시하세요.</p>
-                    <p>인증번호를 타인에게 알려주지 마세요.</p>
-                </div>
-                
-                <div class='divider'></div>
-                
-                <div style='font-size: 13px; color: #6b7280; line-height: 1.8;'>
-                    <p><strong>문의사항이 있으신가요?</strong></p>
-                    <p>고객 지원: <a href='mailto:{$supportEmail}' style='color: #6366f1; text-decoration: none;'>{$supportEmail}</a></p>
-                    <p>사이트: <a href='{$siteUrl}' class='footer-link' target='_blank'>{$siteUrl}</a></p>
-                </div>
-            </div>
-            
-            <div class='footer'>
-                <p class='footer-text'><strong>이 메일은 발신 전용입니다.</strong></p>
-                <p class='footer-text'>이 메일 주소로는 회신이 불가능합니다.</p>
-                <p class='footer-text'>문의사항은 <a href='mailto:{$supportEmail}' class='footer-link'>{$supportEmail}</a>로 연락주세요.</p>
-                <div class='divider' style='margin: 20px 0;'></div>
-                <p class='footer-text'>© {$siteName}. All rights reserved.</p>
-                <p class='footer-text' style='font-size: 11px; color: #9ca3af; margin-top: 10px;'>
-                    본 메일은 {$siteName} 서비스의 계정 보안을 위해 자동으로 발송되었습니다.
-                </p>
-            </div>
-        </div>
-    </body>
-    </html>
+              </td>
+            </tr>
+
+          </table>
+        </td>
+      </tr>
+    </table>
     ";
     
     return sendEmail($to, $subject, $message);
@@ -338,89 +375,269 @@ function sendVerificationLinkEmail($to, $verificationToken, $type = 'email_chang
     $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
     $verificationUrl = $protocol . "://" . $_SERVER['HTTP_HOST'] . "/MVNO/api/verify-email-link.php?token={$verificationToken}&type={$type}";
     
+    $preheaderText = $siteName . ' ' . $typeName . '을 위한 인증 링크를 확인해주세요. (30분 유효)';
+    
     $message = "
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <meta charset='UTF-8'>
-        <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-        <style>
-            body { font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background: #f3f4f6; }
-            .email-wrapper { max-width: 600px; margin: 0 auto; background: white; }
-            .header { background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; padding: 30px 20px; text-align: center; }
-            .header h1 { margin: 0; font-size: 24px; font-weight: 700; }
-            .content { padding: 40px 30px; background: white; }
-            .greeting { font-size: 16px; color: #1f2937; margin-bottom: 20px; }
-            .description { font-size: 15px; color: #4b5563; margin-bottom: 30px; line-height: 1.8; }
-            .button-container { text-align: center; margin: 30px 0; }
-            .button { display: inline-block; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; padding: 16px 32px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; }
-            .link-box { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 15px; margin: 20px 0; word-break: break-all; }
-            .link { color: #6366f1; font-size: 13px; }
-            .warning-box { background: #fee2e2; border-left: 4px solid #ef4444; padding: 15px; margin: 25px 0; border-radius: 4px; }
-            .warning-box p { margin: 5px 0; font-size: 14px; color: #991b1b; }
-            .footer { background: #f9fafb; padding: 25px 30px; border-top: 1px solid #e5e7eb; text-align: center; }
-            .footer-text { font-size: 12px; color: #6b7280; margin: 5px 0; }
-            .footer-link { color: #6366f1; text-decoration: none; }
-            .footer-link:hover { text-decoration: underline; }
-            .divider { height: 1px; background: #e5e7eb; margin: 25px 0; }
-        </style>
-    </head>
-    <body>
-        <div class='email-wrapper'>
-            <div class='header'>
-                <h1>{$siteName}</h1>
-                <p style='margin: 10px 0 0 0; font-size: 14px; opacity: 0.9;'>{$typeName} 인증 링크</p>
-            </div>
-            
-            <div class='content'>
-                <div class='greeting'>
-                    안녕하세요, <strong>{$greeting}</strong>
+    <!-- Preheader -->
+    <div style=\"display:none; font-size:1px; line-height:1px; max-height:0; max-width:0; opacity:0; overflow:hidden;\">
+      {$preheaderText}
+    </div>
+
+    <table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"background:#f5f7fb;\">
+      <tr>
+        <td align=\"center\" style=\"padding:32px 16px;\">
+          <table role=\"presentation\" width=\"600\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"max-width:600px; width:100%;\">
+
+            <!-- Header -->
+            <tr>
+              <td style=\"padding-bottom:14px;\">
+                <div style=\"
+                  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Noto Sans KR',Arial,sans-serif;
+                  font-size:18px;
+                  font-weight:800;
+                  color:#111827;
+                \">
+                  {$siteName}
                 </div>
-                
-                <div class='description'>
+              </td>
+            </tr>
+
+            <!-- Card -->
+            <tr>
+              <td style=\"
+                background:#ffffff;
+                border:1px solid #e5e7eb;
+                border-radius:16px;
+                padding:28px 24px;
+              \">
+                <div style=\"
+                  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Noto Sans KR',Arial,sans-serif;
+                  color:#111827;
+                \">
+                  <div style=\"font-size:18px; font-weight:800; margin-bottom:8px;\">
+                    {$typeName} 인증 링크
+                  </div>
+
+                  <div style=\"font-size:14px; line-height:1.7; color:#374151; margin-bottom:18px;\">
+                    안녕하세요, <strong>{$greeting}</strong><br />
                     {$siteName} 서비스에서 <strong>{$typeName}</strong>을 위해 아래 링크를 클릭해주세요.
+                  </div>
+
+                  <!-- Button -->
+                  <table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"margin:18px 0;\">
+                    <tr>
+                      <td align=\"center\">
+                        <a href=\"{$verificationUrl}\" style=\"
+                          display:inline-block;
+                          background:#111827;
+                          color:#ffffff;
+                          padding:14px 28px;
+                          text-decoration:none;
+                          border-radius:12px;
+                          font-weight:600;
+                          font-size:15px;
+                          font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Noto Sans KR',Arial,sans-serif;
+                        \">인증하기</a>
+                      </td>
+                    </tr>
+                  </table>
+
+                  <!-- Link Info -->
+                  <table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"margin:18px 0;\">
+                    <tr>
+                      <td style=\"
+                        background:#f9fafb;
+                        border:1px solid #e5e7eb;
+                        border-radius:14px;
+                        padding:14px 16px;
+                      \">
+                        <div style=\"font-size:12px; color:#6b7280; margin-bottom:8px;\">
+                          링크가 작동하지 않는 경우, 아래 URL을 복사하여 브라우저에 붙여넣으세요:
+                        </div>
+                        <div style=\"font-size:12px; color:#111827; word-break:break-all; font-family:monospace;\">
+                          {$verificationUrl}
+                        </div>
+                      </td>
+                    </tr>
+                  </table>
+
+                  <!-- Security -->
+                  <div style=\"border-top:1px solid #e5e7eb; padding-top:16px;\">
+                    <div style=\"font-size:13px; line-height:1.7; color:#374151;\">
+                      <strong style=\"color:#111827;\">보안 안내</strong><br />
+                      인증 링크는 발송 시점부터 <strong>30분간</strong> 유효합니다.<br />
+                      본인이 요청하지 않은 경우 이 메일을 무시하세요.<br />
+                      이 메일은 발신 전용입니다.
+                    </div>
+                  </div>
                 </div>
-                
-                <div class='button-container'>
-                    <a href='{$verificationUrl}' class='button'>인증하기</a>
+              </td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td style=\"padding-top:14px;\">
+                <div style=\"
+                  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Noto Sans KR',Arial,sans-serif;
+                  font-size:12px;
+                  line-height:1.6;
+                  color:#6b7280;
+                \">
+                  이 메일 주소로는 회신이 불가능합니다.<br />
+                  © {$siteName}. All rights reserved.
                 </div>
-                
-                <div class='link-box'>
-                    <p style='margin: 0 0 8px 0; font-size: 13px; color: #6b7280;'>링크가 작동하지 않는 경우, 아래 URL을 복사하여 브라우저에 붙여넣으세요:</p>
-                    <p class='link'>{$verificationUrl}</p>
-                </div>
-                
-                <div class='warning-box'>
-                    <p><strong>⚠️ 보안 안내</strong></p>
-                    <p>인증 링크는 발송 시점부터 <strong>30분간</strong> 유효합니다.</p>
-                    <p>본인이 요청하지 않은 경우 이 메일을 무시하세요.</p>
-                </div>
-                
-                <div class='divider'></div>
-                
-                <div style='font-size: 13px; color: #6b7280; line-height: 1.8;'>
-                    <p><strong>문의사항이 있으신가요?</strong></p>
-                    <p>고객 지원: <a href='mailto:{$supportEmail}' style='color: #6366f1; text-decoration: none;'>{$supportEmail}</a></p>
-                    <p>사이트: <a href='{$siteUrl}' class='footer-link' target='_blank'>{$siteUrl}</a></p>
-                </div>
-            </div>
-            
-            <div class='footer'>
-                <p class='footer-text'><strong>이 메일은 발신 전용입니다.</strong></p>
-                <p class='footer-text'>이 메일 주소로는 회신이 불가능합니다.</p>
-                <p class='footer-text'>문의사항은 <a href='mailto:{$supportEmail}' class='footer-link'>{$supportEmail}</a>로 연락주세요.</p>
-                <div class='divider' style='margin: 20px 0;'></div>
-                <p class='footer-text'>© {$siteName}. All rights reserved.</p>
-                <p class='footer-text' style='font-size: 11px; color: #9ca3af; margin-top: 10px;'>
-                    본 메일은 {$siteName} 서비스의 계정 보안을 위해 자동으로 발송되었습니다.
-                </p>
-            </div>
-        </div>
-    </body>
-    </html>
+              </td>
+            </tr>
+
+          </table>
+        </td>
+      </tr>
+    </table>
     ";
     
     return sendEmail($to, $subject, $message);
+}
+
+/**
+ * 이메일 변경 완료 알림 메일 발송
+ * 
+ * @param string $newEmail 새 이메일 주소
+ * @param string $oldEmail 기존 이메일 주소
+ * @param string $userName 사용자 이름 (선택)
+ * @return bool 발송 성공 여부
+ */
+function sendEmailChangeNotification($newEmail, $oldEmail, $userName = '') {
+    // 사이트 정보 가져오기
+    $siteName = defined('MAIL_SITE_NAME') ? MAIL_SITE_NAME : 'MVNO';
+    $siteUrl = defined('MAIL_SITE_URL') ? MAIL_SITE_URL : 'https://mvno.com';
+    $supportEmail = defined('MAIL_SUPPORT_EMAIL') ? MAIL_SUPPORT_EMAIL : 'support@mvno.com';
+    
+    $subject = "[{$siteName}] 이메일 주소가 변경되었습니다";
+    
+    $greeting = !empty($userName) ? "{$userName}님" : "고객님";
+    
+    $message = "
+    <!-- Preheader -->
+    <div style=\"display:none; font-size:1px; line-height:1px; max-height:0; max-width:0; opacity:0; overflow:hidden;\">
+      {$siteName} 이메일 주소 변경이 완료되었습니다.
+    </div>
+
+    <table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"background:#f5f7fb;\">
+      <tr>
+        <td align=\"center\" style=\"padding:32px 16px;\">
+          <table role=\"presentation\" width=\"600\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"max-width:600px; width:100%;\">
+
+            <!-- Header -->
+            <tr>
+              <td style=\"padding-bottom:14px;\">
+                <div style=\"
+                  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Noto Sans KR',Arial,sans-serif;
+                  font-size:18px;
+                  font-weight:800;
+                  color:#111827;
+                \">
+                  {$siteName}
+                </div>
+              </td>
+            </tr>
+
+            <!-- Card -->
+            <tr>
+              <td style=\"
+                background:#ffffff;
+                border:1px solid #e5e7eb;
+                border-radius:16px;
+                padding:28px 24px;
+              \">
+                <div style=\"
+                  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Noto Sans KR',Arial,sans-serif;
+                  color:#111827;
+                \">
+                  <div style=\"font-size:18px; font-weight:800; margin-bottom:8px;\">
+                    이메일 주소 변경 완료
+                  </div>
+
+                  <div style=\"font-size:14px; line-height:1.7; color:#374151; margin-bottom:18px;\">
+                    안녕하세요, <strong>{$userName}</strong>님<br />
+                    {$siteName} 서비스에서 이메일 주소가 변경되었음을 알려드립니다.
+                  </div>
+
+                  <!-- Email Change Info -->
+                  <table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"margin:18px 0;\">
+                    <tr>
+                      <td style=\"
+                        background:#f9fafb;
+                        border:1px solid #e5e7eb;
+                        border-radius:14px;
+                        padding:18px 16px;
+                      \">
+                        <div style=\"font-size:13px; color:#6b7280; margin-bottom:6px;\">
+                          기존 이메일
+                        </div>
+                        <div style=\"font-size:14px; font-weight:700; color:#111827; margin-bottom:14px;\">
+                          {$oldEmail}
+                        </div>
+
+                        <div style=\"font-size:13px; color:#6b7280; margin-bottom:6px;\">
+                          새 이메일
+                        </div>
+                        <div style=\"font-size:14px; font-weight:800; color:#111827;\">
+                          {$newEmail}
+                        </div>
+                      </td>
+                    </tr>
+                  </table>
+
+                  <!-- Notice -->
+                  <div style=\"
+                    background:#f3f4f6;
+                    border:1px solid #e5e7eb;
+                    border-radius:12px;
+                    padding:14px 16px;
+                    margin-bottom:18px;
+                  \">
+                    <div style=\"font-size:13px; line-height:1.7; color:#374151;\">
+                      이메일 주소가 성공적으로 변경되었습니다.<br />
+                      이제 새 이메일 주소로 로그인하시면 됩니다.
+                    </div>
+                  </div>
+
+                  <!-- Security -->
+                  <div style=\"border-top:1px solid #e5e7eb; padding-top:16px;\">
+                    <div style=\"font-size:13px; line-height:1.7; color:#374151;\">
+                      <strong style=\"color:#111827;\">보안 안내</strong><br />
+                      본인이 요청하지 않은 경우 즉시 고객 지원팀에 연락해주세요.<br />
+                      비밀번호가 유출되었을 수 있으므로 비밀번호 변경을 권장합니다.<br />
+                      이 메일은 발신 전용입니다.
+                    </div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td style=\"padding-top:14px;\">
+                <div style=\"
+                  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Noto Sans KR',Arial,sans-serif;
+                  font-size:12px;
+                  line-height:1.6;
+                  color:#6b7280;
+                \">
+                  이 메일 주소로는 회신이 불가능합니다.<br />
+                  © {$siteName}. All rights reserved.
+                </div>
+              </td>
+            </tr>
+
+          </table>
+        </td>
+      </tr>
+    </table>
+    ";
+    
+    // 새 이메일 주소로 알림 메일 발송
+    return sendEmail($newEmail, $subject, $message);
 }
 
 

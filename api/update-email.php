@@ -10,6 +10,7 @@
 header('Content-Type: application/json; charset=UTF-8');
 
 require_once __DIR__ . '/../includes/data/auth-functions.php';
+require_once __DIR__ . '/../includes/data/mail-helper.php';
 
 // 로그인 체크
 if (!isLoggedIn()) {
@@ -155,6 +156,22 @@ try {
         ")->execute([':id' => $verification['id']]);
         
         $pdo->commit();
+        
+        // 이메일 변경 완료 알림 메일 발송 (새 이메일 주소로)
+        $userName = $currentUser['name'] ?? '';
+        $mailSent = false;
+        try {
+            $mailSent = sendEmailChangeNotification($email, $currentEmail, $userName);
+            if ($mailSent) {
+                error_log("이메일 변경 완료 알림 메일 발송 성공: {$email} (기존: {$currentEmail})");
+            } else {
+                error_log("이메일 변경 완료 알림 메일 발송 실패: {$email} (기존: {$currentEmail}) - sendEmailChangeNotification 반환값 false");
+            }
+        } catch (Exception $emailException) {
+            // 메일 발송 실패해도 이메일 변경은 완료된 것으로 처리
+            error_log("이메일 변경 완료 알림 메일 발송 오류: {$email} (기존: {$currentEmail}) - " . $emailException->getMessage());
+            error_log("스택 트레이스: " . $emailException->getTraceAsString());
+        }
         
         echo json_encode([
             'success' => true,
