@@ -4,6 +4,9 @@ $current_page = 'mypage';
 // 메인 페이지 여부 (하단 메뉴 및 푸터 표시용)
 $is_main_page = true;
 
+// 경로 설정 파일 먼저 로드
+require_once '../includes/data/path-config.php';
+
 // 로그인 체크를 위한 auth-functions 포함 (세션 설정과 함께 세션을 시작함)
 require_once '../includes/data/auth-functions.php';
 
@@ -12,7 +15,7 @@ if (!isLoggedIn()) {
     // 현재 URL을 세션에 저장 (회원가입 후 돌아올 주소)
     $_SESSION['redirect_url'] = $_SERVER['REQUEST_URI'];
     // 로그인 모달이 있는 홈으로 리다이렉트 (모달 자동 열기)
-    header('Location: /MVNO/?show_login=1');
+    header('Location: ' . getAssetPath('/?show_login=1'));
     exit;
 }
 
@@ -28,7 +31,7 @@ if (!$currentUser) {
     }
     // 현재 URL을 세션에 저장 (회원가입 후 돌아올 주소)
     $_SESSION['redirect_url'] = $_SERVER['REQUEST_URI'];
-    header('Location: /MVNO/?show_login=1');
+    header('Location: ' . getAssetPath('/?show_login=1'));
     exit;
 }
 
@@ -69,7 +72,7 @@ include '../includes/components/internet-review-delete-modal.php';
                 <!-- 페이지 헤더 -->
                 <div style="margin-bottom: 24px; padding: 20px 0;">
                     <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
-                        <a href="/MVNO/mypage/mypage.php" style="display: flex; align-items: center; text-decoration: none; color: inherit;">
+                        <a href="<?php echo getAssetPath('/mypage/mypage.php'); ?>" style="display: flex; align-items: center; text-decoration: none; color: inherit;">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                             </svg>
@@ -213,6 +216,10 @@ include '../includes/components/internet-review-delete-modal.php';
 
 
 <script>
+    // BASE_PATH와 API_PATH를 JavaScript에서 사용할 수 있도록 설정
+    window.BASE_PATH = window.BASE_PATH || '<?php echo getBasePath(); ?>';
+    window.API_PATH = window.API_PATH || (window.BASE_PATH + '/api');
+
 document.addEventListener('DOMContentLoaded', function() {
     const modal = document.getElementById('applicationDetailModal');
     const modalContent = document.getElementById('modalContent');
@@ -269,7 +276,7 @@ document.addEventListener('DOMContentLoaded', function() {
         `;
         
         // API 호출
-        fetch(`/MVNO/api/get-application-details.php?application_id=${applicationId}`)
+        fetch((window.API_PATH || (window.BASE_PATH || '') + '/api') + `/get-application-details.php?application_id=${applicationId}`)
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
@@ -321,16 +328,16 @@ document.addEventListener('DOMContentLoaded', function() {
         // 순서 중요: "SKT"를 "KT"보다 먼저 확인해야 함 (SKT에 KT가 포함되어 있음)
         if (registrationPlace.toLowerCase().indexOf('kt skylife') !== -1 || registrationPlace.toLowerCase().indexOf('ktskylife') !== -1) {
             // "KT skylife" -> ktskylife.svg
-            logoUrl = '/MVNO/assets/images/internets/ktskylife.svg';
+            logoUrl = (window.BASE_PATH || '') + '/assets/images/internets/ktskylife.svg';
         } else if (registrationPlace.indexOf('SKT') !== -1 || registrationPlace.toLowerCase().indexOf('sk broadband') !== -1 || registrationPlace.indexOf('SK') !== -1) {
             // "SKT", "SK broadband", "SK" -> broadband.svg (SKT broadband)
             // "SKT"를 "KT"보다 먼저 확인 (SKT에 KT가 포함되어 있으므로)
-            logoUrl = '/MVNO/assets/images/internets/broadband.svg';
+            logoUrl = (window.BASE_PATH || '') + '/assets/images/internets/broadband.svg';
         } else if (registrationPlace.indexOf('KT') !== -1) {
             // "KT" (skylife, SKT 제외) -> kt.svg
-            logoUrl = '/MVNO/assets/images/internets/kt.svg';
+            logoUrl = (window.BASE_PATH || '') + '/assets/images/internets/kt.svg';
         } else if (registrationPlace.indexOf('LG') !== -1 || registrationPlace.indexOf('LGU') !== -1) {
-            logoUrl = '/MVNO/assets/images/internets/lgu.svg';
+            logoUrl = (window.BASE_PATH || '') + '/assets/images/internets/lgu.svg';
         }
         
         // provider 텍스트 변환: "SKT" -> "SKT broadband"
@@ -627,105 +634,136 @@ document.addEventListener('DOMContentLoaded', function() {
     // 더보기 기능은 load-more-products.js에서 처리
     
     // 인터넷 리뷰 작성/수정 기능
-    const reviewWriteButtons = document.querySelectorAll('.internet-review-write-btn, .internet-review-edit-btn');
-    const reviewModal = document.getElementById('internetReviewModal');
-    const reviewForm = document.getElementById('internetReviewForm');
-    const reviewModalClose = reviewModal ? reviewModal.querySelector('.internet-review-modal-close') : null;
-    const reviewModalOverlay = reviewModal ? reviewModal.querySelector('.internet-review-modal-overlay') : null;
-    const reviewCancelBtn = reviewForm ? reviewForm.querySelector('.internet-review-btn-cancel') : null;
+    window.currentReviewApplicationId = null;
+    window.currentReviewProductId = null;
+    window.currentReviewId = null;
+    window.isEditMode = false;
     
-    let currentReviewApplicationId = null;
-    let currentReviewProductId = null;
-    let currentReviewId = null;
-    let isEditMode = false;
-    
-    // 리뷰 작성/수정 버튼 클릭 이벤트
-    reviewWriteButtons.forEach(btn => {
-        btn.addEventListener('click', function(e) {
-            e.stopPropagation(); // 카드 클릭 이벤트 방지
-            currentReviewApplicationId = this.getAttribute('data-application-id');
-            currentReviewProductId = this.getAttribute('data-product-id');
-            const hasReview = this.getAttribute('data-has-review') === '1';
-            isEditMode = hasReview;
-            currentReviewId = null;
+    // 리뷰 작성/수정 버튼 클릭 이벤트 (전역 함수로 정의)
+    window.initReviewButtonEvents = function() {
+        // 필요한 변수들 다시 가져오기
+        const reviewModal = document.getElementById('internetReviewModal');
+        const reviewForm = document.getElementById('internetReviewForm');
+        
+        const buttons = document.querySelectorAll('.internet-review-write-btn, .internet-review-edit-btn');
+        buttons.forEach(btn => {
+            // 이미 이벤트가 바인딩된 버튼은 스킵
+            if (btn.dataset.reviewEventAdded) return;
+            btn.dataset.reviewEventAdded = 'true';
             
-            if (reviewModal) {
-                // 먼저 모달 제목과 버튼 텍스트를 설정 (모달이 보이기 전에)
-                const modalTitle = reviewModal.querySelector('.internet-review-modal-title');
-                if (modalTitle) {
-                    modalTitle.textContent = isEditMode ? '리뷰 수정' : '리뷰 작성';
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation(); // 카드 클릭 이벤트 방지
+                e.preventDefault();
+                
+                const applicationIdAttr = this.getAttribute('data-application-id');
+                const productIdAttr = this.getAttribute('data-product-id');
+                const hasReview = this.getAttribute('data-has-review') === '1';
+                const reviewIdAttr = this.getAttribute('data-review-id');
+                
+                if (!productIdAttr || productIdAttr === 'null' || productIdAttr === '') {
+                    console.error('리뷰 버튼 클릭 오류: data-product-id 속성이 없거나 올바르지 않습니다.', this);
+                    if (typeof showMessageModal === 'function') {
+                        showMessageModal('상품 정보를 찾을 수 없습니다.', 'error');
+                    } else if (typeof showAlert === 'function') {
+                        showAlert('상품 정보를 찾을 수 없습니다.', '오류');
+                    } else {
+                        alert('상품 정보를 찾을 수 없습니다.');
+                    }
+                    return;
                 }
                 
-                // 제출 버튼 텍스트 변경
-                const submitBtn = reviewForm ? reviewForm.querySelector('.internet-review-btn-submit span') : null;
-                if (submitBtn) {
-                    submitBtn.textContent = isEditMode ? '저장하기' : '작성하기';
-                }
+                window.currentReviewApplicationId = applicationIdAttr;
+                window.currentReviewProductId = productIdAttr;
+                window.isEditMode = hasReview && reviewIdAttr !== null;
+                window.currentReviewId = reviewIdAttr ? parseInt(reviewIdAttr) : null;
                 
-                // 삭제 버튼 표시/숨김
-                const deleteBtn = document.getElementById('internetReviewDeleteBtn');
-                if (deleteBtn) {
-                    deleteBtn.style.display = isEditMode ? 'flex' : 'none';
-                }
-                
-                // 삭제 버튼에 리뷰 ID 저장
-                if (deleteBtn && isEditMode && currentReviewId) {
-                    deleteBtn.setAttribute('data-review-id', currentReviewId);
-                }
-                
-                // 현재 스크롤 위치 저장
-                const scrollY = window.scrollY;
-                document.body.style.position = 'fixed';
-                document.body.style.top = `-${scrollY}px`;
-                document.body.style.width = '100%';
-                document.body.style.overflow = 'hidden';
-                
-                // 폼 초기화
-                if (reviewForm) {
-                    reviewForm.reset();
-                    // 별점 초기화
-                    const starLabels = reviewForm.querySelectorAll('.star-label');
-                    starLabels.forEach(label => {
-                        label.classList.remove('active');
-                        label.classList.remove('hover-active');
-                    });
-                    // 텍스트 카운터 초기화
-                    const reviewTextCounter = document.getElementById('reviewTextCounter');
-                    if (reviewTextCounter) {
-                        reviewTextCounter.textContent = '0';
+                if (reviewModal) {
+                    // 변수들 가져오기
+                    const isEditMode = window.isEditMode;
+                    const currentReviewApplicationId = window.currentReviewApplicationId;
+                    const currentReviewProductId = window.currentReviewProductId;
+                    
+                    // 먼저 모달 제목과 버튼 텍스트를 설정 (모달이 보이기 전에)
+                    const modalTitle = reviewModal.querySelector('.internet-review-modal-title');
+                    if (modalTitle) {
+                        modalTitle.textContent = isEditMode ? '리뷰 수정' : '리뷰 작성';
+                    }
+                    
+                    // 제출 버튼 텍스트 변경
+                    const submitBtn = reviewForm ? reviewForm.querySelector('.internet-review-btn-submit span') : null;
+                    if (submitBtn) {
+                        submitBtn.textContent = isEditMode ? '저장하기' : '작성하기';
+                    }
+                    
+                    // 삭제 버튼 표시/숨김
+                    const deleteBtn = document.getElementById('internetReviewDeleteBtn');
+                    if (deleteBtn) {
+                        deleteBtn.style.display = isEditMode ? 'flex' : 'none';
+                    }
+                    
+                    // 현재 스크롤 위치 저장
+                    const scrollY = window.scrollY;
+                    document.body.style.position = 'fixed';
+                    document.body.style.top = `-${scrollY}px`;
+                    document.body.style.width = '100%';
+                    document.body.style.overflow = 'hidden';
+                    
+                    // 폼 초기화
+                    if (reviewForm) {
+                        reviewForm.reset();
+                        // 별점 초기화
+                        const starLabels = reviewForm.querySelectorAll('.star-label');
+                        starLabels.forEach(label => {
+                            label.classList.remove('active');
+                            label.classList.remove('hover-active');
+                        });
+                        // 텍스트 카운터 초기화
+                        const reviewTextCounter = document.getElementById('reviewTextCounter');
+                        if (reviewTextCounter) {
+                            reviewTextCounter.textContent = '0';
+                        }
+                    }
+                    
+                    // 모달 표시
+                    reviewModal.style.display = 'flex';
+                    setTimeout(() => {
+                        reviewModal.classList.add('show');
+                    }, 10);
+                    
+                    // 수정 모드인 경우 기존 리뷰 데이터 로드
+                    if (isEditMode && currentReviewProductId) {
+                        loadExistingReview(currentReviewProductId);
                     }
                 }
-                
-                // 모달 표시
-                reviewModal.style.display = 'flex';
-                setTimeout(() => {
-                    reviewModal.classList.add('show');
-                }, 10);
-                
-                // 수정 모드인 경우 기존 리뷰 데이터 로드
-                if (isEditMode && currentReviewProductId) {
-                    loadExistingReview(currentReviewProductId);
-                }
-            }
+            });
         });
-    });
+    };
+    
+    // 초기 리뷰 버튼 이벤트 바인딩
+    window.initReviewButtonEvents();
+    
+    // 모달 닫기 함수 및 이벤트
+    const reviewModalClose = document.getElementById('internetReviewModal') ? document.getElementById('internetReviewModal').querySelector('.internet-review-modal-close') : null;
+    const reviewModalOverlay = document.getElementById('internetReviewModal') ? document.getElementById('internetReviewModal').querySelector('.internet-review-modal-overlay') : null;
+    const reviewCancelBtn = document.getElementById('internetReviewForm') ? document.getElementById('internetReviewForm').querySelector('.internet-review-btn-cancel') : null;
     
     // 기존 리뷰 데이터 로드
     function loadExistingReview(productId) {
         // application_id가 있으면 application_id 기반으로 조회, 없으면 product_id로 조회
-        let url = '/MVNO/api/get-review.php?product_id=' + productId + '&product_type=internet';
-        if (currentReviewApplicationId) {
-            url += '&application_id=' + currentReviewApplicationId;
-            // 또는 get-review-by-application.php 사용 (더 명확함)
-            // url = '/MVNO/api/get-review-by-application.php?application_id=' + currentReviewApplicationId + '&product_id=' + productId + '&product_type=internet';
+        let url = (window.API_PATH || (window.BASE_PATH || '') + '/api') + '/get-review.php?product_id=' + productId + '&product_type=internet';
+        if (window.currentReviewApplicationId) {
+            url += '&application_id=' + window.currentReviewApplicationId;
         }
+        
+        const reviewModal = document.getElementById('internetReviewModal');
+        const reviewForm = document.getElementById('internetReviewForm');
         
         fetch(url)
             .then(response => response.json())
             .then(data => {
                 if (data.success && data.review) {
                     const review = data.review;
-                    currentReviewId = review.id;
+                    window.currentReviewId = review.id;
                     
                     // 삭제 버튼에 리뷰 ID 저장 및 표시
                     const deleteBtn = document.getElementById('internetReviewDeleteBtn');
@@ -782,10 +820,16 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     }
                 } else {
-                    showMessageModal('리뷰를 불러올 수 없습니다.', 'warning');
+                    if (typeof showMessageModal === 'function') {
+                        showMessageModal('리뷰를 불러올 수 없습니다.', 'warning');
+                    } else if (typeof showAlert === 'function') {
+                        showAlert('리뷰를 불러올 수 없습니다.', '알림');
+                    } else {
+                        alert('리뷰를 불러올 수 없습니다.');
+                    }
                     // 작성 모드로 전환
-                    isEditMode = false;
-                    const modalTitle = reviewModal.querySelector('.internet-review-modal-title');
+                    window.isEditMode = false;
+                    const modalTitle = reviewModal ? reviewModal.querySelector('.internet-review-modal-title') : null;
                     if (modalTitle) {
                         modalTitle.textContent = '리뷰 작성';
                     }
@@ -796,13 +840,22 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             })
             .catch(error => {
-                showMessageModal('리뷰를 불러오는 중 오류가 발생했습니다.', 'error');
-                isEditMode = false;
+                console.error('Error loading review:', error);
+                if (typeof showMessageModal === 'function') {
+                    showMessageModal('리뷰를 불러오는 중 오류가 발생했습니다.', 'error');
+                } else if (typeof showAlert === 'function') {
+                    showAlert('리뷰를 불러오는 중 오류가 발생했습니다.', '오류');
+                } else {
+                    alert('리뷰를 불러오는 중 오류가 발생했습니다.');
+                }
+                window.isEditMode = false;
             });
     }
     
     // 리뷰 모달 닫기
     function closeReviewModal() {
+        const reviewModal = document.getElementById('internetReviewModal');
+        const reviewForm = document.getElementById('internetReviewForm');
         if (reviewModal) {
             reviewModal.classList.remove('show');
             setTimeout(() => {
@@ -834,10 +887,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     reviewTextCounter.textContent = '0';
                 }
                 // 모달 상태 초기화
-                currentReviewApplicationId = null;
-                currentReviewProductId = null;
-                currentReviewId = null;
-                isEditMode = false;
+                window.currentReviewApplicationId = null;
+                window.currentReviewProductId = null;
+                window.currentReviewId = null;
+                window.isEditMode = false;
                 
                 // 모달 제목 및 버튼 텍스트 초기화
                 const modalTitle = reviewModal.querySelector('.internet-review-modal-title');
@@ -867,14 +920,18 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // ESC 키로 모달 닫기
     document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' && reviewModal && reviewModal.classList.contains('show')) {
-            closeReviewModal();
+        if (e.key === 'Escape') {
+            const reviewModal = document.getElementById('internetReviewModal');
+            if (reviewModal && reviewModal.classList.contains('show')) {
+                closeReviewModal();
+            }
         }
     });
     
     // 별점 이벤트는 internet-review-modal.php 컴포넌트에서 처리됨
     
     // 리뷰 폼 제출
+    const reviewForm = document.getElementById('internetReviewForm');
     if (reviewForm) {
         reviewForm.addEventListener('submit', function(e) {
             e.preventDefault();
@@ -898,8 +955,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
-            if (!currentReviewProductId || currentReviewProductId <= 0) {
-                showMessageModal('상품 정보를 찾을 수 없습니다.', 'error');
+            // 전역 변수 확인
+            if (!window.currentReviewProductId || window.currentReviewProductId <= 0) {
+                if (typeof showMessageModal === 'function') {
+                    showMessageModal('상품 정보를 찾을 수 없습니다.', 'error');
+                } else if (typeof showAlert === 'function') {
+                    showAlert('상품 정보를 찾을 수 없습니다.', '오류');
+                } else {
+                    alert('상품 정보를 찾을 수 없습니다.');
+                }
                 return;
             }
             
@@ -908,7 +972,13 @@ document.addEventListener('DOMContentLoaded', function() {
             const averageRating = Math.round((kindnessRating + speedRating) / 2);
             
             if (kindnessRating < 1 || kindnessRating > 5 || speedRating < 1 || speedRating > 5) {
-                showMessageModal('별점은 1~5 사이의 값이어야 합니다.', 'error');
+                if (typeof showMessageModal === 'function') {
+                    showMessageModal('별점은 1~5 사이의 값이어야 합니다.', 'error');
+                } else if (typeof showAlert === 'function') {
+                    showAlert('별점은 1~5 사이의 값이어야 합니다.', '오류');
+                } else {
+                    alert('별점은 1~5 사이의 값이어야 합니다.');
+                }
                 return;
             }
             
@@ -917,11 +987,11 @@ document.addEventListener('DOMContentLoaded', function() {
             const submitBtn = reviewForm.querySelector('.internet-review-btn-submit');
             const originalBtnContent = submitBtn.innerHTML;
             submitBtn.disabled = true;
-            submitBtn.innerHTML = '<span>' + (isEditMode ? '저장 중...' : '작성 중...') + '</span>';
+            submitBtn.innerHTML = '<span>' + (window.isEditMode ? '저장 중...' : '작성 중...') + '</span>';
             
             // 리뷰 제출 (수정 모드인 경우 review_id 포함)
             const formData = new FormData();
-            formData.append('product_id', currentReviewProductId);
+            formData.append('product_id', window.currentReviewProductId);
             formData.append('product_type', 'internet');
             formData.append('rating', averageRating);
             formData.append('kindness_rating', kindnessRating); // 친절해요 별점
@@ -930,16 +1000,16 @@ document.addEventListener('DOMContentLoaded', function() {
             formData.append('title', ''); // 인터넷 리뷰는 제목 없음
             
             // application_id 추가 (각 신청별로 별도 리뷰 작성)
-            if (currentReviewApplicationId) {
-                formData.append('application_id', currentReviewApplicationId);
+            if (window.currentReviewApplicationId) {
+                formData.append('application_id', window.currentReviewApplicationId);
             }
             
             // 수정 모드인 경우 review_id 추가
-            if (isEditMode && currentReviewId) {
-                formData.append('review_id', currentReviewId);
+            if (window.isEditMode && window.currentReviewId) {
+                formData.append('review_id', window.currentReviewId);
             }
             
-            fetch('/MVNO/api/submit-review.php', {
+            fetch((window.API_PATH || (window.BASE_PATH || '') + '/api') + '/submit-review.php', {
                 method: 'POST',
                 body: formData
             })
@@ -968,19 +1038,36 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log('Response data:', JSON.stringify(data, null, 2));
                 if (data.success) {
                     // 성공 모달 표시
-                    const successMessage = isEditMode ? '리뷰가 수정되었습니다.' : '리뷰가 작성되었습니다.';
-                    showMessageModal(successMessage, 'success', function() {
+                    const successMessage = window.isEditMode ? '리뷰가 수정되었습니다.' : '리뷰가 작성되었습니다.';
+                    if (typeof showMessageModal === 'function') {
+                        showMessageModal(successMessage, 'success', function() {
+                            closeReviewModal();
+                            // 페이지 새로고침 (리뷰 작성/수정 버튼 상태 업데이트를 위해)
+                            location.reload();
+                        });
+                    } else if (typeof showAlert === 'function') {
+                        showAlert(successMessage, '알림').then(() => {
+                            closeReviewModal();
+                            location.reload();
+                        });
+                    } else {
+                        alert(successMessage);
                         closeReviewModal();
-                        // 페이지 새로고침 (리뷰 작성/수정 버튼 상태 업데이트를 위해)
                         location.reload();
-                    });
+                    }
                 } else {
                     // 에러 모달 표시
-                    const errorMessage = data.message || (isEditMode ? '리뷰 수정에 실패했습니다.' : '리뷰 작성에 실패했습니다.');
+                    const errorMessage = data.message || (window.isEditMode ? '리뷰 수정에 실패했습니다.' : '리뷰 작성에 실패했습니다.');
                     console.error('리뷰 제출 실패:', JSON.stringify(data, null, 2));
                     console.error('Error message:', data.message);
                     console.error('Error details:', data.error);
-                    showMessageModal(errorMessage, 'error');
+                    if (typeof showMessageModal === 'function') {
+                        showMessageModal(errorMessage, 'error');
+                    } else if (typeof showAlert === 'function') {
+                        showAlert(errorMessage, '오류');
+                    } else {
+                        alert(errorMessage);
+                    }
                     submitBtn.disabled = false;
                     submitBtn.innerHTML = originalBtnContent;
                 }
@@ -988,8 +1075,14 @@ document.addEventListener('DOMContentLoaded', function() {
             .catch(error => {
                 console.error('리뷰 제출 중 오류:', error);
                 console.error('Error stack:', error.stack);
-                const errorMessage = isEditMode ? '리뷰 수정 중 오류가 발생했습니다.' : '리뷰 작성 중 오류가 발생했습니다.';
-                showMessageModal(errorMessage, 'error');
+                const errorMessage = window.isEditMode ? '리뷰 수정 중 오류가 발생했습니다.' : '리뷰 작성 중 오류가 발생했습니다.';
+                if (typeof showMessageModal === 'function') {
+                    showMessageModal(errorMessage, 'error');
+                } else if (typeof showAlert === 'function') {
+                    showAlert(errorMessage, '오류');
+                } else {
+                    alert(errorMessage);
+                }
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = originalBtnContent;
             });
@@ -1154,7 +1247,7 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             e.stopPropagation();
             
-            const reviewId = this.getAttribute('data-review-id') || currentReviewId;
+            const reviewId = this.getAttribute('data-review-id') || window.currentReviewId;
             openDeleteModal(reviewId);
         });
     }
@@ -1200,7 +1293,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 formData.append('review_id', reviewId);
                 formData.append('product_type', 'internet');
                 
-                fetch('/MVNO/api/delete-review.php', {
+                fetch((window.API_PATH || (window.BASE_PATH || '') + '/api') + '/delete-review.php', {
                     method: 'POST',
                     body: formData
                 })
@@ -1364,7 +1457,7 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 </style>
 
-<script src="/MVNO/assets/js/load-more-products.js?v=2"></script>
+<script src="<?php echo getAssetPath('/assets/js/load-more-products.js'); ?>?v=2"></script>
 <script>
 // 새로 로드된 카드에 대한 클릭 이벤트를 다시 바인딩하는 함수
 function initApplicationCardClickEvents() {

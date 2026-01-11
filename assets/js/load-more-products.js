@@ -413,6 +413,11 @@
                     });
                 }
             });
+            
+            // 리뷰 버튼 이벤트 재바인딩 (mno-sim-order.php 등)
+            if (typeof window.initReviewButtonEvents === 'function') {
+                window.initReviewButtonEvents();
+            }
         } 
         // JSON 데이터인 경우 (mvno, mno, mno-sim)
         else if (data.products && Array.isArray(data.products)) {

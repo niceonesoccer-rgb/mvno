@@ -33,6 +33,15 @@ function getDBConnection() {
             
             $pdo = new PDO($dsn, DB_USER, DB_PASS, $options);
             
+            // UTF-8 문자셋 명시적 설정
+            try {
+                $pdo->exec("SET NAMES " . DB_CHARSET);
+                $pdo->exec("SET CHARACTER SET " . DB_CHARSET);
+                $pdo->exec("SET character_set_connection=" . DB_CHARSET);
+            } catch (PDOException $charsetError) {
+                error_log("Failed to set MySQL charset: " . $charsetError->getMessage());
+            }
+            
             // MySQL 타임존을 Asia/Seoul로 설정 (데이터 저장 시 일관성 유지)
             try {
                 $pdo->exec("SET time_zone = '+09:00'");

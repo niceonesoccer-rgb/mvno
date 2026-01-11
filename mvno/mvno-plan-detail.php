@@ -17,6 +17,16 @@ $privacySettings = getPrivacySettings();
 // 요금제 ID 가져오기
 $plan_id = isset($_GET['id']) ? intval($_GET['id']) : 32627;
 
+// 요금제 데이터 가져오기 (SEO 메타 태그 생성을 위해 헤더 전에 로드)
+require_once '../includes/data/plan-data.php';
+$plan = getPlanDetailData($plan_id);
+
+// 상품 SEO 메타 태그 생성 (header.php에서 사용)
+require_once '../includes/data/seo-functions.php';
+if ($plan) {
+    $productSEO = generateProductSEO($plan, 'mvno');
+}
+
 // 헤더 포함
 include '../includes/header.php';
 

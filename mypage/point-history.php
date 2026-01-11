@@ -50,7 +50,7 @@ include '../includes/header.php';
 ?>
 
 <main class="main-content">
-    <div style="width: 460px; margin: 0 auto; padding: 20px;" class="mypage-container">
+    <div style="width: 100%; max-width: 460px; margin: 0 auto; padding: 20px; box-sizing: border-box;" class="mypage-container">
         <!-- 페이지 헤더 -->
         <div style="margin-bottom: 24px; padding: 20px 0;">
             <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">

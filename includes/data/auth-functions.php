@@ -13,6 +13,17 @@
 // 한국 시간대 설정
 date_default_timezone_set('Asia/Seoul');
 
+// UTF-8 인코딩 설정 (한글 깨짐 방지)
+if (function_exists('mb_internal_encoding')) {
+    mb_internal_encoding('UTF-8');
+}
+if (function_exists('mb_http_output')) {
+    mb_http_output('UTF-8');
+}
+if (function_exists('mb_regex_encoding')) {
+    mb_regex_encoding('UTF-8');
+}
+
 // 세션 설정 (전체 사이트에서 공유)
 if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
     $currentSessionName = session_name();

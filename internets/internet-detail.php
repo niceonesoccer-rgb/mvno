@@ -4,6 +4,9 @@ $current_page = 'internets';
 // 메인 페이지 여부 (하단 메뉴 및 푸터 표시용)
 $is_main_page = true; // 상세 페이지에서도 하단 메뉴바 표시
 
+// 경로 설정 파일 먼저 로드
+require_once '../includes/data/path-config.php';
+
 // 로그인 체크를 위한 auth-functions 포함 (세션 설정과 함께 세션을 시작함)
 require_once '../includes/data/auth-functions.php';
 require_once '../includes/data/privacy-functions.php';
@@ -32,7 +35,7 @@ if ($internet_id <= 0) {
                 </div>
                 <h1 style="font-size: 28px; font-weight: 700; color: #1f2937; margin: 0 0 12px 0;">상품을 찾을 수 없습니다</h1>
                 <p style="font-size: 16px; color: #6b7280; margin: 0 0 32px 0; line-height: 1.6;">요청하신 상품이 존재하지 않거나 삭제되었습니다.</p>
-                <a href="/MVNO/internets/internets.php" style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; background: #3b82f6; color: white; border-radius: 8px; text-decoration: none; font-weight: 600; transition: background 0.2s;" onmouseover="this.style.background='#2563eb'" onmouseout="this.style.background='#3b82f6'">
+                <a href="<?php echo getAssetPath('/internets/internets.php'); ?>" style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; background: #3b82f6; color: white; border-radius: 8px; text-decoration: none; font-weight: 600; transition: background 0.2s;" onmouseover="this.style.background='#2563eb'" onmouseout="this.style.background='#3b82f6'">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
@@ -79,7 +82,7 @@ if (!$internet) {
                 </div>
                 <h1 style="font-size: 28px; font-weight: 700; color: #1f2937; margin: 0 0 12px 0;">상품을 찾을 수 없습니다</h1>
                 <p style="font-size: 16px; color: #6b7280; margin: 0 0 32px 0; line-height: 1.6;">요청하신 상품이 존재하지 않거나 삭제되었습니다.</p>
-                <a href="/MVNO/internets/internets.php" style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; background: #3b82f6; color: white; border-radius: 8px; text-decoration: none; font-weight: 600; transition: background 0.2s;" onmouseover="this.style.background='#2563eb'" onmouseout="this.style.background='#3b82f6'">
+                <a href="<?php echo getAssetPath('/internets/internets.php'); ?>" style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; background: #3b82f6; color: white; border-radius: 8px; text-decoration: none; font-weight: 600; transition: background 0.2s;" onmouseover="this.style.background='#2563eb'" onmouseout="this.style.background='#3b82f6'">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
@@ -108,14 +111,14 @@ if (!$isAdmin && isset($internet['status']) && $internet['status'] === 'inactive
                 <h1 style="font-size: 28px; font-weight: 700; color: #1f2937; margin: 0 0 12px 0;">판매가 종료된 상품입니다</h1>
                 <p style="font-size: 16px; color: #6b7280; margin: 0 0 32px 0; line-height: 1.6;">죄송합니다. 요청하신 상품은 현재 판매가 종료되어 더 이상 제공되지 않습니다.<br>다른 상품을 찾아보시겠어요?</p>
                 <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
-                    <a href="/MVNO/internets/internets.php" style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; background: #3b82f6; color: white; border-radius: 8px; text-decoration: none; font-weight: 600; transition: all 0.2s; box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);" onmouseover="this.style.background='#2563eb'; this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(59, 130, 246, 0.4)'" onmouseout="this.style.background='#3b82f6'; this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(59, 130, 246, 0.3)'">
+                    <a href="<?php echo getAssetPath('/internets/internets.php'); ?>" style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; background: #3b82f6; color: white; border-radius: 8px; text-decoration: none; font-weight: 600; transition: all 0.2s; box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);" onmouseover="this.style.background='#2563eb'; this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(59, 130, 246, 0.4)'" onmouseout="this.style.background='#3b82f6'; this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(59, 130, 246, 0.3)'">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                             <path d="M3 7l9 6 9-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
                         인터넷 상품 둘러보기
                     </a>
-                    <a href="/MVNO/" style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; background: #f3f4f6; color: #374151; border-radius: 8px; text-decoration: none; font-weight: 600; transition: all 0.2s;" onmouseover="this.style.background='#e5e7eb'" onmouseout="this.style.background='#f3f4f6'">
+                    <a href="<?php echo getAssetPath('/'); ?>" style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; background: #f3f4f6; color: #374151; border-radius: 8px; text-decoration: none; font-weight: 600; transition: all 0.2s;" onmouseover="this.style.background='#e5e7eb'" onmouseout="this.style.background='#f3f4f6'">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
@@ -3121,7 +3124,7 @@ function updateInternetNotificationSettings(type) {
     
     if (checkbox && Object.keys(settings).length > 0) {
         // API 호출하여 알림설정 업데이트
-        fetch('/MVNO/api/update-alarm-settings.php', {
+        fetch((window.BASE_PATH || '') + '/api/update-alarm-settings.php', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -3321,7 +3324,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!isLoggedIn) {
                 closeInternetModal();
                 const currentUrl = window.location.href;
-                fetch('/MVNO/api/save-redirect-url.php', {
+                fetch((window.BASE_PATH || '') + '/api/save-redirect-url.php', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -3495,7 +3498,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             // 서버로 데이터 전송
-            fetch('/MVNO/api/submit-internet-application.php', {
+            fetch((window.BASE_PATH || '') + '/api/submit-internet-application.php', {
                 method: 'POST',
                 body: formData
             })
@@ -4061,7 +4064,7 @@ function handleInternetApplyClick(e) {
     if (!isLoggedIn) {
         // 비회원: 현재 URL을 세션에 저장 (회원가입 후 돌아올 주소)
         const currentUrl = window.location.href;
-        fetch('/MVNO/api/save-redirect-url.php', {
+        fetch((window.BASE_PATH || '') + '/api/save-redirect-url.php', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -4286,7 +4289,7 @@ function handleInternetApplyClick(e) {
 // 포인트 설정 확인 및 모달 열기 함수
 function checkAndOpenPointModal(type, itemId, callback) {
     // 포인트 설정 조회
-    fetch(`/MVNO/api/get-product-point-setting.php?type=${type}&id=${itemId}`)
+    fetch((window.BASE_PATH || '') + `/api/get-product-point-setting.php?type=${type}&id=${itemId}`)
         .then(response => response.json())
         .then(data => {
             if (!data.success) {

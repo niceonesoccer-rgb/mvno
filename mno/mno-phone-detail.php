@@ -17,17 +17,23 @@ require_once '../includes/data/privacy-functions.php';
 // 개인정보 설정 로드
 $privacySettings = getPrivacySettings();
 
+// 통신사폰 데이터 가져오기 (SEO 메타 태그 생성을 위해 헤더 전에 로드)
+require_once '../includes/data/phone-data.php';
+require_once '../includes/data/plan-data.php';
+$phone = getPhoneDetailData($phone_id);
+
+// 상품 SEO 메타 태그 생성 (header.php에서 사용)
+require_once '../includes/data/seo-functions.php';
+if ($phone) {
+    $productSEO = generateProductSEO($phone, 'mno');
+}
+
 // 헤더 포함
 include '../includes/header.php';
 
 // 조회수 업데이트
 require_once '../includes/data/product-functions.php';
 incrementProductView($phone_id);
-
-// 통신사폰 데이터 가져오기
-require_once '../includes/data/phone-data.php';
-require_once '../includes/data/plan-data.php';
-$phone = getPhoneDetailData($phone_id);
 $rawData = $phone['_raw_data'] ?? []; // 원본 DB 데이터 (null 대신 빈 배열로 초기화)
 
 // 상품번호 가져오기
@@ -2345,7 +2351,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     // 신청정보가 판매자에게 저장됨
                     
                     // 무조건 마이페이지 통신사폰 주문내역으로 이동
-                    const mypageUrl = '/MVNO/mypage/mno-order.php';
+                    const mypageUrl = (window.BASE_PATH || '') + '/mypage/mno-order.php';
                     
                     // redirect_url이 있으면 새 창으로 열기
                     if (data.redirect_url && data.redirect_url.trim() !== '') {

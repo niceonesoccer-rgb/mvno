@@ -826,8 +826,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return div.innerHTML;
     }
     
-    // 리뷰 작성/수정 기능
-    const reviewWriteButtons = document.querySelectorAll('.mno-sim-review-write-btn, .mno-sim-review-edit-btn');
+    // 리뷰 작성/수정 기능 변수 (전역 스코프)
     const reviewModal = document.getElementById('mvnoReviewModal');
     const reviewForm = document.getElementById('mvnoReviewForm');
     const reviewModalClose = reviewModal ? reviewModal.querySelector('.mvno-review-modal-close') : null;
@@ -839,123 +838,145 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentReviewId = null;
     let isEditMode = false;
     
-    // 리뷰 작성/수정 버튼 클릭 이벤트
-    reviewWriteButtons.forEach(btn => {
-        btn.addEventListener('click', function(e) {
-            e.stopPropagation(); // 카드 클릭 이벤트 방지
-            currentReviewApplicationId = this.getAttribute('data-application-id');
-            currentReviewProductId = this.getAttribute('data-product-id');
-            const productType = this.getAttribute('data-product-type') || 'mno-sim';
-            const hasReview = this.getAttribute('data-has-review') === '1';
-            const reviewIdAttr = this.getAttribute('data-review-id');
-            isEditMode = hasReview && reviewIdAttr !== null;
-            currentReviewId = reviewIdAttr ? parseInt(reviewIdAttr) : null;
+    // 리뷰 작성/수정 버튼 클릭 이벤트 (전역 함수로 정의)
+    window.initReviewButtonEvents = function() {
+        // 필요한 변수들 다시 가져오기
+        const reviewModal = document.getElementById('mvnoReviewModal');
+        const reviewForm = document.getElementById('mvnoReviewForm');
+        
+        const buttons = document.querySelectorAll('.mno-sim-review-write-btn, .mno-sim-review-edit-btn');
+        buttons.forEach(btn => {
+            // 이미 이벤트가 바인딩된 버튼은 스킵
+            if (btn.dataset.reviewEventAdded) return;
+            btn.dataset.reviewEventAdded = 'true';
             
-            if (reviewModal) {
-                // 먼저 모달 제목과 버튼 텍스트를 설정
-                const modalTitle = reviewModal.querySelector('.mvno-review-modal-title');
-                if (modalTitle) {
-                    modalTitle.textContent = isEditMode ? '리뷰 수정' : '리뷰 작성';
-                }
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation(); // 카드 클릭 이벤트 방지
+                e.preventDefault();
                 
-                // 제출 버튼 텍스트 변경
-                const submitBtn = reviewForm ? reviewForm.querySelector('.mvno-review-btn-submit') : null;
-                if (submitBtn) {
-                    submitBtn.textContent = isEditMode ? '저장하기' : '작성하기';
-                }
+                window.currentReviewApplicationId = this.getAttribute('data-application-id');
+                window.currentReviewProductId = this.getAttribute('data-product-id');
+                const productType = this.getAttribute('data-product-type') || 'mno-sim';
+                const hasReview = this.getAttribute('data-has-review') === '1';
+                const reviewIdAttr = this.getAttribute('data-review-id');
+                window.isEditMode = hasReview && reviewIdAttr !== null;
+                window.currentReviewId = reviewIdAttr ? parseInt(reviewIdAttr) : null;
                 
-                // 삭제 버튼 표시/숨김
-                const deleteBtn = document.getElementById('mvnoReviewDeleteBtn');
-                if (deleteBtn) {
-                    deleteBtn.style.display = isEditMode ? 'flex' : 'none';
-                }
-                
-                // 현재 스크롤 위치 저장
-                const scrollY = window.scrollY;
-                document.body.style.position = 'fixed';
-                document.body.style.top = `-${scrollY}px`;
-                document.body.style.width = '100%';
-                document.body.style.overflow = 'hidden';
-                
-                // 폼 초기화
-                if (reviewForm) {
-                    reviewForm.reset();
-                    // 별점 초기화
-                    const starLabels = reviewForm.querySelectorAll('.star-label');
-                    starLabels.forEach(label => {
-                        label.classList.remove('active');
-                        label.classList.remove('hover-active');
-                    });
-                }
-                
-                // 수정 모드일 경우 기존 리뷰 데이터 로드
-                if (isEditMode && currentReviewApplicationId && currentReviewProductId) {
-                    fetch(`${window.API_PATH || (window.BASE_PATH || '') + '/api'}/get-review-by-application.php?application_id=${currentReviewApplicationId}&product_id=${currentReviewProductId}&product_type=${productType}`)
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.success && data.review) {
-                                currentReviewId = data.review.id;
-                                // 별점 설정
-                                if (data.review.kindness_rating) {
-                                    const kindnessInput = reviewForm.querySelector(`input[name="kindness_rating"][value="${data.review.kindness_rating}"]`);
-                                    if (kindnessInput) {
-                                        kindnessInput.checked = true;
-                                        const rating = parseInt(data.review.kindness_rating);
-                                        const kindnessLabels = reviewForm.querySelectorAll('.mvno-star-rating[data-rating-type="kindness"] .star-label');
-                                        kindnessLabels.forEach((label, index) => {
-                                            if (index < rating) {
-                                                label.classList.add('active');
-                                            } else {
-                                                label.classList.remove('active');
-                                            }
-                                        });
-                                    }
-                                }
-                                if (data.review.speed_rating) {
-                                    const speedInput = reviewForm.querySelector(`input[name="speed_rating"][value="${data.review.speed_rating}"]`);
-                                    if (speedInput) {
-                                        speedInput.checked = true;
-                                        const rating = parseInt(data.review.speed_rating);
-                                        const speedLabels = reviewForm.querySelectorAll('.mvno-star-rating[data-rating-type="speed"] .star-label');
-                                        speedLabels.forEach((label, index) => {
-                                            if (index < rating) {
-                                                label.classList.add('active');
-                                            } else {
-                                                label.classList.remove('active');
-                                            }
-                                        });
-                                    }
-                                }
-                                // 리뷰 내용 설정
-                                const reviewTextarea = reviewForm.querySelector('#mvnoReviewText');
-                                if (reviewTextarea && data.review.content) {
-                                    reviewTextarea.value = data.review.content;
-                                }
-                            }
-                            // 모달 표시
-                            reviewModal.style.display = 'flex';
-                            setTimeout(() => {
-                                reviewModal.classList.add('show');
-                            }, 10);
-                        })
-                        .catch(error => {
-                            console.error('Error loading review:', error);
-                            // 에러가 발생해도 모달 표시
-                            reviewModal.style.display = 'flex';
-                            setTimeout(() => {
-                                reviewModal.classList.add('show');
-                            }, 10);
+                if (reviewModal) {
+                    // 변수들 가져오기
+                    const isEditMode = window.isEditMode;
+                    const currentReviewApplicationId = window.currentReviewApplicationId;
+                    const currentReviewProductId = window.currentReviewProductId;
+                    
+                    // 먼저 모달 제목과 버튼 텍스트를 설정
+                    const modalTitle = reviewModal.querySelector('.mvno-review-modal-title');
+                    if (modalTitle) {
+                        modalTitle.textContent = isEditMode ? '리뷰 수정' : '리뷰 작성';
+                    }
+                    
+                    // 제출 버튼 텍스트 변경
+                    const submitBtn = reviewForm ? reviewForm.querySelector('.mvno-review-btn-submit') : null;
+                    if (submitBtn) {
+                        submitBtn.textContent = isEditMode ? '저장하기' : '작성하기';
+                    }
+                    
+                    // 삭제 버튼 표시/숨김
+                    const deleteBtn = document.getElementById('mvnoReviewDeleteBtn');
+                    if (deleteBtn) {
+                        deleteBtn.style.display = isEditMode ? 'flex' : 'none';
+                    }
+                    
+                    // 현재 스크롤 위치 저장
+                    const scrollY = window.scrollY;
+                    document.body.style.position = 'fixed';
+                    document.body.style.top = `-${scrollY}px`;
+                    document.body.style.width = '100%';
+                    document.body.style.overflow = 'hidden';
+                    
+                    // 폼 초기화
+                    if (reviewForm) {
+                        reviewForm.reset();
+                        // 별점 초기화
+                        const starLabels = reviewForm.querySelectorAll('.star-label');
+                        starLabels.forEach(label => {
+                            label.classList.remove('active');
+                            label.classList.remove('hover-active');
                         });
-                } else {
-                    // 새 리뷰 작성 모드
-                    reviewModal.style.display = 'flex';
-                    setTimeout(() => {
-                        reviewModal.classList.add('show');
-                    }, 10);
+                    }
+                    
+                    // 수정 모드일 경우 기존 리뷰 데이터 로드
+                    if (window.isEditMode && window.currentReviewApplicationId && window.currentReviewProductId) {
+                        const apiPath = window.API_PATH || (window.BASE_PATH || '') + '/api';
+                        fetch(`${apiPath}/get-review-by-application.php?application_id=${window.currentReviewApplicationId}&product_id=${window.currentReviewProductId}&product_type=${productType}`)
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.success && data.review) {
+                                    window.currentReviewId = data.review.id;
+                                    // 별점 설정
+                                    if (data.review.kindness_rating) {
+                                        const kindnessInput = reviewForm.querySelector(`input[name="kindness_rating"][value="${data.review.kindness_rating}"]`);
+                                        if (kindnessInput) {
+                                            kindnessInput.checked = true;
+                                            const rating = parseInt(data.review.kindness_rating);
+                                            const kindnessLabels = reviewForm.querySelectorAll('.mvno-star-rating[data-rating-type="kindness"] .star-label');
+                                            kindnessLabels.forEach((label, index) => {
+                                                if (index < rating) {
+                                                    label.classList.add('active');
+                                                } else {
+                                                    label.classList.remove('active');
+                                                }
+                                            });
+                                        }
+                                    }
+                                    if (data.review.speed_rating) {
+                                        const speedInput = reviewForm.querySelector(`input[name="speed_rating"][value="${data.review.speed_rating}"]`);
+                                        if (speedInput) {
+                                            speedInput.checked = true;
+                                            const rating = parseInt(data.review.speed_rating);
+                                            const speedLabels = reviewForm.querySelectorAll('.mvno-star-rating[data-rating-type="speed"] .star-label');
+                                            speedLabels.forEach((label, index) => {
+                                                if (index < rating) {
+                                                    label.classList.add('active');
+                                                } else {
+                                                    label.classList.remove('active');
+                                                }
+                                            });
+                                        }
+                                    }
+                                    // 리뷰 내용 설정
+                                    const reviewTextarea = reviewForm.querySelector('#mvnoReviewText');
+                                    if (reviewTextarea && data.review.content) {
+                                        reviewTextarea.value = data.review.content;
+                                    }
+                                }
+                                // 모달 표시
+                                reviewModal.style.display = 'flex';
+                                setTimeout(() => {
+                                    reviewModal.classList.add('show');
+                                }, 10);
+                            })
+                            .catch(error => {
+                                console.error('Error loading review:', error);
+                                // 에러가 발생해도 모달 표시
+                                reviewModal.style.display = 'flex';
+                                setTimeout(() => {
+                                    reviewModal.classList.add('show');
+                                }, 10);
+                            });
+                    } else {
+                        // 새 리뷰 작성 모드
+                        reviewModal.style.display = 'flex';
+                        setTimeout(() => {
+                            reviewModal.classList.add('show');
+                        }, 10);
+                    }
                 }
-            }
+            });
         });
-    });
+    }
+    
+    // 초기 리뷰 버튼 이벤트 바인딩
+    window.initReviewButtonEvents();
     
     // 리뷰 모달 닫기
     function closeReviewModal() {
@@ -1207,14 +1228,21 @@ function initApplicationCardClickEvents() {
                 }
             });
             card.dataset.eventListenerAdded = 'true'; // 플래그 설정
-            }
-        });
+        }
+    });
+    
+    // 리뷰 버튼 이벤트도 재바인딩
+    if (typeof window.initReviewButtonEvents === 'function') {
+        window.initReviewButtonEvents();
     }
+}
 
 document.addEventListener('DOMContentLoaded', function() {
     // 초기 페이지 로드 시 이벤트 바인딩
     initApplicationCardClickEvents();
 });
+
+// initReviewButtonEvents는 이미 전역으로 노출됨
 </script>
 
 <?php

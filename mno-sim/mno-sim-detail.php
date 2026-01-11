@@ -22,16 +22,22 @@ if ($product_id <= 0) {
     die('상품을 찾을 수 없습니다.');
 }
 
+// 요금제 데이터 가져오기 (SEO 메타 태그 생성을 위해 헤더 전에 로드)
+require_once '../includes/data/plan-data.php';
+$plan = getMnoSimDetailData($product_id);
+
+// 상품 SEO 메타 태그 생성 (header.php에서 사용)
+require_once '../includes/data/seo-functions.php';
+if ($plan) {
+    $productSEO = generateProductSEO($plan, 'mno-sim');
+}
+
 // 헤더 포함
 include '../includes/header.php';
 
 // 조회수 업데이트
 require_once '../includes/data/product-functions.php';
 incrementProductView($product_id);
-
-// 요금제 데이터 가져오기
-require_once '../includes/data/plan-data.php';
-$plan = getMnoSimDetailData($product_id);
 $rawData = $plan['_raw_data'] ?? []; // 원본 DB 데이터 (null 대신 빈 배열로 초기화)
 
 
@@ -2967,7 +2973,7 @@ if (mnoSimApplicationForm) {
                 // 신청정보가 DB에 저장됨
                 
                 // 무조건 마이페이지 통신사단독유심 주문내역으로 이동
-                const mypageUrl = '/MVNO/mypage/mno-sim-order.php';
+                const mypageUrl = (window.BASE_PATH || '') + '/mypage/mno-sim-order.php';
                 
                 // redirect_url이 있으면 새 창으로 열기
                 if (data.redirect_url && data.redirect_url.trim() !== '') {

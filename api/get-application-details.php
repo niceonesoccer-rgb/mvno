@@ -19,7 +19,7 @@ if (!isLoggedIn()) {
     echo json_encode([
         'success' => false,
         'message' => '로그인이 필요합니다.'
-    ]);
+    ], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
@@ -29,7 +29,7 @@ if (!$currentUser) {
     echo json_encode([
         'success' => false,
         'message' => '로그인 정보를 확인할 수 없습니다.'
-    ]);
+    ], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
@@ -42,7 +42,7 @@ if (empty($applicationId)) {
     echo json_encode([
         'success' => false,
         'message' => '신청 ID가 필요합니다.'
-    ]);
+    ], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
@@ -105,7 +105,7 @@ try {
         echo json_encode([
             'success' => false,
             'message' => '신청 정보를 찾을 수 없거나 접근 권한이 없습니다.'
-        ]);
+        ], JSON_UNESCAPED_UNICODE);
         exit;
     }
     
@@ -182,14 +182,14 @@ try {
     echo json_encode([
         'success' => true,
         'data' => $responseData
-    ]);
+    ], JSON_UNESCAPED_UNICODE);
     
 } catch (Exception $e) {
     error_log("Error fetching application details: " . $e->getMessage());
     echo json_encode([
         'success' => false,
         'message' => '정보를 불러오는 중 오류가 발생했습니다.'
-    ]);
+    ], JSON_UNESCAPED_UNICODE);
 }
 
 

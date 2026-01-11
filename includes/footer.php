@@ -93,6 +93,13 @@ $site = $siteSettings['site'] ?? [];
 <?php
 // 휴대폰 상담 신청 모달 포함
 include __DIR__ . '/components/phone-consultation-modal.php';
+
+// Footer 영역 추가 코드 (검색엔진 검증 코드 등)
+require_once __DIR__ . '/data/seo-functions.php';
+$verificationCodes = getSearchEngineVerification();
+if (!empty($verificationCodes['footer_codes'])) {
+    echo $verificationCodes['footer_codes'] . "\n";
+}
 ?>
 </body>
 </html>

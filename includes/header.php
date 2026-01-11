@@ -14,6 +14,7 @@ require_once __DIR__ . '/data/path-config.php';
 // 세션 및 인증 함수를 가장 먼저 로드 (HTML 출력 전에 세션 시작)
 require_once __DIR__ . '/data/auth-functions.php';
 require_once __DIR__ . '/data/site-settings.php';
+require_once __DIR__ . '/data/seo-functions.php';
 
 // 통계 추적 자동 실행 (관리자/판매자 페이지 제외)
 if (!defined('DISABLE_ANALYTICS') && !strpos($_SERVER['REQUEST_URI'] ?? '', '/admin/') && !strpos($_SERVER['REQUEST_URI'] ?? '', '/seller/')) {
@@ -127,7 +128,119 @@ else if (!isset($is_main_page)) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo htmlspecialchars(($site['name_ko'] ?? '유심킹') . ' - 알뜰폰 요금제'); ?></title>
+    <?php
+    // SEO 메타 태그 및 검증 코드
+    $verificationCodes = getSearchEngineVerification();
+    $currentPage = $current_page ?? 'home';
+    
+    // 검증 코드 메타 태그 추가
+    if (!empty($verificationCodes['google'])) {
+        echo '<meta name="google-site-verification" content="' . htmlspecialchars($verificationCodes['google']) . '">' . "\n    ";
+    }
+    if (!empty($verificationCodes['naver'])) {
+        echo '<meta name="naver-site-verification" content="' . htmlspecialchars($verificationCodes['naver']) . '">' . "\n    ";
+    }
+    if (!empty($verificationCodes['bing'])) {
+        echo '<meta name="msvalidate.01" content="' . htmlspecialchars($verificationCodes['bing']) . '">' . "\n    ";
+    }
+    if (!empty($verificationCodes['yandex'])) {
+        echo '<meta name="yandex-verification" content="' . htmlspecialchars($verificationCodes['yandex']) . '">' . "\n    ";
+    }
+    
+    // 상품 SEO 메타 태그가 설정된 경우 (상품 상세 페이지)
+    if (isset($productSEO) && is_array($productSEO)) {
+        // Title
+        $pageTitle = !empty($productSEO['title']) ? $productSEO['title'] : (($site['name_ko'] ?? '유심킹') . ' - 알뜰폰 요금제');
+        echo '<title>' . htmlspecialchars($pageTitle) . '</title>' . "\n    ";
+        
+        // Meta Description
+        if (!empty($productSEO['description'])) {
+            echo '<meta name="description" content="' . htmlspecialchars($productSEO['description']) . '">' . "\n    ";
+        }
+        
+        // Meta Keywords
+        if (!empty($productSEO['keywords'])) {
+            echo '<meta name="keywords" content="' . htmlspecialchars($productSEO['keywords']) . '">' . "\n    ";
+        }
+        
+        // Open Graph
+        $ogTitle = !empty($productSEO['og_title']) ? $productSEO['og_title'] : $pageTitle;
+        $ogDescription = !empty($productSEO['og_description']) ? $productSEO['og_description'] : ($productSEO['description'] ?? '');
+        $ogImage = !empty($productSEO['og_image']) ? $productSEO['og_image'] : '';
+        $canonicalUrl = !empty($productSEO['canonical']) ? $productSEO['canonical'] : ((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI']);
+        
+        if (!empty($ogTitle)) {
+            echo '<meta property="og:title" content="' . htmlspecialchars($ogTitle) . '">' . "\n    ";
+        }
+        if (!empty($ogDescription)) {
+            echo '<meta property="og:description" content="' . htmlspecialchars($ogDescription) . '">' . "\n    ";
+        }
+        if (!empty($ogImage)) {
+            echo '<meta property="og:image" content="' . htmlspecialchars($ogImage) . '">' . "\n    ";
+        }
+        if (!empty($canonicalUrl)) {
+            echo '<meta property="og:url" content="' . htmlspecialchars($canonicalUrl) . '">' . "\n    ";
+        }
+        if (!empty($productSEO['og_type'])) {
+            echo '<meta property="og:type" content="' . htmlspecialchars($productSEO['og_type']) . '">' . "\n    ";
+        } else {
+            echo '<meta property="og:type" content="product">' . "\n    ";
+        }
+        
+        // Canonical
+        if (!empty($canonicalUrl)) {
+            echo '<link rel="canonical" href="' . htmlspecialchars($canonicalUrl) . '">' . "\n    ";
+        }
+    } else {
+        // 카테고리 SEO 적용
+        $categorySEO = getCurrentCategorySEO($currentPage);
+        
+        // Title (카테고리 SEO가 있으면 사용, 없으면 기본값)
+        $pageTitle = !empty($categorySEO['title']) ? $categorySEO['title'] : (($site['name_ko'] ?? '유심킹') . ' - 알뜰폰 요금제');
+        echo '<title>' . htmlspecialchars($pageTitle) . '</title>' . "\n    ";
+        
+        // Meta Description
+        if (!empty($categorySEO['description'])) {
+            echo '<meta name="description" content="' . htmlspecialchars($categorySEO['description']) . '">' . "\n    ";
+        }
+        
+        // Meta Keywords
+        if (!empty($categorySEO['keywords'])) {
+            echo '<meta name="keywords" content="' . htmlspecialchars($categorySEO['keywords']) . '">' . "\n    ";
+        }
+        
+        // Open Graph
+        $ogTitle = !empty($categorySEO['og_title']) ? $categorySEO['og_title'] : $pageTitle;
+        $ogDescription = !empty($categorySEO['og_description']) ? $categorySEO['og_description'] : ($categorySEO['description'] ?? '');
+        $ogImage = !empty($categorySEO['og_image']) ? $categorySEO['og_image'] : '';
+        $canonicalUrl = !empty($categorySEO['canonical']) ? $categorySEO['canonical'] : ((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI']);
+        
+        if (!empty($ogTitle)) {
+            echo '<meta property="og:title" content="' . htmlspecialchars($ogTitle) . '">' . "\n    ";
+        }
+        if (!empty($ogDescription)) {
+            echo '<meta property="og:description" content="' . htmlspecialchars($ogDescription) . '">' . "\n    ";
+        }
+        if (!empty($ogImage)) {
+            echo '<meta property="og:image" content="' . htmlspecialchars($ogImage) . '">' . "\n    ";
+        }
+        echo '<meta property="og:url" content="' . htmlspecialchars($canonicalUrl) . '">' . "\n    ";
+        echo '<meta property="og:type" content="website">' . "\n    ";
+        
+        // Canonical
+        if (!empty($canonicalUrl)) {
+            echo '<link rel="canonical" href="' . htmlspecialchars($canonicalUrl) . '">' . "\n    ";
+        }
+    }
+    
+    // Head 영역 추가 코드
+    if (!empty($verificationCodes['head_codes'])) {
+        echo $verificationCodes['head_codes'] . "\n    ";
+    }
+    ?>
+    <!-- 폰트 로딩 최적화: CDN 연결을 먼저 설정하여 폰트 로딩 속도 향상 -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
     <!-- 나눔스퀘어어라운드 웹폰트 (Regular & Bold) -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/moonspam/NanumSquareRound@latest/nanumsquareround.min.css">
     <?php if (!empty($site['favicon'])): 
@@ -208,6 +321,15 @@ else if (!isset($is_main_page)) {
         
         // 메인 페이지 여부 (하단 메뉴 및 푸터 표시 제어용)
         window.IS_MAIN_PAGE = <?php echo (isset($is_main_page) && $is_main_page) ? 'true' : 'false'; ?>;
+        
+        // 로그인 상태 (찜 기능 등에서 사용)
+        <?php 
+        // $isLoggedIn이 아직 설정되지 않았으면 설정
+        if (!isset($isLoggedIn)) {
+            $isLoggedIn = isLoggedIn();
+        }
+        ?>
+        window.isLoggedIn = <?php echo ($isLoggedIn) ? 'true' : 'false'; ?>;
     </script>
     <script src="<?php echo getAssetPath('/assets/js/modal.js'); ?>" defer></script>
     <script src="<?php echo getAssetPath('/assets/js/header-scroll.js'); ?>" defer></script>
@@ -218,6 +340,13 @@ else if (!isset($is_main_page)) {
     <script src="<?php echo getAssetPath('/assets/js/tagline-effects.js'); ?>" defer></script>
 </head>
 <body>
+    <?php
+    // Body 시작 부분 추가 코드
+    $verificationCodes = getSearchEngineVerification();
+    if (!empty($verificationCodes['body_codes'])) {
+        echo $verificationCodes['body_codes'] . "\n    ";
+    }
+    ?>
     <header class="header sticky-nav" id="mainHeader">
         <div class="nav-wrapper">
             <!-- 모바일 로고 -->

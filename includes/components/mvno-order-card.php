@@ -81,9 +81,6 @@ $isSellerWithdrawn = ($sellerSnapshot && !$seller);
 
 // 판매자명과 전화번호 결합 (두 칸 띄고)
 $sellerPhoneDisplay = $sellerPhone;
-if ($sellerName && $sellerPhone) {
-    $sellerPhoneDisplay = $sellerName . '  ' . $sellerPhone;
-}
 
 // 리뷰 설정 파일 포함
 require_once __DIR__ . '/../../includes/data/review-settings.php';
@@ -293,7 +290,7 @@ if ($buttonCount === 2) {
                             <button class="phone-inquiry-pc" 
                                     disabled
                                     style="width: 100%; padding: 12px 16px; background: #f3f4f6; color: #374151; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: not-allowed;">
-                                전화: <?php echo htmlspecialchars($sellerPhoneDisplay); ?>
+                                전화문의
                             </button>
                             <a href="tel:<?php echo htmlspecialchars($phoneNumberOnly); ?>" 
                                class="phone-inquiry-mobile"
@@ -301,7 +298,7 @@ if ($buttonCount === 2) {
                                style="display: none; width: 100%; align-items: center; justify-content: center; padding: 12px 16px; background: #10b981; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; text-decoration: none; cursor: pointer; transition: background 0.2s;"
                                onmouseover="this.style.background='#059669'"
                                onmouseout="this.style.background='#10b981'">
-                                전화: <?php echo htmlspecialchars($sellerPhoneDisplay); ?>
+                                전화문의
                             </a>
                         </div>
                     <?php endif; ?>

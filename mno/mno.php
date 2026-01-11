@@ -775,66 +775,6 @@ include '../includes/footer.php';
 </style>
 
 <script>
-// 필터 스크롤 고정 기능
-(function() {
-    const filterSection = document.querySelector('.plans-filter-section');
-    const resultsCount = document.querySelector('.plans-results-count');
-    const themeSection = document.querySelector('.theme-plans-list-section');
-    
-    if (!filterSection) return;
-    
-    let isFilterSticky = false;
-    let isFilterFixed = false;
-    let filterOriginalTop = 0;
-    
-    function handleScroll() {
-        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-        const filterRect = filterSection.getBoundingClientRect();
-        const filterTop = filterRect.top;
-        
-        if (filterOriginalTop === 0 && scrollTop === 0) {
-            filterOriginalTop = filterRect.top + scrollTop;
-        }
-        
-        if (scrollTop > 10 && !isFilterSticky) {
-            filterSection.classList.add('filter-sticky');
-            if (resultsCount) resultsCount.classList.add('filter-active');
-            if (themeSection) themeSection.classList.add('filter-active');
-            isFilterSticky = true;
-        }
-        
-        if (filterTop < 0 && isFilterSticky && !isFilterFixed) {
-            filterSection.classList.remove('filter-sticky');
-            filterSection.classList.add('filter-fixed');
-            isFilterFixed = true;
-        } else if (scrollTop < filterOriginalTop - 50 && isFilterFixed) {
-            filterSection.classList.remove('filter-fixed');
-            filterSection.classList.add('filter-sticky');
-            isFilterFixed = false;
-        } else if (scrollTop <= 10 && isFilterSticky) {
-            filterSection.classList.remove('filter-sticky', 'filter-fixed');
-            if (resultsCount) resultsCount.classList.remove('filter-active');
-            if (themeSection) themeSection.classList.remove('filter-active');
-            isFilterSticky = false;
-            isFilterFixed = false;
-        }
-    }
-    
-    let ticking = false;
-    function onScroll() {
-        if (!ticking) {
-            window.requestAnimationFrame(() => {
-                handleScroll();
-                ticking = false;
-            });
-            ticking = true;
-        }
-    }
-    
-    window.addEventListener('scroll', onScroll, { passive: true });
-    handleScroll();
-})();
-
 // 필터 함수들 (조합 필터링 지원)
 function clearFilters() {
     window.location.href = window.location.pathname;

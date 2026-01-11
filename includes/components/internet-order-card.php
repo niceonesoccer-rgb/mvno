@@ -34,16 +34,19 @@ $orderNumber = htmlspecialchars($internet['order_number'] ?? '');
 $appStatus = $internet['application_status'] ?? '';
 $statusDisplay = htmlspecialchars($internet['status'] ?? '');
 
+// 경로 설정 파일 포함 (getAssetPath 함수 사용)
+require_once __DIR__ . '/../data/path-config.php';
+
 // 통신사 로고 경로 설정
 $logoUrl = '';
 if (stripos($provider, 'KT skylife') !== false || stripos($provider, 'KTskylife') !== false) {
-    $logoUrl = '/MVNO/assets/images/internets/ktskylife.svg';
+    $logoUrl = getAssetPath('/assets/images/internets/ktskylife.svg');
 } elseif (stripos($provider, 'SKT') !== false || stripos($provider, 'SK broadband') !== false || stripos($provider, 'SK') !== false) {
-    $logoUrl = '/MVNO/assets/images/internets/broadband.svg';
+    $logoUrl = getAssetPath('/assets/images/internets/broadband.svg');
 } elseif (stripos($provider, 'KT') !== false) {
-    $logoUrl = '/MVNO/assets/images/internets/kt.svg';
+    $logoUrl = getAssetPath('/assets/images/internets/kt.svg');
 } elseif (stripos($provider, 'LG') !== false || stripos($provider, 'LGU') !== false) {
-    $logoUrl = '/MVNO/assets/images/internets/lgu.svg';
+    $logoUrl = getAssetPath('/assets/images/internets/lgu.svg');
 }
 
 $displayProvider = $provider;
@@ -127,9 +130,6 @@ try {
 }
 
 $sellerPhoneDisplay = $sellerPhone;
-if ($sellerName && $sellerPhone) {
-    $sellerPhoneDisplay = $sellerName . '  ' . $sellerPhone;
-}
 
 // 리뷰 설정 파일 포함
 require_once __DIR__ . '/../../includes/data/review-settings.php';
@@ -238,7 +238,7 @@ if ($canWrite) {
                         <button class="phone-inquiry-pc" 
                                 disabled
                                 style="width: 100%; padding: 12px 16px; background: #f3f4f6; color: #374151; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: not-allowed;">
-                            전화: <?php echo htmlspecialchars($sellerPhoneDisplay); ?>
+                            전화문의
                         </button>
                         <!-- 모바일 버전: 전화번호 버튼 (클릭 시 전화 연결) -->
                         <a href="tel:<?php echo htmlspecialchars($phoneNumberOnly); ?>" 
@@ -247,7 +247,7 @@ if ($canWrite) {
                            style="display: none; width: 100%; align-items: center; justify-content: center; padding: 12px 16px; background: #10b981; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; text-decoration: none; cursor: pointer; transition: background 0.2s;"
                            onmouseover="this.style.background='#059669'"
                            onmouseout="this.style.background='#10b981'">
-                            전화: <?php echo htmlspecialchars($sellerPhoneDisplay); ?>
+                            전화문의
                         </a>
                     </div>
                 <?php endif; ?>

@@ -1941,66 +1941,6 @@ span.internet-checkbox-text {
 </style>
 
 <script>
-// 필터가 화면에서 사라질 때 상단에 고정 (plans.php와 동일)
-(function() {
-    const filterSection = document.querySelector('.plans-filter-section');
-    
-    if (!filterSection) return;
-    
-    let lastScrollTop = 0;
-    let isFilterSticky = false;
-    let isFilterFixed = false;
-    let filterOriginalTop = 0;
-    
-    function handleScroll() {
-        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-        const filterRect = filterSection.getBoundingClientRect();
-        const filterTop = filterRect.top;
-        
-        // 필터의 원래 위치 저장 (처음 로드 시)
-        if (filterOriginalTop === 0 && scrollTop === 0) {
-            filterOriginalTop = filterRect.top + scrollTop;
-        }
-        
-        // 스크롤이 시작되면 sticky 모드로 전환
-        if (scrollTop > 10 && !isFilterSticky) {
-            filterSection.classList.add('filter-sticky');
-            isFilterSticky = true;
-        }
-        
-        // 필터가 화면 상단 밖으로 나갔는지 확인 (위로 스크롤해서 사라짐)
-        if (filterTop < 0 && isFilterSticky && !isFilterFixed) {
-            // 필터가 사라졌으므로 상단에 고정
-            filterSection.classList.remove('filter-sticky');
-            filterSection.classList.add('filter-fixed');
-            isFilterFixed = true;
-        } 
-        // 스크롤이 다시 위로 올라가서 필터의 원래 위치 근처에 도달했는지 확인
-        else if (scrollTop < filterOriginalTop - 50 && isFilterFixed) {
-            // 필터를 sticky 모드로 복원
-            filterSection.classList.remove('filter-fixed');
-            filterSection.classList.add('filter-sticky');
-            isFilterFixed = false;
-        }
-        // 스크롤이 맨 위로 돌아갔을 때
-        else if (scrollTop <= 10 && isFilterSticky) {
-            // 필터를 원래 위치로 복원
-            filterSection.classList.remove('filter-sticky');
-            filterSection.classList.remove('filter-fixed');
-            isFilterSticky = false;
-            isFilterFixed = false;
-        }
-        
-        lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
-    }
-    
-    // 스크롤 이벤트 리스너
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    
-    // 초기 실행
-    handleScroll();
-})();
-
 // 필터 버튼 클릭 이벤트 핸들러 (plans.php와 동일)
 (function() {
     const filterButtons = document.querySelectorAll('.plans-filter-btn');

@@ -13,22 +13,25 @@ $internet_id = $internet['id'] ?? 0;
 $has_review = $internet['has_review'] ?? false; // 리뷰 작성 여부
 $is_installed = !empty($internet['installation_date'] ?? ''); // 설치 여부
 
+// 경로 설정 파일 포함 (getAssetPath 함수 사용)
+require_once __DIR__ . '/../data/path-config.php';
+
 // 로고 경로 결정
 $logoUrl = '';
 // 정확한 매칭: 더 구체적인 값 우선 확인
 // 순서 중요: "SKT"를 "KT"보다 먼저 확인해야 함 (SKT에 KT가 포함되어 있음)
 if (stripos($provider, 'KT skylife') !== false || stripos($provider, 'KTskylife') !== false) {
     // "KT skylife" -> ktskylife.svg
-    $logoUrl = '/MVNO/assets/images/internets/ktskylife.svg';
+    $logoUrl = getAssetPath('/assets/images/internets/ktskylife.svg');
 } elseif (stripos($provider, 'SKT') !== false || stripos($provider, 'SK broadband') !== false || stripos($provider, 'SK') !== false) {
     // "SKT", "SK broadband", "SK" -> broadband.svg (SKT broadband)
     // "SKT"를 "KT"보다 먼저 확인 (SKT에 KT가 포함되어 있으므로)
-    $logoUrl = '/MVNO/assets/images/internets/broadband.svg';
+    $logoUrl = getAssetPath('/assets/images/internets/broadband.svg');
 } elseif (stripos($provider, 'KT') !== false) {
     // "KT" (skylife, SKT 제외) -> kt.svg
-    $logoUrl = '/MVNO/assets/images/internets/kt.svg';
+    $logoUrl = getAssetPath('/assets/images/internets/kt.svg');
 } elseif (stripos($provider, 'LG') !== false || stripos($provider, 'LGU') !== false) {
-    $logoUrl = '/MVNO/assets/images/internets/lgu.svg';
+    $logoUrl = getAssetPath('/assets/images/internets/lgu.svg');
 }
 
 // provider 텍스트 변환: "SKT" -> "SKT broadband"

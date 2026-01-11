@@ -160,11 +160,11 @@ $show_only_one_section = ($show_common_section && !$show_contract_section) || (!
 <!-- 제목: 기기명 | 용량 | 출고가 -->
 <div class="phone-title-row">
     <span class="phone-title-text">
-        <?php echo htmlspecialchars($device_name); ?> 
+        <span class="phone-title-device-name"><?php echo htmlspecialchars($device_name); ?></span> 
         <span class="phone-title-separator">|</span> 
         <?php echo htmlspecialchars($device_storage); ?> 
         <span class="phone-title-separator">|</span> 
-        출고가 <?php echo htmlspecialchars($release_price); ?>원
+        <span class="phone-title-release-price">출고가 <?php echo htmlspecialchars($release_price); ?>원</span>
     </span>
 </div>
 

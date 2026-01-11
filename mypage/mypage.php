@@ -100,7 +100,7 @@ include '../includes/header.php';
 ?>
 
 <main class="main-content">
-    <div style="width: 460px; margin: 0 auto; padding: 20px;" class="mypage-container">
+    <div style="width: 100%; max-width: 460px; margin: 0 auto; padding: 20px; box-sizing: border-box;" class="mypage-container">
         <!-- 사용자 인사말 헤더 -->
         <div style="margin-bottom: 24px; padding: 20px 0;">
             <h2 style="font-size: 24px; font-weight: bold; margin: 0;"><?php echo htmlspecialchars($user_name); ?>님 안녕하세요</h2>

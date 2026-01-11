@@ -20,6 +20,27 @@
             return;
         }
 
+        // 로그인 체크
+        const isLoggedIn = (typeof window !== 'undefined' && window.isLoggedIn === true);
+        if (!isLoggedIn) {
+            // 로그인하지 않은 경우 로그인 모달 열기
+            if (typeof openLoginModal === 'function') {
+                openLoginModal(false);
+            } else {
+                // 모달이 아직 로드되지 않은 경우
+                setTimeout(() => {
+                    if (typeof openLoginModal === 'function') {
+                        openLoginModal(false);
+                    } else {
+                        // 로그인 페이지로 이동
+                        const loginPath = (window.BASE_PATH || '') + '/auth/login.php';
+                        window.location.href = loginPath;
+                    }
+                }, 100);
+            }
+            return; // UI 상태 변경하지 않음
+        }
+
         // UI 상태 토글
         if (isFavorited) {
             // 찜 해제
@@ -83,6 +104,40 @@
             })
         })
         .then(response => {
+            // 401 에러 (로그인 필요) 체크
+            if (response.status === 401) {
+                // UI 되돌리기
+                const button = document.querySelector(`[data-item-id="${itemId}"][data-item-type="${itemType}"]`);
+                if (button) {
+                    if (action === 'add') {
+                        button.classList.remove('favorited');
+                        updateFavoriteIcon(button, false);
+                        button.setAttribute('aria-label', '찜하기');
+                    } else {
+                        button.classList.add('favorited');
+                        updateFavoriteIcon(button, true);
+                        button.setAttribute('aria-label', '찜 해제');
+                    }
+                }
+                
+                // 로그인 모달 열기
+                if (typeof openLoginModal === 'function') {
+                    openLoginModal(false);
+                } else {
+                    setTimeout(() => {
+                        if (typeof openLoginModal === 'function') {
+                            openLoginModal(false);
+                        } else {
+                            const loginPath = (window.BASE_PATH || '') + '/auth/login.php';
+                            window.location.href = loginPath;
+                        }
+                    }, 100);
+                }
+                
+                // 에러로 처리하여 catch 블록으로 이동하지 않음
+                return Promise.reject(new Error('로그인이 필요합니다.'));
+            }
+            
             // 응답 상태 확인
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
@@ -90,7 +145,7 @@
             return response.json();
         })
         .then(data => {
-            if (data.success) {
+            if (data && data.success) {
                 console.log('찜 처리 성공:', data);
                 // 필요시 favorite_count 업데이트
                 if (data.favorite_count !== undefined) {
@@ -236,6 +291,9 @@
             link.addEventListener('click', preventParentLinkClick, true);
             link.addEventListener('mousedown', preventParentLinkClick, true);
             link.addEventListener('mouseup', preventParentLinkClick, true);
+            // 모바일 터치 이벤트 처리
+            link.addEventListener('touchstart', preventParentLinkClick, true);
+            link.addEventListener('touchend', preventParentLinkClick, true);
         });
         
         // 6. 각 찜 버튼에 직접 이벤트 바인딩
@@ -247,18 +305,27 @@
             
             // 찜 버튼 클릭 핸들러
             function handleFavoriteClick(e) {
+                // 이벤트 타입 체크 (touchend 또는 click만 처리하여 중복 방지)
+                // touchstart는 제외하고 touchend만 처리 (모바일 터치 지원)
+                if (e.type === 'touchstart') {
+                    // touchstart에서는 이벤트 전파만 차단 (touchend에서 처리)
+                    e.stopPropagation();
+                    return false;
+                }
+                
                 // 모든 이벤트 전파 차단
                 e.preventDefault();
                 e.stopPropagation();
                 e.stopImmediatePropagation();
                 
-                // 찜 토글 실행
+                // 찜 토글 실행 (touchend 또는 click에서만)
                 toggleFavorite(favoriteButton);
                 
                 return false;
             }
             
             // 모든 이벤트 타입에 대해 핸들러 등록 (capture phase)
+            // touchstart는 이벤트 전파만 차단, touchend에서 실제 처리
             ['click', 'mousedown', 'mouseup', 'pointerdown', 'pointerup', 'touchstart', 'touchend'].forEach(function(eventType) {
                 favoriteButton.addEventListener(eventType, handleFavoriteClick, true);
             });
@@ -282,8 +349,8 @@
                 e.stopPropagation();
                 e.stopImmediatePropagation();
                 
-                // click 이벤트일 때만 찜 토글
-                if (e.type === 'click') {
+                // click 또는 touchend 이벤트일 때 찜 토글 (모바일 터치 지원)
+                if (e.type === 'click' || e.type === 'touchend') {
                     toggleFavorite(favoriteButton);
                 }
                 
@@ -291,8 +358,8 @@
             }
         };
         
-        // 모든 마우스/포인터 이벤트에 대해 처리 (동적 버튼용, capture phase)
-        ['mousedown', 'mouseup', 'pointerdown', 'pointerup', 'click'].forEach(function(eventType) {
+        // 모든 마우스/포인터/터치 이벤트에 대해 처리 (동적 버튼용, capture phase)
+        ['mousedown', 'mouseup', 'pointerdown', 'pointerup', 'touchstart', 'touchend', 'click'].forEach(function(eventType) {
             document.addEventListener(eventType, handleFavoriteButtonEvent, true);
         });
     }
