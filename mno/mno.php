@@ -20,6 +20,9 @@ require_once '../includes/data/phone-data.php';
 require_once '../includes/data/filter-data.php';
 require_once __DIR__ . '/mno-advertisement-helper.php';
 
+// 디버그 모드 확인
+$debugMode = isset($_GET['debug']) && $_GET['debug'] === '1';
+
 // 필터 파라미터 (스폰서 상품 필터링 전에 먼저 설정)
 // 기기 타입: 전체/갤럭시/아이폰 중 하나만 선택 가능
 $filterDeviceType = $_GET['device_type'] ?? ''; // 갤럭시, 아이폰 (단일 값)
@@ -117,7 +120,9 @@ if (!empty($filterDeviceType) || !empty($filterStorage) || $filterFree) {
             return isset($filteredIdsSet[$id]);
         }));
         
-        error_log("[MNO 페이지] 필터 적용 후 스폰서 상품 ID 개수: " . count($advertisementProductIds) . ", ID 목록: " . implode(', ', $advertisementProductIds));
+        if ($debugMode) {
+            error_log("[MNO 페이지] 필터 적용 후 스폰서 상품 ID 개수: " . count($advertisementProductIds) . ", ID 목록: " . implode(', ', $advertisementProductIds));
+        }
     }
 }
 
@@ -185,35 +190,37 @@ if ($pdo) {
     $countStmt->execute();
     $totalCount = (int)$countStmt->fetch(PDO::FETCH_ASSOC)['total'];
     
-    // 디버깅: DB에서 가져온 전체 개수
-    error_log("[MNO 페이지] ========== 디버깅 시작 ==========");
-    error_log("[MNO 페이지] DB 쿼리 결과 - 전체 개수: {$totalCount}");
-    error_log("[MNO 페이지] WHERE 조건: {$whereClause}");
-    error_log("[MNO 페이지] 광고 상품 ID 개수: " . count($advertisementProductIds));
-    if (!empty($advertisementProductIds)) {
-        error_log("[MNO 페이지] 광고 상품 ID 목록: " . implode(', ', $advertisementProductIds));
-    }
-    
-    // 추가 디버깅: products 테이블의 전체 active 상품 개수 확인
-    $debugStmt = $pdo->query("SELECT COUNT(*) as cnt FROM products WHERE product_type = 'mno' AND status = 'active'");
-    $debugResult = $debugStmt->fetch();
-    $allActiveCount = $debugResult['cnt'] ?? 0;
-    error_log("[MNO 페이지] products 테이블의 전체 active 상품 개수: {$allActiveCount}");
-    
-    // product_mno_details가 없는 상품 확인
-    $missingStmt = $pdo->query("
-        SELECT p.id 
-        FROM products p
-        LEFT JOIN product_mno_details mno ON p.id = mno.product_id
-        WHERE p.product_type = 'mno' 
-        AND p.status = 'active'
-        AND mno.product_id IS NULL
-    ");
-    $missingProducts = $missingStmt->fetchAll(PDO::FETCH_COLUMN);
-    if (!empty($missingProducts)) {
-        error_log("[MNO 페이지] ⚠ product_mno_details가 없는 상품 ID: " . implode(', ', $missingProducts));
-    } else {
-        error_log("[MNO 페이지] ✓ 모든 active 상품에 product_mno_details가 있습니다.");
+    // 디버깅: DB에서 가져온 전체 개수 (디버그 모드에서만)
+    if ($debugMode) {
+        error_log("[MNO 페이지] ========== 디버깅 시작 ==========");
+        error_log("[MNO 페이지] DB 쿼리 결과 - 전체 개수: {$totalCount}");
+        error_log("[MNO 페이지] WHERE 조건: {$whereClause}");
+        error_log("[MNO 페이지] 광고 상품 ID 개수: " . count($advertisementProductIds));
+        if (!empty($advertisementProductIds)) {
+            error_log("[MNO 페이지] 광고 상품 ID 목록: " . implode(', ', $advertisementProductIds));
+        }
+        
+        // 추가 디버깅: products 테이블의 전체 active 상품 개수 확인
+        $debugStmt = $pdo->query("SELECT COUNT(*) as cnt FROM products WHERE product_type = 'mno' AND status = 'active'");
+        $debugResult = $debugStmt->fetch();
+        $allActiveCount = $debugResult['cnt'] ?? 0;
+        error_log("[MNO 페이지] products 테이블의 전체 active 상품 개수: {$allActiveCount}");
+        
+        // product_mno_details가 없는 상품 확인
+        $missingStmt = $pdo->query("
+            SELECT p.id 
+            FROM products p
+            LEFT JOIN product_mno_details mno ON p.id = mno.product_id
+            WHERE p.product_type = 'mno' 
+            AND p.status = 'active'
+            AND mno.product_id IS NULL
+        ");
+        $missingProducts = $missingStmt->fetchAll(PDO::FETCH_COLUMN);
+        if (!empty($missingProducts)) {
+            error_log("[MNO 페이지] ⚠ product_mno_details가 없는 상품 ID: " . implode(', ', $missingProducts));
+        } else {
+            error_log("[MNO 페이지] ✓ 모든 active 상품에 product_mno_details가 있습니다.");
+        }
     }
     
     // 상품 목록 조회 (원본 DB 데이터) - 전체 가져오기 (페이지네이션은 PHP에서 처리)
@@ -254,11 +261,13 @@ if ($pdo) {
     $stmt->execute();
     $allProducts = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
-    // 디버깅: 가져온 상품 개수
-    error_log("[MNO 페이지] DB에서 가져온 상품 개수: " . count($allProducts));
-    if (count($allProducts) > 0) {
-        $productIds = array_column($allProducts, 'id');
-        error_log("[MNO 페이지] 상품 ID 범위: " . min($productIds) . " ~ " . max($productIds));
+    // 디버깅: 가져온 상품 개수 (디버그 모드에서만)
+    if ($debugMode) {
+        error_log("[MNO 페이지] DB에서 가져온 상품 개수: " . count($allProducts));
+        if (count($allProducts) > 0) {
+            $productIds = array_column($allProducts, 'id');
+            error_log("[MNO 페이지] 상품 ID 범위: " . min($productIds) . " ~ " . max($productIds));
+        }
     }
     
     // 원본 데이터를 phone 형식으로 변환 (getPhonesData와 동일한 로직)
@@ -597,14 +606,16 @@ $allPhones = array_merge($advertisementPhones, $regularPhones);
 // 하지만 DB에서 가져온 전체 개수에서 광고 상품을 제외한 개수를 사용
 $totalCount = count($regularPhones); // 일반 상품 개수만 카운트 (광고는 별도)
 
-// 디버깅: 최종 개수 확인
-error_log("[MNO 페이지] 변환 후 전체 상품 개수: " . count($allPhones));
-error_log("[MNO 페이지] 광고 상품 개수: " . count($advertisementPhones));
-error_log("[MNO 페이지] 일반 상품 개수: " . count($regularPhones));
-error_log("[MNO 페이지] 최종 표시 개수 (totalCount): {$totalCount}");
-if (count($advertisementPhones) > 0) {
-    $adProductIds = array_column($advertisementPhones, 'id');
-    error_log("[MNO 페이지] 광고 상품 ID 목록: " . implode(', ', $adProductIds));
+// 디버깅: 최종 개수 확인 (디버그 모드에서만)
+if ($debugMode) {
+    error_log("[MNO 페이지] 변환 후 전체 상품 개수: " . count($allPhones));
+    error_log("[MNO 페이지] 광고 상품 개수: " . count($advertisementPhones));
+    error_log("[MNO 페이지] 일반 상품 개수: " . count($regularPhones));
+    error_log("[MNO 페이지] 최종 표시 개수 (totalCount): {$totalCount}");
+    if (count($advertisementPhones) > 0) {
+        $adProductIds = array_column($advertisementPhones, 'id');
+        error_log("[MNO 페이지] 광고 상품 ID 목록: " . implode(', ', $adProductIds));
+    }
 }
 
 // 페이지네이션 적용

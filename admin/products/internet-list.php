@@ -1654,15 +1654,21 @@ function processBulkChangeStatus(productIds, status) {
         status: normalizedStatus
     });
     
+    // FormData로 변경 (서버 호환성을 위해)
+    const formData = new FormData();
+    // 배열을 쉼표로 구분된 문자열로 변환 (서버 호환성)
+    formData.append('product_ids', validProductIds.join(','));
+    formData.append('status', normalizedStatus);
+    
+    console.log('FormData contents:', {
+        product_ids: validProductIds.join(','),
+        status: normalizedStatus
+    });
+    
     fetch(API_BULK_UPDATE_PRODUCT_URL, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            product_ids: validProductIds,
-            status: normalizedStatus
-        })
+        credentials: 'same-origin',
+        body: formData
     })
     .then(response => {
         if (!response.ok) {

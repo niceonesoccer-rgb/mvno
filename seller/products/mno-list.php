@@ -529,6 +529,12 @@ $pageStyles = '
         color: white;
         border-color: #10b981;
         font-weight: 600;
+        box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+    }
+    
+    .pagination-btn.active:hover {
+        background: #059669;
+        border-color: #059669;
     }
     
     .pagination-btn.disabled {
@@ -848,20 +854,40 @@ include __DIR__ . '/../includes/seller-header.php';
 <script>
 // API 경로 설정 (절대 URL)
 <?php
-$apiBulkUpdatePath = getAssetPath('/api/product-bulk-update.php');
-$apiCopyPath = getAssetPath('/api/product-copy.php');
-// 프로덕션에서 절대 URL 필요시
-if (strpos($apiBulkUpdatePath, 'http') !== 0 && isset($_SERVER['HTTP_HOST'])) {
-    $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-    $apiBulkUpdatePath = $protocol . '://' . $_SERVER['HTTP_HOST'] . $apiBulkUpdatePath;
-}
-if (strpos($apiCopyPath, 'http') !== 0 && isset($_SERVER['HTTP_HOST'])) {
-    $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-    $apiCopyPath = $protocol . '://' . $_SERVER['HTTP_HOST'] . $apiCopyPath;
+// API 경로를 안정적으로 생성
+$apiBulkUpdatePath = getApiPath('/api/product-bulk-update.php');
+$apiCopyPath = getApiPath('/api/product-copy.php');
+
+// 서버 환경에 따라 절대 URL 생성
+if (isset($_SERVER['HTTP_HOST'])) {
+    $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || 
+                 (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https')) 
+                 ? 'https' : 'http';
+    
+    // 상대 경로인 경우 절대 URL로 변환
+    if (strpos($apiBulkUpdatePath, 'http') !== 0) {
+        // 경로가 /로 시작하지 않으면 추가
+        if (strpos($apiBulkUpdatePath, '/') !== 0) {
+            $apiBulkUpdatePath = '/' . $apiBulkUpdatePath;
+        }
+        $apiBulkUpdatePath = $protocol . '://' . $_SERVER['HTTP_HOST'] . $apiBulkUpdatePath;
+    }
+    
+    if (strpos($apiCopyPath, 'http') !== 0) {
+        // 경로가 /로 시작하지 않으면 추가
+        if (strpos($apiCopyPath, '/') !== 0) {
+            $apiCopyPath = '/' . $apiCopyPath;
+        }
+        $apiCopyPath = $protocol . '://' . $_SERVER['HTTP_HOST'] . $apiCopyPath;
+    }
 }
 ?>
 const API_BULK_UPDATE_URL = '<?php echo htmlspecialchars($apiBulkUpdatePath, ENT_QUOTES, 'UTF-8'); ?>';
 const API_COPY_URL = '<?php echo htmlspecialchars($apiCopyPath, ENT_QUOTES, 'UTF-8'); ?>';
+
+// 디버깅용 (개발 환경에서만)
+console.log('API_BULK_UPDATE_URL:', API_BULK_UPDATE_URL);
+console.log('API_COPY_URL:', API_COPY_URL);
 
 function applyFilters() {
     const status = document.getElementById('filter_status').value;
@@ -914,25 +940,33 @@ function copyProduct(productId) {
 }
 
 function processCopyProduct(productId) {
+    console.log('API_COPY_URL:', API_COPY_URL);
+    console.log('Request data:', { product_id: productId, product_type: 'mno' });
+    
+    // FormData로 전송 (서버 호환성을 위해)
+    const formData = new FormData();
+    formData.append('product_id', productId);
+    formData.append('product_type', 'mno');
+    
     fetch(API_COPY_URL, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            product_id: productId,
-            product_type: 'mno'
-        })
+        credentials: 'same-origin', // 쿠키/세션 포함
+        body: formData
     })
     .then(response => {
+        console.log('Response status:', response.status);
+        
         if (!response.ok) {
             return response.text().then(text => {
-                throw new Error(`HTTP ${response.status}: ${text}`);
+                console.error('Error response:', text);
+                throw new Error(`HTTP ${response.status}: ${text.substring(0, 200)}`);
             });
         }
         return response.json();
     })
     .then(data => {
+        console.log('Response data:', data);
+        
         if (data.success) {
             if (typeof showAlert === 'function') {
                 showAlert('상품이 복사되었습니다.\n복사된 상품은 판매종료 상태로 설정되었습니다.', '완료');
@@ -949,10 +983,18 @@ function processCopyProduct(productId) {
         }
     })
     .catch(error => {
+        console.error('Error:', error);
+        console.error('Error stack:', error.stack);
+        
+        let errorMessage = '상품 복사 중 오류가 발생했습니다.';
+        if (error.message) {
+            errorMessage += '\n' + error.message;
+        }
+        
         if (typeof showAlert === 'function') {
-            showAlert('상품 복사 중 오류가 발생했습니다.', '오류', true);
+            showAlert(errorMessage, '오류', true);
         } else {
-            alert('상품 복사 중 오류가 발생했습니다.');
+            alert(errorMessage);
         }
     });
 }
@@ -1551,25 +1593,42 @@ document.addEventListener('DOMContentLoaded', function() {
 function processBulkChangeStatus(productIds, status) {
     const statusText = status === 'active' ? '판매중' : '판매종료';
     
+    console.log('API_BULK_UPDATE_URL:', API_BULK_UPDATE_URL);
+    console.log('Request data:', { product_ids: productIds, status: status });
+    
+    // 로딩 표시 (선택사항)
+    const bulkActionBtn = document.getElementById('bulkActionBtn');
+    const originalText = bulkActionBtn ? bulkActionBtn.textContent : '';
+    if (bulkActionBtn) {
+        bulkActionBtn.disabled = true;
+        bulkActionBtn.textContent = '처리 중...';
+    }
+    
+    // FormData로 전송 (서버 호환성을 위해)
+    const formData = new FormData();
+    formData.append('product_ids', JSON.stringify(productIds));
+    formData.append('status', status);
+    
     fetch(API_BULK_UPDATE_URL, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            product_ids: productIds,
-            status: status
-        })
+        credentials: 'same-origin', // 쿠키/세션 포함
+        body: formData
     })
     .then(response => {
+        console.log('Response status:', response.status);
+        console.log('Response headers:', response.headers);
+        
         if (!response.ok) {
             return response.text().then(text => {
-                throw new Error(`HTTP ${response.status}: ${text}`);
+                console.error('Error response:', text);
+                throw new Error(`HTTP ${response.status}: ${text.substring(0, 200)}`);
             });
         }
         return response.json();
     })
     .then(data => {
+        console.log('Response data:', data);
+        
         if (data.success) {
             if (typeof showAlert === 'function') {
                 showAlert('선택한 상품이 ' + statusText + ' 처리되었습니다.', '완료');
@@ -1587,10 +1646,23 @@ function processBulkChangeStatus(productIds, status) {
     })
     .catch(error => {
         console.error('Error:', error);
+        console.error('Error stack:', error.stack);
+        
+        let errorMessage = '상품 상태 변경 중 오류가 발생했습니다.';
+        if (error.message) {
+            errorMessage += '\n' + error.message;
+        }
+        
         if (typeof showAlert === 'function') {
-            showAlert('상품 상태 변경 중 오류가 발생했습니다.', '오류', true);
+            showAlert(errorMessage, '오류', true);
         } else {
-            alert('상품 상태 변경 중 오류가 발생했습니다.');
+            alert(errorMessage);
+        }
+    })
+    .finally(() => {
+        if (bulkActionBtn) {
+            bulkActionBtn.disabled = false;
+            bulkActionBtn.textContent = originalText;
         }
     });
 }
@@ -1625,27 +1697,34 @@ function processBulkCopy(productIds) {
     let completedCount = 0;
     let failedCount = 0;
     
+    console.log('Bulk copy started:', { totalCount, API_COPY_URL });
+    
     // 각 상품을 순차적으로 복사
     productIds.forEach((productId, index) => {
+        // FormData로 전송 (서버 호환성을 위해)
+        const formData = new FormData();
+        formData.append('product_id', productId);
+        formData.append('product_type', 'mno');
+        
         fetch(API_COPY_URL, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                product_id: productId,
-                product_type: 'mno'
-            })
+            credentials: 'same-origin', // 쿠키/세션 포함
+            body: formData
         })
         .then(response => {
+            console.log(`Copy response for product ${productId}:`, response.status);
+            
             if (!response.ok) {
                 return response.text().then(text => {
-                    throw new Error(`HTTP ${response.status}: ${text}`);
+                    console.error(`Error copying product ${productId}:`, text);
+                    throw new Error(`HTTP ${response.status}: ${text.substring(0, 200)}`);
                 });
             }
             return response.json();
         })
         .then(data => {
+            console.log(`Copy result for product ${productId}:`, data);
+            
             if (data.success) {
                 completedCount++;
             } else {
@@ -1672,7 +1751,7 @@ function processBulkCopy(productIds) {
             }
         })
         .catch(error => {
-            console.error('Error copying product:', error);
+            console.error('Error copying product:', productId, error);
             failedCount++;
             
             if (completedCount + failedCount === totalCount) {

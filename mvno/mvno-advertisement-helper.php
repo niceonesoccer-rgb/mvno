@@ -87,11 +87,14 @@ function getMvnoAdvertisementProducts() {
         $adStmt->execute();
         $advertisementProductsRaw = $adStmt->fetchAll(PDO::FETCH_ASSOC);
         
-        // 디버깅: 조회된 광고 상품 개수 확인
-        error_log("[MVNO 광고] 조회된 raw 광고 상품 개수: " . count($advertisementProductsRaw));
-        if (count($advertisementProductsRaw) > 0) {
-            error_log("[MVNO 광고] 첫 번째 광고 상품 id: " . ($advertisementProductsRaw[0]['id'] ?? '없음'));
-            error_log("[MVNO 광고] 첫 번째 광고 상품 키: " . implode(', ', array_keys($advertisementProductsRaw[0])));
+        // 디버깅: 조회된 광고 상품 개수 확인 (디버그 모드에서만)
+        $debugMode = isset($_GET['debug']) && $_GET['debug'] === '1';
+        if ($debugMode) {
+            error_log("[MVNO 광고] 조회된 raw 광고 상품 개수: " . count($advertisementProductsRaw));
+            if (count($advertisementProductsRaw) > 0) {
+                error_log("[MVNO 광고] 첫 번째 광고 상품 id: " . ($advertisementProductsRaw[0]['id'] ?? '없음'));
+                error_log("[MVNO 광고] 첫 번째 광고 상품 키: " . implode(', ', array_keys($advertisementProductsRaw[0])));
+            }
         }
         
         // 서버 사이드 로테이션
@@ -174,7 +177,11 @@ function getMvnoAdvertisementProducts() {
         error_log("[MVNO 광고] Error trace: " . $e->getTraceAsString());
     }
     
-    error_log("[MVNO 광고] 함수 반환 전 - 광고 상품 개수: " . count($advertisementProducts) . ", ID 목록: " . implode(', ', $advertisementProductIds));
+    // 디버그 모드에서만 로그 출력
+    $debugMode = isset($_GET['debug']) && $_GET['debug'] === '1';
+    if ($debugMode) {
+        error_log("[MVNO 광고] 함수 반환 전 - 광고 상품 개수: " . count($advertisementProducts) . ", ID 목록: " . implode(', ', $advertisementProductIds));
+    }
     
     return [$advertisementProducts, $rotationDuration, $advertisementProductIds];
 }

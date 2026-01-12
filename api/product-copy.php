@@ -12,6 +12,20 @@ ini_set('log_errors', 1);
 // 출력 버퍼링 시작 (에러 방지)
 ob_start();
 
+// CORS 헤더 설정 (필요한 경우)
+if (isset($_SERVER['HTTP_ORIGIN'])) {
+    header('Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN']);
+    header('Access-Control-Allow-Credentials: true');
+    header('Access-Control-Allow-Methods: POST, OPTIONS');
+    header('Access-Control-Allow-Headers: Content-Type');
+}
+
+// OPTIONS 요청 처리 (preflight)
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit;
+}
+
 header('Content-Type: application/json; charset=utf-8');
 
 // 출력 버퍼 비우기 (이전 출력 제거)
@@ -76,11 +90,21 @@ if (!empty($_POST)) {
 }
 
 if (!$data || !isset($data['product_id']) || !isset($data['product_type'])) {
+    ob_clean();
     http_response_code(400);
-    echo json_encode([
+    $errorResponse = [
         'success' => false,
-        'message' => '잘못된 요청입니다.'
-    ]);
+        'message' => '잘못된 요청입니다. 필수 파라미터가 없습니다.'
+    ];
+    // 개발 환경에서만 디버그 정보 포함
+    if (defined('DEBUG') && DEBUG) {
+        $errorResponse['debug'] = [
+            'has_data' => !empty($data),
+            'keys' => $data ? array_keys($data) : [],
+            'post_keys' => array_keys($_POST)
+        ];
+    }
+    echo json_encode($errorResponse);
     exit;
 }
 
@@ -211,6 +235,7 @@ try {
         
         $pdo->commit();
         
+        ob_clean(); // 출력 버퍼 비우기
         echo json_encode([
             'success' => true,
             'message' => '상품이 복사되었습니다.',
@@ -223,19 +248,28 @@ try {
     }
     
 } catch (PDOException $e) {
+    ob_clean(); // 출력 버퍼 비우기
     error_log("Error copying product: " . $e->getMessage());
+    error_log("Stack trace: " . $e->getTraceAsString());
     http_response_code(500);
     echo json_encode([
         'success' => false,
-        'message' => '상품 복사 중 오류가 발생했습니다.'
+        'message' => '상품 복사 중 오류가 발생했습니다.',
+        'error' => (defined('DEBUG') && DEBUG) ? $e->getMessage() : null
     ]);
 } catch (Exception $e) {
+    ob_clean(); // 출력 버퍼 비우기
     error_log("Unexpected error: " . $e->getMessage());
+    error_log("Stack trace: " . $e->getTraceAsString());
     http_response_code(500);
     echo json_encode([
         'success' => false,
-        'message' => '예기치 않은 오류가 발생했습니다.'
+        'message' => '예기치 않은 오류가 발생했습니다.',
+        'error' => (defined('DEBUG') && DEBUG) ? $e->getMessage() : null
     ]);
+} finally {
+    // 출력 버퍼 종료
+    if (ob_get_level() > 0) {
+        ob_end_flush();
+    }
 }
-
-

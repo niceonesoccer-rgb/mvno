@@ -4,7 +4,32 @@
  * POST /api/admin-product-bulk-update.php
  */
 
+// 에러 출력 방지 (JSON 응답을 위해)
+error_reporting(E_ALL);
+ini_set('display_errors', 0);
+ini_set('log_errors', 1);
+
+// 출력 버퍼링 시작 (에러 방지)
+ob_start();
+
+// CORS 헤더 설정 (필요한 경우)
+if (isset($_SERVER['HTTP_ORIGIN'])) {
+    header('Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN']);
+    header('Access-Control-Allow-Credentials: true');
+    header('Access-Control-Allow-Methods: POST, OPTIONS');
+    header('Access-Control-Allow-Headers: Content-Type');
+}
+
+// OPTIONS 요청 처리 (preflight)
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit;
+}
+
 header('Content-Type: application/json; charset=utf-8');
+
+// 출력 버퍼 비우기 (이전 출력 제거)
+ob_clean();
 
 require_once __DIR__ . '/../includes/data/auth-functions.php';
 require_once __DIR__ . '/../includes/data/db-config.php';
@@ -35,22 +60,78 @@ if (!$currentUser || !isAdmin($currentUser['user_id'])) {
     exit;
 }
 
-// JSON 데이터 읽기
+// JSON 또는 FormData 데이터 읽기 (웹서버 호환성)
+$data = null;
 $input = file_get_contents('php://input');
-$data = json_decode($input, true);
 
-// 디버깅을 위한 로그 (개발 환경에서만)
-if (isset($_ENV['DEBUG']) && $_ENV['DEBUG']) {
-    error_log("Bulk update request: " . $input);
+// FormData 요청 확인 (웹서버 호환성)
+// $_POST가 비어있지 않으면 FormData로 간주
+if (!empty($_POST)) {
+    $data = $_POST;
+} elseif (!empty($input)) {
+    // JSON 요청 처리
+    $data = json_decode($input, true);
+    if (json_last_error() !== JSON_ERROR_NONE) {
+        // JSON 파싱 실패 시, multipart/form-data로 시도
+        // Content-Type이 multipart/form-data인 경우 php://input이 비어있을 수 있음
+        parse_str($input, $parsed);
+        if (!empty($parsed)) {
+            $data = $parsed;
+        } else {
+            $data = null;
+        }
+    }
 }
 
-if (!$data) {
+// 디버깅 로그 (항상 기록)
+$contentType = $_SERVER['CONTENT_TYPE'] ?? '';
+error_log("[Admin Bulk Update] Content-Type: " . $contentType);
+error_log("[Admin Bulk Update] POST data: " . print_r($_POST, true));
+error_log("[Admin Bulk Update] Input data: " . substr($input, 0, 500));
+error_log("[Admin Bulk Update] Parsed data: " . print_r($data, true));
+
+if (!$data || (!isset($data['product_ids']) && !isset($data['product_id'])) || !isset($data['status'])) {
+    ob_clean();
     http_response_code(400);
+    $errorMsg = '잘못된 요청입니다. (데이터 파싱 실패)';
+    if (!$data) {
+        $errorMsg .= ' - 데이터가 없습니다.';
+    } elseif (!isset($data['product_ids']) && !isset($data['product_id'])) {
+        $errorMsg .= ' - product_ids 필드가 없습니다.';
+    } elseif (!isset($data['status'])) {
+        $errorMsg .= ' - status 필드가 없습니다.';
+    }
     echo json_encode([
         'success' => false,
-        'message' => '잘못된 요청입니다. (JSON 파싱 실패)'
+        'message' => $errorMsg,
+        'debug' => [
+            'has_post' => !empty($_POST),
+            'has_input' => !empty($input),
+            'content_type' => $contentType,
+            'post_keys' => !empty($_POST) ? array_keys($_POST) : [],
+            'data_keys' => $data ? array_keys($data) : []
+        ]
     ]);
     exit;
+}
+
+// product_ids 처리 (FormData에서 JSON 문자열 또는 쉼표로 구분된 문자열로 올 수 있음)
+if (isset($data['product_ids'])) {
+    // product_ids가 문자열인 경우 배열로 변환
+    if (is_string($data['product_ids'])) {
+        // 먼저 JSON으로 파싱 시도
+        $decoded = json_decode($data['product_ids'], true);
+        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+            $data['product_ids'] = $decoded;
+        } else {
+            // JSON이 아니면 쉼표로 구분된 문자열로 처리
+            $data['product_ids'] = array_filter(array_map('trim', explode(',', $data['product_ids'])));
+        }
+    }
+    // 배열이 아닌 경우 배열로 변환
+    if (!is_array($data['product_ids'])) {
+        $data['product_ids'] = [$data['product_ids']];
+    }
 }
 
 if (!isset($data['product_ids'])) {
@@ -178,12 +259,14 @@ try {
     $affectedRows = $stmt->rowCount();
     
     if ($affectedRows > 0) {
+        ob_clean();
         echo json_encode([
             'success' => true,
             'message' => $affectedRows . '개의 상품이 업데이트되었습니다.',
             'affected_count' => $affectedRows
         ]);
     } else {
+        ob_clean();
         http_response_code(404);
         echo json_encode([
             'success' => false,
@@ -193,6 +276,7 @@ try {
     
 } catch (PDOException $e) {
     error_log("Error updating products: " . $e->getMessage());
+    ob_clean();
     http_response_code(500);
     echo json_encode([
         'success' => false,
@@ -200,6 +284,7 @@ try {
     ]);
 } catch (Exception $e) {
     error_log("Unexpected error: " . $e->getMessage());
+    ob_clean();
     http_response_code(500);
     echo json_encode([
         'success' => false,

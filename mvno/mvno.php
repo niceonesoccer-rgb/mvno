@@ -14,7 +14,11 @@ $filterPriceRange = $_GET['price_range'] ?? '';
 
 // 광고 상품 조회
 list($advertisementProducts, $rotationDuration, $advertisementProductIds) = getMvnoAdvertisementProducts();
-error_log("[MVNO 페이지] getMvnoAdvertisementProducts() 반환값 - 광고 상품 개수: " . count($advertisementProducts) . ", ID 목록: " . implode(', ', $advertisementProductIds));
+// 디버그 모드에서만 로그 출력
+$debugMode = isset($_GET['debug']) && $_GET['debug'] === '1';
+if ($debugMode) {
+    error_log("[MVNO 페이지] getMvnoAdvertisementProducts() 반환값 - 광고 상품 개수: " . count($advertisementProducts) . ", ID 목록: " . implode(', ', $advertisementProductIds));
+}
 
 // 필터 적용: 스폰서 상품도 필터 조건에 맞는 것만 표시
 if (!empty($filterProvider) || !empty($filterPriceRange)) {
@@ -84,7 +88,9 @@ if (!empty($filterProvider) || !empty($filterPriceRange)) {
     
     $advertisementProducts = $filteredAdvertisementProducts;
     $advertisementProductIds = $filteredAdvertisementProductIds;
-    error_log("[MVNO 페이지] 필터 적용 후 스폰서 상품 개수: " . count($advertisementProducts) . ", ID 목록: " . implode(', ', $advertisementProductIds));
+    if ($hasFilter || $debugMode) {
+        error_log("[MVNO 페이지] 필터 적용 후 스폰서 상품 개수: " . count($advertisementProducts) . ", ID 목록: " . implode(', ', $advertisementProductIds));
+    }
 }
 
 // 디버깅: 광고 상품 개수 및 데이터 확인 (브라우저 콘솔 또는 HTML 주석으로 확인 가능)
@@ -196,35 +202,37 @@ if ($pdo) {
     $countStmt->execute($params);
     $totalCount = (int)$countStmt->fetch(PDO::FETCH_ASSOC)['total'];
     
-    // 디버깅: DB에서 가져온 전체 개수
-    error_log("[MVNO 페이지] ========== 디버깅 시작 ==========");
-    error_log("[MVNO 페이지] DB 쿼리 결과 - 전체 개수: {$totalCount}");
-    error_log("[MVNO 페이지] WHERE 조건: {$whereClause}");
-    error_log("[MVNO 페이지] 광고 상품 ID 개수: " . count($advertisementProductIds));
-    if (!empty($advertisementProductIds)) {
-        error_log("[MVNO 페이지] 광고 상품 ID 목록: " . implode(', ', $advertisementProductIds));
-    }
-    
-    // 추가 디버깅: products 테이블의 전체 active 상품 개수 확인
-    $debugStmt = $pdo->query("SELECT COUNT(*) as cnt FROM products WHERE product_type = 'mvno' AND status = 'active'");
-    $debugResult = $debugStmt->fetch();
-    $allActiveCount = $debugResult['cnt'] ?? 0;
-    error_log("[MVNO 페이지] products 테이블의 전체 active 상품 개수: {$allActiveCount}");
-    
-    // product_mvno_details가 없는 상품 확인
-    $missingStmt = $pdo->query("
-        SELECT p.id 
-        FROM products p
-        LEFT JOIN product_mvno_details mvno ON p.id = mvno.product_id
-        WHERE p.product_type = 'mvno' 
-        AND p.status = 'active'
-        AND mvno.product_id IS NULL
-    ");
-    $missingProducts = $missingStmt->fetchAll(PDO::FETCH_COLUMN);
-    if (!empty($missingProducts)) {
-        error_log("[MVNO 페이지] ⚠ product_mvno_details가 없는 상품 ID: " . implode(', ', $missingProducts));
-    } else {
-        error_log("[MVNO 페이지] ✓ 모든 active 상품에 product_mvno_details가 있습니다.");
+    // 디버깅: DB에서 가져온 전체 개수 (디버그 모드에서만)
+    if ($debugMode) {
+        error_log("[MVNO 페이지] ========== 디버깅 시작 ==========");
+        error_log("[MVNO 페이지] DB 쿼리 결과 - 전체 개수: {$totalCount}");
+        error_log("[MVNO 페이지] WHERE 조건: {$whereClause}");
+        error_log("[MVNO 페이지] 광고 상품 ID 개수: " . count($advertisementProductIds));
+        if (!empty($advertisementProductIds)) {
+            error_log("[MVNO 페이지] 광고 상품 ID 목록: " . implode(', ', $advertisementProductIds));
+        }
+        
+        // 추가 디버깅: products 테이블의 전체 active 상품 개수 확인
+        $debugStmt = $pdo->query("SELECT COUNT(*) as cnt FROM products WHERE product_type = 'mvno' AND status = 'active'");
+        $debugResult = $debugStmt->fetch();
+        $allActiveCount = $debugResult['cnt'] ?? 0;
+        error_log("[MVNO 페이지] products 테이블의 전체 active 상품 개수: {$allActiveCount}");
+        
+        // product_mvno_details가 없는 상품 확인
+        $missingStmt = $pdo->query("
+            SELECT p.id 
+            FROM products p
+            LEFT JOIN product_mvno_details mvno ON p.id = mvno.product_id
+            WHERE p.product_type = 'mvno' 
+            AND p.status = 'active'
+            AND mvno.product_id IS NULL
+        ");
+        $missingProducts = $missingStmt->fetchAll(PDO::FETCH_COLUMN);
+        if (!empty($missingProducts)) {
+            error_log("[MVNO 페이지] ⚠ product_mvno_details가 없는 상품 ID: " . implode(', ', $missingProducts));
+        } else {
+            error_log("[MVNO 페이지] ✓ 모든 active 상품에 product_mvno_details가 있습니다.");
+        }
     }
     
     if ($hasFilter || $debugMode) {
@@ -340,13 +348,16 @@ $mvno_filters = getMvnoFilters();
 $plans = $allPlans;
 
 // 디버깅: 최종 개수 확인
-error_log("[MVNO 페이지] 변환 후 전체 상품 개수: " . count($allPlans));
-error_log("[MVNO 페이지] 광고 상품 개수: " . count($advertisementProducts));
-error_log("[MVNO 페이지] 최종 표시 개수 (totalCount): {$totalCount}");
-if (!empty($advertisementProductIds)) {
-    error_log("[MVNO 페이지] 광고 상품 ID 목록: " . implode(', ', $advertisementProductIds));
+// 디버그 모드에서만 로그 출력
+if ($debugMode) {
+    error_log("[MVNO 페이지] 변환 후 전체 상품 개수: " . count($allPlans));
+    error_log("[MVNO 페이지] 광고 상품 개수: " . count($advertisementProducts));
+    error_log("[MVNO 페이지] 최종 표시 개수 (totalCount): {$totalCount}");
+    if (!empty($advertisementProductIds)) {
+        error_log("[MVNO 페이지] 광고 상품 ID 목록: " . implode(', ', $advertisementProductIds));
+    }
+    error_log("[MVNO 페이지] ========== 디버깅 종료 ==========");
 }
-error_log("[MVNO 페이지] ========== 디버깅 종료 ==========");
 
 // 광고 상품을 plan 카드 형식으로 변환
 $advertisementPlans = [];
