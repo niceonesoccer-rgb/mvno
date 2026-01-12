@@ -89,14 +89,11 @@ $modal_id = "pointUsageModal_{$type}_{$item_id}";
             </div>
             
             <!-- 할인 혜택 내용 표시 영역 (동적으로 로드됨) -->
-            <div id="pointBenefitSection_<?php echo $modal_id; ?>" class="point-benefit-section" style="display: none; background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 2px solid #10b981; border-radius: 12px; padding: 20px; margin-bottom: 24px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);">
+            <div id="pointBenefitSection_<?php echo $modal_id; ?>" class="point-benefit-section" style="display: none; background: #f0fdf4; border: 1px solid #86efac; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
                 <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                    <strong style="color: #065f46; font-size: 18px; font-weight: 800; letter-spacing: -0.3px;">개통 시 혜택</strong>
+                    <strong style="color: #166534; font-size: 16px; font-weight: 600; letter-spacing: -0.2px;">개통 시 혜택</strong>
                 </div>
-                <p id="pointBenefitText_<?php echo $modal_id; ?>" style="color: #047857; font-size: 18px; font-weight: 700; margin: 0; line-height: 1.8; white-space: pre-line; letter-spacing: -0.2px;"></p>
+                <p id="pointBenefitText_<?php echo $modal_id; ?>" style="color: #15803d; font-size: 16px; font-weight: 500; margin: 0; line-height: 1.6; white-space: pre-line; letter-spacing: -0.1px;"></p>
             </div>
             
             <!-- 최대 사용 가능 포인트 버튼 -->
@@ -104,6 +101,7 @@ $modal_id = "pointUsageModal_{$type}_{$item_id}";
                 <button type="button" class="point-max-button" id="pointMaxButton_<?php echo $modal_id; ?>">
                     <span id="pointMaxButtonValue_<?php echo $modal_id; ?>">-</span>P 사용
                 </button>
+                <p class="point-usage-notice">신청후 미개통시에도 소멸된 포인트는 환불되지 않습니다.</p>
             </div>
             
             <!-- 잔액 정보 -->
@@ -201,7 +199,7 @@ $modal_id = "pointUsageModal_{$type}_{$item_id}";
 
 .point-info-section {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     gap: 12px;
     margin-bottom: 24px;
 }
@@ -210,81 +208,43 @@ $modal_id = "pointUsageModal_{$type}_{$item_id}";
 .point-max-info {
     display: flex;
     flex-direction: row;
-    gap: 12px;
+    gap: 8px;
     align-items: center;
-    justify-content: center;
-    padding: 20px 16px;
-    border-radius: 16px;
-    width: 100%;
+    justify-content: space-between;
+    padding: 16px;
+    border-radius: 12px;
+    flex: 1;
     box-sizing: border-box;
-    position: relative;
-    overflow: hidden;
-    transition: transform 0.2s, box-shadow 0.2s;
-    white-space: nowrap;
+    border: 1px solid #e5e7eb;
+    background: #f9fafb;
 }
 
 .point-balance-info {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border: none;
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
 }
 
 .point-max-info {
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-    border: none;
-    box-shadow: 0 4px 12px rgba(245, 87, 108, 0.3);
-}
-
-.point-balance-info:hover,
-.point-max-info:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
-}
-
-@media (min-width: 640px) {
-    .point-info-section {
-        flex-direction: row;
-        gap: 16px;
-    }
-    
-    .point-balance-info,
-    .point-max-info {
-        flex: 1;
-    }
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
 }
 
 .point-balance-label,
 .point-max-label {
-    font-size: 15px;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.9);
-    letter-spacing: -0.3px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #6b7280;
+    letter-spacing: -0.2px;
     white-space: nowrap;
-    flex-shrink: 0;
 }
 
 .point-balance-value,
 .point-max-value {
-    font-size: 24px;
-    font-weight: 800;
-    color: #ffffff;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    letter-spacing: -0.5px;
+    font-size: 18px;
+    font-weight: 700;
+    color: #1f2937;
+    letter-spacing: -0.3px;
     white-space: nowrap;
-    flex-shrink: 0;
-}
-
-@media (min-width: 640px) {
-    .point-balance-info,
-    .point-max-info {
-        flex-direction: column;
-        gap: 12px;
-    }
-    
-    .point-balance-value,
-    .point-max-value {
-        font-size: 28px;
-    }
 }
 
 .point-notice {
@@ -302,36 +262,38 @@ $modal_id = "pointUsageModal_{$type}_{$item_id}";
 
 .point-max-button-section {
     margin-bottom: 24px;
-<<<<<<< HEAD
-    display: flex;
-    justify-content: center;
-    align-items: center;
 }
 
 .point-max-button {
     width: 100%;
-    padding: 20px 24px;
-    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    padding: 16px 24px;
+    background: #6366f1;
     border: none;
-    border-radius: 16px;
-    font-size: 20px;
-    font-weight: 700;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
     color: #ffffff;
     cursor: pointer;
     transition: all 0.2s;
-    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
-    letter-spacing: -0.3px;
-    min-height: 64px;
+    letter-spacing: -0.2px;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
+    margin-bottom: 8px;
+}
+
+.point-usage-notice {
+    font-size: 12px;
+    color: #9ca3af;
+    text-align: center;
+    margin: 0;
+    line-height: 1.5;
+    letter-spacing: -0.1px;
 }
 
 .point-max-button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(220, 38, 38, 0.4);
-    background: linear-gradient(135deg, #b91c1c 0%, #dc2626 100%);
+    background: #4f46e5;
 }
 
 .point-max-button:active {
@@ -346,29 +308,28 @@ $modal_id = "pointUsageModal_{$type}_{$item_id}";
 
 .point-balance-preview {
     display: flex;
-    justify-content: center;
+    justify-content: space-between;
     align-items: center;
     gap: 12px;
-    padding: 20px 24px;
-    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-    border: 2px solid #bae6fd;
-    border-radius: 16px;
+    padding: 16px;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
     margin-top: 4px;
-    box-shadow: 0 2px 8px rgba(14, 165, 233, 0.1);
 }
 
 .point-balance-preview-label {
-    font-size: 16px;
-    font-weight: 600;
-    color: #0369a1;
-    letter-spacing: -0.3px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #6b7280;
+    letter-spacing: -0.2px;
 }
 
 .point-balance-preview-value {
-    font-size: 24px;
-    font-weight: 800;
-    color: #0369a1;
-    letter-spacing: -0.5px;
+    font-size: 18px;
+    font-weight: 700;
+    color: #1f2937;
+    letter-spacing: -0.3px;
 }
 
 .point-usage-modal-footer {
@@ -417,11 +378,6 @@ $modal_id = "pointUsageModal_{$type}_{$item_id}";
     .point-usage-modal-content {
         width: 95%;
         max-height: 85vh;
-    }
-    
-    .point-info-section {
-        flex-direction: column;
-        gap: 12px;
     }
 }
 </style>

@@ -140,18 +140,26 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         /* 헤더 (네비게이션 포함 1단 구조) */
         .seller-top-header {
             width: 100%;
-            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
             padding: 0;
             display: flex;
+<<<<<<< HEAD
             align-items: flex-start; /* 서브메뉴가 나올 수 있도록 */
+=======
+            align-items: center; /* 헤더 내용 세로 가운데 정렬 */
+>>>>>>> 955e643 (판매자 완료)
             position: fixed;
             top: 0;
             left: 0;
             z-index: 1000; /* 헤더는 항상 위에 */
             height: 64px;
             min-height: 64px; /* 최소 높이 */
+<<<<<<< HEAD
             box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+=======
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+>>>>>>> 955e643 (판매자 완료)
             min-width: 1400px;
             overflow: visible !important; /* 서브메뉴가 헤더 밖으로 나올 수 있도록 강제 */
         }
@@ -506,16 +514,28 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         .mobile-nav-menu {
             position: fixed;
             top: 64px;
+<<<<<<< HEAD
             right: 0;
+=======
+            left: 0;
+>>>>>>> 955e643 (판매자 완료)
             width: 320px;
             max-width: 85vw;
             height: calc(100vh - 64px);
             background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+<<<<<<< HEAD
             transform: translateX(100%);
             transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             z-index: 998;
             overflow-y: auto;
             box-shadow: -4px 0 16px rgba(0, 0, 0, 0.3);
+=======
+            transform: translateX(-100%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 998;
+            overflow-y: auto;
+            box-shadow: 4px 0 16px rgba(0, 0, 0, 0.3);
+>>>>>>> 955e643 (판매자 완료)
         }
         
         .mobile-nav-menu.open {

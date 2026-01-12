@@ -318,9 +318,9 @@ $is_main_page = false;
 // 페이지별 스타일
 $pageStyles = '
         .seller-center-container {
-            max-width: 1400px;
+            max-width: 1600px;
             margin: 0 auto;
-            padding: 40px 24px;
+            padding: 40px 32px;
         }
         
         .seller-header {
@@ -689,6 +689,45 @@ $pageStyles = '
             line-height: 1.6;
         }
         
+        .seller-banner-footer {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            padding: 20px 24px;
+            border-top: 1px solid #e5e7eb;
+            background: #f9fafb;
+        }
+        
+        .seller-banner-dismiss-btn,
+        .seller-banner-close-btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+        }
+        
+        .seller-banner-dismiss-btn {
+            background: #f3f4f6;
+            color: #6b7280;
+        }
+        
+        .seller-banner-dismiss-btn:hover {
+            background: #e5e7eb;
+            color: #374151;
+        }
+        
+        .seller-banner-close-btn {
+            background: #6366f1;
+            color: white;
+        }
+        
+        .seller-banner-close-btn:hover {
+            background: #4f46e5;
+        }
+        
         /* 판매자 필수 확인사항 안내 카드 */
         .seller-notice-card {
             background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
@@ -878,42 +917,18 @@ include 'includes/seller-header.php';
                 <h2 class="dashboard-section-title">등록 상품</h2>
                 <div class="dashboard-grid">
                     <div class="dashboard-card primary">
-                        <div class="dashboard-card-header">
-                            <div class="dashboard-card-icon">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 24px; height: 24px;">
-                                    <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
-                                </svg>
-                            </div>
-                        </div>
                         <div class="dashboard-card-title">전체 상품</div>
                         <div class="dashboard-card-value"><?php echo number_format($stats['total_products']); ?></div>
-                        <div class="dashboard-card-description">등록된 전체 상품 수</div>
                     </div>
                     
                     <div class="dashboard-card success">
-                        <div class="dashboard-card-header">
-                            <div class="dashboard-card-icon">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 24px; height: 24px;">
-                                    <path d="M9 11l3 3L22 4m-1 8v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
-                                </svg>
-                            </div>
-                        </div>
                         <div class="dashboard-card-title">판매 중</div>
                         <div class="dashboard-card-value"><?php echo number_format($stats['active_products']); ?></div>
-                        <div class="dashboard-card-description">현재 판매 중인 상품</div>
                     </div>
                     
                     <div class="dashboard-card warning">
-                        <div class="dashboard-card-header">
-                            <div class="dashboard-card-icon">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 24px; height: 24px;">
-                                    <path d="M18 6L6 18M6 6l12 12"/>
-                                </svg>
-                            </div>
-                        </div>
                         <div class="dashboard-card-title">판매 종료</div>
                         <div class="dashboard-card-value"><?php echo number_format($stats['inactive_products']); ?></div>
-                        <div class="dashboard-card-description">판매 종료된 상품</div>
                     </div>
                 </div>
             </div>
@@ -936,23 +951,17 @@ include 'includes/seller-header.php';
                     'on_hold' => '보류',
                     'cancelled' => '취소'
                 ];
+                $displayStatuses = ['received' => '접수', 'on_hold' => '보류', 'activating' => '개통중'];
                 ?>
                 
-                <?php foreach ($orderCategories as $type => $category): ?>
-                    <?php
-                    // 접수, 보류, 개통중 중 하나라도 건수가 있으면 표시
-                    $displayStatuses = ['received' => '접수', 'on_hold' => '보류', 'activating' => '개통중'];
-                    $hasAnyOrders = false;
-                    foreach ($displayStatuses as $status => $label) {
-                        $count = $orderStats[$type][$status] ?? 0;
-                        if ($count > 0) {
-                            $hasAnyOrders = true;
-                            break;
-                        }
-                    }
-                    if (!$hasAnyOrders) continue;
+                <!-- 첫 번째 줄: 통신사단독유심과 알뜰폰 -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                    <?php 
+                    $firstRowTypes = ['mno-sim', 'mvno'];
+                    foreach ($firstRowTypes as $type):
+                        $category = $orderCategories[$type];
                     ?>
-                    <div class="content-box" style="background: #fff; border-radius: 12px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 20px;">
+                    <div class="content-box" style="background: #fff; border-radius: 12px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
                             <h3 style="margin: 0; font-size: 18px; font-weight: 600; color: #0f172a;">
                                 <?= htmlspecialchars($category['name']) ?>
@@ -963,11 +972,8 @@ include 'includes/seller-header.php';
                         </div>
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px;">
                             <?php 
-                            // 접수, 보류, 개통중만 표시 (건수가 0보다 큰 것만 표시)
                             foreach ($displayStatuses as $status => $label): 
                                 $count = $orderStats[$type][$status] ?? 0;
-                                // 건수가 0이면 표시하지 않음
-                                if ($count <= 0) continue;
                             ?>
                                 <a href="<?= htmlspecialchars($category['url']) ?>?status=<?= $status === 'received' ? 'received' : $status ?>" style="text-decoration: none; display: block;">
                                     <div style="background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); border-radius: 8px; padding: 16px; border: 1px solid #ef4444; transition: all 0.2s;">
@@ -982,7 +988,45 @@ include 'includes/seller-header.php';
                             <?php endforeach; ?>
                         </div>
                     </div>
-                <?php endforeach; ?>
+                    <?php endforeach; ?>
+                </div>
+                
+                <!-- 두 번째 줄: 통신사폰과 인터넷 -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <?php 
+                    $secondRowTypes = ['mno', 'internet'];
+                    foreach ($secondRowTypes as $type):
+                        $category = $orderCategories[$type];
+                    ?>
+                    <div class="content-box" style="background: #fff; border-radius: 12px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                            <h3 style="margin: 0; font-size: 18px; font-weight: 600; color: #0f172a;">
+                                <?= htmlspecialchars($category['name']) ?>
+                            </h3>
+                            <a href="<?= htmlspecialchars($category['url']) ?>" style="color: #6366f1; text-decoration: none; font-size: 14px; font-weight: 600;">
+                                전체보기 →
+                            </a>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px;">
+                            <?php 
+                            foreach ($displayStatuses as $status => $label): 
+                                $count = $orderStats[$type][$status] ?? 0;
+                            ?>
+                                <a href="<?= htmlspecialchars($category['url']) ?>?status=<?= $status === 'received' ? 'received' : $status ?>" style="text-decoration: none; display: block;">
+                                    <div style="background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); border-radius: 8px; padding: 16px; border: 1px solid #ef4444; transition: all 0.2s;">
+                                        <div style="font-size: 13px; color: #64748b; font-weight: 500; margin-bottom: 8px;">
+                                            <?= htmlspecialchars($label) ?>
+                                        </div>
+                                        <div style="font-size: 28px; font-weight: 800; color: #991b1b; margin-bottom: 4px;">
+                                            <?= number_format($count) ?>
+                                        </div>
+                                    </div>
+                                </a>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
                 
             </div>
             
@@ -1293,6 +1337,11 @@ if (isset($_GET['debug_banner'])) {
             }
             ?>
         </div>
+        <!-- 버튼 영역 -->
+        <div class="seller-banner-footer">
+            <button type="button" class="seller-banner-dismiss-btn" onclick="dismissSellerBanner('<?= htmlspecialchars($sellerBanner['id'], ENT_QUOTES) ?>')">더이상 보지 않기</button>
+            <button type="button" class="seller-banner-close-btn" onclick="closeSellerBanner()">닫기</button>
+        </div>
     </div>
 </div>
 
@@ -1324,6 +1373,16 @@ console.log('  3. 표시 기간이 현재 날짜 범위 내인지');
         console.log('모달 요소 존재:', !!modal);
         
         if (modal) {
+            // localStorage에서 "더 이상 보지 않기" 상태 확인
+            const noticeId = '<?= htmlspecialchars($sellerBanner['id'] ?? '', ENT_QUOTES) ?>';
+            if (noticeId) {
+                const dismissedNotices = JSON.parse(localStorage.getItem('seller_banner_dismissed') || '[]');
+                if (dismissedNotices.includes(noticeId)) {
+                    console.log('이미 "더 이상 보지 않기"로 설정된 공지입니다.');
+                    return;
+                }
+            }
+            
             console.log('모달 찾음, 표시 준비 중...');
             // 약간의 지연을 두어 페이지 로드 후 표시
             setTimeout(function() {
@@ -1365,6 +1424,18 @@ function closeSellerBanner() {
         // body 스크롤 복원
         document.body.style.overflow = '';
         console.log('메인공지 모달 닫힘');
+    }
+}
+
+function dismissSellerBanner(noticeId) {
+    if (confirm('이 공지를 더 이상 표시하지 않으시겠습니까?')) {
+        // localStorage에 공지 ID 저장
+        const dismissedNotices = JSON.parse(localStorage.getItem('seller_banner_dismissed') || '[]');
+        if (!dismissedNotices.includes(noticeId)) {
+            dismissedNotices.push(noticeId);
+            localStorage.setItem('seller_banner_dismissed', JSON.stringify(dismissedNotices));
+        }
+        closeSellerBanner();
     }
 }
 

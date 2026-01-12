@@ -907,8 +907,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 <path d="M2 12L12 17L22 12" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
         </div>
-        <div class="continue-application-title">판매자님 대리점으로 이동합니다.</div>
-        <div class="continue-application-message">계속 가입신청을 진행해주셔야 가입 신청이 완료됩니다.</div>
+        <div class="continue-application-title"><span id="continueApplicationSellerName">판매자</span> 대리점으로 이동합니다.</div>
+        <div class="continue-application-message">계속 가입신청을 진행해주셔야<br>가입 신청이 완료됩니다.</div>
         <div class="continue-application-submessage">최저가격으로 가입해보세요~</div>
         <button type="button" id="continueApplicationBtn" class="continue-application-button">계속신청하기</button>
     </div>
@@ -1011,8 +1011,15 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // sessionStorage에서 redirect_url 확인
     const pendingRedirectUrl = sessionStorage.getItem('pendingRedirectUrl');
+    const pendingSellerName = sessionStorage.getItem('pendingSellerName');
     
     if (pendingRedirectUrl && modal) {
+        // 판매자 이름 업데이트
+        const sellerNameElement = document.getElementById('continueApplicationSellerName');
+        if (sellerNameElement && pendingSellerName) {
+            sellerNameElement.textContent = pendingSellerName;
+        }
+        
         // 모달 표시
         modal.style.display = 'flex';
         document.body.style.overflow = 'hidden';
@@ -1024,6 +1031,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 window.open(pendingRedirectUrl, '_blank');
                 // sessionStorage에서 제거
                 sessionStorage.removeItem('pendingRedirectUrl');
+                sessionStorage.removeItem('pendingSellerName');
                 // 모달 닫기
                 if (modal) {
                     modal.style.display = 'none';

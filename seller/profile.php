@@ -687,16 +687,23 @@ include 'includes/seller-header.php';
         
         const reason = document.getElementById('withdrawalReason').value;
         
+        // FormData 형식으로 전송
+        const formData = new FormData();
+        formData.append('reason', reason);
+        
         fetch('<?php echo getApiPath('/api/request-seller-withdrawal.php'); ?>', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                reason: reason
-            })
+            body: formData
         })
-        .then(response => response.json())
+        .then(async response => {
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                const text = await response.text();
+                console.error('서버가 JSON이 아닌 응답을 반환했습니다:', text.substring(0, 200));
+                throw new Error('서버 오류: JSON 응답이 아닙니다.');
+            }
+            return response.json();
+        })
         .then(data => {
             if (data.success) {
                 // 성공 모달 표시
@@ -710,7 +717,7 @@ include 'includes/seller-header.php';
         .catch(error => {
             console.error('Error:', error);
             // 실패 모달 표시
-            document.getElementById('withdrawalErrorMessage').textContent = '탈퇴 요청 중 오류가 발생했습니다.';
+            document.getElementById('withdrawalErrorMessage').textContent = '탈퇴 요청 중 오류가 발생했습니다. ' + (error.message || '');
             showWithdrawalErrorModal();
         });
     }
@@ -719,16 +726,23 @@ include 'includes/seller-header.php';
         // 확인 모달 닫기
         closeCancelWithdrawalModal();
         
+        // FormData 형식으로 전송
+        const formData = new FormData();
+        formData.append('confirm', 'true');
+        
         fetch('<?php echo getApiPath('/api/cancel-seller-withdrawal.php'); ?>', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                confirm: true
-            })
+            body: formData
         })
-        .then(response => response.json())
+        .then(async response => {
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                const text = await response.text();
+                console.error('서버가 JSON이 아닌 응답을 반환했습니다:', text.substring(0, 200));
+                throw new Error('서버 오류: JSON 응답이 아닙니다.');
+            }
+            return response.json();
+        })
         .then(data => {
             if (data.success) {
                 // 성공 모달 표시
@@ -742,7 +756,7 @@ include 'includes/seller-header.php';
         .catch(error => {
             console.error('Error:', error);
             // 실패 모달 표시
-            document.getElementById('cancelWithdrawalErrorMessage').textContent = '취소 중 오류가 발생했습니다.';
+            document.getElementById('cancelWithdrawalErrorMessage').textContent = '취소 중 오류가 발생했습니다. ' + (error.message || '');
             showCancelWithdrawalErrorModal();
         });
     }

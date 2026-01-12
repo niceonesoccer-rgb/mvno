@@ -607,7 +607,7 @@ $categoryLabels = [
         <div class="dashboard-row-center">
             <h2>입금신청자</h2>
             <div class="dashboard-card-wrapper">
-                <a href="/MVNO/admin/deposit/requests.php" class="dashboard-card <?php echo $adStats['deposit_pending'] > 0 ? 'has-new' : ''; ?>">
+                <a href="<?php echo getAssetPath('/admin/deposit/requests.php'); ?>" class="dashboard-card <?php echo $adStats['deposit_pending'] > 0 ? 'has-new' : ''; ?>">
                     <div class="dashboard-card-header">
                         <span class="dashboard-card-title">입금신청자</span>
                         <div class="dashboard-card-icon" style="background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);">
@@ -627,7 +627,7 @@ $categoryLabels = [
         <div class="dashboard-row-section">
             <h2>문의 관리</h2>
             <div class="dashboard-row-grid">
-                <a href="/MVNO/admin/content/qna-manage.php?status=pending" class="dashboard-card <?php echo $inquiryStats['member_qna'] > 0 ? 'has-new' : ''; ?>">
+                <a href="<?php echo getAssetPath('/admin/content/qna-manage.php'); ?>?status=pending" class="dashboard-card <?php echo $inquiryStats['member_qna'] > 0 ? 'has-new' : ''; ?>">
                     <div class="dashboard-card-header">
                         <span class="dashboard-card-title">회원 1:1 문의</span>
                         <div class="dashboard-card-icon" style="background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);">
@@ -642,7 +642,7 @@ $categoryLabels = [
                     <div class="dashboard-card-description">답변 대기 중인 문의</div>
                 </a>
                 
-                <a href="/MVNO/admin/content/seller-inquiry-manage.php?status=pending" class="dashboard-card <?php echo $inquiryStats['seller_inquiry'] > 0 ? 'has-new' : ''; ?>">
+                <a href="<?php echo getAssetPath('/admin/content/seller-inquiry-manage.php'); ?>?status=pending" class="dashboard-card <?php echo $inquiryStats['seller_inquiry'] > 0 ? 'has-new' : ''; ?>">
                     <div class="dashboard-card-header">
                         <span class="dashboard-card-title">판매자 1:1 문의</span>
                         <div class="dashboard-card-icon" style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);">
