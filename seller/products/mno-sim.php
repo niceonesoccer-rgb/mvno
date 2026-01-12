@@ -41,6 +41,9 @@ if (!$hasPermission) {
     $noPermission = true;
 }
 
+// 디버깅 모드 (URL 파라미터로 제어)
+$debugMode = isset($_GET['debug']) && $_GET['debug'] === '1';
+
 // 정수 필드 포맷팅 함수: 소수점 제거하고 정수로만 표시
 function formatIntegerForInput($value) {
     if ($value === null || $value === '') {
@@ -1414,6 +1417,8 @@ document.addEventListener('DOMContentLoaded', function() {
 </div>
 
 <script>
+// 디버깅 모드 (전역 변수로 먼저 정의)
+const debugMode = <?php echo $debugMode ? 'true' : 'false'; ?>;
 
 document.addEventListener('DOMContentLoaded', function() {
     // URL 입력 체크박스 토글
@@ -1462,24 +1467,28 @@ document.addEventListener('DOMContentLoaded', function() {
             selected: opt.selected
         }));
         
-        console.log(`[toggleInputField] ${selectId}:`, {
-            '초기값': initialValue,
-            '트리거값': triggerValue,
-            '표시여부': isInitiallyShow ? 'YES' : 'NO',
-            '표시타입': displayType,
-            '컨테이너표시': container.style.display,
-            '선택된옵션': allOptions.find(opt => opt.selected) || '없음',
-            '모든옵션': allOptions
-        });
+        if (debugMode) {
+            console.log(`[toggleInputField] ${selectId}:`, {
+                '초기값': initialValue,
+                '트리거값': triggerValue,
+                '표시여부': isInitiallyShow ? 'YES' : 'NO',
+                '표시타입': displayType,
+                '컨테이너표시': container.style.display,
+                '선택된옵션': allOptions.find(opt => opt.selected) || '없음',
+                '모든옵션': allOptions
+            });
+        }
         
         // display 속성만 업데이트 (margin-top 등 다른 스타일 유지)
         container.style.display = isInitiallyShow ? displayType : 'none';
         
         // 추가 디버깅: 실제 DOM 상태 확인
-        if (!isInitiallyShow && initialValue !== triggerValue) {
-            console.log(`  → ${selectId}: "${initialValue}" !== "${triggerValue}" 이므로 필드 숨김`);
-        } else if (isInitiallyShow) {
-            console.log(`  → ${selectId}: "${initialValue}" === "${triggerValue}" 이므로 필드 표시`);
+        if (debugMode) {
+            if (!isInitiallyShow && initialValue !== triggerValue) {
+                console.log(`  → ${selectId}: "${initialValue}" !== "${triggerValue}" 이므로 필드 숨김`);
+            } else if (isInitiallyShow) {
+                console.log(`  → ${selectId}: "${initialValue}" === "${triggerValue}" 이므로 필드 표시`);
+            }
         }
         
         if (inputId) {
@@ -1511,7 +1520,9 @@ document.addEventListener('DOMContentLoaded', function() {
         // change 이벤트 리스너
         select.addEventListener('change', function() {
             const isShow = this.value === triggerValue;
-            console.log('toggleInputField change:', selectId, 'value:', this.value, 'triggerValue:', triggerValue, 'isShow:', isShow);
+            if (debugMode) {
+                console.log('toggleInputField change:', selectId, 'value:', this.value, 'triggerValue:', triggerValue, 'isShow:', isShow);
+            }
             container.style.display = isShow ? displayType : 'none';
             
             if (inputId) {
@@ -1547,45 +1558,57 @@ document.addEventListener('DOMContentLoaded', function() {
         const select = document.getElementById(selectId);
         const container = document.getElementById(containerId);
         
-        console.log('[DEBUG] setupSimpleToggle 호출:', {
-            selectId,
-            containerId,
-            triggerValue,
-            select: select ? '존재' : '없음',
-            container: container ? '존재' : '없음',
-            selectValue: select ? select.value : 'N/A'
-        });
+        if (debugMode) {
+            console.log('[DEBUG] setupSimpleToggle 호출:', {
+                selectId,
+                containerId,
+                triggerValue,
+                select: select ? '존재' : '없음',
+                container: container ? '존재' : '없음',
+                selectValue: select ? select.value : 'N/A'
+            });
+        }
         
         if (!select || !container) {
-            console.warn('[DEBUG] setupSimpleToggle 실패: select 또는 container가 없습니다');
+            if (debugMode) {
+                console.warn('[DEBUG] setupSimpleToggle 실패: select 또는 container가 없습니다');
+            }
             return;
         }
         
         const updateDisplay = () => {
             const isShow = (select.value === triggerValue);
-            console.log('[DEBUG] updateDisplay:', {
-                selectId,
-                selectValue: select.value,
-                triggerValue,
-                isShow,
-                displayType
-            });
+            if (debugMode) {
+                console.log('[DEBUG] updateDisplay:', {
+                    selectId,
+                    selectValue: select.value,
+                    triggerValue,
+                    isShow,
+                    displayType
+                });
+            }
             
             container.style.display = isShow ? displayType : 'none';
             
             // 입력 필드들 활성화/비활성화 처리
             const inputs = container.querySelectorAll('input, select');
-            console.log('[DEBUG] 입력 필드 개수:', inputs.length);
+            if (debugMode) {
+                console.log('[DEBUG] 입력 필드 개수:', inputs.length);
+            }
             
             inputs.forEach((input, index) => {
                 if (isShow) {
                     input.removeAttribute('disabled');
                     input.disabled = false;
-                    console.log(`[DEBUG] 입력 필드 ${index} 활성화:`, input.id || input.name, input.value);
+                    if (debugMode) {
+                        console.log(`[DEBUG] 입력 필드 ${index} 활성화:`, input.id || input.name, input.value);
+                    }
                 } else {
                     input.setAttribute('disabled', 'disabled');
                     input.disabled = true;
-                    console.log(`[DEBUG] 입력 필드 ${index} 비활성화:`, input.id || input.name);
+                    if (debugMode) {
+                        console.log(`[DEBUG] 입력 필드 ${index} 비활성화:`, input.id || input.name);
+                    }
                 }
             });
         };
@@ -1681,7 +1704,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 할인기간(프로모션기간) - 약간의 지연을 두고 초기화 (DOM이 완전히 렌더링된 후)
     setTimeout(() => {
-        console.log('=== Initializing toggleInputField functions ===');
+        if (debugMode) {
+            console.log('=== Initializing toggleInputField functions ===');
+        }
         toggleInputField('discount_period', 'discount_period_input', '직접입력', 'discount_period_value', null, 'flex');
     }, 100);
     limitNumericInput('discount_period_value', 4);
@@ -1817,94 +1842,126 @@ document.addEventListener('DOMContentLoaded', function() {
     limitNumericInput('sim_change_restriction_period_value', 4);
     
     // 요금제 유지기간 및 유심기변 불가기간 토글
-    console.log('[DEBUG] 요금제 유지기간 및 유심기변 불가기간 토글 초기화 시작');
+    if (debugMode) {
+        console.log('[DEBUG] 요금제 유지기간 및 유심기변 불가기간 토글 초기화 시작');
+    }
     
     // PHP에서 설정된 초기값 확인
     const planMaintenanceTypeSelect = document.getElementById('plan_maintenance_period_type');
     const simChangeRestrictionTypeSelect = document.getElementById('sim_change_restriction_period_type');
     
-    console.log('[DEBUG] PHP에서 설정된 초기값:', {
-        planMaintenanceType: planMaintenanceTypeSelect ? planMaintenanceTypeSelect.value : '없음',
-        simChangeRestrictionType: simChangeRestrictionTypeSelect ? simChangeRestrictionTypeSelect.value : '없음',
-        planMaintenanceTypeOptions: planMaintenanceTypeSelect ? Array.from(planMaintenanceTypeSelect.options).map(opt => ({
-            value: opt.value,
-            selected: opt.selected,
-            text: opt.text
-        })) : '없음',
-        simChangeRestrictionTypeOptions: simChangeRestrictionTypeSelect ? Array.from(simChangeRestrictionTypeSelect.options).map(opt => ({
-            value: opt.value,
-            selected: opt.selected,
-            text: opt.text
-        })) : '없음'
-    });
+    if (debugMode) {
+        console.log('[DEBUG] PHP에서 설정된 초기값:', {
+            planMaintenanceType: planMaintenanceTypeSelect ? planMaintenanceTypeSelect.value : '없음',
+            simChangeRestrictionType: simChangeRestrictionTypeSelect ? simChangeRestrictionTypeSelect.value : '없음',
+            planMaintenanceTypeOptions: planMaintenanceTypeSelect ? Array.from(planMaintenanceTypeSelect.options).map(opt => ({
+                value: opt.value,
+                selected: opt.selected,
+                text: opt.text
+            })) : '없음',
+            simChangeRestrictionTypeOptions: simChangeRestrictionTypeSelect ? Array.from(simChangeRestrictionTypeSelect.options).map(opt => ({
+                value: opt.value,
+                selected: opt.selected,
+                text: opt.text
+            })) : '없음'
+        });
+    }
     
     setupSimpleToggle('plan_maintenance_period_type', 'plan_maintenance_period_input', '직접입력', 'flex');
     setupSimpleToggle('sim_change_restriction_period_type', 'sim_change_restriction_period_input', '직접입력', 'flex');
     
     // 수정 모드에서 초기 로드 시 입력 필드 활성화 확인
-    console.log('[DEBUG] 초기 로드 시 입력 필드 활성화 확인 시작');
+    if (debugMode) {
+        console.log('[DEBUG] 초기 로드 시 입력 필드 활성화 확인 시작');
+    }
     const planMaintenanceType = document.getElementById('plan_maintenance_period_type');
     const planMaintenanceInput = document.getElementById('plan_maintenance_period_input');
-    console.log('[DEBUG] 요금제 유지기간 필드 상태:', {
-        planMaintenanceType: planMaintenanceType ? planMaintenanceType.value : '없음',
-        planMaintenanceInput: planMaintenanceInput ? '존재' : '없음',
-        planMaintenanceInputDisplay: planMaintenanceInput ? planMaintenanceInput.style.display : 'N/A'
-    });
+    if (debugMode) {
+        console.log('[DEBUG] 요금제 유지기간 필드 상태:', {
+            planMaintenanceType: planMaintenanceType ? planMaintenanceType.value : '없음',
+            planMaintenanceInput: planMaintenanceInput ? '존재' : '없음',
+            planMaintenanceInputDisplay: planMaintenanceInput ? planMaintenanceInput.style.display : 'N/A'
+        });
+    }
     
     if (planMaintenanceType && planMaintenanceInput) {
         if (planMaintenanceType.value === '직접입력') {
-            console.log('[DEBUG] 요금제 유지기간: 직접입력 선택됨, 입력 필드 활성화');
+            if (debugMode) {
+                console.log('[DEBUG] 요금제 유지기간: 직접입력 선택됨, 입력 필드 활성화');
+            }
             planMaintenanceInput.style.display = 'flex';
             const inputs = planMaintenanceInput.querySelectorAll('input, select');
-            console.log('[DEBUG] 요금제 유지기간 입력 필드 개수:', inputs.length);
+            if (debugMode) {
+                console.log('[DEBUG] 요금제 유지기간 입력 필드 개수:', inputs.length);
+            }
             inputs.forEach((input, index) => {
                 input.removeAttribute('disabled');
                 input.disabled = false;
-                console.log(`[DEBUG] 요금제 유지기간 입력 필드 ${index} 활성화:`, {
-                    id: input.id,
-                    name: input.name,
-                    value: input.value,
-                    disabled: input.disabled
-                });
+                if (debugMode) {
+                    console.log(`[DEBUG] 요금제 유지기간 입력 필드 ${index} 활성화:`, {
+                        id: input.id,
+                        name: input.name,
+                        value: input.value,
+                        disabled: input.disabled
+                    });
+                }
             });
         } else {
-            console.log('[DEBUG] 요금제 유지기간: 무약정 선택됨');
+            if (debugMode) {
+                console.log('[DEBUG] 요금제 유지기간: 무약정 선택됨');
+            }
         }
     } else {
-        console.warn('[DEBUG] 요금제 유지기간 필드를 찾을 수 없습니다');
+        if (debugMode) {
+            console.warn('[DEBUG] 요금제 유지기간 필드를 찾을 수 없습니다');
+        }
     }
     
     const simChangeRestrictionType = document.getElementById('sim_change_restriction_period_type');
     const simChangeRestrictionInput = document.getElementById('sim_change_restriction_period_input');
-    console.log('[DEBUG] 유심기변 불가기간 필드 상태:', {
-        simChangeRestrictionType: simChangeRestrictionType ? simChangeRestrictionType.value : '없음',
-        simChangeRestrictionInput: simChangeRestrictionInput ? '존재' : '없음',
-        simChangeRestrictionInputDisplay: simChangeRestrictionInput ? simChangeRestrictionInput.style.display : 'N/A'
-    });
+    if (debugMode) {
+        console.log('[DEBUG] 유심기변 불가기간 필드 상태:', {
+            simChangeRestrictionType: simChangeRestrictionType ? simChangeRestrictionType.value : '없음',
+            simChangeRestrictionInput: simChangeRestrictionInput ? '존재' : '없음',
+            simChangeRestrictionInputDisplay: simChangeRestrictionInput ? simChangeRestrictionInput.style.display : 'N/A'
+        });
+    }
     
     if (simChangeRestrictionType && simChangeRestrictionInput) {
         if (simChangeRestrictionType.value === '직접입력') {
-            console.log('[DEBUG] 유심기변 불가기간: 직접입력 선택됨, 입력 필드 활성화');
+            if (debugMode) {
+                console.log('[DEBUG] 유심기변 불가기간: 직접입력 선택됨, 입력 필드 활성화');
+            }
             simChangeRestrictionInput.style.display = 'flex';
             const inputs = simChangeRestrictionInput.querySelectorAll('input, select');
-            console.log('[DEBUG] 유심기변 불가기간 입력 필드 개수:', inputs.length);
+            if (debugMode) {
+                console.log('[DEBUG] 유심기변 불가기간 입력 필드 개수:', inputs.length);
+            }
             inputs.forEach((input, index) => {
                 input.removeAttribute('disabled');
                 input.disabled = false;
-                console.log(`[DEBUG] 유심기변 불가기간 입력 필드 ${index} 활성화:`, {
-                    id: input.id,
-                    name: input.name,
-                    value: input.value,
-                    disabled: input.disabled
-                });
+                if (debugMode) {
+                    console.log(`[DEBUG] 유심기변 불가기간 입력 필드 ${index} 활성화:`, {
+                        id: input.id,
+                        name: input.name,
+                        value: input.value,
+                        disabled: input.disabled
+                    });
+                }
             });
         } else {
-            console.log('[DEBUG] 유심기변 불가기간: 무약정 선택됨');
+            if (debugMode) {
+                console.log('[DEBUG] 유심기변 불가기간: 무약정 선택됨');
+            }
         }
     } else {
-        console.warn('[DEBUG] 유심기변 불가기간 필드를 찾을 수 없습니다');
+        if (debugMode) {
+            console.warn('[DEBUG] 유심기변 불가기간 필드를 찾을 수 없습니다');
+        }
     }
-    console.log('[DEBUG] 초기 로드 시 입력 필드 활성화 확인 완료');
+    if (debugMode) {
+        console.log('[DEBUG] 초기 로드 시 입력 필드 활성화 확인 완료');
+    }
     
     
     // 엔터 키로 폼 제출 방지
@@ -2159,27 +2216,35 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // 요금제 유지기간 합치기
-        console.log('[DEBUG] 요금제 유지기간 폼 제출 처리 시작');
+        if (debugMode) {
+            console.log('[DEBUG] 요금제 유지기간 폼 제출 처리 시작');
+        }
         const planMaintenanceType = document.getElementById('plan_maintenance_period_type');
-        console.log('[DEBUG] 요금제 유지기간 타입:', planMaintenanceType ? planMaintenanceType.value : '없음');
+        if (debugMode) {
+            console.log('[DEBUG] 요금제 유지기간 타입:', planMaintenanceType ? planMaintenanceType.value : '없음');
+        }
         
         if (planMaintenanceType) {
             if (planMaintenanceType.value === '무약정') {
-                console.log('[DEBUG] 요금제 유지기간: 무약정으로 설정');
+                if (debugMode) {
+                    console.log('[DEBUG] 요금제 유지기간: 무약정으로 설정');
+                }
                 formData.set('plan_maintenance_period', '무약정');
             } else if (planMaintenanceType.value === '직접입력') {
                 const planMaintenancePrefix = document.getElementById('plan_maintenance_period_prefix');
                 const planMaintenanceValue = document.getElementById('plan_maintenance_period_value');
                 const planMaintenanceUnit = document.getElementById('plan_maintenance_period_unit');
                 
-                console.log('[DEBUG] 요금제 유지기간 직접입력 필드:', {
-                    prefix: planMaintenancePrefix ? planMaintenancePrefix.value : '없음',
-                    value: planMaintenanceValue ? planMaintenanceValue.value : '없음',
-                    unit: planMaintenanceUnit ? planMaintenanceUnit.value : '없음',
-                    prefixDisabled: planMaintenancePrefix ? planMaintenancePrefix.disabled : 'N/A',
-                    valueDisabled: planMaintenanceValue ? planMaintenanceValue.disabled : 'N/A',
-                    unitDisabled: planMaintenanceUnit ? planMaintenanceUnit.disabled : 'N/A'
-                });
+                if (debugMode) {
+                    console.log('[DEBUG] 요금제 유지기간 직접입력 필드:', {
+                        prefix: planMaintenancePrefix ? planMaintenancePrefix.value : '없음',
+                        value: planMaintenanceValue ? planMaintenanceValue.value : '없음',
+                        unit: planMaintenanceUnit ? planMaintenanceUnit.value : '없음',
+                        prefixDisabled: planMaintenancePrefix ? planMaintenancePrefix.disabled : 'N/A',
+                        valueDisabled: planMaintenanceValue ? planMaintenanceValue.disabled : 'N/A',
+                        unitDisabled: planMaintenanceUnit ? planMaintenanceUnit.disabled : 'N/A'
+                    });
+                }
                 
                 if (planMaintenancePrefix && planMaintenanceValue && planMaintenanceUnit) {
                     const prefix = planMaintenancePrefix.value;
@@ -2187,45 +2252,63 @@ document.addEventListener('DOMContentLoaded', function() {
                     const unit = planMaintenanceUnit.value;
                     if (value !== '') {
                         const combinedValue = prefix + '+' + value + unit;
-                        console.log('[DEBUG] 요금제 유지기간 합쳐진 값:', combinedValue);
+                        if (debugMode) {
+                            console.log('[DEBUG] 요금제 유지기간 합쳐진 값:', combinedValue);
+                        }
                         formData.set('plan_maintenance_period', combinedValue);
                     } else {
-                        console.log('[DEBUG] 요금제 유지기간: 값이 비어있음');
+                        if (debugMode) {
+                            console.log('[DEBUG] 요금제 유지기간: 값이 비어있음');
+                        }
                         formData.set('plan_maintenance_period', '');
                     }
                 } else {
-                    console.warn('[DEBUG] 요금제 유지기간: 필드 중 일부가 없습니다');
+                    if (debugMode) {
+                        console.warn('[DEBUG] 요금제 유지기간: 필드 중 일부가 없습니다');
+                    }
                 }
             } else {
-                console.log('[DEBUG] 요금제 유지기간: 알 수 없는 값, 빈 값으로 설정');
+                if (debugMode) {
+                    console.log('[DEBUG] 요금제 유지기간: 알 수 없는 값, 빈 값으로 설정');
+                }
                 formData.set('plan_maintenance_period', '');
             }
         } else {
-            console.warn('[DEBUG] 요금제 유지기간 타입 필드를 찾을 수 없습니다');
+            if (debugMode) {
+                console.warn('[DEBUG] 요금제 유지기간 타입 필드를 찾을 수 없습니다');
+            }
         }
         
         // 유심기변 불가기간 합치기
-        console.log('[DEBUG] 유심기변 불가기간 폼 제출 처리 시작');
+        if (debugMode) {
+            console.log('[DEBUG] 유심기변 불가기간 폼 제출 처리 시작');
+        }
         const simChangeRestrictionType = document.getElementById('sim_change_restriction_period_type');
-        console.log('[DEBUG] 유심기변 불가기간 타입:', simChangeRestrictionType ? simChangeRestrictionType.value : '없음');
+        if (debugMode) {
+            console.log('[DEBUG] 유심기변 불가기간 타입:', simChangeRestrictionType ? simChangeRestrictionType.value : '없음');
+        }
         
         if (simChangeRestrictionType) {
             if (simChangeRestrictionType.value === '무약정') {
-                console.log('[DEBUG] 유심기변 불가기간: 무약정으로 설정');
+                if (debugMode) {
+                    console.log('[DEBUG] 유심기변 불가기간: 무약정으로 설정');
+                }
                 formData.set('sim_change_restriction_period', '무약정');
             } else if (simChangeRestrictionType.value === '직접입력') {
                 const simChangeRestrictionPrefix = document.getElementById('sim_change_restriction_period_prefix');
                 const simChangeRestrictionValue = document.getElementById('sim_change_restriction_period_value');
                 const simChangeRestrictionUnit = document.getElementById('sim_change_restriction_period_unit');
                 
-                console.log('[DEBUG] 유심기변 불가기간 직접입력 필드:', {
-                    prefix: simChangeRestrictionPrefix ? simChangeRestrictionPrefix.value : '없음',
-                    value: simChangeRestrictionValue ? simChangeRestrictionValue.value : '없음',
-                    unit: simChangeRestrictionUnit ? simChangeRestrictionUnit.value : '없음',
-                    prefixDisabled: simChangeRestrictionPrefix ? simChangeRestrictionPrefix.disabled : 'N/A',
-                    valueDisabled: simChangeRestrictionValue ? simChangeRestrictionValue.disabled : 'N/A',
-                    unitDisabled: simChangeRestrictionUnit ? simChangeRestrictionUnit.disabled : 'N/A'
-                });
+                if (debugMode) {
+                    console.log('[DEBUG] 유심기변 불가기간 직접입력 필드:', {
+                        prefix: simChangeRestrictionPrefix ? simChangeRestrictionPrefix.value : '없음',
+                        value: simChangeRestrictionValue ? simChangeRestrictionValue.value : '없음',
+                        unit: simChangeRestrictionUnit ? simChangeRestrictionUnit.value : '없음',
+                        prefixDisabled: simChangeRestrictionPrefix ? simChangeRestrictionPrefix.disabled : 'N/A',
+                        valueDisabled: simChangeRestrictionValue ? simChangeRestrictionValue.disabled : 'N/A',
+                        unitDisabled: simChangeRestrictionUnit ? simChangeRestrictionUnit.disabled : 'N/A'
+                    });
+                }
                 
                 if (simChangeRestrictionPrefix && simChangeRestrictionValue && simChangeRestrictionUnit) {
                     const prefix = simChangeRestrictionPrefix.value;
@@ -2233,28 +2316,40 @@ document.addEventListener('DOMContentLoaded', function() {
                     const unit = simChangeRestrictionUnit.value;
                     if (value !== '') {
                         const combinedValue = prefix + '+' + value + unit;
-                        console.log('[DEBUG] 유심기변 불가기간 합쳐진 값:', combinedValue);
+                        if (debugMode) {
+                            console.log('[DEBUG] 유심기변 불가기간 합쳐진 값:', combinedValue);
+                        }
                         formData.set('sim_change_restriction_period', combinedValue);
                     } else {
-                        console.log('[DEBUG] 유심기변 불가기간: 값이 비어있음');
+                        if (debugMode) {
+                            console.log('[DEBUG] 유심기변 불가기간: 값이 비어있음');
+                        }
                         formData.set('sim_change_restriction_period', '');
                     }
                 } else {
-                    console.warn('[DEBUG] 유심기변 불가기간: 필드 중 일부가 없습니다');
+                    if (debugMode) {
+                        console.warn('[DEBUG] 유심기변 불가기간: 필드 중 일부가 없습니다');
+                    }
                 }
             } else {
-                console.log('[DEBUG] 유심기변 불가기간: 알 수 없는 값, 빈 값으로 설정');
+                if (debugMode) {
+                    console.log('[DEBUG] 유심기변 불가기간: 알 수 없는 값, 빈 값으로 설정');
+                }
                 formData.set('sim_change_restriction_period', '');
             }
         } else {
-            console.warn('[DEBUG] 유심기변 불가기간 타입 필드를 찾을 수 없습니다');
+            if (debugMode) {
+                console.warn('[DEBUG] 유심기변 불가기간 타입 필드를 찾을 수 없습니다');
+            }
         }
         
         // 폼 데이터 확인
-        console.log('[DEBUG] 최종 폼 데이터:', {
-            plan_maintenance_period: formData.get('plan_maintenance_period'),
-            sim_change_restriction_period: formData.get('sim_change_restriction_period')
-        });
+        if (debugMode) {
+            console.log('[DEBUG] 최종 폼 데이터:', {
+                plan_maintenance_period: formData.get('plan_maintenance_period'),
+                sim_change_restriction_period: formData.get('sim_change_restriction_period')
+            });
+        }
         
         // redirect_url 처리: 체크박스가 체크되지 않았으면 빈 값으로 설정
         const enableRedirectUrlCheckbox = document.getElementById('enable_redirect_url');

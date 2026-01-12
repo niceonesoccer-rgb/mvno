@@ -121,38 +121,38 @@ $balance = floatval($balanceResult['balance'] ?? 0);
 ?>
 
 <div class="seller-center-container">
-    <div class="page-header" style="margin-bottom: 32px;">
-        <h1 style="font-size: 28px; font-weight: 800; color: #0f172a; margin-bottom: 8px;">예치금 충전</h1>
-        <p style="font-size: 16px; color: #64748b;">무통장 입금을 통해 예치금을 충전할 수 있습니다.</p>
+    <div class="page-header" style="margin-bottom: 24px; text-align: center;">
+        <h1 style="font-size: 28px; font-weight: 800; color: #0f172a; margin-bottom: 8px; text-align: center;">예치금 충전</h1>
+        <p style="font-size: 16px; color: #64748b; text-align: center;">무통장 입금을 통해 예치금을 충전할 수 있습니다.</p>
     </div>
     
-    <div class="content-box" style="background: #fff; border-radius: 12px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); max-width: 60%; margin: 0 auto;">
+    <div class="content-box" style="background: #fff; border-radius: 12px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); max-width: 50%; margin: 0 auto;">
         <?php if ($error): ?>
-            <div style="padding: 12px; background: #fee2e2; color: #991b1b; border-radius: 6px; margin-bottom: 20px;">
+            <div style="padding: 10px; background: #fee2e2; color: #991b1b; border-radius: 6px; margin-bottom: 16px; font-size: 14px;">
                 <?= htmlspecialchars($error) ?>
             </div>
         <?php endif; ?>
         
         <?php if ($success): ?>
-            <div style="padding: 12px; background: #d1fae5; color: #065f46; border-radius: 6px; margin-bottom: 20px;">
+            <div style="padding: 10px; background: #d1fae5; color: #065f46; border-radius: 6px; margin-bottom: 16px; font-size: 14px;">
                 <?= htmlspecialchars($success) ?>
             </div>
         <?php endif; ?>
         
-        <div style="margin-bottom: 24px; padding: 20px; background: #f8fafc; border-radius: 8px;">
-            <div style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">현재 예치금 잔액</div>
-            <div style="font-size: 32px; font-weight: 700; color: #6366f1;"><?= number_format($balance, 0) ?>원</div>
+        <div style="margin-bottom: 20px; padding: 16px; background: #f8fafc; border-radius: 8px;">
+            <div style="font-size: 16px; font-weight: 600; margin-bottom: 6px;">현재 예치금 잔액</div>
+            <div style="font-size: 28px; font-weight: 700; color: #6366f1;"><?= number_format($balance, 0) ?>원</div>
         </div>
         
         <?php if (empty($bankAccounts)): ?>
-            <div style="padding: 40px; text-align: center; color: #64748b;">
-                <div style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">입금 계좌가 등록되지 않았습니다</div>
-                <div>관리자에게 문의해주세요.</div>
+            <div style="padding: 30px; text-align: center; color: #64748b;">
+                <div style="font-size: 16px; font-weight: 600; margin-bottom: 6px;">입금 계좌가 등록되지 않았습니다</div>
+                <div style="font-size: 14px;">관리자에게 문의해주세요.</div>
             </div>
         <?php else: ?>
             <form method="POST">
-                <div style="margin-bottom: 20px;">
-                    <label style="display: block; font-weight: 600; color: #374151; margin-bottom: 8px;">
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; font-weight: 600; color: #374151; margin-bottom: 6px;">
                         입금 계좌 <span style="color: #ef4444;">*</span>
                     </label>
                     <select name="bank_account_id" required
@@ -168,8 +168,8 @@ $balance = floatval($balanceResult['balance'] ?? 0);
                     </select>
                 </div>
                 
-                <div style="margin-bottom: 20px;">
-                    <label style="display: block; font-weight: 600; color: #374151; margin-bottom: 8px;">
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; font-weight: 600; color: #374151; margin-bottom: 6px;">
                         입금자명 <span style="color: #ef4444;">*</span>
                     </label>
                     <input type="text" name="depositor_name" required
@@ -177,8 +177,8 @@ $balance = floatval($balanceResult['balance'] ?? 0);
                            placeholder="입금자명을 입력하세요">
                 </div>
                 
-                <div style="margin-bottom: 24px;">
-                    <label style="display: block; font-weight: 600; color: #374151; margin-bottom: 8px;">
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; font-weight: 600; color: #374151; margin-bottom: 6px;">
                         충전 금액 (공급가액) <span style="color: #ef4444;">*</span>
                     </label>
                     <select name="supply_amount" id="supply_amount" required
@@ -197,12 +197,12 @@ $balance = floatval($balanceResult['balance'] ?? 0);
                         }
                         ?>
                     </select>
-                    <div style="font-size: 13px; color: #6b7280; margin-top: 6px;">
+                    <div style="font-size: 13px; color: #6b7280; margin-top: 4px;">
                         부가세 10%가 자동으로 추가되어 입금 금액이 계산됩니다.
                     </div>
-                    <div id="amountPreview" style="margin-top: 12px; padding: 12px; background: #f8fafc; border-radius: 6px; display: none;">
-                        <div style="font-size: 14px; color: #64748b; margin-bottom: 4px;">입금 금액 (부가세 포함):</div>
-                        <div style="font-size: 20px; font-weight: 600; color: #6366f1;" id="totalAmount">0원</div>
+                    <div id="amountPreview" style="margin-top: 10px; padding: 12px; background: #f8fafc; border-radius: 6px; display: none;">
+                        <div style="font-size: 16px; font-weight: 600; color: #64748b; margin-bottom: 6px;">입금 금액 (부가세 포함):</div>
+                        <div style="font-size: 24px; font-weight: 700; color: #6366f1;" id="totalAmount">0원</div>
                     </div>
                 </div>
                 

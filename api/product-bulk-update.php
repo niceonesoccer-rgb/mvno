@@ -40,12 +40,15 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 // POST 요청만 허용
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+$requestMethod = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+if ($requestMethod !== 'POST') {
     http_response_code(405);
+    ob_clean();
     echo json_encode([
         'success' => false,
-        'message' => 'POST 메서드만 허용됩니다.'
-    ]);
+        'message' => 'POST 메서드만 허용됩니다.',
+        'received_method' => $requestMethod
+    ], JSON_UNESCAPED_UNICODE);
     exit;
 }
 

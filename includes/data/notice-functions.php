@@ -705,6 +705,36 @@ function getSellerMainBanner() {
             }
         }
         
+        // 이미지 경로 정규화 (로컬/프로덕션 호환성)
+        if ($row && !empty($row['image_url'])) {
+            require_once __DIR__ . '/path-config.php';
+            $imagePath = $row['image_url'];
+            
+            // 전체 URL이면 그대로 반환
+            if (preg_match('/^https?:\/\//', $imagePath)) {
+                $row['image_url'] = $imagePath;
+            } else {
+                // DB에 저장된 경로에서 하드코딩된 /MVNO/ 제거 (프로덕션 경로로 정규화)
+                while (strpos($imagePath, '/MVNO/') !== false) {
+                    $imagePath = str_replace('/MVNO/', '/', $imagePath);
+                }
+                if (strpos($imagePath, '/MVNO') === 0) {
+                    $imagePath = substr($imagePath, 5);
+                }
+                if (strpos($imagePath, 'MVNO/') === 0) {
+                    $imagePath = substr($imagePath, 5);
+                }
+                
+                // /로 시작하지 않으면 추가
+                if (strpos($imagePath, '/') !== 0) {
+                    $imagePath = '/' . $imagePath;
+                }
+                
+                // getAssetPath를 사용하여 환경에 맞는 경로로 변환
+                $row['image_url'] = getAssetPath($imagePath);
+            }
+        }
+        
         return $row ?: null;
     } catch (PDOException $e) {
         error_log('getSellerMainBanner error: ' . $e->getMessage());

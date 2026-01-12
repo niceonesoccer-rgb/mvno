@@ -29,6 +29,9 @@ if ($approvalStatus !== 'approved') {
     exit;
 }
 
+// 디버깅 모드 (URL 파라미터로 제어)
+$debugMode = isset($_GET['debug']) && $_GET['debug'] === '1';
+
 // 탈퇴 요청 상태 확인
 if (isset($currentUser['withdrawal_requested']) && $currentUser['withdrawal_requested'] === true) {
     header('Location: ' . getAssetPath('/seller/waiting.php'));
@@ -221,50 +224,58 @@ try {
         $stmt->bindValue(':offset', (int)$offset, PDO::PARAM_INT);
         
         // 디버깅: 바인딩된 파라미터 확인
-        error_log("MNO-SIM Orders Query - Bound limit: " . $perPage . " (type: " . gettype($perPage) . ")");
-        error_log("MNO-SIM Orders Query - Bound offset: " . $offset . " (type: " . gettype($offset) . ")");
-        
-        // 디버깅: 쿼리 실행 전 파라미터 확인
-        error_log("MNO-SIM Orders Query - About to execute with params: " . json_encode($params, JSON_UNESCAPED_UNICODE));
-        error_log("MNO-SIM Orders Query - Limit: " . $perPage . ", Offset: " . $offset);
+        if ($debugMode) {
+            error_log("MNO-SIM Orders Query - Bound limit: " . $perPage . " (type: " . gettype($perPage) . ")");
+            error_log("MNO-SIM Orders Query - Bound offset: " . $offset . " (type: " . gettype($offset) . ")");
+            error_log("MNO-SIM Orders Query - About to execute with params: " . json_encode($params, JSON_UNESCAPED_UNICODE));
+            error_log("MNO-SIM Orders Query - Limit: " . $perPage . ", Offset: " . $offset);
+        }
         
         try {
             $execResult = $stmt->execute();
-            error_log("MNO-SIM Orders Query - Execute result: " . ($execResult ? 'SUCCESS' : 'FAILED'));
+            if ($debugMode) {
+                error_log("MNO-SIM Orders Query - Execute result: " . ($execResult ? 'SUCCESS' : 'FAILED'));
+            }
             if (!$execResult) {
                 $errorInfo = $stmt->errorInfo();
                 error_log("MNO-SIM Orders Query - Execute failed. Error Info: " . json_encode($errorInfo, JSON_UNESCAPED_UNICODE));
                 $orders = [];
             } else {
                 $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                error_log("MNO-SIM Orders Query - Fetched " . count($orders) . " rows");
-                if (count($orders) > 0) {
-                    error_log("MNO-SIM Orders Query - First order before normalization: " . json_encode($orders[0], JSON_UNESCAPED_UNICODE));
+                if ($debugMode) {
+                    error_log("MNO-SIM Orders Query - Fetched " . count($orders) . " rows");
+                    if (count($orders) > 0) {
+                        error_log("MNO-SIM Orders Query - First order before normalization: " . json_encode($orders[0], JSON_UNESCAPED_UNICODE));
+                    }
                 }
             }
         } catch (PDOException $e) {
             error_log("MNO-SIM Orders Query - PDO Exception: " . $e->getMessage());
-            error_log("MNO-SIM Orders Query - Error Code: " . $e->getCode());
-            error_log("MNO-SIM Orders Query - SQL State: " . $e->getCode());
-            error_log("MNO-SIM Orders Query - Trace: " . $e->getTraceAsString());
+            if ($debugMode) {
+                error_log("MNO-SIM Orders Query - Error Code: " . $e->getCode());
+                error_log("MNO-SIM Orders Query - SQL State: " . $e->getCode());
+                error_log("MNO-SIM Orders Query - Trace: " . $e->getTraceAsString());
+            }
             $orders = [];
         } catch (Exception $e) {
             error_log("MNO-SIM Orders Query - General Exception: " . $e->getMessage());
-            error_log("MNO-SIM Orders Query - Trace: " . $e->getTraceAsString());
+            if ($debugMode) {
+                error_log("MNO-SIM Orders Query - Trace: " . $e->getTraceAsString());
+            }
             $orders = [];
         }
         
         // 디버깅: 정규화 전 orders 상태 확인
-        error_log("MNO-SIM Orders Query - Orders count before normalization: " . count($orders));
+        if ($debugMode) {
+            error_log("MNO-SIM Orders Query - Orders count before normalization: " . count($orders));
+            error_log("MNO-SIM Orders Query - Total results: " . count($orders));
+            error_log("MNO-SIM Orders Query - SQL: " . $sql);
+            error_log("MNO-SIM Orders Query - Orders array type: " . gettype($orders));
+            error_log("MNO-SIM Orders Query - Orders empty check: " . (empty($orders) ? 'TRUE' : 'FALSE'));
+        }
         
-        // 디버깅: 쿼리 결과 로그
-        error_log("MNO-SIM Orders Query - Total results: " . count($orders));
-        error_log("MNO-SIM Orders Query - SQL: " . $sql);
-        error_log("MNO-SIM Orders Query - Orders array type: " . gettype($orders));
-        error_log("MNO-SIM Orders Query - Orders empty check: " . (empty($orders) ? 'TRUE' : 'FALSE'));
-        
-        // 실제 쿼리와 동일한 조건으로 직접 테스트
-        if (count($orders) == 0) {
+        // 실제 쿼리와 동일한 조건으로 직접 테스트 (디버깅 모드에서만)
+        if ($debugMode && count($orders) == 0) {
             error_log("MNO-SIM Orders Query - Testing with same SQL but direct LIMIT values...");
             $testSqlDirect = str_replace(['LIMIT :limit OFFSET :offset'], ["LIMIT {$perPage} OFFSET {$offset}"], $sql);
             $testStmtDirect = $pdo->prepare($testSqlDirect);
@@ -281,9 +292,10 @@ try {
                 error_log("MNO-SIM Orders Query - Orders updated from direct LIMIT test");
             }
         }
-        if (count($orders) > 0) {
+        if ($debugMode && count($orders) > 0) {
             error_log("MNO-SIM Orders Query - First order keys: " . implode(', ', array_keys($orders[0])));
-        } else {
+        }
+        if ($debugMode && count($orders) == 0) {
             // products 조인 없이 테스트
             $testSql = "
                 SELECT DISTINCT
@@ -312,9 +324,10 @@ try {
             }
         }
         
-        if (count($orders) > 0) {
+        if ($debugMode && count($orders) > 0) {
             error_log("MNO-SIM Orders Query - First order: " . json_encode($orders[0], JSON_UNESCAPED_UNICODE));
-        } else {
+        }
+        if ($debugMode && count($orders) == 0) {
             // 결과가 없을 때 원인 파악을 위한 추가 쿼리
             error_log("MNO-SIM Orders Query - No results found. Debugging...");
             
@@ -389,10 +402,17 @@ try {
         
         // 주문 데이터 정규화
         foreach ($orders as &$order) {
-            // 디버깅: 원본 상태 값 저장
-            $order['_debug_original_status'] = $order['application_status'] ?? null;
+            // 디버깅 모드에서만 원본 상태 값 저장
+            if ($debugMode) {
+                $order['_debug_original_status'] = $order['application_status'] ?? null;
+            }
+            
             $orderStatus = strtolower(trim($order['application_status'] ?? ''));
-            $order['_debug_normalized_status'] = $orderStatus;
+            
+            // 디버깅 모드에서만 정규화 전 상태 저장
+            if ($debugMode) {
+                $order['_debug_normalized_status'] = $orderStatus;
+            }
             
             // 정규화 로직 수정: pending과 빈 값만 received로 변환
             if (in_array($orderStatus, ['pending', ''])) {
@@ -403,7 +423,10 @@ try {
                 $order['application_status'] = in_array($orderStatus, $validStatuses) ? $orderStatus : ($order['application_status'] ?? 'received');
             }
             
-            $order['_debug_final_status'] = $order['application_status'];
+            // 디버깅 모드에서만 최종 상태 저장
+            if ($debugMode) {
+                $order['_debug_final_status'] = $order['application_status'];
+            }
             
             $order['additional_info'] = json_decode($order['additional_info'] ?? '{}', true) ?: [];
             
@@ -1138,7 +1161,7 @@ include __DIR__ . '/../includes/seller-header.php';
 ?>
 
 <!-- 디버깅 정보 -->
-<?php if (isset($_GET['debug'])): ?>
+<?php if ($debugMode): ?>
 <div style="background: #fff3cd; border: 2px solid #ffc107; padding: 15px; margin: 20px; border-radius: 8px; font-family: monospace; font-size: 12px;">
     <h3 style="margin-top: 0; color: #856404;">🔍 디버깅 정보</h3>
     
